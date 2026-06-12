@@ -80,17 +80,17 @@ class QuestionRouter:
         normalized = question.lower()
         signals: list[str] = []
 
-        if _matches_any(normalized, self._RECENT_PATTERNS):
-            signals.append("recent_or_current")
-            return RouteResult(
-                information_need="current_state",
-                signals=tuple(signals),
-                retrieval_multiplier=2,
-            )
         if _matches_any(normalized, self._TEMPORAL_PATTERNS):
             signals.append("temporal")
             return RouteResult(
                 information_need="temporal_lookup",
+                signals=tuple(signals),
+                retrieval_multiplier=2,
+            )
+        if _matches_any(normalized, self._RECENT_PATTERNS):
+            signals.append("recent_or_current")
+            return RouteResult(
+                information_need="current_state",
                 signals=tuple(signals),
                 retrieval_multiplier=2,
             )
