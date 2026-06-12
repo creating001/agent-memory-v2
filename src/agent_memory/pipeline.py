@@ -8,7 +8,7 @@ from typing import Any
 
 from agent_memory.answer import NullAnswerer, OpenAICompatibleAnswerer
 from agent_memory.compiler import EvidenceCompiler
-from agent_memory.embeddings import OpenAICompatibleEmbeddingClient
+from agent_memory.embeddings import CachedEmbeddingClient, OpenAICompatibleEmbeddingClient
 from agent_memory.retrieval import (
     DenseEmbeddingRetriever,
     LexicalBM25Retriever,
@@ -44,6 +44,12 @@ class Stage1Pipeline:
         self._dense_batch_size = int(dense_config.get("batch_size", 32))
         self._fusion_rrf_k = int(dense_config.get("rrf_k", 60))
         self._lexical_protect_top_n = int(dense_config.get("lexical_protect_top_n", 0))
+        cache_config = dense_config.get("cache", {})
+        self._embedding_cache_enabled = bool(cache_config.get("enabled", False))
+        self._embedding_cache_path = cache_config.get("path")
+        self._embedding_cache_namespace = str(
+            cache_config.get("namespace", dense_config.get("model", "unknown"))
+        )
         self._session_bm25_enabled = bool(session_config.get("enabled", False))
         self._session_bm25_top_k = int(session_config.get("top_k", 0))
         self._session_bm25_anchor_top_k = int(session_config.get("anchor_top_k", 1))
@@ -87,6 +93,14 @@ class Stage1Pipeline:
                 model=str(dense_config["model"]),
                 timeout=float(dense_config.get("timeout", 120.0)),
             )
+            if self._embedding_cache_enabled:
+                if self._embedding_cache_path is None:
+                    raise ValueError("dense.cache.path is required when cache is enabled")
+                self._embedding_client = CachedEmbeddingClient(
+                    self._embedding_client,
+                    cache_path=str(self._embedding_cache_path),
+                    namespace=self._embedding_cache_namespace,
+                )
         self._compiler = EvidenceCompiler(
             max_evidence_items=int(compiler_config.get("max_evidence_items", 20)),
             max_evidence_chars=int(compiler_config.get("max_evidence_chars", 12000)),
@@ -128,6 +142,7 @@ class Stage1Pipeline:
         )
         dense_hits = ()
         embedding_tokens = 0
+        embedding_cache_before = _embedding_cache_stats(self._embedding_client)
         if self._embedding_client is not None:
             dense_result = DenseEmbeddingRetriever(
                 store.turns,
@@ -152,6 +167,7 @@ class Stage1Pipeline:
                 )
         else:
             hits = lexical_hits
+        embedding_cache_after = _embedding_cache_stats(self._embedding_client)
         turn_hits = hits
         session_hits = ()
         session_anchor_hits = ()
@@ -208,6 +224,19 @@ class Stage1Pipeline:
                     "lexical_protect_top_n": self._lexical_protect_top_n
                     if self._dense_enabled
                     else None,
+                    "embedding_cache_enabled": self._embedding_cache_enabled
+                    if self._dense_enabled
+                    else None,
+                    "embedding_cache_path": str(self._embedding_cache_path)
+                    if self._dense_enabled and self._embedding_cache_enabled
+                    else None,
+                    "embedding_cache_namespace": self._embedding_cache_namespace
+                    if self._dense_enabled and self._embedding_cache_enabled
+                    else None,
+                    "embedding_cache": _embedding_cache_delta(
+                        embedding_cache_before,
+                        embedding_cache_after,
+                    ),
                     "session_bm25_enabled": self._session_bm25_enabled,
                     "session_bm25_applied": session_bm25_applied,
                     "session_bm25_top_k": self._session_bm25_top_k
@@ -397,6 +426,25 @@ def _session_bm25_applies(
         return True
     normalized = question.lower()
     return any(re.search(pattern, normalized) for pattern in enabled_query_patterns)
+
+
+def _embedding_cache_stats(client: object) -> dict[str, int] | None:
+    stats_method = getattr(client, "stats", None)
+    if stats_method is None:
+        return None
+    return stats_method().to_dict()
+
+
+def _embedding_cache_delta(
+    before: dict[str, int] | None,
+    after: dict[str, int] | None,
+) -> dict[str, int] | None:
+    if before is None or after is None:
+        return None
+    return {
+        key: int(after.get(key, 0)) - int(before.get(key, 0))
+        for key in sorted(after)
+    }
 
 
 def _tuple_config(value: object) -> tuple[str, ...]:

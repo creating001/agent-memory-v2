@@ -44,6 +44,9 @@ def main() -> int:
     total_context_chars = 0
     total_embedding_tokens = 0
     total_session_bm25_applied = 0
+    total_embedding_cache_hits = 0
+    total_embedding_cache_misses = 0
+    total_embedding_cache_writes = 0
 
     for index, envelope in enumerate(load_prediction_jsonl(args.input), start=1):
         if args.limit is not None and index > args.limit:
@@ -69,6 +72,10 @@ def main() -> int:
         total_embedding_tokens += int(result["trace"]["retrieval"].get("embedding_tokens") or 0)
         if result["trace"]["retrieval"].get("session_bm25_applied"):
             total_session_bm25_applied += 1
+        embedding_cache = result["trace"]["retrieval"].get("embedding_cache") or {}
+        total_embedding_cache_hits += int(embedding_cache.get("hits") or 0)
+        total_embedding_cache_misses += int(embedding_cache.get("misses") or 0)
+        total_embedding_cache_writes += int(embedding_cache.get("writes") or 0)
 
     sample_count = len(records)
     metrics = {
@@ -102,6 +109,17 @@ def main() -> int:
             "lexical_protect_top_n": config.get("retrieval", {})
             .get("dense", {})
             .get("lexical_protect_top_n"),
+            "embedding_cache_enabled": config.get("retrieval", {})
+            .get("dense", {})
+            .get("cache", {})
+            .get("enabled", False),
+            "embedding_cache_path": config.get("retrieval", {})
+            .get("dense", {})
+            .get("cache", {})
+            .get("path"),
+            "embedding_cache_hits": total_embedding_cache_hits,
+            "embedding_cache_misses": total_embedding_cache_misses,
+            "embedding_cache_writes": total_embedding_cache_writes,
             "session_bm25_enabled": config.get("retrieval", {})
             .get("session_bm25", {})
             .get("enabled", False),
@@ -280,6 +298,11 @@ def _write_summary(
         f"- drop_query_stopwords: {metrics['retrieval']['drop_query_stopwords']}",
         f"- dense_enabled: {metrics['retrieval']['dense_enabled']}",
         f"- lexical_protect_top_n: {metrics['retrieval']['lexical_protect_top_n']}",
+        f"- embedding_cache_enabled: {metrics['retrieval']['embedding_cache_enabled']}",
+        f"- embedding_cache_path: {metrics['retrieval']['embedding_cache_path']}",
+        f"- embedding_cache_hits: {metrics['retrieval']['embedding_cache_hits']}",
+        f"- embedding_cache_misses: {metrics['retrieval']['embedding_cache_misses']}",
+        f"- embedding_cache_writes: {metrics['retrieval']['embedding_cache_writes']}",
         f"- session_bm25_enabled: {metrics['retrieval']['session_bm25_enabled']}",
         f"- session_bm25_top_k: {metrics['retrieval']['session_bm25_top_k']}",
         f"- session_anchor_top_k: {metrics['retrieval']['session_anchor_top_k']}",
@@ -338,6 +361,9 @@ def _write_diagnosis(
         f"- session_enabled_route_signals: {metrics['retrieval']['session_enabled_route_signals']}",
         f"- session_bm25_applied_count: {metrics['retrieval']['session_bm25_applied_count']}",
         f"- session_bm25_applied_rate: {metrics['retrieval']['session_bm25_applied_rate']}",
+        f"- embedding_cache_enabled: {metrics['retrieval']['embedding_cache_enabled']}",
+        f"- embedding_cache_hits: {metrics['retrieval']['embedding_cache_hits']}",
+        f"- embedding_cache_misses: {metrics['retrieval']['embedding_cache_misses']}",
         f"- answer: {_answer_note(config)}",
         "",
         "## Next Steps",
