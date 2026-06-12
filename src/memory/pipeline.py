@@ -40,6 +40,9 @@ class Stage1Pipeline:
         self._router = QuestionRouter(
             enable_broad_list_patterns=bool(
                 route_config.get("enable_broad_list_patterns", False)
+            ),
+            enable_recommendation_profile_patterns=bool(
+                route_config.get("enable_recommendation_profile_patterns", False)
             )
         )
         self._base_top_k = int(retrieval_config.get("top_k", 8))
@@ -160,6 +163,7 @@ class Stage1Pipeline:
             answer_style=str(compiler_config.get("answer_style", "grounded")),
             temporal_grounding=bool(compiler_config.get("temporal_grounding", False)),
             temporal_hints=bool(compiler_config.get("temporal_hints", False)),
+            temporal_workpad=bool(compiler_config.get("temporal_workpad", False)),
             evidence_order=str(compiler_config.get("evidence_order", "retrieval")),
             memory_order=str(compiler_config.get("memory_order", "retrieval")),
             memory_layout=str(compiler_config.get("memory_layout", "flat")),
@@ -180,6 +184,9 @@ class Stage1Pipeline:
                 compiler_config.get("temporal_grounding", False)
             ),
             "temporal_hints": bool(compiler_config.get("temporal_hints", False)),
+            "temporal_workpad": bool(
+                compiler_config.get("temporal_workpad", False)
+            ),
             "max_memory_records": int(compiler_config.get("max_memory_records", 12)),
         }
         answer_mode = str(answer_config.get("mode", "null_answerer"))

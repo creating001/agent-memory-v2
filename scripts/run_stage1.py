@@ -264,10 +264,16 @@ def main() -> int:
                 "temporal_grounding", False
             ),
             "temporal_hints": config.get("compiler", {}).get("temporal_hints", False),
+            "temporal_workpad": config.get("compiler", {}).get(
+                "temporal_workpad", False
+            ),
         },
         "route": {
             "enable_broad_list_patterns": config.get("route", {}).get(
                 "enable_broad_list_patterns", False
+            ),
+            "enable_recommendation_profile_patterns": config.get("route", {}).get(
+                "enable_recommendation_profile_patterns", False
             ),
         },
         "runner": {
@@ -508,7 +514,9 @@ def _write_summary(
         f"- route_guidance: {metrics['compiler']['route_guidance']}",
         f"- temporal_grounding: {metrics['compiler']['temporal_grounding']}",
         f"- temporal_hints: {metrics['compiler']['temporal_hints']}",
+        f"- temporal_workpad: {metrics['compiler']['temporal_workpad']}",
         f"- enable_broad_list_patterns: {metrics['route']['enable_broad_list_patterns']}",
+        f"- enable_recommendation_profile_patterns: {metrics['route']['enable_recommendation_profile_patterns']}",
         "",
         "## Outputs",
         "",
@@ -569,6 +577,8 @@ def _write_diagnosis(
         f"- max_row_text_chars: {metrics['compiler']['max_row_text_chars']}",
         f"- max_memory_records: {metrics['compiler']['max_memory_records']}",
         f"- route_guidance: {metrics['compiler']['route_guidance']}",
+        f"- temporal_workpad: {metrics['compiler']['temporal_workpad']}",
+        f"- enable_recommendation_profile_patterns: {metrics['route']['enable_recommendation_profile_patterns']}",
         f"- answer: {_answer_note(config)}",
         "",
         "## Next Steps",

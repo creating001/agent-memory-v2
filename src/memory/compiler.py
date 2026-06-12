@@ -74,6 +74,7 @@ class EvidenceCompiler:
         answer_style: str = "grounded",
         temporal_grounding: bool = False,
         temporal_hints: bool = False,
+        temporal_workpad: bool = False,
         evidence_order: str = "retrieval",
         memory_order: str = "retrieval",
         memory_layout: str = "flat",
@@ -87,6 +88,7 @@ class EvidenceCompiler:
         self._answer_style = answer_style
         self._temporal_grounding = temporal_grounding
         self._temporal_hints = temporal_hints
+        self._temporal_workpad = temporal_workpad
         if evidence_order not in {"retrieval", "question_overlap"}:
             raise ValueError(f"Unsupported evidence_order: {evidence_order}")
         self._evidence_order = evidence_order
@@ -171,6 +173,7 @@ class EvidenceCompiler:
             answer_style=self._answer_style,
             temporal_grounding=self._temporal_grounding,
             temporal_hints=self._temporal_hints,
+            temporal_workpad=self._temporal_workpad,
             memory_layout=self._memory_layout,
             row_text_mode=self._row_text_mode,
             max_row_text_chars=self._max_row_text_chars,
@@ -352,6 +355,7 @@ def _build_prompt(
     answer_style: str,
     temporal_grounding: bool,
     temporal_hints: bool,
+    temporal_workpad: bool,
     memory_layout: str,
     row_text_mode: str,
     max_row_text_chars: int,
@@ -389,6 +393,12 @@ def _build_prompt(
 
     lines.append("Build-stage typed memory view:")
     lines.extend(_format_memory_records(memory_records, memory_layout=memory_layout))
+
+    if temporal_workpad and _should_add_temporal_workpad(question, route):
+        workpad_lines = _temporal_workpad_lines(question, question_time, rows)
+        if workpad_lines:
+            lines.extend(("", "Temporal calculation workpad:"))
+            lines.extend(workpad_lines)
 
     lines.extend(["", "Raw context table:"])
     if not rows:
@@ -553,6 +563,8 @@ def _route_guidance_lines(route: RouteResult) -> list[str]:
         return [
             "- Identify the event row first, then convert relative dates using that row time.",
             "- Return only the supported date, time span, or duration when the question asks when or how long.",
+            "- If the question asks for elapsed days, weeks, months, or years, compute the difference before answering; do not return only a source date.",
+            "- If the question asks which events happened in order, answer with event descriptions in chronological order, not only dates.",
         ]
     if route.information_need == "list_count":
         return [
@@ -570,6 +582,149 @@ def _route_guidance_lines(route: RouteResult) -> list[str]:
             "- Ignore unrelated rows even if they share generic question words.",
         ]
     return []
+
+
+def _should_add_temporal_workpad(question: str, route: RouteResult) -> bool:
+    if route.information_need in {"temporal_lookup", "current_state"}:
+        return True
+    return bool(
+        re.search(
+            r"\b(?:ago|before|after|between|duration|elapsed|passed|days?|weeks?|months?|years?|chronological|first to last)\b",
+            question.lower(),
+        )
+    )
+
+
+def _temporal_workpad_lines(
+    question: str,
+    question_time: str | None,
+    rows: tuple[EvidenceRow, ...],
+) -> list[str]:
+    dated_rows = _dated_candidate_rows(question, rows)
+    if not dated_rows:
+        return []
+
+    lines = [
+        "Use this only as an arithmetic aid derived from raw row timestamps; final facts must still come from the raw rows."
+    ]
+    question_date = _parse_date(question_time)
+    if question_date is not None:
+        lines.append(f"- question_date={question_date.isoformat()}")
+
+    lines.append("- candidate_event_dates:")
+    for candidate in dated_rows[:10]:
+        matched = ", ".join(candidate["matched_terms"]) or "none"
+        relative = ""
+        row_date = candidate["date"]
+        if question_date is not None and _asks_relative_to_question(question):
+            days_ago = (question_date - row_date).days
+            if days_ago >= 0:
+                relative = (
+                    f" | relative_to_question={days_ago} days ago, "
+                    f"{days_ago // 7} full weeks ago, {days_ago / 7:.2f} weeks ago"
+                )
+        lines.append(
+            f"  - source_id={candidate['source_id']} date={row_date.isoformat()} "
+            f"role={candidate['role']} matched_terms={matched}{relative}"
+        )
+
+    chronological = sorted(
+        dated_rows[:10],
+        key=lambda item: (item["date"], item["source_id"]),
+    )
+    if _asks_order(question) and len(chronological) >= 2:
+        order = " -> ".join(
+            f"{item['source_id']}({item['date'].isoformat()})" for item in chronological
+        )
+        lines.append(f"- chronological_order_by_date: {order}")
+
+    if _asks_pairwise_duration(question) and len(dated_rows) >= 2:
+        lines.append("- pairwise_date_gaps:")
+        for left, right in _pairwise_temporal_gaps(dated_rows[:8])[:12]:
+            start = left["date"]
+            end = right["date"]
+            days = abs((end - start).days)
+            inclusive_days = days + 1
+            lines.append(
+                f"  - {left['source_id']}({start.isoformat()}) <-> "
+                f"{right['source_id']}({end.isoformat()}): {days} days "
+                f"({inclusive_days} inclusive), {days / 7:.2f} weeks, "
+                f"{days / 30.44:.2f} approx months, {days / 365.25:.2f} approx years"
+            )
+    return lines
+
+
+def _dated_candidate_rows(
+    question: str,
+    rows: tuple[EvidenceRow, ...],
+) -> list[dict[str, object]]:
+    question_terms = _content_terms(question)
+    candidates: list[dict[str, object]] = []
+    seen_source_ids: set[str] = set()
+    for index, row in enumerate(rows):
+        if row.source_id in seen_source_ids:
+            continue
+        row_date = _parse_date(row.timestamp)
+        if row_date is None:
+            continue
+        seen_source_ids.add(row.source_id)
+        matched_terms = tuple(sorted(question_terms.intersection(_content_terms(row.text))))
+        retrieval_bonus = 1 if row.retrieval_rank is not None else 0
+        candidates.append(
+            {
+                "date": row_date,
+                "index": index,
+                "matched_terms": matched_terms[:8],
+                "role": row.role,
+                "score": len(matched_terms) + retrieval_bonus,
+                "source_id": row.source_id,
+            }
+        )
+    candidates.sort(
+        key=lambda item: (
+            -int(item["score"]),
+            int(item["index"]),
+            str(item["source_id"]),
+        )
+    )
+    return candidates
+
+
+def _asks_relative_to_question(question: str) -> bool:
+    return bool(re.search(r"\b(?:ago|since|before now|from now)\b", question.lower()))
+
+
+def _asks_pairwise_duration(question: str) -> bool:
+    return bool(
+        re.search(
+            r"\b(?:how many|how long|between|elapsed|passed|duration|days?|weeks?|months?|years?)\b",
+            question.lower(),
+        )
+    )
+
+
+def _asks_order(question: str) -> bool:
+    return bool(
+        re.search(
+            r"\b(?:order|chronological|first to last|last to first|before|after)\b",
+            question.lower(),
+        )
+    )
+
+
+def _pairwise_temporal_gaps(
+    dated_rows: list[dict[str, object]],
+) -> list[tuple[dict[str, object], dict[str, object]]]:
+    pairs: list[tuple[int, int, int, dict[str, object], dict[str, object]]] = []
+    for left_index, left in enumerate(dated_rows):
+        for right_index, right in enumerate(dated_rows[left_index + 1 :], start=left_index + 1):
+            if left["date"] == right["date"]:
+                continue
+            combined_score = int(left["score"]) + int(right["score"])
+            index_distance = abs(int(left["index"]) - int(right["index"]))
+            pairs.append((combined_score, -index_distance, -right_index, left, right))
+    pairs.sort(key=lambda item: (item[0], item[1], item[2]), reverse=True)
+    return [(left, right) for _, _, _, left, right in pairs]
 
 
 def _temporal_normalization_hints(rows: tuple[EvidenceRow, ...]) -> list[str]:

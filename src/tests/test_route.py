@@ -49,6 +49,31 @@ class RouteTest(unittest.TestCase):
         self.assertEqual(route.information_need, "list_count")
         self.assertIn("list_or_count", route.signals)
 
+    def test_recommendation_profile_route_is_disabled_by_default(self) -> None:
+        route = QuestionRouter().route(
+            "Can you recommend a show or movie for me to watch tonight?"
+        )
+
+        self.assertEqual(route.information_need, "fact_lookup")
+        self.assertNotIn("personalized_recommendation", route.signals)
+
+    def test_recommendation_profile_route_can_be_enabled(self) -> None:
+        route = QuestionRouter(enable_recommendation_profile_patterns=True).route(
+            "Can you recommend a show or movie for me to watch tonight?"
+        )
+
+        self.assertEqual(route.information_need, "profile_preference")
+        self.assertIn("profile_or_preference", route.signals)
+        self.assertIn("personalized_recommendation", route.signals)
+
+    def test_temporal_order_question_stays_temporal_when_recommendation_enabled(self) -> None:
+        route = QuestionRouter(enable_recommendation_profile_patterns=True).route(
+            "Which events happened in order from first to last by day?"
+        )
+
+        self.assertEqual(route.information_need, "temporal_lookup")
+        self.assertIn("temporal", route.signals)
+
 
 if __name__ == "__main__":
     unittest.main()

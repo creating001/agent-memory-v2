@@ -309,6 +309,85 @@ class CleanSkeletonTest(unittest.TestCase):
 
         self.assertEqual(compiled.evidence_rows[0].source_id, "s1:t1")
 
+    def test_temporal_workpad_is_disabled_by_default(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=2,
+            max_evidence_chars=4000,
+        )
+        route = RouteResult(information_need="temporal_lookup", signals=("temporal",))
+        compiled = compiler.compile(
+            question="How many days passed between the museum visit and the exhibit?",
+            question_time="2023-01-20",
+            route=route,
+            hits=(
+                RetrievalHit("s1:t0", 1.0, 1, "lexical_bm25"),
+                RetrievalHit("s2:t0", 0.9, 2, "lexical_bm25"),
+            ),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="I visited the art museum today.",
+                    timestamp="2023-01-08",
+                ),
+                Turn(
+                    source_id="s2:t0",
+                    session_id="s2",
+                    turn_index=0,
+                    role="user",
+                    text="I attended the ancient exhibit today.",
+                    timestamp="2023-01-15",
+                ),
+            ),
+        )
+
+        self.assertNotIn("Temporal calculation workpad", compiled.prompt)
+
+    def test_temporal_workpad_adds_pairwise_date_gaps(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=2,
+            max_evidence_chars=4000,
+            temporal_workpad=True,
+        )
+        route = RouteResult(information_need="temporal_lookup", signals=("temporal",))
+        compiled = compiler.compile(
+            question="How many days passed between the museum visit and the exhibit?",
+            question_time="2023-01-20",
+            route=route,
+            hits=(
+                RetrievalHit("s1:t0", 1.0, 1, "lexical_bm25"),
+                RetrievalHit("s2:t0", 0.9, 2, "lexical_bm25"),
+            ),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="I visited the art museum today.",
+                    timestamp="2023-01-08",
+                ),
+                Turn(
+                    source_id="s2:t0",
+                    session_id="s2",
+                    turn_index=0,
+                    role="user",
+                    text="I attended the ancient exhibit today.",
+                    timestamp="2023-01-15",
+                ),
+            ),
+        )
+
+        self.assertIn("Temporal calculation workpad", compiled.prompt)
+        self.assertIn("question_date=2023-01-20", compiled.prompt)
+        self.assertIn("7 days (8 inclusive)", compiled.prompt)
+        self.assertLess(
+            compiled.prompt.index("Temporal calculation workpad"),
+            compiled.prompt.index("Raw context table"),
+        )
+
     def test_compiler_memory_order_is_default(self) -> None:
         compiler = EvidenceCompiler(
             max_evidence_items=0,

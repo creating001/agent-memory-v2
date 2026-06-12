@@ -8,6 +8,7 @@
 - `stage1_build_memory_cached.json`：当前主线候选，增加 build-stage LLM typed memory、memory cache、typed-memory retrieval 和 route guidance。
 - `stage1_query_retrieval_v2_cached.json`：query-side ablation，复用 `stage1_build_memory_cached` 的 cold build cache，只改通用 stopword filtering、evidence ordering 和 temporal hints。
 - `stage1_memory_compiler_v3_cached.json`：query-side memory compiler ablation，在 v2 上增加 typed memory sections 和 question-overlap memory ordering，继续复用 cold build cache。
+- `stage1_temporal_preference_v4_cached.json`：query-side ablation，在 v3 上增加通用 temporal calculation workpad 和 personalized recommendation route，借鉴 SimpleMem 的 intent-aware retrieval、Zep/Graphiti 的 temporal validity 思路，以及 Memobase/Hindsight 的 profile/preference 分离；仍只使用问题文本、问题时间、raw evidence 和 build memory，不使用任何标签或样本级规则。
 
 新增配置必须满足：
 

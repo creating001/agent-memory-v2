@@ -58,9 +58,22 @@ class QuestionRouter:
         r"喜欢",
         r"偏好",
     )
+    _RECOMMENDATION_PROFILE_PATTERNS = (
+        r"^\s*(?:can|could|would)\s+you\s+(?:recommend|suggest)\b",
+        r"^\s*(?:please\s+)?(?:recommend|suggest)\b",
+        r"\b(?:recommendations?|suggestions?)\s+(?:for|to)\s+me\b",
+        r"\bwhat\s+(?:should|would|could)\s+i\s+(?:watch|read|listen to|eat|cook|visit|try|buy|wear|do)\b",
+    )
 
-    def __init__(self, enable_broad_list_patterns: bool = False):
+    def __init__(
+        self,
+        enable_broad_list_patterns: bool = False,
+        enable_recommendation_profile_patterns: bool = False,
+    ):
         self._enable_broad_list_patterns = enable_broad_list_patterns
+        self._enable_recommendation_profile_patterns = (
+            enable_recommendation_profile_patterns
+        )
 
     def route(self, question: str, question_time: str | None = None) -> RouteResult:
         del question_time
@@ -78,6 +91,17 @@ class QuestionRouter:
             signals.append("temporal")
             return RouteResult(
                 information_need="temporal_lookup",
+                signals=tuple(signals),
+                retrieval_multiplier=2,
+            )
+        if (
+            self._enable_recommendation_profile_patterns
+            and _matches_any(normalized, self._RECOMMENDATION_PROFILE_PATTERNS)
+        ):
+            signals.append("profile_or_preference")
+            signals.append("personalized_recommendation")
+            return RouteResult(
+                information_need="profile_preference",
                 signals=tuple(signals),
                 retrieval_multiplier=2,
             )
