@@ -6,6 +6,7 @@
 - `stage1_strict_cached.json`：Stage-1 strict baseline，带 embedding cache。
 - `stage1_route_guidance_cached.json`：ablation 配置，在 strict baseline 上增加通用 route guidance。
 - `stage1_build_memory_cached.json`：当前主线候选，增加 build-stage LLM typed memory、memory cache、typed-memory retrieval 和 route guidance。
+- `stage1_query_retrieval_v2_cached.json`：query-side ablation，复用 `stage1_build_memory_cached` 的 cold build cache，只改通用 stopword filtering、evidence ordering 和 temporal hints。
 
 新增配置必须满足：
 

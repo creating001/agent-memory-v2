@@ -79,6 +79,35 @@ class RetrievalTest(unittest.TestCase):
 
         self.assertEqual(hits[0].source_id, "session_2")
 
+    def test_query_stopwords_drop_pronouns_and_prepositions(self) -> None:
+        turns = (
+            Turn(
+                source_id="generic",
+                session_id="s1",
+                turn_index=0,
+                role="speaker",
+                text="I was with you and we talked with them.",
+            ),
+            Turn(
+                source_id="specific",
+                session_id="s1",
+                turn_index=1,
+                role="speaker",
+                text="Avery graduated with a degree in Business Administration.",
+            ),
+        )
+
+        hits = LexicalBM25Retriever(
+            turns,
+            drop_query_stopwords=True,
+        ).retrieve(
+            "What degree did I graduate with?",
+            top_k=2,
+        )
+
+        self.assertEqual(hits[0].source_id, "specific")
+        self.assertEqual(hits[0].matched_terms, ("degree",))
+
     def test_dense_retriever_scores_embedding_similarity(self) -> None:
         turns = (
             Turn(
