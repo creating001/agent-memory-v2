@@ -1,0 +1,41 @@
+{
+  "clean_note": "This script is offline-only. Its outputs must not be read by prediction, retrieval, compiler, answer, or verifier modules.",
+  "created_at_utc": "2026-06-12T10:25:07+00:00",
+  "git": {
+    "commit": "b8ca07a73fc7d2fac87584b9644ecb88fde6bc72",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "?? experiments/stage1_dense_k12_concise_locomo_100/"
+  },
+  "labels": "/data/home_new/wujinqi/agent-memory/outputs/prepare_locomo_non_adversarial/labels.jsonl",
+  "metrics": {
+    "accuracy_exact": 0.04,
+    "bleu_unigram": 0.21255678202477424,
+    "by_type": {
+      "1": {
+        "accuracy_exact": 0.03125,
+        "n": 32
+      },
+      "2": {
+        "accuracy_exact": 0.02702702702702703,
+        "n": 37
+      },
+      "3": {
+        "accuracy_exact": 0.0,
+        "n": 13
+      },
+      "4": {
+        "accuracy_exact": 0.1111111111111111,
+        "n": 18
+      }
+    },
+    "f1": 0.27571269917466834,
+    "metrics_note": "Offline lexical metrics only. Judge-based benchmark accuracy should be computed in a separate offline step and must not feed prediction.",
+    "n_joined": 100,
+    "n_labels": 1540,
+    "n_missing_gold": 0,
+    "n_predictions": 100
+  },
+  "predictions": "/data/home_new/wujinqi/agent-memory/outputs/stage1_dense_k12_concise_locomo_100/predictions.jsonl"
+}

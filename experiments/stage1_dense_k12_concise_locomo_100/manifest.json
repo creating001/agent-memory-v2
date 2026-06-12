@@ -1,0 +1,25 @@
+{
+  "clean_assertions": [
+    "Prediction loader rejects gold/reference/target answers.",
+    "Prediction loader rejects judge outputs and benchmark labels.",
+    "Prediction loader rejects sample ids, qids, and row indices.",
+    "record_key is copied only by the runner and is not passed into pipeline modules.",
+    "Derived context rows always retain raw source_id back-links."
+  ],
+  "config_path": "/data/home_new/wujinqi/agent-memory/configs/stage1_vllm_dense_protect2_k12_concise.json",
+  "created_at_utc": "2026-06-12T10:24:50+00:00",
+  "experiment_dir": "/data/home_new/wujinqi/agent-memory/experiments/stage1_dense_k12_concise_locomo_100",
+  "git": {
+    "commit": "b8ca07a73fc7d2fac87584b9644ecb88fde6bc72",
+    "dirty": false,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": ""
+  },
+  "input_path": "/data/home_new/wujinqi/agent-memory/outputs/prepare_locomo_non_adversarial/prediction_input.jsonl",
+  "outputs": {
+    "predictions": "/data/home_new/wujinqi/agent-memory/outputs/stage1_dense_k12_concise_locomo_100/predictions.jsonl",
+    "traces": "/data/home_new/wujinqi/agent-memory/outputs/stage1_dense_k12_concise_locomo_100/traces.jsonl"
+  },
+  "run_id": "stage1_dense_k12_concise_locomo_100"
+}
