@@ -1,0 +1,41 @@
+{
+  "clean_note": "This script is offline-only. Its outputs must not be read by prediction, retrieval, compiler, answer, or verifier modules.",
+  "created_at_utc": "2026-06-12T11:03:08+00:00",
+  "git": {
+    "commit": "13c70f0de34bc3d7648ce3ab79f2bec2c6875582",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "M src/agent_memory/compiler.py\n M tests/test_clean_skeleton.py\n?? configs/stage1_vllm_dense_k12_concise_session_bm25_temporal_p4_grounded.json\n?? experiments/stage1_session_bm25_temporal_p4_grounded_locomo_100/\n?? experiments/stage1_session_bm25_temporal_p4_grounded_locomo_20/"
+  },
+  "labels": "/data/home_new/wujinqi/agent-memory/outputs/prepare_locomo_non_adversarial/labels.jsonl",
+  "metrics": {
+    "accuracy_exact": 0.03,
+    "bleu_unigram": 0.23508689750504044,
+    "by_type": {
+      "1": {
+        "accuracy_exact": 0.0,
+        "n": 32
+      },
+      "2": {
+        "accuracy_exact": 0.05405405405405406,
+        "n": 37
+      },
+      "3": {
+        "accuracy_exact": 0.0,
+        "n": 13
+      },
+      "4": {
+        "accuracy_exact": 0.05555555555555555,
+        "n": 18
+      }
+    },
+    "f1": 0.30323744092503646,
+    "metrics_note": "Offline lexical metrics only. Judge-based benchmark accuracy should be computed in a separate offline step and must not feed prediction.",
+    "n_joined": 100,
+    "n_labels": 1540,
+    "n_missing_gold": 0,
+    "n_predictions": 100
+  },
+  "predictions": "/data/home_new/wujinqi/agent-memory/outputs/stage1_session_bm25_temporal_p4_grounded_locomo_100/predictions.jsonl"
+}

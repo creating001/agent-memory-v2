@@ -212,6 +212,7 @@ class CleanSkeletonTest(unittest.TestCase):
         prompt = result["trace"]["compiled_context"]["prompt"]
 
         self.assertIn("Resolve relative time expressions", prompt)
+        self.assertIn("supported absolute date", prompt)
 
     def test_session_bm25_anchor_can_feed_compiled_raw_evidence(self) -> None:
         config = {

@@ -99,6 +99,10 @@ def _build_prompt(
             3,
             "Resolve relative time expressions against the evidence row time; for example, yesterday means the calendar day before that row time.",
         )
+        lines.insert(
+            4,
+            "For time questions, prefer the supported absolute date, month, or year instead of relative phrases like last year, next month, or this month.",
+        )
     if not rows:
         lines.append("(no evidence retrieved)")
     for row in rows:

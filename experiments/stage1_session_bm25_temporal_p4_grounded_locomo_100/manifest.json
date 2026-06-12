@@ -1,0 +1,25 @@
+{
+  "clean_assertions": [
+    "Prediction loader rejects gold/reference/target answers.",
+    "Prediction loader rejects judge outputs and benchmark labels.",
+    "Prediction loader rejects sample ids, qids, and row indices.",
+    "record_key is copied only by the runner and is not passed into pipeline modules.",
+    "Derived context rows always retain raw source_id back-links."
+  ],
+  "config_path": "/data/home_new/wujinqi/agent-memory/configs/stage1_vllm_dense_k12_concise_session_bm25_temporal_p4_grounded.json",
+  "created_at_utc": "2026-06-12T11:02:59+00:00",
+  "experiment_dir": "/data/home_new/wujinqi/agent-memory/experiments/stage1_session_bm25_temporal_p4_grounded_locomo_100",
+  "git": {
+    "commit": "13c70f0de34bc3d7648ce3ab79f2bec2c6875582",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "M src/agent_memory/compiler.py\n M tests/test_clean_skeleton.py\n?? configs/stage1_vllm_dense_k12_concise_session_bm25_temporal_p4_grounded.json\n?? experiments/stage1_session_bm25_temporal_p4_grounded_locomo_20/"
+  },
+  "input_path": "/data/home_new/wujinqi/agent-memory/outputs/prepare_locomo_non_adversarial/prediction_input.jsonl",
+  "outputs": {
+    "predictions": "/data/home_new/wujinqi/agent-memory/outputs/stage1_session_bm25_temporal_p4_grounded_locomo_100/predictions.jsonl",
+    "traces": "/data/home_new/wujinqi/agent-memory/outputs/stage1_session_bm25_temporal_p4_grounded_locomo_100/traces.jsonl"
+  },
+  "run_id": "stage1_session_bm25_temporal_p4_grounded_locomo_100"
+}
