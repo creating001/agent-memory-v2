@@ -79,11 +79,16 @@ class CompiledContext:
     evidence_rows: tuple[EvidenceRow, ...]
     prompt: str
     context_chars: int
+    memory_records: tuple[Any, ...] = ()
 
     def to_dict(self) -> dict[str, Any]:
         result = asdict(self)
         result["route"] = self.route.to_dict()
         result["evidence_rows"] = [row.to_dict() for row in self.evidence_rows]
+        result["memory_records"] = [
+            record.to_dict() if hasattr(record, "to_dict") else record
+            for record in self.memory_records
+        ]
         return result
 
 

@@ -7,18 +7,21 @@ from collections.abc import Mapping
 from typing import Any
 
 from memory.answer import NullAnswerer, OpenAICompatibleAnswerer
+from memory.build import NullMemoryBuilder, OpenAICompatibleMemoryBuilder
 from memory.compiler import EvidenceCompiler
 from memory.embeddings import CachedEmbeddingClient, OpenAICompatibleEmbeddingClient
 from memory.retrieval import (
+    BuildMemoryBM25Retriever,
     DenseEmbeddingRetriever,
     LexicalBM25Retriever,
     SessionBM25Retriever,
     SessionDocument,
+    memory_hits_to_source_hits,
     prepend_protected_hits,
     reciprocal_rank_fusion,
 )
 from memory.route import QuestionRouter
-from common.schemas import PredictionRequest, RetrievalHit, RouteResult
+from common.schemas import PredictionRequest, RetrievalHit, RouteResult, TokenUsage
 from memory.store import RawEvidenceStore
 
 
@@ -28,6 +31,7 @@ class Stage1Pipeline:
     def __init__(self, config: Mapping[str, Any]):
         self._config = dict(config)
         retrieval_config = self._config.get("retrieval", {})
+        build_memory_config = self._config.get("build_memory", {})
         dense_config = retrieval_config.get("dense", {})
         session_config = retrieval_config.get("session_bm25", {})
         route_config = self._config.get("route", {})
@@ -44,6 +48,17 @@ class Stage1Pipeline:
         self._neighbor_order = str(retrieval_config.get("neighbor_order", "hit_priority"))
         self._drop_query_stopwords = bool(retrieval_config.get("drop_query_stopwords", False))
         self._score_threshold = float(retrieval_config.get("score_threshold", 0.0))
+        self._build_memory_enabled = bool(build_memory_config.get("enabled", False))
+        self._build_memory_top_k = int(build_memory_config.get("top_k", 0))
+        self._build_memory_max_sources_per_record = int(
+            build_memory_config.get("max_sources_per_record", 3)
+        )
+        self._build_memory_include_superseded = bool(
+            build_memory_config.get("include_superseded", False)
+        )
+        self._build_memory_drop_query_stopwords = bool(
+            build_memory_config.get("drop_query_stopwords", True)
+        )
         self._dense_enabled = bool(dense_config.get("enabled", False))
         self._dense_top_k = int(dense_config.get("top_k", self._base_top_k))
         self._dense_batch_size = int(dense_config.get("batch_size", 32))
@@ -92,6 +107,39 @@ class Stage1Pipeline:
             session_config.get("enabled_query_patterns")
         )
         self._embedding_client = None
+        self._memory_builder = NullMemoryBuilder()
+        if self._build_memory_enabled:
+            build_mode = str(build_memory_config.get("mode", "openai_compatible"))
+            if build_mode != "openai_compatible":
+                raise ValueError(f"Unsupported build_memory.mode: {build_mode}")
+            build_cache_config = build_memory_config.get("cache", {})
+            build_cache_path = (
+                build_cache_config.get("path")
+                if bool(build_cache_config.get("enabled", False))
+                else None
+            )
+            self._memory_builder = OpenAICompatibleMemoryBuilder(
+                base_url=str(
+                    build_memory_config.get("base_url", "http://127.0.0.1:8000/v1")
+                ),
+                model=str(build_memory_config["model"]),
+                temperature=float(build_memory_config.get("temperature", 0.0)),
+                max_tokens=int(build_memory_config.get("max_tokens", 768)),
+                timeout=float(build_memory_config.get("timeout", 120.0)),
+                max_turns_per_chunk=int(build_memory_config.get("max_turns_per_chunk", 80)),
+                max_chars_per_turn=int(build_memory_config.get("max_chars_per_turn", 500)),
+                max_records_per_chunk=int(
+                    build_memory_config.get("max_records_per_chunk", 16)
+                ),
+                cache_path=build_cache_path,
+                cache_namespace=str(
+                    build_cache_config.get(
+                        "namespace",
+                        build_memory_config.get("model", "unknown"),
+                    )
+                ),
+                api_key_env=build_memory_config.get("api_key_env"),
+            )
         if self._dense_enabled:
             self._embedding_client = OpenAICompatibleEmbeddingClient(
                 base_url=str(dense_config.get("base_url", "http://127.0.0.1:8001/v1")),
@@ -116,6 +164,7 @@ class Stage1Pipeline:
             row_text_mode=str(compiler_config.get("row_text_mode", "full")),
             max_row_text_chars=int(compiler_config.get("max_row_text_chars", 0)),
             route_guidance=bool(compiler_config.get("route_guidance", False)),
+            max_memory_records=int(compiler_config.get("max_memory_records", 12)),
         )
         self._compiler_trace_config = {
             "evidence_order": str(compiler_config.get("evidence_order", "retrieval")),
@@ -127,6 +176,7 @@ class Stage1Pipeline:
                 compiler_config.get("temporal_grounding", False)
             ),
             "temporal_hints": bool(compiler_config.get("temporal_hints", False)),
+            "max_memory_records": int(compiler_config.get("max_memory_records", 12)),
         }
         answer_mode = str(answer_config.get("mode", "null_answerer"))
         if answer_mode == "openai_compatible":
@@ -150,6 +200,7 @@ class Stage1Pipeline:
 
     def predict(self, request: PredictionRequest) -> dict[str, Any]:
         store = RawEvidenceStore(request.turns)
+        built_memory = self._memory_builder.build(store.turns)
         route = self._router.route(request.question, request.question_time)
         top_k = min(self._base_top_k * route.retrieval_multiplier, self._max_top_k)
         retriever = LexicalBM25Retriever(
@@ -161,6 +212,22 @@ class Stage1Pipeline:
             top_k=top_k,
             score_threshold=self._score_threshold,
         )
+        memory_hits = ()
+        memory_source_hits = ()
+        if self._build_memory_enabled and self._build_memory_top_k > 0:
+            memory_hits = BuildMemoryBM25Retriever(
+                built_memory.records,
+                drop_query_stopwords=self._build_memory_drop_query_stopwords,
+                include_superseded=self._build_memory_include_superseded,
+            ).retrieve(
+                request.question,
+                top_k=self._build_memory_top_k,
+                score_threshold=0.0,
+            )
+            memory_source_hits = memory_hits_to_source_hits(
+                memory_hits,
+                max_sources_per_memory=self._build_memory_max_sources_per_record,
+            )
         dense_hits = ()
         embedding_tokens = 0
         embedding_cache_before = _embedding_cache_stats(self._embedding_client)
@@ -175,8 +242,11 @@ class Stage1Pipeline:
             )
             dense_hits = dense_result.hits
             embedding_tokens = dense_result.embedding_tokens
+            hit_lists = (lexical_hits, dense_hits)
+            if memory_source_hits:
+                hit_lists = (*hit_lists, memory_source_hits)
             hits = reciprocal_rank_fusion(
-                (lexical_hits, dense_hits),
+                hit_lists,
                 top_k=top_k,
                 rrf_k=self._fusion_rrf_k,
             )
@@ -187,7 +257,14 @@ class Stage1Pipeline:
                     top_k=top_k,
                 )
         else:
-            hits = lexical_hits
+            if memory_source_hits:
+                hits = reciprocal_rank_fusion(
+                    (lexical_hits, memory_source_hits),
+                    top_k=top_k,
+                    rrf_k=self._fusion_rrf_k,
+                )
+            else:
+                hits = lexical_hits
         embedding_cache_after = _embedding_cache_stats(self._embedding_client)
         turn_hits = hits
         session_hits = ()
@@ -223,23 +300,41 @@ class Stage1Pipeline:
             route=route,
             hits=hits,
             evidence_turns=evidence_turns,
+            memory_records=tuple(memory_hit.record for memory_hit in memory_hits),
         )
         answer = self._answerer.answer(compiled)
+        token_usage = TokenUsage(
+            build_tokens=(
+                built_memory.token_usage.build_tokens
+                + answer.token_usage.build_tokens
+            ),
+            query_tokens=answer.token_usage.query_tokens,
+        )
         return {
             "answer": answer.answer,
             "trace": {
                 "store": store.manifest(),
+                "build_memory": built_memory.to_dict(),
                 "route": route.to_dict(),
                 "retrieval": {
                     "retriever": _retriever_name(
                         dense_enabled=self._dense_enabled,
                         session_bm25_enabled=self._session_bm25_enabled,
+                        build_memory_enabled=self._build_memory_enabled,
                     ),
                     "top_k": top_k,
                     "base_top_k": self._base_top_k,
                     "neighbor_window": self._neighbor_window,
                     "neighbor_order": self._neighbor_order,
                     "drop_query_stopwords": self._drop_query_stopwords,
+                    "build_memory_enabled": self._build_memory_enabled,
+                    "build_memory_top_k": self._build_memory_top_k,
+                    "build_memory_max_sources_per_record": (
+                        self._build_memory_max_sources_per_record
+                    ),
+                    "build_memory_include_superseded": (
+                        self._build_memory_include_superseded
+                    ),
                     "dense_enabled": self._dense_enabled,
                     "dense_top_k": self._dense_top_k if self._dense_enabled else None,
                     "lexical_protect_top_n": self._lexical_protect_top_n
@@ -289,6 +384,10 @@ class Stage1Pipeline:
                     ),
                     "embedding_tokens": embedding_tokens,
                     "lexical_hits": [hit.to_dict() for hit in lexical_hits],
+                    "memory_hits": [hit.to_dict() for hit in memory_hits],
+                    "memory_source_hits": [
+                        hit.to_dict() for hit in memory_source_hits
+                    ],
                     "dense_hits": [hit.to_dict() for hit in dense_hits],
                     "turn_hits": [hit.to_dict() for hit in turn_hits],
                     "session_hits": [hit.to_dict() for hit in session_hits],
@@ -300,7 +399,7 @@ class Stage1Pipeline:
                 "compiled_context": compiled.to_dict(),
                 "compiler": self._compiler_trace_config,
                 "answer": answer.to_dict(),
-                "token_cost": answer.token_usage.to_dict(),
+                "token_cost": token_usage.to_dict(),
             },
         }
 
@@ -479,8 +578,14 @@ def _tuple_config(value: object) -> tuple[str, ...]:
     return (str(value),)
 
 
-def _retriever_name(dense_enabled: bool, session_bm25_enabled: bool) -> str:
+def _retriever_name(
+    dense_enabled: bool,
+    session_bm25_enabled: bool,
+    build_memory_enabled: bool,
+) -> str:
     names = ["dense_hybrid_rrf" if dense_enabled else "lexical_bm25"]
+    if build_memory_enabled:
+        names.append("build_memory_bm25")
     if session_bm25_enabled:
         names.append("session_bm25")
     return "+".join(names)

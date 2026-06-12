@@ -389,7 +389,7 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertIn("Ignore unrelated rows", compiled.prompt)
         self.assertLess(
             compiled.prompt.index("Information-need guidance"),
-            compiled.prompt.index("Raw evidence table"),
+            compiled.prompt.index("Raw context table"),
         )
 
     def test_session_bm25_anchor_can_feed_compiled_raw_evidence(self) -> None:

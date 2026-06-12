@@ -1,52 +1,34 @@
 # Agent-Memory
 
-本项目目标是搭建一套通用、clean、可消融、可持续迭代的 Agent-Memory 框架。LongMemEval 和 LoCoMo 是用于验证的 benchmark，用于检验框架在长期对话记忆任务中的有效性。核心目标不是为某个 benchmark 写专门规则，而是在 clean 和成本约束下沉淀一套更高性能、更可靠、更可解释、更具泛化能力的 Agent-Memory 方法。
+本项目目标是构建一个通用、clean、可消融、可持续迭代的 Agent Memory 系统，并在 LongMemEval-S full 和 LoCoMo non-adversarial full 上用 judge accuracy 验证效果。
 
-## 目录结构
+核心不是固定某个框架，而是在严格 clean setting 和成本约束下，持续提升长期记忆的 build、management、retrieval、context organization 和 answer 能力。方法可以迭代替换，但不能使用 gold answer、judge output、benchmark 标签、sample id、test feedback 或样本级规则。
+
+## 目录
 
 ```text
-.
-├── AGENTS.md                    # Codex 开发协作规则
-├── README.md                    # 项目入口说明
-├── docs/
-│   ├── clean_protocol.md        # clean setting 和泄漏红线
-│   ├── constraints.md           # token、调用次数和成本约束
-│   ├── experiment_protocol.md   # 模型、judge prompt 和指标协议
-│   ├── architecture.md          # 项目探索框架
-│   ├── method.md                # 外部方法总览和推荐主线
-│   └── method_cards.md          # 详细方法 card
-├── src/                         # 本项目自己的代码，按功能分层
-│   ├── common/                  # clean guard、schema、实验元数据工具
-│   ├── data/                    # benchmark 适配和 clean 输入加载
-│   ├── memory/                  # retrieval、compiler、answer、pipeline 主链路
-│   ├── evaluation/              # judge、metrics、diagnosis
-│   └── tests/                   # 单元测试
-├── configs/                     # 模型、检索、路由、实验配置
-├── scripts/                     # 运行、评测、分析、数据准备脚本
-├── experiments/                 # 面向人工查看的实验看板、ablation、诊断报告
-├── outputs/                     # 预测结果、日志、中间产物，默认不作为方法代码
-├── data/                        # 本地数据入口或软链接说明，不提交大数据
-└── external/                    # 外部 repo、baseline 和参考实现
+docs/          规则、约束、架构和方法调研
+src/           项目代码：common、data、memory、evaluation、tests
+configs/       可消融配置
+scripts/       数据准备、预测、评测、诊断脚本
+experiments/   人类可读的正式实验记录和诊断入口
+outputs/       预测结果、cache、日志和中间产物
+data/          本地数据入口，不提交大数据
+external/      只读外部参考实现
 ```
 
-## 重要文档
+## 必读文档
 
-- `docs/clean_protocol.md`：所有方法、代码和实验必须遵守的 clean 规则。
-- `docs/constraints.md`：token、LLM 调用次数、build/query 成本等技术指标约束。
-- `docs/experiment_protocol.md`：模型配置、judge prompt、指标和公共实验口径。
-- `docs/architecture.md`：项目主框架和可探索模块。
-- `docs/method.md`：外部方法总览、推荐主线和方法索引。
-- `docs/method_cards.md`：详细方法 card，需要深入参考具体方法时再读。
+- `AGENTS.md`
+- `docs/clean_protocol.md`
+- `docs/constraints.md`
+- `docs/experiment_protocol.md`
+- `docs/architecture.md`
+- `docs/method.md`
 
-## 实验可追溯
+需要深入外部方法时再读 `docs/method_cards.md`。
 
-实验可追溯主要依赖本地 git。正式实验和结果汇报应记录对应的 commit、是否存在未提交改动、关键配置、运行命令和输出路径。方法迭代应尽量保持改动小而清晰，方便用 git diff 回看每次增益来自哪里。
-
-`experiments/` 是主要观察入口，不只是日志 dump。每个正式实验应在 `experiments/` 下留下一个可读目录，至少包含实验目的、方法改动、配置摘要、指标结果、token 成本、关键诊断、输出路径和下一步判断。用户主要通过这个目录观察 Codex 的实验结果和方法迭代过程。
-
-## 本地运行
-
-当前项目使用独立 conda 环境：
+## 本地检查
 
 ```bash
 conda activate agent-memory
@@ -54,79 +36,4 @@ python -m pip install -e .
 python -m unittest discover -s src/tests
 ```
 
-本地 answer model 使用协议指定的 Qwen vLLM 服务。启动和停止脚本如下：
-
-```bash
-bash scripts/start_answer_vllm.sh
-curl --noproxy '*' http://127.0.0.1:8000/v1/models
-bash scripts/stop_answer_vllm.sh
-```
-
-Dense retrieval 使用协议指定的 Qwen embedding vLLM 服务：
-
-```bash
-bash scripts/start_embedding_vllm.sh
-curl --noproxy '*' http://127.0.0.1:8001/v1/models
-bash scripts/stop_embedding_vllm.sh
-```
-
-当前保留两个 Stage-1 主线配置：
-
-- `configs/stage1_strict_cached.json`：strict baseline，使用 raw evidence、dense+BM25、gated session BM25、temporal grounding 和 embedding cache。
-- `configs/stage1_route_guidance_cached.json`：当前候选，在 strict baseline 上增加通用 question-route guidance。
-
-DeepSeek judge 只允许在离线评测脚本中使用。API key 通过 `DEEPSEEK_API_KEY` 环境变量读取；本地 `.env` 已被 `.gitignore` 忽略，不能提交。
-
-## 数据和诊断入口
-
-原始 benchmark 数据放在 `data/raw/` 或外部软链接中，不提交到 git。clean 预测输入和离线 labels 分离生成：
-
-```bash
-conda run -n agent-memory python scripts/prepare_dataset.py \
-  --benchmark longmemeval \
-  --subset s_cleaned \
-  --input data/raw/longmemeval/longmemeval_s_cleaned.json \
-  --output-dir outputs/prepare_longmemeval_s_cleaned
-
-conda run -n agent-memory python scripts/prepare_dataset.py \
-  --benchmark locomo \
-  --subset non-adversarial \
-  --input data/raw/locomo/locomo10.json \
-  --output-dir outputs/prepare_locomo_non_adversarial
-```
-
-Stage-1 当前候选运行示例。正式 full run 不加 `--limit`：
-
-```bash
-conda run -n agent-memory python scripts/run_stage1.py \
-  --input outputs/prepare_longmemeval_s_cleaned/prediction_input.jsonl \
-  --config configs/stage1_route_guidance_cached.json \
-  --run-id formal_route_guidance_lme_s_full \
-  --benchmark longmemeval \
-  --subset s_cleaned \
-  --experiment-kind formal
-```
-
-预测完成后才运行离线 judge。方法性能主要看 DeepSeek judge accuracy；`evaluate_predictions.py` 的 exact/F1/BLEU 只用于快速诊断。
-
-```bash
-set -a; . ./.env; set +a
-conda run -n agent-memory python scripts/judge_predictions_deepseek.py \
-  --predictions outputs/formal_route_guidance_lme_s_full/predictions.jsonl \
-  --labels outputs/prepare_longmemeval_s_cleaned/labels.jsonl \
-  --output experiments/formal/formal_route_guidance_lme_s_full/deepseek_judge.json \
-  --benchmark longmemeval
-```
-
-辅助诊断可以在预测完成后运行：
-
-```bash
-conda run -n agent-memory python scripts/analyze_evidence_recall.py \
-  --traces outputs/formal_route_guidance_lme_s_full/traces.jsonl \
-  --labels outputs/prepare_longmemeval_s_cleaned/labels.jsonl \
-  --output experiments/formal/formal_route_guidance_lme_s_full/evidence_recall.json
-```
-
-## 外部方法参考
-
-本项目不是从零拍脑袋设计 memory 方法。`docs/method.md` 和 `docs/method_cards.md` 是重要设计输入：提出新 memory、retrieval、compiler、verifier 或 ablation 时，应先参考外部方法，总结可迁移机制、舍弃原因和预期收益，再落到本项目的 clean、成本和可消融约束下实现。
+正式实验必须在 `experiments/` 下留下 summary、metrics、diagnosis、配置快照、git commit/dirty 状态、token 成本和 outputs 路径。方法性能主要看 DeepSeek judge accuracy。

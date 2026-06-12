@@ -8,6 +8,7 @@ from collections import Counter
 from dataclasses import dataclass
 from typing import Protocol
 
+from memory.build import MemoryRecord
 from memory.embeddings import EmbeddingBatch
 from common.schemas import RetrievalHit, Turn
 
@@ -239,6 +240,104 @@ class SessionBM25Retriever:
                 )
             )
         return tuple(hits)
+
+
+@dataclass(frozen=True)
+class MemoryHit:
+    record: MemoryRecord
+    score: float
+    rank: int
+    matched_terms: tuple[str, ...] = ()
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "memory": self.record.to_dict(),
+            "score": self.score,
+            "rank": self.rank,
+            "matched_terms": self.matched_terms,
+        }
+
+
+class BuildMemoryBM25Retriever:
+    """BM25 over build-stage typed memory records."""
+
+    def __init__(
+        self,
+        records: tuple[MemoryRecord, ...],
+        k1: float = 1.5,
+        b: float = 0.75,
+        drop_query_stopwords: bool = True,
+        include_superseded: bool = False,
+    ):
+        self._records = tuple(
+            record
+            for record in records
+            if include_superseded or record.status == "active"
+        )
+        self._index = _BM25Index(
+            texts=tuple(record.search_text for record in self._records),
+            sort_keys=tuple(
+                (
+                    0 if record.status == "active" else 1,
+                    record.memory_type,
+                    record.timestamp or "",
+                    record.memory_id,
+                )
+                for record in self._records
+            ),
+            k1=k1,
+            b=b,
+            drop_query_stopwords=drop_query_stopwords,
+        )
+
+    def retrieve(
+        self,
+        question: str,
+        top_k: int,
+        score_threshold: float = 0.0,
+    ) -> tuple[MemoryHit, ...]:
+        hits = []
+        for rank, scored in enumerate(
+            self._index.retrieve(question, top_k=top_k, score_threshold=score_threshold),
+            start=1,
+        ):
+            hits.append(
+                MemoryHit(
+                    record=self._records[scored.index],
+                    score=scored.score,
+                    rank=rank,
+                    matched_terms=scored.matched_terms,
+                )
+            )
+        return tuple(hits)
+
+
+def memory_hits_to_source_hits(
+    memory_hits: tuple[MemoryHit, ...],
+    max_sources_per_memory: int,
+) -> tuple[RetrievalHit, ...]:
+    """Project typed memory hits back to raw source turns for fusion."""
+
+    hits: list[RetrievalHit] = []
+    seen: set[str] = set()
+    rank = 1
+    source_limit = max(1, max_sources_per_memory)
+    for memory_hit in memory_hits:
+        for source_id in memory_hit.record.source_ids[:source_limit]:
+            if source_id in seen:
+                continue
+            seen.add(source_id)
+            hits.append(
+                RetrievalHit(
+                    source_id=source_id,
+                    score=memory_hit.score,
+                    rank=rank,
+                    retriever="build_memory_bm25",
+                    matched_terms=memory_hit.matched_terms,
+                )
+            )
+            rank += 1
+    return tuple(hits)
 
 
 class Embedder(Protocol):

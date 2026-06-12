@@ -47,6 +47,15 @@ def main() -> int:
     total_embedding_cache_hits = 0
     total_embedding_cache_misses = 0
     total_embedding_cache_writes = 0
+    total_build_memory_records = 0
+    total_build_memory_active_records = 0
+    total_build_memory_superseded_records = 0
+    total_build_memory_chunks = 0
+    total_build_memory_cache_hits = 0
+    total_build_memory_cache_misses = 0
+    total_build_memory_cache_writes = 0
+    total_memory_hits = 0
+    total_memory_source_hits = 0
 
     for index, envelope in enumerate(load_prediction_jsonl(args.input), start=1):
         if args.limit is not None and index > args.limit:
@@ -76,6 +85,26 @@ def main() -> int:
         total_embedding_cache_hits += int(embedding_cache.get("hits") or 0)
         total_embedding_cache_misses += int(embedding_cache.get("misses") or 0)
         total_embedding_cache_writes += int(embedding_cache.get("writes") or 0)
+        build_memory = result["trace"].get("build_memory") or {}
+        build_memory_records = build_memory.get("records") or []
+        total_build_memory_records += len(build_memory_records)
+        total_build_memory_active_records += sum(
+            1 for record in build_memory_records if record.get("status") == "active"
+        )
+        total_build_memory_superseded_records += sum(
+            1
+            for record in build_memory_records
+            if record.get("status") == "superseded"
+        )
+        total_build_memory_chunks += int(build_memory.get("chunks") or 0)
+        build_memory_cache = build_memory.get("cache") or {}
+        total_build_memory_cache_hits += int(build_memory_cache.get("hits") or 0)
+        total_build_memory_cache_misses += int(build_memory_cache.get("misses") or 0)
+        total_build_memory_cache_writes += int(build_memory_cache.get("writes") or 0)
+        total_memory_hits += len(result["trace"]["retrieval"].get("memory_hits") or [])
+        total_memory_source_hits += len(
+            result["trace"]["retrieval"].get("memory_source_hits") or []
+        )
 
     sample_count = len(records)
     metrics = {
@@ -102,6 +131,20 @@ def main() -> int:
             ),
             "drop_query_stopwords": config.get("retrieval", {}).get(
                 "drop_query_stopwords", False
+            ),
+            "build_memory_enabled": config.get("build_memory", {}).get(
+                "enabled", False
+            ),
+            "build_memory_top_k": config.get("build_memory", {}).get("top_k"),
+            "build_memory_max_sources_per_record": config.get("build_memory", {}).get(
+                "max_sources_per_record"
+            ),
+            "build_memory_include_superseded": config.get("build_memory", {}).get(
+                "include_superseded", False
+            ),
+            "avg_memory_hits": _safe_average(total_memory_hits, sample_count),
+            "avg_memory_source_hits": _safe_average(
+                total_memory_source_hits, sample_count
             ),
             "dense_enabled": config.get("retrieval", {})
             .get("dense", {})
@@ -155,6 +198,41 @@ def main() -> int:
             ),
             "avg_context_chars": _safe_average(total_context_chars, sample_count),
         },
+        "build_memory": {
+            "enabled": config.get("build_memory", {}).get("enabled", False),
+            "mode": config.get("build_memory", {}).get("mode"),
+            "model": config.get("build_memory", {}).get("model"),
+            "base_url": config.get("build_memory", {}).get("base_url"),
+            "temperature": config.get("build_memory", {}).get("temperature"),
+            "max_tokens": config.get("build_memory", {}).get("max_tokens"),
+            "max_turns_per_chunk": config.get("build_memory", {}).get(
+                "max_turns_per_chunk"
+            ),
+            "max_chars_per_turn": config.get("build_memory", {}).get(
+                "max_chars_per_turn"
+            ),
+            "max_records_per_chunk": config.get("build_memory", {}).get(
+                "max_records_per_chunk"
+            ),
+            "cache_enabled": config.get("build_memory", {})
+            .get("cache", {})
+            .get("enabled", False),
+            "cache_path": config.get("build_memory", {})
+            .get("cache", {})
+            .get("path"),
+            "cache_hits": total_build_memory_cache_hits,
+            "cache_misses": total_build_memory_cache_misses,
+            "cache_writes": total_build_memory_cache_writes,
+            "total_chunks": total_build_memory_chunks,
+            "avg_chunks": _safe_average(total_build_memory_chunks, sample_count),
+            "total_records": total_build_memory_records,
+            "total_active_records": total_build_memory_active_records,
+            "total_superseded_records": total_build_memory_superseded_records,
+            "avg_records": _safe_average(total_build_memory_records, sample_count),
+            "avg_active_records": _safe_average(
+                total_build_memory_active_records, sample_count
+            ),
+        },
         "answer": _answer_metrics(config),
         "compiler": {
             "answer_style": config.get("compiler", {}).get("answer_style", "grounded"),
@@ -164,6 +242,9 @@ def main() -> int:
             "row_text_mode": config.get("compiler", {}).get("row_text_mode", "full"),
             "max_row_text_chars": config.get("compiler", {}).get(
                 "max_row_text_chars", 0
+            ),
+            "max_memory_records": config.get("compiler", {}).get(
+                "max_memory_records", 12
             ),
             "route_guidance": config.get("compiler", {}).get(
                 "route_guidance", False
@@ -196,6 +277,7 @@ def main() -> int:
             "Prediction loader rejects sample ids, qids, and row indices.",
             "record_key is copied only by the runner and is not passed into pipeline modules.",
             "Derived context rows always retain raw source_id back-links.",
+            "Build-stage typed memory is created only from raw dialogue turns and visible metadata.",
         ],
     }
 
@@ -310,6 +392,17 @@ def _write_summary(
         f"- avg_build_tokens: {metrics['token_cost']['avg_build_tokens']}",
         f"- avg_query_tokens: {metrics['token_cost']['avg_query_tokens']}",
         f"- avg_compiled_evidence_items: {metrics['retrieval']['avg_compiled_evidence_items']}",
+        f"- build_memory_enabled: {metrics['build_memory']['enabled']}",
+        f"- build_memory_model: {metrics['build_memory']['model']}",
+        f"- build_memory_cache_enabled: {metrics['build_memory']['cache_enabled']}",
+        f"- build_memory_cache_path: {metrics['build_memory']['cache_path']}",
+        f"- build_memory_cache_hits: {metrics['build_memory']['cache_hits']}",
+        f"- build_memory_cache_misses: {metrics['build_memory']['cache_misses']}",
+        f"- build_memory_cache_writes: {metrics['build_memory']['cache_writes']}",
+        f"- avg_build_memory_records: {metrics['build_memory']['avg_records']}",
+        f"- avg_active_build_memory_records: {metrics['build_memory']['avg_active_records']}",
+        f"- avg_memory_hits: {metrics['retrieval']['avg_memory_hits']}",
+        f"- avg_memory_source_hits: {metrics['retrieval']['avg_memory_source_hits']}",
         f"- neighbor_order: {metrics['retrieval']['neighbor_order']}",
         f"- drop_query_stopwords: {metrics['retrieval']['drop_query_stopwords']}",
         f"- dense_enabled: {metrics['retrieval']['dense_enabled']}",
@@ -337,6 +430,7 @@ def _write_summary(
         f"- evidence_order: {metrics['compiler']['evidence_order']}",
         f"- row_text_mode: {metrics['compiler']['row_text_mode']}",
         f"- max_row_text_chars: {metrics['compiler']['max_row_text_chars']}",
+        f"- max_memory_records: {metrics['compiler']['max_memory_records']}",
         f"- route_guidance: {metrics['compiler']['route_guidance']}",
         f"- temporal_grounding: {metrics['compiler']['temporal_grounding']}",
         f"- temporal_hints: {metrics['compiler']['temporal_hints']}",
@@ -352,7 +446,8 @@ def _write_summary(
         "## Clean Notes",
         "",
         "- No gold/reference/target answer, judge output, benchmark label, sample id, qid, or row index is passed into the prediction pipeline.",
-        "- Raw evidence remains the only factual source; compiled evidence rows keep source_id links.",
+        "- Build-stage typed memory is generated only from raw dialogue and visible metadata; it is recorded separately from offline labels and judge outputs.",
+        "- Raw context remains available for fallback and diagnosis; build memory records keep source back-links when produced by the current builder.",
         "- Accuracy is intentionally not computed by the prediction runner; any gold or judge metrics must be produced offline after prediction.",
     ]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -375,6 +470,13 @@ def _write_diagnosis(
         "",
         f"- samples_processed: {metrics['n_samples']}",
         f"- avg_compiled_evidence_items: {metrics['retrieval']['avg_compiled_evidence_items']}",
+        f"- avg_build_memory_records: {metrics['build_memory']['avg_records']}",
+        f"- avg_active_build_memory_records: {metrics['build_memory']['avg_active_records']}",
+        f"- build_memory_cache_hits: {metrics['build_memory']['cache_hits']}",
+        f"- build_memory_cache_misses: {metrics['build_memory']['cache_misses']}",
+        f"- build_memory_cache_writes: {metrics['build_memory']['cache_writes']}",
+        f"- avg_memory_hits: {metrics['retrieval']['avg_memory_hits']}",
+        f"- avg_memory_source_hits: {metrics['retrieval']['avg_memory_source_hits']}",
         f"- avg_context_chars: {metrics['retrieval']['avg_context_chars']}",
         f"- avg_query_tokens: {metrics['token_cost']['avg_query_tokens']}",
         f"- session_bm25_enabled: {metrics['retrieval']['session_bm25_enabled']}",
@@ -389,13 +491,14 @@ def _write_diagnosis(
         f"- evidence_order: {metrics['compiler']['evidence_order']}",
         f"- row_text_mode: {metrics['compiler']['row_text_mode']}",
         f"- max_row_text_chars: {metrics['compiler']['max_row_text_chars']}",
+        f"- max_memory_records: {metrics['compiler']['max_memory_records']}",
         f"- route_guidance: {metrics['compiler']['route_guidance']}",
         f"- answer: {_answer_note(config)}",
         "",
         "## Next Steps",
         "",
         "- Use offline lexical, judge, and evidence-recall scripts to diagnose quality after prediction is complete.",
-        "- Improve retrieval and compiler recall before adding more expensive answer-time reasoning.",
+        "- Compare typed build memory on/off before adding more expensive answer-time reasoning.",
         "- Keep each new method behind explicit config toggles for ablation.",
     ]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")

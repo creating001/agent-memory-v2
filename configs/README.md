@@ -4,7 +4,8 @@
 
 - `stage1_clean_skeleton.json`：无 LLM smoke / 单元测试级骨架配置。
 - `stage1_strict_cached.json`：Stage-1 strict baseline，带 embedding cache。
-- `stage1_route_guidance_cached.json`：当前候选方法，在 strict baseline 上增加通用 route guidance。
+- `stage1_route_guidance_cached.json`：ablation 配置，在 strict baseline 上增加通用 route guidance。
+- `stage1_build_memory_cached.json`：当前主线候选，增加 build-stage LLM typed memory、memory cache 和 typed-memory retrieval。
 
 新增配置必须满足：
 

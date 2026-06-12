@@ -1,10 +1,20 @@
 # Agent-Memory Architecture
 
-本文件定义 Agent-Memory 项目的探索框架。它不是固定实现方案，而是给后续方法设计提供方向。`docs/method.md` 提供外部方法参考；本文件描述我们给出的大致思路和探索空间。
+本文件定义 Agent-Memory 项目的探索框架。它不是固定实现方案，而是给后续方法设计提供方向。`docs/method.md` 提供外部方法参考；本文件描述当前推荐的系统原则、模块边界和探索空间。方法和框架都不是死的；只要遵守 clean setting、成本约束和可追溯要求，可以持续替换、扩展或重组模块。
 
 ## 1. 核心目标
 
-本项目目标是搭建一套通用、clean、可消融、可持续迭代的 Agent-Memory 框架，体现我们方法在长期对话记忆任务中的有效性和优势，并在 LongMemEval 和 LoCoMo 这两个 benchmark 上进行性能验证。我们不希望为某个 benchmark 写专门规则，而是希望在 clean 和成本约束下探索一套更高性能、更可靠、更可解释、更具泛化能力的 Agent-Memory 框架方法。
+本项目的真实目标是构建一个优秀的 Agent Memory 系统，并在 LongMemEval 和 LoCoMo 上用正确率体现它相对普通 RAG、简单摘要或弱 memory baseline 的优势。框架、模块和具体方法都服务于这个目标，不应反过来限制方法探索。
+
+核心要求：
+- **clean**：不能使用 gold answer、judge output、benchmark 标签、sample id、test feedback 或样本级规则。
+- **有效**：主要看 judge accuracy；F1、BLEU、exact 只能作为辅助诊断。
+- **通用**：不能只为某个 benchmark 写专门捷径，要能解释为真实 agent memory 系统中的合理机制。
+- **可消融**：每个新增模块都应能关闭，方便判断收益来自哪里。
+- **可追溯**：正式实验必须记录 commit、dirty 状态、配置、token 成本、输出路径和诊断。
+- **可持续迭代**：允许从简单系统逐步演进到 typed memory、temporal memory、profile/event memory、graph memory、verifier 或 agentic retrieval。
+
+因此，本项目不是要证明某个固定 skeleton 永远正确，而是要围绕“长期记忆管理能力”持续提升：写入阶段如何沉淀有用 memory，查询阶段如何激活相关 memory，回答阶段如何稳定使用 memory，评测阶段如何定位错误并迭代。
 
 ## 2. 总体探索流程
 
@@ -12,16 +22,21 @@
 
 ```text
 原始对话
-  -> 记忆存储
-       - 原始记忆 / evidence memory
-       - 派生记忆视图
+  -> Build-stage memory 管理
+       - 原始记忆 / raw conversation memory
+       - LLM 参与的 typed memory 构建
+       - event / fact / profile / preference / state / relation 等派生视图
+       - dedup / merge / supersede / version / provenance
   -> 检索索引构建
+       - raw turn/session index
+       - typed memory index
+       - time/entity/profile/event 等辅助索引
 
 问题输入
   -> 问题分析 / route
-  -> 多视角检索
-  -> 原始证据扩展
-  -> 证据整理 / compiler
+  -> 多视角 memory 激活
+  -> raw / typed / temporal / profile / event 综合检索
+  -> memory context 组织 / compiler
   -> 答案生成
   -> 答案校验 / guardrails
   -> 最终答案 + trace
@@ -33,6 +48,25 @@
 ```
 
 ## 3. 大致的可探索模块
+
+### Build-stage Memory Management
+
+Build 阶段必须是本项目的重要能力，而不是只在 query 阶段临时检索 raw text。大模型可以参与 build 阶段，用于抽取、归纳、合并和维护 memory；但 build 结果不能引入任何不 clean 信息。
+
+可探索方向：
+- LLM 抽取 typed memory：event、fact、preference、profile、state、relationship、plan
+- profile/event 双通道：稳定偏好和一次性事件分开管理
+- temporal state：记录 valid_from、valid_to、supersedes、updated_by
+- entity/relation memory：用于跨会话、多跳和人物关系激活
+- memory manager：dedup、merge、conflict detection、supersede、importance、recency
+- memory namespaces：user、assistant、session、topic、time scope
+- build cache：避免重复对同一 conversation 做昂贵抽取
+
+基本要求：
+- build 输入只能来自原始对话和可见 metadata，不能读取 question 的 gold/judge/标签信息。
+- build memory 可以作为预测时的一等信息源，但必须有清晰的类型、来源或生成记录，方便诊断。
+- summary/profile/fact 可以提高效果，但不应无痕覆盖原始对话；如果系统选择让派生 memory 直接参与回答，必须在实验中记录这一设计和风险。
+- 关键策略必须可关闭做 ablation，例如 raw-only、typed-memory-only、raw+typed、profile on/off、event on/off、temporal on/off。
 
 ### Raw Memory / Evidence Store
 
@@ -46,13 +80,13 @@
 - raw evidence 与 metadata 的组织方式
 
 基本要求：
-- 保留 source id、role、date、session、order 等元信息
-- 能被 query-time 展开和引用
-- 不被 summary、profile、fact 或 graph 替代
+- 保留 source id、role、date、session、order 等元信息。
+- 能被 query-time 展开和引用。
+- 原始对话不应被删除；即使答案主要来自 typed memory，也要能回查原始上下文用于诊断。
 
 ### Derived Memory Views
 
-派生记忆是可选增强视图，用于提高召回、压缩搜索空间和组织证据。它不是 memory 的全部，也不能替代 raw memory。
+派生记忆是增强系统能力的核心视图，用于提高召回、压缩搜索空间、管理长期状态和组织证据。它不是固定某一种形式，可以是 LLM 抽取的 typed records，也可以是 profile、timeline、entity graph、temporal KG 或 procedural memory。
 
 可探索方向：
 - session / episode summary
@@ -65,9 +99,9 @@
 - error / reflection memory
 
 基本要求：
-- 必须回链 source_ids
-- 只能作为召回线索、排序特征或 compiler 辅助
-- 应能单独关闭做 ablation
+- 推荐保留 source_ids 或 provenance，便于诊断和回查；但是否强制 source-grounded 取决于具体方法设计和实验目标。
+- 可以作为召回线索、排序特征、compiler 上下文，必要时也可以作为 answer context 的一部分。
+- 应能单独关闭做 ablation，并报告它带来的 accuracy、token 成本和错误类型变化。
 
 ### Retrieval
 
@@ -90,11 +124,12 @@
 - 如何减少噪声证据
 - 如何处理 multi-hop、temporal、list/count、preference 等不同信息需求
 
-### Evidence Organization / Compiler
+### Memory Context Organization / Compiler
 
-Compiler 负责把检索到的候选证据整理成 answer model 更容易使用的结构。
+Compiler 负责把激活出来的 memory 和 raw context 整理成 answer model 更容易使用的结构。它不只是 evidence table，也可以是 typed memory table、timeline、profile/event 对照、entity relation view、conflict chain 或 verifier input。
 
 可探索方向：
+- typed memory table
 - evidence table
 - timeline
 - entity table
@@ -105,9 +140,9 @@ Compiler 负责把检索到的候选证据整理成 answer model 更容易使用
 - missing evidence detection
 
 重点问题：
-- 证据已经召回时，如何减少 answer 阶段用错证据
-- 如何处理过期事实、说话人错误、时间计算错误
-- 如何让答案更稳定地 grounded in evidence
+- memory 已经激活时，如何减少 answer 阶段用错 memory。
+- 如何处理过期事实、说话人错误、时间计算错误、profile 与 event 冲突。
+- 如何在 accuracy 和可验证性之间取舍；source-grounded 是重要手段，但不是唯一目标。
 
 ### Answer / Verifier
 
@@ -154,7 +189,19 @@ Answer 模块生成最终答案；verifier 检查答案是否被证据支持。
 
 外部方法只能作为设计参考和 baseline 来源，不能直接变成 benchmark 专门规则，也不能绕过 `docs/clean_protocol.md` 和 `docs/constraints.md`。
 
-## 6. 实验可追溯
+## 6. 当前推荐落地形态
+
+当前阶段推荐优先实现一个轻量但真正包含 build-stage LLM 的 Agent Memory 系统：
+
+- Build：LLM 从 raw dialogue 中抽取 typed memory records，覆盖 event、fact、preference、profile、state、relationship、plan。
+- Manage：对 memory 做 source/provenance 记录、去重、轻量 supersede、active/superseded 状态管理和 cache。
+- Retrieve：query 阶段同时检索 raw turns、sessions 和 typed memory，并把 typed memory 命中的 source turns 或相关上下文激活。
+- Compile：把 typed memory view 和 raw evidence/context 一起组织给 answer model，而不是只做 flat top-k 拼接。
+- Evaluate：正式实验主要看 DeepSeek judge accuracy，同时记录 token 成本、build cache、memory 记录数量、命中记录和输出路径。
+
+这个形态借鉴了 LangMem 的 collection/profile、Memobase 的 profile/event timeline、MIRIX 的多类型 memory taxonomy、MemMachine 的 raw episode + profile 辅助、Graphiti/Zep 的 temporal/provenance 思路；但暂不引入重型图数据库、多 agent memory OS 或训练型 memory optimizer。
+
+## 7. 实验可追溯
 
 实验可追溯以本地 git 为准。正式实验应记录：
 

@@ -6,6 +6,7 @@ import calendar
 import re
 from datetime import date, timedelta
 
+from memory.build import MemoryRecord
 from common.schemas import CompiledContext, EvidenceRow, RetrievalHit, RouteResult, Turn
 
 
@@ -77,6 +78,7 @@ class EvidenceCompiler:
         row_text_mode: str = "full",
         max_row_text_chars: int = 0,
         route_guidance: bool = False,
+        max_memory_records: int = 12,
     ):
         self._max_evidence_items = max_evidence_items
         self._max_evidence_chars = max_evidence_chars
@@ -91,6 +93,7 @@ class EvidenceCompiler:
         self._row_text_mode = row_text_mode
         self._max_row_text_chars = max_row_text_chars or 800
         self._route_guidance = route_guidance
+        self._max_memory_records = max(0, max_memory_records)
 
     def compile(
         self,
@@ -99,6 +102,7 @@ class EvidenceCompiler:
         route: RouteResult,
         hits: tuple[RetrievalHit, ...],
         evidence_turns: tuple[Turn, ...],
+        memory_records: tuple[MemoryRecord, ...] = (),
     ) -> CompiledContext:
         hit_by_source_id = {hit.source_id: hit for hit in hits}
         candidates: list[EvidenceRow] = []
@@ -146,6 +150,7 @@ class EvidenceCompiler:
             question,
             question_time,
             route,
+            tuple(memory_records[: self._max_memory_records]),
             tuple(rows),
             answer_style=self._answer_style,
             temporal_grounding=self._temporal_grounding,
@@ -161,6 +166,7 @@ class EvidenceCompiler:
             evidence_rows=tuple(rows),
             prompt=prompt,
             context_chars=len(prompt),
+            memory_records=tuple(memory_records[: self._max_memory_records]),
         )
 
 
@@ -238,6 +244,7 @@ def _build_prompt(
     question: str,
     question_time: str | None,
     route: RouteResult,
+    memory_records: tuple[MemoryRecord, ...],
     rows: tuple[EvidenceRow, ...],
     answer_style: str,
     temporal_grounding: bool,
@@ -247,15 +254,15 @@ def _build_prompt(
     route_guidance: bool,
 ) -> str:
     lines = [
-        "Answer the question using only the raw evidence table.",
+        "Answer the question using the build-stage memory view and raw context.",
         "If the evidence is insufficient, answer that the information is not available.",
         "Do not use benchmark labels, gold answers, judge output, sample ids, or row indices.",
+        "Build-stage memory is generated before seeing the question; use it as structured long-term memory, and use raw context to resolve ambiguity or conflicts.",
         "",
         f"Question: {question}",
         f"Question time: {question_time or 'not provided'}",
         f"Information need: {route.information_need}",
         "",
-        "Raw evidence table:",
     ]
     if answer_style == "concise":
         lines.insert(
@@ -275,6 +282,14 @@ def _build_prompt(
         guidance_lines = _route_guidance_lines(route)
         if guidance_lines:
             lines[-1:-1] = ["", "Information-need guidance:", *guidance_lines, ""]
+
+    lines.append("Build-stage typed memory view:")
+    if not memory_records:
+        lines.append("(no build-stage memory records activated)")
+    for record in memory_records:
+        lines.append(_format_memory_record(record))
+
+    lines.extend(["", "Raw context table:"])
     if not rows:
         lines.append("(no evidence retrieved)")
     for row in rows:
@@ -292,6 +307,24 @@ def _build_prompt(
             lines.extend(("", "Temporal normalization hints derived from row timestamps:"))
             lines.extend(hints)
     return "\n".join(lines)
+
+
+def _format_memory_record(record: MemoryRecord) -> str:
+    entities = ", ".join(record.entities) if record.entities else "none"
+    source_ids = ", ".join(record.source_ids)
+    value_part = f" | value={record.value}" if record.value else ""
+    subject_part = f" | subject={record.subject}" if record.subject else ""
+    predicate_part = f" | predicate={record.predicate}" if record.predicate else ""
+    status_part = (
+        f" | status={record.status}"
+        + (f" superseded_by={record.superseded_by}" if record.superseded_by else "")
+    )
+    return (
+        f"- memory_id={record.memory_id} | type={record.memory_type}"
+        f"{subject_part}{predicate_part}{value_part}"
+        f" | time={record.timestamp or 'unknown'} | entities={entities}"
+        f" | sources=[{source_ids}]{status_part}: {record.text}"
+    )
 
 
 def _format_row(
