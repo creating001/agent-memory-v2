@@ -13,9 +13,10 @@ if str(SRC_ROOT) not in sys.path:
 
 from agent_memory.clean import CleanProtocolViolation, assert_clean_prediction_payload
 from agent_memory.answer import _message_text
+from agent_memory.compiler import EvidenceCompiler
 from agent_memory.io import load_prediction_jsonl
 from agent_memory.pipeline import Stage1Pipeline
-from agent_memory.schemas import PredictionRequest, Turn
+from agent_memory.schemas import PredictionRequest, RetrievalHit, RouteResult, Turn
 
 
 class CleanSkeletonTest(unittest.TestCase):
@@ -246,6 +247,66 @@ class CleanSkeletonTest(unittest.TestCase):
 
         self.assertIn("Resolve relative time expressions", prompt)
         self.assertNotIn("Temporal normalization hints", prompt)
+
+    def test_compiler_retrieval_order_is_default(self) -> None:
+        compiler = EvidenceCompiler(max_evidence_items=1, max_evidence_chars=4000)
+        route = RouteResult(information_need="fact_lookup", signals=())
+        compiled = compiler.compile(
+            question="What fruit was used for the picnic menu?",
+            question_time=None,
+            route=route,
+            hits=(RetrievalHit("s1:t0", 1.0, 1, "lexical_bm25"),),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Alex discussed the plan.",
+                ),
+                Turn(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="The mango fruit was used for the picnic menu.",
+                ),
+            ),
+        )
+
+        self.assertEqual(compiled.evidence_rows[0].source_id, "s1:t0")
+
+    def test_question_overlap_evidence_order_can_promote_relevant_neighbor(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=1,
+            max_evidence_chars=4000,
+            evidence_order="question_overlap",
+        )
+        route = RouteResult(information_need="fact_lookup", signals=())
+        compiled = compiler.compile(
+            question="What fruit was used for the picnic menu?",
+            question_time=None,
+            route=route,
+            hits=(RetrievalHit("s1:t0", 1.0, 1, "lexical_bm25"),),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Alex discussed the plan.",
+                ),
+                Turn(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="The mango fruit was used for the picnic menu.",
+                ),
+            ),
+        )
+
+        self.assertEqual(compiled.evidence_rows[0].source_id, "s1:t1")
 
     def test_session_bm25_anchor_can_feed_compiled_raw_evidence(self) -> None:
         config = {

@@ -112,7 +112,16 @@ class Stage1Pipeline:
             answer_style=str(compiler_config.get("answer_style", "grounded")),
             temporal_grounding=bool(compiler_config.get("temporal_grounding", False)),
             temporal_hints=bool(compiler_config.get("temporal_hints", False)),
+            evidence_order=str(compiler_config.get("evidence_order", "retrieval")),
         )
+        self._compiler_trace_config = {
+            "evidence_order": str(compiler_config.get("evidence_order", "retrieval")),
+            "answer_style": str(compiler_config.get("answer_style", "grounded")),
+            "temporal_grounding": bool(
+                compiler_config.get("temporal_grounding", False)
+            ),
+            "temporal_hints": bool(compiler_config.get("temporal_hints", False)),
+        }
         answer_mode = str(answer_config.get("mode", "null_answerer"))
         if answer_mode == "openai_compatible":
             self._answerer = OpenAICompatibleAnswerer(
@@ -283,6 +292,7 @@ class Stage1Pipeline:
                     "hits": [hit.to_dict() for hit in hits],
                 },
                 "compiled_context": compiled.to_dict(),
+                "compiler": self._compiler_trace_config,
                 "answer": answer.to_dict(),
                 "token_cost": answer.token_usage.to_dict(),
             },

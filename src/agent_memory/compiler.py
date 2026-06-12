@@ -10,6 +10,57 @@ from agent_memory.schemas import CompiledContext, EvidenceRow, RetrievalHit, Rou
 
 
 WEEKDAY_BY_NAME = {name.lower(): index for index, name in enumerate(calendar.day_name)}
+TOKEN_PATTERN = re.compile(r"[\w]+", re.UNICODE)
+QUESTION_STOPWORDS = {
+    "a",
+    "an",
+    "and",
+    "are",
+    "at",
+    "be",
+    "been",
+    "being",
+    "could",
+    "did",
+    "do",
+    "does",
+    "for",
+    "from",
+    "had",
+    "has",
+    "have",
+    "her",
+    "his",
+    "how",
+    "i",
+    "in",
+    "is",
+    "it",
+    "me",
+    "my",
+    "of",
+    "on",
+    "or",
+    "our",
+    "she",
+    "should",
+    "the",
+    "their",
+    "they",
+    "to",
+    "was",
+    "were",
+    "what",
+    "when",
+    "where",
+    "which",
+    "who",
+    "whom",
+    "why",
+    "would",
+    "you",
+    "your",
+}
 
 
 class EvidenceCompiler:
@@ -22,12 +73,16 @@ class EvidenceCompiler:
         answer_style: str = "grounded",
         temporal_grounding: bool = False,
         temporal_hints: bool = False,
+        evidence_order: str = "retrieval",
     ):
         self._max_evidence_items = max_evidence_items
         self._max_evidence_chars = max_evidence_chars
         self._answer_style = answer_style
         self._temporal_grounding = temporal_grounding
         self._temporal_hints = temporal_hints
+        if evidence_order not in {"retrieval", "question_overlap"}:
+            raise ValueError(f"Unsupported evidence_order: {evidence_order}")
+        self._evidence_order = evidence_order
 
     def compile(
         self,
@@ -38,23 +93,34 @@ class EvidenceCompiler:
         evidence_turns: tuple[Turn, ...],
     ) -> CompiledContext:
         hit_by_source_id = {hit.source_id: hit for hit in hits}
+        candidates: list[EvidenceRow] = []
+        for turn in evidence_turns:
+            hit = hit_by_source_id.get(turn.source_id)
+            candidates.append(
+                EvidenceRow(
+                    source_id=turn.source_id,
+                    session_id=turn.session_id,
+                    turn_index=turn.turn_index,
+                    role=turn.role,
+                    text=turn.text,
+                    timestamp=turn.timestamp,
+                    retrieval_rank=hit.rank if hit is not None else None,
+                    retrieval_score=hit.score if hit is not None else None,
+                )
+            )
+
+        ordered_candidates = _order_rows(
+            tuple(candidates),
+            question=question,
+            route=route,
+            evidence_order=self._evidence_order,
+        )
         rows: list[EvidenceRow] = []
         used_chars = 0
 
-        for turn in evidence_turns:
+        for row in ordered_candidates:
             if len(rows) >= self._max_evidence_items:
                 break
-            hit = hit_by_source_id.get(turn.source_id)
-            row = EvidenceRow(
-                source_id=turn.source_id,
-                session_id=turn.session_id,
-                turn_index=turn.turn_index,
-                role=turn.role,
-                text=turn.text,
-                timestamp=turn.timestamp,
-                retrieval_rank=hit.rank if hit is not None else None,
-                retrieval_score=hit.score if hit is not None else None,
-            )
             row_chars = len(_format_row(row))
             if rows and used_chars + row_chars > self._max_evidence_chars:
                 break
@@ -78,6 +144,76 @@ class EvidenceCompiler:
             prompt=prompt,
             context_chars=len(prompt),
         )
+
+
+def _order_rows(
+    rows: tuple[EvidenceRow, ...],
+    question: str,
+    route: RouteResult,
+    evidence_order: str,
+) -> tuple[EvidenceRow, ...]:
+    if evidence_order == "retrieval":
+        return rows
+    if evidence_order != "question_overlap":
+        raise ValueError(f"Unsupported evidence_order: {evidence_order}")
+
+    question_terms = _content_terms(question)
+    return tuple(
+        row
+        for _, row in sorted(
+            enumerate(rows),
+            key=lambda item: _question_overlap_key(
+                index=item[0],
+                row=item[1],
+                question_terms=question_terms,
+                route=route,
+            ),
+        )
+    )
+
+
+def _question_overlap_key(
+    index: int,
+    row: EvidenceRow,
+    question_terms: frozenset[str],
+    route: RouteResult,
+) -> tuple[float, int, int, str, str, int, int]:
+    row_terms = _content_terms(row.text)
+    overlap = len(question_terms.intersection(row_terms))
+    direct_hit_bonus = 1.0 if row.retrieval_rank is not None else 0.0
+    temporal_bonus = (
+        0.25
+        if (
+            route.information_need in {"current_state", "temporal_lookup"}
+            and row.timestamp
+        )
+        else 0.0
+    )
+    score = overlap + direct_hit_bonus + temporal_bonus
+    missing_rank = 1 if row.retrieval_rank is None else 0
+    rank = row.retrieval_rank if row.retrieval_rank is not None else 1_000_000
+    time_key = _timestamp_sort_key(row.timestamp, route)
+    return (-score, missing_rank, rank, time_key, row.session_id, row.turn_index, index)
+
+
+def _content_terms(text: str) -> frozenset[str]:
+    terms = [
+        match.group(0).lower()
+        for match in TOKEN_PATTERN.finditer(text)
+        if match.group(0).lower() not in QUESTION_STOPWORDS
+    ]
+    return frozenset(terms)
+
+
+def _timestamp_sort_key(timestamp: str | None, route: RouteResult) -> str:
+    normalized = timestamp or ""
+    if route.information_need == "current_state":
+        return _invert_sortable_text(normalized)
+    return normalized
+
+
+def _invert_sortable_text(value: str) -> str:
+    return "".join(chr(0x10FFFF - ord(char)) for char in value)
 
 
 def _build_prompt(
