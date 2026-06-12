@@ -11,6 +11,8 @@ answer:
   name: Qwen/Qwen3-30B-A3B-Instruct-2507
   service: local_vllm_generation
   temperature: 0.0
+  max_input_tokens: 131072
+  max_output_tokens: 16384
   thinking: default
 ```
 
@@ -53,6 +55,8 @@ deployment:
     cuda_visible_devices: [0, 1, 2, 3]
     tensor_parallel_size: 4
     gpu_memory_utilization: 0.8
+    max_model_len: 131072
+    max_output_tokens: 16384
 
   embedding:
     model: Qwen/Qwen3-Embedding-0.6B
