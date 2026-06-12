@@ -88,6 +88,9 @@ def main() -> int:
             "neighbor_order": config.get("retrieval", {}).get(
                 "neighbor_order", "hit_priority"
             ),
+            "drop_query_stopwords": config.get("retrieval", {}).get(
+                "drop_query_stopwords", False
+            ),
             "avg_compiled_evidence_items": _safe_average(
                 total_evidence_items, sample_count
             ),
@@ -227,6 +230,7 @@ def _write_summary(
         f"- avg_query_tokens: {metrics['token_cost']['avg_query_tokens']}",
         f"- avg_compiled_evidence_items: {metrics['retrieval']['avg_compiled_evidence_items']}",
         f"- neighbor_order: {metrics['retrieval']['neighbor_order']}",
+        f"- drop_query_stopwords: {metrics['retrieval']['drop_query_stopwords']}",
         f"- avg_context_chars: {metrics['retrieval']['avg_context_chars']}",
         f"- answer_mode: {metrics['answer']['mode']}",
         f"- answer_model: {metrics['answer']['model']}",

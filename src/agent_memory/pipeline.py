@@ -26,6 +26,7 @@ class Stage1Pipeline:
         self._max_top_k = int(retrieval_config.get("max_top_k", self._base_top_k))
         self._neighbor_window = int(retrieval_config.get("neighbor_window", 1))
         self._neighbor_order = str(retrieval_config.get("neighbor_order", "hit_priority"))
+        self._drop_query_stopwords = bool(retrieval_config.get("drop_query_stopwords", False))
         self._score_threshold = float(retrieval_config.get("score_threshold", 0.0))
         self._compiler = EvidenceCompiler(
             max_evidence_items=int(compiler_config.get("max_evidence_items", 20)),
@@ -55,7 +56,10 @@ class Stage1Pipeline:
         store = RawEvidenceStore(request.turns)
         route = self._router.route(request.question, request.question_time)
         top_k = min(self._base_top_k * route.retrieval_multiplier, self._max_top_k)
-        retriever = LexicalBM25Retriever(store.turns)
+        retriever = LexicalBM25Retriever(
+            store.turns,
+            drop_query_stopwords=self._drop_query_stopwords,
+        )
         hits = retriever.retrieve(
             request.question,
             top_k=top_k,
@@ -85,6 +89,7 @@ class Stage1Pipeline:
                     "base_top_k": self._base_top_k,
                     "neighbor_window": self._neighbor_window,
                     "neighbor_order": self._neighbor_order,
+                    "drop_query_stopwords": self._drop_query_stopwords,
                     "hits": [hit.to_dict() for hit in hits],
                 },
                 "compiled_context": compiled.to_dict(),
