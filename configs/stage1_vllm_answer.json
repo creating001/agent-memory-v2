@@ -6,6 +6,7 @@
     "top_k": 8,
     "max_top_k": 24,
     "neighbor_window": 1,
+    "neighbor_order": "hit_priority",
     "score_threshold": 0.0
   },
   "compiler": {

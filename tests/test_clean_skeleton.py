@@ -93,6 +93,49 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertTrue(all(row["source_id"] for row in rows))
         self.assertEqual(result["trace"]["token_cost"]["query_tokens"], 0)
 
+    def test_hit_priority_neighbor_expansion_keeps_top_hit_when_compiler_is_tight(self) -> None:
+        config = {
+            "retrieval": {
+                "top_k": 1,
+                "max_top_k": 1,
+                "neighbor_window": 1,
+                "neighbor_order": "hit_priority",
+            },
+            "compiler": {"max_evidence_items": 1, "max_evidence_chars": 4000},
+            "answer": {"fallback_answer": "I do not know."},
+        }
+        request = PredictionRequest(
+            question="When did Caroline go to the LGBTQ support group?",
+            turns=(
+                Turn(
+                    source_id="D1:2",
+                    session_id="D1",
+                    turn_index=2,
+                    role="speaker",
+                    text="Caroline discussed plans with a friend.",
+                ),
+                Turn(
+                    source_id="D1:3",
+                    session_id="D1",
+                    turn_index=3,
+                    role="speaker",
+                    text="Caroline went to the LGBTQ support group on 7 May 2023.",
+                ),
+                Turn(
+                    source_id="D1:4",
+                    session_id="D1",
+                    turn_index=4,
+                    role="speaker",
+                    text="They talked afterward about how helpful the group was.",
+                ),
+            ),
+        )
+
+        result = Stage1Pipeline(config).predict(request)
+        rows = result["trace"]["compiled_context"]["evidence_rows"]
+
+        self.assertEqual(rows[0]["source_id"], "D1:3")
+
     def test_pipeline_accepts_openai_compatible_config(self) -> None:
         config = {
             "retrieval": {"top_k": 1, "max_top_k": 1, "neighbor_window": 0},

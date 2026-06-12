@@ -85,6 +85,9 @@ def main() -> int:
             "top_k": config.get("retrieval", {}).get("top_k"),
             "max_top_k": config.get("retrieval", {}).get("max_top_k"),
             "neighbor_window": config.get("retrieval", {}).get("neighbor_window"),
+            "neighbor_order": config.get("retrieval", {}).get(
+                "neighbor_order", "hit_priority"
+            ),
             "avg_compiled_evidence_items": _safe_average(
                 total_evidence_items, sample_count
             ),
@@ -223,6 +226,7 @@ def _write_summary(
         f"- avg_build_tokens: {metrics['token_cost']['avg_build_tokens']}",
         f"- avg_query_tokens: {metrics['token_cost']['avg_query_tokens']}",
         f"- avg_compiled_evidence_items: {metrics['retrieval']['avg_compiled_evidence_items']}",
+        f"- neighbor_order: {metrics['retrieval']['neighbor_order']}",
         f"- avg_context_chars: {metrics['retrieval']['avg_context_chars']}",
         f"- answer_mode: {metrics['answer']['mode']}",
         f"- answer_model: {metrics['answer']['model']}",

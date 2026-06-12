@@ -25,6 +25,7 @@ class Stage1Pipeline:
         self._base_top_k = int(retrieval_config.get("top_k", 8))
         self._max_top_k = int(retrieval_config.get("max_top_k", self._base_top_k))
         self._neighbor_window = int(retrieval_config.get("neighbor_window", 1))
+        self._neighbor_order = str(retrieval_config.get("neighbor_order", "hit_priority"))
         self._score_threshold = float(retrieval_config.get("score_threshold", 0.0))
         self._compiler = EvidenceCompiler(
             max_evidence_items=int(compiler_config.get("max_evidence_items", 20)),
@@ -63,6 +64,7 @@ class Stage1Pipeline:
         evidence_turns = store.expand_neighbors(
             (hit.source_id for hit in hits),
             window=self._neighbor_window,
+            order=self._neighbor_order,
         )
         compiled = self._compiler.compile(
             question=request.question,
@@ -82,6 +84,7 @@ class Stage1Pipeline:
                     "top_k": top_k,
                     "base_top_k": self._base_top_k,
                     "neighbor_window": self._neighbor_window,
+                    "neighbor_order": self._neighbor_order,
                     "hits": [hit.to_dict() for hit in hits],
                 },
                 "compiled_context": compiled.to_dict(),

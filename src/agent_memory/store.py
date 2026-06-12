@@ -33,10 +33,26 @@ class RawEvidenceStore:
     def get(self, source_id: str) -> Turn | None:
         return self._by_source_id.get(source_id)
 
-    def expand_neighbors(self, source_ids: Iterable[str], window: int) -> tuple[Turn, ...]:
-        """Return hit turns plus same-session neighbors in chronological order."""
+    def expand_neighbors(
+        self,
+        source_ids: Iterable[str],
+        window: int,
+        order: str = "hit_priority",
+    ) -> tuple[Turn, ...]:
+        """Return hit turns plus same-session neighbors.
+
+        `hit_priority` keeps each retrieved nucleus before its neighbors so the
+        compiler cannot drop direct retrieval hits before lower-priority context.
+        `chronological` preserves the earlier baseline for ablation.
+        """
+
+        if window < 0:
+            raise ValueError("neighbor expansion window must be non-negative")
+        if order not in {"hit_priority", "chronological"}:
+            raise ValueError(f"Unsupported neighbor expansion order: {order}")
 
         selected: dict[str, Turn] = {}
+        ordered_source_ids: list[str] = []
         for source_id in source_ids:
             turn = self.get(source_id)
             if turn is None:
@@ -51,8 +67,18 @@ class RawEvidenceStore:
                 continue
             start = max(0, position - window)
             end = min(len(session_turns), position + window + 1)
-            for neighbor in session_turns[start:end]:
+            if order == "hit_priority":
+                candidates = (turn, *session_turns[start:position], *session_turns[position + 1 : end])
+            else:
+                candidates = session_turns[start:end]
+            for neighbor in candidates:
+                if neighbor.source_id in selected:
+                    continue
                 selected[neighbor.source_id] = neighbor
+                ordered_source_ids.append(neighbor.source_id)
+
+        if order == "hit_priority":
+            return tuple(selected[source_id] for source_id in ordered_source_ids)
 
         return tuple(
             sorted(
