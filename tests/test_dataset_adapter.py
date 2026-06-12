@@ -56,16 +56,21 @@ class DatasetAdapterTest(unittest.TestCase):
         records = prepare_records(
             [
                 {
-                    "question": "Included?",
-                    "answer": "yes",
-                    "category": "1",
-                    "conversation": [{"role": "user", "text": "hello"}],
-                },
-                {
-                    "question": "Excluded?",
-                    "answer": "no",
-                    "category": "5",
-                    "conversation": [{"role": "user", "text": "secret"}],
+                    "conversation": {
+                        "session_1": [{"speaker": "A", "dia_id": "D1:1", "text": "hello"}],
+                    },
+                    "qa": [
+                        {
+                            "question": "Included?",
+                            "answer": "yes",
+                            "category": "1",
+                        },
+                        {
+                            "question": "Excluded?",
+                            "answer": "no",
+                            "category": "5",
+                        },
+                    ],
                 },
             ],
             benchmark="locomo",
@@ -84,6 +89,122 @@ class DatasetAdapterTest(unittest.TestCase):
         self.assertEqual(metrics["n_joined"], 1)
         self.assertEqual(metrics["accuracy_exact"], 1.0)
         self.assertEqual(metrics["by_type"]["profile"]["n"], 1)
+
+    def test_longmemeval_adapter_separates_labels(self) -> None:
+        records = prepare_records(
+            [
+                {
+                    "question_id": "qid-1",
+                    "question_type": "multi-session",
+                    "question": "What degree did I graduate with?",
+                    "question_date": "2023/05/30",
+                    "answer": "Business Administration",
+                    "answer_session_ids": ["answer-session"],
+                    "haystack_dates": ["2023/05/20"],
+                    "haystack_session_ids": ["session-a"],
+                    "haystack_sessions": [
+                        [
+                            {
+                                "role": "user",
+                                "content": "I graduated with Business Administration.",
+                                "has_answer": True,
+                            }
+                        ]
+                    ],
+                }
+            ],
+            benchmark="longmemeval",
+            subset="s_cleaned",
+        )
+
+        prediction = records[0].prediction
+        label = records[0].label
+        assert_clean_prediction_payload(
+            {key: value for key, value in prediction.items() if key != "record_key"}
+        )
+        prediction_text = str(prediction)
+        self.assertNotIn("qid-1", prediction_text)
+        self.assertNotIn("multi-session", prediction_text)
+        self.assertNotIn("answer_session_ids", prediction_text)
+        self.assertNotIn("'answer'", prediction_text)
+        self.assertNotIn("has_answer", prediction_text)
+        self.assertEqual(label["source_question_id"], "qid-1")
+        self.assertEqual(label["gold_answer"], "Business Administration")
+
+    def test_longmemeval_adapter_skips_empty_turns(self) -> None:
+        records = prepare_records(
+            [
+                {
+                    "question_id": "qid-empty",
+                    "question_type": "single-session-user",
+                    "question": "What did I say?",
+                    "answer": "hello",
+                    "haystack_session_ids": ["session-a"],
+                    "haystack_sessions": [
+                        [
+                            {"role": "user", "content": ""},
+                            {"role": "user", "content": "hello"},
+                        ]
+                    ],
+                }
+            ],
+            benchmark="longmemeval",
+            subset="s_cleaned",
+        )
+
+        turns = records[0].prediction["sessions"][0]["turns"]
+        self.assertEqual(len(turns), 1)
+        self.assertEqual(turns[0]["source_id"], "session-a:turn_0001")
+
+    def test_locomo_adapter_expands_qa_and_filters_category_5(self) -> None:
+        records = prepare_records(
+            [
+                {
+                    "sample_id": "conv-1",
+                    "conversation": {
+                        "speaker_a": "A",
+                        "speaker_b": "B",
+                        "session_1_date_time": "1 Jan, 2024",
+                        "session_1": [
+                            {
+                                "speaker": "A",
+                                "dia_id": "D1:1",
+                                "text": "I went to a support group.",
+                            }
+                        ],
+                    },
+                    "qa": [
+                        {
+                            "question": "Where did A go?",
+                            "answer": "support group",
+                            "category": 2,
+                            "evidence": ["D1:1"],
+                        },
+                        {
+                            "question": "Adversarial?",
+                            "answer": "hidden",
+                            "category": 5,
+                            "evidence": ["D1:1"],
+                        },
+                    ],
+                }
+            ],
+            benchmark="locomo",
+            subset="non-adversarial",
+        )
+
+        self.assertEqual(len(records), 1)
+        prediction = records[0].prediction
+        label = records[0].label
+        assert_clean_prediction_payload(
+            {key: value for key, value in prediction.items() if key != "record_key"}
+        )
+        prediction_text = str(prediction)
+        self.assertNotIn("category", prediction_text)
+        self.assertNotIn("evidence", prediction_text)
+        self.assertNotIn("conv-1", prediction_text)
+        self.assertEqual(label["category"], 2)
+        self.assertEqual(label["evidence"], ["D1:1"])
 
 
 if __name__ == "__main__":

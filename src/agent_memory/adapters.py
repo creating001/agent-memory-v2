@@ -42,6 +42,12 @@ def prepare_records(
 ) -> tuple[PreparedRecord, ...]:
     """Prepare clean prediction records and offline-only labels."""
 
+    benchmark_key = benchmark.lower()
+    if benchmark_key == "longmemeval":
+        return tuple(_prepare_longmemeval_records(rows, benchmark, subset))
+    if benchmark_key == "locomo":
+        return tuple(_prepare_locomo_records(rows, benchmark, subset))
+
     prepared: list[PreparedRecord] = []
     for row_number, row in enumerate(rows, start=1):
         if not _include_row(row, benchmark=benchmark, subset=subset):
@@ -74,6 +80,88 @@ def prepare_records(
         }
         prepared.append(PreparedRecord(prediction=prediction, label=label))
     return tuple(prepared)
+
+
+def _prepare_longmemeval_records(
+    rows: Iterable[Mapping[str, Any]],
+    benchmark: str,
+    subset: str,
+) -> Iterable[PreparedRecord]:
+    for row_number, row in enumerate(rows, start=1):
+        question = _required_first_text(row, ("question",), row_number)
+        question_time = _first_text(row, ("question_date", "question_time"))
+        sessions = _extract_longmemeval_sessions(row, row_number)
+        clean_core = {
+            "question": question,
+            "question_time": question_time,
+            "sessions": sessions,
+        }
+        record_key = _stable_record_key(clean_core)
+        prediction = {
+            "record_key": record_key,
+            "question": question,
+            "sessions": sessions,
+        }
+        if question_time is not None:
+            prediction["question_time"] = question_time
+
+        yield PreparedRecord(
+            prediction=prediction,
+            label={
+                "record_key": record_key,
+                "question": question,
+                "gold_answer": _first_value(row, ("answer",)),
+                "question_type": _first_value(row, ("question_type",)),
+                "category": None,
+                "benchmark": benchmark,
+                "subset": subset,
+                "source_question_id": _first_value(row, ("question_id",)),
+                "answer_session_ids": _first_value(row, ("answer_session_ids",)),
+            },
+        )
+
+
+def _prepare_locomo_records(
+    rows: Iterable[Mapping[str, Any]],
+    benchmark: str,
+    subset: str,
+) -> Iterable[PreparedRecord]:
+    for row_number, row in enumerate(rows, start=1):
+        sessions = _extract_locomo_sessions(row, row_number)
+        qa_items = _first_value(row, ("qa",))
+        if not isinstance(qa_items, list):
+            raise ValueError(f"Row {row_number}: LoCoMo row has no qa list")
+        for qa_index, qa in enumerate(qa_items):
+            if not isinstance(qa, Mapping):
+                raise ValueError(f"Row {row_number}: qa {qa_index} must be an object")
+            if not _include_row(qa, benchmark=benchmark, subset=subset):
+                continue
+            question = _required_first_text(qa, ("question",), row_number)
+            clean_core = {
+                "question": question,
+                "question_time": None,
+                "sessions": sessions,
+            }
+            record_key = _stable_record_key(clean_core)
+            prediction = {
+                "record_key": record_key,
+                "question": question,
+                "sessions": sessions,
+            }
+            yield PreparedRecord(
+                prediction=prediction,
+                label={
+                    "record_key": record_key,
+                    "question": question,
+                    "gold_answer": _first_value(qa, ("answer",)),
+                    "question_type": None,
+                    "category": _first_value(qa, ("category",)),
+                    "benchmark": benchmark,
+                    "subset": subset,
+                    "source_sample_id": _first_value(row, ("sample_id",)),
+                    "evidence": _first_value(qa, ("evidence",)),
+                },
+            )
 
 
 def read_json_or_jsonl(path: str) -> list[Mapping[str, Any]]:
@@ -138,6 +226,101 @@ def _extract_sessions(row: Mapping[str, Any], row_number: int) -> list[dict[str,
         return [_normalize_session(raw_sessions, 0, row_number)]
 
     raise ValueError(f"Row {row_number}: unsupported session container")
+
+
+def _extract_longmemeval_sessions(
+    row: Mapping[str, Any], row_number: int
+) -> list[dict[str, Any]]:
+    raw_sessions = _first_value(row, ("haystack_sessions",))
+    if not isinstance(raw_sessions, list):
+        raise ValueError(f"Row {row_number}: LongMemEval row has no haystack_sessions")
+    session_ids = _first_value(row, ("haystack_session_ids",))
+    dates = _first_value(row, ("haystack_dates",))
+    if session_ids is not None and not isinstance(session_ids, list):
+        raise ValueError(f"Row {row_number}: haystack_session_ids must be a list")
+    if dates is not None and not isinstance(dates, list):
+        raise ValueError(f"Row {row_number}: haystack_dates must be a list")
+
+    sessions: list[dict[str, Any]] = []
+    for session_index, raw_session in enumerate(raw_sessions):
+        if not isinstance(raw_session, list):
+            raise ValueError(
+                f"Row {row_number}: haystack session {session_index} must be a turn list"
+            )
+        session_id = (
+            str(session_ids[session_index])
+            if isinstance(session_ids, list) and session_index < len(session_ids)
+            else f"session_{session_index:04d}"
+        )
+        session: dict[str, Any] = {
+            "session_id": session_id,
+            "turns": [],
+        }
+        if isinstance(dates, list) and session_index < len(dates):
+            session["date"] = str(dates[session_index])
+        for turn_index, raw_turn in enumerate(raw_session):
+            if not isinstance(raw_turn, Mapping):
+                raise ValueError(
+                    f"Row {row_number}: haystack session {session_index} turn {turn_index} must be object"
+                )
+            text = _first_text(raw_turn, TEXT_KEYS)
+            if text is None:
+                continue
+            turn = {
+                "source_id": f"{session_id}:turn_{turn_index:04d}",
+                "role": _first_text(raw_turn, ROLE_KEYS) or "unknown",
+                "text": text,
+            }
+            session["turns"].append(turn)
+        sessions.append(session)
+    return sessions
+
+
+def _extract_locomo_sessions(
+    row: Mapping[str, Any], row_number: int
+) -> list[dict[str, Any]]:
+    conversation = _first_value(row, ("conversation",))
+    if not isinstance(conversation, Mapping):
+        raise ValueError(f"Row {row_number}: LoCoMo row has no conversation object")
+    session_names = sorted(
+        (
+            key
+            for key, value in conversation.items()
+            if key.startswith("session_")
+            and key.count("_") == 1
+            and isinstance(value, list)
+        ),
+        key=lambda item: int(item.split("_")[1]),
+    )
+    sessions = []
+    for session_name in session_names:
+        raw_turns = conversation[session_name]
+        session: dict[str, Any] = {
+            "session_id": session_name,
+            "turns": [],
+        }
+        session_time = _first_text(conversation, (f"{session_name}_date_time",))
+        if session_time is not None:
+            session["date"] = session_time
+        for turn_index, raw_turn in enumerate(raw_turns):
+            if not isinstance(raw_turn, Mapping):
+                raise ValueError(
+                    f"Row {row_number}: {session_name} turn {turn_index} must be object"
+                )
+            source_id = _first_text(raw_turn, ("dia_id", "source_id"))
+            if source_id is None:
+                source_id = f"{session_name}:turn_{turn_index:04d}"
+            session["turns"].append(
+                {
+                    "source_id": source_id,
+                    "role": _first_text(raw_turn, ("speaker", "role")) or "unknown",
+                    "text": _required_first_text(raw_turn, TEXT_KEYS, row_number),
+                }
+            )
+        sessions.append(session)
+    if not sessions:
+        raise ValueError(f"Row {row_number}: LoCoMo conversation has no sessions")
+    return sessions
 
 
 def _normalize_session(
