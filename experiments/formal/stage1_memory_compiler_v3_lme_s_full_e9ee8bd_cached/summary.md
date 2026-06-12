@@ -35,6 +35,8 @@ Stage-1 clean skeleton run: validate raw evidence storage, lexical retrieval, ne
 - deepseek_judge_usage_total_tokens: 116961
 - deepseek_judge_usage_prompt_tokens: 77559
 - deepseek_judge_usage_completion_tokens: 39402
+- offline_evidence_recall: 0.976
+- offline_evidence_recall_n: 500
 - accuracy: None
 - f1: None
 - bleu: None
@@ -105,6 +107,7 @@ Stage-1 clean skeleton run: validate raw evidence storage, lexical retrieval, ne
 - v3 vs v1: 37 improved, 22 regressed, +15 net correct
 - likely gain: typed memory sections and memory ordering help knowledge-update and some multi-session questions.
 - remaining gap: temporal and multi-session are still below 40%; single-session-preference remains very weak.
+- offline evidence recall is high overall (0.976), including multi-session 0.9624 and temporal-reasoning 0.9699, so the main bottleneck is not simple labeled-session retrieval miss; it is evidence organization, temporal/state reasoning, and memory management.
 
 ## Outputs
 
@@ -114,6 +117,7 @@ Stage-1 clean skeleton run: validate raw evidence storage, lexical retrieval, ne
 - manifest: /data/home_new/wujinqi/agent-memory/experiments/formal/stage1_memory_compiler_v3_lme_s_full_e9ee8bd_cached/manifest.json
 - deepseek_judge: /data/home_new/wujinqi/agent-memory/experiments/formal/stage1_memory_compiler_v3_lme_s_full_e9ee8bd_cached/deepseek_judge.json
 - deepseek_judge_partial: /data/home_new/wujinqi/agent-memory/experiments/formal/stage1_memory_compiler_v3_lme_s_full_e9ee8bd_cached/deepseek_judge.json.partial.jsonl
+- offline_evidence_recall: /data/home_new/wujinqi/agent-memory/experiments/formal/stage1_memory_compiler_v3_lme_s_full_e9ee8bd_cached/evidence_recall.json
 
 ## Clean Notes
 

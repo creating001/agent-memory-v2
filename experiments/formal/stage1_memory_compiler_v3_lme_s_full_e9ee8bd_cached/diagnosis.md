@@ -38,6 +38,8 @@
 - deepseek_judge_correct: 279
 - deepseek_judge_wrong: 221
 - deepseek_judge_usage_total_tokens: 116961
+- offline_evidence_recall: 0.976
+- offline_evidence_recall_n: 500
 
 ## DeepSeek Judge By Type
 
@@ -50,10 +52,22 @@
 | single-session-user | 62 | 70 | 0.8857 |
 | temporal-reasoning | 51 | 133 | 0.3835 |
 
+## Offline Evidence Recall
+
+| type | n | evidence_recall |
+|---|---:|---:|
+| knowledge-update | 78 | 1.0000 |
+| multi-session | 133 | 0.9624 |
+| single-session-assistant | 56 | 1.0000 |
+| single-session-preference | 30 | 0.9333 |
+| single-session-user | 70 | 0.9857 |
+| temporal-reasoning | 133 | 0.9699 |
+
 ## Diagnosis
 
 - typed memory sections 和 question-overlap memory ordering 是有效的 clean 正向消融，主要提升 knowledge-update，也对部分 multi-session 样本有帮助。
 - 该收益仍然偏浅，说明问题不只是 answer prompt 组织；multi-session 和 temporal-reasoning 仍低于 40%，需要更强的 build-stage memory management 和 temporal/profile/event 结构。
+- offline evidence recall 已达 0.976，multi-session 和 temporal-reasoning 也分别为 0.9624 和 0.9699；因此下一步不能只扩大 top-k 或无差别增加 context token，重点应放在证据组织、状态链、时间规范化和多证据聚合。
 - single-session-user / assistant 已经较强，下一步不应为了这些类型牺牲总体检索精度；应重点解决跨会话聚合、时间顺序、状态更新和偏好稳定性。
 - single-session-preference 仍很弱，当前 typed records 对稳定偏好、一次性事件和 profile state 的区分不够，容易漏掉可用于个性化回答的信息。
 - avg query tokens 5274.212，仍在 6K 主线预算内；avg build tokens 为 0 是因为本次完全复用 build cache，并不代表真实冷构建成本为 0。
