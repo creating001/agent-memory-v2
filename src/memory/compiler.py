@@ -27,6 +27,12 @@ NUMBER_WORDS = {
     "eleven": 11,
     "twelve": 12,
 }
+MAX_RELATIVE_TIME_SPANS = {
+    "day": 36500,
+    "week": 5200,
+    "month": 1200,
+    "year": 100,
+}
 TOKEN_PATTERN = re.compile(r"[\w]+", re.UNICODE)
 QUESTION_STOPWORDS = {
     "a",
@@ -877,12 +883,15 @@ def _relative_time_values(text: str, row_date: date) -> list[tuple[str, str]]:
     ):
         count = _parse_count(match.group("count"))
         unit = match.group("unit")
-        if count is None:
+        if count is None or not _is_reasonable_relative_span(count, unit):
+            continue
+        normalized = _ago_value(row_date, count=count, unit=unit)
+        if normalized is None:
             continue
         values.append(
             (
                 match.group(0),
-                _ago_value(row_date, count=count, unit=unit),
+                normalized,
             )
         )
 
@@ -932,16 +941,28 @@ def _parse_count(value: str) -> int | None:
     return NUMBER_WORDS.get(value)
 
 
-def _ago_value(value: date, count: int, unit: str) -> str:
-    if unit.startswith("day"):
-        return (value - timedelta(days=count)).isoformat()
-    if unit.startswith("week"):
-        return (value - timedelta(days=7 * count)).isoformat()
-    if unit.startswith("month"):
-        return _shift_month(value, -count).isoformat()
-    if unit.startswith("year"):
-        return _shift_year(value, -count).isoformat()
-    return value.isoformat()
+def _is_reasonable_relative_span(count: int, unit: str) -> bool:
+    if count < 0:
+        return False
+    for prefix, limit in MAX_RELATIVE_TIME_SPANS.items():
+        if unit.startswith(prefix):
+            return count <= limit
+    return False
+
+
+def _ago_value(value: date, count: int, unit: str) -> str | None:
+    try:
+        if unit.startswith("day"):
+            return (value - timedelta(days=count)).isoformat()
+        if unit.startswith("week"):
+            return (value - timedelta(days=7 * count)).isoformat()
+        if unit.startswith("month"):
+            return _shift_month(value, -count).isoformat()
+        if unit.startswith("year"):
+            return _shift_year(value, -count).isoformat()
+    except (OverflowError, ValueError):
+        return None
+    return None
 
 
 def _normalize_direction(value: str) -> str:

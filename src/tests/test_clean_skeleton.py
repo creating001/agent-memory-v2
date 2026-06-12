@@ -447,6 +447,34 @@ class CleanSkeletonTest(unittest.TestCase):
 
         self.assertIn('phrase="two years ago" normalized="2021-06-09"', compiled.prompt)
 
+    def test_temporal_text_normalization_skips_unreasonable_ago_span(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=1,
+            max_evidence_chars=4000,
+            temporal_workpad=True,
+            temporal_text_normalization=True,
+        )
+        route = RouteResult(information_need="temporal_lookup", signals=("temporal",))
+        compiled = compiler.compile(
+            question="When did Alex discuss the artifact?",
+            question_time="2023-06-20",
+            route=route,
+            hits=(RetrievalHit("s1:t0", 1.0, 1, "lexical_bm25"),),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Alex discussed an artifact from 4000 years ago.",
+                    timestamp="2023-06-09",
+                ),
+            ),
+        )
+
+        self.assertIn("Temporal calculation workpad", compiled.prompt)
+        self.assertNotIn('phrase="4000 years ago"', compiled.prompt)
+
     def test_temporal_text_normalization_is_disabled_by_default(self) -> None:
         compiler = EvidenceCompiler(
             max_evidence_items=1,
