@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Iterable
 
-from agent_memory.schemas import Turn
+from common.schemas import Turn
 
 
 class RawEvidenceStore:

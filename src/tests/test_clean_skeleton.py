@@ -6,17 +6,17 @@ import tempfile
 import unittest
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 SRC_ROOT = REPO_ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
-from agent_memory.clean import CleanProtocolViolation, assert_clean_prediction_payload
-from agent_memory.answer import _message_text
-from agent_memory.compiler import EvidenceCompiler
-from agent_memory.io import load_prediction_jsonl
-from agent_memory.pipeline import Stage1Pipeline
-from agent_memory.schemas import PredictionRequest, RetrievalHit, RouteResult, Turn
+from common.clean import CleanProtocolViolation, assert_clean_prediction_payload
+from memory.answer import _message_text
+from memory.compiler import EvidenceCompiler
+from data.io import load_prediction_jsonl
+from memory.pipeline import Stage1Pipeline
+from common.schemas import PredictionRequest, RetrievalHit, RouteResult, Turn
 
 
 class CleanSkeletonTest(unittest.TestCase):

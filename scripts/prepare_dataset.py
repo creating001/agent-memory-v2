@@ -13,9 +13,9 @@ SRC_ROOT = REPO_ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
-from agent_memory.adapters import prepare_records, read_json_or_jsonl  # noqa: E402
-from agent_memory.clean import assert_clean_prediction_payload  # noqa: E402
-from agent_memory.experiment import collect_git_state, utc_now_iso, write_json  # noqa: E402
+from data.adapters import prepare_records, read_json_or_jsonl  # noqa: E402
+from common.clean import assert_clean_prediction_payload  # noqa: E402
+from common.experiment import collect_git_state, utc_now_iso, write_json  # noqa: E402
 
 
 def main() -> int:

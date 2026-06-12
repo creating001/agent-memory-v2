@@ -14,14 +14,14 @@ SRC_ROOT = REPO_ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
-from agent_memory.experiment import (  # noqa: E402
+from common.experiment import (  # noqa: E402
     append_jsonl,
     collect_git_state,
     utc_now_iso,
     write_json,
 )
-from agent_memory.io import load_prediction_jsonl  # noqa: E402
-from agent_memory.pipeline import Stage1Pipeline  # noqa: E402
+from data.io import load_prediction_jsonl  # noqa: E402
+from memory.pipeline import Stage1Pipeline  # noqa: E402
 
 
 def main() -> int:

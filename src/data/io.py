@@ -7,8 +7,8 @@ from collections.abc import Iterator, Mapping
 from pathlib import Path
 from typing import Any
 
-from agent_memory.clean import assert_clean_prediction_payload
-from agent_memory.schemas import PredictionEnvelope, PredictionRequest, Turn
+from common.clean import assert_clean_prediction_payload
+from common.schemas import PredictionEnvelope, PredictionRequest, Turn
 
 
 def load_prediction_jsonl(path: str | Path) -> Iterator[PredictionEnvelope]:

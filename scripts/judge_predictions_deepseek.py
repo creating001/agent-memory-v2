@@ -18,8 +18,8 @@ SRC_ROOT = REPO_ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
-from agent_memory.experiment import collect_git_state, utc_now_iso, write_json  # noqa: E402
-from agent_memory.judge import (  # noqa: E402
+from common.experiment import collect_git_state, utc_now_iso, write_json  # noqa: E402
+from evaluation.judge import (  # noqa: E402
     JudgeExample,
     accuracy_from_judgments,
     build_judge_prompt,

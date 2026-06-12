@@ -4,21 +4,21 @@ import sys
 import unittest
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 SRC_ROOT = REPO_ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
-from agent_memory.embeddings import EmbeddingBatch
-from agent_memory.retrieval import (
+from memory.embeddings import EmbeddingBatch
+from memory.retrieval import (
     DenseEmbeddingRetriever,
     LexicalBM25Retriever,
     SessionBM25Retriever,
     SessionDocument,
     prepend_protected_hits,
 )
-from agent_memory.schemas import RetrievalHit
-from agent_memory.schemas import Turn
+from common.schemas import RetrievalHit
+from common.schemas import Turn
 
 
 class RetrievalTest(unittest.TestCase):

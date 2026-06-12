@@ -6,7 +6,7 @@ import calendar
 import re
 from datetime import date, timedelta
 
-from agent_memory.schemas import CompiledContext, EvidenceRow, RetrievalHit, RouteResult, Turn
+from common.schemas import CompiledContext, EvidenceRow, RetrievalHit, RouteResult, Turn
 
 
 WEEKDAY_BY_NAME = {name.lower(): index for index, name in enumerate(calendar.day_name)}

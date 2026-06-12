@@ -5,12 +5,12 @@ import tempfile
 import unittest
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 SRC_ROOT = REPO_ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
-from agent_memory.embeddings import CachedEmbeddingClient, EmbeddingBatch
+from memory.embeddings import CachedEmbeddingClient, EmbeddingBatch
 
 
 class EmbeddingCacheTest(unittest.TestCase):

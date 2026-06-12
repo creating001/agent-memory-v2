@@ -6,10 +6,10 @@ import re
 from collections.abc import Mapping
 from typing import Any
 
-from agent_memory.answer import NullAnswerer, OpenAICompatibleAnswerer
-from agent_memory.compiler import EvidenceCompiler
-from agent_memory.embeddings import CachedEmbeddingClient, OpenAICompatibleEmbeddingClient
-from agent_memory.retrieval import (
+from memory.answer import NullAnswerer, OpenAICompatibleAnswerer
+from memory.compiler import EvidenceCompiler
+from memory.embeddings import CachedEmbeddingClient, OpenAICompatibleEmbeddingClient
+from memory.retrieval import (
     DenseEmbeddingRetriever,
     LexicalBM25Retriever,
     SessionBM25Retriever,
@@ -17,9 +17,9 @@ from agent_memory.retrieval import (
     prepend_protected_hits,
     reciprocal_rank_fusion,
 )
-from agent_memory.route import QuestionRouter
-from agent_memory.schemas import PredictionRequest, RetrievalHit, RouteResult
-from agent_memory.store import RawEvidenceStore
+from memory.route import QuestionRouter
+from common.schemas import PredictionRequest, RetrievalHit, RouteResult
+from memory.store import RawEvidenceStore
 
 
 class Stage1Pipeline:

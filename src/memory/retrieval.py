@@ -8,8 +8,8 @@ from collections import Counter
 from dataclasses import dataclass
 from typing import Protocol
 
-from agent_memory.embeddings import EmbeddingBatch
-from agent_memory.schemas import RetrievalHit, Turn
+from memory.embeddings import EmbeddingBatch
+from common.schemas import RetrievalHit, Turn
 
 
 TOKEN_PATTERN = re.compile(r"[\w]+", re.UNICODE)

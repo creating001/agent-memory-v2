@@ -8,7 +8,7 @@ import urllib.error
 import urllib.request
 from typing import Any
 
-from agent_memory.schemas import AnswerResult, CompiledContext, TokenUsage
+from common.schemas import AnswerResult, CompiledContext, TokenUsage
 
 
 class NullAnswerer:

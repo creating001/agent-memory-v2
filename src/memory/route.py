@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-from agent_memory.schemas import RouteResult
+from common.schemas import RouteResult
 
 
 class QuestionRouter:

@@ -15,7 +15,12 @@
 │   ├── architecture.md          # 项目探索框架
 │   ├── method.md                # 外部方法总览和推荐主线
 │   └── method_cards.md          # 详细方法 card
-├── src/                         # 本项目自己的核心方法代码
+├── src/                         # 本项目自己的代码，按功能分层
+│   ├── common/                  # clean guard、schema、实验元数据工具
+│   ├── data/                    # benchmark 适配和 clean 输入加载
+│   ├── memory/                  # retrieval、compiler、answer、pipeline 主链路
+│   ├── evaluation/              # judge、metrics、diagnosis
+│   └── tests/                   # 单元测试
 ├── configs/                     # 模型、检索、路由、实验配置
 ├── scripts/                     # 运行、评测、分析、数据准备脚本
 ├── experiments/                 # 面向人工查看的实验看板、ablation、诊断报告
@@ -46,7 +51,7 @@
 ```bash
 conda activate agent-memory
 python -m pip install -e .
-python -m unittest discover -s tests
+python -m unittest discover -s src/tests
 ```
 
 本地 answer model 使用协议指定的 Qwen vLLM 服务。启动和停止脚本如下：

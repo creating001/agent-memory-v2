@@ -4,14 +4,14 @@ import sys
 import unittest
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 SRC_ROOT = REPO_ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
-from agent_memory.adapters import prepare_records
-from agent_memory.clean import assert_clean_prediction_payload
-from agent_memory.metrics import evaluate_offline
+from data.adapters import prepare_records
+from common.clean import assert_clean_prediction_payload
+from evaluation.metrics import evaluate_offline
 
 
 class DatasetAdapterTest(unittest.TestCase):
