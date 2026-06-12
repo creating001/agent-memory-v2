@@ -1,0 +1,36 @@
+{
+  "accuracy": null,
+  "answer": {
+    "base_url": "http://127.0.0.1:8000/v1",
+    "max_tokens": 256,
+    "mode": "openai_compatible",
+    "model": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "temperature": 0.0,
+    "timeout": 120.0
+  },
+  "benchmark": "locomo",
+  "bleu": null,
+  "experiment_kind": "diagnostic",
+  "f1": null,
+  "metrics_note": "No gold answers or judge outputs are used by this prediction runner.",
+  "n_samples": 3,
+  "retrieval": {
+    "avg_compiled_evidence_items": 20.0,
+    "avg_context_chars": 5402.0,
+    "avg_embedding_tokens": 13490.0,
+    "dense_enabled": true,
+    "drop_query_stopwords": false,
+    "max_top_k": 24,
+    "neighbor_order": "hit_priority",
+    "neighbor_window": 1,
+    "top_k": 8,
+    "total_embedding_tokens": 40470
+  },
+  "subset": "non-adversarial",
+  "token_cost": {
+    "avg_build_tokens": 0.0,
+    "avg_query_tokens": 1646.6666666666667,
+    "total_build_tokens": 0,
+    "total_query_tokens": 4940
+  }
+}

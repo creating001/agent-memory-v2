@@ -42,6 +42,7 @@ def main() -> int:
     total_build_tokens = 0
     total_evidence_items = 0
     total_context_chars = 0
+    total_embedding_tokens = 0
 
     for index, envelope in enumerate(load_prediction_jsonl(args.input), start=1):
         if args.limit is not None and index > args.limit:
@@ -64,6 +65,7 @@ def main() -> int:
         total_query_tokens += int(token_cost["query_tokens"])
         total_evidence_items += len(compiled["evidence_rows"])
         total_context_chars += int(compiled["context_chars"])
+        total_embedding_tokens += int(result["trace"]["retrieval"].get("embedding_tokens") or 0)
 
     sample_count = len(records)
     metrics = {
@@ -91,6 +93,14 @@ def main() -> int:
             "drop_query_stopwords": config.get("retrieval", {}).get(
                 "drop_query_stopwords", False
             ),
+            "dense_enabled": config.get("retrieval", {})
+            .get("dense", {})
+            .get("enabled", False),
+            "lexical_protect_top_n": config.get("retrieval", {})
+            .get("dense", {})
+            .get("lexical_protect_top_n"),
+            "total_embedding_tokens": total_embedding_tokens,
+            "avg_embedding_tokens": _safe_average(total_embedding_tokens, sample_count),
             "avg_compiled_evidence_items": _safe_average(
                 total_evidence_items, sample_count
             ),
@@ -231,6 +241,9 @@ def _write_summary(
         f"- avg_compiled_evidence_items: {metrics['retrieval']['avg_compiled_evidence_items']}",
         f"- neighbor_order: {metrics['retrieval']['neighbor_order']}",
         f"- drop_query_stopwords: {metrics['retrieval']['drop_query_stopwords']}",
+        f"- dense_enabled: {metrics['retrieval']['dense_enabled']}",
+        f"- lexical_protect_top_n: {metrics['retrieval']['lexical_protect_top_n']}",
+        f"- avg_embedding_tokens: {metrics['retrieval']['avg_embedding_tokens']}",
         f"- avg_context_chars: {metrics['retrieval']['avg_context_chars']}",
         f"- answer_mode: {metrics['answer']['mode']}",
         f"- answer_model: {metrics['answer']['model']}",

@@ -57,7 +57,15 @@ curl --noproxy '*' http://127.0.0.1:8000/v1/models
 bash scripts/stop_answer_vllm.sh
 ```
 
-当前 answer 配置在 `configs/stage1_vllm_answer.json`，指向 `Qwen/Qwen3-30B-A3B-Instruct-2507` 的本地 OpenAI-compatible endpoint。DeepSeek judge 只允许在离线评测脚本中使用，API key 通过 `DEEPSEEK_API_KEY` 环境变量读取，不写入仓库。
+Dense retrieval 使用协议指定的 Qwen embedding vLLM 服务：
+
+```bash
+bash scripts/start_embedding_vllm.sh
+curl --noproxy '*' http://127.0.0.1:8001/v1/models
+bash scripts/stop_embedding_vllm.sh
+```
+
+当前 answer 配置在 `configs/stage1_vllm_answer.json`，指向 `Qwen/Qwen3-30B-A3B-Instruct-2507` 的本地 OpenAI-compatible endpoint。Dense hybrid 配置在 `configs/stage1_vllm_dense_hybrid.json` 和 `configs/stage1_vllm_dense_hybrid_protect2.json`，指向 `Qwen/Qwen3-Embedding-0.6B` 的本地 embedding endpoint。DeepSeek judge 只允许在离线评测脚本中使用，API key 通过 `DEEPSEEK_API_KEY` 环境变量读取，不写入仓库。
 
 ## 数据和诊断入口
 
