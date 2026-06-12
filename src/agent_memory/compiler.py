@@ -101,7 +101,7 @@ def _build_prompt(
         )
         lines.insert(
             4,
-            "For time questions, prefer the supported absolute date, month, or year instead of relative phrases like last year, next month, or this month.",
+            "For when questions, answer with only the supported absolute date, month, or year when possible; avoid relative phrases like last year, next month, or this month and avoid explaining the calculation.",
         )
     if not rows:
         lines.append("(no evidence retrieved)")

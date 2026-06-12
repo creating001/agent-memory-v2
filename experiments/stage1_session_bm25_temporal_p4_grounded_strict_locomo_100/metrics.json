@@ -1,0 +1,58 @@
+{
+  "accuracy": null,
+  "answer": {
+    "base_url": "http://127.0.0.1:8000/v1",
+    "max_tokens": 128,
+    "mode": "openai_compatible",
+    "model": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "temperature": 0.0,
+    "timeout": 120.0
+  },
+  "benchmark": "locomo",
+  "bleu": null,
+  "compiler": {
+    "answer_style": "concise",
+    "temporal_grounding": true
+  },
+  "experiment_kind": "focused_ablation",
+  "f1": null,
+  "metrics_note": "No gold answers or judge outputs are used by this prediction runner.",
+  "n_samples": 100,
+  "retrieval": {
+    "avg_compiled_evidence_items": 34.13,
+    "avg_context_chars": 9317.68,
+    "avg_embedding_tokens": 13489.47,
+    "dense_enabled": true,
+    "drop_query_stopwords": false,
+    "lexical_protect_top_n": 2,
+    "max_top_k": 36,
+    "neighbor_order": "hit_priority",
+    "neighbor_window": 1,
+    "session_anchor_top_k": 2,
+    "session_bm25_applied_count": 41,
+    "session_bm25_applied_rate": 0.41,
+    "session_bm25_enabled": true,
+    "session_bm25_top_k": 8,
+    "session_enabled_information_needs": null,
+    "session_enabled_query_patterns": [
+      "\\b20\\d{2}\\b",
+      "\\b(?:january|february|march|april|june|july|august|september|october|november|december)\\b",
+      "\\bmay\\s+20\\d{2}\\b"
+    ],
+    "session_enabled_route_signals": [
+      "temporal",
+      "recent_or_current"
+    ],
+    "session_max_anchor_hits": 12,
+    "session_protect_turn_hits": 4,
+    "top_k": 12,
+    "total_embedding_tokens": 1348947
+  },
+  "subset": "non_adversarial",
+  "token_cost": {
+    "avg_build_tokens": 0.0,
+    "avg_query_tokens": 2832.96,
+    "total_build_tokens": 0,
+    "total_query_tokens": 283296
+  }
+}
