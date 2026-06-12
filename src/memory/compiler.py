@@ -75,6 +75,9 @@ class EvidenceCompiler:
         temporal_grounding: bool = False,
         temporal_hints: bool = False,
         temporal_workpad: bool = False,
+        temporal_workpad_scope: str = "route",
+        temporal_workpad_max_rows: int = 10,
+        temporal_workpad_max_pairs: int = 12,
         evidence_order: str = "retrieval",
         memory_order: str = "retrieval",
         memory_layout: str = "flat",
@@ -89,6 +92,13 @@ class EvidenceCompiler:
         self._temporal_grounding = temporal_grounding
         self._temporal_hints = temporal_hints
         self._temporal_workpad = temporal_workpad
+        if temporal_workpad_scope not in {"route", "calculation_route"}:
+            raise ValueError(
+                f"Unsupported temporal_workpad_scope: {temporal_workpad_scope}"
+            )
+        self._temporal_workpad_scope = temporal_workpad_scope
+        self._temporal_workpad_max_rows = max(1, temporal_workpad_max_rows)
+        self._temporal_workpad_max_pairs = max(0, temporal_workpad_max_pairs)
         if evidence_order not in {"retrieval", "question_overlap"}:
             raise ValueError(f"Unsupported evidence_order: {evidence_order}")
         self._evidence_order = evidence_order
@@ -174,6 +184,9 @@ class EvidenceCompiler:
             temporal_grounding=self._temporal_grounding,
             temporal_hints=self._temporal_hints,
             temporal_workpad=self._temporal_workpad,
+            temporal_workpad_scope=self._temporal_workpad_scope,
+            temporal_workpad_max_rows=self._temporal_workpad_max_rows,
+            temporal_workpad_max_pairs=self._temporal_workpad_max_pairs,
             memory_layout=self._memory_layout,
             row_text_mode=self._row_text_mode,
             max_row_text_chars=self._max_row_text_chars,
@@ -356,6 +369,9 @@ def _build_prompt(
     temporal_grounding: bool,
     temporal_hints: bool,
     temporal_workpad: bool,
+    temporal_workpad_scope: str,
+    temporal_workpad_max_rows: int,
+    temporal_workpad_max_pairs: int,
     memory_layout: str,
     row_text_mode: str,
     max_row_text_chars: int,
@@ -394,8 +410,16 @@ def _build_prompt(
     lines.append("Build-stage typed memory view:")
     lines.extend(_format_memory_records(memory_records, memory_layout=memory_layout))
 
-    if temporal_workpad and _should_add_temporal_workpad(question, route):
-        workpad_lines = _temporal_workpad_lines(question, question_time, rows)
+    if temporal_workpad and _should_add_temporal_workpad(
+        question, route, temporal_workpad_scope
+    ):
+        workpad_lines = _temporal_workpad_lines(
+            question,
+            question_time,
+            rows,
+            max_rows=temporal_workpad_max_rows,
+            max_pairs=temporal_workpad_max_pairs,
+        )
         if workpad_lines:
             lines.extend(("", "Temporal calculation workpad:"))
             lines.extend(workpad_lines)
@@ -584,21 +608,29 @@ def _route_guidance_lines(route: RouteResult) -> list[str]:
     return []
 
 
-def _should_add_temporal_workpad(question: str, route: RouteResult) -> bool:
+def _should_add_temporal_workpad(
+    question: str,
+    route: RouteResult,
+    scope: str,
+) -> bool:
+    if scope == "calculation_route":
+        return (
+            route.information_need in {"temporal_lookup", "current_state"}
+            and _asks_temporal_calculation(question)
+        )
+    if scope != "route":
+        raise ValueError(f"Unsupported temporal_workpad_scope: {scope}")
     if route.information_need in {"temporal_lookup", "current_state"}:
         return True
-    return bool(
-        re.search(
-            r"\b(?:ago|before|after|between|duration|elapsed|passed|days?|weeks?|months?|years?|chronological|first to last)\b",
-            question.lower(),
-        )
-    )
+    return _asks_temporal_route_hint(question)
 
 
 def _temporal_workpad_lines(
     question: str,
     question_time: str | None,
     rows: tuple[EvidenceRow, ...],
+    max_rows: int,
+    max_pairs: int,
 ) -> list[str]:
     dated_rows = _dated_candidate_rows(question, rows)
     if not dated_rows:
@@ -612,7 +644,8 @@ def _temporal_workpad_lines(
         lines.append(f"- question_date={question_date.isoformat()}")
 
     lines.append("- candidate_event_dates:")
-    for candidate in dated_rows[:10]:
+    selected_rows = dated_rows[:max_rows]
+    for candidate in selected_rows:
         matched = ", ".join(candidate["matched_terms"]) or "none"
         relative = ""
         row_date = candidate["date"]
@@ -629,7 +662,7 @@ def _temporal_workpad_lines(
         )
 
     chronological = sorted(
-        dated_rows[:10],
+        selected_rows,
         key=lambda item: (item["date"], item["source_id"]),
     )
     if _asks_order(question) and len(chronological) >= 2:
@@ -638,9 +671,9 @@ def _temporal_workpad_lines(
         )
         lines.append(f"- chronological_order_by_date: {order}")
 
-    if _asks_pairwise_duration(question) and len(dated_rows) >= 2:
+    if max_pairs > 0 and _asks_pairwise_duration(question) and len(selected_rows) >= 2:
         lines.append("- pairwise_date_gaps:")
-        for left, right in _pairwise_temporal_gaps(dated_rows[:8])[:12]:
+        for left, right in _pairwise_temporal_gaps(selected_rows)[:max_pairs]:
             start = left["date"]
             end = right["date"]
             days = abs((end - start).days)
@@ -690,6 +723,24 @@ def _dated_candidate_rows(
     return candidates
 
 
+def _asks_temporal_calculation(question: str) -> bool:
+    return bool(
+        re.search(
+            r"\b(?:how many\s+(?:days?|weeks?|months?|years?)|how long|between|elapsed|passed|duration|ago|since|before now|from now|order|chronological|first to last|last to first|before|after)\b",
+            question.lower(),
+        )
+    )
+
+
+def _asks_temporal_route_hint(question: str) -> bool:
+    return bool(
+        re.search(
+            r"\b(?:ago|before|after|between|duration|elapsed|passed|days?|weeks?|months?|years?|chronological|first to last)\b",
+            question.lower(),
+        )
+    )
+
+
 def _asks_relative_to_question(question: str) -> bool:
     return bool(re.search(r"\b(?:ago|since|before now|from now)\b", question.lower()))
 
@@ -697,7 +748,7 @@ def _asks_relative_to_question(question: str) -> bool:
 def _asks_pairwise_duration(question: str) -> bool:
     return bool(
         re.search(
-            r"\b(?:how many|how long|between|elapsed|passed|duration|days?|weeks?|months?|years?)\b",
+            r"\b(?:how many\s+(?:days?|weeks?|months?|years?)|how long|between|elapsed|passed|duration)\b",
             question.lower(),
         )
     )

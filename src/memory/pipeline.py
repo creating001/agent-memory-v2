@@ -164,6 +164,15 @@ class Stage1Pipeline:
             temporal_grounding=bool(compiler_config.get("temporal_grounding", False)),
             temporal_hints=bool(compiler_config.get("temporal_hints", False)),
             temporal_workpad=bool(compiler_config.get("temporal_workpad", False)),
+            temporal_workpad_scope=str(
+                compiler_config.get("temporal_workpad_scope", "route")
+            ),
+            temporal_workpad_max_rows=int(
+                compiler_config.get("temporal_workpad_max_rows", 10)
+            ),
+            temporal_workpad_max_pairs=int(
+                compiler_config.get("temporal_workpad_max_pairs", 12)
+            ),
             evidence_order=str(compiler_config.get("evidence_order", "retrieval")),
             memory_order=str(compiler_config.get("memory_order", "retrieval")),
             memory_layout=str(compiler_config.get("memory_layout", "flat")),
@@ -186,6 +195,15 @@ class Stage1Pipeline:
             "temporal_hints": bool(compiler_config.get("temporal_hints", False)),
             "temporal_workpad": bool(
                 compiler_config.get("temporal_workpad", False)
+            ),
+            "temporal_workpad_scope": str(
+                compiler_config.get("temporal_workpad_scope", "route")
+            ),
+            "temporal_workpad_max_rows": int(
+                compiler_config.get("temporal_workpad_max_rows", 10)
+            ),
+            "temporal_workpad_max_pairs": int(
+                compiler_config.get("temporal_workpad_max_pairs", 12)
             ),
             "max_memory_records": int(compiler_config.get("max_memory_records", 12)),
         }
