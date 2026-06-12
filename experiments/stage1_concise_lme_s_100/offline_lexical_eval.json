@@ -1,0 +1,33 @@
+{
+  "clean_note": "This script is offline-only. Its outputs must not be read by prediction, retrieval, compiler, answer, or verifier modules.",
+  "created_at_utc": "2026-06-12T10:21:09+00:00",
+  "git": {
+    "commit": "c73b385023255068e597e894810727e2351ffb53",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "?? experiments/stage1_concise_lme_s_100/"
+  },
+  "labels": "/data/home_new/wujinqi/agent-memory/outputs/prepare_longmemeval_s_cleaned/labels.jsonl",
+  "metrics": {
+    "accuracy_exact": 0.4,
+    "bleu_unigram": 0.4974012812169807,
+    "by_type": {
+      "multi-session": {
+        "accuracy_exact": 0.03333333333333333,
+        "n": 30
+      },
+      "single-session-user": {
+        "accuracy_exact": 0.5571428571428572,
+        "n": 70
+      }
+    },
+    "f1": 0.5320425887579914,
+    "metrics_note": "Offline lexical metrics only. Judge-based benchmark accuracy should be computed in a separate offline step and must not feed prediction.",
+    "n_joined": 100,
+    "n_labels": 500,
+    "n_missing_gold": 0,
+    "n_predictions": 100
+  },
+  "predictions": "/data/home_new/wujinqi/agent-memory/outputs/stage1_concise_lme_s_100/predictions.jsonl"
+}
