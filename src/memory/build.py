@@ -301,7 +301,9 @@ class OpenAICompatibleMemoryBuilder:
             if self._cache_path is None:
                 raise RuntimeError("cache is disabled")
             self._cache_path.parent.mkdir(parents=True, exist_ok=True)
-            self._connection = sqlite3.connect(str(self._cache_path))
+            self._connection = sqlite3.connect(str(self._cache_path), timeout=30.0)
+            self._connection.execute("PRAGMA busy_timeout = 30000")
+            self._connection.execute("PRAGMA journal_mode = WAL")
             self._connection.execute(
                 "CREATE TABLE IF NOT EXISTS build_memory("
                 "cache_key TEXT PRIMARY KEY, "

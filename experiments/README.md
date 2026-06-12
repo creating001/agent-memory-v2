@@ -59,6 +59,7 @@ experiments/formal/<run_id>/
 - benchmark/subset
 - token 成本，尤其 build/query tokens
 - build memory cache、records、memory hits
+- runner workers / 并行度
 - outputs 路径
 - accuracy-first 诊断结论
 

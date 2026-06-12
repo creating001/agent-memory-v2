@@ -4,8 +4,10 @@
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
 import sys
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -36,7 +38,13 @@ def main() -> int:
     _reset_file(predictions_path)
     _reset_file(traces_path)
 
-    pipeline = Stage1Pipeline(config)
+    envelopes = []
+    for index, envelope in enumerate(load_prediction_jsonl(args.input), start=1):
+        if args.limit is not None and index > args.limit:
+            break
+        envelopes.append((index, envelope))
+
+    results = _predict_records(envelopes, config, workers=max(1, args.workers))
     records = []
     total_query_tokens = 0
     total_build_tokens = 0
@@ -57,10 +65,7 @@ def main() -> int:
     total_memory_hits = 0
     total_memory_source_hits = 0
 
-    for index, envelope in enumerate(load_prediction_jsonl(args.input), start=1):
-        if args.limit is not None and index > args.limit:
-            break
-        result = pipeline.predict(envelope.request)
+    for _index, envelope, result in results:
         token_cost = result["trace"]["token_cost"]
         compiled = result["trace"]["compiled_context"]
         prediction_record = {
@@ -259,6 +264,9 @@ def main() -> int:
                 "enable_broad_list_patterns", False
             ),
         },
+        "runner": {
+            "workers": max(1, args.workers),
+        },
     }
     manifest = {
         "run_id": run_id,
@@ -306,7 +314,64 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--subset", default="smoke")
     parser.add_argument("--experiment-kind", default="smoke")
     parser.add_argument("--limit", type=int, default=None)
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=1,
+        help="Number of samples to predict concurrently. Outputs are still written in input order.",
+    )
     return parser.parse_args()
+
+
+def _predict_records(
+    envelopes: list[tuple[int, Any]],
+    config: dict[str, Any],
+    workers: int,
+) -> list[tuple[int, Any, dict[str, Any]]]:
+    if workers <= 1:
+        pipeline = Stage1Pipeline(config)
+        results = []
+        for index, envelope in envelopes:
+            results.append((index, envelope, pipeline.predict(envelope.request)))
+            _report_progress(len(results), len(envelopes))
+        return results
+
+    thread_local = threading.local()
+
+    def pipeline_for_thread() -> Stage1Pipeline:
+        pipeline = getattr(thread_local, "pipeline", None)
+        if pipeline is None:
+            pipeline = Stage1Pipeline(config)
+            thread_local.pipeline = pipeline
+        return pipeline
+
+    def predict_one(item: tuple[int, Any]) -> tuple[int, Any, dict[str, Any]]:
+        index, envelope = item
+        return index, envelope, pipeline_for_thread().predict(envelope.request)
+
+    results_by_position: list[tuple[int, Any, dict[str, Any]] | None] = [
+        None
+    ] * len(envelopes)
+    completed = 0
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        future_to_position = {
+            executor.submit(predict_one, item): position
+            for position, item in enumerate(envelopes)
+        }
+        for future in as_completed(future_to_position):
+            position = future_to_position[future]
+            results_by_position[position] = future.result()
+            completed += 1
+            _report_progress(completed, len(envelopes))
+
+    return [result for result in results_by_position if result is not None]
+
+
+def _report_progress(completed: int, total: int) -> None:
+    if total == 0:
+        return
+    if completed == total or completed % 10 == 0:
+        print(f"completed {completed}/{total}", file=sys.stderr, flush=True)
 
 
 def _load_json(path: str | Path) -> dict[str, Any]:
@@ -372,6 +437,7 @@ def _write_summary(
         f"- subset: {args.subset}",
         f"- experiment_kind: {args.experiment_kind}",
         f"- limit: {args.limit}",
+        f"- workers: {max(1, args.workers)}",
         f"- input_path: {manifest['input_path']}",
         f"- config_path: {manifest['config_path']}",
         f"- answer: {_answer_note(config)}",

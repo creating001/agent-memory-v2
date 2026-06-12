@@ -19,7 +19,7 @@
     "cache": {
       "enabled": true,
       "path": "outputs/cache/qwen3_build_memory.sqlite",
-      "namespace": "stage1_build_memory_v1_qwen3_30b"
+      "namespace": "stage1_build_memory_v2_qwen3_30b_parallel"
     }
   },
   "retrieval": {
