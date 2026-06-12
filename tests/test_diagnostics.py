@@ -54,6 +54,25 @@ class DiagnosticsTest(unittest.TestCase):
 
         self.assertEqual(metrics["evidence_recall"], 1.0)
 
+    def test_longmemeval_evidence_recall_matches_duplicate_session_prefix(self) -> None:
+        metrics = evidence_recall(
+            [
+                {
+                    "record_key": "a",
+                    "trace": {
+                        "compiled_context": {
+                            "evidence_rows": [
+                                {"source_id": "answer-session:occ_0001:turn_0000"}
+                            ],
+                        }
+                    },
+                }
+            ],
+            [{"record_key": "a", "answer_session_ids": ["answer-session"]}],
+        )
+
+        self.assertEqual(metrics["evidence_recall"], 1.0)
+
 
 if __name__ == "__main__":
     unittest.main()

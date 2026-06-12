@@ -72,8 +72,13 @@ def _evidence_ids(label: Mapping[str, Any]) -> list[str]:
 def _has_evidence_hit(source_ids: list[str], evidence_ids: list[str]) -> bool:
     for source_id in source_ids:
         session_id = source_id.split(":turn_", 1)[0]
-        if source_id in evidence_ids or session_id in evidence_ids:
-            return True
+        for evidence_id in evidence_ids:
+            if (
+                source_id == evidence_id
+                or session_id == evidence_id
+                or source_id.startswith(evidence_id + ":")
+            ):
+                return True
     return False
 
 

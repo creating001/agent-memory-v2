@@ -245,15 +245,23 @@ def _extract_longmemeval_sessions(
         raise ValueError(f"Row {row_number}: haystack_dates must be a list")
 
     sessions: list[dict[str, Any]] = []
+    seen_session_ids: dict[str, int] = {}
     for session_index, raw_session in enumerate(raw_sessions):
         if not isinstance(raw_session, list):
             raise ValueError(
                 f"Row {row_number}: haystack session {session_index} must be a turn list"
             )
-        session_id = (
+        raw_session_id = (
             str(session_ids[session_index])
             if isinstance(session_ids, list) and session_index < len(session_ids)
             else f"session_{session_index:04d}"
+        )
+        occurrence = seen_session_ids.get(raw_session_id, 0)
+        seen_session_ids[raw_session_id] = occurrence + 1
+        session_id = (
+            raw_session_id
+            if occurrence == 0
+            else f"{raw_session_id}:occ_{occurrence:04d}"
         )
         session: dict[str, Any] = {
             "session_id": session_id,

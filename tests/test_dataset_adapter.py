@@ -156,6 +156,34 @@ class DatasetAdapterTest(unittest.TestCase):
         self.assertEqual(len(turns), 1)
         self.assertEqual(turns[0]["source_id"], "session-a:turn_0001")
 
+    def test_longmemeval_duplicate_session_ids_get_unique_source_ids(self) -> None:
+        records = prepare_records(
+            [
+                {
+                    "question": "What play did I attend?",
+                    "answer": "Hamlet",
+                    "answer_session_ids": ["session-a"],
+                    "haystack_session_ids": ["session-a", "session-a"],
+                    "haystack_sessions": [
+                        [{"role": "user", "content": "first copy"}],
+                        [{"role": "user", "content": "second copy"}],
+                    ],
+                }
+            ],
+            benchmark="longmemeval",
+            subset="s_cleaned",
+        )
+
+        turns = [
+            turn
+            for session in records[0].prediction["sessions"]
+            for turn in session["turns"]
+        ]
+        source_ids = [turn["source_id"] for turn in turns]
+        self.assertEqual(len(source_ids), len(set(source_ids)))
+        self.assertEqual(source_ids[0], "session-a:turn_0000")
+        self.assertEqual(source_ids[1], "session-a:occ_0001:turn_0000")
+
     def test_locomo_adapter_expands_qa_and_filters_category_5(self) -> None:
         records = prepare_records(
             [
