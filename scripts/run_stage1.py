@@ -163,6 +163,11 @@ def main() -> int:
             ),
             "temporal_hints": config.get("compiler", {}).get("temporal_hints", False),
         },
+        "route": {
+            "enable_broad_list_patterns": config.get("route", {}).get(
+                "enable_broad_list_patterns", False
+            ),
+        },
     }
     manifest = {
         "run_id": run_id,
@@ -321,6 +326,7 @@ def _write_summary(
         f"- answer_style: {metrics['compiler']['answer_style']}",
         f"- temporal_grounding: {metrics['compiler']['temporal_grounding']}",
         f"- temporal_hints: {metrics['compiler']['temporal_hints']}",
+        f"- enable_broad_list_patterns: {metrics['route']['enable_broad_list_patterns']}",
         "",
         "## Outputs",
         "",

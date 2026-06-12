@@ -27,6 +27,28 @@ class RouteTest(unittest.TestCase):
         self.assertEqual(route.information_need, "fact_lookup")
         self.assertNotIn("temporal", route.signals)
 
+    def test_broad_activity_question_is_disabled_by_default(self) -> None:
+        route = QuestionRouter().route("What activities has Melanie done with family?")
+
+        self.assertEqual(route.information_need, "fact_lookup")
+        self.assertNotIn("list_or_count", route.signals)
+
+    def test_broad_activity_question_can_route_to_list_count(self) -> None:
+        route = QuestionRouter(enable_broad_list_patterns=True).route(
+            "What activities has Melanie done with family?"
+        )
+
+        self.assertEqual(route.information_need, "list_count")
+        self.assertIn("list_or_count", route.signals)
+
+    def test_where_has_question_can_route_to_list_count(self) -> None:
+        route = QuestionRouter(enable_broad_list_patterns=True).route(
+            "Where has Melanie camped?"
+        )
+
+        self.assertEqual(route.information_need, "list_count")
+        self.assertIn("list_or_count", route.signals)
+
 
 if __name__ == "__main__":
     unittest.main()

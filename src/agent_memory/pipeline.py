@@ -30,9 +30,14 @@ class Stage1Pipeline:
         retrieval_config = self._config.get("retrieval", {})
         dense_config = retrieval_config.get("dense", {})
         session_config = retrieval_config.get("session_bm25", {})
+        route_config = self._config.get("route", {})
         compiler_config = self._config.get("compiler", {})
         answer_config = self._config.get("answer", {})
-        self._router = QuestionRouter()
+        self._router = QuestionRouter(
+            enable_broad_list_patterns=bool(
+                route_config.get("enable_broad_list_patterns", False)
+            )
+        )
         self._base_top_k = int(retrieval_config.get("top_k", 8))
         self._max_top_k = int(retrieval_config.get("max_top_k", self._base_top_k))
         self._neighbor_window = int(retrieval_config.get("neighbor_window", 1))

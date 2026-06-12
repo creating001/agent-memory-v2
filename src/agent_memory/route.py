@@ -43,6 +43,12 @@ class QuestionRouter:
         r"多少",
         r"列出",
     )
+    _BROAD_LIST_PATTERNS = (
+        r"^\s*what\s+(?:activities|events|types|kinds?|symbols|songs?|artists?|bands?)\b",
+        r"^\s*where\s+has\b",
+        r"\bboth\b",
+        r"\bdone\s+with\b",
+    )
     _PROFILE_PATTERNS = (
         r"\bfavorite\b",
         r"\bprefer\b",
@@ -52,6 +58,9 @@ class QuestionRouter:
         r"喜欢",
         r"偏好",
     )
+
+    def __init__(self, enable_broad_list_patterns: bool = False):
+        self._enable_broad_list_patterns = enable_broad_list_patterns
 
     def route(self, question: str, question_time: str | None = None) -> RouteResult:
         del question_time
@@ -72,7 +81,10 @@ class QuestionRouter:
                 signals=tuple(signals),
                 retrieval_multiplier=2,
             )
-        if _matches_any(normalized, self._LIST_PATTERNS):
+        list_patterns = self._LIST_PATTERNS
+        if self._enable_broad_list_patterns:
+            list_patterns = (*list_patterns, *self._BROAD_LIST_PATTERNS)
+        if _matches_any(normalized, list_patterns):
             signals.append("list_or_count")
             return RouteResult(
                 information_need="list_count",
