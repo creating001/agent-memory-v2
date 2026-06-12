@@ -109,6 +109,9 @@ def main() -> int:
         "answer": _answer_metrics(config),
         "compiler": {
             "answer_style": config.get("compiler", {}).get("answer_style", "grounded"),
+            "temporal_grounding": config.get("compiler", {}).get(
+                "temporal_grounding", False
+            ),
         },
     }
     manifest = {
@@ -251,6 +254,7 @@ def _write_summary(
         f"- answer_mode: {metrics['answer']['mode']}",
         f"- answer_model: {metrics['answer']['model']}",
         f"- answer_style: {metrics['compiler']['answer_style']}",
+        f"- temporal_grounding: {metrics['compiler']['temporal_grounding']}",
         "",
         "## Outputs",
         "",

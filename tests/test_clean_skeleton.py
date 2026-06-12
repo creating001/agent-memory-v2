@@ -184,6 +184,35 @@ class CleanSkeletonTest(unittest.TestCase):
 
         self.assertIn("shortest direct answer", prompt)
 
+    def test_temporal_grounding_is_added_to_prompt(self) -> None:
+        config = {
+            "retrieval": {"top_k": 1, "max_top_k": 1, "neighbor_window": 0},
+            "compiler": {
+                "max_evidence_items": 1,
+                "max_evidence_chars": 1000,
+                "temporal_grounding": True,
+            },
+            "answer": {"fallback_answer": "I do not know."},
+        }
+        request = PredictionRequest(
+            question="When did Alex visit?",
+            turns=(
+                Turn(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="Alex visited yesterday.",
+                    timestamp="2023-05-08",
+                ),
+            ),
+        )
+
+        result = Stage1Pipeline(config).predict(request)
+        prompt = result["trace"]["compiled_context"]["prompt"]
+
+        self.assertIn("Resolve relative time expressions", prompt)
+
 
 if __name__ == "__main__":
     unittest.main()

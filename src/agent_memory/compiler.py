@@ -13,10 +13,12 @@ class EvidenceCompiler:
         max_evidence_items: int,
         max_evidence_chars: int,
         answer_style: str = "grounded",
+        temporal_grounding: bool = False,
     ):
         self._max_evidence_items = max_evidence_items
         self._max_evidence_chars = max_evidence_chars
         self._answer_style = answer_style
+        self._temporal_grounding = temporal_grounding
 
     def compile(
         self,
@@ -56,6 +58,7 @@ class EvidenceCompiler:
             route,
             tuple(rows),
             answer_style=self._answer_style,
+            temporal_grounding=self._temporal_grounding,
         )
         return CompiledContext(
             question=question,
@@ -73,6 +76,7 @@ def _build_prompt(
     route: RouteResult,
     rows: tuple[EvidenceRow, ...],
     answer_style: str,
+    temporal_grounding: bool,
 ) -> str:
     lines = [
         "Answer the question using only the raw evidence table.",
@@ -89,6 +93,11 @@ def _build_prompt(
         lines.insert(
             2,
             "Use the shortest direct answer that is fully supported; avoid explanations unless needed.",
+        )
+    if temporal_grounding:
+        lines.insert(
+            3,
+            "Resolve relative time expressions against the evidence row time; for example, yesterday means the calendar day before that row time.",
         )
     if not rows:
         lines.append("(no evidence retrieved)")
