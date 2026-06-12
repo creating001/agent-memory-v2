@@ -1,0 +1,146 @@
+{
+  "api_key_env": "DEEPSEEK_API_KEY",
+  "base_url": "https://api.deepseek.com",
+  "benchmark": "locomo",
+  "clean_note": "Offline judge reads gold labels only after prediction. This output must not be consumed by prediction, retrieval, compiler, answer, or verifier.",
+  "created_at_utc": "2026-06-12T10:15:31+00:00",
+  "dry_run": true,
+  "git": {
+    "commit": "21c327ff8cf8968de2201f77104f20c46e332ed6",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "?? configs/stage1_vllm_dense_protect2_k12.json\n?? experiments/stage1_dense_protect2_k12_locomo_20/"
+  },
+  "judgments": [
+    {
+      "label": "PENDING",
+      "prompt_hash": "1e4b25f7bf19687a",
+      "question_type": null,
+      "record_key": "5e7fd17974e60e8ebb29c30d"
+    },
+    {
+      "label": "PENDING",
+      "prompt_hash": "921cbe31a3aba455",
+      "question_type": null,
+      "record_key": "71ffeefca246680c5bdb560e"
+    },
+    {
+      "label": "PENDING",
+      "prompt_hash": "f98f5f57cd892d09",
+      "question_type": null,
+      "record_key": "628d9b1436fa405b91ee2820"
+    },
+    {
+      "label": "PENDING",
+      "prompt_hash": "d3f6224e62096601",
+      "question_type": null,
+      "record_key": "d41bb903497cfadc9e9f9682"
+    },
+    {
+      "label": "PENDING",
+      "prompt_hash": "9536797a0b351ddb",
+      "question_type": null,
+      "record_key": "0ef0216553b4eeff9be57e45"
+    },
+    {
+      "label": "PENDING",
+      "prompt_hash": "3a947f495632869f",
+      "question_type": null,
+      "record_key": "a149e8a270a174eedfcd1da7"
+    },
+    {
+      "label": "PENDING",
+      "prompt_hash": "49326b37aa79ac38",
+      "question_type": null,
+      "record_key": "79dbd15ef19ed07993709c8f"
+    },
+    {
+      "label": "PENDING",
+      "prompt_hash": "b27b71c917622b32",
+      "question_type": null,
+      "record_key": "28821506df08ca36f78e989a"
+    },
+    {
+      "label": "PENDING",
+      "prompt_hash": "3fdab1c3ace46dc4",
+      "question_type": null,
+      "record_key": "2726a17928daef593183a90f"
+    },
+    {
+      "label": "PENDING",
+      "prompt_hash": "60443eb69260be43",
+      "question_type": null,
+      "record_key": "05a2fa4682ace156a523b92c"
+    },
+    {
+      "label": "PENDING",
+      "prompt_hash": "df8eabf24a9f6ad5",
+      "question_type": null,
+      "record_key": "2e1bec427ee013ed30f80431"
+    },
+    {
+      "label": "PENDING",
+      "prompt_hash": "d43ed7633896de03",
+      "question_type": null,
+      "record_key": "13fc31c4da9f316b40c10d39"
+    },
+    {
+      "label": "PENDING",
+      "prompt_hash": "4a91d8a52191d32c",
+      "question_type": null,
+      "record_key": "1c98645d234a3d42586e2b99"
+    },
+    {
+      "label": "PENDING",
+      "prompt_hash": "0c5dd7e8f799123e",
+      "question_type": null,
+      "record_key": "f5e68c54090a60fac1b80246"
+    },
+    {
+      "label": "PENDING",
+      "prompt_hash": "b606927a268ad1d7",
+      "question_type": null,
+      "record_key": "daf5a3f4af72f6e342152a73"
+    },
+    {
+      "label": "PENDING",
+      "prompt_hash": "4ca57130c4edb717",
+      "question_type": null,
+      "record_key": "050de4d029518a005ce9e39a"
+    },
+    {
+      "label": "PENDING",
+      "prompt_hash": "abe11d808214ea28",
+      "question_type": null,
+      "record_key": "bf0313aefcf43c7abfe9585a"
+    },
+    {
+      "label": "PENDING",
+      "prompt_hash": "23f713ac45d9b504",
+      "question_type": null,
+      "record_key": "d974790416358979fe77c299"
+    },
+    {
+      "label": "PENDING",
+      "prompt_hash": "23bc812f2f7948f6",
+      "question_type": null,
+      "record_key": "d7870b241b2c9f5d2c8b64cb"
+    },
+    {
+      "label": "PENDING",
+      "prompt_hash": "a11b44c2d27cc81f",
+      "question_type": null,
+      "record_key": "6b6d09d7e82567bbb2a34cf0"
+    }
+  ],
+  "labels": "/data/home_new/wujinqi/agent-memory/outputs/prepare_locomo_non_adversarial/labels.jsonl",
+  "metrics": {
+    "accuracy": null,
+    "n_invalid": 20,
+    "n_judgments": 20,
+    "n_valid": 0
+  },
+  "model": "deepseek-v4-flash",
+  "predictions": "/data/home_new/wujinqi/agent-memory/outputs/stage1_dense_protect2_k12_locomo_20/predictions.jsonl"
+}

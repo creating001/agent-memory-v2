@@ -1,0 +1,35 @@
+{
+  "answer": {
+    "base_url": "http://127.0.0.1:8000/v1",
+    "max_tokens": 256,
+    "mode": "openai_compatible",
+    "model": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "temperature": 0.0,
+    "timeout": 120.0
+  },
+  "compiler": {
+    "max_evidence_chars": 18000,
+    "max_evidence_items": 36
+  },
+  "description": "Dense hybrid protect2 with wider top-k and compiler coverage for LoCoMo retrieval diagnostics.",
+  "inherits": "stage1_vllm_dense_hybrid_protect2",
+  "name": "stage1_vllm_dense_protect2_k12",
+  "retrieval": {
+    "dense": {
+      "base_url": "http://127.0.0.1:8001/v1",
+      "batch_size": 32,
+      "enabled": true,
+      "lexical_protect_top_n": 2,
+      "model": "Qwen/Qwen3-Embedding-0.6B",
+      "rrf_k": 60,
+      "timeout": 120.0,
+      "top_k": 12
+    },
+    "drop_query_stopwords": false,
+    "max_top_k": 36,
+    "neighbor_order": "hit_priority",
+    "neighbor_window": 1,
+    "score_threshold": 0.0,
+    "top_k": 12
+  }
+}
