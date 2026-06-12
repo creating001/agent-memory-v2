@@ -166,6 +166,7 @@ class OpenAICompatibleMemoryBuilder:
             cache_key = _cache_key(
                 self._cache_namespace,
                 self._model,
+                self._max_tokens,
                 self._max_records_per_chunk,
                 prompt,
             )
@@ -188,7 +189,10 @@ class OpenAICompatibleMemoryBuilder:
                 }
                 self._put(cache_key, payload)
 
-            raw_records = _records_from_payload(payload.get("content", ""))
+            raw_records = _bounded_records(
+                _records_from_payload(payload.get("content", "")),
+                self._max_records_per_chunk,
+            )
             for ordinal, raw_record in enumerate(raw_records):
                 record = _normalize_record(
                     raw_record=raw_record,
@@ -216,7 +220,10 @@ class OpenAICompatibleMemoryBuilder:
             "Use only the provided turns. Do not invent facts.",
             "Do not use any question, gold answer, judge output, benchmark label, sample id, qid, or row index.",
             "Create memory records that help a future agent answer long-term memory questions.",
-            "Prefer concrete events, facts, preferences, profile attributes, current states, relationships, and plans.",
+            "Prefer durable, interaction-specific memories: concrete events, facts, preferences, profile attributes, current states, relationships, plans, and specific outcomes of the interaction.",
+            "Avoid generic background knowledge, generic how-to steps, and boilerplate advice unless they are the concrete answer or recommendation produced in the interaction.",
+            "When a turn contains multiple independent memory-worthy facts, create separate atomic records instead of merging them into one broad summary.",
+            "Put salient names, entities, values, times, and quantities in entities/value when present.",
             "Each record must include source_ids copied exactly from the turns that support it.",
             "Return ONLY valid JSON with this schema:",
             '{"records":[{"type":"event|fact|preference|profile|state|relationship|plan","text":"short memory","subject":"","predicate":"","value":"","source_ids":["..."],"timestamp":"YYYY-MM-DD or null","entities":["..."],"confidence":0.0}]}',
@@ -328,6 +335,13 @@ def _records_from_payload(content: str) -> list[dict[str, Any]]:
     if not isinstance(records, list):
         return _parse_partial_records_array(content)
     return [record for record in records if isinstance(record, dict)]
+
+
+def _bounded_records(
+    raw_records: list[dict[str, Any]],
+    max_records: int,
+) -> list[dict[str, Any]]:
+    return raw_records[: max(0, max_records)]
 
 
 def _parse_json_object(content: str) -> Any:
@@ -569,11 +583,19 @@ def _memory_id(
     return f"mem_{chunk_index:04d}_{ordinal:04d}_{digest.hexdigest()[:12]}"
 
 
-def _cache_key(namespace: str, model: str, max_records_per_chunk: int, prompt: str) -> str:
+def _cache_key(
+    namespace: str,
+    model: str,
+    max_tokens: int,
+    max_records_per_chunk: int,
+    prompt: str,
+) -> str:
     digest = hashlib.sha256()
     digest.update(namespace.encode("utf-8"))
     digest.update(b"\0")
     digest.update(model.encode("utf-8"))
+    digest.update(b"\0")
+    digest.update(str(max_tokens).encode("utf-8"))
     digest.update(b"\0")
     digest.update(str(max_records_per_chunk).encode("utf-8"))
     digest.update(b"\0")

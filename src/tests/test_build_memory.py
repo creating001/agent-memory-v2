@@ -9,7 +9,7 @@ SRC_ROOT = REPO_ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
-from memory.build import MemoryRecord, _records_from_payload
+from memory.build import MemoryRecord, _bounded_records, _cache_key, _records_from_payload
 from memory.compiler import EvidenceCompiler
 from memory.retrieval import BuildMemoryBM25Retriever, memory_hits_to_source_hits
 from common.schemas import RetrievalHit, RouteResult, Turn
@@ -29,6 +29,24 @@ class BuildMemoryTest(unittest.TestCase):
         self.assertEqual(len(records), 2)
         self.assertEqual(records[0]["text"], "A")
         self.assertEqual(records[1]["text"], "B")
+
+    def test_build_cache_key_includes_output_budget(self) -> None:
+        prompt = "Build memory from source_id=s1:t0: Alex prefers jasmine tea."
+
+        key_low = _cache_key("ns", "model", 768, 16, prompt)
+        key_high = _cache_key("ns", "model", 3072, 16, prompt)
+
+        self.assertNotEqual(key_low, key_high)
+
+    def test_build_records_are_bounded_by_configured_limit(self) -> None:
+        raw_records = [
+            {"type": "fact", "text": f"record {index}", "source_ids": ["s1:t0"]}
+            for index in range(5)
+        ]
+
+        records = _bounded_records(raw_records, max_records=2)
+
+        self.assertEqual([record["text"] for record in records], ["record 0", "record 1"])
 
     def test_build_memory_retrieval_maps_records_to_raw_sources(self) -> None:
         records = (

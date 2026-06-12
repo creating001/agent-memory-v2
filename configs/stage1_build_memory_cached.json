@@ -1,25 +1,25 @@
 {
   "name": "stage1_build_memory_cached",
-  "description": "Stage-1 candidate with build-stage LLM typed memory, managed cache, hybrid raw retrieval, typed-memory retrieval, and route guidance.",
+  "description": "Stage-1 agent-memory v1 with cold build-stage LLM typed memory, hybrid raw retrieval, typed-memory retrieval, managed cache, and route guidance.",
   "build_memory": {
     "enabled": true,
     "mode": "openai_compatible",
     "base_url": "http://127.0.0.1:8000/v1",
     "model": "Qwen/Qwen3-30B-A3B-Instruct-2507",
     "temperature": 0.0,
-    "max_tokens": 1536,
+    "max_tokens": 2048,
     "timeout": 120.0,
     "max_turns_per_chunk": 80,
     "max_chars_per_turn": 500,
-    "max_records_per_chunk": 16,
-    "top_k": 16,
-    "max_sources_per_record": 3,
+    "max_records_per_chunk": 20,
+    "top_k": 20,
+    "max_sources_per_record": 4,
     "drop_query_stopwords": true,
     "include_superseded": false,
     "cache": {
       "enabled": true,
       "path": "outputs/cache/qwen3_build_memory.sqlite",
-      "namespace": "stage1_build_memory_v2_qwen3_30b_parallel"
+      "namespace": "stage1_agent_memory_v1_qwen3_30b_cold"
     }
   },
   "retrieval": {
@@ -68,7 +68,7 @@
   "compiler": {
     "max_evidence_items": 36,
     "max_evidence_chars": 18000,
-    "max_memory_records": 12,
+    "max_memory_records": 10,
     "answer_style": "concise",
     "temporal_grounding": true,
     "route_guidance": true
