@@ -244,6 +244,12 @@ def main() -> int:
             "evidence_order": config.get("compiler", {}).get(
                 "evidence_order", "retrieval"
             ),
+            "memory_order": config.get("compiler", {}).get(
+                "memory_order", "retrieval"
+            ),
+            "memory_layout": config.get("compiler", {}).get(
+                "memory_layout", "flat"
+            ),
             "row_text_mode": config.get("compiler", {}).get("row_text_mode", "full"),
             "max_row_text_chars": config.get("compiler", {}).get(
                 "max_row_text_chars", 0
@@ -494,6 +500,8 @@ def _write_summary(
         f"- answer_model: {metrics['answer']['model']}",
         f"- answer_style: {metrics['compiler']['answer_style']}",
         f"- evidence_order: {metrics['compiler']['evidence_order']}",
+        f"- memory_order: {metrics['compiler']['memory_order']}",
+        f"- memory_layout: {metrics['compiler']['memory_layout']}",
         f"- row_text_mode: {metrics['compiler']['row_text_mode']}",
         f"- max_row_text_chars: {metrics['compiler']['max_row_text_chars']}",
         f"- max_memory_records: {metrics['compiler']['max_memory_records']}",
@@ -555,6 +563,8 @@ def _write_diagnosis(
         f"- embedding_cache_hits: {metrics['retrieval']['embedding_cache_hits']}",
         f"- embedding_cache_misses: {metrics['retrieval']['embedding_cache_misses']}",
         f"- evidence_order: {metrics['compiler']['evidence_order']}",
+        f"- memory_order: {metrics['compiler']['memory_order']}",
+        f"- memory_layout: {metrics['compiler']['memory_layout']}",
         f"- row_text_mode: {metrics['compiler']['row_text_mode']}",
         f"- max_row_text_chars: {metrics['compiler']['max_row_text_chars']}",
         f"- max_memory_records: {metrics['compiler']['max_memory_records']}",

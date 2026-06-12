@@ -75,6 +75,8 @@ class EvidenceCompiler:
         temporal_grounding: bool = False,
         temporal_hints: bool = False,
         evidence_order: str = "retrieval",
+        memory_order: str = "retrieval",
+        memory_layout: str = "flat",
         row_text_mode: str = "full",
         max_row_text_chars: int = 0,
         route_guidance: bool = False,
@@ -88,6 +90,12 @@ class EvidenceCompiler:
         if evidence_order not in {"retrieval", "question_overlap"}:
             raise ValueError(f"Unsupported evidence_order: {evidence_order}")
         self._evidence_order = evidence_order
+        if memory_order not in {"retrieval", "question_overlap"}:
+            raise ValueError(f"Unsupported memory_order: {memory_order}")
+        self._memory_order = memory_order
+        if memory_layout not in {"flat", "typed_sections"}:
+            raise ValueError(f"Unsupported memory_layout: {memory_layout}")
+        self._memory_layout = memory_layout
         if row_text_mode not in {"full", "query_snippet"}:
             raise ValueError(f"Unsupported row_text_mode: {row_text_mode}")
         self._row_text_mode = row_text_mode
@@ -146,15 +154,24 @@ class EvidenceCompiler:
             rows.append(row)
             used_chars += row_chars
 
+        ordered_memory_records = _order_memory_records(
+            tuple(memory_records),
+            question=question,
+            route=route,
+            memory_order=self._memory_order,
+        )
+        selected_memory_records = ordered_memory_records[: self._max_memory_records]
+
         prompt = _build_prompt(
             question,
             question_time,
             route,
-            tuple(memory_records[: self._max_memory_records]),
+            tuple(selected_memory_records),
             tuple(rows),
             answer_style=self._answer_style,
             temporal_grounding=self._temporal_grounding,
             temporal_hints=self._temporal_hints,
+            memory_layout=self._memory_layout,
             row_text_mode=self._row_text_mode,
             max_row_text_chars=self._max_row_text_chars,
             route_guidance=self._route_guidance,
@@ -166,7 +183,7 @@ class EvidenceCompiler:
             evidence_rows=tuple(rows),
             prompt=prompt,
             context_chars=len(prompt),
-            memory_records=tuple(memory_records[: self._max_memory_records]),
+            memory_records=tuple(selected_memory_records),
         )
 
 
@@ -229,6 +246,92 @@ def _content_terms(text: str) -> frozenset[str]:
     return frozenset(terms)
 
 
+def _order_memory_records(
+    records: tuple[MemoryRecord, ...],
+    question: str,
+    route: RouteResult,
+    memory_order: str,
+) -> tuple[MemoryRecord, ...]:
+    if memory_order == "retrieval":
+        return records
+    if memory_order != "question_overlap":
+        raise ValueError(f"Unsupported memory_order: {memory_order}")
+
+    question_terms = _content_terms(question)
+    return tuple(
+        record
+        for _, record in sorted(
+            enumerate(records),
+            key=lambda item: _memory_record_key(
+                index=item[0],
+                record=item[1],
+                question_terms=question_terms,
+                route=route,
+            ),
+        )
+    )
+
+
+def _memory_record_key(
+    index: int,
+    record: MemoryRecord,
+    question_terms: frozenset[str],
+    route: RouteResult,
+) -> tuple[float, int, str, int]:
+    record_terms = _content_terms(record.search_text)
+    overlap = len(question_terms.intersection(record_terms))
+    type_bonus = _memory_type_bonus(record, route)
+    temporal_bonus = (
+        0.25
+        if (
+            route.information_need in {"current_state", "temporal_lookup"}
+            and record.timestamp
+        )
+        else 0.0
+    )
+    confidence_bonus = min(max(record.confidence, 0.0), 1.0) * 0.1
+    score = overlap + type_bonus + temporal_bonus + confidence_bonus
+    missing_time = 1 if not record.timestamp else 0
+    time_key = _memory_timestamp_sort_key(record.timestamp, route)
+    return (-score, missing_time, time_key, index)
+
+
+def _memory_type_bonus(record: MemoryRecord, route: RouteResult) -> float:
+    memory_type = record.memory_type
+    if route.information_need == "profile_preference":
+        if memory_type in {"preference", "profile", "state"}:
+            return 1.0
+        if memory_type in {"fact", "event"}:
+            return 0.2
+        return 0.0
+    if route.information_need == "current_state":
+        if memory_type in {"state", "profile", "preference"}:
+            return 0.8
+        if memory_type in {"fact", "event"}:
+            return 0.3
+        return 0.0
+    if route.information_need == "temporal_lookup":
+        if memory_type in {"event", "state", "fact", "relationship"}:
+            return 0.5
+        return 0.0
+    if route.information_need == "list_count":
+        if memory_type in {"event", "fact", "relationship", "plan"}:
+            return 0.4
+        return 0.0
+    if route.information_need == "fact_lookup":
+        if memory_type in {"fact", "state", "relationship", "profile", "preference"}:
+            return 0.2
+        return 0.0
+    return 0.0
+
+
+def _memory_timestamp_sort_key(timestamp: str | None, route: RouteResult) -> str:
+    normalized = timestamp or ""
+    if route.information_need in {"current_state", "profile_preference"}:
+        return _invert_sortable_text(normalized)
+    return normalized
+
+
 def _timestamp_sort_key(timestamp: str | None, route: RouteResult) -> str:
     normalized = timestamp or ""
     if route.information_need == "current_state":
@@ -249,6 +352,7 @@ def _build_prompt(
     answer_style: str,
     temporal_grounding: bool,
     temporal_hints: bool,
+    memory_layout: str,
     row_text_mode: str,
     max_row_text_chars: int,
     route_guidance: bool,
@@ -284,10 +388,7 @@ def _build_prompt(
             lines[-1:-1] = ["", "Information-need guidance:", *guidance_lines, ""]
 
     lines.append("Build-stage typed memory view:")
-    if not memory_records:
-        lines.append("(no build-stage memory records activated)")
-    for record in memory_records:
-        lines.append(_format_memory_record(record))
+    lines.extend(_format_memory_records(memory_records, memory_layout=memory_layout))
 
     lines.extend(["", "Raw context table:"])
     if not rows:
@@ -307,6 +408,47 @@ def _build_prompt(
             lines.extend(("", "Temporal normalization hints derived from row timestamps:"))
             lines.extend(hints)
     return "\n".join(lines)
+
+
+def _format_memory_records(
+    records: tuple[MemoryRecord, ...],
+    memory_layout: str,
+) -> list[str]:
+    if not records:
+        return ["(no build-stage memory records activated)"]
+    if memory_layout == "flat":
+        return [_format_memory_record(record) for record in records]
+    if memory_layout != "typed_sections":
+        raise ValueError(f"Unsupported memory_layout: {memory_layout}")
+
+    sections = [
+        (
+            "Profile/preference/state memory:",
+            {"profile", "preference", "state"},
+        ),
+        (
+            "Event/fact/relation memory:",
+            {"event", "fact", "relationship", "plan", "unknown"},
+        ),
+    ]
+    lines: list[str] = []
+    seen_ids: set[str] = set()
+    for title, memory_types in sections:
+        section_records = [
+            record for record in records if record.memory_type in memory_types
+        ]
+        if not section_records:
+            continue
+        lines.append(title)
+        for record in section_records:
+            seen_ids.add(record.memory_id)
+            lines.append(_format_memory_record(record))
+
+    leftovers = [record for record in records if record.memory_id not in seen_ids]
+    if leftovers:
+        lines.append("Other memory:")
+        lines.extend(_format_memory_record(record) for record in leftovers)
+    return lines
 
 
 def _format_memory_record(record: MemoryRecord) -> str:

@@ -13,6 +13,7 @@ if str(SRC_ROOT) not in sys.path:
 
 from common.clean import CleanProtocolViolation, assert_clean_prediction_payload
 from memory.answer import _message_text
+from memory.build import MemoryRecord
 from memory.compiler import EvidenceCompiler
 from data.io import load_prediction_jsonl
 from memory.pipeline import Stage1Pipeline
@@ -307,6 +308,80 @@ class CleanSkeletonTest(unittest.TestCase):
         )
 
         self.assertEqual(compiled.evidence_rows[0].source_id, "s1:t1")
+
+    def test_compiler_memory_order_is_default(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=0,
+            max_evidence_chars=4000,
+            max_memory_records=1,
+        )
+        route = RouteResult(information_need="profile_preference", signals=())
+        compiled = compiler.compile(
+            question="What tea does Alex prefer?",
+            question_time=None,
+            route=route,
+            hits=(),
+            evidence_turns=(),
+            memory_records=(
+                MemoryRecord(
+                    memory_id="generic",
+                    memory_type="fact",
+                    text="Alex discussed a calendar reminder.",
+                    source_ids=("s1:t0",),
+                ),
+                MemoryRecord(
+                    memory_id="specific",
+                    memory_type="preference",
+                    text="Alex prefers jasmine tea.",
+                    source_ids=("s1:t1",),
+                    subject="Alex",
+                    predicate="prefers",
+                    value="jasmine tea",
+                    timestamp="2023-05-02",
+                ),
+            ),
+        )
+
+        self.assertEqual(compiled.memory_records[0].memory_id, "generic")
+
+    def test_question_overlap_memory_order_promotes_typed_memory(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=0,
+            max_evidence_chars=4000,
+            max_memory_records=1,
+            memory_order="question_overlap",
+            memory_layout="typed_sections",
+        )
+        route = RouteResult(information_need="profile_preference", signals=())
+        compiled = compiler.compile(
+            question="What tea does Alex prefer?",
+            question_time=None,
+            route=route,
+            hits=(),
+            evidence_turns=(),
+            memory_records=(
+                MemoryRecord(
+                    memory_id="generic",
+                    memory_type="fact",
+                    text="Alex discussed a calendar reminder.",
+                    source_ids=("s1:t0",),
+                ),
+                MemoryRecord(
+                    memory_id="specific",
+                    memory_type="preference",
+                    text="Alex prefers jasmine tea.",
+                    source_ids=("s1:t1",),
+                    subject="Alex",
+                    predicate="prefers",
+                    value="jasmine tea",
+                    timestamp="2023-05-02",
+                ),
+            ),
+        )
+
+        self.assertEqual(compiled.memory_records[0].memory_id, "specific")
+        self.assertIn("Profile/preference/state memory:", compiled.prompt)
+        self.assertNotIn("calendar reminder", compiled.prompt)
 
     def test_query_snippet_row_text_mode_preserves_raw_trace_text(self) -> None:
         long_text = (
