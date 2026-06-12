@@ -388,6 +388,91 @@ class CleanSkeletonTest(unittest.TestCase):
             compiled.prompt.index("Raw context table"),
         )
 
+    def test_temporal_text_normalization_adds_relative_mentions_to_workpad(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=1,
+            max_evidence_chars=4000,
+            temporal_workpad=True,
+            temporal_text_normalization=True,
+        )
+        route = RouteResult(information_need="temporal_lookup", signals=("temporal",))
+        compiled = compiler.compile(
+            question="When did Alex visit the museum?",
+            question_time="2023-01-20",
+            route=route,
+            hits=(RetrievalHit("s1:t0", 1.0, 1, "lexical_bm25"),),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Alex visited the museum yesterday.",
+                    timestamp="2023-05-08",
+                ),
+            ),
+        )
+
+        self.assertIn("relative_time_mentions", compiled.prompt)
+        self.assertIn('phrase="yesterday" normalized="2023-05-07"', compiled.prompt)
+        self.assertLess(
+            compiled.prompt.index("relative_time_mentions"),
+            compiled.prompt.index("Raw context table"),
+        )
+
+    def test_temporal_text_normalization_parses_numeric_ago(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=1,
+            max_evidence_chars=4000,
+            temporal_workpad=True,
+            temporal_text_normalization=True,
+        )
+        route = RouteResult(information_need="temporal_lookup", signals=("temporal",))
+        compiled = compiler.compile(
+            question="When did Alex move?",
+            question_time="2023-06-20",
+            route=route,
+            hits=(RetrievalHit("s1:t0", 1.0, 1, "lexical_bm25"),),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Alex moved two years ago.",
+                    timestamp="2023-06-09",
+                ),
+            ),
+        )
+
+        self.assertIn('phrase="two years ago" normalized="2021-06-09"', compiled.prompt)
+
+    def test_temporal_text_normalization_is_disabled_by_default(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=1,
+            max_evidence_chars=4000,
+            temporal_workpad=True,
+        )
+        route = RouteResult(information_need="temporal_lookup", signals=("temporal",))
+        compiled = compiler.compile(
+            question="When did Alex visit the museum?",
+            question_time="2023-01-20",
+            route=route,
+            hits=(RetrievalHit("s1:t0", 1.0, 1, "lexical_bm25"),),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Alex visited the museum yesterday.",
+                    timestamp="2023-05-08",
+                ),
+            ),
+        )
+
+        self.assertNotIn("relative_time_mentions", compiled.prompt)
+
     def test_temporal_workpad_calculation_scope_skips_plain_when_question(self) -> None:
         compiler = EvidenceCompiler(
             max_evidence_items=1,

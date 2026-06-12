@@ -11,6 +11,22 @@ from common.schemas import CompiledContext, EvidenceRow, RetrievalHit, RouteResu
 
 
 WEEKDAY_BY_NAME = {name.lower(): index for index, name in enumerate(calendar.day_name)}
+NUMBER_WORDS = {
+    "a": 1,
+    "an": 1,
+    "one": 1,
+    "two": 2,
+    "three": 3,
+    "four": 4,
+    "five": 5,
+    "six": 6,
+    "seven": 7,
+    "eight": 8,
+    "nine": 9,
+    "ten": 10,
+    "eleven": 11,
+    "twelve": 12,
+}
 TOKEN_PATTERN = re.compile(r"[\w]+", re.UNICODE)
 QUESTION_STOPWORDS = {
     "a",
@@ -75,6 +91,7 @@ class EvidenceCompiler:
         temporal_grounding: bool = False,
         temporal_hints: bool = False,
         temporal_workpad: bool = False,
+        temporal_text_normalization: bool = False,
         temporal_workpad_scope: str = "route",
         temporal_workpad_max_rows: int = 10,
         temporal_workpad_max_pairs: int = 12,
@@ -92,6 +109,7 @@ class EvidenceCompiler:
         self._temporal_grounding = temporal_grounding
         self._temporal_hints = temporal_hints
         self._temporal_workpad = temporal_workpad
+        self._temporal_text_normalization = temporal_text_normalization
         if temporal_workpad_scope not in {"route", "calculation_route"}:
             raise ValueError(
                 f"Unsupported temporal_workpad_scope: {temporal_workpad_scope}"
@@ -184,6 +202,7 @@ class EvidenceCompiler:
             temporal_grounding=self._temporal_grounding,
             temporal_hints=self._temporal_hints,
             temporal_workpad=self._temporal_workpad,
+            temporal_text_normalization=self._temporal_text_normalization,
             temporal_workpad_scope=self._temporal_workpad_scope,
             temporal_workpad_max_rows=self._temporal_workpad_max_rows,
             temporal_workpad_max_pairs=self._temporal_workpad_max_pairs,
@@ -369,6 +388,7 @@ def _build_prompt(
     temporal_grounding: bool,
     temporal_hints: bool,
     temporal_workpad: bool,
+    temporal_text_normalization: bool,
     temporal_workpad_scope: str,
     temporal_workpad_max_rows: int,
     temporal_workpad_max_pairs: int,
@@ -419,6 +439,7 @@ def _build_prompt(
             rows,
             max_rows=temporal_workpad_max_rows,
             max_pairs=temporal_workpad_max_pairs,
+            include_relative_text=temporal_text_normalization,
         )
         if workpad_lines:
             lines.extend(("", "Temporal calculation workpad:"))
@@ -631,14 +652,23 @@ def _temporal_workpad_lines(
     rows: tuple[EvidenceRow, ...],
     max_rows: int,
     max_pairs: int,
+    include_relative_text: bool,
 ) -> list[str]:
-    dated_rows = _dated_candidate_rows(question, rows)
+    dated_rows = _dated_candidate_rows(
+        question,
+        rows,
+        include_relative_text=include_relative_text,
+    )
     if not dated_rows:
         return []
 
     lines = [
         "Use this only as an arithmetic aid derived from raw row timestamps; final facts must still come from the raw rows."
     ]
+    if include_relative_text:
+        lines.append(
+            "- If row text contains a relative time mention, treat its normalized value as an event-time candidate; do not default to the row timestamp for that event."
+        )
     question_date = _parse_date(question_time)
     if question_date is not None:
         lines.append(f"- question_date={question_date.isoformat()}")
@@ -656,9 +686,17 @@ def _temporal_workpad_lines(
                     f" | relative_to_question={days_ago} days ago, "
                     f"{days_ago // 7} full weeks ago, {days_ago / 7:.2f} weeks ago"
                 )
+        relative_times = candidate.get("relative_times", ())
+        relative_mentions = ""
+        if include_relative_text and relative_times:
+            relative_mentions = " | relative_time_mentions=" + "; ".join(
+                f'phrase="{phrase}" normalized="{normalized}"'
+                for phrase, normalized in relative_times
+            )
         lines.append(
             f"  - source_id={candidate['source_id']} date={row_date.isoformat()} "
-            f"role={candidate['role']} matched_terms={matched}{relative}"
+            f"role={candidate['role']} matched_terms={matched}"
+            f"{relative}{relative_mentions}"
         )
 
     chronological = sorted(
@@ -690,6 +728,7 @@ def _temporal_workpad_lines(
 def _dated_candidate_rows(
     question: str,
     rows: tuple[EvidenceRow, ...],
+    include_relative_text: bool = False,
 ) -> list[dict[str, object]]:
     question_terms = _content_terms(question)
     candidates: list[dict[str, object]] = []
@@ -703,13 +742,19 @@ def _dated_candidate_rows(
         seen_source_ids.add(row.source_id)
         matched_terms = tuple(sorted(question_terms.intersection(_content_terms(row.text))))
         retrieval_bonus = 1 if row.retrieval_rank is not None else 0
+        relative_times = (
+            tuple(_relative_time_values(row.text, row_date))
+            if include_relative_text
+            else ()
+        )
         candidates.append(
             {
                 "date": row_date,
                 "index": index,
                 "matched_terms": matched_terms[:8],
+                "relative_times": relative_times,
                 "role": row.role,
-                "score": len(matched_terms) + retrieval_bonus,
+                "score": len(matched_terms) + retrieval_bonus + len(relative_times),
                 "source_id": row.source_id,
             }
         )
@@ -826,15 +871,31 @@ def _relative_time_values(text: str, row_date: date) -> list[tuple[str, str]]:
             values.append((phrase, normalized))
 
     for match in re.finditer(
-        r"\b(?P<direction>last|next)\s+"
+        r"\b(?P<count>\d+|a|an|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s+"
+        r"(?P<unit>days?|weeks?|months?|years?)\s+ago\b",
+        lowered,
+    ):
+        count = _parse_count(match.group("count"))
+        unit = match.group("unit")
+        if count is None:
+            continue
+        values.append(
+            (
+                match.group(0),
+                _ago_value(row_date, count=count, unit=unit),
+            )
+        )
+
+    for match in re.finditer(
+        r"\b(?P<direction>last|next|previous|coming)\s+"
         r"(?P<weekday>monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b",
         lowered,
     ):
-        direction = match.group("direction")
+        direction = _normalize_direction(match.group("direction"))
         weekday = match.group("weekday")
         values.append(
             (
-                f"{direction} {weekday}",
+                match.group(0),
                 _relative_weekday(row_date, WEEKDAY_BY_NAME[weekday], direction).isoformat(),
             )
         )
@@ -857,6 +918,38 @@ def _shift_month(value: date, delta: int) -> date:
     month = month_index % 12 + 1
     day = min(value.day, calendar.monthrange(year, month)[1])
     return date(year, month, day)
+
+
+def _shift_year(value: date, delta: int) -> date:
+    year = value.year + delta
+    day = min(value.day, calendar.monthrange(year, value.month)[1])
+    return date(year, value.month, day)
+
+
+def _parse_count(value: str) -> int | None:
+    if value.isdigit():
+        return int(value)
+    return NUMBER_WORDS.get(value)
+
+
+def _ago_value(value: date, count: int, unit: str) -> str:
+    if unit.startswith("day"):
+        return (value - timedelta(days=count)).isoformat()
+    if unit.startswith("week"):
+        return (value - timedelta(days=7 * count)).isoformat()
+    if unit.startswith("month"):
+        return _shift_month(value, -count).isoformat()
+    if unit.startswith("year"):
+        return _shift_year(value, -count).isoformat()
+    return value.isoformat()
+
+
+def _normalize_direction(value: str) -> str:
+    if value == "previous":
+        return "last"
+    if value == "coming":
+        return "next"
+    return value
 
 
 def _relative_weekday(value: date, weekday: int, direction: str) -> date:

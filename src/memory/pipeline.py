@@ -164,6 +164,9 @@ class Stage1Pipeline:
             temporal_grounding=bool(compiler_config.get("temporal_grounding", False)),
             temporal_hints=bool(compiler_config.get("temporal_hints", False)),
             temporal_workpad=bool(compiler_config.get("temporal_workpad", False)),
+            temporal_text_normalization=bool(
+                compiler_config.get("temporal_text_normalization", False)
+            ),
             temporal_workpad_scope=str(
                 compiler_config.get("temporal_workpad_scope", "route")
             ),
@@ -195,6 +198,9 @@ class Stage1Pipeline:
             "temporal_hints": bool(compiler_config.get("temporal_hints", False)),
             "temporal_workpad": bool(
                 compiler_config.get("temporal_workpad", False)
+            ),
+            "temporal_text_normalization": bool(
+                compiler_config.get("temporal_text_normalization", False)
             ),
             "temporal_workpad_scope": str(
                 compiler_config.get("temporal_workpad_scope", "route")
