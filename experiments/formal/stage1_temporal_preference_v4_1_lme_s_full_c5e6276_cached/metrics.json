@@ -1,0 +1,189 @@
+{
+  "accuracy": null,
+  "answer": {
+    "base_url": "http://127.0.0.1:8000/v1",
+    "max_tokens": 16384,
+    "mode": "openai_compatible",
+    "model": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "temperature": 0.0,
+    "timeout": 120.0
+  },
+  "benchmark": "longmemeval",
+  "bleu": null,
+  "build_memory": {
+    "avg_active_records": 116.492,
+    "avg_chunks": 6.682,
+    "avg_records": 129.662,
+    "base_url": "http://127.0.0.1:8000/v1",
+    "cache_enabled": true,
+    "cache_hits": 3341,
+    "cache_misses": 0,
+    "cache_path": "outputs/cache/qwen3_build_memory.sqlite",
+    "cache_writes": 0,
+    "enabled": true,
+    "max_chars_per_turn": 500,
+    "max_records_per_chunk": 20,
+    "max_tokens": 2048,
+    "max_turns_per_chunk": 80,
+    "mode": "openai_compatible",
+    "model": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "temperature": 0.0,
+    "total_active_records": 58246,
+    "total_chunks": 3341,
+    "total_records": 64831,
+    "total_superseded_records": 6585
+  },
+  "compiler": {
+    "answer_style": "concise",
+    "evidence_order": "question_overlap",
+    "max_memory_records": 16,
+    "max_row_text_chars": 0,
+    "memory_layout": "typed_sections",
+    "memory_order": "question_overlap",
+    "route_guidance": true,
+    "row_text_mode": "full",
+    "temporal_grounding": true,
+    "temporal_hints": true,
+    "temporal_workpad": true,
+    "temporal_workpad_max_pairs": 8,
+    "temporal_workpad_max_rows": 6,
+    "temporal_workpad_scope": "calculation_route"
+  },
+  "experiment_kind": "formal",
+  "f1": null,
+  "metrics_note": "No gold answers or judge outputs are used by this prediction runner.",
+  "n_samples": 500,
+  "offline_judge": {
+    "accuracy": 0.584,
+    "by_type": {
+      "knowledge-update": {
+        "accuracy": 0.7051,
+        "correct": 55,
+        "total": 78
+      },
+      "multi-session": {
+        "accuracy": 0.3534,
+        "correct": 47,
+        "total": 133
+      },
+      "single-session-assistant": {
+        "accuracy": 0.8214,
+        "correct": 46,
+        "total": 56
+      },
+      "single-session-preference": {
+        "accuracy": 0.3,
+        "correct": 9,
+        "total": 30
+      },
+      "single-session-user": {
+        "accuracy": 0.8857,
+        "correct": 62,
+        "total": 70
+      },
+      "temporal-reasoning": {
+        "accuracy": 0.5489,
+        "correct": 73,
+        "total": 133
+      }
+    },
+    "clean_note": "DeepSeek judge ran offline after prediction; judge outputs and labels must not be consumed by prediction code.",
+    "correct": 292,
+    "judge_output": "experiments/formal/stage1_temporal_preference_v4_1_lme_s_full_c5e6276_cached/deepseek_judge.json",
+    "model": "deepseek-v4-flash",
+    "n_valid": 500,
+    "usage": {
+      "completion_tokens": 36621,
+      "prompt_tokens": 77951,
+      "total_tokens": 114572
+    },
+    "wrong": 208
+  },
+  "offline_evidence_recall": {
+    "by_type": {
+      "knowledge-update": {
+        "evidence_recall": 1.0,
+        "n": 78
+      },
+      "multi-session": {
+        "evidence_recall": 0.9624060150375939,
+        "n": 133
+      },
+      "single-session-assistant": {
+        "evidence_recall": 1.0,
+        "n": 56
+      },
+      "single-session-preference": {
+        "evidence_recall": 0.9666666666666667,
+        "n": 30
+      },
+      "single-session-user": {
+        "evidence_recall": 0.9857142857142858,
+        "n": 70
+      },
+      "temporal-reasoning": {
+        "evidence_recall": 0.9699248120300752,
+        "n": 133
+      }
+    },
+    "clean_note": "Offline-only retrieval diagnostic. Evidence labels must not feed prediction, route, retrieval, compiler, answer, or verifier modules.",
+    "evidence_recall": 0.978,
+    "n_with_evidence_labels": 500,
+    "output": "experiments/formal/stage1_temporal_preference_v4_1_lme_s_full_c5e6276_cached/evidence_recall.json"
+  },
+  "retrieval": {
+    "avg_compiled_evidence_items": 12.522,
+    "avg_context_chars": 20801.958,
+    "avg_embedding_tokens": 0.0,
+    "avg_memory_hits": 7.756,
+    "avg_memory_source_hits": 7.528,
+    "build_memory_enabled": true,
+    "build_memory_include_superseded": false,
+    "build_memory_max_sources_per_record": 4,
+    "build_memory_top_k": 20,
+    "dense_enabled": true,
+    "drop_query_stopwords": true,
+    "embedding_cache_enabled": true,
+    "embedding_cache_hits": 247238,
+    "embedding_cache_misses": 0,
+    "embedding_cache_path": "outputs/cache/qwen3_embedding.sqlite",
+    "embedding_cache_writes": 0,
+    "lexical_protect_top_n": 2,
+    "max_top_k": 36,
+    "neighbor_order": "hit_priority",
+    "neighbor_window": 1,
+    "session_anchor_top_k": 2,
+    "session_bm25_applied_count": 193,
+    "session_bm25_applied_rate": 0.386,
+    "session_bm25_enabled": true,
+    "session_bm25_top_k": 8,
+    "session_enabled_information_needs": null,
+    "session_enabled_query_patterns": [
+      "\\b20\\d{2}\\b",
+      "\\b(?:january|february|march|april|june|july|august|september|october|november|december)\\b",
+      "\\bmay\\s+20\\d{2}\\b"
+    ],
+    "session_enabled_route_signals": [
+      "temporal",
+      "recent_or_current"
+    ],
+    "session_max_anchor_hits": 12,
+    "session_protect_turn_hits": 4,
+    "top_k": 12,
+    "total_embedding_tokens": 0
+  },
+  "route": {
+    "enable_broad_list_patterns": false,
+    "enable_recommendation_profile_patterns": true
+  },
+  "runner": {
+    "workers": 8
+  },
+  "subset": "s_cleaned",
+  "token_cost": {
+    "avg_build_tokens": 0.0,
+    "avg_query_tokens": 5468.818,
+    "total_build_tokens": 0,
+    "total_query_tokens": 2734409
+  }
+}
