@@ -1,0 +1,9 @@
+[project]
+name = "agent-memory"
+version = "0.1.0"
+description = "Clean, ablation-friendly Agent-Memory skeleton."
+requires-python = ">=3.10"
+dependencies = []
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]

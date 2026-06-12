@@ -1,0 +1,31 @@
+{
+  "api_key_env": "DEEPSEEK_API_KEY",
+  "base_url": "https://api.deepseek.com",
+  "benchmark": "locomo",
+  "clean_note": "Offline judge reads gold labels only after prediction. This output must not be consumed by prediction, retrieval, compiler, answer, or verifier.",
+  "created_at_utc": "2026-06-12T09:07:19+00:00",
+  "dry_run": true,
+  "git": {
+    "commit": null,
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "A  .env.example\nA  .gitignore\nA  AGENTS.md\nA  README.md\nA  configs/stage1_clean_skeleton.json\nA  data/README.md\nA  data/examples/toy_memory.jsonl\nA  docs/architecture.md\nA  docs/clean_protocol.md\nA  docs/constraints.md\nA  docs/experiment_protocol.md\nA  docs/method.md\nA  docs/method_cards.md\nAM experiments/README.md\nA  experiments/stage1_adapter_smoke/config_snapshot.json\nA  experiments/stage1_adapter_smoke/diagnosis.md\nAM experiments/stage1_adapter_smoke/manifest.json\nA  experiments/stage1_adapter_smoke/metrics.json\nA  experiments/stage1_adapter_smoke/offline_lexical_eval.json\nA  experiments/stage1_adapter_smoke/summary.md\nA  experiments/stage1_smoke_initial/config_snapshot.json\nA  experiments/stage1_smoke_initial/diagnosis.md\nA  experiments/stage1_smoke_initial/manifest.json\nA  experiments/stage1_smoke_initial/metrics.json\nA  experiments/stage1_smoke_initial/summary.md\nA  external/README.md\nA  outputs/README.md\nA  pyproject.toml\nA  scripts/evaluate_predictions.py\nA  scripts/prepare_dataset.py\nA  scripts/run_stage1.py\nA  src/agent_memory/__init__.py\nAM src/agent_memory/adapters.py\nA  src/agent_memory/answer.py\nA  src/agent_memory/clean.py\nA  src/agent_memory/compiler.py\nA  src/agent_memory/experiment.py\nA  src/agent_memory/io.py\nA  src/agent_memory/metrics.py\nA  src/agent_memory/pipeline.py\nA  src/agent_memory/retrieval.py\nA  src/agent_memory/route.py\nA  src/agent_memory/schemas.py\nA  src/agent_memory/store.py\nA  tests/test_clean_skeleton.py\nAM tests/test_dataset_adapter.py\n?? scripts/judge_predictions_deepseek.py\n?? src/agent_memory/judge.py\n?? tests/test_judge.py"
+  },
+  "judgments": [
+    {
+      "error": "missing_gold_answer",
+      "label": "INVALID",
+      "record_key": "092a539aca8b6d62fd65adb6"
+    }
+  ],
+  "labels": "/data/home_new/wujinqi/agent-memory/outputs/stage1_prepare_toy/labels.jsonl",
+  "metrics": {
+    "accuracy": null,
+    "n_invalid": 1,
+    "n_judgments": 1,
+    "n_valid": 0
+  },
+  "model": "deepseek-v4-flash",
+  "predictions": "/data/home_new/wujinqi/agent-memory/outputs/stage1_adapter_smoke/predictions.jsonl"
+}

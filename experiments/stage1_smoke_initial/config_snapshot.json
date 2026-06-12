@@ -1,0 +1,107 @@
+{
+  "ablation": {
+    "dense_retrieval": false,
+    "derived_memory_views": false,
+    "evidence_compiler": true,
+    "lexical_retrieval": true,
+    "neighbor_expansion": true,
+    "raw_evidence_store": true,
+    "rerank": false,
+    "verifier": false
+  },
+  "answer": {
+    "fallback_answer": "I do not know based on the available evidence.",
+    "mode": "null_answerer"
+  },
+  "budgets": {
+    "LoCoMo": {
+      "avg_build_tokens_expensive_threshold": 120000,
+      "avg_build_tokens_target": 100000,
+      "avg_query_tokens_expensive_threshold": 8000,
+      "avg_query_tokens_target": 6000
+    },
+    "LongMemEval": {
+      "avg_build_tokens_expensive_threshold": 360000,
+      "avg_build_tokens_target": 300000,
+      "avg_query_tokens_expensive_threshold": 8000,
+      "avg_query_tokens_target": 6000
+    }
+  },
+  "clean_protocol": {
+    "prediction_allowed_inputs": [
+      "question",
+      "question_time",
+      "raw_dialogue_turns",
+      "dialogue_metadata",
+      "locally_built_memory",
+      "retrieval_outputs",
+      "compiler_outputs"
+    ],
+    "prediction_forbidden_inputs": [
+      "gold_answer",
+      "reference_answer",
+      "target",
+      "judge_output",
+      "judge_label",
+      "question_type",
+      "category",
+      "sample_id",
+      "qid",
+      "row_index",
+      "test_feedback"
+    ]
+  },
+  "compiler": {
+    "max_evidence_chars": 12000,
+    "max_evidence_items": 20
+  },
+  "description": "Dependency-free clean skeleton for raw evidence, lexical retrieval, compiler traces, and experiment records.",
+  "models_protocol": {
+    "answer": {
+      "name": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+      "service": "local_vllm_generation",
+      "temperature": 0.0,
+      "thinking": "default"
+    },
+    "embedding": {
+      "dims": 1024,
+      "max_input_length": 32768,
+      "name": "Qwen/Qwen3-Embedding-0.6B",
+      "normalize": true,
+      "service": "local_vllm_embedding"
+    },
+    "judge": {
+      "api_key_env": "DEEPSEEK_API_KEY",
+      "base_url": "https://api.deepseek.com",
+      "name": "deepseek-v4-flash",
+      "service": "api",
+      "temperature": 0.0,
+      "thinking": "default"
+    },
+    "rerank": {
+      "name": "Qwen/Qwen3-Reranker-0.6B",
+      "service": "local_rerank_service"
+    }
+  },
+  "name": "stage1_clean_skeleton",
+  "retrieval": {
+    "max_top_k": 24,
+    "neighbor_window": 1,
+    "score_threshold": 0.0,
+    "top_k": 8
+  },
+  "targets": {
+    "LoCoMo_non_adversarial": {
+      "baseline_accuracy": 0.78,
+      "mainline_accuracy": 0.82,
+      "minimum_accuracy": 0.8,
+      "stretch_accuracy": 0.84
+    },
+    "LongMemEval_full": {
+      "baseline_accuracy": 0.8,
+      "mainline_accuracy": 0.84,
+      "minimum_accuracy": 0.82,
+      "stretch_accuracy": 0.86
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "accuracy": null,
+  "benchmark": "generic",
+  "bleu": null,
+  "experiment_kind": "smoke",
+  "f1": null,
+  "metrics_note": "No gold answers or judge outputs are used by this prediction runner.",
+  "n_samples": 1,
+  "retrieval": {
+    "avg_compiled_evidence_items": 3.0,
+    "avg_context_chars": 867.0,
+    "max_top_k": 24,
+    "neighbor_window": 1,
+    "top_k": 8
+  },
+  "subset": "smoke",
+  "token_cost": {
+    "avg_build_tokens": 0.0,
+    "avg_query_tokens": 0.0,
+    "total_build_tokens": 0,
+    "total_query_tokens": 0
+  }
+}

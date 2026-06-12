@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.env
+.env.*
+!.env.example
+
+outputs/*
+!outputs/README.md
+
+data/*
+!data/README.md
+!data/examples/
+!data/examples/**
