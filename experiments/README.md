@@ -31,6 +31,7 @@
 
 - LongMemEval-S full 当前最好为 v4：0.596 DeepSeek judge accuracy。
 - LoCoMo non-adversarial full v4：0.695906 DeepSeek judge accuracy，低于目标，主要短板是 temporal_lookup、category 2、list/count 和 category 3 evidence recall。
+- v5 relative temporal text normalization 在 LME 上降到 0.590，不作为主线。
 - v4.1 compact temporal workpad 降低 token 但 accuracy 退化，不作为主线。
 
 外部方法借鉴与取舍：
@@ -78,6 +79,7 @@ experiments/formal/<run_id>/
 |---|---|---|---|---:|---|
 | `stage1_temporal_preference_v4_lme_s_full_6c7d51e_cached` | LongMemEval-S | full | `6c7d51e` | 0.596 | 当前 LME 最好；temporal 提升明显，但 multi-session 仍弱。 |
 | `stage1_temporal_preference_v4_locomo_nonadv_full_edf05a5_cached` | LoCoMo | non-adversarial full | `edf05a5` | 0.695906 | fact_lookup 可用，temporal/list/组合推理不足。 |
+| `stage1_temporal_text_v5_lme_s_full_e875d29_cached` | LongMemEval-S | full | `e875d29` | 0.590 | 相对时间文本归一化未提升 LME，preference 退化，作为负向 ablation。 |
 | `stage1_temporal_preference_v4_1_lme_s_full_c5e6276_cached` | LongMemEval-S | full | `c5e6276` | 0.584 | compact workpad 省 token 但降分，作为负向 ablation。 |
 | `stage1_memory_compiler_v3_lme_s_full_e9ee8bd_cached` | LongMemEval-S | full | `e9ee8bd` | 0.558 | typed compiler 有效，是 v4 前的强基线。 |
 | `stage1_query_retrieval_v2_lme_s_full_66fb2c6_cached` | LongMemEval-S | full | `66fb2c6` | 0.540 | query retrieval cleanup 有小幅收益。 |
