@@ -107,6 +107,9 @@ def main() -> int:
             "avg_context_chars": _safe_average(total_context_chars, sample_count),
         },
         "answer": _answer_metrics(config),
+        "compiler": {
+            "answer_style": config.get("compiler", {}).get("answer_style", "grounded"),
+        },
     }
     manifest = {
         "run_id": run_id,
@@ -247,6 +250,7 @@ def _write_summary(
         f"- avg_context_chars: {metrics['retrieval']['avg_context_chars']}",
         f"- answer_mode: {metrics['answer']['mode']}",
         f"- answer_model: {metrics['answer']['model']}",
+        f"- answer_style: {metrics['compiler']['answer_style']}",
         "",
         "## Outputs",
         "",

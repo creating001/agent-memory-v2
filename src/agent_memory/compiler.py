@@ -8,9 +8,15 @@ from agent_memory.schemas import CompiledContext, EvidenceRow, RetrievalHit, Rou
 class EvidenceCompiler:
     """Compiles retrieved raw evidence into an answer-model prompt."""
 
-    def __init__(self, max_evidence_items: int, max_evidence_chars: int):
+    def __init__(
+        self,
+        max_evidence_items: int,
+        max_evidence_chars: int,
+        answer_style: str = "grounded",
+    ):
         self._max_evidence_items = max_evidence_items
         self._max_evidence_chars = max_evidence_chars
+        self._answer_style = answer_style
 
     def compile(
         self,
@@ -44,7 +50,13 @@ class EvidenceCompiler:
             rows.append(row)
             used_chars += row_chars
 
-        prompt = _build_prompt(question, question_time, route, tuple(rows))
+        prompt = _build_prompt(
+            question,
+            question_time,
+            route,
+            tuple(rows),
+            answer_style=self._answer_style,
+        )
         return CompiledContext(
             question=question,
             question_time=question_time,
@@ -60,6 +72,7 @@ def _build_prompt(
     question_time: str | None,
     route: RouteResult,
     rows: tuple[EvidenceRow, ...],
+    answer_style: str,
 ) -> str:
     lines = [
         "Answer the question using only the raw evidence table.",
@@ -72,6 +85,11 @@ def _build_prompt(
         "",
         "Raw evidence table:",
     ]
+    if answer_style == "concise":
+        lines.insert(
+            2,
+            "Use the shortest direct answer that is fully supported; avoid explanations unless needed.",
+        )
     if not rows:
         lines.append("(no evidence retrieved)")
     for row in rows:

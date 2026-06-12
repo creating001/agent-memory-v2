@@ -1,0 +1,146 @@
+{
+  "api_key_env": "DEEPSEEK_API_KEY",
+  "base_url": "https://api.deepseek.com",
+  "benchmark": "locomo",
+  "clean_note": "Offline judge reads gold labels only after prediction. This output must not be consumed by prediction, retrieval, compiler, answer, or verifier.",
+  "created_at_utc": "2026-06-12T10:18:36+00:00",
+  "dry_run": true,
+  "git": {
+    "commit": "d32987dbb9e2075fcd5268c98a75c5352dde7fae",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "M scripts/run_stage1.py\n M src/agent_memory/compiler.py\n M src/agent_memory/pipeline.py\n M tests/test_clean_skeleton.py\n?? configs/stage1_vllm_answer_concise.json\n?? configs/stage1_vllm_dense_protect2_k12_concise.json\n?? experiments/stage1_concise_lme_s_20/\n?? experiments/stage1_dense_k12_concise_locomo_20/"
+  },
+  "judgments": [
+    {
+      "label": "PENDING",
+      "prompt_hash": "d95983ebe2cc8287",
+      "question_type": null,
+      "record_key": "5e7fd17974e60e8ebb29c30d"
+    },
+    {
+      "label": "PENDING",
+      "prompt_hash": "60954f6a41941176",
+      "question_type": null,
+      "record_key": "71ffeefca246680c5bdb560e"
+    },
+    {
+      "label": "PENDING",
+      "prompt_hash": "9968fd02000bc463",
+      "question_type": null,
+      "record_key": "628d9b1436fa405b91ee2820"
+    },
+    {
+      "label": "PENDING",
+      "prompt_hash": "7f5fd9f9b21740d7",
+      "question_type": null,
+      "record_key": "d41bb903497cfadc9e9f9682"
+    },
+    {
+      "label": "PENDING",
+      "prompt_hash": "9536797a0b351ddb",
+      "question_type": null,
+      "record_key": "0ef0216553b4eeff9be57e45"
+    },
+    {
+      "label": "PENDING",
+      "prompt_hash": "3a947f495632869f",
+      "question_type": null,
+      "record_key": "a149e8a270a174eedfcd1da7"
+    },
+    {
+      "label": "PENDING",
+      "prompt_hash": "49326b37aa79ac38",
+      "question_type": null,
+      "record_key": "79dbd15ef19ed07993709c8f"
+    },
+    {
+      "label": "PENDING",
+      "prompt_hash": "171c549ed10b82ab",
+      "question_type": null,
+      "record_key": "28821506df08ca36f78e989a"
+    },
+    {
+      "label": "PENDING",
+      "prompt_hash": "3fdab1c3ace46dc4",
+      "question_type": null,
+      "record_key": "2726a17928daef593183a90f"
+    },
+    {
+      "label": "PENDING",
+      "prompt_hash": "694e457dfa421a65",
+      "question_type": null,
+      "record_key": "05a2fa4682ace156a523b92c"
+    },
+    {
+      "label": "PENDING",
+      "prompt_hash": "df8eabf24a9f6ad5",
+      "question_type": null,
+      "record_key": "2e1bec427ee013ed30f80431"
+    },
+    {
+      "label": "PENDING",
+      "prompt_hash": "d43ed7633896de03",
+      "question_type": null,
+      "record_key": "13fc31c4da9f316b40c10d39"
+    },
+    {
+      "label": "PENDING",
+      "prompt_hash": "aecfb1e64a456bce",
+      "question_type": null,
+      "record_key": "1c98645d234a3d42586e2b99"
+    },
+    {
+      "label": "PENDING",
+      "prompt_hash": "3ece6444dab1d9f2",
+      "question_type": null,
+      "record_key": "f5e68c54090a60fac1b80246"
+    },
+    {
+      "label": "PENDING",
+      "prompt_hash": "b606927a268ad1d7",
+      "question_type": null,
+      "record_key": "daf5a3f4af72f6e342152a73"
+    },
+    {
+      "label": "PENDING",
+      "prompt_hash": "4f88b7d2cfc4bcde",
+      "question_type": null,
+      "record_key": "050de4d029518a005ce9e39a"
+    },
+    {
+      "label": "PENDING",
+      "prompt_hash": "abe11d808214ea28",
+      "question_type": null,
+      "record_key": "bf0313aefcf43c7abfe9585a"
+    },
+    {
+      "label": "PENDING",
+      "prompt_hash": "84e122065606a923",
+      "question_type": null,
+      "record_key": "d974790416358979fe77c299"
+    },
+    {
+      "label": "PENDING",
+      "prompt_hash": "a6168b0d64dab3a5",
+      "question_type": null,
+      "record_key": "d7870b241b2c9f5d2c8b64cb"
+    },
+    {
+      "label": "PENDING",
+      "prompt_hash": "707c431b74480a2c",
+      "question_type": null,
+      "record_key": "6b6d09d7e82567bbb2a34cf0"
+    }
+  ],
+  "labels": "/data/home_new/wujinqi/agent-memory/outputs/prepare_locomo_non_adversarial/labels.jsonl",
+  "metrics": {
+    "accuracy": null,
+    "n_invalid": 20,
+    "n_judgments": 20,
+    "n_valid": 0
+  },
+  "model": "deepseek-v4-flash",
+  "predictions": "/data/home_new/wujinqi/agent-memory/outputs/stage1_dense_k12_concise_locomo_20/predictions.jsonl"
+}

@@ -50,6 +50,7 @@ class Stage1Pipeline:
         self._compiler = EvidenceCompiler(
             max_evidence_items=int(compiler_config.get("max_evidence_items", 20)),
             max_evidence_chars=int(compiler_config.get("max_evidence_chars", 12000)),
+            answer_style=str(compiler_config.get("answer_style", "grounded")),
         )
         answer_mode = str(answer_config.get("mode", "null_answerer"))
         if answer_mode == "openai_compatible":
