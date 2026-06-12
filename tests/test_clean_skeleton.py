@@ -191,6 +191,7 @@ class CleanSkeletonTest(unittest.TestCase):
                 "max_evidence_items": 1,
                 "max_evidence_chars": 1000,
                 "temporal_grounding": True,
+                "temporal_hints": True,
             },
             "answer": {"fallback_answer": "I do not know."},
         }
@@ -213,6 +214,38 @@ class CleanSkeletonTest(unittest.TestCase):
 
         self.assertIn("Resolve relative time expressions", prompt)
         self.assertIn("supported absolute date", prompt)
+        self.assertIn("Temporal normalization hints", prompt)
+        self.assertIn('phrase="yesterday" normalized="2023-05-07"', prompt)
+
+    def test_temporal_hints_are_disabled_by_default(self) -> None:
+        config = {
+            "retrieval": {"top_k": 1, "max_top_k": 1, "neighbor_window": 0},
+            "compiler": {
+                "max_evidence_items": 1,
+                "max_evidence_chars": 1000,
+                "temporal_grounding": True,
+            },
+            "answer": {"fallback_answer": "I do not know."},
+        }
+        request = PredictionRequest(
+            question="When did Alex visit?",
+            turns=(
+                Turn(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="Alex visited yesterday.",
+                    timestamp="2023-05-08",
+                ),
+            ),
+        )
+
+        result = Stage1Pipeline(config).predict(request)
+        prompt = result["trace"]["compiled_context"]["prompt"]
+
+        self.assertIn("Resolve relative time expressions", prompt)
+        self.assertNotIn("Temporal normalization hints", prompt)
 
     def test_session_bm25_anchor_can_feed_compiled_raw_evidence(self) -> None:
         config = {

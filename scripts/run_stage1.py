@@ -161,6 +161,7 @@ def main() -> int:
             "temporal_grounding": config.get("compiler", {}).get(
                 "temporal_grounding", False
             ),
+            "temporal_hints": config.get("compiler", {}).get("temporal_hints", False),
         },
     }
     manifest = {
@@ -319,6 +320,7 @@ def _write_summary(
         f"- answer_model: {metrics['answer']['model']}",
         f"- answer_style: {metrics['compiler']['answer_style']}",
         f"- temporal_grounding: {metrics['compiler']['temporal_grounding']}",
+        f"- temporal_hints: {metrics['compiler']['temporal_hints']}",
         "",
         "## Outputs",
         "",

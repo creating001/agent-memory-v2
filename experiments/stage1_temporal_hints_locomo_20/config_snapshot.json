@@ -1,0 +1,58 @@
+{
+  "answer": {
+    "base_url": "http://127.0.0.1:8000/v1",
+    "max_tokens": 128,
+    "mode": "openai_compatible",
+    "model": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "temperature": 0.0,
+    "timeout": 120.0
+  },
+  "compiler": {
+    "answer_style": "concise",
+    "max_evidence_chars": 18000,
+    "max_evidence_items": 36,
+    "temporal_grounding": true,
+    "temporal_hints": true
+  },
+  "description": "Strict candidate with deterministic temporal normalization hints enabled for ablation.",
+  "inherits": "stage1_vllm_dense_k12_concise_session_bm25_temporal_p4_grounded_strict",
+  "name": "stage1_vllm_dense_k12_concise_session_bm25_temporal_p4_grounded_strict_hints",
+  "retrieval": {
+    "dense": {
+      "base_url": "http://127.0.0.1:8001/v1",
+      "batch_size": 32,
+      "enabled": true,
+      "lexical_protect_top_n": 2,
+      "model": "Qwen/Qwen3-Embedding-0.6B",
+      "rrf_k": 60,
+      "timeout": 120.0,
+      "top_k": 12
+    },
+    "drop_query_stopwords": false,
+    "max_top_k": 36,
+    "neighbor_order": "hit_priority",
+    "neighbor_window": 1,
+    "score_threshold": 0.0,
+    "session_bm25": {
+      "anchor_drop_query_stopwords": true,
+      "anchor_score_threshold": 0.0,
+      "anchor_top_k": 2,
+      "drop_query_stopwords": true,
+      "enabled": true,
+      "enabled_query_patterns": [
+        "\\b20\\d{2}\\b",
+        "\\b(?:january|february|march|april|june|july|august|september|october|november|december)\\b",
+        "\\bmay\\s+20\\d{2}\\b"
+      ],
+      "enabled_route_signals": [
+        "temporal",
+        "recent_or_current"
+      ],
+      "max_anchor_hits": 12,
+      "protect_turn_hits": 4,
+      "score_threshold": 0.0,
+      "top_k": 8
+    },
+    "top_k": 12
+  }
+}
