@@ -7,7 +7,7 @@
     "base_url": "http://127.0.0.1:8000/v1",
     "model": "Qwen/Qwen3-30B-A3B-Instruct-2507",
     "temperature": 0.0,
-    "max_tokens": 768,
+    "max_tokens": 1536,
     "timeout": 120.0,
     "max_turns_per_chunk": 80,
     "max_chars_per_turn": 500,

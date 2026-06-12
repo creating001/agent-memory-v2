@@ -323,10 +323,10 @@ def _chunk_turns(turns: tuple[Turn, ...], max_turns_per_chunk: int) -> tuple[tup
 def _records_from_payload(content: str) -> list[dict[str, Any]]:
     payload = _parse_json_object(content)
     if not isinstance(payload, dict):
-        return []
+        return _parse_partial_records_array(content)
     records = payload.get("records")
     if not isinstance(records, list):
-        return []
+        return _parse_partial_records_array(content)
     return [record for record in records if isinstance(record, dict)]
 
 
@@ -344,6 +344,37 @@ def _parse_json_object(content: str) -> Any:
         return json.loads(content[start : end + 1])
     except json.JSONDecodeError:
         return None
+
+
+def _parse_partial_records_array(content: str) -> list[dict[str, Any]]:
+    """Recover complete records from a JSON response truncated inside records[]."""
+
+    marker = '"records"'
+    marker_position = content.find(marker)
+    if marker_position < 0:
+        return []
+    array_start = content.find("[", marker_position + len(marker))
+    if array_start < 0:
+        return []
+
+    decoder = json.JSONDecoder()
+    position = array_start + 1
+    records: list[dict[str, Any]] = []
+    while position < len(content):
+        while position < len(content) and content[position] in " \n\r\t,":
+            position += 1
+        if position >= len(content) or content[position] == "]":
+            break
+        if content[position] != "{":
+            break
+        try:
+            record, end = decoder.raw_decode(content, position)
+        except json.JSONDecodeError:
+            break
+        if isinstance(record, dict):
+            records.append(record)
+        position = end
+    return records
 
 
 def _normalize_record(

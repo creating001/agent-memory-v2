@@ -9,13 +9,27 @@ SRC_ROOT = REPO_ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
-from memory.build import MemoryRecord
+from memory.build import MemoryRecord, _records_from_payload
 from memory.compiler import EvidenceCompiler
 from memory.retrieval import BuildMemoryBM25Retriever, memory_hits_to_source_hits
 from common.schemas import RetrievalHit, RouteResult, Turn
 
 
 class BuildMemoryTest(unittest.TestCase):
+    def test_truncated_build_payload_recovers_complete_records(self) -> None:
+        payload = (
+            '{"records":['
+            '{"type":"fact","text":"A","source_ids":["s1:t0"],"confidence":0.9},'
+            '{"type":"event","text":"B","source_ids":["s1:t1"],"confidence":0.8},'
+            '{"type":"fact","text":"truncated","source_ids":["s1:t2"'
+        )
+
+        records = _records_from_payload(payload)
+
+        self.assertEqual(len(records), 2)
+        self.assertEqual(records[0]["text"], "A")
+        self.assertEqual(records[1]["text"], "B")
+
     def test_build_memory_retrieval_maps_records_to_raw_sources(self) -> None:
         records = (
             MemoryRecord(
