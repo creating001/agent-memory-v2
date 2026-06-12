@@ -113,9 +113,13 @@ class Stage1Pipeline:
             temporal_grounding=bool(compiler_config.get("temporal_grounding", False)),
             temporal_hints=bool(compiler_config.get("temporal_hints", False)),
             evidence_order=str(compiler_config.get("evidence_order", "retrieval")),
+            row_text_mode=str(compiler_config.get("row_text_mode", "full")),
+            max_row_text_chars=int(compiler_config.get("max_row_text_chars", 0)),
         )
         self._compiler_trace_config = {
             "evidence_order": str(compiler_config.get("evidence_order", "retrieval")),
+            "row_text_mode": str(compiler_config.get("row_text_mode", "full")),
+            "max_row_text_chars": int(compiler_config.get("max_row_text_chars", 0)),
             "answer_style": str(compiler_config.get("answer_style", "grounded")),
             "temporal_grounding": bool(
                 compiler_config.get("temporal_grounding", False)

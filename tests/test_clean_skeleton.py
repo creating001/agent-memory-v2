@@ -308,6 +308,39 @@ class CleanSkeletonTest(unittest.TestCase):
 
         self.assertEqual(compiled.evidence_rows[0].source_id, "s1:t1")
 
+    def test_query_snippet_row_text_mode_preserves_raw_trace_text(self) -> None:
+        long_text = (
+            "generic setup " * 40
+            + "Alex said the reimbursement folder is the durable answer. "
+            + "generic ending " * 40
+        )
+        compiler = EvidenceCompiler(
+            max_evidence_items=1,
+            max_evidence_chars=4000,
+            row_text_mode="query_snippet",
+            max_row_text_chars=120,
+        )
+        route = RouteResult(information_need="fact_lookup", signals=())
+        compiled = compiler.compile(
+            question="Where is the reimbursement folder?",
+            question_time=None,
+            route=route,
+            hits=(RetrievalHit("s1:t0", 1.0, 1, "lexical_bm25"),),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text=long_text,
+                ),
+            ),
+        )
+
+        self.assertEqual(compiled.evidence_rows[0].text, long_text)
+        self.assertIn("reimbursement folder", compiled.prompt)
+        self.assertLess(len(compiled.prompt), len(long_text))
+
     def test_session_bm25_anchor_can_feed_compiled_raw_evidence(self) -> None:
         config = {
             "retrieval": {
