@@ -65,7 +65,12 @@ curl --noproxy '*' http://127.0.0.1:8001/v1/models
 bash scripts/stop_embedding_vllm.sh
 ```
 
-当前 answer 配置在 `configs/stage1_vllm_answer.json`，指向 `Qwen/Qwen3-30B-A3B-Instruct-2507` 的本地 OpenAI-compatible endpoint。Dense hybrid 配置在 `configs/stage1_vllm_dense_hybrid.json` 和 `configs/stage1_vllm_dense_hybrid_protect2.json`，指向 `Qwen/Qwen3-Embedding-0.6B` 的本地 embedding endpoint。DeepSeek judge 只允许在离线评测脚本中使用，API key 通过 `DEEPSEEK_API_KEY` 环境变量读取，不写入仓库。
+当前保留两个 Stage-1 主线配置：
+
+- `configs/stage1_strict_cached.json`：strict baseline，使用 raw evidence、dense+BM25、gated session BM25、temporal grounding 和 embedding cache。
+- `configs/stage1_route_guidance_cached.json`：当前候选，在 strict baseline 上增加通用 question-route guidance。
+
+DeepSeek judge 只允许在离线评测脚本中使用。API key 通过 `DEEPSEEK_API_KEY` 环境变量读取；本地 `.env` 已被 `.gitignore` 忽略，不能提交。
 
 ## 数据和诊断入口
 
@@ -85,31 +90,36 @@ conda run -n agent-memory python scripts/prepare_dataset.py \
   --output-dir outputs/prepare_locomo_non_adversarial
 ```
 
-Stage-1 vLLM 诊断示例：
+Stage-1 当前候选运行示例。正式 full run 不加 `--limit`：
 
 ```bash
 conda run -n agent-memory python scripts/run_stage1.py \
   --input outputs/prepare_longmemeval_s_cleaned/prediction_input.jsonl \
-  --config configs/stage1_vllm_answer.json \
-  --run-id stage1_qwen30b_lme_s_3 \
+  --config configs/stage1_route_guidance_cached.json \
+  --run-id formal_route_guidance_lme_s_full \
   --benchmark longmemeval \
   --subset s_cleaned \
-  --experiment-kind diagnostic \
-  --limit 3
+  --experiment-kind formal
 ```
 
-预测完成后才运行离线评测和诊断：
+预测完成后才运行离线 judge。方法性能主要看 DeepSeek judge accuracy；`evaluate_predictions.py` 的 exact/F1/BLEU 只用于快速诊断。
 
 ```bash
-conda run -n agent-memory python scripts/evaluate_predictions.py \
-  --predictions outputs/stage1_qwen30b_lme_s_3/predictions.jsonl \
+set -a; . ./.env; set +a
+conda run -n agent-memory python scripts/judge_predictions_deepseek.py \
+  --predictions outputs/formal_route_guidance_lme_s_full/predictions.jsonl \
   --labels outputs/prepare_longmemeval_s_cleaned/labels.jsonl \
-  --output experiments/stage1_qwen30b_lme_s_3/offline_lexical_eval.json
+  --output experiments/formal/formal_route_guidance_lme_s_full/deepseek_judge.json \
+  --benchmark longmemeval
+```
 
+辅助诊断可以在预测完成后运行：
+
+```bash
 conda run -n agent-memory python scripts/analyze_evidence_recall.py \
-  --traces outputs/stage1_qwen30b_lme_s_3/traces.jsonl \
+  --traces outputs/formal_route_guidance_lme_s_full/traces.jsonl \
   --labels outputs/prepare_longmemeval_s_cleaned/labels.jsonl \
-  --output experiments/stage1_qwen30b_lme_s_3/evidence_recall.json
+  --output experiments/formal/formal_route_guidance_lme_s_full/evidence_recall.json
 ```
 
 ## 外部方法参考

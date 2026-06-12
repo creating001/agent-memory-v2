@@ -341,6 +341,57 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertIn("reimbursement folder", compiled.prompt)
         self.assertLess(len(compiled.prompt), len(long_text))
 
+    def test_route_guidance_is_disabled_by_default(self) -> None:
+        compiler = EvidenceCompiler(max_evidence_items=1, max_evidence_chars=4000)
+        route = RouteResult(information_need="fact_lookup", signals=())
+        compiled = compiler.compile(
+            question="What degree did Alex earn?",
+            question_time=None,
+            route=route,
+            hits=(RetrievalHit("s1:t0", 1.0, 1, "lexical_bm25"),),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Alex earned a history degree.",
+                ),
+            ),
+        )
+
+        self.assertNotIn("Information-need guidance", compiled.prompt)
+
+    def test_route_guidance_adds_generic_information_need_prompt(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=1,
+            max_evidence_chars=4000,
+            route_guidance=True,
+        )
+        route = RouteResult(information_need="fact_lookup", signals=())
+        compiled = compiler.compile(
+            question="What degree did Alex earn?",
+            question_time=None,
+            route=route,
+            hits=(RetrievalHit("s1:t0", 1.0, 1, "lexical_bm25"),),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Alex earned a history degree.",
+                ),
+            ),
+        )
+
+        self.assertIn("Information-need guidance", compiled.prompt)
+        self.assertIn("Ignore unrelated rows", compiled.prompt)
+        self.assertLess(
+            compiled.prompt.index("Information-need guidance"),
+            compiled.prompt.index("Raw evidence table"),
+        )
+
     def test_session_bm25_anchor_can_feed_compiled_raw_evidence(self) -> None:
         config = {
             "retrieval": {

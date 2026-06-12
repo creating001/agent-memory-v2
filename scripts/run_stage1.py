@@ -165,6 +165,9 @@ def main() -> int:
             "max_row_text_chars": config.get("compiler", {}).get(
                 "max_row_text_chars", 0
             ),
+            "route_guidance": config.get("compiler", {}).get(
+                "route_guidance", False
+            ),
             "temporal_grounding": config.get("compiler", {}).get(
                 "temporal_grounding", False
             ),
@@ -334,6 +337,7 @@ def _write_summary(
         f"- evidence_order: {metrics['compiler']['evidence_order']}",
         f"- row_text_mode: {metrics['compiler']['row_text_mode']}",
         f"- max_row_text_chars: {metrics['compiler']['max_row_text_chars']}",
+        f"- route_guidance: {metrics['compiler']['route_guidance']}",
         f"- temporal_grounding: {metrics['compiler']['temporal_grounding']}",
         f"- temporal_hints: {metrics['compiler']['temporal_hints']}",
         f"- enable_broad_list_patterns: {metrics['route']['enable_broad_list_patterns']}",
@@ -385,6 +389,7 @@ def _write_diagnosis(
         f"- evidence_order: {metrics['compiler']['evidence_order']}",
         f"- row_text_mode: {metrics['compiler']['row_text_mode']}",
         f"- max_row_text_chars: {metrics['compiler']['max_row_text_chars']}",
+        f"- route_guidance: {metrics['compiler']['route_guidance']}",
         f"- answer: {_answer_note(config)}",
         "",
         "## Next Steps",

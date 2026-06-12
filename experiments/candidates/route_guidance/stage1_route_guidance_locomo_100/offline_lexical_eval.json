@@ -1,0 +1,41 @@
+{
+  "clean_note": "This script is offline-only. Its outputs must not be read by prediction, retrieval, compiler, answer, or verifier modules.",
+  "created_at_utc": "2026-06-12T12:12:05+00:00",
+  "git": {
+    "commit": "d30c0a995fcd7bad56e0ed77c95ab053c6a7c8c1",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "M scripts/run_stage1.py\n M src/agent_memory/compiler.py\n M src/agent_memory/pipeline.py\n M tests/test_clean_skeleton.py\n?? configs/stage1_vllm_dense_k12_concise_session_bm25_temporal_p4_grounded_strict_cached_guidance.json\n?? experiments/candidates/route_guidance/stage1_route_guidance_lme_s_20/\n?? experiments/candidates/route_guidance/stage1_route_guidance_locomo_100/\n?? experiments/candidates/route_guidance/stage1_route_guidance_locomo_20/"
+  },
+  "labels": "/data/home_new/wujinqi/agent-memory/outputs/prepare_locomo_non_adversarial/labels.jsonl",
+  "metrics": {
+    "accuracy_exact": 0.13,
+    "bleu_unigram": 0.3676968925752008,
+    "by_type": {
+      "1": {
+        "accuracy_exact": 0.0625,
+        "n": 32
+      },
+      "2": {
+        "accuracy_exact": 0.16216216216216217,
+        "n": 37
+      },
+      "3": {
+        "accuracy_exact": 0.0,
+        "n": 13
+      },
+      "4": {
+        "accuracy_exact": 0.2777777777777778,
+        "n": 18
+      }
+    },
+    "f1": 0.4264887606740394,
+    "metrics_note": "Offline lexical metrics only. Judge-based benchmark accuracy should be computed in a separate offline step and must not feed prediction.",
+    "n_joined": 100,
+    "n_labels": 1540,
+    "n_missing_gold": 0,
+    "n_predictions": 100
+  },
+  "predictions": "/data/home_new/wujinqi/agent-memory/outputs/stage1_route_guidance_locomo_100/predictions.jsonl"
+}

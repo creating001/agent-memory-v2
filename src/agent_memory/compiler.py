@@ -76,6 +76,7 @@ class EvidenceCompiler:
         evidence_order: str = "retrieval",
         row_text_mode: str = "full",
         max_row_text_chars: int = 0,
+        route_guidance: bool = False,
     ):
         self._max_evidence_items = max_evidence_items
         self._max_evidence_chars = max_evidence_chars
@@ -89,6 +90,7 @@ class EvidenceCompiler:
             raise ValueError(f"Unsupported row_text_mode: {row_text_mode}")
         self._row_text_mode = row_text_mode
         self._max_row_text_chars = max_row_text_chars or 800
+        self._route_guidance = route_guidance
 
     def compile(
         self,
@@ -150,6 +152,7 @@ class EvidenceCompiler:
             temporal_hints=self._temporal_hints,
             row_text_mode=self._row_text_mode,
             max_row_text_chars=self._max_row_text_chars,
+            route_guidance=self._route_guidance,
         )
         return CompiledContext(
             question=question,
@@ -241,6 +244,7 @@ def _build_prompt(
     temporal_hints: bool,
     row_text_mode: str,
     max_row_text_chars: int,
+    route_guidance: bool,
 ) -> str:
     lines = [
         "Answer the question using only the raw evidence table.",
@@ -267,6 +271,10 @@ def _build_prompt(
             4,
             "For when questions, answer with only the supported absolute date, month, or year when possible; avoid relative phrases like last year, next month, or this month and avoid explaining the calculation.",
         )
+    if route_guidance:
+        guidance_lines = _route_guidance_lines(route)
+        if guidance_lines:
+            lines[-1:-1] = ["", "Information-need guidance:", *guidance_lines, ""]
     if not rows:
         lines.append("(no evidence retrieved)")
     for row in rows:
@@ -358,6 +366,35 @@ def _truncate_text(text: str, max_chars: int) -> str:
     if max_chars <= 0 or len(text) <= max_chars:
         return text
     return text[:max_chars].rstrip() + " ..."
+
+
+def _route_guidance_lines(route: RouteResult) -> list[str]:
+    if route.information_need == "current_state":
+        return [
+            "- Prefer the most recent directly supported evidence when older rows conflict.",
+            "- If no row establishes the current state, answer that the information is not available.",
+        ]
+    if route.information_need == "temporal_lookup":
+        return [
+            "- Identify the event row first, then convert relative dates using that row time.",
+            "- Return only the supported date, time span, or duration when the question asks when or how long.",
+        ]
+    if route.information_need == "list_count":
+        return [
+            "- Gather all distinct supported items before answering.",
+            "- If the question asks how many, count only items explicitly supported by the evidence.",
+        ]
+    if route.information_need == "profile_preference":
+        return [
+            "- Use stable stated preferences or profile facts; do not turn a one-time event into a preference.",
+            "- If evidence conflicts, prefer the most recent explicit preference.",
+        ]
+    if route.information_need == "fact_lookup":
+        return [
+            "- Answer only the requested entity, value, or fact.",
+            "- Ignore unrelated rows even if they share generic question words.",
+        ]
+    return []
 
 
 def _temporal_normalization_hints(rows: tuple[EvidenceRow, ...]) -> list[str]:
