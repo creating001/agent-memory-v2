@@ -213,6 +213,90 @@ class CleanSkeletonTest(unittest.TestCase):
 
         self.assertIn("Resolve relative time expressions", prompt)
 
+    def test_session_bm25_anchor_can_feed_compiled_raw_evidence(self) -> None:
+        config = {
+            "retrieval": {
+                "top_k": 1,
+                "max_top_k": 1,
+                "neighbor_window": 0,
+                "drop_query_stopwords": False,
+                "session_bm25": {
+                    "enabled": True,
+                    "top_k": 1,
+                    "anchor_top_k": 1,
+                    "max_anchor_hits": 1,
+                    "protect_turn_hits": 0,
+                    "drop_query_stopwords": True,
+                    "anchor_drop_query_stopwords": True,
+                },
+            },
+            "compiler": {"max_evidence_items": 1, "max_evidence_chars": 1000},
+            "answer": {"fallback_answer": "I do not know."},
+        }
+        request = PredictionRequest(
+            question="When did Melanie go camping in July?",
+            turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="speaker",
+                    text="when did in when did in",
+                ),
+                Turn(
+                    source_id="s2:t0",
+                    session_id="s2",
+                    turn_index=0,
+                    role="speaker",
+                    text="Melanie mentioned camping in July.",
+                ),
+            ),
+        )
+
+        result = Stage1Pipeline(config).predict(request)
+        rows = result["trace"]["compiled_context"]["evidence_rows"]
+        retrieval = result["trace"]["retrieval"]
+
+        self.assertEqual(rows[0]["source_id"], "s2:t0")
+        self.assertEqual(retrieval["session_hits"][0]["source_id"], "s2")
+        self.assertEqual(retrieval["session_anchor_hits"][0]["source_id"], "s2:t0")
+
+    def test_session_bm25_gating_can_skip_non_matching_routes(self) -> None:
+        config = {
+            "retrieval": {
+                "top_k": 1,
+                "max_top_k": 1,
+                "neighbor_window": 0,
+                "session_bm25": {
+                    "enabled": True,
+                    "top_k": 1,
+                    "anchor_top_k": 1,
+                    "enabled_route_signals": ["temporal"],
+                },
+            },
+            "compiler": {"max_evidence_items": 1, "max_evidence_chars": 1000},
+            "answer": {"fallback_answer": "I do not know."},
+        }
+        request = PredictionRequest(
+            question="Who supports Caroline when she has a negative experience?",
+            turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="speaker",
+                    text="Caroline is supported by Maya.",
+                ),
+            ),
+        )
+
+        result = Stage1Pipeline(config).predict(request)
+        retrieval = result["trace"]["retrieval"]
+
+        self.assertTrue(retrieval["session_bm25_enabled"])
+        self.assertFalse(retrieval["session_bm25_applied"])
+        self.assertEqual(retrieval["session_hits"], [])
+
 
 if __name__ == "__main__":
     unittest.main()

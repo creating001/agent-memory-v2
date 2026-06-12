@@ -13,6 +13,8 @@ from agent_memory.embeddings import EmbeddingBatch
 from agent_memory.retrieval import (
     DenseEmbeddingRetriever,
     LexicalBM25Retriever,
+    SessionBM25Retriever,
+    SessionDocument,
     prepend_protected_hits,
 )
 from agent_memory.schemas import RetrievalHit
@@ -52,6 +54,30 @@ class RetrievalTest(unittest.TestCase):
 
         self.assertEqual(raw_hits[0].source_id, "generic")
         self.assertEqual(filtered_hits[0].source_id, "specific")
+
+    def test_session_bm25_retrieves_coarse_session(self) -> None:
+        documents = (
+            SessionDocument(
+                session_id="session_1",
+                text="when did in when did in",
+                turn_count=1,
+            ),
+            SessionDocument(
+                session_id="session_2",
+                text="Melanie mentioned camping in July.",
+                turn_count=1,
+            ),
+        )
+
+        hits = SessionBM25Retriever(
+            documents,
+            drop_query_stopwords=True,
+        ).retrieve(
+            "When did Melanie go camping in July?",
+            top_k=1,
+        )
+
+        self.assertEqual(hits[0].source_id, "session_2")
 
     def test_dense_retriever_scores_embedding_similarity(self) -> None:
         turns = (

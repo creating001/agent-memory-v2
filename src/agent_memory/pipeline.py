@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping
 from typing import Any
 
@@ -11,11 +12,13 @@ from agent_memory.embeddings import OpenAICompatibleEmbeddingClient
 from agent_memory.retrieval import (
     DenseEmbeddingRetriever,
     LexicalBM25Retriever,
+    SessionBM25Retriever,
+    SessionDocument,
     prepend_protected_hits,
     reciprocal_rank_fusion,
 )
 from agent_memory.route import QuestionRouter
-from agent_memory.schemas import PredictionRequest
+from agent_memory.schemas import PredictionRequest, RetrievalHit, RouteResult
 from agent_memory.store import RawEvidenceStore
 
 
@@ -26,6 +29,7 @@ class Stage1Pipeline:
         self._config = dict(config)
         retrieval_config = self._config.get("retrieval", {})
         dense_config = retrieval_config.get("dense", {})
+        session_config = retrieval_config.get("session_bm25", {})
         compiler_config = self._config.get("compiler", {})
         answer_config = self._config.get("answer", {})
         self._router = QuestionRouter()
@@ -40,6 +44,42 @@ class Stage1Pipeline:
         self._dense_batch_size = int(dense_config.get("batch_size", 32))
         self._fusion_rrf_k = int(dense_config.get("rrf_k", 60))
         self._lexical_protect_top_n = int(dense_config.get("lexical_protect_top_n", 0))
+        self._session_bm25_enabled = bool(session_config.get("enabled", False))
+        self._session_bm25_top_k = int(session_config.get("top_k", 0))
+        self._session_bm25_anchor_top_k = int(session_config.get("anchor_top_k", 1))
+        self._session_bm25_max_anchor_hits = int(
+            session_config.get(
+                "max_anchor_hits",
+                self._session_bm25_top_k * self._session_bm25_anchor_top_k,
+            )
+        )
+        self._session_bm25_protect_turn_hits = int(
+            session_config.get("protect_turn_hits", self._lexical_protect_top_n)
+        )
+        self._session_bm25_drop_query_stopwords = bool(
+            session_config.get("drop_query_stopwords", self._drop_query_stopwords)
+        )
+        self._session_bm25_anchor_drop_query_stopwords = bool(
+            session_config.get(
+                "anchor_drop_query_stopwords",
+                self._session_bm25_drop_query_stopwords,
+            )
+        )
+        self._session_bm25_score_threshold = float(
+            session_config.get("score_threshold", 0.0)
+        )
+        self._session_bm25_anchor_score_threshold = float(
+            session_config.get("anchor_score_threshold", 0.0)
+        )
+        self._session_bm25_enabled_signals = _tuple_config(
+            session_config.get("enabled_route_signals")
+        )
+        self._session_bm25_enabled_information_needs = _tuple_config(
+            session_config.get("enabled_information_needs")
+        )
+        self._session_bm25_enabled_query_patterns = _tuple_config(
+            session_config.get("enabled_query_patterns")
+        )
         self._embedding_client = None
         if self._dense_enabled:
             self._embedding_client = OpenAICompatibleEmbeddingClient(
@@ -112,6 +152,29 @@ class Stage1Pipeline:
                 )
         else:
             hits = lexical_hits
+        turn_hits = hits
+        session_hits = ()
+        session_anchor_hits = ()
+        session_bm25_applied = False
+        if self._session_bm25_enabled and _session_bm25_applies(
+            route=route,
+            question=request.question,
+            enabled_signals=self._session_bm25_enabled_signals,
+            enabled_information_needs=self._session_bm25_enabled_information_needs,
+            enabled_query_patterns=self._session_bm25_enabled_query_patterns,
+        ):
+            session_bm25_applied = True
+            session_hits = self._retrieve_session_hits(store, request.question)
+            session_anchor_hits = self._retrieve_session_anchor_hits(
+                store,
+                session_hits,
+                request.question,
+            )
+            hits = _merge_turn_and_session_anchor_hits(
+                turn_hits,
+                session_anchor_hits,
+                protect_turn_hits=self._session_bm25_protect_turn_hits,
+            )
         evidence_turns = store.expand_neighbors(
             (hit.source_id for hit in hits),
             window=self._neighbor_window,
@@ -131,9 +194,10 @@ class Stage1Pipeline:
                 "store": store.manifest(),
                 "route": route.to_dict(),
                 "retrieval": {
-                    "retriever": "dense_hybrid_rrf"
-                    if self._dense_enabled
-                    else "lexical_bm25",
+                    "retriever": _retriever_name(
+                        dense_enabled=self._dense_enabled,
+                        session_bm25_enabled=self._session_bm25_enabled,
+                    ),
                     "top_k": top_k,
                     "base_top_k": self._base_top_k,
                     "neighbor_window": self._neighbor_window,
@@ -144,9 +208,43 @@ class Stage1Pipeline:
                     "lexical_protect_top_n": self._lexical_protect_top_n
                     if self._dense_enabled
                     else None,
+                    "session_bm25_enabled": self._session_bm25_enabled,
+                    "session_bm25_applied": session_bm25_applied,
+                    "session_bm25_top_k": self._session_bm25_top_k
+                    if session_bm25_applied
+                    else None,
+                    "session_anchor_top_k": self._session_bm25_anchor_top_k
+                    if session_bm25_applied
+                    else None,
+                    "session_max_anchor_hits": self._session_bm25_max_anchor_hits
+                    if session_bm25_applied
+                    else None,
+                    "session_protect_turn_hits": self._session_bm25_protect_turn_hits
+                    if session_bm25_applied
+                    else None,
+                    "session_drop_query_stopwords": self._session_bm25_drop_query_stopwords
+                    if session_bm25_applied
+                    else None,
+                    "session_anchor_drop_query_stopwords": (
+                        self._session_bm25_anchor_drop_query_stopwords
+                        if session_bm25_applied
+                        else None
+                    ),
+                    "session_enabled_route_signals": self._session_bm25_enabled_signals,
+                    "session_enabled_information_needs": (
+                        self._session_bm25_enabled_information_needs
+                    ),
+                    "session_enabled_query_patterns": (
+                        self._session_bm25_enabled_query_patterns
+                    ),
                     "embedding_tokens": embedding_tokens,
                     "lexical_hits": [hit.to_dict() for hit in lexical_hits],
                     "dense_hits": [hit.to_dict() for hit in dense_hits],
+                    "turn_hits": [hit.to_dict() for hit in turn_hits],
+                    "session_hits": [hit.to_dict() for hit in session_hits],
+                    "session_anchor_hits": [
+                        hit.to_dict() for hit in session_anchor_hits
+                    ],
                     "hits": [hit.to_dict() for hit in hits],
                 },
                 "compiled_context": compiled.to_dict(),
@@ -154,3 +252,165 @@ class Stage1Pipeline:
                 "token_cost": answer.token_usage.to_dict(),
             },
         }
+
+    def _retrieve_session_hits(
+        self,
+        store: RawEvidenceStore,
+        question: str,
+    ) -> tuple[RetrievalHit, ...]:
+        if self._session_bm25_top_k <= 0:
+            return ()
+        documents = _session_documents(store)
+        if not documents:
+            return ()
+        return SessionBM25Retriever(
+            documents,
+            drop_query_stopwords=self._session_bm25_drop_query_stopwords,
+        ).retrieve(
+            question,
+            top_k=self._session_bm25_top_k,
+            score_threshold=self._session_bm25_score_threshold,
+        )
+
+    def _retrieve_session_anchor_hits(
+        self,
+        store: RawEvidenceStore,
+        session_hits: tuple[RetrievalHit, ...],
+        question: str,
+    ) -> tuple[RetrievalHit, ...]:
+        if (
+            self._session_bm25_anchor_top_k <= 0
+            or self._session_bm25_max_anchor_hits <= 0
+        ):
+            return ()
+
+        anchors: list[RetrievalHit] = []
+        seen_source_ids: set[str] = set()
+        for session_hit in session_hits:
+            session_turns = store.session_turns(session_hit.source_id)
+            local_hits = LexicalBM25Retriever(
+                session_turns,
+                drop_query_stopwords=self._session_bm25_anchor_drop_query_stopwords,
+            ).retrieve(
+                question,
+                top_k=self._session_bm25_anchor_top_k,
+                score_threshold=self._session_bm25_anchor_score_threshold,
+            )
+            for local_hit in local_hits:
+                if local_hit.source_id in seen_source_ids:
+                    continue
+                seen_source_ids.add(local_hit.source_id)
+                anchors.append(
+                    _session_anchor_hit(
+                        session_hit=session_hit,
+                        local_hit=local_hit,
+                        rank=len(anchors) + 1,
+                    )
+                )
+                if len(anchors) >= self._session_bm25_max_anchor_hits:
+                    return tuple(anchors)
+        return tuple(anchors)
+
+
+def _session_documents(store: RawEvidenceStore) -> tuple[SessionDocument, ...]:
+    documents = []
+    for session_id, turns in store.sessions():
+        lines = []
+        for turn in turns:
+            prefix = " ".join(
+                part for part in (turn.timestamp, turn.role) if part is not None
+            )
+            lines.append(f"{prefix}: {turn.text}" if prefix else turn.text)
+        documents.append(
+            SessionDocument(
+                session_id=session_id,
+                text="\n".join(lines),
+                turn_count=len(turns),
+            )
+        )
+    return tuple(documents)
+
+
+def _session_anchor_hit(
+    session_hit: RetrievalHit,
+    local_hit: RetrievalHit,
+    rank: int,
+) -> RetrievalHit:
+    matched_terms = tuple(
+        dict.fromkeys((*session_hit.matched_terms, *local_hit.matched_terms))
+    )
+    return RetrievalHit(
+        source_id=local_hit.source_id,
+        score=session_hit.score + local_hit.score,
+        rank=rank,
+        retriever="session_bm25+anchor_bm25",
+        matched_terms=matched_terms,
+    )
+
+
+def _merge_turn_and_session_anchor_hits(
+    turn_hits: tuple[RetrievalHit, ...],
+    session_anchor_hits: tuple[RetrievalHit, ...],
+    protect_turn_hits: int,
+) -> tuple[RetrievalHit, ...]:
+    selected: list[RetrievalHit] = []
+    seen_source_ids: set[str] = set()
+
+    def append(hit: RetrievalHit) -> None:
+        if hit.source_id in seen_source_ids:
+            return
+        seen_source_ids.add(hit.source_id)
+        selected.append(hit)
+
+    protected_count = max(0, protect_turn_hits)
+    for hit in turn_hits[:protected_count]:
+        append(hit)
+    for hit in session_anchor_hits:
+        append(hit)
+    for hit in turn_hits[protected_count:]:
+        append(hit)
+
+    return tuple(
+        RetrievalHit(
+            source_id=hit.source_id,
+            score=hit.score,
+            rank=rank,
+            retriever=hit.retriever,
+            matched_terms=hit.matched_terms,
+        )
+        for rank, hit in enumerate(selected, start=1)
+    )
+
+
+def _session_bm25_applies(
+    route: RouteResult,
+    question: str,
+    enabled_signals: tuple[str, ...],
+    enabled_information_needs: tuple[str, ...],
+    enabled_query_patterns: tuple[str, ...],
+) -> bool:
+    if not enabled_signals and not enabled_information_needs and not enabled_query_patterns:
+        return True
+    if route.information_need in enabled_information_needs:
+        return True
+    if set(route.signals).intersection(enabled_signals):
+        return True
+    normalized = question.lower()
+    return any(re.search(pattern, normalized) for pattern in enabled_query_patterns)
+
+
+def _tuple_config(value: object) -> tuple[str, ...]:
+    if value is None:
+        return ()
+    if isinstance(value, str):
+        return (value,)
+    if isinstance(value, (list, tuple)):
+        return tuple(str(item) for item in value)
+    return (str(value),)
+
+
+def _retriever_name(dense_enabled: bool, session_bm25_enabled: bool) -> str:
+    names = ["dense_hybrid_rrf" if dense_enabled else "lexical_bm25"]
+    if session_bm25_enabled:
+        names.append("session_bm25")
+    return "+".join(names)

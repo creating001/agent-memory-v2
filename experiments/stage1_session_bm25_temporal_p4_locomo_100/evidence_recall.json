@@ -1,0 +1,36 @@
+{
+  "clean_note": "This is offline-only evidence analysis. Its output must not be read by prediction, route, retrieval, compiler, answer, or verifier modules.",
+  "created_at_utc": "2026-06-12T10:51:32+00:00",
+  "git": {
+    "commit": "db0d97069bddc90a12ad40d12743f2ddc3253c3f",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "M scripts/run_stage1.py\n M src/agent_memory/pipeline.py\n M src/agent_memory/retrieval.py\n M src/agent_memory/route.py\n M src/agent_memory/store.py\n M tests/test_clean_skeleton.py\n M tests/test_retrieval.py\n?? configs/stage1_vllm_dense_k12_concise_session_bm25.json\n?? configs/stage1_vllm_dense_k12_concise_session_bm25_p4.json\n?? configs/stage1_vllm_dense_k12_concise_session_bm25_temporal_p4.json\n?? experiments/stage1_session_bm25_locomo_20/\n?? experiments/stage1_session_bm25_p4_locomo_100/\n?? experiments/stage1_session_bm25_p4_locomo_20/\n?? experiments/stage1_session_bm25_temporal_p4_locomo_100/\n?? experiments/stage1_session_bm25_temporal_p4_locomo_20/\n?? tests/test_route.py"
+  },
+  "labels": "/data/home_new/wujinqi/agent-memory/outputs/prepare_locomo_non_adversarial/labels.jsonl",
+  "metrics": {
+    "by_type": {
+      "1": {
+        "evidence_recall": 0.625,
+        "n": 32
+      },
+      "2": {
+        "evidence_recall": 0.918918918918919,
+        "n": 37
+      },
+      "3": {
+        "evidence_recall": 0.6363636363636364,
+        "n": 11
+      },
+      "4": {
+        "evidence_recall": 0.8888888888888888,
+        "n": 18
+      }
+    },
+    "diagnostic_note": "Offline-only retrieval diagnostic. Evidence labels must not feed prediction, route, retrieval, compiler, answer, or verifier modules.",
+    "evidence_recall": 0.7857142857142857,
+    "n_with_evidence_labels": 98
+  },
+  "traces": "/data/home_new/wujinqi/agent-memory/outputs/stage1_session_bm25_temporal_p4_locomo_100/traces.jsonl"
+}

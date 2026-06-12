@@ -53,21 +53,29 @@ QUERY_STOPWORDS = {
 }
 
 
-class LexicalBM25Retriever:
-    """Small BM25 implementation for a dependency-free baseline."""
+@dataclass(frozen=True)
+class _BM25Score:
+    index: int
+    score: float
+    matched_terms: tuple[str, ...]
+
+
+class _BM25Index:
+    """Shared BM25 index for turn and session lexical retrieval."""
 
     def __init__(
         self,
-        turns: tuple[Turn, ...],
-        k1: float = 1.5,
-        b: float = 0.75,
-        drop_query_stopwords: bool = False,
+        texts: tuple[str, ...],
+        sort_keys: tuple[tuple[object, ...], ...],
+        k1: float,
+        b: float,
+        drop_query_stopwords: bool,
     ):
-        self._turns = turns
         self._k1 = k1
         self._b = b
         self._drop_query_stopwords = drop_query_stopwords
-        self._doc_tokens = [_tokenize(turn.text) for turn in turns]
+        self._sort_keys = sort_keys
+        self._doc_tokens = [_tokenize(text) for text in texts]
         self._doc_term_counts = [Counter(tokens) for tokens in self._doc_tokens]
         self._doc_lengths = [len(tokens) for tokens in self._doc_tokens]
         self._avg_doc_length = (
@@ -75,32 +83,32 @@ class LexicalBM25Retriever:
         )
         self._idf = self._build_idf()
 
-    def retrieve(self, question: str, top_k: int, score_threshold: float = 0.0) -> tuple[RetrievalHit, ...]:
+    def retrieve(
+        self,
+        question: str,
+        top_k: int,
+        score_threshold: float,
+    ) -> tuple[_BM25Score, ...]:
         query_terms = self._query_terms(question)
-        if not query_terms or not self._turns:
+        if top_k <= 0 or not query_terms or not self._doc_tokens:
             return ()
 
-        scored: list[tuple[float, Turn, tuple[str, ...]]] = []
-        for turn, term_counts, doc_length in zip(
-            self._turns, self._doc_term_counts, self._doc_lengths, strict=True
+        scored: list[_BM25Score] = []
+        for index, (term_counts, doc_length) in enumerate(
+            zip(self._doc_term_counts, self._doc_lengths, strict=True)
         ):
             score, matched_terms = self._score_doc(query_terms, term_counts, doc_length)
             if score > score_threshold:
-                scored.append((score, turn, matched_terms))
-
-        scored.sort(key=lambda item: (-item[0], item[1].session_id, item[1].turn_index))
-        hits = []
-        for rank, (score, turn, matched_terms) in enumerate(scored[:top_k], start=1):
-            hits.append(
-                RetrievalHit(
-                    source_id=turn.source_id,
-                    score=score,
-                    rank=rank,
-                    retriever="lexical_bm25",
-                    matched_terms=matched_terms,
+                scored.append(
+                    _BM25Score(
+                        index=index,
+                        score=score,
+                        matched_terms=matched_terms,
+                    )
                 )
-            )
-        return tuple(hits)
+
+        scored.sort(key=lambda item: (-item.score, self._sort_keys[item.index]))
+        return tuple(scored[:top_k])
 
     def _query_terms(self, question: str) -> tuple[str, ...]:
         terms = tuple(dict.fromkeys(_tokenize(question)))
@@ -120,7 +128,10 @@ class LexicalBM25Retriever:
         }
 
     def _score_doc(
-        self, query_terms: tuple[str, ...], term_counts: Counter[str], doc_length: int
+        self,
+        query_terms: tuple[str, ...],
+        term_counts: Counter[str],
+        doc_length: int,
     ) -> tuple[float, tuple[str, ...]]:
         if doc_length == 0:
             return 0.0, ()
@@ -138,6 +149,96 @@ class LexicalBM25Retriever:
             )
             score += idf * (frequency * (self._k1 + 1.0)) / denominator
         return score, tuple(matched_terms)
+
+
+class LexicalBM25Retriever:
+    """Small BM25 implementation for a dependency-free baseline."""
+
+    def __init__(
+        self,
+        turns: tuple[Turn, ...],
+        k1: float = 1.5,
+        b: float = 0.75,
+        drop_query_stopwords: bool = False,
+    ):
+        self._turns = turns
+        self._index = _BM25Index(
+            texts=tuple(turn.text for turn in turns),
+            sort_keys=tuple(
+                (turn.session_id, turn.turn_index, turn.source_id) for turn in turns
+            ),
+            k1=k1,
+            b=b,
+            drop_query_stopwords=drop_query_stopwords,
+        )
+
+    def retrieve(self, question: str, top_k: int, score_threshold: float = 0.0) -> tuple[RetrievalHit, ...]:
+        hits = []
+        for rank, scored in enumerate(
+            self._index.retrieve(question, top_k=top_k, score_threshold=score_threshold),
+            start=1,
+        ):
+            turn = self._turns[scored.index]
+            hits.append(
+                RetrievalHit(
+                    source_id=turn.source_id,
+                    score=scored.score,
+                    rank=rank,
+                    retriever="lexical_bm25",
+                    matched_terms=scored.matched_terms,
+                )
+            )
+        return tuple(hits)
+
+
+@dataclass(frozen=True)
+class SessionDocument:
+    session_id: str
+    text: str
+    turn_count: int
+
+
+class SessionBM25Retriever:
+    """BM25 over raw session documents for clean coarse retrieval."""
+
+    def __init__(
+        self,
+        documents: tuple[SessionDocument, ...],
+        k1: float = 1.5,
+        b: float = 0.75,
+        drop_query_stopwords: bool = False,
+    ):
+        self._documents = documents
+        self._index = _BM25Index(
+            texts=tuple(document.text for document in documents),
+            sort_keys=tuple((document.session_id,) for document in documents),
+            k1=k1,
+            b=b,
+            drop_query_stopwords=drop_query_stopwords,
+        )
+
+    def retrieve(
+        self,
+        question: str,
+        top_k: int,
+        score_threshold: float = 0.0,
+    ) -> tuple[RetrievalHit, ...]:
+        hits = []
+        for rank, scored in enumerate(
+            self._index.retrieve(question, top_k=top_k, score_threshold=score_threshold),
+            start=1,
+        ):
+            document = self._documents[scored.index]
+            hits.append(
+                RetrievalHit(
+                    source_id=document.session_id,
+                    score=scored.score,
+                    rank=rank,
+                    retriever="session_bm25",
+                    matched_terms=scored.matched_terms,
+                )
+            )
+        return tuple(hits)
 
 
 class Embedder(Protocol):

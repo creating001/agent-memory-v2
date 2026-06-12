@@ -43,6 +43,7 @@ def main() -> int:
     total_evidence_items = 0
     total_context_chars = 0
     total_embedding_tokens = 0
+    total_session_bm25_applied = 0
 
     for index, envelope in enumerate(load_prediction_jsonl(args.input), start=1):
         if args.limit is not None and index > args.limit:
@@ -66,6 +67,8 @@ def main() -> int:
         total_evidence_items += len(compiled["evidence_rows"])
         total_context_chars += int(compiled["context_chars"])
         total_embedding_tokens += int(result["trace"]["retrieval"].get("embedding_tokens") or 0)
+        if result["trace"]["retrieval"].get("session_bm25_applied"):
+            total_session_bm25_applied += 1
 
     sample_count = len(records)
     metrics = {
@@ -99,6 +102,34 @@ def main() -> int:
             "lexical_protect_top_n": config.get("retrieval", {})
             .get("dense", {})
             .get("lexical_protect_top_n"),
+            "session_bm25_enabled": config.get("retrieval", {})
+            .get("session_bm25", {})
+            .get("enabled", False),
+            "session_bm25_top_k": config.get("retrieval", {})
+            .get("session_bm25", {})
+            .get("top_k"),
+            "session_anchor_top_k": config.get("retrieval", {})
+            .get("session_bm25", {})
+            .get("anchor_top_k"),
+            "session_max_anchor_hits": config.get("retrieval", {})
+            .get("session_bm25", {})
+            .get("max_anchor_hits"),
+            "session_protect_turn_hits": config.get("retrieval", {})
+            .get("session_bm25", {})
+            .get("protect_turn_hits"),
+            "session_enabled_route_signals": config.get("retrieval", {})
+            .get("session_bm25", {})
+            .get("enabled_route_signals"),
+            "session_enabled_information_needs": config.get("retrieval", {})
+            .get("session_bm25", {})
+            .get("enabled_information_needs"),
+            "session_enabled_query_patterns": config.get("retrieval", {})
+            .get("session_bm25", {})
+            .get("enabled_query_patterns"),
+            "session_bm25_applied_count": total_session_bm25_applied,
+            "session_bm25_applied_rate": _safe_average(
+                total_session_bm25_applied, sample_count
+            ),
             "total_embedding_tokens": total_embedding_tokens,
             "avg_embedding_tokens": _safe_average(total_embedding_tokens, sample_count),
             "avg_compiled_evidence_items": _safe_average(
@@ -249,6 +280,16 @@ def _write_summary(
         f"- drop_query_stopwords: {metrics['retrieval']['drop_query_stopwords']}",
         f"- dense_enabled: {metrics['retrieval']['dense_enabled']}",
         f"- lexical_protect_top_n: {metrics['retrieval']['lexical_protect_top_n']}",
+        f"- session_bm25_enabled: {metrics['retrieval']['session_bm25_enabled']}",
+        f"- session_bm25_top_k: {metrics['retrieval']['session_bm25_top_k']}",
+        f"- session_anchor_top_k: {metrics['retrieval']['session_anchor_top_k']}",
+        f"- session_max_anchor_hits: {metrics['retrieval']['session_max_anchor_hits']}",
+        f"- session_protect_turn_hits: {metrics['retrieval']['session_protect_turn_hits']}",
+        f"- session_enabled_route_signals: {metrics['retrieval']['session_enabled_route_signals']}",
+        f"- session_enabled_information_needs: {metrics['retrieval']['session_enabled_information_needs']}",
+        f"- session_enabled_query_patterns: {metrics['retrieval']['session_enabled_query_patterns']}",
+        f"- session_bm25_applied_count: {metrics['retrieval']['session_bm25_applied_count']}",
+        f"- session_bm25_applied_rate: {metrics['retrieval']['session_bm25_applied_rate']}",
         f"- avg_embedding_tokens: {metrics['retrieval']['avg_embedding_tokens']}",
         f"- avg_context_chars: {metrics['retrieval']['avg_context_chars']}",
         f"- answer_mode: {metrics['answer']['mode']}",
@@ -291,6 +332,12 @@ def _write_diagnosis(
         f"- avg_compiled_evidence_items: {metrics['retrieval']['avg_compiled_evidence_items']}",
         f"- avg_context_chars: {metrics['retrieval']['avg_context_chars']}",
         f"- avg_query_tokens: {metrics['token_cost']['avg_query_tokens']}",
+        f"- session_bm25_enabled: {metrics['retrieval']['session_bm25_enabled']}",
+        f"- session_bm25_top_k: {metrics['retrieval']['session_bm25_top_k']}",
+        f"- session_anchor_top_k: {metrics['retrieval']['session_anchor_top_k']}",
+        f"- session_enabled_route_signals: {metrics['retrieval']['session_enabled_route_signals']}",
+        f"- session_bm25_applied_count: {metrics['retrieval']['session_bm25_applied_count']}",
+        f"- session_bm25_applied_rate: {metrics['retrieval']['session_bm25_applied_rate']}",
         f"- answer: {_answer_note(config)}",
         "",
         "## Next Steps",

@@ -30,6 +30,12 @@ class RawEvidenceStore:
     def turns(self) -> tuple[Turn, ...]:
         return self._turns
 
+    def sessions(self) -> tuple[tuple[str, tuple[Turn, ...]], ...]:
+        return tuple(self._session_turns.items())
+
+    def session_turns(self, session_id: str) -> tuple[Turn, ...]:
+        return self._session_turns.get(session_id, ())
+
     def get(self, source_id: str) -> Turn | None:
         return self._by_source_id.get(source_id)
 

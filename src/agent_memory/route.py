@@ -11,7 +11,8 @@ class QuestionRouter:
     """Routes by generic information need, never by benchmark labels."""
 
     _TEMPORAL_PATTERNS = (
-        r"\bwhen\b",
+        r"^\s*when\b",
+        r"\bwhat\s+(?:date|time)\b",
         r"\bhow long\b",
         r"\bduration\b",
         r"\bdays?\b",

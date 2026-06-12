@@ -1,0 +1,32 @@
+{
+  "clean_note": "This is offline-only evidence analysis. Its output must not be read by prediction, route, retrieval, compiler, answer, or verifier modules.",
+  "created_at_utc": "2026-06-12T10:42:01+00:00",
+  "git": {
+    "commit": "db0d97069bddc90a12ad40d12743f2ddc3253c3f",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "M scripts/run_stage1.py\n M src/agent_memory/pipeline.py\n M src/agent_memory/retrieval.py\n M src/agent_memory/store.py\n M tests/test_clean_skeleton.py\n M tests/test_retrieval.py\n?? configs/stage1_vllm_dense_k12_concise_session_bm25.json\n?? configs/stage1_vllm_dense_k12_concise_session_bm25_p4.json\n?? experiments/stage1_session_bm25_locomo_20/\n?? experiments/stage1_session_bm25_p4_locomo_20/"
+  },
+  "labels": "/data/home_new/wujinqi/agent-memory/outputs/prepare_locomo_non_adversarial/labels.jsonl",
+  "metrics": {
+    "by_type": {
+      "1": {
+        "evidence_recall": 0.375,
+        "n": 8
+      },
+      "2": {
+        "evidence_recall": 1.0,
+        "n": 10
+      },
+      "3": {
+        "evidence_recall": 1.0,
+        "n": 2
+      }
+    },
+    "diagnostic_note": "Offline-only retrieval diagnostic. Evidence labels must not feed prediction, route, retrieval, compiler, answer, or verifier modules.",
+    "evidence_recall": 0.75,
+    "n_with_evidence_labels": 20
+  },
+  "traces": "/data/home_new/wujinqi/agent-memory/outputs/stage1_session_bm25_p4_locomo_20/traces.jsonl"
+}
