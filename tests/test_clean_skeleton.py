@@ -12,6 +12,7 @@ if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
 from agent_memory.clean import CleanProtocolViolation, assert_clean_prediction_payload
+from agent_memory.answer import _message_text
 from agent_memory.io import load_prediction_jsonl
 from agent_memory.pipeline import Stage1Pipeline
 from agent_memory.schemas import PredictionRequest, Turn
@@ -91,6 +92,26 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertTrue(rows)
         self.assertTrue(all(row["source_id"] for row in rows))
         self.assertEqual(result["trace"]["token_cost"]["query_tokens"], 0)
+
+    def test_pipeline_accepts_openai_compatible_config(self) -> None:
+        config = {
+            "retrieval": {"top_k": 1, "max_top_k": 1, "neighbor_window": 0},
+            "compiler": {"max_evidence_items": 1, "max_evidence_chars": 1000},
+            "answer": {
+                "mode": "openai_compatible",
+                "base_url": "http://127.0.0.1:65535/v1",
+                "model": "test-model",
+                "temperature": 0.0,
+                "max_tokens": 16,
+                "timeout": 0.01,
+            },
+        }
+
+        pipeline = Stage1Pipeline(config)
+        self.assertIsNotNone(pipeline)
+
+    def test_answer_message_text_accepts_reasoning_field(self) -> None:
+        self.assertEqual(_message_text({"content": None, "reasoning": "answer"}), "answer")
 
 
 if __name__ == "__main__":

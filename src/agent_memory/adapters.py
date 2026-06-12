@@ -49,6 +49,7 @@ def prepare_records(
         return tuple(_prepare_locomo_records(rows, benchmark, subset))
 
     prepared: list[PreparedRecord] = []
+    seen_record_keys: dict[str, int] = {}
     for row_number, row in enumerate(rows, start=1):
         if not _include_row(row, benchmark=benchmark, subset=subset):
             continue
@@ -60,7 +61,7 @@ def prepare_records(
             "question_time": question_time,
             "sessions": sessions,
         }
-        record_key = _stable_record_key(clean_core)
+        record_key = _unique_record_key(clean_core, seen_record_keys)
         prediction = {
             "record_key": record_key,
             "question": question,
@@ -87,6 +88,7 @@ def _prepare_longmemeval_records(
     benchmark: str,
     subset: str,
 ) -> Iterable[PreparedRecord]:
+    seen_record_keys: dict[str, int] = {}
     for row_number, row in enumerate(rows, start=1):
         question = _required_first_text(row, ("question",), row_number)
         question_time = _first_text(row, ("question_date", "question_time"))
@@ -96,7 +98,7 @@ def _prepare_longmemeval_records(
             "question_time": question_time,
             "sessions": sessions,
         }
-        record_key = _stable_record_key(clean_core)
+        record_key = _unique_record_key(clean_core, seen_record_keys)
         prediction = {
             "record_key": record_key,
             "question": question,
@@ -126,6 +128,7 @@ def _prepare_locomo_records(
     benchmark: str,
     subset: str,
 ) -> Iterable[PreparedRecord]:
+    seen_record_keys: dict[str, int] = {}
     for row_number, row in enumerate(rows, start=1):
         sessions = _extract_locomo_sessions(row, row_number)
         qa_items = _first_value(row, ("qa",))
@@ -142,7 +145,7 @@ def _prepare_locomo_records(
                 "question_time": None,
                 "sessions": sessions,
             }
-            record_key = _stable_record_key(clean_core)
+            record_key = _unique_record_key(clean_core, seen_record_keys)
             prediction = {
                 "record_key": record_key,
                 "question": question,
@@ -364,6 +367,19 @@ def _normalize_session(
 def _stable_record_key(clean_core: Mapping[str, Any]) -> str:
     encoded = json.dumps(clean_core, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(encoded.encode("utf-8")).hexdigest()[:24]
+
+
+def _unique_record_key(
+    clean_core: Mapping[str, Any], seen_record_keys: dict[str, int]
+) -> str:
+    """Create a unique runner-only key without exposing benchmark ids."""
+
+    base_key = _stable_record_key(clean_core)
+    occurrence = seen_record_keys.get(base_key, 0)
+    seen_record_keys[base_key] = occurrence + 1
+    if occurrence == 0:
+        return base_key
+    return _stable_record_key({"base_record_key": base_key, "occurrence": occurrence})
 
 
 def _looks_like_turn(value: Mapping[str, Any]) -> bool:

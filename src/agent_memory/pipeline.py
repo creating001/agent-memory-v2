@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from agent_memory.answer import NullAnswerer
+from agent_memory.answer import NullAnswerer, OpenAICompatibleAnswerer
 from agent_memory.compiler import EvidenceCompiler
 from agent_memory.retrieval import LexicalBM25Retriever
 from agent_memory.route import QuestionRouter
@@ -30,14 +30,25 @@ class Stage1Pipeline:
             max_evidence_items=int(compiler_config.get("max_evidence_items", 20)),
             max_evidence_chars=int(compiler_config.get("max_evidence_chars", 12000)),
         )
-        self._answerer = NullAnswerer(
-            fallback_answer=str(
-                answer_config.get(
-                    "fallback_answer",
-                    "I do not know based on the available evidence.",
+        answer_mode = str(answer_config.get("mode", "null_answerer"))
+        if answer_mode == "openai_compatible":
+            self._answerer = OpenAICompatibleAnswerer(
+                base_url=str(answer_config.get("base_url", "http://127.0.0.1:8000/v1")),
+                model=str(answer_config["model"]),
+                temperature=float(answer_config.get("temperature", 0.0)),
+                max_tokens=int(answer_config.get("max_tokens", 256)),
+                timeout=float(answer_config.get("timeout", 120.0)),
+                api_key_env=answer_config.get("api_key_env"),
+            )
+        else:
+            self._answerer = NullAnswerer(
+                fallback_answer=str(
+                    answer_config.get(
+                        "fallback_answer",
+                        "I do not know based on the available evidence.",
+                    )
                 )
             )
-        )
 
     def predict(self, request: PredictionRequest) -> dict[str, Any]:
         store = RawEvidenceStore(request.turns)

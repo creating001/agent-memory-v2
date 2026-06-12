@@ -206,6 +206,30 @@ class DatasetAdapterTest(unittest.TestCase):
         self.assertEqual(label["category"], 2)
         self.assertEqual(label["evidence"], ["D1:1"])
 
+    def test_locomo_duplicate_clean_payloads_get_unique_runner_keys(self) -> None:
+        records = prepare_records(
+            [
+                {
+                    "sample_id": "conv-dup",
+                    "conversation": {
+                        "session_1": [
+                            {"speaker": "A", "dia_id": "D1:1", "text": "hello"}
+                        ],
+                    },
+                    "qa": [
+                        {"question": "Same question?", "answer": "one", "category": 1},
+                        {"question": "Same question?", "answer": "two", "category": 1},
+                    ],
+                }
+            ],
+            benchmark="locomo",
+            subset="non-adversarial",
+        )
+
+        keys = [record.prediction["record_key"] for record in records]
+        self.assertEqual(len(keys), 2)
+        self.assertEqual(len(set(keys)), 2)
+
 
 if __name__ == "__main__":
     unittest.main()

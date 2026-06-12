@@ -1,0 +1,25 @@
+{
+  "clean_assertions": [
+    "Prediction loader rejects gold/reference/target answers.",
+    "Prediction loader rejects judge outputs and benchmark labels.",
+    "Prediction loader rejects sample ids, qids, and row indices.",
+    "record_key is copied only by the runner and is not passed into pipeline modules.",
+    "Derived context rows always retain raw source_id back-links."
+  ],
+  "config_path": "/data/home_new/wujinqi/agent-memory/configs/stage1_vllm_answer.json",
+  "created_at_utc": "2026-06-12T09:46:22+00:00",
+  "experiment_dir": "/data/home_new/wujinqi/agent-memory/experiments/stage1_qwen30b_locomo_3",
+  "git": {
+    "commit": "7262de64500092804a0b5b5f76d16341aa5ed763",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "M .gitignore\n M pyproject.toml\n M scripts/run_stage1.py\n M src/agent_memory/adapters.py\n M src/agent_memory/answer.py\n M src/agent_memory/pipeline.py\n M tests/test_clean_skeleton.py\n M tests/test_dataset_adapter.py\n?? configs/stage1_vllm_answer.json\n?? experiments/stage1_qwen30b_lme_s_3/\n?? experiments/stage1_qwen30b_locomo_3/\n?? experiments/stage1_qwen30b_toy_smoke/\n?? scripts/analyze_evidence_recall.py\n?? scripts/start_answer_vllm.sh\n?? scripts/stop_answer_vllm.sh\n?? src/agent_memory/diagnostics.py\n?? tests/test_diagnostics.py"
+  },
+  "input_path": "/data/home_new/wujinqi/agent-memory/outputs/prepare_locomo_non_adversarial/prediction_input.jsonl",
+  "outputs": {
+    "predictions": "/data/home_new/wujinqi/agent-memory/outputs/stage1_qwen30b_locomo_3/predictions.jsonl",
+    "traces": "/data/home_new/wujinqi/agent-memory/outputs/stage1_qwen30b_locomo_3/traces.jsonl"
+  },
+  "run_id": "stage1_qwen30b_locomo_3"
+}

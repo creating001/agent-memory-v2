@@ -1,0 +1,23 @@
+{
+  "answer": {
+    "base_url": "http://127.0.0.1:8000/v1",
+    "max_tokens": 256,
+    "mode": "openai_compatible",
+    "model": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "temperature": 0.0,
+    "timeout": 120.0
+  },
+  "compiler": {
+    "max_evidence_chars": 12000,
+    "max_evidence_items": 20
+  },
+  "description": "Stage-1 raw evidence + lexical retrieval + evidence compiler with the protocol local vLLM answer model.",
+  "inherits": "stage1_clean_skeleton",
+  "name": "stage1_vllm_answer",
+  "retrieval": {
+    "max_top_k": 24,
+    "neighbor_window": 1,
+    "score_threshold": 0.0,
+    "top_k": 8
+  }
+}

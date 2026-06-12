@@ -43,7 +43,9 @@ def main() -> int:
     total_evidence_items = 0
     total_context_chars = 0
 
-    for envelope in load_prediction_jsonl(args.input):
+    for index, envelope in enumerate(load_prediction_jsonl(args.input), start=1):
+        if args.limit is not None and index > args.limit:
+            break
         result = pipeline.predict(envelope.request)
         token_cost = result["trace"]["token_cost"]
         compiled = result["trace"]["compiled_context"]
@@ -88,6 +90,7 @@ def main() -> int:
             ),
             "avg_context_chars": _safe_average(total_context_chars, sample_count),
         },
+        "answer": _answer_metrics(config),
     }
     manifest = {
         "run_id": run_id,
@@ -113,8 +116,8 @@ def main() -> int:
     write_json(experiment_dir / "metrics.json", metrics)
     write_json(experiment_dir / "manifest.json", manifest)
     write_json(experiment_dir / "config_snapshot.json", config)
-    _write_summary(experiment_dir / "summary.md", manifest, metrics, args)
-    _write_diagnosis(experiment_dir / "diagnosis.md", manifest, metrics)
+    _write_summary(experiment_dir / "summary.md", manifest, metrics, args, config)
+    _write_diagnosis(experiment_dir / "diagnosis.md", manifest, metrics, config)
     return 0
 
 
@@ -133,6 +136,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--benchmark", default="toy")
     parser.add_argument("--subset", default="smoke")
     parser.add_argument("--experiment-kind", default="smoke")
+    parser.add_argument("--limit", type=int, default=None)
     return parser.parse_args()
 
 
@@ -152,11 +156,37 @@ def _safe_average(total: int, count: int) -> float | None:
     return total / count
 
 
+def _answer_metrics(config: dict[str, Any]) -> dict[str, Any]:
+    answer_config = config.get("answer", {})
+    return {
+        "mode": answer_config.get("mode", "null_answerer"),
+        "model": answer_config.get("model"),
+        "base_url": answer_config.get("base_url"),
+        "temperature": answer_config.get("temperature"),
+        "max_tokens": answer_config.get("max_tokens"),
+        "timeout": answer_config.get("timeout"),
+    }
+
+
+def _answer_note(config: dict[str, Any]) -> str:
+    answer = _answer_metrics(config)
+    if answer["mode"] == "openai_compatible":
+        return (
+            "OpenAI-compatible answerer using "
+            f"{answer['model']} at {answer['base_url']} with temperature "
+            f"{answer['temperature']} and max_tokens {answer['max_tokens']}."
+        )
+    if answer["mode"] == "null_answerer":
+        return "Null answerer; generated answers are placeholders and accuracy is not meaningful."
+    return f"Answer mode: {answer['mode']}."
+
+
 def _write_summary(
     path: Path,
     manifest: dict[str, Any],
     metrics: dict[str, Any],
     args: argparse.Namespace,
+    config: dict[str, Any],
 ) -> None:
     git_state = manifest["git"]
     outputs = manifest["outputs"]
@@ -165,15 +195,17 @@ def _write_summary(
         "",
         "## Purpose",
         "",
-        "Stage-1 clean skeleton smoke run: validate raw evidence storage, lexical retrieval, neighbor expansion, evidence compilation, trace output, and experiment bookkeeping.",
+        "Stage-1 clean skeleton run: validate raw evidence storage, lexical retrieval, neighbor expansion, evidence compilation, answer generation, trace output, and experiment bookkeeping.",
         "",
         "## Scope",
         "",
         f"- benchmark: {args.benchmark}",
         f"- subset: {args.subset}",
         f"- experiment_kind: {args.experiment_kind}",
+        f"- limit: {args.limit}",
         f"- input_path: {manifest['input_path']}",
         f"- config_path: {manifest['config_path']}",
+        f"- answer: {_answer_note(config)}",
         "",
         "## Git",
         "",
@@ -192,6 +224,8 @@ def _write_summary(
         f"- avg_query_tokens: {metrics['token_cost']['avg_query_tokens']}",
         f"- avg_compiled_evidence_items: {metrics['retrieval']['avg_compiled_evidence_items']}",
         f"- avg_context_chars: {metrics['retrieval']['avg_context_chars']}",
+        f"- answer_mode: {metrics['answer']['mode']}",
+        f"- answer_model: {metrics['answer']['model']}",
         "",
         "## Outputs",
         "",
@@ -204,33 +238,37 @@ def _write_summary(
         "",
         "- No gold/reference/target answer, judge output, benchmark label, sample id, qid, or row index is passed into the prediction pipeline.",
         "- Raw evidence remains the only factual source; compiled evidence rows keep source_id links.",
-        "- This runner uses a null answerer, so accuracy is intentionally not reported.",
+        "- Accuracy is intentionally not computed by the prediction runner; any gold or judge metrics must be produced offline after prediction.",
     ]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def _write_diagnosis(
-    path: Path, manifest: dict[str, Any], metrics: dict[str, Any]
+    path: Path,
+    manifest: dict[str, Any],
+    metrics: dict[str, Any],
+    config: dict[str, Any],
 ) -> None:
     lines = [
         f"# Diagnosis for {manifest['run_id']}",
         "",
         "## Summary",
         "",
-        "The run validates pipeline shape and traceability, not benchmark quality. The null answerer makes zero LLM calls, so token cost is zero and answer accuracy is not meaningful.",
+        "The run validates pipeline shape, clean traceability, and answerer integration under the configured experiment kind.",
         "",
         "## Observations",
         "",
         f"- samples_processed: {metrics['n_samples']}",
         f"- avg_compiled_evidence_items: {metrics['retrieval']['avg_compiled_evidence_items']}",
         f"- avg_context_chars: {metrics['retrieval']['avg_context_chars']}",
+        f"- avg_query_tokens: {metrics['token_cost']['avg_query_tokens']}",
+        f"- answer: {_answer_note(config)}",
         "",
         "## Next Steps",
         "",
-        "- Add dataset adapters that strip gold/judge/type/id fields before prediction.",
-        "- Add local answer-model client behind the existing answerer interface.",
-        "- Add offline evaluation scripts that consume predictions and gold after prediction is complete.",
-        "- Add dense/BM25 hybrid retrieval and source-grounded compiler ablations.",
+        "- Use offline lexical, judge, and evidence-recall scripts to diagnose quality after prediction is complete.",
+        "- Improve retrieval and compiler recall before adding more expensive answer-time reasoning.",
+        "- Keep each new method behind explicit config toggles for ablation.",
     ]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
