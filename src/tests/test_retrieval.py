@@ -15,6 +15,9 @@ from memory.retrieval import (
     LexicalBM25Retriever,
     SessionBM25Retriever,
     SessionDocument,
+    _DENSE_DOCUMENT_CACHE,
+    _DENSE_DOCUMENT_CACHE_LOCK,
+    _DENSE_DOCUMENT_CACHE_LOCKS,
     prepend_protected_hits,
 )
 from common.schemas import RetrievalHit
@@ -134,6 +137,36 @@ class RetrievalTest(unittest.TestCase):
         self.assertEqual(result.hits[0].source_id, "career")
         self.assertGreater(result.embedding_tokens, 0)
 
+    def test_dense_retriever_reuses_document_vectors_for_identical_turns(self) -> None:
+        with _DENSE_DOCUMENT_CACHE_LOCK:
+            _DENSE_DOCUMENT_CACHE.clear()
+            _DENSE_DOCUMENT_CACHE_LOCKS.clear()
+        turns = (
+            Turn(
+                source_id="coffee",
+                session_id="s1",
+                turn_index=0,
+                role="speaker",
+                text="coffee creamer coupon",
+            ),
+            Turn(
+                source_id="career",
+                session_id="s1",
+                turn_index=1,
+                role="speaker",
+                text="counseling and mental health career",
+            ),
+        )
+        embedder = _CountingEmbedder()
+
+        first = DenseEmbeddingRetriever(turns, embedder).retrieve("career", top_k=1)
+        second = DenseEmbeddingRetriever(turns, embedder).retrieve("coffee", top_k=1)
+
+        self.assertEqual(first.embedding_tokens, 3)
+        self.assertEqual(second.embedding_tokens, 1)
+        self.assertEqual(embedder.document_calls, 1)
+        self.assertEqual(embedder.query_calls, 2)
+
     def test_prepend_protected_hits_preserves_primary_order(self) -> None:
         protected = (
             RetrievalHit("lexical-a", 10.0, 1, "lexical_bm25"),
@@ -158,6 +191,19 @@ class _FakeEmbedder:
             else:
                 vectors.append((0.0, 1.0))
         return EmbeddingBatch(vectors=tuple(vectors), total_tokens=len(texts))
+
+
+class _CountingEmbedder(_FakeEmbedder):
+    def __init__(self) -> None:
+        self.document_calls = 0
+        self.query_calls = 0
+
+    def embed_texts(self, texts: list[str], input_type: str) -> EmbeddingBatch:
+        if input_type == "document":
+            self.document_calls += 1
+        if input_type == "query":
+            self.query_calls += 1
+        return super().embed_texts(texts, input_type)
 
 
 if __name__ == "__main__":

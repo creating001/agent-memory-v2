@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import math
 import re
-from collections import Counter
+import hashlib
+import threading
+from collections import Counter, OrderedDict
 from dataclasses import dataclass
 from typing import Protocol
 
@@ -14,6 +16,10 @@ from common.schemas import RetrievalHit, Turn
 
 
 TOKEN_PATTERN = re.compile(r"[\w]+", re.UNICODE)
+_DENSE_DOCUMENT_CACHE_MAX_ENTRIES = 16
+_DENSE_DOCUMENT_CACHE_LOCK = threading.Lock()
+_DENSE_DOCUMENT_CACHE_LOCKS: dict[str, threading.Lock] = {}
+_DENSE_DOCUMENT_CACHE: OrderedDict[str, tuple[tuple[float, ...], ...]] = OrderedDict()
 QUERY_STOPWORDS = {
     "a",
     "an",
@@ -391,7 +397,9 @@ class DenseEmbeddingRetriever:
         self._batch_size = batch_size
         self._doc_vectors: tuple[tuple[float, ...], ...]
         self._document_embedding_tokens = 0
-        self._doc_vectors = self._embed_documents()
+        self._doc_vectors, self._document_embedding_tokens = (
+            self._load_or_embed_documents()
+        )
 
     def retrieve(
         self,
@@ -430,17 +438,81 @@ class DenseEmbeddingRetriever:
             embedding_tokens=self._document_embedding_tokens + query_batch.total_tokens,
         )
 
-    def _embed_documents(self) -> tuple[tuple[float, ...], ...]:
+    def _load_or_embed_documents(self) -> tuple[tuple[tuple[float, ...], ...], int]:
+        cache_key = _dense_document_cache_key(self._turns)
+        cached = _get_dense_document_cache(cache_key)
+        if cached is not None:
+            return cached, 0
+
+        build_lock = _dense_document_build_lock(cache_key)
+        with build_lock:
+            cached = _get_dense_document_cache(cache_key)
+            if cached is not None:
+                return cached, 0
+            vectors, tokens = self._embed_documents()
+            _put_dense_document_cache(cache_key, vectors)
+            return vectors, tokens
+
+    def _embed_documents(self) -> tuple[tuple[tuple[float, ...], ...], int]:
         vectors: list[tuple[float, ...]] = []
+        tokens = 0
         for start in range(0, len(self._turns), self._batch_size):
             batch_turns = self._turns[start : start + self._batch_size]
             batch = self._embedder.embed_texts(
                 [turn.text for turn in batch_turns],
                 input_type="document",
             )
-            self._document_embedding_tokens += batch.total_tokens
+            tokens += batch.total_tokens
             vectors.extend(_normalize_vector(vector) for vector in batch.vectors)
-        return tuple(vectors)
+        return tuple(vectors), tokens
+
+
+def _dense_document_cache_key(turns: tuple[Turn, ...]) -> str:
+    digest = hashlib.sha256()
+    for turn in turns:
+        digest.update(turn.source_id.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(turn.session_id.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(str(turn.turn_index).encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(turn.role.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update((turn.timestamp or "").encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(turn.text.encode("utf-8"))
+        digest.update(b"\0")
+    return digest.hexdigest()
+
+
+def _get_dense_document_cache(
+    cache_key: str,
+) -> tuple[tuple[float, ...], ...] | None:
+    with _DENSE_DOCUMENT_CACHE_LOCK:
+        vectors = _DENSE_DOCUMENT_CACHE.get(cache_key)
+        if vectors is None:
+            return None
+        _DENSE_DOCUMENT_CACHE.move_to_end(cache_key)
+        return vectors
+
+
+def _put_dense_document_cache(
+    cache_key: str, vectors: tuple[tuple[float, ...], ...]
+) -> None:
+    with _DENSE_DOCUMENT_CACHE_LOCK:
+        _DENSE_DOCUMENT_CACHE[cache_key] = vectors
+        _DENSE_DOCUMENT_CACHE.move_to_end(cache_key)
+        while len(_DENSE_DOCUMENT_CACHE) > _DENSE_DOCUMENT_CACHE_MAX_ENTRIES:
+            _DENSE_DOCUMENT_CACHE.popitem(last=False)
+
+
+def _dense_document_build_lock(cache_key: str) -> threading.Lock:
+    with _DENSE_DOCUMENT_CACHE_LOCK:
+        lock = _DENSE_DOCUMENT_CACHE_LOCKS.get(cache_key)
+        if lock is None:
+            lock = threading.Lock()
+            _DENSE_DOCUMENT_CACHE_LOCKS[cache_key] = lock
+        return lock
 
 
 def reciprocal_rank_fusion(
