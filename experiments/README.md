@@ -17,7 +17,7 @@
 
 配置：
 
-- LongMemEval 当前最好：`configs/stage1_selective_row_guide_v17_cached.json`
+- LongMemEval 当前最好：`configs/stage1_hybrid_bm25_v18_cached.json`
 - LoCoMo 当前最好：`configs/stage1_structured_evidence_guide_v14_cached.json`
 
 方法摘要：
@@ -33,10 +33,12 @@
 - v13 在 v12 上增加通用 temporal aid：只把 retrieved raw rows 里的相对时间短语按该 row timestamp 做日历换算，不使用 benchmark category/question_type/gold/judge/sample id 或样本实体规则。
 - v14 在 v13 上增加 structured evidence guide：把 retrieved raw rows 与 activated build memory 的 source links 做 compact prompt 内索引，借鉴 A-Mem/HippoRAG/Hindsight/xMemory 的 memory neighborhood、provenance/backlink 和多视图检索思想，但不引入图数据库或 benchmark route 规则。
 - v17 在 v16 row-guide-only 上做 selective row guide：对普通 fact/list/temporal 问题保留 row-level organization，对通用 personalized recommendation 信号关闭 row guide，借鉴 LangMem/Mem0/Graphiti 的 profile/preference 分层和弱推断约束。
+- v18 在 v17 上增加通用 BM25 lexical + dense hybrid retrieval，借鉴 xMemory/SimpleMem/Graphiti/Hindsight 的多路检索融合，但不增加 evidence slots、不加入 LLM query planner、不使用 benchmark/sample 规则。
 
 当前结论：
 
-- LongMemEval-S full 当前最好为 v17 selective row guide：0.722 DeepSeek judge accuracy；相比 v16 净 +7，相比 v13/v12 净 +4，相比 clean naive RAG 净 +17。主要收益来自 preference/recommendation 类更安全的 context organization。
+- LongMemEval-S full 当前最好为 v18 hybrid BM25：0.732 DeepSeek judge accuracy；相比 v17 净 +5，相比 v16 净 +12，相比 v13/v12 净 +9，相比 clean naive RAG 净 +22。主要收益来自通用 lexical+dense 融合对 temporal-reasoning 和 knowledge-update 的增强。
+- v17 selective row guide 是 v18 的直接基线：0.722 DeepSeek judge accuracy；相比 v16 净 +7，相比 v13/v12 净 +4，相比 clean naive RAG 净 +17。主要收益来自 preference/recommendation 类更安全的 context organization。
 - LoCoMo non-adversarial full 当前最好为 v14 structured evidence guide：0.735714 DeepSeek judge accuracy；相比 v13 净 +22，相比 v12 净 +57，相比 clean naive RAG 净 +58，主要收益来自 category 2/3/4 的 source-linked evidence organization。
 - v17 在 LoCoMo non-adversarial full 上为 0.720779，低于 v16/v14、略低于 v13，高于 v12/naive；因此 v17 是 LME 主线，不是 LoCoMo 主线。
 - v14 token gate 通过：LoCoMo avg_build_tokens 58386.008、avg_query_tokens 3818.198。build token 按逻辑冷启动成本记录，即使 build cache 全命中也计入 cached usage。
@@ -54,7 +56,7 @@
 - v6 route priority 是 LME clean 正向消融，但 LoCoMo full 降到 0.681611，不作为 LoCoMo 主线。
 - v5 relative temporal text normalization 在 LME 上降到 0.590，不作为主线。
 - v4.1 compact temporal workpad 降低 token 但 accuracy 退化，不作为主线。
-- 下一步优先做 general 的 hybrid retrieval / selective source expansion：基于外部实现中常见的 dense+BM25/RRF、source back-link、episode/semantic 多视图检索，先分析 v14/v17 badcase，再决定是否做 selective source map 或 BM25 fusion；避免继续堆 benchmark 形态的触发规则。
+- 下一步优先用 v18 跑 LoCoMo non-adversarial full；如果 v18 在 LoCoMo 不如 v14，则比较 v18/v14 错例集合，设计 general 的 selective source-linked organization，而不是 benchmark 形态的触发规则。
 
 外部方法借鉴与取舍：
 
@@ -102,7 +104,8 @@ experiments/formal/<run_id>/
 
 | run | benchmark | subset | commit | accuracy | 主要结论 |
 |---|---|---|---|---:|---|
-| `stage1_selective_row_guide_v17_lme_s_full_68b671b` | LongMemEval-S | full | `68b671b` | 0.722 | 当前 LME 最好；vs v16 净 +7，vs v13/v12 净 +4，vs clean naive RAG 净 +17；profile-safe selective guide 改善 preference/recommendation。 |
+| `stage1_hybrid_bm25_v18_lme_s_full_6c5ed99` | LongMemEval-S | full | `6c5ed99` | 0.732 | 当前 LME 最好；vs v17 净 +5，vs v16 净 +12，vs v13/v12 净 +9，vs clean naive RAG 净 +22；hybrid BM25+dense 在 token 预算内提升 temporal/knowledge 定位。 |
+| `stage1_selective_row_guide_v17_lme_s_full_68b671b` | LongMemEval-S | full | `68b671b` | 0.722 | v18 的直接基线；vs v16 净 +7，vs v13/v12 净 +4，vs clean naive RAG 净 +17；profile-safe selective guide 改善 preference/recommendation。 |
 | `stage1_selective_row_guide_v17_locomo_nonadv_full_68b671b` | LoCoMo | non-adversarial full | `68b671b` | 0.720779 | 非 LoCoMo 主线；低于 v16/v14、略低于 v13，但高于 v12/naive；LoCoMo 仍以 v14 为最好。 |
 | `stage1_row_guide_v16_locomo_nonadv_full_5221021` | LoCoMo | non-adversarial full | `5221021` | 0.729870 | rows-only guide 高于 v13/v15/v12/naive，但低于 v14 净 -9；证明 row-level evidence organization 是主要正向来源。 |
 | `stage1_row_guide_v16_lme_s_full_5221021` | LongMemEval-S | full | `5221021` | 0.708 | rows-only guide 高于 v14/v15/naive，但低于 v12/v13 净 -3；preference 退化明显，不作为 LME 主线。 |
