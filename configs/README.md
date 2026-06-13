@@ -17,6 +17,7 @@
 - `stage1_route_budgeted_retrieval_v34_cached.json`：v33 的 route-budgeted 版本；非 temporal 保留 top60，temporal_lookup 回到 top40，v35 前 LoCoMo 最好。
 - `stage1_answer_format_guard_v35_cached.json`：v34 上的 answer format guard；修复 JSON answer salvage 和小数 duration，当前 LoCoMo 最好。
 - `stage1_lme_token_safe_format_guard_v36_cached.json`：v28 top40/evidence budget + v35 answer guard；当前 LME 最好。
+- `stage1_route_snippet_top60_v38_cached.json`：v36 上的 route-scoped raw evidence coverage 候选；只对 `list_count`/`temporal_lookup` 扩到 top60，并用 `role_query_snippet` 控制 query tokens，需先通过 LME token gate。
 
 ## 新配置规则
 
