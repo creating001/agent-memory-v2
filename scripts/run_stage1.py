@@ -352,6 +352,15 @@ def main() -> int:
             "structured_answer_contract_max_items": config.get("compiler", {}).get(
                 "structured_answer_contract_max_items", 10
             ),
+            "evidence_report_contract": config.get("compiler", {}).get(
+                "evidence_report_contract", False
+            ),
+            "evidence_report_information_needs": config.get("compiler", {}).get(
+                "evidence_report_information_needs"
+            ),
+            "evidence_report_max_items": config.get("compiler", {}).get(
+                "evidence_report_max_items", 8
+            ),
             "operation_workpad": config.get("compiler", {}).get(
                 "operation_workpad", False
             ),
@@ -676,6 +685,9 @@ def _write_summary(
         f"- structured_answer_contract: {metrics['compiler']['structured_answer_contract']}",
         f"- structured_answer_contract_information_needs: {metrics['compiler']['structured_answer_contract_information_needs']}",
         f"- structured_answer_contract_max_items: {metrics['compiler']['structured_answer_contract_max_items']}",
+        f"- evidence_report_contract: {metrics['compiler']['evidence_report_contract']}",
+        f"- evidence_report_information_needs: {metrics['compiler']['evidence_report_information_needs']}",
+        f"- evidence_report_max_items: {metrics['compiler']['evidence_report_max_items']}",
         f"- route_overrides: {metrics['compiler']['route_overrides']}",
         f"- enable_broad_list_patterns: {metrics['route']['enable_broad_list_patterns']}",
         f"- enable_recommendation_profile_patterns: {metrics['route']['enable_recommendation_profile_patterns']}",
@@ -760,6 +772,9 @@ def _write_diagnosis(
         f"- structured_answer_contract: {metrics['compiler']['structured_answer_contract']}",
         f"- structured_answer_contract_information_needs: {metrics['compiler']['structured_answer_contract_information_needs']}",
         f"- structured_answer_contract_max_items: {metrics['compiler']['structured_answer_contract_max_items']}",
+        f"- evidence_report_contract: {metrics['compiler']['evidence_report_contract']}",
+        f"- evidence_report_information_needs: {metrics['compiler']['evidence_report_information_needs']}",
+        f"- evidence_report_max_items: {metrics['compiler']['evidence_report_max_items']}",
         f"- route_overrides: {metrics['compiler']['route_overrides']}",
         f"- enable_recommendation_profile_patterns: {metrics['route']['enable_recommendation_profile_patterns']}",
         f"- temporal_priority_over_recent: {metrics['route']['temporal_priority_over_recent']}",

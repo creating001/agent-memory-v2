@@ -225,6 +225,24 @@ class Stage1Pipeline:
             structured_answer_contract_max_items=int(
                 compiler_config.get("structured_answer_contract_max_items", 10)
             ),
+            evidence_report_contract=bool(
+                compiler_config.get("evidence_report_contract", False)
+            ),
+            evidence_report_information_needs=_tuple_config(
+                compiler_config.get(
+                    "evidence_report_information_needs",
+                    (
+                        "current_state",
+                        "fact_lookup",
+                        "list_count",
+                        "profile_preference",
+                        "temporal_lookup",
+                    ),
+                )
+            ),
+            evidence_report_max_items=int(
+                compiler_config.get("evidence_report_max_items", 8)
+            ),
             operation_workpad=bool(compiler_config.get("operation_workpad", False)),
             operation_workpad_information_needs=_tuple_config(
                 compiler_config.get(
@@ -306,6 +324,15 @@ class Stage1Pipeline:
             ),
             "structured_answer_contract_max_items": int(
                 compiler_config.get("structured_answer_contract_max_items", 10)
+            ),
+            "evidence_report_contract": bool(
+                compiler_config.get("evidence_report_contract", False)
+            ),
+            "evidence_report_information_needs": _tuple_config(
+                compiler_config.get("evidence_report_information_needs")
+            ),
+            "evidence_report_max_items": int(
+                compiler_config.get("evidence_report_max_items", 8)
             ),
             "operation_workpad": bool(
                 compiler_config.get("operation_workpad", False)

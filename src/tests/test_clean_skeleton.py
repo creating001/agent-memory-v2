@@ -553,6 +553,48 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertNotIn('"evidence_items"', list_context.prompt)
         self.assertIn('"answer": "concise answer"', list_context.prompt)
 
+    def test_evidence_report_contract_is_generic_and_route_scoped(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=1,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            evidence_report_contract=True,
+            evidence_report_information_needs=("fact_lookup",),
+            evidence_report_max_items=3,
+        )
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text="Alex uses Spotify for music streaming.",
+                timestamp="2024-01-01",
+            ),
+        )
+
+        fact_context = compiler.compile(
+            question="Which music streaming service does Alex use?",
+            question_time=None,
+            route=RouteResult(information_need="fact_lookup", signals=()),
+            hits=(),
+            evidence_turns=turns,
+        )
+        list_context = compiler.compile(
+            question="How many music services does Alex use?",
+            question_time=None,
+            route=RouteResult(information_need="list_count", signals=("list_or_count",)),
+            hits=(),
+            evidence_turns=turns,
+        )
+
+        self.assertIn('"evidence_report"', fact_context.prompt)
+        self.assertIn("Use at most 3 evidence_report items", fact_context.prompt)
+        self.assertIn("match the requested slot exactly", fact_context.prompt)
+        self.assertNotIn("question_type", fact_context.prompt)
+        self.assertNotIn('"evidence_report"', list_context.prompt)
+        self.assertIn('"answer": "concise answer"', fact_context.prompt)
+
     def test_evidence_labels_role_snippets_and_final_checklist_are_added(self) -> None:
         config = {
             "retrieval": {"top_k": 2, "max_top_k": 2, "neighbor_window": 0},

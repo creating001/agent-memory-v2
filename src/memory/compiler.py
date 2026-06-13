@@ -134,6 +134,11 @@ class EvidenceCompiler:
             DEFAULT_STRUCTURED_ANSWER_CONTRACT_NEEDS
         ),
         structured_answer_contract_max_items: int = 10,
+        evidence_report_contract: bool = False,
+        evidence_report_information_needs: tuple[str, ...] = tuple(
+            sorted(SUPPORTED_INFORMATION_NEEDS)
+        ),
+        evidence_report_max_items: int = 8,
         operation_workpad: bool = False,
         operation_workpad_information_needs: tuple[str, ...] = (
             DEFAULT_STRUCTURED_ANSWER_CONTRACT_NEEDS
@@ -179,6 +184,12 @@ class EvidenceCompiler:
         self._structured_answer_contract_max_items = max(
             1, int(structured_answer_contract_max_items)
         )
+        self._evidence_report_contract = evidence_report_contract
+        self._evidence_report_information_needs = _validate_information_needs(
+            evidence_report_information_needs,
+            field_name="evidence_report_information_needs",
+        )
+        self._evidence_report_max_items = max(1, int(evidence_report_max_items))
         self._operation_workpad = operation_workpad
         self._operation_workpad_information_needs = _validate_information_needs(
             operation_workpad_information_needs,
@@ -304,6 +315,11 @@ class EvidenceCompiler:
             structured_answer_contract_max_items=(
                 self._structured_answer_contract_max_items
             ),
+            evidence_report_contract=(
+                self._evidence_report_contract
+                and route.information_need in self._evidence_report_information_needs
+            ),
+            evidence_report_max_items=self._evidence_report_max_items,
             operation_workpad=(
                 self._operation_workpad
                 and route.information_need in self._operation_workpad_information_needs
@@ -595,6 +611,8 @@ def _build_prompt(
     structured_guide_include_memory: bool,
     structured_answer_contract: bool,
     structured_answer_contract_max_items: int,
+    evidence_report_contract: bool,
+    evidence_report_max_items: int,
     operation_workpad: bool,
     memory_layout: str,
     row_text_mode: str,
@@ -634,6 +652,8 @@ def _build_prompt(
             structured_guide_include_memory=structured_guide_include_memory,
             structured_answer_contract=structured_answer_contract,
             structured_answer_contract_max_items=structured_answer_contract_max_items,
+            evidence_report_contract=evidence_report_contract,
+            evidence_report_max_items=evidence_report_max_items,
             operation_workpad=operation_workpad,
         )
 
@@ -777,6 +797,8 @@ def _build_external_naive_prompt(
     structured_guide_include_memory: bool,
     structured_answer_contract: bool,
     structured_answer_contract_max_items: int,
+    evidence_report_contract: bool,
+    evidence_report_max_items: int,
     operation_workpad: bool,
 ) -> str:
     user_question = (
@@ -831,8 +853,10 @@ def _build_external_naive_prompt(
                 "Keep evidence_items compact; include excluded candidates only when they explain a duplicate or out-of-scope decision.",
             ]
         )
+    if evidence_report_contract and not structured_answer_contract:
+        rules.extend(_external_evidence_report_rules(route))
     operation_workpad_block = ""
-    if operation_workpad and not structured_answer_contract:
+    if operation_workpad and not structured_answer_contract and not evidence_report_contract:
         operation_lines = _external_operation_workpad_lines(question, route)
         if operation_lines:
             operation_workpad_block = "\n".join(
@@ -862,6 +886,20 @@ def _build_external_naive_prompt(
             '  "answer": "concise answer"',
             "}",
             f"Use at most {structured_answer_contract_max_items} evidence_items.",
+        ]
+    elif evidence_report_contract:
+        output_json_lines = [
+            "{",
+            '  "reasoning": "compact evidence decision",',
+            '  "sufficient": true,',
+            '  "answer_type": "fact|count|list|sum|duration|date|order|preference|unknown",',
+            '  "evidence_report": [',
+            '    {"memory": "Memory 1", "status": "support|exclude", "slot": "requested answer slot", "value": "number/name/date/unit or empty", "reason": "why it supports or is excluded"}',
+            "  ],",
+            '  "missing": "missing required target/operand/endpoint or empty",',
+            '  "answer": "concise answer"',
+            "}",
+            f"Use at most {evidence_report_max_items} evidence_report items.",
         ]
     else:
         output_json_lines = [
@@ -895,6 +933,58 @@ def _build_external_naive_prompt(
             *output_json_lines,
         ]
     )
+
+
+def _external_evidence_report_rules(route: RouteResult) -> list[str]:
+    """General visible evidence report instructions for clean reader discipline."""
+
+    rules = [
+        "Before the final answer, build a compact evidence_report from Memory Context.",
+        "Every support item must match the requested entity, object, action, relation, speaker, time scope, and answer slot.",
+        "Include close-but-wrong candidates as exclude items only when they could otherwise be confused with the answer.",
+        "If a required target, operand, endpoint, or speaker source is missing, set sufficient=false and explain the missing part.",
+        "Do not use Structured Evidence Guide or Temporal Aid as independent evidence; they only point to Memory Context rows.",
+    ]
+    if route.information_need == "list_count":
+        rules.extend(
+            [
+                "For count/list/sum/comparison questions, list distinct in-scope items or operands before answering.",
+                "Merge duplicate mentions of the same real-world item, event, purchase, trip, process, person, or role.",
+                "Do not count assistant suggestions or hypothetical examples unless the question asks about suggestions or the user confirms them.",
+                "Answer with the count plus compact item names when names are available.",
+            ]
+        )
+    elif route.information_need == "temporal_lookup":
+        rules.extend(
+            [
+                "For date/duration/order questions, identify the exact event or state before selecting a date.",
+                "Treat row Date as mention time; prefer event dates or relative time phrases stated in the row text.",
+                "Resolve relative time phrases from the row Date and preserve explicit duration phrases when they directly answer.",
+            ]
+        )
+    elif route.information_need == "current_state":
+        rules.extend(
+            [
+                "For current/latest/recent questions, include older and newer directly relevant candidates when present, then answer with the newest supported state.",
+                "Do not let an old profile or old event override a newer directly relevant update.",
+            ]
+        )
+    elif route.information_need == "profile_preference":
+        rules.extend(
+            [
+                "For preference or recommendation questions, use stated preferences, dislikes, constraints, habits, owned resources, and prior experiences.",
+                "Do not invent a named recommendation unless that name appears in Memory Context or the question asks for a type rather than a specific remembered item.",
+            ]
+        )
+    else:
+        rules.extend(
+            [
+                "For fact lookup questions, match the requested slot exactly: place, person, date, object, service, organization, or event.",
+                "Do not answer with a related source, method, discussion topic, or explanation when the question asks for a different slot.",
+            ]
+        )
+    return rules
+
 
 def _external_structured_guide_lines(
     *,
