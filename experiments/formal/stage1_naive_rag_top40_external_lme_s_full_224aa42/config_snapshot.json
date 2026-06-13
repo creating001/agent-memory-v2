@@ -1,0 +1,71 @@
+{
+  "answer": {
+    "base_url": "http://127.0.0.1:8000/v1",
+    "max_input_tokens": 131072,
+    "max_output_tokens": 16384,
+    "max_tokens": 16384,
+    "mode": "openai_compatible",
+    "model": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "output_format": "json_answer",
+    "temperature": 0.0,
+    "timeout": 120.0
+  },
+  "build_memory": {
+    "enabled": false
+  },
+  "compiler": {
+    "answer_style": "concise",
+    "evidence_order": "retrieval",
+    "evidence_row_labels": false,
+    "final_answer_checklist": false,
+    "max_evidence_chars": 18000,
+    "max_evidence_items": 40,
+    "max_memory_records": 0,
+    "memory_layout": "flat",
+    "memory_order": "retrieval",
+    "prompt_mode": "external_naive",
+    "route_guidance": false,
+    "row_text_mode": "full",
+    "temporal_grounding": false,
+    "temporal_hints": false,
+    "temporal_workpad": false
+  },
+  "description": "Strict clean reproduction of the read-only external naive RAG implementation: raw-turn dense retrieval top-40 over Date+role+text documents, Current Date+Question query embedding, external-style memory context, JSON answer contract, no build-stage memory, no lexical fusion, no session expansion, and no benchmark labels or ids in prediction.",
+  "name": "stage1_naive_rag_top40_external",
+  "retrieval": {
+    "dense": {
+      "base_url": "http://127.0.0.1:8001/v1",
+      "batch_size": 32,
+      "cache": {
+        "enabled": true,
+        "namespace": "Qwen/Qwen3-Embedding-0.6B",
+        "path": "outputs/cache/qwen3_embedding.sqlite"
+      },
+      "document_text_mode": "external_naive",
+      "enabled": true,
+      "lexical_protect_top_n": 0,
+      "model": "Qwen/Qwen3-Embedding-0.6B",
+      "query_text_mode": "external_naive",
+      "rrf_k": 60,
+      "timeout": 120.0,
+      "top_k": 40
+    },
+    "drop_query_stopwords": false,
+    "lexical": {
+      "enabled": false
+    },
+    "max_top_k": 40,
+    "neighbor_order": "hit_priority",
+    "neighbor_window": 0,
+    "score_threshold": 0.0,
+    "session_bm25": {
+      "enabled": false
+    },
+    "top_k": 40
+  },
+  "route": {
+    "enable_broad_list_patterns": false,
+    "enable_recommendation_profile_patterns": false,
+    "temporal_priority_over_recent": false
+  }
+}
