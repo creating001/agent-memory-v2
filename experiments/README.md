@@ -61,6 +61,7 @@
 - v41 question-only LLM operation router 已完成 LongMemEval-S route-stratified 20 条 gate：avg_query_tokens `5837.55`，question_analysis_avg_query_tokens `331.05`，route_changed `6/20`，同子集 DeepSeek judge 与 v36 都是 `14/20`，无净收益且增加 token；不跑 full，顶层 config 不长期保留。规划和结论见 `experiments/v41_planning.md`。
 - v42 operation workpad 已完成 LongMemEval-S full：accuracy `0.774`，387/500，比 v36 净 `+1`；avg_build_tokens `80346.246`，avg_query_tokens `5865.644`，answer max input/output `131072/16384`。结论是当前 LME 最好但只是 close-margin 小幅正向；继续加长 reader prompt 不划算，下一步应转向 build-to-query memory organization。规划和结论见 `experiments/v42_planning.md`。
 - v43 session-thread memory guide 已完成 LongMemEval-S route-stratified 20 条 gate：DeepSeek judge `15/20`，与 v42 same20 持平；avg_query_tokens `6023.95`、max `8003`，未过 token gate。结论是负向/中性 diagnostic，不跑 full，顶层 config 不长期保留。规划和结论见 `experiments/v43_planning.md`。
+- v44 temporal-only session guide 已完成 LongMemEval-S route-stratified 20 条 gate：DeepSeek judge `16/20`，比 v42 same20 净 `+1`；avg_query_tokens `5783.75`、max `7631`。但按 v42 full route mix 估计 full avg query `6064.479`，暂不跑 full，先做 v45 token-safe 收窄。规划和结论见 `experiments/v44_planning.md`。
 
 负向探索结论已压缩保留：
 
@@ -116,6 +117,7 @@ experiments/formal/<run_id>/
 | `v41_llm_question_router_lme_probe_243452f` | 20 条 LongMemEval-S route-stratified diagnostic | v41 question-only LLM operation router 预算 gate 通过；avg_query_tokens `5837.55`，question_analysis_avg_query_tokens `331.05`，route_changed `6/20`。同子集 DeepSeek judge v36=`14/20`、v41=`14/20`，没有净收益，不跑 full。 |
 | `v42_operation_workpad_lme_probe_df25f6a` | 20 条 LongMemEval-S route-stratified diagnostic | v42 operation workpad gate 通过；avg_query_tokens `5660.25`，weighted full estimate `5668.1925`，workpad 只在 `list_count` / `temporal_lookup` 生效。同子集 DeepSeek judge v36=`14/20`、v42=`15/20`，净 +1，无 regression；后续 full 只取得 close-margin `+1/500`。 |
 | `v43_session_thread_memory_guide_lme_probe_cb5e118` | 20 条 LongMemEval-S route-stratified diagnostic | v43 session-thread evidence layout + row-linked memory guide 未过 gate；avg_query_tokens `6023.95`、max `8003`，同子集 DeepSeek judge v43=`15/20`、v42=`15/20`，gained/lost `1/1`。不跑 full，顶层 config 不长期保留。 |
+| `v44_temporal_session_guide_lme_probe_b39687d` | 20 条 LongMemEval-S route-stratified diagnostic | v44 temporal-only session guide 20 条质量 gate 通过；avg_query_tokens `5783.75`、max `7631`，同子集 DeepSeek judge v44=`16/20`、v42=`15/20`。但 full route-mix 估计 avg query `6064.479`，暂不跑 full，继续收窄。 |
 
 ## 保留正式结果
 

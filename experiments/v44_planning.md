@@ -70,3 +70,36 @@ v43 session-thread memory guide 的 20 条 gate 失败：
 ## 预期决策
 
 如果 v44 仍然 token 超预算或与 v42 持平，不跑 full，结束这条 session-thread prompt 方向。若 v44 过 token gate 且相对 v42 净正向，再考虑 LME full；LoCoMo 仍需要基于 v35/v34 底座单独设计。
+
+## Gate 结果
+
+Run：`v44_temporal_session_guide_lme_probe_b39687d`
+
+- commit：`b39687d3d8328fe621844805f1d935b29c451361`
+- dirty：True，主要是用户修改的 `docs/architecture.md` 和 `docs/clean_protocol.md` 未提交。
+- prediction：20/20 成功。
+- answer max input/output：`131072/16384`。
+- avg_build_tokens：`81690.45`。
+- avg_query_tokens：`5783.75`。
+- max_query_tokens：`7631`。
+- build cache hits/misses/writes：`137/0/0`。
+- answer cache hits/misses/writes：`16/4/4`。
+- session_thread 生效范围：`temporal_lookup 4/4`，其他 route `0/16`。
+- activated_build_memory 生效范围：`temporal_lookup 4/4`，其他 route `0/16`。
+- prompt clean scan：无 hidden metadata 命中；`category` 仅来自原始对话普通词。
+- DeepSeek judge：`16/20 = 0.80`。
+- v42 same20：`15/20 = 0.75`。
+- gained/lost vs v42：`1/0`，net `+1`。
+
+关键 gained case：
+
+- `d823172b5baf1eff81acb20c`，animal shelter fundraising dinner，从 v42 `February 2023` 改成 `2023-02-14`。
+
+Full token estimate：
+
+- v42 full avg query：`5865.644`
+- v44-v42 temporal delta on gate：`+617.5`
+- temporal_lookup full share：`161/500`
+- estimated v44 full avg query：`6064.479`
+
+结论：v44 的 20 条 gate 在质量和本地平均 token 上通过，但基于 full route mix 的 avg query 估计超过 `6000`。不直接跑 full。下一步把 `max_memory_records` 从 `3` 降到 `1` 做 v45 token-safe gate；如果 v45 保留正向信号且 full token estimate <= `6000`，再考虑 LongMemEval-S full。
