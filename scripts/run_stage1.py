@@ -352,6 +352,12 @@ def main() -> int:
             "structured_answer_contract_max_items": config.get("compiler", {}).get(
                 "structured_answer_contract_max_items", 10
             ),
+            "operation_workpad": config.get("compiler", {}).get(
+                "operation_workpad", False
+            ),
+            "operation_workpad_information_needs": config.get("compiler", {}).get(
+                "operation_workpad_information_needs"
+            ),
             "route_overrides": config.get("compiler", {}).get(
                 "route_overrides", {}
             ),

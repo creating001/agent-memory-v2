@@ -134,6 +134,10 @@ class EvidenceCompiler:
             DEFAULT_STRUCTURED_ANSWER_CONTRACT_NEEDS
         ),
         structured_answer_contract_max_items: int = 10,
+        operation_workpad: bool = False,
+        operation_workpad_information_needs: tuple[str, ...] = (
+            DEFAULT_STRUCTURED_ANSWER_CONTRACT_NEEDS
+        ),
         evidence_order: str = "retrieval",
         memory_order: str = "retrieval",
         memory_layout: str = "flat",
@@ -174,6 +178,11 @@ class EvidenceCompiler:
         )
         self._structured_answer_contract_max_items = max(
             1, int(structured_answer_contract_max_items)
+        )
+        self._operation_workpad = operation_workpad
+        self._operation_workpad_information_needs = _validate_information_needs(
+            operation_workpad_information_needs,
+            field_name="operation_workpad_information_needs",
         )
         if evidence_order not in {"retrieval", "question_overlap"}:
             raise ValueError(f"Unsupported evidence_order: {evidence_order}")
@@ -294,6 +303,10 @@ class EvidenceCompiler:
             ),
             structured_answer_contract_max_items=(
                 self._structured_answer_contract_max_items
+            ),
+            operation_workpad=(
+                self._operation_workpad
+                and route.information_need in self._operation_workpad_information_needs
             ),
             memory_layout=self._memory_layout,
             row_text_mode=route_settings["row_text_mode"],
@@ -582,6 +595,7 @@ def _build_prompt(
     structured_guide_include_memory: bool,
     structured_answer_contract: bool,
     structured_answer_contract_max_items: int,
+    operation_workpad: bool,
     memory_layout: str,
     row_text_mode: str,
     max_row_text_chars: int,
@@ -620,6 +634,7 @@ def _build_prompt(
             structured_guide_include_memory=structured_guide_include_memory,
             structured_answer_contract=structured_answer_contract,
             structured_answer_contract_max_items=structured_answer_contract_max_items,
+            operation_workpad=operation_workpad,
         )
 
     lines = [
@@ -762,6 +777,7 @@ def _build_external_naive_prompt(
     structured_guide_include_memory: bool,
     structured_answer_contract: bool,
     structured_answer_contract_max_items: int,
+    operation_workpad: bool,
 ) -> str:
     user_question = (
         f"Current Date: {question_time}\nQuestion: {question}"
@@ -815,6 +831,16 @@ def _build_external_naive_prompt(
                 "Keep evidence_items compact; include excluded candidates only when they explain a duplicate or out-of-scope decision.",
             ]
         )
+    operation_workpad_block = ""
+    if operation_workpad and not structured_answer_contract:
+        operation_lines = _external_operation_workpad_lines(question, route)
+        if operation_lines:
+            operation_workpad_block = "\n".join(
+                ["", "Private Operation Discipline:", *operation_lines, ""]
+            )
+            rules.append(
+                "Use Private Operation Discipline as an internal checklist only; do not add checklist fields to the output JSON."
+            )
     rules.extend(
         [
             "If the context is insufficient, say the provided information is not enough.",
@@ -851,6 +877,7 @@ def _build_external_naive_prompt(
             "User Question:",
             user_question,
             structured_guide_block,
+            operation_workpad_block,
             "",
             "Memory Context:",
             _external_naive_context(
@@ -961,6 +988,40 @@ def _external_memory_guide_lines(
         if record.value:
             fields.append(f"value={_truncate_text(_single_line(record.value), 120)}")
         lines.append(f"  - {' | '.join(fields)}: {text}")
+    return lines
+
+
+def _external_operation_workpad_lines(question: str, route: RouteResult) -> list[str]:
+    """Short generic reader discipline for operation-heavy questions.
+
+    This deliberately does not request a richer output schema. The goal is to
+    preserve v18's concise answer surface while asking the model to privately
+    verify operands, scope, and dates before producing the final JSON.
+    """
+
+    lines = [
+        "- Privately identify the exact answer slot requested: person, place, date, duration, count, list, order, or fact.",
+        "- A candidate row is usable only if it matches the asked entity, object, action, relation, and time scope; related-topic evidence is not enough.",
+        "- If a required target, compared item, endpoint, or operand is missing, answer that the provided information is not enough.",
+    ]
+    if route.information_need == "list_count" or _asks_collection_operation(question):
+        lines.extend(
+            [
+                "- For count, list, sum, difference, average, or comparison questions, gather all distinct in-scope items before answering.",
+                "- Merge duplicate mentions of the same real-world item, event, process, subscription, trip, purchase, or role.",
+                "- Do not count assistant suggestions, hypothetical examples, or paraphrases unless the question asks about suggestions or the user confirms them.",
+                "- Verify arithmetic and preserve the requested unit; include enough item detail to avoid a partial answer.",
+            ]
+        )
+    if route.information_need in {"temporal_lookup", "current_state"} or _asks_temporal_calculation(question):
+        lines.extend(
+            [
+                "- For date, duration, and order questions, first identify the event/action row, then derive the answer from that row.",
+                "- Treat the row Date as the mention time; prefer event dates or relative time phrases stated in the row text when they differ.",
+                "- Resolve phrases such as yesterday, last Friday, last week, last month, and years ago from the row Date; do not answer with the row Date unless the event happened on that date.",
+                "- Preserve an explicit duration phrase when it directly answers a how-long question instead of replacing it with a rough date gap.",
+            ]
+        )
     return lines
 
 
@@ -1480,6 +1541,15 @@ def _asks_temporal_calculation(question: str) -> bool:
     return bool(
         re.search(
             r"\b(?:how many\s+(?:days?|weeks?|months?|years?)|how long|between|elapsed|passed|duration|ago|since|before now|from now|order|chronological|first to last|last to first|before|after)\b",
+            question.lower(),
+        )
+    )
+
+
+def _asks_collection_operation(question: str) -> bool:
+    return bool(
+        re.search(
+            r"\b(?:how many|count|total|sum|average|difference|both|shared|common|all|list|which|first|earlier|later|more|less)\b",
             question.lower(),
         )
     )

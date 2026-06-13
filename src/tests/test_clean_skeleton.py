@@ -514,6 +514,45 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertIn('"evidence_items"', list_context.prompt)
         self.assertIn("Use at most 5 evidence_items", list_context.prompt)
 
+    def test_operation_workpad_keeps_external_naive_output_schema(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=1,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            operation_workpad=True,
+            operation_workpad_information_needs=("list_count",),
+        )
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text="Alex bought a Tamiya Spitfire model kit.",
+                timestamp="2024-01-01",
+            ),
+        )
+
+        fact_context = compiler.compile(
+            question="Which model kit did Alex buy?",
+            question_time=None,
+            route=RouteResult(information_need="fact_lookup", signals=()),
+            hits=(),
+            evidence_turns=turns,
+        )
+        list_context = compiler.compile(
+            question="How many model kits did Alex buy?",
+            question_time=None,
+            route=RouteResult(information_need="list_count", signals=("list_or_count",)),
+            hits=(),
+            evidence_turns=turns,
+        )
+
+        self.assertNotIn("Private Operation Discipline", fact_context.prompt)
+        self.assertIn("Private Operation Discipline", list_context.prompt)
+        self.assertNotIn('"evidence_items"', list_context.prompt)
+        self.assertIn('"answer": "concise answer"', list_context.prompt)
+
     def test_evidence_labels_role_snippets_and_final_checklist_are_added(self) -> None:
         config = {
             "retrieval": {"top_k": 2, "max_top_k": 2, "neighbor_window": 0},
