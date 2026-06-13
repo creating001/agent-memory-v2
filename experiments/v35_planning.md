@@ -49,3 +49,48 @@ v35 是 query-side parser/finalizer 修复，不需要重新 build。先做 no-L
   - token budget 不超标。
 
 只有 gate 显示预测输出确实发生预期的小范围变化，再跑 DeepSeek judge。若只改变 2-4 条，judge 成本可接受，但仍必须记录为 full formal result，不能只报告局部样例。
+
+## 2026-06-14 Full 结果
+
+run: `stage1_answer_format_guard_v35_locomo_nonadv_full_80158a9`
+
+- benchmark/subset: LoCoMo non-adversarial full
+- samples: `1540`
+- commit: `80158a98f86d408e46ea3aa4de9c6e187fb0c808`
+- dirty: 仅用户修改的 `docs/architecture.md`、`docs/clean_protocol.md`
+- workers: `8`
+- answer max input/output: `131072/16384`
+- avg build tokens: `58386.00779220779`
+- avg query tokens: `4920.572727272727`
+- total build tokens: `89914452`
+- total query tokens: `7577682`
+- judge tokens: `664038`
+- build cache hits/misses/writes: `12411/0/0`
+- embedding cache hits/misses/writes: `7422/0/0`
+- answer cache hits/misses/writes: `1540/0/0`
+- finalizer applied: `2`, both `duration_decimal_rounding`
+- changed predictions vs v34: `6`
+- JSON-like answers: `4 -> 1`
+- decimal duration answers: `2 -> 0`
+
+DeepSeek judge:
+
+- valid-only accuracy: `0.7803768680961664`
+- invalid-as-wrong accuracy: `1201/1540 = 0.7798701298701298`
+- v34: `1200/1540 = 0.7792207792207793`
+- v33: `1188/1540 = 0.7714285714285715`
+- v29/v32: `1173/1540 = 0.7616883116883116`
+
+v34 对照:
+
+- both_correct: `1174`
+- both_wrong: `313`
+- gained: `27`
+- lost: `26`
+- net: `+1`
+- changed WRONG_to_CORRECT: `3`
+- changed both_correct: `2`
+- changed both_wrong: `1`
+- same-answer gained/lost: `24/26`
+
+结论：v35 是当前 LoCoMo 最好，并首次在 valid-only DeepSeek accuracy 下达到 `0.78` baseline target。但它是 close-margin result，且 invalid-as-wrong 仍差 1 条；必须在汇报时同时写明 judge variance 和 invalid-as-wrong 口径。下一步不应继续只在 LoCoMo 上微调，应先做 LongMemEval-S token gate，并考虑为 judge invalid 输出添加通用 retry policy。

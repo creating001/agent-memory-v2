@@ -1,0 +1,202 @@
+{
+  "answer_delta": {
+    "changed_WRONG_to_CORRECT": 3,
+    "changed_both_correct": 2,
+    "changed_both_wrong": 1,
+    "same_CORRECT_to_WRONG": 26,
+    "same_WRONG_to_CORRECT": 24,
+    "same_both_correct": 1172,
+    "same_both_wrong": 312
+  },
+  "by_route": {
+    "current_state": {
+      "both_correct": 3,
+      "lost": 1
+    },
+    "fact_lookup": {
+      "both_correct": 796,
+      "both_wrong": 180,
+      "gained": 19,
+      "lost": 23
+    },
+    "list_count": {
+      "both_correct": 82,
+      "both_wrong": 46,
+      "gained": 1,
+      "lost": 2
+    },
+    "profile_preference": {
+      "both_correct": 40,
+      "both_wrong": 8,
+      "gained": 1
+    },
+    "temporal_lookup": {
+      "both_correct": 253,
+      "both_wrong": 79,
+      "gained": 6
+    }
+  },
+  "clean_note": "Offline comparison reads prediction traces and judge outputs only after prediction; do not feed this into prediction logic.",
+  "examples": {
+    "gained": [
+      {
+        "baseline_answer": "rainbow flag mural, eagle symbol",
+        "candidate_answer": "rainbow flag mural, eagle symbol",
+        "record_key": "0bb99b11d4e9e2211195173a",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "2.29 weeks",
+        "candidate_answer": "2 weeks",
+        "record_key": "16d70285e40a99b09091bd7a",
+        "route": "temporal_lookup"
+      },
+      {
+        "baseline_answer": "Detroit, It takes two, Overcooked 2",
+        "candidate_answer": "Detroit, It takes two, Overcooked 2",
+        "record_key": "181822affe199acc49ef98ee",
+        "route": "list_count"
+      },
+      {
+        "baseline_answer": "figurines",
+        "candidate_answer": "figurines",
+        "record_key": "1c96c79744028a8d6da023e6",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "2013-06-27",
+        "candidate_answer": "2013-06-27",
+        "record_key": "1c98645d234a3d42586e2b99",
+        "route": "temporal_lookup"
+      },
+      {
+        "baseline_answer": "Joanna recommends getting a large, fluffy couch that can seat multiple people, a weighted blanket, and dimmable lights to make a living room comfy.",
+        "candidate_answer": "Joanna recommends getting a large, fluffy couch that can seat multiple people, a weighted blanket, and dimmable lights to make a living room comfy.",
+        "record_key": "2b1d0889d0514a9b279d4c28",
+        "route": "profile_preference"
+      },
+      {
+        "baseline_answer": "Savana",
+        "candidate_answer": "Savana",
+        "record_key": "2be0392b6749cf5fac432b15",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "Joanna planned to use the recipe Nate shared and let him know how it turned out.",
+        "candidate_answer": "Joanna planned to use the recipe Nate shared and let him know how it turned out.",
+        "record_key": "3842031ea767d611acfd2e48",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "{\n  \"reasoning\": \"Dave and Calvin consistently express mutual encouragement and support for each other's pursuits. In multiple messages, both affirm their commitment to pursuing their dreams and passions. Dave encourages Calvin to keep going and stay focused, while Calvin reciprocates by affirming Dave's efforts and enthusiasm. They both emphasize the importance of staying motivated, working hard, and not forgetting their dreams. This shared belief in perseverance and passion for personal goals is a recurring theme across their interactions.\",\n  \"sufficient\": true,\n  \"answer_type\": \"preference\",\n  \"evidence_report\": [\n    {\n      \"memory\": \"Memory 2\",\n      \"status\": \"support\",\n      \"slot\": \"pursuits\",\n      \"value\": \"keep at it and never forget your dreams\",\n      \"reason\": \"Dave encourages Calvin to keep pursuing his dreams, showing agreement on the value of perseverance in personal goals.\"\n    },\n    {\n      \"memory\": \"Memory 5\",\n      \"status\": \"support\",\n      \"slot\": \"pursuits\",\n      \"value\": \"Keep coming up with new cool stuff, bud. I'm excited to see what you'll do next\",\n      \"reason\": \"Calvin supports Dave's creative efforts, indicating shared enthusiasm for ongoing personal pursuits.\"\n    },\n    {\n      \"memory\": \"Memory 11\",\n      \"status\": \"support\",\n      \"slot\": \"pursuits\",\n      \"value\": \"I'll keep going for my dreams\",\n      \"reason\": \"Calvin affirms his commitment to pursuing his dreams, aligning with Dave's encouragement.\"\n    },\n    {\n      \"memory\": \"Memory 15\",\n      \"status\": \"support\",\n      \"slot\": \"pursuits\",\n      \"value\": \"Keep pursuing your passion and keep dreaming\",\n      \"reason\": \"Dave encourages Calvin to keep pursuing his passion, showing mutual agreement on the importance of passion and dreaming.\"\n    },\n    {\n      \"memory\": \"Memory 26\",\n      \"status\": \"support\",\n      \"slot\": \"pursuits\",\n      \"value\": \\\"You've come a long way... What's next for you? Anything exciting coming up?\\\"\",\n      \"reason\": \"Dave acknowledges Calvin's progress and shows interest in his future pursuits, indicating shared value in growth and ambition.\"\n    },\n    {\n      \"memory\": \"Memory 46\",\n      \"status\": \"support\",\n      \"slot\": \"pursuits\",\n      \"value\": \\\"It's fulfilling and motivating too. I'm so glad we're on this journey together\\\"\",\n      \"reason\": \"Calvin expresses that pursuing their passions is fulfilling and motivating, showing mutual agreement on the emotional and personal value of their pursuits.\"\n    },\n    {\n      \"memory\": \"Memory 56\",\n      \"status\": \"support\",\n      \"slot\": \"pursuits\",\n      \"value\": \\\"nature really can boost our spirits in tough times\\\"\",\n      \"reason\": \"Dave shares a personal reflection on nature's positive impact, which Calvin later affirms, showing shared appreciation for activities that support well-being and motivation.\"\n    },\n    {\n      \"memory\": \"Memory 44\",\n      \"status\": \"support\",\n      \"slot\": \"pursuits\",\n      \"value\": \\\"I'm going to keep chasing my dreams and working hard\\\"\",\n      \"reason\": \"Dave explicitly states his commitment to chasing dreams, which Calvin has previously supported, indicating alignment in values.\"\n    }\n  ],\n  \"missing\": \"\",\n  \"answer\": \"Dave and Calvin agree that pursuing their dreams and passions with perseverance and motivation is important.\"\n}",
+        "candidate_answer": "Dave and Calvin agree that pursuing their dreams and passions with perseverance and motivation is important.",
+        "record_key": "39df0cb4cac4d037454f47bd",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "John described his kids' reaction as a meaningful and moving experience.",
+        "candidate_answer": "John described his kids' reaction as a meaningful and moving experience.",
+        "record_key": "41bf1a4eb6f6eb2f54f5a82a",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "The provided information is not enough to determine specific projects Jolene is planning for next year beyond a nature trip in October 2023 and general interests in renewable energy and sustainable initiatives.",
+        "candidate_answer": "The provided information is not enough to determine specific projects Jolene is planning for next year beyond a nature trip in October 2023 and general interests in renewable energy and sustainable initiatives.",
+        "record_key": "4aa828f745c5ba99e3335367",
+        "route": "temporal_lookup"
+      },
+      {
+        "baseline_answer": "landscapes",
+        "candidate_answer": "landscapes",
+        "record_key": "59c5f9e9e850819a4f999d1e",
+        "route": "fact_lookup"
+      }
+    ],
+    "lost": [
+      {
+        "baseline_answer": "healthy snacks and cookies",
+        "candidate_answer": "healthy snacks and cookies",
+        "record_key": "0671ca46ccefbc1c678f6bf4",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "Playing at a doggy daycare with a big indoor space for dogs to play",
+        "candidate_answer": "Playing at a doggy daycare with a big indoor space for dogs to play",
+        "record_key": "0b71bc5435ed4023bf41dedd",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "Andrew could make birdwatching fit his city schedule by visiting nearby urban parks, which he already uses to reconnect with nature and enjoy peaceful outdoor experiences.",
+        "candidate_answer": "Andrew could make birdwatching fit his city schedule by visiting nearby urban parks, which he already uses to reconnect with nature and enjoy peaceful outdoor experiences.",
+        "record_key": "2245ba33bb4c804acc9e76ea",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "sit, stay, paw, and rollover",
+        "candidate_answer": "sit, stay, paw, and rollover",
+        "record_key": "2527ce4bd3ac4170381daee2",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "fresh pastries",
+        "candidate_answer": "fresh pastries",
+        "record_key": "27f657a9bc77e72f8ce99129",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "strategy games, RPGs, 2D adventure games with puzzles, sports games, and MOBAs",
+        "candidate_answer": "strategy games, RPGs, 2D adventure games with puzzles, sports games, and MOBAs",
+        "record_key": "2af7a4304a7b98c0324a70c1",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "Jolene sometimes put off doing yoga because she struggled to balance her engineering studies, her partner's video games, and personal growth, making it hard to find time for self-care.",
+        "candidate_answer": "Jolene sometimes put off doing yoga because she struggled to balance her engineering studies, her partner's video games, and personal growth, making it hard to find time for self-care.",
+        "record_key": "391b1719ccfe1b51be5fec96",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "Ed Sheeran",
+        "candidate_answer": "Ed Sheeran",
+        "record_key": "4b568ae958ed212b0642b4bb",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "picnic, chilling under trees, playing games (including charades and scavenger hunt), eating food, hiking, enjoying nature",
+        "candidate_answer": "picnic, chilling under trees, playing games (including charades and scavenger hunt), eating food, hiking, enjoying nature",
+        "record_key": "4cca11382c0b23e330f83c11",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "A prominent charity organization John might want to work with is a local organization that helps disadvantaged kids with sports and school, because he is committed to using his platform to support youth development and create equitable opportunities in underserved communities.",
+        "candidate_answer": "A prominent charity organization John might want to work with is a local organization that helps disadvantaged kids with sports and school, because he is committed to using his platform to support youth development and create equitable opportunities in underserved communities.",
+        "record_key": "548bc68285642f4459991c2a",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "fresh pastries",
+        "candidate_answer": "fresh pastries",
+        "record_key": "56c64968e86c6415e6894dd8",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "London, UK",
+        "candidate_answer": "London, UK",
+        "record_key": "5a8f10299c179b2f7c88a39b",
+        "route": "list_count"
+      }
+    ]
+  },
+  "n_answer_changed": 6,
+  "n_keys": 1540,
+  "runs": {
+    "baseline": "stage1_route_budgeted_retrieval_v34_locomo_nonadv_full_fb6c703",
+    "candidate": "stage1_answer_format_guard_v35_locomo_nonadv_full_80158a9"
+  },
+  "summary": {
+    "both_correct": 1174,
+    "both_wrong": 313,
+    "gained": 27,
+    "lost": 26
+  }
+}

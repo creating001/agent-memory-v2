@@ -1,0 +1,204 @@
+{
+  "answer_delta": {
+    "changed_CORRECT_to_WRONG": 9,
+    "changed_WRONG_to_CORRECT": 19,
+    "changed_both_correct": 19,
+    "changed_both_wrong": 18,
+    "same_CORRECT_to_WRONG": 20,
+    "same_WRONG_to_CORRECT": 23,
+    "same_both_correct": 1140,
+    "same_both_wrong": 292
+  },
+  "by_route": {
+    "current_state": {
+      "both_correct": 3,
+      "lost": 1
+    },
+    "fact_lookup": {
+      "both_correct": 798,
+      "both_wrong": 187,
+      "gained": 17,
+      "lost": 16
+    },
+    "list_count": {
+      "both_correct": 82,
+      "both_wrong": 46,
+      "gained": 1,
+      "lost": 2
+    },
+    "profile_preference": {
+      "both_correct": 40,
+      "both_wrong": 8,
+      "gained": 1
+    },
+    "temporal_lookup": {
+      "both_correct": 236,
+      "both_wrong": 69,
+      "gained": 23,
+      "lost": 10
+    }
+  },
+  "clean_note": "Offline comparison reads prediction traces and judge outputs only after prediction; do not feed this into prediction logic.",
+  "examples": {
+    "gained": [
+      {
+        "baseline_answer": "The provided information is not enough to determine the exact date of John's camping trip with Max.",
+        "candidate_answer": "2022",
+        "record_key": "077dc113032925d7209f2c6a",
+        "route": "temporal_lookup"
+      },
+      {
+        "baseline_answer": "The provided information is not enough to determine the exact date Nate got his first two turtles.",
+        "candidate_answer": "2019-01-23",
+        "record_key": "0d798f45f3b37893b6adb96f",
+        "route": "temporal_lookup"
+      },
+      {
+        "baseline_answer": "2022-09-26 to 2022-10-02",
+        "candidate_answer": "2022-05-27 to 2022-06-02",
+        "record_key": "1340bc97cd504e993b131b87",
+        "route": "temporal_lookup"
+      },
+      {
+        "baseline_answer": "mother",
+        "candidate_answer": "mother, sister",
+        "record_key": "146487c67925ca15d9b78d68",
+        "route": "temporal_lookup"
+      },
+      {
+        "baseline_answer": "honey garlic chicken with roasted veg",
+        "candidate_answer": "honey garlic chicken with roasted veg",
+        "record_key": "17e4a8f272b46c0a9ad5d9df",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "Detroit, It takes two, Overcooked 2",
+        "candidate_answer": "Detroit, It takes two, Overcooked 2",
+        "record_key": "181822affe199acc49ef98ee",
+        "route": "list_count"
+      },
+      {
+        "baseline_answer": "2013-06-27",
+        "candidate_answer": "2013-06-27",
+        "record_key": "1c98645d234a3d42586e2b99",
+        "route": "temporal_lookup"
+      },
+      {
+        "baseline_answer": "2023-09-11",
+        "candidate_answer": "2023-09-16",
+        "record_key": "24392fb9beec5fb96a24a747",
+        "route": "temporal_lookup"
+      },
+      {
+        "baseline_answer": "love, support, joy, and quality time",
+        "candidate_answer": "love, support, joy, and quality time",
+        "record_key": "2c6a370fd1c7a33b4c4bef8a",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "2022-10-21",
+        "candidate_answer": "2022-10-20",
+        "record_key": "2f1d07b95f14fe16c4fe2cbb",
+        "route": "temporal_lookup"
+      },
+      {
+        "baseline_answer": "J.K. Rowling, George R.R. Martin, Patrick Rothfuss",
+        "candidate_answer": "J.K. Rowling, George R.R. Martin, Patrick Rothfuss",
+        "record_key": "397d2d3efa00f8a0bc3919d5",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "John described his kids' reaction as a meaningful and moving experience.",
+        "candidate_answer": "John described his kids' reaction as a meaningful and moving experience.",
+        "record_key": "41bf1a4eb6f6eb2f54f5a82a",
+        "route": "fact_lookup"
+      }
+    ],
+    "lost": [
+      {
+        "baseline_answer": "2023-06-20",
+        "candidate_answer": "2023-07-21",
+        "record_key": "036d1c42efe355bbef56df4a",
+        "route": "temporal_lookup"
+      },
+      {
+        "baseline_answer": "home country",
+        "candidate_answer": "home country",
+        "record_key": "13fc31c4da9f316b40c10d39",
+        "route": "temporal_lookup"
+      },
+      {
+        "baseline_answer": "Don't be scared to reach out to people in your field for help and contacts. Networking was a lifesaver for me and opened me up to amazing products that I might not have found otherwise.",
+        "candidate_answer": "Don't be scared to reach out to people in your field for help and contacts. Networking was a lifesaver for me and opened me up to amazing products that I might not have found otherwise.",
+        "record_key": "19e8f0e8ba0a43ea5fe3d7aa",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "strategy games, RPGs, 2D adventure games with puzzles, sports games, and MOBAs",
+        "candidate_answer": "strategy games, RPGs, 2D adventure games with puzzles, sports games, and MOBAs",
+        "record_key": "2af7a4304a7b98c0324a70c1",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "Nate owns a gaming console.",
+        "candidate_answer": "Nate owns a gaming console.",
+        "record_key": "31eee05eecca6ce11c47c72e",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "Ed Sheeran",
+        "candidate_answer": "Ed Sheeran",
+        "record_key": "4b568ae958ed212b0642b4bb",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "picnic, chilling under trees, playing games (including charades and scavenger hunt), eating food, hiking, enjoying nature",
+        "candidate_answer": "picnic, chilling under trees, playing games (including charades and scavenger hunt), eating food, hiking, enjoying nature",
+        "record_key": "4cca11382c0b23e330f83c11",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "2023-09-25 to 2023-10-01",
+        "candidate_answer": "2023-10-02",
+        "record_key": "4da9ab1005ab0003892ef034",
+        "route": "temporal_lookup"
+      },
+      {
+        "baseline_answer": "2022-06-25",
+        "candidate_answer": "2022-11-05",
+        "record_key": "507a52cbe63da61337791db9",
+        "route": "temporal_lookup"
+      },
+      {
+        "baseline_answer": "fresh pastries",
+        "candidate_answer": "fresh pastries",
+        "record_key": "56c64968e86c6415e6894dd8",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "fair, networking events, event in July 2023",
+        "candidate_answer": "fair, networking events, event in July 2023",
+        "record_key": "5999440645da0241d1e8429b",
+        "route": "list_count"
+      },
+      {
+        "baseline_answer": "storytelling, characters, and world-building",
+        "candidate_answer": "storytelling, characters, and world-building",
+        "record_key": "7e9f7b90a657b084f4735b3a",
+        "route": "fact_lookup"
+      }
+    ]
+  },
+  "n_answer_changed": 65,
+  "n_keys": 1540,
+  "runs": {
+    "baseline": "stage1_retrieval_top60_v33_locomo_nonadv_full_f016f9a",
+    "candidate": "stage1_answer_format_guard_v35_locomo_nonadv_full_80158a9"
+  },
+  "summary": {
+    "both_correct": 1159,
+    "both_wrong": 310,
+    "gained": 42,
+    "lost": 29
+  }
+}
