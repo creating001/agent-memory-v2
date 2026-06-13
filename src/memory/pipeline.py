@@ -206,6 +206,7 @@ class Stage1Pipeline:
                 compiler_config.get("final_answer_checklist", False)
             ),
             max_memory_records=int(compiler_config.get("max_memory_records", 12)),
+            route_overrides=compiler_config.get("route_overrides") or {},
         )
         self._compiler_trace_config = {
             "evidence_order": str(compiler_config.get("evidence_order", "retrieval")),
@@ -241,6 +242,7 @@ class Stage1Pipeline:
                 compiler_config.get("temporal_workpad_max_pairs", 12)
             ),
             "max_memory_records": int(compiler_config.get("max_memory_records", 12)),
+            "route_overrides": compiler_config.get("route_overrides") or {},
         }
         answer_mode = str(answer_config.get("mode", "null_answerer"))
         if answer_mode == "openai_compatible":

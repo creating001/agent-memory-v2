@@ -294,6 +294,9 @@ def main() -> int:
             "temporal_workpad_max_pairs": config.get("compiler", {}).get(
                 "temporal_workpad_max_pairs", 12
             ),
+            "route_overrides": config.get("compiler", {}).get(
+                "route_overrides", {}
+            ),
         },
         "route": {
             "enable_broad_list_patterns": config.get("route", {}).get(
@@ -560,6 +563,7 @@ def _write_summary(
         f"- temporal_workpad_scope: {metrics['compiler']['temporal_workpad_scope']}",
         f"- temporal_workpad_max_rows: {metrics['compiler']['temporal_workpad_max_rows']}",
         f"- temporal_workpad_max_pairs: {metrics['compiler']['temporal_workpad_max_pairs']}",
+        f"- route_overrides: {metrics['compiler']['route_overrides']}",
         f"- enable_broad_list_patterns: {metrics['route']['enable_broad_list_patterns']}",
         f"- enable_recommendation_profile_patterns: {metrics['route']['enable_recommendation_profile_patterns']}",
         f"- temporal_priority_over_recent: {metrics['route']['temporal_priority_over_recent']}",
@@ -632,6 +636,7 @@ def _write_diagnosis(
         f"- temporal_workpad_scope: {metrics['compiler']['temporal_workpad_scope']}",
         f"- temporal_workpad_max_rows: {metrics['compiler']['temporal_workpad_max_rows']}",
         f"- temporal_workpad_max_pairs: {metrics['compiler']['temporal_workpad_max_pairs']}",
+        f"- route_overrides: {metrics['compiler']['route_overrides']}",
         f"- enable_recommendation_profile_patterns: {metrics['route']['enable_recommendation_profile_patterns']}",
         f"- temporal_priority_over_recent: {metrics['route']['temporal_priority_over_recent']}",
         f"- answer_max_input_tokens: {metrics['answer']['max_input_tokens']}",

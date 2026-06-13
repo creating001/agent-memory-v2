@@ -373,6 +373,70 @@ class CleanSkeletonTest(unittest.TestCase):
 
         self.assertEqual(compiled.evidence_rows[0].source_id, "s1:t1")
 
+    def test_compiler_route_overrides_only_apply_to_matching_information_need(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=1,
+            max_evidence_chars=4000,
+            route_overrides={
+                "list_count": {
+                    "max_evidence_items": 2,
+                    "row_text_mode": "query_snippet",
+                    "max_row_text_chars": 60,
+                }
+            },
+        )
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text="Alex joined the photography club and the chess club.",
+            ),
+            Turn(
+                source_id="s2:t0",
+                session_id="s2",
+                turn_index=0,
+                role="user",
+                text="Alex also joined the hiking club.",
+            ),
+        )
+
+        fact_context = compiler.compile(
+            question="Which club did Alex join?",
+            question_time=None,
+            route=RouteResult(information_need="fact_lookup", signals=()),
+            hits=(),
+            evidence_turns=turns,
+        )
+        list_context = compiler.compile(
+            question="How many clubs did Alex join?",
+            question_time=None,
+            route=RouteResult(information_need="list_count", signals=("list_or_count",)),
+            hits=(),
+            evidence_turns=turns,
+        )
+
+        self.assertEqual(len(fact_context.evidence_rows), 1)
+        self.assertEqual(len(list_context.evidence_rows), 2)
+        self.assertIn("Alex also joined the hiking club", list_context.prompt)
+
+    def test_compiler_route_overrides_reject_unknown_information_need(self) -> None:
+        with self.assertRaises(ValueError):
+            EvidenceCompiler(
+                max_evidence_items=1,
+                max_evidence_chars=4000,
+                route_overrides={"question_type": {"max_evidence_items": 2}},
+            )
+
+    def test_compiler_route_overrides_reject_unknown_setting(self) -> None:
+        with self.assertRaises(ValueError):
+            EvidenceCompiler(
+                max_evidence_items=1,
+                max_evidence_chars=4000,
+                route_overrides={"list_count": {"benchmark_label": "multi-session"}},
+            )
+
     def test_temporal_workpad_is_disabled_by_default(self) -> None:
         compiler = EvidenceCompiler(
             max_evidence_items=2,

@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import calendar
 import re
+from collections.abc import Mapping
 from datetime import date, timedelta
+from typing import Any
 
 from memory.build import MemoryRecord
 from common.schemas import CompiledContext, EvidenceRow, RetrievalHit, RouteResult, Turn
@@ -34,6 +36,21 @@ MAX_RELATIVE_TIME_SPANS = {
     "year": 100,
 }
 TOKEN_PATTERN = re.compile(r"[\w]+", re.UNICODE)
+SUPPORTED_INFORMATION_NEEDS = {
+    "current_state",
+    "fact_lookup",
+    "list_count",
+    "profile_preference",
+    "temporal_lookup",
+}
+ROUTE_OVERRIDE_KEYS = {
+    "evidence_row_labels",
+    "final_answer_checklist",
+    "max_evidence_chars",
+    "max_evidence_items",
+    "max_row_text_chars",
+    "row_text_mode",
+}
 QUESTION_STOPWORDS = {
     "a",
     "an",
@@ -110,6 +127,7 @@ class EvidenceCompiler:
         evidence_row_labels: bool = False,
         final_answer_checklist: bool = False,
         max_memory_records: int = 12,
+        route_overrides: Mapping[str, Mapping[str, Any]] | None = None,
     ):
         self._max_evidence_items = max_evidence_items
         self._max_evidence_chars = max_evidence_chars
@@ -142,6 +160,7 @@ class EvidenceCompiler:
         self._evidence_row_labels = evidence_row_labels
         self._final_answer_checklist = final_answer_checklist
         self._max_memory_records = max(0, max_memory_records)
+        self._route_overrides = _validate_route_overrides(route_overrides or {})
 
     def compile(
         self,
@@ -169,6 +188,8 @@ class EvidenceCompiler:
                 )
             )
 
+        route_settings = self._settings_for_route(route)
+
         ordered_candidates = _order_rows(
             tuple(candidates),
             question=question,
@@ -179,17 +200,17 @@ class EvidenceCompiler:
         used_chars = 0
 
         for row in ordered_candidates:
-            if len(rows) >= self._max_evidence_items:
+            if len(rows) >= route_settings["max_evidence_items"]:
                 break
             row_chars = len(
                 _format_row(
                     row,
                     question=question,
-                    row_text_mode=self._row_text_mode,
-                    max_row_text_chars=self._max_row_text_chars,
+                    row_text_mode=route_settings["row_text_mode"],
+                    max_row_text_chars=route_settings["max_row_text_chars"],
                 )
             )
-            if rows and used_chars + row_chars > self._max_evidence_chars:
+            if rows and used_chars + row_chars > route_settings["max_evidence_chars"]:
                 break
             rows.append(row)
             used_chars += row_chars
@@ -217,11 +238,11 @@ class EvidenceCompiler:
             temporal_workpad_max_rows=self._temporal_workpad_max_rows,
             temporal_workpad_max_pairs=self._temporal_workpad_max_pairs,
             memory_layout=self._memory_layout,
-            row_text_mode=self._row_text_mode,
-            max_row_text_chars=self._max_row_text_chars,
+            row_text_mode=route_settings["row_text_mode"],
+            max_row_text_chars=route_settings["max_row_text_chars"],
             route_guidance=self._route_guidance,
-            evidence_row_labels=self._evidence_row_labels,
-            final_answer_checklist=self._final_answer_checklist,
+            evidence_row_labels=route_settings["evidence_row_labels"],
+            final_answer_checklist=route_settings["final_answer_checklist"],
         )
         return CompiledContext(
             question=question,
@@ -232,6 +253,65 @@ class EvidenceCompiler:
             context_chars=len(prompt),
             memory_records=tuple(selected_memory_records),
         )
+
+    def _settings_for_route(self, route: RouteResult) -> dict[str, Any]:
+        settings: dict[str, Any] = {
+            "evidence_row_labels": self._evidence_row_labels,
+            "final_answer_checklist": self._final_answer_checklist,
+            "max_evidence_chars": self._max_evidence_chars,
+            "max_evidence_items": self._max_evidence_items,
+            "max_row_text_chars": self._max_row_text_chars,
+            "row_text_mode": self._row_text_mode,
+        }
+        settings.update(self._route_overrides.get(route.information_need, {}))
+        return settings
+
+
+def _validate_route_overrides(
+    route_overrides: Mapping[str, Mapping[str, Any]],
+) -> dict[str, dict[str, Any]]:
+    normalized: dict[str, dict[str, Any]] = {}
+    for information_need, raw_overrides in route_overrides.items():
+        if information_need not in SUPPORTED_INFORMATION_NEEDS:
+            raise ValueError(f"Unsupported compiler route override: {information_need}")
+        if not isinstance(raw_overrides, Mapping):
+            raise ValueError(
+                f"compiler.route_overrides.{information_need} must be an object"
+            )
+        unknown_keys = set(raw_overrides).difference(ROUTE_OVERRIDE_KEYS)
+        if unknown_keys:
+            keys = ", ".join(sorted(unknown_keys))
+            raise ValueError(
+                f"Unsupported compiler.route_overrides.{information_need} keys: {keys}"
+            )
+        overrides: dict[str, Any] = {}
+        if "max_evidence_items" in raw_overrides:
+            overrides["max_evidence_items"] = max(
+                0, int(raw_overrides["max_evidence_items"])
+            )
+        if "max_evidence_chars" in raw_overrides:
+            overrides["max_evidence_chars"] = max(
+                0, int(raw_overrides["max_evidence_chars"])
+            )
+        if "max_row_text_chars" in raw_overrides:
+            overrides["max_row_text_chars"] = (
+                int(raw_overrides["max_row_text_chars"]) or 800
+            )
+        if "row_text_mode" in raw_overrides:
+            row_text_mode = str(raw_overrides["row_text_mode"])
+            if row_text_mode not in {"full", "query_snippet", "role_query_snippet"}:
+                raise ValueError(f"Unsupported row_text_mode: {row_text_mode}")
+            overrides["row_text_mode"] = row_text_mode
+        if "evidence_row_labels" in raw_overrides:
+            overrides["evidence_row_labels"] = bool(
+                raw_overrides["evidence_row_labels"]
+            )
+        if "final_answer_checklist" in raw_overrides:
+            overrides["final_answer_checklist"] = bool(
+                raw_overrides["final_answer_checklist"]
+            )
+        normalized[information_need] = overrides
+    return normalized
 
 
 def _order_rows(

@@ -16,6 +16,7 @@
 - `stage1_route_validity_v8_cached.json`：组合消融，把 v6 的 temporal route priority 与 v7 的 validity/superseded retrieval 合并；目的是验证两个 clean 通用改动是否互补，仍不使用 gold、category、judge、样本 id 或测试反馈。
 - `stage1_evidence_arbitration_v9_cached.json`：query-side compiler ablation，基于 v7 增加 role-aware snippets、证据行标号和末尾 answer checklist；借鉴 Hindsight 的事实/推断分离、SimpleMem 的 token-density、Mnemis 的枚举覆盖和 Graphiti/Zep 的 provenance，但只改变证据组织，不使用任何离线标签或反馈。
 - `stage1_compact_evidence_v10_cached.json`：query-side compact evidence ablation，吸收 v9 的 multi-session 正向信号，但关闭末尾 checklist、降低 snippet 长度和 evidence 行数，目标是在 6K query token 内提高证据覆盖。
+- `stage1_selective_list_expansion_v11_cached.json`：query-side selective expansion ablation，默认保持 v7，仅对 question-text router 得到的通用 `list_count` information need 使用受限 role-aware snippet 扩展；目标是在 6K 附近保留 v10 的聚合题收益，同时避免 profile/temporal/assistant 噪声。
 
 新增配置必须满足：
 
