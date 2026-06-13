@@ -1003,7 +1003,7 @@ def _build_external_naive_prompt(
             )
         )
     operation_workpad_block = ""
-    if operation_workpad and not structured_answer_contract and not evidence_report_contract:
+    if operation_workpad and not structured_answer_contract:
         operation_lines = _external_operation_workpad_lines(question, route)
         if operation_lines:
             operation_workpad_block = "\n".join(
@@ -1307,6 +1307,7 @@ def _external_operation_workpad_lines(question: str, route: RouteResult) -> list
         lines.extend(
             [
                 "- For count, list, sum, difference, average, or comparison questions, gather all distinct in-scope items before answering.",
+                "- If the question uses inclusive alternatives such as 'or', 'have done or currently doing', or 'past or current', include candidates satisfying any requested alternative rather than excluding past items only because they are not current.",
                 "- Merge duplicate mentions of the same real-world item, event, process, subscription, trip, purchase, or role.",
                 "- Do not count assistant suggestions, hypothetical examples, or paraphrases unless the question asks about suggestions or the user confirms them.",
                 "- Verify arithmetic and preserve the requested unit; include enough item detail to avoid a partial answer.",

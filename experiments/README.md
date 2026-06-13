@@ -58,6 +58,7 @@
 - v39 memory-aware evidence selector 已完成 LongMemEval-S full：accuracy `0.724`，362/500，低于 v36 `0.772` 和 v38 `0.752`。结论是 build-memory source signal 直接排序 final raw rows 会破坏 list/temporal operand coverage；负向 ablation，不跑 LoCoMo full，顶层 config 不长期保留。
 - v40 route-scoped evidence detail 已完成 LongMemEval-S full：accuracy `0.742`，371/500，低于 v36 `0.772`。它相对 v39 恢复了部分 list/temporal，但相对 v36 仍净 `-15`；结论是单纯 reader-side detailed evidence rules 不够，不跑 LoCoMo full，顶层 config 不长期保留。
 - v41 question-only LLM operation router 已完成 LongMemEval-S route-stratified 20 条 gate：avg_query_tokens `5837.55`，question_analysis_avg_query_tokens `331.05`，route_changed `6/20`，同子集 DeepSeek judge 与 v36 都是 `14/20`，无净收益且增加 token；不跑 full，顶层 config 不长期保留。规划和结论见 `experiments/v41_planning.md`。
+- v42 operation workpad 正在 gate：基于 v36，不改 retrieval/build，不新增 LLM call，只让已有 `operation_workpad` 在 `evidence_report` 模式下对 `list_count` / `temporal_lookup` 生效；目标是修复集合范围和 temporal aggregation 误判。规划见 `experiments/v42_planning.md`。
 
 负向探索结论已压缩保留：
 

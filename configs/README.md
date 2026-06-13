@@ -18,6 +18,10 @@
 - `stage1_answer_format_guard_v35_cached.json`：v34 上的 answer format guard；修复 JSON answer salvage 和小数 duration，当前 LoCoMo 最好。
 - `stage1_lme_token_safe_format_guard_v36_cached.json`：v28 top40/evidence budget + v35 answer guard；当前 LME 最好。
 
+## 当前候选
+
+- `stage1_operation_workpad_v42_cached.json`：v36 上的短 operation workpad 候选；不新增 LLM 调用，不改 retrieval/build，只在 `list_count` / `temporal_lookup` 的 evidence_report prompt 中加入通用操作聚合纪律。待 gate，通过前不视为保留主线。
+
 ## 新配置规则
 
 - 不使用 gold answer、judge output、benchmark label、sample id、qid、row index 或 test feedback。
