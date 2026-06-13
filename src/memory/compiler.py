@@ -581,7 +581,6 @@ def _build_prompt(
             structured_guide_max_rows=structured_guide_max_rows,
             structured_guide_include_rows=structured_guide_include_rows,
             structured_guide_include_memory=structured_guide_include_memory,
-            route_guidance=route_guidance,
         )
 
     lines = [
@@ -722,7 +721,6 @@ def _build_external_naive_prompt(
     structured_guide_max_rows: int,
     structured_guide_include_rows: bool,
     structured_guide_include_memory: bool,
-    route_guidance: bool,
 ) -> str:
     user_question = (
         f"Current Date: {question_time}\nQuestion: {question}"
@@ -759,8 +757,6 @@ def _build_external_naive_prompt(
                 ["", "Structured Evidence Guide:", *guide_lines, ""]
             )
     rules = ["Use only the memory context."]
-    if route_guidance:
-        rules.extend(_external_route_guidance_rules(route))
     if structured_guide_block:
         rules.append(
             "Use Structured Evidence Guide only as an index into Memory Context; it is not independent evidence."
@@ -804,15 +800,6 @@ def _build_external_naive_prompt(
             "}",
         ]
     )
-
-
-def _external_route_guidance_rules(route: RouteResult) -> list[str]:
-    return [
-        line.removeprefix("- ").strip()
-        for line in _route_guidance_lines(route)
-        if line.strip()
-    ]
-
 
 def _external_structured_guide_lines(
     *,
