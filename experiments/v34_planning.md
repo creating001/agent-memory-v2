@@ -100,3 +100,69 @@ Route budget check:
 - `current_state`: top_k `60`，dense_top_k `60`，dense_protect_top_n `48`，compiled evidence rows `60`
 
 结论：v34 通过 LoCoMo no-label/token gate，可以跑 LoCoMo non-adversarial full。暂不跑 LongMemEval-S full；如果 v34 LoCoMo full 超过 v33，再单独做 LME gate。
+
+## 2026-06-14 LoCoMo Full 结果
+
+run: `stage1_route_budgeted_retrieval_v34_locomo_nonadv_full_fb6c703`
+
+- benchmark/subset: LoCoMo non-adversarial full
+- samples: `1540`
+- commit: `fb6c703356a60e8c7d4b5ea1a2ded9e37a21419c`
+- dirty: 仅用户修改的 `docs/architecture.md`、`docs/clean_protocol.md`
+- workers: `8`
+- answer max input/output: `131072/16384`
+- avg build tokens: `58386.00779220779`
+- avg query tokens: `4920.3266233766235`
+- total build tokens: `89914452`
+- total query tokens: `7577303`
+- judge tokens: `662954`
+- build cache hits/misses/writes: `12411/0/0`
+- embedding cache hits/misses/writes: `7422/0/0`
+- answer cache hits/misses/writes: `1207/333/333`
+- avg effective top_k: `55.61038961038961`
+- avg compiled evidence items: `55.61038961038961`
+- avg context chars: `14478.938311688311`
+
+DeepSeek judge:
+
+- valid-only accuracy: `0.7797270955165692`
+- invalid-as-wrong accuracy: `1200/1540 = 0.7792207792207793`
+- v33: `1188/1540 = 0.7714285714285715`
+- v29/v32: `1173/1540 = 0.7616883116883116`
+- net vs v33: `+12`
+- net vs v29: `+27`
+- LoCoMo target gap: still short by `2` correct examples under invalid-as-wrong accounting.
+
+Evidence recall:
+
+- overall: `0.9153645833333334`
+- type 1: `0.925531914893617`
+- type 2: `0.9065420560747663`
+- type 3: `0.6956521739130435`
+- type 4: `0.93935790725327`
+
+v33 对照:
+
+- both_correct: `1156`
+- both_wrong: `308`
+- gained: `44`
+- lost: `32`
+- fact_lookup net `+5`
+- list_count net `0`
+- profile_preference net `0`
+- current_state net `0`
+- temporal_lookup net `+7`
+
+v29 对照:
+
+- both_correct: `1118`
+- both_wrong: `285`
+- gained: `82`
+- lost: `55`
+- fact_lookup net `+21`
+- list_count net `+5`
+- profile_preference net `+2`
+- current_state net `+1`
+- temporal_lookup net `-2`
+
+结论：v34 成为当前 LoCoMo 最好结果，验证了 route-budgeted retrieval 的价值。它几乎达到 0.78 target，但还差 2 条；下一步应优先看 v34-v33 lost/gained badcase，尤其 same-answer judge flips、JSON 泄漏/answer extraction 和少量 temporal lost，而不是立刻盲目跑新 full。

@@ -1,0 +1,203 @@
+{
+  "answer_delta": {
+    "changed_CORRECT_to_WRONG": 10,
+    "changed_WRONG_to_CORRECT": 17,
+    "changed_both_correct": 15,
+    "changed_both_wrong": 19,
+    "same_CORRECT_to_WRONG": 22,
+    "same_WRONG_to_CORRECT": 27,
+    "same_both_correct": 1141,
+    "same_both_wrong": 289
+  },
+  "by_route": {
+    "current_state": {
+      "both_correct": 4
+    },
+    "fact_lookup": {
+      "both_correct": 796,
+      "both_wrong": 181,
+      "gained": 23,
+      "lost": 18
+    },
+    "list_count": {
+      "both_correct": 83,
+      "both_wrong": 46,
+      "gained": 1,
+      "lost": 1
+    },
+    "profile_preference": {
+      "both_correct": 39,
+      "both_wrong": 8,
+      "gained": 1,
+      "lost": 1
+    },
+    "temporal_lookup": {
+      "both_correct": 234,
+      "both_wrong": 73,
+      "gained": 19,
+      "lost": 12
+    }
+  },
+  "clean_note": "Offline comparison reads prediction traces and judge outputs only after prediction; do not feed this into prediction logic.",
+  "examples": {
+    "gained": [
+      {
+        "baseline_answer": "healthy snacks and cookies",
+        "candidate_answer": "healthy snacks and cookies",
+        "record_key": "0671ca46ccefbc1c678f6bf4",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "The provided information is not enough to determine the exact date of John's camping trip with Max.",
+        "candidate_answer": "2022",
+        "record_key": "077dc113032925d7209f2c6a",
+        "route": "temporal_lookup"
+      },
+      {
+        "baseline_answer": "Playing at a doggy daycare with a big indoor space for dogs to play",
+        "candidate_answer": "Playing at a doggy daycare with a big indoor space for dogs to play",
+        "record_key": "0b71bc5435ed4023bf41dedd",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "The provided information is not enough to determine the exact date Nate got his first two turtles.",
+        "candidate_answer": "2019-01-23",
+        "record_key": "0d798f45f3b37893b6adb96f",
+        "route": "temporal_lookup"
+      },
+      {
+        "baseline_answer": "2022-09-26 to 2022-10-02",
+        "candidate_answer": "2022-05-27 to 2022-06-02",
+        "record_key": "1340bc97cd504e993b131b87",
+        "route": "temporal_lookup"
+      },
+      {
+        "baseline_answer": "mother",
+        "candidate_answer": "mother, sister",
+        "record_key": "146487c67925ca15d9b78d68",
+        "route": "temporal_lookup"
+      },
+      {
+        "baseline_answer": "honey garlic chicken with roasted veg",
+        "candidate_answer": "honey garlic chicken with roasted veg",
+        "record_key": "17e4a8f272b46c0a9ad5d9df",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "Andrew could make birdwatching fit his city schedule by visiting nearby urban parks, which he already uses to reconnect with nature and enjoy peaceful outdoor experiences.",
+        "candidate_answer": "Andrew could make birdwatching fit his city schedule by visiting nearby urban parks, which he already uses to reconnect with nature and enjoy peaceful outdoor experiences.",
+        "record_key": "2245ba33bb4c804acc9e76ea",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "2023-09-11",
+        "candidate_answer": "2023-09-16",
+        "record_key": "24392fb9beec5fb96a24a747",
+        "route": "temporal_lookup"
+      },
+      {
+        "baseline_answer": "sit, stay, paw, and rollover",
+        "candidate_answer": "sit, stay, paw, and rollover",
+        "record_key": "2527ce4bd3ac4170381daee2",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "fresh pastries",
+        "candidate_answer": "fresh pastries",
+        "record_key": "27f657a9bc77e72f8ce99129",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "love, support, joy, and quality time",
+        "candidate_answer": "love, support, joy, and quality time",
+        "record_key": "2c6a370fd1c7a33b4c4bef8a",
+        "route": "fact_lookup"
+      }
+    ],
+    "lost": [
+      {
+        "baseline_answer": "2023-06-20",
+        "candidate_answer": "2023-07-21",
+        "record_key": "036d1c42efe355bbef56df4a",
+        "route": "temporal_lookup"
+      },
+      {
+        "baseline_answer": "rainbow flag mural, eagle symbol",
+        "candidate_answer": "rainbow flag mural, eagle symbol",
+        "record_key": "0bb99b11d4e9e2211195173a",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "home country",
+        "candidate_answer": "home country",
+        "record_key": "13fc31c4da9f316b40c10d39",
+        "route": "temporal_lookup"
+      },
+      {
+        "baseline_answer": "2",
+        "candidate_answer": "2.29 weeks",
+        "record_key": "16d70285e40a99b09091bd7a",
+        "route": "temporal_lookup"
+      },
+      {
+        "baseline_answer": "Don't be scared to reach out to people in your field for help and contacts. Networking was a lifesaver for me and opened me up to amazing products that I might not have found otherwise.",
+        "candidate_answer": "Don't be scared to reach out to people in your field for help and contacts. Networking was a lifesaver for me and opened me up to amazing products that I might not have found otherwise.",
+        "record_key": "19e8f0e8ba0a43ea5fe3d7aa",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "figurines",
+        "candidate_answer": "figurines",
+        "record_key": "1c96c79744028a8d6da023e6",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "Joanna recommends getting a large, fluffy couch that can seat multiple people, a weighted blanket, and dimmable lights to make a living room comfy.",
+        "candidate_answer": "Joanna recommends getting a large, fluffy couch that can seat multiple people, a weighted blanket, and dimmable lights to make a living room comfy.",
+        "record_key": "2b1d0889d0514a9b279d4c28",
+        "route": "profile_preference"
+      },
+      {
+        "baseline_answer": "Savana",
+        "candidate_answer": "Savana",
+        "record_key": "2be0392b6749cf5fac432b15",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "Nate owns a gaming console.",
+        "candidate_answer": "Nate owns a gaming console.",
+        "record_key": "31eee05eecca6ce11c47c72e",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "Joanna planned to use the recipe Nate shared and let him know how it turned out.",
+        "candidate_answer": "Joanna planned to use the recipe Nate shared and let him know how it turned out.",
+        "record_key": "3842031ea767d611acfd2e48",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "{\n  \"reasoning\": \"Dave and Calvin consistently express mutual encouragement and support for each other's pursuits. In multiple messages, both affirm their commitment to pursuing their dreams and passions. Dave encourages Calvin to keep going and stay focused, while Calvin reciprocates by affirming Dave's efforts and enthusiasm. They both emphasize the importance of staying motivated, working hard, and not forgetting their dreams. This shared belief in perseverance and passion for personal goals is a recurring theme across their interactions.\",\n  \"sufficient\": true,\n  \"answer_type\": \"preference\",\n  \"evidence_report\": [\n    {\n      \"memory\": \"Memory 2\",\n      \"status\": \"support\",\n      \"slot\": \"pursuits\",\n      \"value\": \"keep at it and never forget your dreams\",\n      \"reason\": \"Dave encourages Calvin to keep pursuing his dreams, showing agreement on the value of perseverance in personal goals.\"\n    },\n    {\n      \"memory\": \"Memory 5\",\n      \"status\": \"support\",\n      \"slot\": \"pursuits\",\n      \"value\": \"Keep coming up with new cool stuff, bud. I'm excited to see what you'll do next\",\n      \"reason\": \"Calvin supports Dave's creative efforts, indicating shared enthusiasm for ongoing personal pursuits.\"\n    },\n    {\n      \"memory\": \"Memory 11\",\n      \"status\": \"support\",\n      \"slot\": \"pursuits\",\n      \"value\": \"I'll keep going for my dreams\",\n      \"reason\": \"Calvin affirms his commitment to pursuing his dreams, aligning with Dave's encouragement.\"\n    },\n    {\n      \"memory\": \"Memory 15\",\n      \"status\": \"support\",\n      \"slot\": \"pursuits\",\n      \"value\": \"Keep pursuing your passion and keep dreaming\",\n      \"reason\": \"Dave encourages Calvin to keep pursuing his passion, showing mutual agreement on the importance of passion and dreaming.\"\n    },\n    {\n      \"memory\": \"Memory 26\",\n      \"status\": \"support\",\n      \"slot\": \"pursuits\",\n      \"value\": \\\"You've come a long way... What's next for you? Anything exciting coming up?\\\"\",\n      \"reason\": \"Dave acknowledges Calvin's progress and shows interest in his future pursuits, indicating shared value in growth and ambition.\"\n    },\n    {\n      \"memory\": \"Memory 46\",\n      \"status\": \"support\",\n      \"slot\": \"pursuits\",\n      \"value\": \\\"It's fulfilling and motivating too. I'm so glad we're on this journey together\\\"\",\n      \"reason\": \"Calvin expresses that pursuing their passions is fulfilling and motivating, showing mutual agreement on the emotional and personal value of their pursuits.\"\n    },\n    {\n      \"memory\": \"Memory 56\",\n      \"status\": \"support\",\n      \"slot\": \"pursuits\",\n      \"value\": \\\"nature really can boost our spirits in tough times\\\"\",\n      \"reason\": \"Dave shares a personal reflection on nature's positive impact, which Calvin later affirms, showing shared appreciation for activities that support well-being and motivation.\"\n    },\n    {\n      \"memory\": \"Memory 44\",\n      \"status\": \"support\",\n      \"slot\": \"pursuits\",\n      \"value\": \\\"I'm going to keep chasing my dreams and working hard\\\"\",\n      \"reason\": \"Dave explicitly states his commitment to chasing dreams, which Calvin has previously supported, indicating alignment in values.\"\n    }\n  ],\n  \"missing\": \"\",\n  \"answer\": \"Dave and Calvin agree that pursuing their dreams and passions with perseverance and motivation is important.\"\n}",
+        "candidate_answer": "{\n  \"reasoning\": \"Dave and Calvin consistently express mutual encouragement and support for each other's pursuits. In multiple messages, both affirm their commitment to pursuing their dreams and passions. Dave encourages Calvin to keep going and stay focused, while Calvin reciprocates by affirming Dave's efforts and enthusiasm. They both emphasize the importance of staying motivated, working hard, and not forgetting their dreams. This shared belief in perseverance and passion for personal goals is a recurring theme across their interactions.\",\n  \"sufficient\": true,\n  \"answer_type\": \"preference\",\n  \"evidence_report\": [\n    {\n      \"memory\": \"Memory 2\",\n      \"status\": \"support\",\n      \"slot\": \"pursuits\",\n      \"value\": \"keep at it and never forget your dreams\",\n      \"reason\": \"Dave encourages Calvin to keep pursuing his dreams, showing agreement on the value of perseverance in personal goals.\"\n    },\n    {\n      \"memory\": \"Memory 5\",\n      \"status\": \"support\",\n      \"slot\": \"pursuits\",\n      \"value\": \"Keep coming up with new cool stuff, bud. I'm excited to see what you'll do next\",\n      \"reason\": \"Calvin supports Dave's creative efforts, indicating shared enthusiasm for ongoing personal pursuits.\"\n    },\n    {\n      \"memory\": \"Memory 11\",\n      \"status\": \"support\",\n      \"slot\": \"pursuits\",\n      \"value\": \"I'll keep going for my dreams\",\n      \"reason\": \"Calvin affirms his commitment to pursuing his dreams, aligning with Dave's encouragement.\"\n    },\n    {\n      \"memory\": \"Memory 15\",\n      \"status\": \"support\",\n      \"slot\": \"pursuits\",\n      \"value\": \"Keep pursuing your passion and keep dreaming\",\n      \"reason\": \"Dave encourages Calvin to keep pursuing his passion, showing mutual agreement on the importance of passion and dreaming.\"\n    },\n    {\n      \"memory\": \"Memory 26\",\n      \"status\": \"support\",\n      \"slot\": \"pursuits\",\n      \"value\": \\\"You've come a long way... What's next for you? Anything exciting coming up?\\\"\",\n      \"reason\": \"Dave acknowledges Calvin's progress and shows interest in his future pursuits, indicating shared value in growth and ambition.\"\n    },\n    {\n      \"memory\": \"Memory 46\",\n      \"status\": \"support\",\n      \"slot\": \"pursuits\",\n      \"value\": \\\"It's fulfilling and motivating too. I'm so glad we're on this journey together\\\"\",\n      \"reason\": \"Calvin expresses that pursuing their passions is fulfilling and motivating, showing mutual agreement on the emotional and personal value of their pursuits.\"\n    },\n    {\n      \"memory\": \"Memory 56\",\n      \"status\": \"support\",\n      \"slot\": \"pursuits\",\n      \"value\": \\\"nature really can boost our spirits in tough times\\\"\",\n      \"reason\": \"Dave shares a personal reflection on nature's positive impact, which Calvin later affirms, showing shared appreciation for activities that support well-being and motivation.\"\n    },\n    {\n      \"memory\": \"Memory 44\",\n      \"status\": \"support\",\n      \"slot\": \"pursuits\",\n      \"value\": \\\"I'm going to keep chasing my dreams and working hard\\\"\",\n      \"reason\": \"Dave explicitly states his commitment to chasing dreams, which Calvin has previously supported, indicating alignment in values.\"\n    }\n  ],\n  \"missing\": \"\",\n  \"answer\": \"Dave and Calvin agree that pursuing their dreams and passions with perseverance and motivation is important.\"\n}",
+        "record_key": "39df0cb4cac4d037454f47bd",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "2023-09-25 to 2023-10-01",
+        "candidate_answer": "2023-10-02",
+        "record_key": "4da9ab1005ab0003892ef034",
+        "route": "temporal_lookup"
+      }
+    ]
+  },
+  "n_keys": 1540,
+  "runs": {
+    "baseline": "stage1_retrieval_top60_v33_locomo_nonadv_full_f016f9a",
+    "candidate": "stage1_route_budgeted_retrieval_v34_locomo_nonadv_full_fb6c703"
+  },
+  "summary": {
+    "both_correct": 1156,
+    "both_wrong": 308,
+    "gained": 44,
+    "lost": 32
+  }
+}
