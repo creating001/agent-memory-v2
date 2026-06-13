@@ -1,0 +1,36 @@
+{
+  "clean_note": "This is offline-only evidence analysis. Its output must not be read by prediction, route, retrieval, compiler, answer, or verifier modules.",
+  "created_at_utc": "2026-06-13T06:30:48+00:00",
+  "git": {
+    "commit": "32355535de2170dee39eb06cf02122d41efb483e",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "?? experiments/formal/stage1_source_expansion_v12_lme_s_full_9ad6e03/\n?? experiments/formal/stage1_source_expansion_v12_locomo_nonadv_full_3235553/"
+  },
+  "labels": "/data/home_new/wujinqi/agent-memory/outputs/prepare_locomo_non_adversarial/labels.jsonl",
+  "metrics": {
+    "by_type": {
+      "1": {
+        "evidence_recall": 0.8900709219858156,
+        "n": 282
+      },
+      "2": {
+        "evidence_recall": 0.8753894080996885,
+        "n": 321
+      },
+      "3": {
+        "evidence_recall": 0.6739130434782609,
+        "n": 92
+      },
+      "4": {
+        "evidence_recall": 0.8858501783590963,
+        "n": 841
+      }
+    },
+    "diagnostic_note": "Offline-only retrieval diagnostic. Evidence labels must not feed prediction, route, retrieval, compiler, answer, or verifier modules.",
+    "evidence_recall": 0.8717447916666666,
+    "n_with_evidence_labels": 1536
+  },
+  "traces": "/data/home_new/wujinqi/agent-memory/outputs/formal/stage1_source_expansion_v12_locomo_nonadv_full_3235553/traces.jsonl"
+}
