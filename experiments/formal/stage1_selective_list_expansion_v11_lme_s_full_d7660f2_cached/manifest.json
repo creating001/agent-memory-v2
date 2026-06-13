@@ -1,0 +1,26 @@
+{
+  "clean_assertions": [
+    "Prediction loader rejects gold/reference/target answers.",
+    "Prediction loader rejects judge outputs and benchmark labels.",
+    "Prediction loader rejects sample ids, qids, and row indices.",
+    "record_key is copied only by the runner and is not passed into pipeline modules.",
+    "Derived context rows always retain raw source_id back-links.",
+    "Build-stage typed memory is created only from raw dialogue turns and visible metadata."
+  ],
+  "config_path": "/data/home_new/wujinqi/agent-memory/configs/stage1_selective_list_expansion_v11_cached.json",
+  "created_at_utc": "2026-06-13T03:02:00+00:00",
+  "experiment_dir": "/data/home_new/wujinqi/agent-memory/experiments/formal/stage1_selective_list_expansion_v11_lme_s_full_d7660f2_cached",
+  "git": {
+    "commit": "d7660f21755e8060b941555499b1f6c28a3b9475",
+    "dirty": false,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": ""
+  },
+  "input_path": "/data/home_new/wujinqi/agent-memory/outputs/prepare_longmemeval_s_cleaned/prediction_input.jsonl",
+  "outputs": {
+    "predictions": "/data/home_new/wujinqi/agent-memory/outputs/formal/stage1_selective_list_expansion_v11_lme_s_full_d7660f2_cached/predictions.jsonl",
+    "traces": "/data/home_new/wujinqi/agent-memory/outputs/formal/stage1_selective_list_expansion_v11_lme_s_full_d7660f2_cached/traces.jsonl"
+  },
+  "run_id": "formal/stage1_selective_list_expansion_v11_lme_s_full_d7660f2_cached"
+}

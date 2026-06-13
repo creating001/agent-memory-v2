@@ -1,0 +1,315 @@
+{
+  "accuracy": null,
+  "answer": {
+    "base_url": "http://127.0.0.1:8000/v1",
+    "max_input_tokens": 131072,
+    "max_output_tokens": 16384,
+    "max_tokens": 16384,
+    "mode": "openai_compatible",
+    "model": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "temperature": 0.0,
+    "timeout": 120.0
+  },
+  "benchmark": "longmemeval_s",
+  "bleu": null,
+  "budget_note": "avg_query_tokens=5824.768 is within the 6K mainline target; accuracy is negative versus v7, so the run is not promoted.",
+  "budget_status": "mainline_budget_ok",
+  "build_memory": {
+    "avg_active_records": 116.492,
+    "avg_chunks": 6.682,
+    "avg_records": 129.662,
+    "base_url": "http://127.0.0.1:8000/v1",
+    "cache_enabled": true,
+    "cache_hits": 3341,
+    "cache_misses": 0,
+    "cache_path": "outputs/cache/qwen3_build_memory.sqlite",
+    "cache_writes": 0,
+    "enabled": true,
+    "include_superseded": false,
+    "include_superseded_information_needs": [
+      "temporal_lookup",
+      "list_count"
+    ],
+    "max_chars_per_turn": 500,
+    "max_records_per_chunk": 20,
+    "max_tokens": 2048,
+    "max_turns_per_chunk": 80,
+    "mode": "openai_compatible",
+    "model": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "temperature": 0.0,
+    "total_active_records": 58246,
+    "total_chunks": 3341,
+    "total_records": 64831,
+    "total_superseded_records": 6585
+  },
+  "compiler": {
+    "answer_style": "concise",
+    "evidence_order": "question_overlap",
+    "evidence_row_labels": false,
+    "final_answer_checklist": false,
+    "max_memory_records": 16,
+    "max_row_text_chars": 0,
+    "memory_layout": "typed_sections",
+    "memory_order": "question_overlap",
+    "route_guidance": true,
+    "route_overrides": {
+      "list_count": {
+        "evidence_row_labels": false,
+        "final_answer_checklist": false,
+        "max_evidence_chars": 15000,
+        "max_evidence_items": 24,
+        "max_row_text_chars": 500,
+        "row_text_mode": "role_query_snippet"
+      }
+    },
+    "row_text_mode": "full",
+    "temporal_grounding": true,
+    "temporal_hints": true,
+    "temporal_text_normalization": false,
+    "temporal_workpad": true,
+    "temporal_workpad_max_pairs": 12,
+    "temporal_workpad_max_rows": 10,
+    "temporal_workpad_scope": "route"
+  },
+  "experiment_kind": "formal",
+  "f1": null,
+  "metrics_note": "No gold answers or judge outputs are used by this prediction runner.",
+  "n_samples": 500,
+  "offline_comparison": {
+    "v10_compact_evidence": {
+      "accuracy": 0.59,
+      "correct": 295,
+      "delta_accuracy": 0.0040000000000000036,
+      "minus_by_question_type": {
+        "knowledge-update": 2,
+        "multi-session": 11,
+        "single-session-assistant": 2,
+        "single-session-preference": 1,
+        "single-session-user": 4,
+        "temporal-reasoning": 4
+      },
+      "minus_correct_count": 24,
+      "net_correct": 2,
+      "plus_by_question_type": {
+        "knowledge-update": 2,
+        "multi-session": 4,
+        "single-session-assistant": 7,
+        "single-session-preference": 5,
+        "single-session-user": 2,
+        "temporal-reasoning": 6
+      },
+      "plus_correct_count": 26,
+      "total": 500
+    },
+    "v4_temporal_preference": {
+      "accuracy": 0.596,
+      "correct": 298,
+      "delta_accuracy": -0.0020000000000000018,
+      "minus_by_question_type": {
+        "knowledge-update": 3,
+        "multi-session": 5,
+        "single-session-assistant": 4,
+        "single-session-preference": 1,
+        "single-session-user": 1,
+        "temporal-reasoning": 5
+      },
+      "minus_correct_count": 19,
+      "net_correct": -1,
+      "plus_by_question_type": {
+        "knowledge-update": 2,
+        "multi-session": 9,
+        "single-session-assistant": 2,
+        "temporal-reasoning": 5
+      },
+      "plus_correct_count": 18,
+      "total": 500
+    },
+    "v7_memory_validity": {
+      "accuracy": 0.606,
+      "correct": 303,
+      "delta_accuracy": -0.01200000000000001,
+      "minus_by_question_type": {
+        "knowledge-update": 2,
+        "multi-session": 3,
+        "single-session-assistant": 4,
+        "single-session-preference": 1,
+        "single-session-user": 3,
+        "temporal-reasoning": 4
+      },
+      "minus_correct_count": 17,
+      "net_correct": -6,
+      "plus_by_question_type": {
+        "multi-session": 5,
+        "single-session-preference": 2,
+        "temporal-reasoning": 4
+      },
+      "plus_correct_count": 11,
+      "total": 500
+    }
+  },
+  "offline_evidence_recall": {
+    "by_type": {
+      "knowledge-update": {
+        "evidence_recall": 1.0,
+        "n": 78
+      },
+      "multi-session": {
+        "evidence_recall": 0.9624060150375939,
+        "n": 133
+      },
+      "single-session-assistant": {
+        "evidence_recall": 1.0,
+        "n": 56
+      },
+      "single-session-preference": {
+        "evidence_recall": 0.9666666666666667,
+        "n": 30
+      },
+      "single-session-user": {
+        "evidence_recall": 0.9857142857142858,
+        "n": 70
+      },
+      "temporal-reasoning": {
+        "evidence_recall": 0.9699248120300752,
+        "n": 133
+      }
+    },
+    "evidence_recall": 0.978,
+    "n_with_evidence_labels": 500,
+    "output_path": "/data/home_new/wujinqi/agent-memory/experiments/formal/stage1_selective_list_expansion_v11_lme_s_full_d7660f2_cached/evidence_recall.json"
+  },
+  "offline_judge": {
+    "accuracy": 0.594,
+    "benchmark": "longmemeval",
+    "by_question_type": {
+      "knowledge-update": {
+        "accuracy": 0.717948717948718,
+        "correct": 56,
+        "total": 78
+      },
+      "multi-session": {
+        "accuracy": 0.38345864661654133,
+        "correct": 51,
+        "total": 133
+      },
+      "single-session-assistant": {
+        "accuracy": 0.8214285714285714,
+        "correct": 46,
+        "total": 56
+      },
+      "single-session-preference": {
+        "accuracy": 0.3333333333333333,
+        "correct": 10,
+        "total": 30
+      },
+      "single-session-user": {
+        "accuracy": 0.8571428571428571,
+        "correct": 60,
+        "total": 70
+      },
+      "temporal-reasoning": {
+        "accuracy": 0.556390977443609,
+        "correct": 74,
+        "total": 133
+      }
+    },
+    "by_route": {
+      "current_state": {
+        "accuracy": 0.5454545454545454,
+        "correct": 12,
+        "total": 22
+      },
+      "fact_lookup": {
+        "accuracy": 0.7049180327868853,
+        "correct": 129,
+        "total": 183
+      },
+      "list_count": {
+        "accuracy": 0.5126050420168067,
+        "correct": 61,
+        "total": 119
+      },
+      "profile_preference": {
+        "accuracy": 0.4,
+        "correct": 6,
+        "total": 15
+      },
+      "temporal_lookup": {
+        "accuracy": 0.5527950310559007,
+        "correct": 89,
+        "total": 161
+      }
+    },
+    "correct": 297,
+    "model": "deepseek-v4-flash",
+    "n_invalid": 0,
+    "n_valid": 500,
+    "output_path": "/data/home_new/wujinqi/agent-memory/experiments/formal/stage1_selective_list_expansion_v11_lme_s_full_d7660f2_cached/deepseek_judge.json",
+    "total": 500,
+    "usage": {
+      "completion_tokens": 36157,
+      "prompt_tokens": 78066,
+      "total_tokens": 114223
+    }
+  },
+  "retrieval": {
+    "avg_compiled_evidence_items": 15.498,
+    "avg_context_chars": 20844.396,
+    "avg_embedding_tokens": 0.0,
+    "avg_memory_hits": 8.208,
+    "avg_memory_source_hits": 7.894,
+    "build_memory_enabled": true,
+    "build_memory_include_superseded": false,
+    "build_memory_include_superseded_information_needs": [
+      "temporal_lookup",
+      "list_count"
+    ],
+    "build_memory_max_sources_per_record": 4,
+    "build_memory_top_k": 20,
+    "dense_enabled": true,
+    "drop_query_stopwords": true,
+    "embedding_cache_enabled": true,
+    "embedding_cache_hits": 247238,
+    "embedding_cache_misses": 0,
+    "embedding_cache_path": "outputs/cache/qwen3_embedding.sqlite",
+    "embedding_cache_writes": 0,
+    "lexical_protect_top_n": 2,
+    "max_top_k": 36,
+    "neighbor_order": "hit_priority",
+    "neighbor_window": 1,
+    "session_anchor_top_k": 2,
+    "session_bm25_applied_count": 193,
+    "session_bm25_applied_rate": 0.386,
+    "session_bm25_enabled": true,
+    "session_bm25_top_k": 8,
+    "session_enabled_information_needs": null,
+    "session_enabled_query_patterns": [
+      "\\b20\\d{2}\\b",
+      "\\b(?:january|february|march|april|june|july|august|september|october|november|december)\\b",
+      "\\bmay\\s+20\\d{2}\\b"
+    ],
+    "session_enabled_route_signals": [
+      "temporal",
+      "recent_or_current"
+    ],
+    "session_max_anchor_hits": 12,
+    "session_protect_turn_hits": 4,
+    "top_k": 12,
+    "total_embedding_tokens": 0
+  },
+  "route": {
+    "enable_broad_list_patterns": false,
+    "enable_recommendation_profile_patterns": true,
+    "temporal_priority_over_recent": false
+  },
+  "runner": {
+    "workers": 8
+  },
+  "subset": "full",
+  "token_cost": {
+    "avg_build_tokens": 0.0,
+    "avg_query_tokens": 5824.768,
+    "total_build_tokens": 0,
+    "total_query_tokens": 2912384
+  }
+}

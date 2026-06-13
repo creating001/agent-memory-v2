@@ -35,6 +35,7 @@
 - v8 组合 v6 route priority 与 v7 validity 后降到 0.600，说明两个开关没有稳定互补；不跑 LoCoMo。
 - v9 evidence arbitration 降到 0.582，且 avg query tokens 6744.762 超过 6K 目标；仅 multi-session 从 v7 的 49/133 提到 56/133，可作为后续 compact/route-specific 设计线索。
 - v10 compact evidence 降到 0.590，avg query tokens 6519.668 超过 6K 目标；evidence recall 0.998 且 multi-session 58/133，但整体被 assistant/preference/temporal 退化抵消，不作为主线。
+- v11 selective list expansion 降到 0.594，avg query tokens 5824.768 在预算内；成本正向但 list_count 61/119 低于 v7 的 63/119，不作为主线。
 - v6 route priority 是 LME clean 正向消融，但 LoCoMo full 降到 0.681611，不作为 LoCoMo 主线。
 - v5 relative temporal text normalization 在 LME 上降到 0.590，不作为主线。
 - v4.1 compact temporal workpad 降低 token 但 accuracy 退化，不作为主线。
@@ -87,6 +88,7 @@ experiments/formal/<run_id>/
 | `stage1_route_validity_v8_lme_s_full_79c9cea_cached` | LongMemEval-S | full | `79c9cea` | 0.600 | v6+v7 组合负向；temporal-reasoning 72/133，低于 v6/v7，不作为主线。 |
 | `stage1_evidence_arbitration_v9_lme_s_full_122fd3e_cached` | LongMemEval-S | full | `122fd3e` | 0.582 | budget-warning 负向；multi-session 有收益，但整体退化且 avg query tokens 超 6K。 |
 | `stage1_compact_evidence_v10_lme_s_full_f8b36eb_cached` | LongMemEval-S | full | `f8b36eb` | 0.590 | budget-warning 负向；evidence_recall=0.998，multi-session 提升到 58/133，但 avg query tokens=6519.668 且整体低于 v7。 |
+| `stage1_selective_list_expansion_v11_lme_s_full_d7660f2_cached` | LongMemEval-S | full | `d7660f2` | 0.594 | 成本正向但 accuracy 负向；avg query tokens=5824.768，list_count 61/119，低于 v7。 |
 | `stage1_temporal_preference_v4_lme_s_full_6c7d51e_cached` | LongMemEval-S | full | `6c7d51e` | 0.596 | v6 前 LME 最好；temporal 提升明显，但 multi-session 仍弱。 |
 | `stage1_temporal_preference_v4_locomo_nonadv_full_edf05a5_cached` | LoCoMo | non-adversarial full | `edf05a5` | 0.695906 | fact_lookup 可用，temporal/list/组合推理不足。 |
 | `stage1_route_priority_v6_locomo_nonadv_full_c57e810_cached` | LoCoMo | non-adversarial full | `c57e810` | 0.681611 | v6 在 LoCoMo 负向；route 改动只影响 1 条且无净收益，LoCoMo 主线仍是 v4。 |
