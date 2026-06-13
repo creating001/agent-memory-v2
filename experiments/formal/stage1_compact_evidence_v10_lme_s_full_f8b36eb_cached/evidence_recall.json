@@ -1,0 +1,44 @@
+{
+  "clean_note": "This is offline-only evidence analysis. Its output must not be read by prediction, route, retrieval, compiler, answer, or verifier modules.",
+  "created_at_utc": "2026-06-13T02:36:08+00:00",
+  "git": {
+    "commit": "f8b36eb3749285ef88fe5df4723462d774efe586",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "?? experiments/formal/stage1_compact_evidence_v10_lme_s_full_f8b36eb_cached/"
+  },
+  "labels": "/data/home_new/wujinqi/agent-memory/outputs/prepare_longmemeval_s_cleaned/labels.jsonl",
+  "metrics": {
+    "by_type": {
+      "knowledge-update": {
+        "evidence_recall": 1.0,
+        "n": 78
+      },
+      "multi-session": {
+        "evidence_recall": 1.0,
+        "n": 133
+      },
+      "single-session-assistant": {
+        "evidence_recall": 1.0,
+        "n": 56
+      },
+      "single-session-preference": {
+        "evidence_recall": 1.0,
+        "n": 30
+      },
+      "single-session-user": {
+        "evidence_recall": 1.0,
+        "n": 70
+      },
+      "temporal-reasoning": {
+        "evidence_recall": 0.9924812030075187,
+        "n": 133
+      }
+    },
+    "diagnostic_note": "Offline-only retrieval diagnostic. Evidence labels must not feed prediction, route, retrieval, compiler, answer, or verifier modules.",
+    "evidence_recall": 0.998,
+    "n_with_evidence_labels": 500
+  },
+  "traces": "/data/home_new/wujinqi/agent-memory/outputs/formal/stage1_compact_evidence_v10_lme_s_full_f8b36eb_cached/traces.jsonl"
+}
