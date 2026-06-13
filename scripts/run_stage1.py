@@ -322,12 +322,6 @@ def main() -> int:
             "structured_guide_disabled_signals": config.get("compiler", {}).get(
                 "structured_guide_disabled_signals"
             ),
-            "structured_guide_force_information_needs": config.get(
-                "compiler", {}
-            ).get("structured_guide_force_information_needs"),
-            "profile_preference_answer_contract": config.get("compiler", {}).get(
-                "profile_preference_answer_contract", False
-            ),
             "route_overrides": config.get("compiler", {}).get(
                 "route_overrides", {}
             ),
@@ -615,8 +609,6 @@ def _write_summary(
         f"- structured_guide_include_rows: {metrics['compiler']['structured_guide_include_rows']}",
         f"- structured_guide_include_memory: {metrics['compiler']['structured_guide_include_memory']}",
         f"- structured_guide_disabled_signals: {metrics['compiler']['structured_guide_disabled_signals']}",
-        f"- structured_guide_force_information_needs: {metrics['compiler']['structured_guide_force_information_needs']}",
-        f"- profile_preference_answer_contract: {metrics['compiler']['profile_preference_answer_contract']}",
         f"- route_overrides: {metrics['compiler']['route_overrides']}",
         f"- enable_broad_list_patterns: {metrics['route']['enable_broad_list_patterns']}",
         f"- enable_recommendation_profile_patterns: {metrics['route']['enable_recommendation_profile_patterns']}",
@@ -698,8 +690,6 @@ def _write_diagnosis(
         f"- structured_guide_include_rows: {metrics['compiler']['structured_guide_include_rows']}",
         f"- structured_guide_include_memory: {metrics['compiler']['structured_guide_include_memory']}",
         f"- structured_guide_disabled_signals: {metrics['compiler']['structured_guide_disabled_signals']}",
-        f"- structured_guide_force_information_needs: {metrics['compiler']['structured_guide_force_information_needs']}",
-        f"- profile_preference_answer_contract: {metrics['compiler']['profile_preference_answer_contract']}",
         f"- route_overrides: {metrics['compiler']['route_overrides']}",
         f"- enable_recommendation_profile_patterns: {metrics['route']['enable_recommendation_profile_patterns']}",
         f"- temporal_priority_over_recent: {metrics['route']['temporal_priority_over_recent']}",

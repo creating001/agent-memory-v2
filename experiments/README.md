@@ -47,6 +47,7 @@
 - v15 compact source-map guide 在 LME 上降到 0.686，在 LoCoMo 上为 0.720130，低于 v14 且略低于 v13；说明只保留 activated build memory source map 不足，v14 的 row-level organization 对 LoCoMo category 2 有实质作用，但会伤 LME。
 - v16 row guide 在 LME 上为 0.708，在 LoCoMo 上为 0.729870；说明 row-level evidence organization 比 typed memory source map 更稳，是 v14 收益的主要来源之一，但 LME preference 退化明显，不能无条件作为统一主线。
 - v18 token gate 通过：LME avg_build_tokens 80346.246、avg_query_tokens 5117.622；LoCoMo avg_build_tokens 58386.008、avg_query_tokens 3270.569。build token 按逻辑冷启动成本记录，即使 build cache 全命中也计入 cached usage。
+- v24 profile memory contract 在 LME 上为 0.714，低于 v18 净 -9；它只改变 15 个 `profile_preference` prompt，preference 从 11/30 提到 13/30，但 full accuracy 负向。不跑 LoCoMo full，不作为主线，配置不长期保留。
 - v23 LLM retrieval planner 在 LME 上为 0.716，低于 v18 净 -8；avg_query_tokens 5360.726，planner 平均增加 245.218 query tokens，evidence recall 仍为 1.0。说明每题 LLM query planning 没有改善证据使用，主要伤 knowledge-update；不跑 LoCoMo full，不作为主线，配置不长期保留。
 - v22 temporal aid frontload 在 LME 上为 0.720，低于 v18 净 -6；Temporal Aid 前置 198/198 生效、duration mentions 出现 145 个 prompt，但 evidence recall 仍为 1.0 且 accuracy 退化。不跑 LoCoMo full，不作为主线，配置不长期保留。
 - v21 external route guidance 在 LME 上降到 0.702，低于 v18 净 -15；evidence recall 仍为 1.0，说明退化主要来自 answer-side 通用规则干扰证据使用和答案细节，不跑 LoCoMo full，不作为主线，配置不长期保留。
@@ -113,6 +114,7 @@ experiments/formal/<run_id>/
 |---|---|---|---|---:|---|
 | `stage1_hybrid_bm25_v18_lme_s_full_6c5ed99` | LongMemEval-S | full | `6c5ed99` | 0.732 | 当前 LME 最好；vs v17 净 +5，vs v16 净 +12，vs v13/v12 净 +9，vs clean naive RAG 净 +22；hybrid BM25+dense 在 token 预算内提升 temporal/knowledge 定位。 |
 | `stage1_hybrid_bm25_v18_locomo_nonadv_full_bb1cc3c` | LoCoMo | non-adversarial full | `bb1cc3c` | 0.737013 | 当前 LoCoMo 最好；vs v14 净 +2，vs v17 净 +25，vs clean naive RAG 净 +60；优势薄但同一 general 方法跨 benchmark 正向。 |
+| `stage1_profile_memory_contract_v24_lme_s_full_bc7983d` | LongMemEval-S | full | `bc7983d` | 0.714 | 局部正向但 full 负向；preference 11/30 -> 13/30，但整体 vs v18 净 -9；不跑 LoCoMo。 |
 | `stage1_llm_retrieval_planner_v23_lme_s_full_c9fcd76` | LongMemEval-S | full | `c9fcd76` | 0.716 | 负向 query planner 消融；vs v18 净 -8，planner avg +245 query tokens，evidence recall 1.0 但 knowledge-update 退化；不跑 LoCoMo。 |
 | `stage1_temporal_aid_frontload_v22_lme_s_full_2143e43` | LongMemEval-S | full | `2143e43` | 0.720 | 负向 temporal compiler 消融；vs v18 净 -6，Temporal Aid 前置和 duration mentions 生效但未提升 accuracy；不跑 LoCoMo。 |
 | `stage1_external_route_guidance_v21_lme_s_full_774be27` | LongMemEval-S | full | `774be27` | 0.702 | 负向 prompt 消融；vs v18 净 -15，knowledge-update 和 multi-session 主要退化；evidence recall 1.0，说明通用 answer-side route guidance 干扰证据使用，不跑 LoCoMo。 |

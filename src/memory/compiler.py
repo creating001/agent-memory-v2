@@ -128,8 +128,6 @@ class EvidenceCompiler:
         structured_guide_include_rows: bool = True,
         structured_guide_include_memory: bool = True,
         structured_guide_disabled_signals: tuple[str, ...] = (),
-        structured_guide_force_information_needs: tuple[str, ...] = (),
-        profile_preference_answer_contract: bool = False,
         evidence_order: str = "retrieval",
         memory_order: str = "retrieval",
         memory_layout: str = "flat",
@@ -163,11 +161,6 @@ class EvidenceCompiler:
         self._structured_guide_disabled_signals = tuple(
             str(signal) for signal in structured_guide_disabled_signals
         )
-        self._structured_guide_force_information_needs = _validate_information_needs(
-            structured_guide_force_information_needs,
-            setting_name="structured_guide_force_information_needs",
-        )
-        self._profile_preference_answer_contract = profile_preference_answer_contract
         if evidence_order not in {"retrieval", "question_overlap"}:
             raise ValueError(f"Unsupported evidence_order: {evidence_order}")
         self._evidence_order = evidence_order
@@ -269,12 +262,8 @@ class EvidenceCompiler:
             temporal_workpad_max_pairs=self._temporal_workpad_max_pairs,
             structured_guide=(
                 self._structured_guide
-                and _structured_guide_applies(
-                    route=route,
-                    disabled_signals=self._structured_guide_disabled_signals,
-                    force_information_needs=(
-                        self._structured_guide_force_information_needs
-                    ),
+                and not set(route.signals).intersection(
+                    self._structured_guide_disabled_signals
                 )
             ),
             structured_guide_max_rows=route_settings["structured_guide_max_rows"],
@@ -284,9 +273,6 @@ class EvidenceCompiler:
             structured_guide_include_memory=route_settings[
                 "structured_guide_include_memory"
             ],
-            profile_preference_answer_contract=(
-                self._profile_preference_answer_contract
-            ),
             memory_layout=self._memory_layout,
             row_text_mode=route_settings["row_text_mode"],
             max_row_text_chars=route_settings["max_row_text_chars"],
@@ -383,30 +369,6 @@ def _validate_route_overrides(
             )
         normalized[information_need] = overrides
     return normalized
-
-
-def _validate_information_needs(
-    information_needs: tuple[str, ...],
-    *,
-    setting_name: str,
-) -> tuple[str, ...]:
-    normalized = tuple(str(value) for value in information_needs)
-    unknown = set(normalized).difference(SUPPORTED_INFORMATION_NEEDS)
-    if unknown:
-        values = ", ".join(sorted(unknown))
-        raise ValueError(f"Unsupported {setting_name}: {values}")
-    return normalized
-
-
-def _structured_guide_applies(
-    *,
-    route: RouteResult,
-    disabled_signals: tuple[str, ...],
-    force_information_needs: tuple[str, ...],
-) -> bool:
-    if route.information_need in force_information_needs:
-        return True
-    return not set(route.signals).intersection(disabled_signals)
 
 
 def _order_rows(
@@ -583,7 +545,6 @@ def _build_prompt(
     structured_guide_max_rows: int,
     structured_guide_include_rows: bool,
     structured_guide_include_memory: bool,
-    profile_preference_answer_contract: bool,
     memory_layout: str,
     row_text_mode: str,
     max_row_text_chars: int,
@@ -620,7 +581,6 @@ def _build_prompt(
             structured_guide_max_rows=structured_guide_max_rows,
             structured_guide_include_rows=structured_guide_include_rows,
             structured_guide_include_memory=structured_guide_include_memory,
-            profile_preference_answer_contract=profile_preference_answer_contract,
         )
 
     lines = [
@@ -761,7 +721,6 @@ def _build_external_naive_prompt(
     structured_guide_max_rows: int,
     structured_guide_include_rows: bool,
     structured_guide_include_memory: bool,
-    profile_preference_answer_contract: bool,
 ) -> str:
     user_question = (
         f"Current Date: {question_time}\nQuestion: {question}"
@@ -805,14 +764,6 @@ def _build_external_naive_prompt(
     if temporal_aid:
         rules.append(
             "Use Temporal Aid only to interpret row dates and relative time phrases in the memory context; it is not independent evidence."
-        )
-    if profile_preference_answer_contract and route.information_need == "profile_preference":
-        rules.extend(
-            [
-                "For personalized recommendation or preference questions, infer the user's stable preferences, constraints, and likely dislikes from the memory context.",
-                "Do not say the context is insufficient only because no live catalog or current external options are provided; answer with supported preference-aligned criteria or recommendation types instead.",
-                "If the memory context contains no relevant preference or profile signal, then say the provided information is not enough.",
-            ]
         )
     rules.extend(
         [

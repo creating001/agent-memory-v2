@@ -211,12 +211,6 @@ class Stage1Pipeline:
             structured_guide_disabled_signals=_tuple_config(
                 compiler_config.get("structured_guide_disabled_signals")
             ),
-            structured_guide_force_information_needs=_tuple_config(
-                compiler_config.get("structured_guide_force_information_needs")
-            ),
-            profile_preference_answer_contract=bool(
-                compiler_config.get("profile_preference_answer_contract", False)
-            ),
             evidence_order=str(compiler_config.get("evidence_order", "retrieval")),
             memory_order=str(compiler_config.get("memory_order", "retrieval")),
             memory_layout=str(compiler_config.get("memory_layout", "flat")),
@@ -279,12 +273,6 @@ class Stage1Pipeline:
             ),
             "structured_guide_disabled_signals": _tuple_config(
                 compiler_config.get("structured_guide_disabled_signals")
-            ),
-            "structured_guide_force_information_needs": _tuple_config(
-                compiler_config.get("structured_guide_force_information_needs")
-            ),
-            "profile_preference_answer_contract": bool(
-                compiler_config.get("profile_preference_answer_contract", False)
             ),
             "max_memory_records": int(compiler_config.get("max_memory_records", 12)),
             "route_overrides": compiler_config.get("route_overrides") or {},
