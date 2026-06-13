@@ -1,0 +1,103 @@
+{
+  "runs": {
+    "v18": "stage1_hybrid_bm25_v18_lme_s_full_6c5ed99",
+    "v26": "stage1_structured_answer_contract_v26_lme_s_full_eecb206",
+    "v27": "stage1_operation_workpad_v27_lme_s_full_ca4959c"
+  },
+  "summary": {
+    "v18": {
+      "accuracy": 0.732,
+      "correct": 366,
+      "n": 500,
+      "by_type": {
+        "knowledge-update": {
+          "n": 78,
+          "accuracy": 0.8205128205128205
+        },
+        "multi-session": {
+          "n": 133,
+          "accuracy": 0.556390977443609
+        },
+        "single-session-assistant": {
+          "n": 56,
+          "accuracy": 0.9285714285714286
+        },
+        "single-session-preference": {
+          "n": 30,
+          "accuracy": 0.36666666666666664
+        },
+        "single-session-user": {
+          "n": 70,
+          "accuracy": 0.9428571428571428
+        },
+        "temporal-reasoning": {
+          "n": 133,
+          "accuracy": 0.7443609022556391
+        }
+      }
+    },
+    "v26": {
+      "accuracy": 0.746,
+      "correct": 373,
+      "n": 500,
+      "by_type": {
+        "knowledge-update": {
+          "n": 78,
+          "accuracy": 0.7307692307692307
+        },
+        "multi-session": {
+          "n": 133,
+          "accuracy": 0.6541353383458647
+        },
+        "single-session-assistant": {
+          "n": 56,
+          "accuracy": 0.9285714285714286
+        },
+        "single-session-preference": {
+          "n": 30,
+          "accuracy": 0.3
+        },
+        "single-session-user": {
+          "n": 70,
+          "accuracy": 0.9
+        },
+        "temporal-reasoning": {
+          "n": 133,
+          "accuracy": 0.7894736842105263
+        }
+      }
+    },
+    "v27": {
+      "accuracy": 0.742,
+      "correct": 371,
+      "n": 500,
+      "by_type": {
+        "knowledge-update": {
+          "n": 78,
+          "accuracy": 0.8076923076923077
+        },
+        "multi-session": {
+          "n": 133,
+          "accuracy": 0.5714285714285714
+        },
+        "single-session-assistant": {
+          "n": 56,
+          "accuracy": 0.9642857142857143
+        },
+        "single-session-preference": {
+          "n": 30,
+          "accuracy": 0.5
+        },
+        "single-session-user": {
+          "n": 70,
+          "accuracy": 0.8714285714285714
+        },
+        "temporal-reasoning": {
+          "n": 133,
+          "accuracy": 0.7669172932330827
+        }
+      }
+    }
+  },
+  "note": "Offline-only judge/gold diagnostic; do not feed into prediction."
+}
