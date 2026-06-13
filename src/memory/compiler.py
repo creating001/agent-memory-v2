@@ -780,7 +780,6 @@ def _build_external_naive_prompt(
             "User Question:",
             user_question,
             structured_guide_block,
-            temporal_aid,
             "",
             "Memory Context:",
             _external_naive_context(
@@ -789,6 +788,7 @@ def _build_external_naive_prompt(
                 row_text_mode=row_text_mode,
                 max_row_text_chars=max_row_text_chars,
             ),
+            temporal_aid,
             "",
             "Rules:",
             *rule_lines,
@@ -935,12 +935,6 @@ def _external_temporal_aid_lines(
                 f'phrase="{phrase}" normalized="{normalized}"'
                 for phrase, normalized in relative_times
             )
-        durations = candidate.get("duration_mentions", ())
-        if include_relative_text and durations:
-            relative += " | duration_mentions=" + "; ".join(
-                f'phrase="{phrase}" normalized="{normalized}"'
-                for phrase, normalized in durations
-            )
         lines.append(
             f"  - Memory {candidate['memory_index']}: row_date={candidate['date']} "
             f"role={candidate['role']} matched_terms={matched}{relative}"
@@ -991,25 +985,16 @@ def _external_dated_candidate_rows(
             if include_relative_text
             else ()
         )
-        duration_mentions = (
-            tuple(_duration_mentions(row.text)) if include_relative_text else ()
-        )
         retrieval_bonus = 1 if row.retrieval_rank is not None else 0
         candidates.append(
             {
                 "date": row_date.isoformat(),
-                "duration_mentions": duration_mentions,
                 "index": index,
                 "matched_terms": matched_terms[:8],
                 "memory_index": index,
                 "relative_times": relative_times,
                 "role": row.role,
-                "score": (
-                    len(matched_terms)
-                    + retrieval_bonus
-                    + len(relative_times)
-                    + len(duration_mentions)
-                ),
+                "score": len(matched_terms) + retrieval_bonus + len(relative_times),
             }
         )
     candidates.sort(
@@ -1348,12 +1333,6 @@ def _temporal_workpad_lines(
                 f'phrase="{phrase}" normalized="{normalized}"'
                 for phrase, normalized in relative_times
             )
-        duration_mentions = candidate.get("duration_mentions", ())
-        if include_relative_text and duration_mentions:
-            relative_mentions += " | duration_mentions=" + "; ".join(
-                f'phrase="{phrase}" normalized="{normalized}"'
-                for phrase, normalized in duration_mentions
-            )
         lines.append(
             f"  - source_id={candidate['source_id']} date={row_date.isoformat()} "
             f"role={candidate['role']} matched_terms={matched}"
@@ -1408,23 +1387,14 @@ def _dated_candidate_rows(
             if include_relative_text
             else ()
         )
-        duration_mentions = (
-            tuple(_duration_mentions(row.text)) if include_relative_text else ()
-        )
         candidates.append(
             {
                 "date": row_date,
-                "duration_mentions": duration_mentions,
                 "index": index,
                 "matched_terms": matched_terms[:8],
                 "relative_times": relative_times,
                 "role": row.role,
-                "score": (
-                    len(matched_terms)
-                    + retrieval_bonus
-                    + len(relative_times)
-                    + len(duration_mentions)
-                ),
+                "score": len(matched_terms) + retrieval_bonus + len(relative_times),
                 "source_id": row.source_id,
             }
         )
@@ -1510,112 +1480,6 @@ def _temporal_normalization_hints(rows: tuple[EvidenceRow, ...]) -> list[str]:
                 f'phrase="{phrase}" normalized="{normalized}"'
             )
     return hints
-
-
-def _duration_mentions(text: str) -> list[tuple[str, str]]:
-    lowered = text.lower()
-    mentions: list[tuple[str, str]] = []
-    occupied: list[tuple[int, int]] = []
-
-    def add(match: re.Match[str], value: float, unit: str) -> None:
-        if _span_overlaps(match.span(), occupied) or _followed_by_ago(
-            lowered,
-            match.end(),
-        ):
-            return
-        normalized = _duration_normalized(value, unit)
-        if normalized is None:
-            return
-        phrase = re.sub(r"\s+", " ", text[match.start() : match.end()]).strip()
-        key = (phrase.lower(), normalized)
-        if key in {(existing.lower(), value) for existing, value in mentions}:
-            return
-        occupied.append(match.span())
-        mentions.append((phrase, normalized))
-
-    count_words = (
-        r"\d+(?:\.\d+)?|a|an|one|two|three|four|five|six|seven|eight|nine|ten|"
-        r"eleven|twelve"
-    )
-    prefix = r"(?:about|around|approximately|roughly|nearly|almost|over|under)\s+"
-    unit = r"days?|weeks?|months?|years?"
-
-    for match in re.finditer(
-        rf"\b(?:{prefix})?(?P<count>{count_words})\s+and\s+a\s+half\s+"
-        rf"(?P<unit>{unit})\b",
-        lowered,
-    ):
-        count = _parse_duration_count(match.group("count"))
-        if count is not None:
-            add(match, count + 0.5, match.group("unit"))
-
-    for match in re.finditer(
-        rf"\b(?:{prefix})?(?:(?P<count>{count_words})\s+)?"
-        rf"(?P<unit>{unit})\s+and\s+a\s+half\b",
-        lowered,
-    ):
-        count = _parse_duration_count(match.group("count") or "one")
-        if count is not None:
-            add(match, count + 0.5, match.group("unit"))
-
-    for match in re.finditer(
-        rf"\b(?:{prefix})?(?P<count>{count_words}|half)\s+(?P<unit>{unit})\b",
-        lowered,
-    ):
-        if re.match(r"\s+and\s+a\s+half\b", lowered[match.end() :]):
-            continue
-        count = _parse_duration_count(match.group("count"))
-        if count is not None:
-            add(match, count, match.group("unit"))
-
-    return mentions[:6]
-
-
-def _span_overlaps(
-    span: tuple[int, int],
-    occupied: list[tuple[int, int]],
-) -> bool:
-    start, end = span
-    return any(
-        start < other_end and end > other_start
-        for other_start, other_end in occupied
-    )
-
-
-def _followed_by_ago(text: str, position: int) -> bool:
-    return bool(re.match(r"\s+ago\b", text[position:]))
-
-
-def _parse_duration_count(value: str | None) -> float | None:
-    if value is None:
-        return None
-    normalized = value.strip().lower()
-    if normalized == "half":
-        return 0.5
-    if normalized in NUMBER_WORDS:
-        return float(NUMBER_WORDS[normalized])
-    try:
-        return float(normalized)
-    except ValueError:
-        return None
-
-
-def _duration_normalized(value: float, unit: str) -> str | None:
-    if value <= 0:
-        return None
-    normalized_unit = unit.lower().rstrip("s")
-    if normalized_unit not in {"day", "week", "month", "year"}:
-        return None
-    if not _is_reasonable_relative_span(int(value), normalized_unit):
-        return None
-    days = {
-        "day": value,
-        "week": value * 7,
-        "month": value * 30.44,
-        "year": value * 365.25,
-    }[normalized_unit]
-    unit_label = normalized_unit + ("s" if value != 1 else "")
-    return f"{value:.2f} {unit_label} ({days:.1f} days)"
 
 
 def _relative_time_values(text: str, row_date: date) -> list[tuple[str, str]]:

@@ -311,51 +311,9 @@ class BuildMemoryTest(unittest.TestCase):
         )
 
         self.assertIn("Temporal Aid:", compiled.prompt)
-        self.assertLess(
-            compiled.prompt.index("Temporal Aid:"),
-            compiled.prompt.index("Memory Context:"),
-        )
         self.assertIn("Memory 1: row_date=2023-05-08", compiled.prompt)
         self.assertIn('phrase="yesterday" normalized="2023-05-07"', compiled.prompt)
         self.assertIn("Use Temporal Aid only to interpret row dates", compiled.prompt)
-
-    def test_external_naive_temporal_aid_extracts_duration_mentions(self) -> None:
-        compiler = EvidenceCompiler(
-            max_evidence_items=2,
-            max_evidence_chars=2000,
-            answer_style="concise",
-            max_memory_records=0,
-            prompt_mode="external_naive",
-            temporal_workpad=True,
-            temporal_text_normalization=True,
-            temporal_workpad_scope="route",
-        )
-        route = RouteResult(information_need="temporal_lookup", signals=("temporal",))
-        compiled = compiler.compile(
-            question="How many weeks did the two movie marathons take in total?",
-            question_time=None,
-            route=route,
-            hits=(),
-            evidence_turns=(
-                Turn(
-                    source_id="s1:t0",
-                    session_id="s1",
-                    turn_index=0,
-                    role="user",
-                    text=(
-                        "I watched the science fiction marathon in about two weeks. "
-                        "The fantasy marathon took a week and a half. "
-                        "I mentioned a concert three weeks ago."
-                    ),
-                    timestamp="2023-05-08",
-                ),
-            ),
-        )
-
-        self.assertIn("duration_mentions=", compiled.prompt)
-        self.assertIn('phrase="about two weeks" normalized="2.00 weeks', compiled.prompt)
-        self.assertIn('phrase="a week and a half" normalized="1.50 weeks', compiled.prompt)
-        self.assertNotIn('phrase="three weeks"', compiled.prompt)
 
     def test_external_naive_prompt_omits_temporal_aid_when_disabled(self) -> None:
         compiler = EvidenceCompiler(
