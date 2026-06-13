@@ -102,3 +102,33 @@ v43 配置：
 ## 预期决策
 
 如果 gate 只是持平或 token 超预算，不跑 full，保留为负向/中性诊断。若 gate 正向，再跑 LongMemEval-S full；LoCoMo 需要基于 v35/v34 底座单独做迁移版本，不能直接把 LME top40 配置当 LoCoMo 主线。
+
+## Gate 结果
+
+Run：`v43_session_thread_memory_guide_lme_probe_cb5e118`
+
+- commit：`cb5e11820fce7a7d751c6f98695dc92d202633db`
+- dirty：True，主要是用户修改的 `docs/architecture.md` 和 `docs/clean_protocol.md` 未提交。
+- prediction：20/20 成功。
+- answer max input/output：`131072/16384`。
+- avg_build_tokens：`81690.45`。
+- avg_query_tokens：`6023.95`。
+- max_query_tokens：`8003`。
+- build cache hits/misses/writes：`137/0/0`。
+- answer cache hits/misses/writes：`0/20/20`。
+- session_thread 生效范围：`list_count 4/4`，`temporal_lookup 4/4`，其他 route `0/12`。
+- activated_build_memory 生效范围：`list_count 4/4`，`temporal_lookup 4/4`，其他 route `0/12`。
+- prompt clean scan：无 hidden metadata 命中；`category` 仅来自原始对话普通词。
+- DeepSeek judge：`15/20 = 0.75`。
+- v42 same 20：`15/20 = 0.75`。
+- gained/lost vs v42：`1/1`，net `0`。
+
+关键 gained case：
+
+- `d823172b5baf1eff81acb20c`，animal shelter fundraising dinner，从 v42 `February 2023` 改成 `2023-02-14`。
+
+关键 lost case：
+
+- `0a537c6dfde0742723049ca4`，photography setup accessories，v43 输出更泛导致 judge wrong。该 route 没有启用 v43 模块，属于 answer regeneration variance。
+
+结论：v43 gate 失败，不跑 full。主要问题是 token 超预算且无净 accuracy 收益。顶层 v43 config 不长期保留；diagnostic 目录保留 config snapshot 和结果。若继续该方向，应改成 temporal-only token-safe variant，把 `max_memory_records` 降到 `2` 或 `3`，并避免无关 route regeneration 干扰。
