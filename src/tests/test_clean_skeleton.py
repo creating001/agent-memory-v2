@@ -595,6 +595,80 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertNotIn('"evidence_report"', list_context.prompt)
         self.assertIn('"answer": "concise answer"', fact_context.prompt)
 
+    def test_temporal_event_contract_separates_mention_time_from_event_time(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=1,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            temporal_workpad=True,
+            temporal_text_normalization=True,
+            temporal_event_contract=True,
+            evidence_report_contract=True,
+            evidence_report_information_needs=("temporal_lookup",),
+        )
+        route = RouteResult(information_need="temporal_lookup", signals=("temporal",))
+        compiled = compiler.compile(
+            question="When did Caroline meet with her mentors?",
+            question_time=None,
+            route=route,
+            hits=(RetrievalHit("s1:t0", 1.0, 1, "lexical_bm25"),),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Here is a photo from when we met with my mentors last week.",
+                    timestamp="2023-06-09",
+                ),
+            ),
+        )
+
+        self.assertIn("mention_time is the Memory Date", compiled.prompt)
+        self.assertIn(
+            'event_time_candidates=phrase="last week" event_time="2023-06-02 to 2023-06-08"',
+            compiled.prompt,
+        )
+        self.assertIn('"mention_time": "Memory Date or empty"', compiled.prompt)
+        self.assertIn(
+            '"event_time": "date/time/span/duration of the target event or empty"',
+            compiled.prompt,
+        )
+        self.assertIn("use event_time", compiled.prompt)
+        self.assertNotIn("question_type", compiled.prompt)
+
+    def test_temporal_event_contract_is_temporal_route_scoped(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=1,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            temporal_workpad=True,
+            temporal_text_normalization=True,
+            temporal_event_contract=True,
+            evidence_report_contract=True,
+            evidence_report_information_needs=("fact_lookup",),
+        )
+        compiled = compiler.compile(
+            question="Which music service does Alex use?",
+            question_time=None,
+            route=RouteResult(information_need="fact_lookup", signals=()),
+            hits=(),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Alex started using Spotify last week.",
+                    timestamp="2024-01-08",
+                ),
+            ),
+        )
+
+        self.assertIn('"evidence_report"', compiled.prompt)
+        self.assertNotIn('"mention_time": "Memory Date or empty"', compiled.prompt)
+        self.assertNotIn("event_time_candidates", compiled.prompt)
+
     def test_evidence_labels_role_snippets_and_final_checklist_are_added(self) -> None:
         config = {
             "retrieval": {"top_k": 2, "max_top_k": 2, "neighbor_window": 0},
@@ -965,6 +1039,51 @@ class CleanSkeletonTest(unittest.TestCase):
         )
 
         self.assertIn('phrase="two years ago" normalized="2021-06-09"', compiled.prompt)
+
+    def test_temporal_text_normalization_parses_week_before_and_weekend(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=2,
+            max_evidence_chars=4000,
+            temporal_workpad=True,
+            temporal_text_normalization=True,
+        )
+        route = RouteResult(information_need="temporal_lookup", signals=("temporal",))
+        compiled = compiler.compile(
+            question="When did Alex meet the mentors and visit the museum?",
+            question_time="2023-06-20",
+            route=route,
+            hits=(
+                RetrievalHit("s1:t0", 1.0, 1, "lexical_bm25"),
+                RetrievalHit("s1:t1", 0.9, 2, "lexical_bm25"),
+            ),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Alex met the mentors the week before.",
+                    timestamp="2023-06-09",
+                ),
+                Turn(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="Alex visited the museum two weekends ago.",
+                    timestamp="2023-06-09",
+                ),
+            ),
+        )
+
+        self.assertIn(
+            'phrase="the week before" normalized="2023-06-02 to 2023-06-08"',
+            compiled.prompt,
+        )
+        self.assertIn(
+            'phrase="two weekends ago" normalized="2023-05-27 to 2023-05-28"',
+            compiled.prompt,
+        )
 
     def test_temporal_text_normalization_skips_unreasonable_ago_span(self) -> None:
         compiler = EvidenceCompiler(

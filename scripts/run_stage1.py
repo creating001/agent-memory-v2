@@ -319,6 +319,9 @@ def main() -> int:
             "temporal_text_normalization": config.get("compiler", {}).get(
                 "temporal_text_normalization", False
             ),
+            "temporal_event_contract": config.get("compiler", {}).get(
+                "temporal_event_contract", False
+            ),
             "temporal_workpad_scope": config.get("compiler", {}).get(
                 "temporal_workpad_scope", "route"
             ),
@@ -674,6 +677,7 @@ def _write_summary(
         f"- temporal_hints: {metrics['compiler']['temporal_hints']}",
         f"- temporal_workpad: {metrics['compiler']['temporal_workpad']}",
         f"- temporal_text_normalization: {metrics['compiler']['temporal_text_normalization']}",
+        f"- temporal_event_contract: {metrics['compiler']['temporal_event_contract']}",
         f"- temporal_workpad_scope: {metrics['compiler']['temporal_workpad_scope']}",
         f"- temporal_workpad_max_rows: {metrics['compiler']['temporal_workpad_max_rows']}",
         f"- temporal_workpad_max_pairs: {metrics['compiler']['temporal_workpad_max_pairs']}",
@@ -761,6 +765,7 @@ def _write_diagnosis(
         f"- route_guidance: {metrics['compiler']['route_guidance']}",
         f"- temporal_workpad: {metrics['compiler']['temporal_workpad']}",
         f"- temporal_text_normalization: {metrics['compiler']['temporal_text_normalization']}",
+        f"- temporal_event_contract: {metrics['compiler']['temporal_event_contract']}",
         f"- temporal_workpad_scope: {metrics['compiler']['temporal_workpad_scope']}",
         f"- temporal_workpad_max_rows: {metrics['compiler']['temporal_workpad_max_rows']}",
         f"- temporal_workpad_max_pairs: {metrics['compiler']['temporal_workpad_max_pairs']}",

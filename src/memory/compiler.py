@@ -121,6 +121,7 @@ class EvidenceCompiler:
         temporal_hints: bool = False,
         temporal_workpad: bool = False,
         temporal_text_normalization: bool = False,
+        temporal_event_contract: bool = False,
         temporal_workpad_scope: str = "route",
         temporal_workpad_max_rows: int = 10,
         temporal_workpad_max_pairs: int = 12,
@@ -162,6 +163,7 @@ class EvidenceCompiler:
         self._temporal_hints = temporal_hints
         self._temporal_workpad = temporal_workpad
         self._temporal_text_normalization = temporal_text_normalization
+        self._temporal_event_contract = temporal_event_contract
         if temporal_workpad_scope not in {"route", "calculation_route"}:
             raise ValueError(
                 f"Unsupported temporal_workpad_scope: {temporal_workpad_scope}"
@@ -291,6 +293,7 @@ class EvidenceCompiler:
             temporal_hints=self._temporal_hints,
             temporal_workpad=self._temporal_workpad,
             temporal_text_normalization=self._temporal_text_normalization,
+            temporal_event_contract=self._temporal_event_contract,
             temporal_workpad_scope=self._temporal_workpad_scope,
             temporal_workpad_max_rows=self._temporal_workpad_max_rows,
             temporal_workpad_max_pairs=self._temporal_workpad_max_pairs,
@@ -602,6 +605,7 @@ def _build_prompt(
     temporal_hints: bool,
     temporal_workpad: bool,
     temporal_text_normalization: bool,
+    temporal_event_contract: bool,
     temporal_workpad_scope: str,
     temporal_workpad_max_rows: int,
     temporal_workpad_max_pairs: int,
@@ -643,6 +647,7 @@ def _build_prompt(
             max_row_text_chars=max_row_text_chars,
             temporal_workpad=temporal_workpad,
             temporal_text_normalization=temporal_text_normalization,
+            temporal_event_contract=temporal_event_contract,
             temporal_workpad_scope=temporal_workpad_scope,
             temporal_workpad_max_rows=temporal_workpad_max_rows,
             temporal_workpad_max_pairs=temporal_workpad_max_pairs,
@@ -788,6 +793,7 @@ def _build_external_naive_prompt(
     max_row_text_chars: int,
     temporal_workpad: bool,
     temporal_text_normalization: bool,
+    temporal_event_contract: bool,
     temporal_workpad_scope: str,
     temporal_workpad_max_rows: int,
     temporal_workpad_max_pairs: int,
@@ -801,6 +807,9 @@ def _build_external_naive_prompt(
     evidence_report_max_items: int,
     operation_workpad: bool,
 ) -> str:
+    use_temporal_event_contract = (
+        temporal_event_contract and route.information_need == "temporal_lookup"
+    )
     user_question = (
         f"Current Date: {question_time}\nQuestion: {question}"
         if question_time
@@ -817,6 +826,7 @@ def _build_external_naive_prompt(
             max_rows=temporal_workpad_max_rows,
             max_pairs=temporal_workpad_max_pairs,
             include_relative_text=temporal_text_normalization,
+            event_contract=use_temporal_event_contract,
         )
         if temporal_aid_lines:
             temporal_aid = "\n".join(["", "Temporal Aid:", *temporal_aid_lines, ""])
@@ -828,6 +838,7 @@ def _build_external_naive_prompt(
             memory_records=memory_records,
             max_rows=structured_guide_max_rows,
             include_relative_text=temporal_text_normalization,
+            event_contract=use_temporal_event_contract,
             include_rows=structured_guide_include_rows,
             include_memory=structured_guide_include_memory,
         )
@@ -854,7 +865,12 @@ def _build_external_naive_prompt(
             ]
         )
     if evidence_report_contract and not structured_answer_contract:
-        rules.extend(_external_evidence_report_rules(route))
+        rules.extend(
+            _external_evidence_report_rules(
+                route,
+                temporal_event_contract=use_temporal_event_contract,
+            )
+        )
     operation_workpad_block = ""
     if operation_workpad and not structured_answer_contract and not evidence_report_contract:
         operation_lines = _external_operation_workpad_lines(question, route)
@@ -888,13 +904,27 @@ def _build_external_naive_prompt(
             f"Use at most {structured_answer_contract_max_items} evidence_items.",
         ]
     elif evidence_report_contract:
+        if use_temporal_event_contract:
+            evidence_item_schema = (
+                '    {"memory": "Memory 1", "status": "support|exclude", '
+                '"slot": "requested answer slot", "mention_time": "Memory Date or empty", '
+                '"time_phrase": "explicit or relative time phrase in content or empty", '
+                '"event_time": "date/time/span/duration of the target event or empty", '
+                '"value": "answer value or empty", "reason": "why it supports or is excluded"}'
+            )
+        else:
+            evidence_item_schema = (
+                '    {"memory": "Memory 1", "status": "support|exclude", '
+                '"slot": "requested answer slot", "value": "number/name/date/unit or empty", '
+                '"reason": "why it supports or is excluded"}'
+            )
         output_json_lines = [
             "{",
             '  "reasoning": "compact evidence decision",',
             '  "sufficient": true,',
             '  "answer_type": "fact|count|list|sum|duration|date|order|preference|unknown",',
             '  "evidence_report": [',
-            '    {"memory": "Memory 1", "status": "support|exclude", "slot": "requested answer slot", "value": "number/name/date/unit or empty", "reason": "why it supports or is excluded"}',
+            evidence_item_schema,
             "  ],",
             '  "missing": "missing required target/operand/endpoint or empty",',
             '  "answer": "concise answer"',
@@ -935,7 +965,11 @@ def _build_external_naive_prompt(
     )
 
 
-def _external_evidence_report_rules(route: RouteResult) -> list[str]:
+def _external_evidence_report_rules(
+    route: RouteResult,
+    *,
+    temporal_event_contract: bool = False,
+) -> list[str]:
     """General visible evidence report instructions for clean reader discipline."""
 
     rules = [
@@ -962,6 +996,13 @@ def _external_evidence_report_rules(route: RouteResult) -> list[str]:
                 "Resolve relative time phrases from the row Date and preserve explicit duration phrases when they directly answer.",
             ]
         )
+        if temporal_event_contract:
+            rules.extend(
+                [
+                    "In evidence_report, keep mention_time separate from event_time: mention_time is the Memory Date, while event_time is when the target event/state happened or held.",
+                    "For when/date/duration answers, use event_time or a directly stated duration when available; use mention_time only if the content says the target event happened or was observed then, or the question asks when it was mentioned.",
+                ]
+            )
     elif route.information_need == "current_state":
         rules.extend(
             [
@@ -993,6 +1034,7 @@ def _external_structured_guide_lines(
     memory_records: tuple[MemoryRecord, ...],
     max_rows: int,
     include_relative_text: bool,
+    event_contract: bool,
     include_rows: bool,
     include_memory: bool,
 ) -> list[str]:
@@ -1020,10 +1062,16 @@ def _external_structured_guide_lines(
             if include_relative_text and row_date is not None:
                 relative_times = tuple(_relative_time_values(row.text, row_date))
                 if relative_times:
-                    relative_text = " | relative_time_mentions=" + "; ".join(
-                        f'"{phrase}"=>"{normalized}"'
-                        for phrase, normalized in relative_times[:4]
-                    )
+                    if event_contract:
+                        relative_text = " | event_time_candidates=" + "; ".join(
+                            f'phrase="{phrase}" event_time="{normalized}"'
+                            for phrase, normalized in relative_times[:4]
+                        )
+                    else:
+                        relative_text = " | relative_time_mentions=" + "; ".join(
+                            f'"{phrase}"=>"{normalized}"'
+                            for phrase, normalized in relative_times[:4]
+                        )
             lines.append(
                 f"  - Memory {index}: row_date={row_date_text} role={row.role} "
                 f"matched_terms={matched_text}{relative_text}"
@@ -1127,6 +1175,7 @@ def _external_temporal_aid_lines(
     max_rows: int,
     max_pairs: int,
     include_relative_text: bool,
+    event_contract: bool = False,
 ) -> list[str]:
     candidates = _external_dated_candidate_rows(
         question,
@@ -1136,9 +1185,15 @@ def _external_temporal_aid_lines(
     if not candidates:
         return []
 
-    lines = [
-        "Use this only as a date arithmetic aid derived from Memory Context row timestamps; final facts must still come from Memory Context."
-    ]
+    if event_contract:
+        lines = [
+            "Use this only as a date arithmetic aid derived from Memory Context row timestamps and relative phrases; final facts must still come from Memory Context.",
+            "- mention_time is the Memory Date. event_time_candidates come from relative or explicit time phrases in the row text and should answer the target event time when they match the question.",
+        ]
+    else:
+        lines = [
+            "Use this only as a date arithmetic aid derived from Memory Context row timestamps; final facts must still come from Memory Context."
+        ]
     question_date = _parse_date(question_time)
     if question_date is not None:
         lines.append(f"- question_date={question_date.isoformat()}")
@@ -1150,12 +1205,19 @@ def _external_temporal_aid_lines(
         relative = ""
         relative_times = candidate.get("relative_times", ())
         if include_relative_text and relative_times:
-            relative = " | relative_time_mentions=" + "; ".join(
-                f'phrase="{phrase}" normalized="{normalized}"'
-                for phrase, normalized in relative_times
-            )
+            if event_contract:
+                relative = " | event_time_candidates=" + "; ".join(
+                    f'phrase="{phrase}" event_time="{normalized}"'
+                    for phrase, normalized in relative_times
+                )
+            else:
+                relative = " | relative_time_mentions=" + "; ".join(
+                    f'phrase="{phrase}" normalized="{normalized}"'
+                    for phrase, normalized in relative_times
+                )
+        date_label = "mention_time" if event_contract else "row_date"
         lines.append(
-            f"  - Memory {candidate['memory_index']}: row_date={candidate['date']} "
+            f"  - Memory {candidate['memory_index']}: {date_label}={candidate['date']} "
             f"role={candidate['role']} matched_terms={matched}{relative}"
         )
 
@@ -1713,6 +1775,17 @@ def _temporal_normalization_hints(rows: tuple[EvidenceRow, ...]) -> list[str]:
 def _relative_time_values(text: str, row_date: date) -> list[tuple[str, str]]:
     lowered = text.lower()
     values: list[tuple[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+    seen_normalized: set[str] = set()
+
+    def append_value(phrase: str, normalized: str) -> None:
+        key = (phrase, normalized)
+        if key in seen or normalized in seen_normalized:
+            return
+        seen.add(key)
+        seen_normalized.add(normalized)
+        values.append(key)
+
     fixed_phrases = (
         ("last year", str(row_date.year - 1)),
         ("this year", str(row_date.year)),
@@ -1729,14 +1802,33 @@ def _relative_time_values(text: str, row_date: date) -> list[tuple[str, str]]:
             f"{(row_date - timedelta(days=1)).isoformat()}",
         ),
         (
+            "previous week",
+            f"{(row_date - timedelta(days=7)).isoformat()} to "
+            f"{(row_date - timedelta(days=1)).isoformat()}",
+        ),
+        (
+            "the week before",
+            f"{(row_date - timedelta(days=7)).isoformat()} to "
+            f"{(row_date - timedelta(days=1)).isoformat()}",
+        ),
+        (
+            "week before",
+            f"{(row_date - timedelta(days=7)).isoformat()} to "
+            f"{(row_date - timedelta(days=1)).isoformat()}",
+        ),
+        (
             "next week",
             f"{(row_date + timedelta(days=1)).isoformat()} to "
             f"{(row_date + timedelta(days=7)).isoformat()}",
         ),
+        ("last weekend", _weekend_before(row_date, weekends_back=1)),
+        ("previous weekend", _weekend_before(row_date, weekends_back=1)),
+        ("the weekend before", _weekend_before(row_date, weekends_back=1)),
+        ("weekend before", _weekend_before(row_date, weekends_back=1)),
     )
     for phrase, normalized in fixed_phrases:
         if re.search(rf"\b{re.escape(phrase)}\b", lowered):
-            values.append((phrase, normalized))
+            append_value(phrase, normalized)
 
     for match in re.finditer(
         r"\b(?P<count>\d+|a|an|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s+"
@@ -1750,12 +1842,17 @@ def _relative_time_values(text: str, row_date: date) -> list[tuple[str, str]]:
         normalized = _ago_value(row_date, count=count, unit=unit)
         if normalized is None:
             continue
-        values.append(
-            (
-                match.group(0),
-                normalized,
-            )
-        )
+        append_value(match.group(0), normalized)
+
+    for match in re.finditer(
+        r"\b(?P<count>\d+|a|an|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s+"
+        r"weekends?\s+(?:ago|before)\b",
+        lowered,
+    ):
+        count = _parse_count(match.group("count"))
+        if count is None or not _is_reasonable_relative_span(count, "week"):
+            continue
+        append_value(match.group(0), _weekend_before(row_date, weekends_back=count))
 
     for match in re.finditer(
         r"\b(?P<direction>last|next|previous|coming)\s+"
@@ -1764,11 +1861,9 @@ def _relative_time_values(text: str, row_date: date) -> list[tuple[str, str]]:
     ):
         direction = _normalize_direction(match.group("direction"))
         weekday = match.group("weekday")
-        values.append(
-            (
-                match.group(0),
-                _relative_weekday(row_date, WEEKDAY_BY_NAME[weekday], direction).isoformat(),
-            )
+        append_value(
+            match.group(0),
+            _relative_weekday(row_date, WEEKDAY_BY_NAME[weekday], direction).isoformat(),
         )
     return values
 
@@ -1860,6 +1955,14 @@ def _shift_year(value: date, delta: int) -> date:
     year = value.year + delta
     day = min(value.day, calendar.monthrange(year, value.month)[1])
     return date(year, value.month, day)
+
+
+def _weekend_before(value: date, *, weekends_back: int) -> str:
+    days_since_sunday = (value.weekday() - 6) % 7
+    latest_prior_sunday = value - timedelta(days=days_since_sunday or 7)
+    target_sunday = latest_prior_sunday - timedelta(days=7 * max(0, weekends_back - 1))
+    target_saturday = target_sunday - timedelta(days=1)
+    return f"{target_saturday.isoformat()} to {target_sunday.isoformat()}"
 
 
 def _parse_count(value: str) -> int | None:

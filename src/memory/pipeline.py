@@ -191,6 +191,9 @@ class Stage1Pipeline:
             temporal_text_normalization=bool(
                 compiler_config.get("temporal_text_normalization", False)
             ),
+            temporal_event_contract=bool(
+                compiler_config.get("temporal_event_contract", False)
+            ),
             temporal_workpad_scope=str(
                 compiler_config.get("temporal_workpad_scope", "route")
             ),
@@ -290,6 +293,9 @@ class Stage1Pipeline:
             ),
             "temporal_text_normalization": bool(
                 compiler_config.get("temporal_text_normalization", False)
+            ),
+            "temporal_event_contract": bool(
+                compiler_config.get("temporal_event_contract", False)
             ),
             "temporal_workpad_scope": str(
                 compiler_config.get("temporal_workpad_scope", "route")

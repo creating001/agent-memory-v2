@@ -11,6 +11,7 @@
 - `stage1_hybrid_bm25_v18_cached.json`：在 selective row guide 上加入 raw-turn BM25 lexical retrieval，与 dense top-40 和 build-memory source expansion 融合；当前强 baseline。
 - `stage1_structured_answer_contract_v26_cached.json`：在 v18 上增加 route-scoped structured answer contract，关闭不稳定 count finalizer；LME 正向、LoCoMo 负向，是 reader 约束的重要对照。
 - `stage1_evidence_report_contract_v28_cached.json`：当前主线候选，在 v18 上增加可见 `evidence_report` contract，要求 answer model 先整理 support / exclude / missing 证据再输出最终答案。
+- `stage1_temporal_event_contract_v29_cached.json`：v28 的 query-side 可消融候选，针对 temporal route 显式区分 `mention_time` 与 `event_time`；待全量验证。
 
 ## 新配置规则
 
