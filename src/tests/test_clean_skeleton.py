@@ -1271,6 +1271,47 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertIn("I bought a Korg B1 last year.", compiled.prompt)
         self.assertNotIn("The user owns a Korg B1 piano.", compiled.prompt)
 
+    def test_compiler_route_override_can_scope_evidence_order(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=1,
+            max_evidence_chars=4000,
+            evidence_order="retrieval",
+            route_overrides={"list_count": {"evidence_order": "question_overlap"}},
+        )
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text="Alex discussed the plan.",
+            ),
+            Turn(
+                source_id="s1:t1",
+                session_id="s1",
+                turn_index=1,
+                role="user",
+                text="The mango fruit was used for the picnic menu.",
+            ),
+        )
+        fact_context = compiler.compile(
+            question="What fruit was used for the picnic menu?",
+            question_time=None,
+            route=RouteResult(information_need="fact_lookup", signals=()),
+            hits=(RetrievalHit("s1:t0", 1.0, 1, "lexical_bm25"),),
+            evidence_turns=turns,
+        )
+        list_context = compiler.compile(
+            question="What fruit was used for the picnic menu?",
+            question_time=None,
+            route=RouteResult(information_need="list_count", signals=("list_or_count",)),
+            hits=(RetrievalHit("s1:t0", 1.0, 1, "lexical_bm25"),),
+            evidence_turns=turns,
+        )
+
+        self.assertEqual(fact_context.evidence_rows[0].source_id, "s1:t0")
+        self.assertEqual(list_context.evidence_rows[0].source_id, "s1:t1")
+
     def test_compiler_route_overrides_only_apply_to_matching_information_need(self) -> None:
         compiler = EvidenceCompiler(
             max_evidence_items=1,

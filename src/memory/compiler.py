@@ -44,6 +44,7 @@ SUPPORTED_INFORMATION_NEEDS = {
     "temporal_lookup",
 }
 ROUTE_OVERRIDE_KEYS = {
+    "evidence_order",
     "evidence_row_labels",
     "final_answer_checklist",
     "max_memory_records",
@@ -253,7 +254,7 @@ class EvidenceCompiler:
             tuple(candidates),
             question=question,
             route=route,
-            evidence_order=self._evidence_order,
+            evidence_order=route_settings["evidence_order"],
             memory_records=tuple(memory_records),
         )
         rows: list[EvidenceRow] = []
@@ -352,6 +353,7 @@ class EvidenceCompiler:
     def _settings_for_route(self, route: RouteResult) -> dict[str, Any]:
         settings: dict[str, Any] = {
             "evidence_row_labels": self._evidence_row_labels,
+            "evidence_order": self._evidence_order,
             "final_answer_checklist": self._final_answer_checklist,
             "max_evidence_chars": self._max_evidence_chars,
             "max_evidence_items": self._max_evidence_items,
@@ -417,6 +419,11 @@ def _validate_route_overrides(
             if row_text_mode not in {"full", "query_snippet", "role_query_snippet"}:
                 raise ValueError(f"Unsupported row_text_mode: {row_text_mode}")
             overrides["row_text_mode"] = row_text_mode
+        if "evidence_order" in raw_overrides:
+            evidence_order = str(raw_overrides["evidence_order"])
+            if evidence_order not in {"retrieval", "question_overlap", "memory_aware"}:
+                raise ValueError(f"Unsupported evidence_order: {evidence_order}")
+            overrides["evidence_order"] = evidence_order
         if "evidence_row_labels" in raw_overrides:
             overrides["evidence_row_labels"] = bool(
                 raw_overrides["evidence_row_labels"]
