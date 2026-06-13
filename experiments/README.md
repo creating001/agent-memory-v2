@@ -31,7 +31,8 @@
 
 - LongMemEval-S full 当前最好为 v6/v7 并列：0.606 DeepSeek judge accuracy。
 - LoCoMo non-adversarial full v4：0.695906 DeepSeek judge accuracy，低于目标，主要短板是 temporal_lookup、category 2、list/count 和 category 3 evidence recall。
-- v7 memory validity 在 LME 上较 v4 净提升 +5 条，和 v6 持平；avg query tokens 5858.762，接近 6K 预算，下一步优先验证 v6+v7 组合而不是直接扩大 LoCoMo 成本。
+- v7 memory validity 在 LME 上较 v4 净提升 +5 条，和 v6 持平；avg query tokens 5858.762，接近 6K 预算。
+- v8 组合 v6 route priority 与 v7 validity 后降到 0.600，说明两个开关没有稳定互补；不跑 LoCoMo。
 - v6 route priority 是 LME clean 正向消融，但 LoCoMo full 降到 0.681611，不作为 LoCoMo 主线。
 - v5 relative temporal text normalization 在 LME 上降到 0.590，不作为主线。
 - v4.1 compact temporal workpad 降低 token 但 accuracy 退化，不作为主线。
@@ -81,6 +82,7 @@ experiments/formal/<run_id>/
 |---|---|---|---|---:|---|
 | `stage1_memory_validity_v7_lme_s_full_85ddd44_cached` | LongMemEval-S | full | `85ddd44` | 0.606 | memory validity / route-specific superseded retrieval 正向；与 v6 持平，较 v4 +5，query token 接近 6K。 |
 | `stage1_route_priority_v6_lme_s_full_a387f79_cached` | LongMemEval-S | full | `a387f79` | 0.606 | 当前 LME 并列最好；temporal route priority 小改动正向。 |
+| `stage1_route_validity_v8_lme_s_full_79c9cea_cached` | LongMemEval-S | full | `79c9cea` | 0.600 | v6+v7 组合负向；temporal-reasoning 72/133，低于 v6/v7，不作为主线。 |
 | `stage1_temporal_preference_v4_lme_s_full_6c7d51e_cached` | LongMemEval-S | full | `6c7d51e` | 0.596 | v6 前 LME 最好；temporal 提升明显，但 multi-session 仍弱。 |
 | `stage1_temporal_preference_v4_locomo_nonadv_full_edf05a5_cached` | LoCoMo | non-adversarial full | `edf05a5` | 0.695906 | fact_lookup 可用，temporal/list/组合推理不足。 |
 | `stage1_route_priority_v6_locomo_nonadv_full_c57e810_cached` | LoCoMo | non-adversarial full | `c57e810` | 0.681611 | v6 在 LoCoMo 负向；route 改动只影响 1 条且无净收益，LoCoMo 主线仍是 v4。 |
