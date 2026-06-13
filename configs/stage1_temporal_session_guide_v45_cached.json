@@ -1,6 +1,6 @@
 {
-  "name": "stage1_temporal_session_guide_v44_cached",
-  "description": "V44 token-safe candidate on top of v42: only temporal_lookup uses session-thread raw evidence layout and a small row-linked build memory guide. Non-temporal prompts remain equivalent to v42. It uses only question text, visible question time, raw dialogue, retrieval results, and build-stage memory; no hidden benchmark metadata, reference answers, judge output, sample ids, row indices, test feedback, or sample-level rules.",
+  "name": "stage1_temporal_session_guide_v45_cached",
+  "description": "V45 token-safe candidate on top of v42/v44: only temporal_lookup uses session-thread raw evidence layout and one row-linked build memory guide record. Non-temporal prompts remain equivalent to v42. It uses only question text, visible question time, raw dialogue, retrieval results, and build-stage memory; no hidden benchmark metadata, reference answers, judge output, sample ids, row indices, test feedback, or sample-level rules.",
   "build_memory": {
     "enabled": true,
     "mode": "openai_compatible",
@@ -111,7 +111,7 @@
       "temporal_lookup": {
         "context_layout": "session_thread",
         "structured_guide_include_memory": true,
-        "max_memory_records": 3
+        "max_memory_records": 1
       }
     }
   },

@@ -21,7 +21,7 @@
 
 ## 当前候选
 
-- `stage1_temporal_session_guide_v44_cached.json`：v43 失败后的 token-safe 收窄版本；只对 `temporal_lookup` 打开 session-thread evidence layout 和最多 3 条 row-linked build memory guide，非 temporal prompt 与 v42 等价。待 gate，通过前不视为保留主线。
+- `stage1_temporal_session_guide_v45_cached.json`：v44 后的进一步 token-safe 收窄版本；只对 `temporal_lookup` 打开 session-thread evidence layout 和 1 条 row-linked build memory guide，非 temporal prompt 与 v42 等价。待 gate，通过前不视为保留主线。
 
 ## 新配置规则
 
