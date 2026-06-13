@@ -51,6 +51,9 @@ def main() -> int:
     total_evidence_items = 0
     total_context_chars = 0
     total_embedding_tokens = 0
+    total_effective_top_k = 0
+    total_effective_dense_top_k = 0
+    total_effective_dense_protect_top_n = 0
     total_session_bm25_applied = 0
     total_embedding_cache_hits = 0
     total_embedding_cache_misses = 0
@@ -93,10 +96,16 @@ def main() -> int:
         total_query_tokens += int(token_cost["query_tokens"])
         total_evidence_items += len(compiled["evidence_rows"])
         total_context_chars += int(compiled["context_chars"])
-        total_embedding_tokens += int(result["trace"]["retrieval"].get("embedding_tokens") or 0)
-        if result["trace"]["retrieval"].get("session_bm25_applied"):
+        retrieval_trace = result["trace"]["retrieval"]
+        total_embedding_tokens += int(retrieval_trace.get("embedding_tokens") or 0)
+        total_effective_top_k += int(retrieval_trace.get("top_k") or 0)
+        total_effective_dense_top_k += int(retrieval_trace.get("dense_top_k") or 0)
+        total_effective_dense_protect_top_n += int(
+            retrieval_trace.get("dense_protect_top_n") or 0
+        )
+        if retrieval_trace.get("session_bm25_applied"):
             total_session_bm25_applied += 1
-        embedding_cache = result["trace"]["retrieval"].get("embedding_cache") or {}
+        embedding_cache = retrieval_trace.get("embedding_cache") or {}
         total_embedding_cache_hits += int(embedding_cache.get("hits") or 0)
         total_embedding_cache_misses += int(embedding_cache.get("misses") or 0)
         total_embedding_cache_writes += int(embedding_cache.get("writes") or 0)
@@ -116,9 +125,9 @@ def main() -> int:
         total_build_memory_cache_hits += int(build_memory_cache.get("hits") or 0)
         total_build_memory_cache_misses += int(build_memory_cache.get("misses") or 0)
         total_build_memory_cache_writes += int(build_memory_cache.get("writes") or 0)
-        total_memory_hits += len(result["trace"]["retrieval"].get("memory_hits") or [])
+        total_memory_hits += len(retrieval_trace.get("memory_hits") or [])
         total_memory_source_hits += len(
-            result["trace"]["retrieval"].get("memory_source_hits") or []
+            retrieval_trace.get("memory_source_hits") or []
         )
         answer_cache = result["trace"].get("answer_cache") or {}
         total_answer_cache_hits += int(answer_cache.get("hits") or 0)
@@ -161,6 +170,16 @@ def main() -> int:
         "retrieval": {
             "top_k": config.get("retrieval", {}).get("top_k"),
             "max_top_k": config.get("retrieval", {}).get("max_top_k"),
+            "route_overrides": config.get("retrieval", {}).get("route_overrides") or {},
+            "avg_effective_top_k": _safe_average(
+                total_effective_top_k, sample_count
+            ),
+            "avg_effective_dense_top_k": _safe_average(
+                total_effective_dense_top_k, sample_count
+            ),
+            "avg_effective_dense_protect_top_n": _safe_average(
+                total_effective_dense_protect_top_n, sample_count
+            ),
             "neighbor_window": config.get("retrieval", {}).get("neighbor_window"),
             "neighbor_order": config.get("retrieval", {}).get(
                 "neighbor_order", "hit_priority"
@@ -704,6 +723,10 @@ def _write_summary(
         "- build_token_accounting: logical cold-build LLM tokens; cached build chunks count from stored usage, while cache hits only avoid repeated local API calls.",
         f"- avg_query_tokens: {metrics['token_cost']['avg_query_tokens']}",
         f"- avg_compiled_evidence_items: {metrics['retrieval']['avg_compiled_evidence_items']}",
+        f"- retrieval_route_overrides: {metrics['retrieval']['route_overrides']}",
+        f"- avg_effective_top_k: {metrics['retrieval']['avg_effective_top_k']}",
+        f"- avg_effective_dense_top_k: {metrics['retrieval']['avg_effective_dense_top_k']}",
+        f"- avg_effective_dense_protect_top_n: {metrics['retrieval']['avg_effective_dense_protect_top_n']}",
         f"- build_memory_enabled: {metrics['build_memory']['enabled']}",
         f"- build_memory_model: {metrics['build_memory']['model']}",
         f"- build_memory_temporal_fields: {metrics['build_memory']['temporal_fields']}",
@@ -868,6 +891,10 @@ def _write_diagnosis(
         f"- build_memory_include_superseded_information_needs: {metrics['retrieval']['build_memory_include_superseded_information_needs']}",
         f"- avg_context_chars: {metrics['retrieval']['avg_context_chars']}",
         f"- avg_query_tokens: {metrics['token_cost']['avg_query_tokens']}",
+        f"- retrieval_route_overrides: {metrics['retrieval']['route_overrides']}",
+        f"- avg_effective_top_k: {metrics['retrieval']['avg_effective_top_k']}",
+        f"- avg_effective_dense_top_k: {metrics['retrieval']['avg_effective_dense_top_k']}",
+        f"- avg_effective_dense_protect_top_n: {metrics['retrieval']['avg_effective_dense_protect_top_n']}",
         f"- dense_protect_top_n: {metrics['retrieval']['dense_protect_top_n']}",
         f"- session_bm25_enabled: {metrics['retrieval']['session_bm25_enabled']}",
         f"- session_bm25_top_k: {metrics['retrieval']['session_bm25_top_k']}",

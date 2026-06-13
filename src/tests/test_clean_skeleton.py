@@ -136,6 +136,76 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual(result["trace"]["retrieval"]["retriever"], "no_retriever")
         self.assertEqual(result["trace"]["compiled_context"]["evidence_rows"], [])
 
+    def test_retrieval_route_overrides_use_question_information_need(self) -> None:
+        config = {
+            "retrieval": {
+                "top_k": 3,
+                "max_top_k": 3,
+                "neighbor_window": 0,
+                "route_overrides": {
+                    "temporal_lookup": {
+                        "top_k": 1,
+                        "max_top_k": 1,
+                    }
+                },
+            },
+            "compiler": {"max_evidence_items": 10, "max_evidence_chars": 4000},
+            "answer": {"fallback_answer": "I do not know."},
+        }
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text="Alex visited Paris in 2021.",
+            ),
+            Turn(
+                source_id="s1:t1",
+                session_id="s1",
+                turn_index=1,
+                role="user",
+                text="Alex visited Berlin in 2022.",
+            ),
+            Turn(
+                source_id="s1:t2",
+                session_id="s1",
+                turn_index=2,
+                role="user",
+                text="Alex visited Rome in 2023.",
+            ),
+        )
+
+        temporal_result = Stage1Pipeline(config).predict(
+            PredictionRequest(question="When did Alex visit Berlin?", turns=turns)
+        )
+        fact_result = Stage1Pipeline(config).predict(
+            PredictionRequest(question="What city did Alex visit?", turns=turns)
+        )
+
+        self.assertEqual(temporal_result["trace"]["route"]["information_need"], "temporal_lookup")
+        self.assertEqual(temporal_result["trace"]["retrieval"]["top_k"], 1)
+        self.assertEqual(
+            temporal_result["trace"]["retrieval"]["route_override"],
+            {"max_top_k": 1, "top_k": 1},
+        )
+        self.assertEqual(fact_result["trace"]["route"]["information_need"], "fact_lookup")
+        self.assertEqual(fact_result["trace"]["retrieval"]["top_k"], 3)
+
+    def test_retrieval_route_overrides_reject_hidden_label_names(self) -> None:
+        config = {
+            "retrieval": {
+                "top_k": 1,
+                "max_top_k": 1,
+                "route_overrides": {"question_type": {"top_k": 1}},
+            },
+            "compiler": {"max_evidence_items": 1, "max_evidence_chars": 1000},
+            "answer": {"fallback_answer": "I do not know."},
+        }
+
+        with self.assertRaises(ValueError):
+            Stage1Pipeline(config)
+
     def test_hit_priority_neighbor_expansion_keeps_top_hit_when_compiler_is_tight(self) -> None:
         config = {
             "retrieval": {

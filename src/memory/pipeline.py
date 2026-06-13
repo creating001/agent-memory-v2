@@ -8,7 +8,7 @@ from typing import Any
 
 from memory.answer import CachedAnswerer, NullAnswerer, OpenAICompatibleAnswerer
 from memory.build import NullMemoryBuilder, OpenAICompatibleMemoryBuilder
-from memory.compiler import EvidenceCompiler
+from memory.compiler import EvidenceCompiler, SUPPORTED_INFORMATION_NEEDS
 from memory.embeddings import CachedEmbeddingClient, OpenAICompatibleEmbeddingClient
 from memory.finalize import AnswerFinalization, finalize_structured_answer
 from memory.repair import maybe_repair_answer
@@ -66,6 +66,9 @@ class Stage1Pipeline:
         }
         self._base_top_k = int(retrieval_config.get("top_k", 8))
         self._max_top_k = int(retrieval_config.get("max_top_k", self._base_top_k))
+        self._retrieval_route_overrides = _validate_retrieval_route_overrides(
+            retrieval_config.get("route_overrides") or {}
+        )
         self._neighbor_window = int(retrieval_config.get("neighbor_window", 1))
         self._neighbor_order = str(retrieval_config.get("neighbor_order", "hit_priority"))
         self._lexical_enabled = bool(lexical_config.get("enabled", True))
@@ -541,7 +544,11 @@ class Stage1Pipeline:
         store = RawEvidenceStore(request.turns)
         built_memory = self._memory_builder.build(store.turns)
         route = self._router.route(request.question, request.question_time)
-        top_k = min(self._base_top_k * route.retrieval_multiplier, self._max_top_k)
+        retrieval_settings = self._retrieval_settings_for_route(route)
+        top_k = retrieval_settings["top_k"]
+        dense_top_k = retrieval_settings["dense_top_k"]
+        lexical_protect_top_n = retrieval_settings["lexical_protect_top_n"]
+        dense_protect_top_n = retrieval_settings["dense_protect_top_n"]
         retriever = LexicalBM25Retriever(
             store.turns,
             drop_query_stopwords=self._drop_query_stopwords,
@@ -589,7 +596,7 @@ class Stage1Pipeline:
                     request.question_time,
                     mode=self._dense_query_text_mode,
                 ),
-                top_k=self._dense_top_k,
+                top_k=dense_top_k,
             )
             dense_hits = dense_result.hits
             embedding_tokens = dense_result.embedding_tokens
@@ -599,15 +606,15 @@ class Stage1Pipeline:
             if memory_source_hits:
                 hit_lists = (*hit_lists, memory_source_hits)
             hits = _merge_hit_lists(hit_lists, top_k=top_k, rrf_k=self._fusion_rrf_k)
-            if self._lexical_protect_top_n > 0 and lexical_hits:
+            if lexical_protect_top_n > 0 and lexical_hits:
                 hits = prepend_protected_hits(
-                    lexical_hits[: self._lexical_protect_top_n],
+                    lexical_hits[:lexical_protect_top_n],
                     hits,
                     top_k=top_k,
                 )
-            if self._dense_protect_top_n > 0 and dense_hits:
+            if dense_protect_top_n > 0 and dense_hits:
                 hits = prepend_protected_hits(
-                    dense_hits[: self._dense_protect_top_n],
+                    dense_hits[:dense_protect_top_n],
                     hits,
                     top_k=top_k,
                 )
@@ -711,6 +718,11 @@ class Stage1Pipeline:
                     ),
                     "top_k": top_k,
                     "base_top_k": self._base_top_k,
+                    "max_top_k": self._max_top_k,
+                    "route_overrides": self._retrieval_route_overrides,
+                    "route_override": self._retrieval_route_overrides.get(
+                        route.information_need, {}
+                    ),
                     "neighbor_window": self._neighbor_window,
                     "neighbor_order": self._neighbor_order,
                     "drop_query_stopwords": self._drop_query_stopwords,
@@ -730,17 +742,17 @@ class Stage1Pipeline:
                         self._build_memory_include_superseded_information_needs
                     ),
                     "dense_enabled": self._dense_enabled,
-                    "dense_top_k": self._dense_top_k if self._dense_enabled else None,
+                    "dense_top_k": dense_top_k if self._dense_enabled else None,
                     "dense_document_text_mode": self._dense_document_text_mode
                     if self._dense_enabled
                     else None,
                     "dense_query_text_mode": self._dense_query_text_mode
                     if self._dense_enabled
                     else None,
-                    "lexical_protect_top_n": self._lexical_protect_top_n
+                    "lexical_protect_top_n": lexical_protect_top_n
                     if self._dense_enabled
                     else None,
-                    "dense_protect_top_n": self._dense_protect_top_n
+                    "dense_protect_top_n": dense_protect_top_n
                     if self._dense_enabled
                     else None,
                     "embedding_cache_enabled": self._embedding_cache_enabled
@@ -821,6 +833,26 @@ class Stage1Pipeline:
                 "answer": answer.to_dict(),
                 "token_cost": token_usage.to_dict(),
             },
+        }
+
+    def _retrieval_settings_for_route(self, route: RouteResult) -> dict[str, int]:
+        settings = {
+            "top_k": self._base_top_k,
+            "max_top_k": self._max_top_k,
+            "dense_top_k": self._dense_top_k,
+            "lexical_protect_top_n": self._lexical_protect_top_n,
+            "dense_protect_top_n": self._dense_protect_top_n,
+        }
+        settings.update(self._retrieval_route_overrides.get(route.information_need, {}))
+        top_k = min(
+            settings["top_k"] * route.retrieval_multiplier,
+            settings["max_top_k"],
+        )
+        return {
+            "top_k": top_k,
+            "dense_top_k": settings["dense_top_k"],
+            "lexical_protect_top_n": settings["lexical_protect_top_n"],
+            "dense_protect_top_n": settings["dense_protect_top_n"],
         }
 
     def _finalize_answer(
@@ -1042,6 +1074,42 @@ def _tuple_config(value: object) -> tuple[str, ...]:
     if isinstance(value, (list, tuple)):
         return tuple(str(item) for item in value)
     return (str(value),)
+
+
+RETRIEVAL_ROUTE_OVERRIDE_KEYS = {
+    "top_k",
+    "max_top_k",
+    "dense_top_k",
+    "lexical_protect_top_n",
+    "dense_protect_top_n",
+}
+
+
+def _validate_retrieval_route_overrides(
+    route_overrides: Mapping[str, Mapping[str, Any]],
+) -> dict[str, dict[str, int]]:
+    normalized: dict[str, dict[str, int]] = {}
+    for information_need, raw_overrides in route_overrides.items():
+        if information_need not in SUPPORTED_INFORMATION_NEEDS:
+            raise ValueError(
+                f"Unsupported retrieval route override: {information_need}"
+            )
+        if not isinstance(raw_overrides, Mapping):
+            raise ValueError(
+                f"retrieval.route_overrides.{information_need} must be an object"
+            )
+        unknown_keys = set(raw_overrides).difference(RETRIEVAL_ROUTE_OVERRIDE_KEYS)
+        if unknown_keys:
+            keys = ", ".join(sorted(unknown_keys))
+            raise ValueError(
+                f"Unsupported retrieval.route_overrides.{information_need} keys: {keys}"
+            )
+        overrides: dict[str, int] = {}
+        for key in RETRIEVAL_ROUTE_OVERRIDE_KEYS:
+            if key in raw_overrides:
+                overrides[key] = max(0, int(raw_overrides[key]))
+        normalized[information_need] = overrides
+    return normalized
 
 
 def _answer_max_output_tokens(answer_config: Mapping[str, Any]) -> int:
