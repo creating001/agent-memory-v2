@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import http.client
 import hashlib
 import json
@@ -13,6 +14,7 @@ import time
 import urllib.error
 import urllib.request
 from pathlib import Path
+from threading import Lock
 from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -42,6 +44,8 @@ def main() -> int:
     if not args.dry_run and not api_key:
         raise SystemExit(f"Missing API key environment variable: {args.api_key_env}")
 
+    append_lock = Lock()
+    judge_tasks: list[dict[str, Any]] = []
     for index, key in enumerate(shared_keys, start=1):
         label = labels[key]
         gold_answer = label.get("gold_answer")
@@ -55,7 +59,7 @@ def main() -> int:
                 "error": "missing_gold_answer",
             }
             judgments_by_key[key] = judgment
-            _append_partial_judgment(partial_path, judgment)
+            _append_partial_judgment(partial_path, judgment, lock=append_lock)
             continue
 
         example = JudgeExample(
@@ -80,33 +84,66 @@ def main() -> int:
                 "question_type": example.question_type,
             }
             judgments_by_key[key] = judgment
-            _append_partial_judgment(partial_path, judgment)
+            _append_partial_judgment(partial_path, judgment, lock=append_lock)
             if index % args.progress_every == 0 or index == len(shared_keys):
                 print(f"judged {index}/{len(shared_keys)}", flush=True)
             continue
 
-        response = _call_deepseek_with_retries(
-            base_url=args.base_url,
-            api_key=api_key or "",
-            model=args.model,
-            prompt=prompt,
-            timeout=args.timeout,
-            max_retries=args.max_retries,
-            retry_sleep=args.retry_sleep,
+        judge_tasks.append(
+            {
+                "index": index,
+                "key": key,
+                "example": example,
+                "prompt": prompt,
+                "prompt_hash": prompt_hash,
+            }
         )
-        response_text = response["choices"][0]["message"]["content"]
-        judgment = {
-            "record_key": key,
-            "label": parse_judge_label(args.benchmark, response_text),
-            "raw_response": response_text,
-            "prompt_hash": prompt_hash,
-            "question_type": example.question_type,
-            "usage": response.get("usage", {}),
-        }
-        judgments_by_key[key] = judgment
-        _append_partial_judgment(partial_path, judgment)
-        if index % args.progress_every == 0 or index == len(shared_keys):
-            print(f"judged {index}/{len(shared_keys)}", flush=True)
+
+    completed = len(shared_keys) - len(judge_tasks)
+    if judge_tasks and not args.dry_run:
+        if args.workers <= 1:
+            for task in judge_tasks:
+                judgment = _judge_task(
+                    task,
+                    base_url=args.base_url,
+                    api_key=api_key or "",
+                    model=args.model,
+                    timeout=args.timeout,
+                    max_retries=args.max_retries,
+                    retry_sleep=args.retry_sleep,
+                    benchmark=args.benchmark,
+                )
+                judgments_by_key[str(task["key"])] = judgment
+                _append_partial_judgment(partial_path, judgment, lock=append_lock)
+                completed += 1
+                _print_progress(completed, len(shared_keys), args.progress_every)
+        else:
+            print(
+                f"judging {len(judge_tasks)} pending examples with {args.workers} workers",
+                flush=True,
+            )
+            with ThreadPoolExecutor(max_workers=args.workers) as executor:
+                futures = {
+                    executor.submit(
+                        _judge_task,
+                        task,
+                        base_url=args.base_url,
+                        api_key=api_key or "",
+                        model=args.model,
+                        timeout=args.timeout,
+                        max_retries=args.max_retries,
+                        retry_sleep=args.retry_sleep,
+                        benchmark=args.benchmark,
+                    ): task
+                    for task in judge_tasks
+                }
+                for future in as_completed(futures):
+                    task = futures[future]
+                    judgment = future.result()
+                    judgments_by_key[str(task["key"])] = judgment
+                    _append_partial_judgment(partial_path, judgment, lock=append_lock)
+                    completed += 1
+                    _print_progress(completed, len(shared_keys), args.progress_every)
 
     judgments = [judgments_by_key[key] for key in shared_keys if key in judgments_by_key]
     payload = {
@@ -116,6 +153,7 @@ def main() -> int:
         "base_url": args.base_url,
         "api_key_env": args.api_key_env,
         "dry_run": args.dry_run,
+        "workers": args.workers,
         "predictions": str(Path(args.predictions).resolve()),
         "labels": str(Path(args.labels).resolve()),
         "partial_output": str(partial_path.resolve()),
@@ -133,6 +171,38 @@ def main() -> int:
     return 0
 
 
+def _judge_task(
+    task: dict[str, Any],
+    *,
+    base_url: str,
+    api_key: str,
+    model: str,
+    timeout: float,
+    max_retries: int,
+    retry_sleep: float,
+    benchmark: str,
+) -> dict[str, Any]:
+    example = task["example"]
+    response = _call_deepseek_with_retries(
+        base_url=base_url,
+        api_key=api_key,
+        model=model,
+        prompt=str(task["prompt"]),
+        timeout=timeout,
+        max_retries=max_retries,
+        retry_sleep=retry_sleep,
+    )
+    response_text = response["choices"][0]["message"]["content"]
+    return {
+        "record_key": str(task["key"]),
+        "label": parse_judge_label(benchmark, response_text),
+        "raw_response": response_text,
+        "prompt_hash": str(task["prompt_hash"]),
+        "question_type": example.question_type,
+        "usage": response.get("usage", {}),
+    }
+
+
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--predictions", required=True)
@@ -145,6 +215,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--timeout", type=float, default=60.0)
     parser.add_argument("--max-retries", type=int, default=6)
     parser.add_argument("--retry-sleep", type=float, default=2.0)
+    parser.add_argument("--workers", type=int, default=1)
     parser.add_argument("--progress-every", type=int, default=25)
     parser.add_argument("--partial-output")
     parser.add_argument("--no-resume", action="store_false", dest="resume")
@@ -253,11 +324,26 @@ def _load_partial_judgments(path: Path) -> dict[str, dict[str, Any]]:
     return judgments
 
 
-def _append_partial_judgment(path: Path, judgment: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("a", encoding="utf-8") as handle:
-        handle.write(json.dumps(judgment, ensure_ascii=False, sort_keys=True))
-        handle.write("\n")
+def _append_partial_judgment(
+    path: Path, judgment: dict[str, Any], *, lock: Lock | None = None
+) -> None:
+    def write_once() -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(judgment, ensure_ascii=False, sort_keys=True))
+            handle.write("\n")
+
+    if lock is None:
+        write_once()
+        return
+    with lock:
+        write_once()
+
+
+def _print_progress(completed: int, total: int, progress_every: int) -> None:
+    progress_every = max(1, progress_every)
+    if completed % progress_every == 0 or completed == total:
+        print(f"judged {completed}/{total}", flush=True)
 
 
 def _summarize_usage(judgments: list[dict[str, Any]]) -> dict[str, int]:

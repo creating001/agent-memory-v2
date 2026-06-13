@@ -32,6 +32,7 @@ class Stage1Pipeline:
         self._config = dict(config)
         retrieval_config = self._config.get("retrieval", {})
         build_memory_config = self._config.get("build_memory", {})
+        lexical_config = retrieval_config.get("lexical", {})
         dense_config = retrieval_config.get("dense", {})
         session_config = retrieval_config.get("session_bm25", {})
         route_config = self._config.get("route", {})
@@ -63,6 +64,7 @@ class Stage1Pipeline:
         self._max_top_k = int(retrieval_config.get("max_top_k", self._base_top_k))
         self._neighbor_window = int(retrieval_config.get("neighbor_window", 1))
         self._neighbor_order = str(retrieval_config.get("neighbor_order", "hit_priority"))
+        self._lexical_enabled = bool(lexical_config.get("enabled", True))
         self._drop_query_stopwords = bool(retrieval_config.get("drop_query_stopwords", False))
         self._score_threshold = float(retrieval_config.get("score_threshold", 0.0))
         self._build_memory_enabled = bool(build_memory_config.get("enabled", False))
@@ -206,9 +208,11 @@ class Stage1Pipeline:
                 compiler_config.get("final_answer_checklist", False)
             ),
             max_memory_records=int(compiler_config.get("max_memory_records", 12)),
+            prompt_mode=str(compiler_config.get("prompt_mode", "default")),
             route_overrides=compiler_config.get("route_overrides") or {},
         )
         self._compiler_trace_config = {
+            "prompt_mode": str(compiler_config.get("prompt_mode", "default")),
             "evidence_order": str(compiler_config.get("evidence_order", "retrieval")),
             "memory_order": str(compiler_config.get("memory_order", "retrieval")),
             "memory_layout": str(compiler_config.get("memory_layout", "flat")),
@@ -274,11 +278,13 @@ class Stage1Pipeline:
             store.turns,
             drop_query_stopwords=self._drop_query_stopwords,
         )
-        lexical_hits = retriever.retrieve(
-            request.question,
-            top_k=top_k,
-            score_threshold=self._score_threshold,
-        )
+        lexical_hits = ()
+        if self._lexical_enabled:
+            lexical_hits = retriever.retrieve(
+                request.question,
+                top_k=top_k,
+                score_threshold=self._score_threshold,
+            )
         memory_hits = ()
         memory_source_hits = ()
         build_memory_include_superseded = (
@@ -314,15 +320,13 @@ class Stage1Pipeline:
             )
             dense_hits = dense_result.hits
             embedding_tokens = dense_result.embedding_tokens
-            hit_lists = (lexical_hits, dense_hits)
+            hit_lists = tuple(
+                hits for hits in (lexical_hits, dense_hits) if hits
+            )
             if memory_source_hits:
                 hit_lists = (*hit_lists, memory_source_hits)
-            hits = reciprocal_rank_fusion(
-                hit_lists,
-                top_k=top_k,
-                rrf_k=self._fusion_rrf_k,
-            )
-            if self._lexical_protect_top_n > 0:
+            hits = _merge_hit_lists(hit_lists, top_k=top_k, rrf_k=self._fusion_rrf_k)
+            if self._lexical_protect_top_n > 0 and lexical_hits:
                 hits = prepend_protected_hits(
                     lexical_hits[: self._lexical_protect_top_n],
                     hits,
@@ -330,8 +334,8 @@ class Stage1Pipeline:
                 )
         else:
             if memory_source_hits:
-                hits = reciprocal_rank_fusion(
-                    (lexical_hits, memory_source_hits),
+                hits = _merge_hit_lists(
+                    tuple(hits for hits in (lexical_hits, memory_source_hits) if hits),
                     top_k=top_k,
                     rrf_k=self._fusion_rrf_k,
                 )
@@ -391,6 +395,7 @@ class Stage1Pipeline:
                 "route_config": self._route_trace_config,
                 "retrieval": {
                     "retriever": _retriever_name(
+                        lexical_enabled=self._lexical_enabled,
                         dense_enabled=self._dense_enabled,
                         session_bm25_enabled=self._session_bm25_enabled,
                         build_memory_enabled=self._build_memory_enabled,
@@ -400,6 +405,7 @@ class Stage1Pipeline:
                     "neighbor_window": self._neighbor_window,
                     "neighbor_order": self._neighbor_order,
                     "drop_query_stopwords": self._drop_query_stopwords,
+                    "lexical_enabled": self._lexical_enabled,
                     "build_memory_enabled": self._build_memory_enabled,
                     "build_memory_top_k": self._build_memory_top_k,
                     "build_memory_max_sources_per_record": (
@@ -681,13 +687,31 @@ def _optional_int(value: object) -> int | None:
 
 
 def _retriever_name(
+    lexical_enabled: bool,
     dense_enabled: bool,
     session_bm25_enabled: bool,
     build_memory_enabled: bool,
 ) -> str:
-    names = ["dense_hybrid_rrf" if dense_enabled else "lexical_bm25"]
+    names = []
+    if lexical_enabled:
+        names.append("lexical_bm25")
+    if dense_enabled:
+        names.append("dense_embedding" if not lexical_enabled else "dense_hybrid_rrf")
     if build_memory_enabled:
         names.append("build_memory_bm25")
     if session_bm25_enabled:
         names.append("session_bm25")
-    return "+".join(names)
+    return "+".join(names) or "no_retriever"
+
+
+def _merge_hit_lists(
+    hit_lists: tuple[tuple[RetrievalHit, ...], ...],
+    *,
+    top_k: int,
+    rrf_k: int,
+) -> tuple[RetrievalHit, ...]:
+    if not hit_lists:
+        return ()
+    if len(hit_lists) == 1:
+        return hit_lists[0][:top_k]
+    return reciprocal_rank_fusion(hit_lists, top_k=top_k, rrf_k=rrf_k)

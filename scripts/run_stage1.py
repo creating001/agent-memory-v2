@@ -137,6 +137,9 @@ def main() -> int:
             "drop_query_stopwords": config.get("retrieval", {}).get(
                 "drop_query_stopwords", False
             ),
+            "lexical_enabled": config.get("retrieval", {})
+            .get("lexical", {})
+            .get("enabled", True),
             "build_memory_enabled": config.get("build_memory", {}).get(
                 "enabled", False
             ),
@@ -249,6 +252,7 @@ def main() -> int:
         },
         "answer": _answer_metrics(config),
         "compiler": {
+            "prompt_mode": config.get("compiler", {}).get("prompt_mode", "default"),
             "answer_style": config.get("compiler", {}).get("answer_style", "grounded"),
             "evidence_order": config.get("compiler", {}).get(
                 "evidence_order", "retrieval"
@@ -523,6 +527,7 @@ def _write_summary(
         f"- build_memory_include_superseded_information_needs: {metrics['retrieval']['build_memory_include_superseded_information_needs']}",
         f"- neighbor_order: {metrics['retrieval']['neighbor_order']}",
         f"- drop_query_stopwords: {metrics['retrieval']['drop_query_stopwords']}",
+        f"- lexical_enabled: {metrics['retrieval']['lexical_enabled']}",
         f"- dense_enabled: {metrics['retrieval']['dense_enabled']}",
         f"- lexical_protect_top_n: {metrics['retrieval']['lexical_protect_top_n']}",
         f"- embedding_cache_enabled: {metrics['retrieval']['embedding_cache_enabled']}",
@@ -542,6 +547,7 @@ def _write_summary(
         f"- session_bm25_applied_rate: {metrics['retrieval']['session_bm25_applied_rate']}",
         f"- avg_embedding_tokens: {metrics['retrieval']['avg_embedding_tokens']}",
         f"- avg_context_chars: {metrics['retrieval']['avg_context_chars']}",
+        f"- compiler_prompt_mode: {metrics['compiler']['prompt_mode']}",
         f"- answer_mode: {metrics['answer']['mode']}",
         f"- answer_model: {metrics['answer']['model']}",
         f"- answer_max_input_tokens: {metrics['answer']['max_input_tokens']}",

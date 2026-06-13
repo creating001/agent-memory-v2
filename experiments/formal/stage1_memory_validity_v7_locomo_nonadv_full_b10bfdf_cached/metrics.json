@@ -1,0 +1,247 @@
+{
+  "accuracy": null,
+  "answer": {
+    "base_url": "http://127.0.0.1:8000/v1",
+    "max_input_tokens": 131072,
+    "max_output_tokens": 16384,
+    "max_tokens": 16384,
+    "mode": "openai_compatible",
+    "model": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "temperature": 0.0,
+    "timeout": 120.0
+  },
+  "benchmark": "locomo",
+  "bleu": null,
+  "build_memory": {
+    "avg_active_records": 125.21103896103897,
+    "avg_chunks": 8.059090909090909,
+    "avg_records": 136.65974025974026,
+    "base_url": "http://127.0.0.1:8000/v1",
+    "cache_enabled": true,
+    "cache_hits": 12411,
+    "cache_misses": 0,
+    "cache_path": "outputs/cache/qwen3_build_memory.sqlite",
+    "cache_writes": 0,
+    "enabled": true,
+    "include_superseded": false,
+    "include_superseded_information_needs": [
+      "temporal_lookup",
+      "list_count"
+    ],
+    "max_chars_per_turn": 500,
+    "max_records_per_chunk": 20,
+    "max_tokens": 2048,
+    "max_turns_per_chunk": 80,
+    "mode": "openai_compatible",
+    "model": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "temperature": 0.0,
+    "total_active_records": 192825,
+    "total_chunks": 12411,
+    "total_records": 210456,
+    "total_superseded_records": 17631
+  },
+  "compiler": {
+    "answer_style": "concise",
+    "evidence_order": "question_overlap",
+    "evidence_row_labels": false,
+    "final_answer_checklist": false,
+    "max_memory_records": 16,
+    "max_row_text_chars": 0,
+    "memory_layout": "typed_sections",
+    "memory_order": "question_overlap",
+    "route_guidance": true,
+    "route_overrides": {},
+    "row_text_mode": "full",
+    "temporal_grounding": true,
+    "temporal_hints": true,
+    "temporal_text_normalization": false,
+    "temporal_workpad": true,
+    "temporal_workpad_max_pairs": 12,
+    "temporal_workpad_max_rows": 10,
+    "temporal_workpad_scope": "route"
+  },
+  "experiment_kind": "formal",
+  "f1": null,
+  "metrics_note": "No gold answers or judge outputs are used by this prediction runner.",
+  "n_samples": 1540,
+  "offline_comparison": {
+    "v4_locomo_current_best": {
+      "minus": 51,
+      "net_correct": -21,
+      "other_accuracy_on_shared": 0.695906432748538,
+      "other_correct": 1071,
+      "plus": 30,
+      "shared": 1540,
+      "this_accuracy_on_shared": 0.6818181818181818,
+      "this_correct": 1050
+    },
+    "v6_route_priority": {
+      "minus": 42,
+      "net_correct": 1,
+      "other_accuracy_on_shared": 0.6816114359974009,
+      "other_correct": 1049,
+      "plus": 43,
+      "shared": 1540,
+      "this_accuracy_on_shared": 0.6818181818181818,
+      "this_correct": 1050
+    }
+  },
+  "offline_evidence_recall": {
+    "by_category": {
+      "1": {
+        "evidence_recall": 0.7340425531914894,
+        "n": 282
+      },
+      "2": {
+        "evidence_recall": 0.8566978193146417,
+        "n": 321
+      },
+      "3": {
+        "evidence_recall": 0.5,
+        "n": 92
+      },
+      "4": {
+        "evidence_recall": 0.8894173602853745,
+        "n": 841
+      }
+    },
+    "clean_note": "Offline-only retrieval diagnostic. Evidence labels must not feed prediction, route, retrieval, compiler, answer, or verifier modules.",
+    "evidence_recall": 0.8307291666666666,
+    "n_with_evidence_labels": 1536,
+    "output": "experiments/formal/stage1_memory_validity_v7_locomo_nonadv_full_b10bfdf_cached/evidence_recall.json"
+  },
+  "offline_judge": {
+    "accuracy": 0.6818181818181818,
+    "accuracy_invalid_as_wrong": 0.6818181818181818,
+    "by_category": {
+      "1": {
+        "accuracy": 0.599291,
+        "correct": 169,
+        "total": 282,
+        "valid": 282
+      },
+      "2": {
+        "accuracy": 0.404984,
+        "correct": 130,
+        "total": 321,
+        "valid": 321
+      },
+      "3": {
+        "accuracy": 0.552083,
+        "correct": 53,
+        "total": 96,
+        "valid": 96
+      },
+      "4": {
+        "accuracy": 0.829964,
+        "correct": 698,
+        "total": 841,
+        "valid": 841
+      }
+    },
+    "by_route": {
+      "current_state": {
+        "accuracy": 0.5,
+        "correct": 2,
+        "total": 4,
+        "valid": 4
+      },
+      "fact_lookup": {
+        "accuracy": 0.782908,
+        "correct": 797,
+        "total": 1018,
+        "valid": 1018
+      },
+      "list_count": {
+        "accuracy": 0.541985,
+        "correct": 71,
+        "total": 131,
+        "valid": 131
+      },
+      "profile_preference": {
+        "accuracy": 0.653061,
+        "correct": 32,
+        "total": 49,
+        "valid": 49
+      },
+      "temporal_lookup": {
+        "accuracy": 0.43787,
+        "correct": 148,
+        "total": 338,
+        "valid": 338
+      }
+    },
+    "clean_note": "DeepSeek judge ran offline after prediction; judge outputs and labels must not be consumed by prediction code.",
+    "correct": 1050,
+    "judge_output": "experiments/formal/stage1_memory_validity_v7_locomo_nonadv_full_b10bfdf_cached/deepseek_judge.json",
+    "model": "deepseek-v4-flash",
+    "n_invalid": 0,
+    "n_valid": 1540,
+    "usage": {
+      "completion_tokens": 157496,
+      "prompt_tokens": 497751,
+      "total_tokens": 655247
+    },
+    "wrong": 490
+  },
+  "retrieval": {
+    "avg_compiled_evidence_items": 33.044155844155846,
+    "avg_context_chars": 14577.615584415584,
+    "avg_embedding_tokens": 0.0,
+    "avg_memory_hits": 19.84155844155844,
+    "avg_memory_source_hits": 22.381168831168832,
+    "build_memory_enabled": true,
+    "build_memory_include_superseded": false,
+    "build_memory_include_superseded_information_needs": [
+      "temporal_lookup",
+      "list_count"
+    ],
+    "build_memory_max_sources_per_record": 4,
+    "build_memory_top_k": 20,
+    "dense_enabled": true,
+    "drop_query_stopwords": true,
+    "embedding_cache_enabled": true,
+    "embedding_cache_hits": 927698,
+    "embedding_cache_misses": 0,
+    "embedding_cache_path": "outputs/cache/qwen3_embedding.sqlite",
+    "embedding_cache_writes": 0,
+    "lexical_protect_top_n": 2,
+    "max_top_k": 36,
+    "neighbor_order": "hit_priority",
+    "neighbor_window": 1,
+    "session_anchor_top_k": 2,
+    "session_bm25_applied_count": 522,
+    "session_bm25_applied_rate": 0.33896103896103896,
+    "session_bm25_enabled": true,
+    "session_bm25_top_k": 8,
+    "session_enabled_information_needs": null,
+    "session_enabled_query_patterns": [
+      "\\b20\\d{2}\\b",
+      "\\b(?:january|february|march|april|june|july|august|september|october|november|december)\\b",
+      "\\bmay\\s+20\\d{2}\\b"
+    ],
+    "session_enabled_route_signals": [
+      "temporal",
+      "recent_or_current"
+    ],
+    "session_max_anchor_hits": 12,
+    "session_protect_turn_hits": 4,
+    "top_k": 12,
+    "total_embedding_tokens": 0
+  },
+  "route": {
+    "enable_broad_list_patterns": false,
+    "enable_recommendation_profile_patterns": true,
+    "temporal_priority_over_recent": false
+  },
+  "runner": {
+    "workers": 8
+  },
+  "subset": "non-adversarial-full",
+  "token_cost": {
+    "avg_build_tokens": 0.0,
+    "avg_query_tokens": 4715.416883116883,
+    "total_build_tokens": 0,
+    "total_query_tokens": 7261742
+  }
+}

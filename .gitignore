@@ -15,3 +15,5 @@ data/*
 !data/README.md
 !data/examples/
 !data/examples/**
+
+external/

@@ -51,6 +51,7 @@ ROUTE_OVERRIDE_KEYS = {
     "max_row_text_chars",
     "row_text_mode",
 }
+SUPPORTED_PROMPT_MODES = {"default", "raw_context_only"}
 QUESTION_STOPWORDS = {
     "a",
     "an",
@@ -127,6 +128,7 @@ class EvidenceCompiler:
         evidence_row_labels: bool = False,
         final_answer_checklist: bool = False,
         max_memory_records: int = 12,
+        prompt_mode: str = "default",
         route_overrides: Mapping[str, Mapping[str, Any]] | None = None,
     ):
         self._max_evidence_items = max_evidence_items
@@ -160,6 +162,9 @@ class EvidenceCompiler:
         self._evidence_row_labels = evidence_row_labels
         self._final_answer_checklist = final_answer_checklist
         self._max_memory_records = max(0, max_memory_records)
+        if prompt_mode not in SUPPORTED_PROMPT_MODES:
+            raise ValueError(f"Unsupported prompt_mode: {prompt_mode}")
+        self._prompt_mode = prompt_mode
         self._route_overrides = _validate_route_overrides(route_overrides or {})
 
     def compile(
@@ -243,6 +248,7 @@ class EvidenceCompiler:
             route_guidance=self._route_guidance,
             evidence_row_labels=route_settings["evidence_row_labels"],
             final_answer_checklist=route_settings["final_answer_checklist"],
+            prompt_mode=self._prompt_mode,
         )
         return CompiledContext(
             question=question,
@@ -490,7 +496,19 @@ def _build_prompt(
     route_guidance: bool,
     evidence_row_labels: bool,
     final_answer_checklist: bool,
+    prompt_mode: str,
 ) -> str:
+    if prompt_mode == "raw_context_only":
+        return _build_raw_context_only_prompt(
+            question=question,
+            question_time=question_time,
+            rows=rows,
+            answer_style=answer_style,
+            row_text_mode=row_text_mode,
+            max_row_text_chars=max_row_text_chars,
+            evidence_row_labels=evidence_row_labels,
+        )
+
     lines = [
         "Answer the question using the build-stage memory view and raw context.",
         "If the evidence is insufficient, answer that the information is not available.",
@@ -562,6 +580,50 @@ def _build_prompt(
         if checklist:
             lines.extend(("", "Final answer checklist:"))
             lines.extend(checklist)
+    return "\n".join(lines)
+
+
+def _build_raw_context_only_prompt(
+    *,
+    question: str,
+    question_time: str | None,
+    rows: tuple[EvidenceRow, ...],
+    answer_style: str,
+    row_text_mode: str,
+    max_row_text_chars: int,
+    evidence_row_labels: bool,
+) -> str:
+    lines = [
+        "Answer the user's question using only the provided memory context.",
+        "If the memory context is insufficient, answer that the information is not available.",
+        "Do not use benchmark labels, gold answers, judge output, sample ids, or row indices.",
+    ]
+    if answer_style == "concise":
+        lines.insert(
+            1,
+            "Use the shortest direct answer that is fully supported; avoid explanations unless needed.",
+        )
+    lines.extend(
+        [
+            "",
+            f"Question: {question}",
+            f"Question time: {question_time or 'not provided'}",
+            "",
+            "Memory context:",
+        ]
+    )
+    if not rows:
+        lines.append("(no evidence retrieved)")
+    for row_index, row in enumerate(rows, start=1):
+        lines.append(
+            _format_row(
+                row,
+                question=question,
+                row_text_mode=row_text_mode,
+                max_row_text_chars=max_row_text_chars,
+                row_label=f"E{row_index}" if evidence_row_labels else None,
+            )
+        )
     return "\n".join(lines)
 
 

@@ -95,6 +95,36 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertTrue(all(row["source_id"] for row in rows))
         self.assertEqual(result["trace"]["token_cost"]["query_tokens"], 0)
 
+    def test_pipeline_can_disable_lexical_retrieval(self) -> None:
+        config = {
+            "retrieval": {
+                "top_k": 4,
+                "max_top_k": 4,
+                "neighbor_window": 0,
+                "lexical": {"enabled": False},
+            },
+            "compiler": {"max_evidence_items": 10, "max_evidence_chars": 4000},
+            "answer": {"fallback_answer": "I do not know."},
+        }
+        request = PredictionRequest(
+            question="What tea does Alex prefer?",
+            turns=(
+                Turn(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="Alex prefers jasmine tea.",
+                ),
+            ),
+        )
+
+        result = Stage1Pipeline(config).predict(request)
+
+        self.assertFalse(result["trace"]["retrieval"]["lexical_enabled"])
+        self.assertEqual(result["trace"]["retrieval"]["retriever"], "no_retriever")
+        self.assertEqual(result["trace"]["compiled_context"]["evidence_rows"], [])
+
     def test_hit_priority_neighbor_expansion_keeps_top_hit_when_compiler_is_tight(self) -> None:
         config = {
             "retrieval": {
@@ -203,6 +233,38 @@ class CleanSkeletonTest(unittest.TestCase):
         prompt = result["trace"]["compiled_context"]["prompt"]
 
         self.assertIn("shortest direct answer", prompt)
+
+    def test_raw_context_only_prompt_excludes_build_memory_view(self) -> None:
+        config = {
+            "retrieval": {"top_k": 1, "max_top_k": 1, "neighbor_window": 0},
+            "compiler": {
+                "max_evidence_items": 1,
+                "max_evidence_chars": 1000,
+                "prompt_mode": "raw_context_only",
+                "answer_style": "concise",
+            },
+            "answer": {"fallback_answer": "I do not know."},
+        }
+        request = PredictionRequest(
+            question="What tea does Alex prefer?",
+            turns=(
+                Turn(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="Alex prefers jasmine tea.",
+                ),
+            ),
+        )
+
+        result = Stage1Pipeline(config).predict(request)
+        prompt = result["trace"]["compiled_context"]["prompt"]
+
+        self.assertIn("Memory context:", prompt)
+        self.assertIn("shortest direct answer", prompt)
+        self.assertNotIn("Build-stage typed memory view", prompt)
+        self.assertNotIn("Information need:", prompt)
 
     def test_evidence_labels_role_snippets_and_final_checklist_are_added(self) -> None:
         config = {
