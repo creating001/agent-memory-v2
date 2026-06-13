@@ -313,6 +313,15 @@ class Stage1Pipeline:
             evidence_report_detail=bool(
                 compiler_config.get("evidence_report_detail", False)
             ),
+            aggregation_report_contract=bool(
+                compiler_config.get("aggregation_report_contract", False)
+            ),
+            aggregation_report_information_needs=_tuple_config(
+                compiler_config.get(
+                    "aggregation_report_information_needs",
+                    ("list_count", "temporal_lookup"),
+                )
+            ),
             operation_workpad=bool(compiler_config.get("operation_workpad", False)),
             operation_workpad_information_needs=_tuple_config(
                 compiler_config.get(
@@ -415,6 +424,15 @@ class Stage1Pipeline:
             "evidence_report_detail": bool(
                 compiler_config.get("evidence_report_detail", False)
             ),
+            "aggregation_report_contract": bool(
+                compiler_config.get("aggregation_report_contract", False)
+            ),
+            "aggregation_report_information_needs": _tuple_config(
+                compiler_config.get(
+                    "aggregation_report_information_needs",
+                    ("list_count", "temporal_lookup"),
+                )
+            ),
             "operation_workpad": bool(
                 compiler_config.get("operation_workpad", False)
             ),
@@ -438,6 +456,11 @@ class Stage1Pipeline:
         self._answer_finalizer_enable_count_correction = bool(
             answer_finalizer_config.get("enable_count_correction", False)
         )
+        self._answer_finalizer_enable_evidence_report_count_correction = bool(
+            answer_finalizer_config.get(
+                "enable_evidence_report_count_correction", False
+            )
+        )
         self._answer_finalizer_enable_money_sum_correction = bool(
             answer_finalizer_config.get("enable_money_sum_correction", True)
         )
@@ -452,6 +475,9 @@ class Stage1Pipeline:
             "mode": self._answer_finalizer_mode,
             "enable_count_correction": (
                 self._answer_finalizer_enable_count_correction
+            ),
+            "enable_evidence_report_count_correction": (
+                self._answer_finalizer_enable_evidence_report_count_correction
             ),
             "enable_money_sum_correction": (
                 self._answer_finalizer_enable_money_sum_correction
@@ -1001,6 +1027,9 @@ class Stage1Pipeline:
             draft_answer=answer.answer,
             raw_response=answer.raw_response,
             enable_count_correction=self._answer_finalizer_enable_count_correction,
+            enable_evidence_report_count_correction=(
+                self._answer_finalizer_enable_evidence_report_count_correction
+            ),
             enable_money_sum_correction=(
                 self._answer_finalizer_enable_money_sum_correction
             ),

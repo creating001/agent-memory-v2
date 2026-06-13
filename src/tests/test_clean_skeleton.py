@@ -650,6 +650,102 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertFalse(finalization.applied)
         self.assertEqual(finalization.answer, "1")
 
+    def test_evidence_report_count_increment_finalizer_is_explicit(self) -> None:
+        content = json.dumps(
+            {
+                "sufficient": True,
+                "answer_type": "count",
+                "evidence_report": [
+                    {
+                        "status": "support",
+                        "canonical_item": "snake plant",
+                        "count_increment": "1",
+                    },
+                    {
+                        "status": "support",
+                        "canonical_item": "peace lily and succulent",
+                        "count_increment": "2",
+                    },
+                ],
+                "answer": "2",
+            }
+        )
+        raw_response = json.dumps({"content": content})
+
+        finalization = finalize_structured_answer(
+            question="How many plants did Alex acquire last month?",
+            draft_answer="2",
+            raw_response=raw_response,
+            enable_evidence_report_count_correction=True,
+        )
+
+        self.assertTrue(finalization.applied)
+        self.assertEqual(
+            finalization.reason, "evidence_report_count_increment_consistency"
+        )
+        self.assertEqual(finalization.expected_value, "3")
+        self.assertIn("3:", finalization.answer)
+        self.assertIn("snake plant", finalization.answer)
+
+    def test_evidence_report_count_increment_finalizer_ignores_legacy_value(
+        self,
+    ) -> None:
+        content = json.dumps(
+            {
+                "sufficient": True,
+                "answer_type": "count",
+                "evidence_report": [
+                    {
+                        "status": "support",
+                        "canonical_item": "small tank",
+                        "value": "5-gallon tank",
+                    },
+                    {
+                        "status": "support",
+                        "canonical_item": "large tank",
+                        "value": "20-gallon tank",
+                    },
+                ],
+                "answer": "2",
+            }
+        )
+        raw_response = json.dumps({"content": content})
+
+        finalization = finalize_structured_answer(
+            question="How many tanks does Alex have?",
+            draft_answer="2",
+            raw_response=raw_response,
+            enable_evidence_report_count_correction=True,
+        )
+
+        self.assertFalse(finalization.applied)
+        self.assertEqual(finalization.reason, "no_structured_evidence_items")
+
+    def test_evidence_report_count_increment_finalizer_skips_duration_counts(
+        self,
+    ) -> None:
+        content = json.dumps(
+            {
+                "sufficient": True,
+                "answer_type": "count",
+                "evidence_report": [
+                    {"status": "support", "count_increment": "1"},
+                    {"status": "support", "count_increment": "1"},
+                ],
+                "answer": "1 week",
+            }
+        )
+        raw_response = json.dumps({"content": content})
+
+        finalization = finalize_structured_answer(
+            question="How many weeks did it take Alex to finish the movies?",
+            draft_answer="1 week",
+            raw_response=raw_response,
+            enable_evidence_report_count_correction=True,
+        )
+
+        self.assertFalse(finalization.applied)
+
     def test_structured_answer_finalizer_repairs_money_sum_mismatch(self) -> None:
         content = json.dumps(
             {
@@ -1135,6 +1231,49 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertNotIn("Do not treat owning, discussing", fact_context.prompt)
         self.assertIn("Do not treat owning, discussing", list_context.prompt)
         self.assertIn("preserve all distinct in-scope item names", list_context.prompt)
+
+    def test_aggregation_report_contract_is_question_derived(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=1,
+            max_evidence_chars=1000,
+            prompt_mode="external_naive",
+            evidence_report_contract=True,
+            evidence_report_information_needs=("temporal_lookup",),
+            aggregation_report_contract=True,
+            aggregation_report_information_needs=("temporal_lookup",),
+        )
+        rows = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text="Alex bought a snake plant and two succulents last month.",
+            ),
+        )
+
+        count_context = compiler.compile(
+            question="How many plants did Alex acquire last month?",
+            question_time=None,
+            route=RouteResult(
+                information_need="temporal_lookup", signals=("temporal",)
+            ),
+            hits=(RetrievalHit("s1:t0", 1.0, 1, "lexical"),),
+            evidence_turns=rows,
+        )
+        date_context = compiler.compile(
+            question="When did Alex acquire the snake plant?",
+            question_time=None,
+            route=RouteResult(
+                information_need="temporal_lookup", signals=("temporal",)
+            ),
+            hits=(RetrievalHit("s1:t0", 1.0, 1, "lexical"),),
+            evidence_turns=rows,
+        )
+
+        self.assertIn('"count_increment"', count_context.prompt)
+        self.assertIn("Do not put unrelated numeric facts", count_context.prompt)
+        self.assertNotIn('"count_increment"', date_context.prompt)
 
     def test_temporal_event_contract_separates_mention_time_from_event_time(self) -> None:
         compiler = EvidenceCompiler(

@@ -144,6 +144,10 @@ class EvidenceCompiler:
         ),
         evidence_report_max_items: int = 8,
         evidence_report_detail: bool = False,
+        aggregation_report_contract: bool = False,
+        aggregation_report_information_needs: tuple[str, ...] = (
+            DEFAULT_STRUCTURED_ANSWER_CONTRACT_NEEDS
+        ),
         operation_workpad: bool = False,
         operation_workpad_information_needs: tuple[str, ...] = (
             DEFAULT_STRUCTURED_ANSWER_CONTRACT_NEEDS
@@ -198,6 +202,11 @@ class EvidenceCompiler:
         )
         self._evidence_report_max_items = max(1, int(evidence_report_max_items))
         self._evidence_report_detail = evidence_report_detail
+        self._aggregation_report_contract = aggregation_report_contract
+        self._aggregation_report_information_needs = _validate_information_needs(
+            aggregation_report_information_needs,
+            field_name="aggregation_report_information_needs",
+        )
         self._operation_workpad = operation_workpad
         self._operation_workpad_information_needs = _validate_information_needs(
             operation_workpad_information_needs,
@@ -335,6 +344,11 @@ class EvidenceCompiler:
             evidence_report_contract=(
                 self._evidence_report_contract
                 and route.information_need in self._evidence_report_information_needs
+            ),
+            aggregation_report_contract=(
+                self._aggregation_report_contract
+                and route.information_need in self._aggregation_report_information_needs
+                and _is_aggregation_question(question)
             ),
             evidence_report_max_items=self._evidence_report_max_items,
             evidence_report_detail=route_settings["evidence_report_detail"],
@@ -791,6 +805,7 @@ def _build_prompt(
     structured_answer_contract: bool,
     structured_answer_contract_max_items: int,
     evidence_report_contract: bool,
+    aggregation_report_contract: bool,
     evidence_report_max_items: int,
     evidence_report_detail: bool,
     operation_workpad: bool,
@@ -836,6 +851,7 @@ def _build_prompt(
             structured_answer_contract=structured_answer_contract,
             structured_answer_contract_max_items=structured_answer_contract_max_items,
             evidence_report_contract=evidence_report_contract,
+            aggregation_report_contract=aggregation_report_contract,
             evidence_report_max_items=evidence_report_max_items,
             evidence_report_detail=evidence_report_detail,
             operation_workpad=operation_workpad,
@@ -985,6 +1001,7 @@ def _build_external_naive_prompt(
     structured_answer_contract: bool,
     structured_answer_contract_max_items: int,
     evidence_report_contract: bool,
+    aggregation_report_contract: bool,
     evidence_report_max_items: int,
     evidence_report_detail: bool,
     operation_workpad: bool,
@@ -1051,6 +1068,11 @@ def _build_external_naive_prompt(
                 "Keep evidence_items compact; include excluded candidates only when they explain a duplicate or out-of-scope decision.",
             ]
         )
+    use_aggregation_report_contract = (
+        evidence_report_contract
+        and aggregation_report_contract
+        and not structured_answer_contract
+    )
     if evidence_report_contract and not structured_answer_contract:
         rules.extend(
             _external_evidence_report_rules(
@@ -1060,6 +1082,8 @@ def _build_external_naive_prompt(
                 detailed=evidence_report_detail,
             )
         )
+    if use_aggregation_report_contract:
+        rules.extend(_external_aggregation_report_rules())
     operation_workpad_block = ""
     if operation_workpad and not structured_answer_contract:
         operation_lines = _external_operation_workpad_lines(question, route)
@@ -1101,6 +1125,16 @@ def _build_external_naive_prompt(
                 '"event_time": "date/time/span/duration of the target event or empty", '
                 '"value": "answer value or empty", "reason": "why it supports or is excluded"}'
             )
+        elif use_aggregation_report_contract:
+            evidence_item_schema = (
+                '    {"memory": "Memory 1", "status": "support|exclude", '
+                '"canonical_item": "distinct item/event/operand or empty", '
+                '"slot": "counted_item|operand|date|duration|order|exclude", '
+                '"count_increment": "integer count contribution or empty", '
+                '"operand_value": "number/unit for sum/difference/duration or empty", '
+                '"value": "final value/date/name if not a count increment", '
+                '"reason": "why it supports or is excluded"}'
+            )
         else:
             evidence_item_schema = (
                 '    {"memory": "Memory 1", "status": "support|exclude", '
@@ -1115,6 +1149,7 @@ def _build_external_naive_prompt(
             '  "evidence_report": [',
             evidence_item_schema,
             "  ],",
+            '  "calculation": "count/sum/difference/duration/order calculation or empty",',
             '  "missing": "missing required target/operand/endpoint or empty",',
             '  "answer": "concise answer"',
             "}",
@@ -1219,6 +1254,31 @@ def _external_evidence_report_rules(
             ]
         )
     return rules
+
+
+def _external_aggregation_report_rules() -> list[str]:
+    """Schema discipline for question-derived aggregation, without labels."""
+
+    return [
+        "For aggregation questions, first identify the exact owner/person, target entity, action, time range, and requested operation.",
+        "Use canonical_item for the real-world item/event/operand being counted or calculated; merge duplicate mentions under one canonical_item.",
+        "For count questions, use count_increment only as the item's contribution to the final count: usually 1 per distinct item/event, or a larger integer only when one memory explicitly names multiple distinct in-scope items.",
+        "Do not put unrelated numeric facts such as tank size, page count, stars, mileage, dates, or already-read amounts into count_increment; put those in value or operand_value instead.",
+        "For sum, difference, remaining, percentage, or duration questions, use operand_value for each operand and show the arithmetic in calculation.",
+        "Exclude assistant suggestions, examples, hypotheticals, duplicates, wrong-time-range items, and merely related discussions unless the user confirmed the event or the question asks about suggestions.",
+        "The final answer must match calculation: count=sum(count_increment), sum/difference from operand_value, order from dated included items.",
+    ]
+
+
+def _is_aggregation_question(question: str) -> bool:
+    lowered = question.lower()
+    return bool(
+        re.search(
+            r"\b(how many|how much|total|sum|combined|altogether|in all|count|"
+            r"number of|difference|percentage|order of|ordered|earliest|latest)\b",
+            lowered,
+        )
+    )
 
 
 def _detailed_evidence_report_rules(question: str) -> list[str]:

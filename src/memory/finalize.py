@@ -79,6 +79,7 @@ def finalize_structured_answer(
     draft_answer: str,
     raw_response: str | None,
     enable_count_correction: bool = False,
+    enable_evidence_report_count_correction: bool = False,
     enable_money_sum_correction: bool = True,
     enable_duration_rounding_correction: bool = False,
 ) -> AnswerFinalization:
@@ -106,11 +107,21 @@ def finalize_structured_answer(
     if payload.get("sufficient") is False:
         return _noop(draft_answer, "model_marked_insufficient")
 
+    lowered_question = question.lower()
+    if enable_evidence_report_count_correction and _is_count_question(
+        lowered_question
+    ):
+        report_counted = _finalize_evidence_report_count_increment(
+            draft_answer=draft_answer,
+            payload=payload,
+        )
+        if report_counted is not None:
+            return report_counted
+
     items = _extract_items(payload)
     if not items:
         return _noop(draft_answer, "no_structured_evidence_items")
 
-    lowered_question = question.lower()
     if enable_money_sum_correction and _is_sum_question(lowered_question):
         summed = _finalize_money_sum(
             lowered_question=lowered_question,
@@ -225,6 +236,68 @@ def _extract_items(payload: dict[str, Any]) -> list[dict[str, Any]]:
         if isinstance(value, list):
             return [item for item in value if isinstance(item, dict)]
     return []
+
+
+def _finalize_evidence_report_count_increment(
+    *,
+    draft_answer: str,
+    payload: dict[str, Any],
+) -> AnswerFinalization | None:
+    if _answer_is_insufficient(draft_answer):
+        return None
+    if str(payload.get("answer_type") or "").lower() != "count":
+        return None
+    report = payload.get("evidence_report")
+    if not isinstance(report, list):
+        return None
+    supports = [
+        item
+        for item in report
+        if isinstance(item, dict)
+        and str(item.get("status") or "").strip().lower() == "support"
+    ]
+    if len(supports) < 2:
+        return None
+    increments: list[tuple[dict[str, Any], Decimal]] = []
+    for item in supports:
+        if str(item.get("operand_value") or "").strip():
+            return None
+        increment = _extract_plain_value(str(item.get("count_increment") or ""))
+        if increment is None:
+            return None
+        if (
+            increment <= 0
+            or increment != increment.to_integral_value()
+            or increment > 1000
+        ):
+            return None
+        increments.append((item, increment))
+    total = sum(value for _, value in increments)
+    if not _numeric_answer_disagrees(draft_answer, total):
+        return None
+    labels = [
+        _compact_label(
+            str(
+                item.get("canonical_item")
+                or item.get("value")
+                or item.get("reason")
+                or "item"
+            )
+        )
+        for item, _ in increments
+    ]
+    labels = [label for label in labels if label]
+    answer = str(int(total))
+    if labels:
+        answer = f"{answer}: {', '.join(labels[:8])}"
+    return AnswerFinalization(
+        answer=answer,
+        before=draft_answer,
+        applied=True,
+        reason="evidence_report_count_increment_consistency",
+        evidence_item_count=len(increments),
+        expected_value=str(int(total)),
+    )
 
 
 def _item_included(item: dict[str, Any]) -> bool:

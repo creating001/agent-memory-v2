@@ -489,6 +489,12 @@ def main() -> int:
             "evidence_report_detail": config.get("compiler", {}).get(
                 "evidence_report_detail", False
             ),
+            "aggregation_report_contract": config.get("compiler", {}).get(
+                "aggregation_report_contract", False
+            ),
+            "aggregation_report_information_needs": config.get("compiler", {}).get(
+                "aggregation_report_information_needs"
+            ),
             "operation_workpad": config.get("compiler", {}).get(
                 "operation_workpad", False
             ),
@@ -670,6 +676,9 @@ def _answer_metrics(config: dict[str, Any]) -> dict[str, Any]:
         "finalizer_enable_count_correction": answer_config.get(
             "finalizer", {}
         ).get("enable_count_correction", False),
+        "finalizer_enable_evidence_report_count_correction": answer_config.get(
+            "finalizer", {}
+        ).get("enable_evidence_report_count_correction", False),
         "finalizer_enable_money_sum_correction": answer_config.get(
             "finalizer", {}
         ).get("enable_money_sum_correction", True),
@@ -855,6 +864,7 @@ def _write_summary(
         f"- answer_finalizer_enabled: {metrics['answer']['finalizer_enabled']}",
         f"- answer_finalizer_mode: {metrics['answer']['finalizer_mode']}",
         f"- answer_finalizer_enable_count_correction: {metrics['answer']['finalizer_enable_count_correction']}",
+        f"- answer_finalizer_enable_evidence_report_count_correction: {metrics['answer']['finalizer_enable_evidence_report_count_correction']}",
         f"- answer_finalizer_enable_money_sum_correction: {metrics['answer']['finalizer_enable_money_sum_correction']}",
         f"- answer_finalizer_enable_duration_rounding_correction: {metrics['answer']['finalizer_enable_duration_rounding_correction']}",
         f"- answer_finalizer_applied_count: {metrics['answer']['finalizer_applied_count']}",
@@ -913,6 +923,8 @@ def _write_summary(
         f"- evidence_report_information_needs: {metrics['compiler']['evidence_report_information_needs']}",
         f"- evidence_report_max_items: {metrics['compiler']['evidence_report_max_items']}",
         f"- evidence_report_detail: {metrics['compiler']['evidence_report_detail']}",
+        f"- aggregation_report_contract: {metrics['compiler']['aggregation_report_contract']}",
+        f"- aggregation_report_information_needs: {metrics['compiler']['aggregation_report_information_needs']}",
         f"- route_overrides: {metrics['compiler']['route_overrides']}",
         f"- enable_broad_list_patterns: {metrics['route']['enable_broad_list_patterns']}",
         f"- enable_recommendation_profile_patterns: {metrics['route']['enable_recommendation_profile_patterns']}",
@@ -1016,6 +1028,8 @@ def _write_diagnosis(
         f"- evidence_report_information_needs: {metrics['compiler']['evidence_report_information_needs']}",
         f"- evidence_report_max_items: {metrics['compiler']['evidence_report_max_items']}",
         f"- evidence_report_detail: {metrics['compiler']['evidence_report_detail']}",
+        f"- aggregation_report_contract: {metrics['compiler']['aggregation_report_contract']}",
+        f"- aggregation_report_information_needs: {metrics['compiler']['aggregation_report_information_needs']}",
         f"- route_overrides: {metrics['compiler']['route_overrides']}",
         f"- enable_recommendation_profile_patterns: {metrics['route']['enable_recommendation_profile_patterns']}",
         f"- temporal_priority_over_recent: {metrics['route']['temporal_priority_over_recent']}",
@@ -1030,6 +1044,7 @@ def _write_diagnosis(
         f"- answer_finalizer_enabled: {metrics['answer']['finalizer_enabled']}",
         f"- answer_finalizer_mode: {metrics['answer']['finalizer_mode']}",
         f"- answer_finalizer_enable_count_correction: {metrics['answer']['finalizer_enable_count_correction']}",
+        f"- answer_finalizer_enable_evidence_report_count_correction: {metrics['answer']['finalizer_enable_evidence_report_count_correction']}",
         f"- answer_finalizer_enable_money_sum_correction: {metrics['answer']['finalizer_enable_money_sum_correction']}",
         f"- answer_finalizer_enable_duration_rounding_correction: {metrics['answer']['finalizer_enable_duration_rounding_correction']}",
         f"- answer_finalizer_applied_count: {metrics['answer']['finalizer_applied_count']}",
