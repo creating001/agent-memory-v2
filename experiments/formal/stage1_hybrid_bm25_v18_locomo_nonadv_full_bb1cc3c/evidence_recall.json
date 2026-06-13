@@ -1,0 +1,36 @@
+{
+  "clean_note": "This is offline-only evidence analysis. Its output must not be read by prediction, route, retrieval, compiler, answer, or verifier modules.",
+  "created_at_utc": "2026-06-13T09:26:22+00:00",
+  "git": {
+    "commit": "bb1cc3c19a335c57d11bcbd180168e3e8576a1b7",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "?? experiments/formal/stage1_hybrid_bm25_v18_locomo_nonadv_full_bb1cc3c/"
+  },
+  "labels": "/data/home_new/wujinqi/agent-memory/outputs/prepare_locomo_non_adversarial/labels.jsonl",
+  "metrics": {
+    "by_type": {
+      "1": {
+        "evidence_recall": 0.8936170212765957,
+        "n": 282
+      },
+      "2": {
+        "evidence_recall": 0.8909657320872274,
+        "n": 321
+      },
+      "3": {
+        "evidence_recall": 0.6739130434782609,
+        "n": 92
+      },
+      "4": {
+        "evidence_recall": 0.9108204518430439,
+        "n": 841
+      }
+    },
+    "diagnostic_note": "Offline-only retrieval diagnostic. Evidence labels must not feed prediction, route, retrieval, compiler, answer, or verifier modules.",
+    "evidence_recall": 0.8893229166666666,
+    "n_with_evidence_labels": 1536
+  },
+  "traces": "/data/home_new/wujinqi/agent-memory/outputs/formal/stage1_hybrid_bm25_v18_locomo_nonadv_full_bb1cc3c/traces.jsonl"
+}
