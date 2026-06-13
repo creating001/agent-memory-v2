@@ -1178,7 +1178,7 @@ def _detailed_evidence_report_rules(question: str) -> list[str]:
     if _asks_collection_operation(lowered) or _looks_like_plural_slot_question(lowered):
         rules.extend(
             [
-                "For list-style what/which questions, preserve all distinct in-scope item names or values, not just one example or a broad category.",
+                "For list-style what/which questions, preserve all distinct in-scope item names or values, not just one example or a broad class.",
                 "Merge repeated mentions of the same real-world item, event, process, person, trip, purchase, or role under one canonical value.",
                 "If a row is ambiguous between a duplicate and a separate new item, mark it exclude as ambiguous_duplicate unless the answer can be a supported lower bound.",
             ]
