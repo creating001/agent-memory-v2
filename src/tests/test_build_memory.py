@@ -498,6 +498,46 @@ class BuildMemoryTest(unittest.TestCase):
         self.assertIn("sources=Memory 2", compiled.prompt)
         self.assertIn("value=spare key in the blue bowl", compiled.prompt)
 
+    def test_external_naive_can_include_route_guidance(self) -> None:
+        route = RouteResult(information_need="fact_lookup", signals=())
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text="Alex earned a history degree.",
+            ),
+        )
+        disabled = EvidenceCompiler(
+            max_evidence_items=1,
+            max_evidence_chars=1000,
+            prompt_mode="external_naive",
+            route_guidance=False,
+        ).compile(
+            question="What degree did Alex earn?",
+            question_time=None,
+            route=route,
+            hits=(),
+            evidence_turns=turns,
+        )
+        enabled = EvidenceCompiler(
+            max_evidence_items=1,
+            max_evidence_chars=1000,
+            prompt_mode="external_naive",
+            route_guidance=True,
+        ).compile(
+            question="What degree did Alex earn?",
+            question_time=None,
+            route=route,
+            hits=(),
+            evidence_turns=turns,
+        )
+
+        self.assertNotIn("Answer only the requested entity", disabled.prompt)
+        self.assertIn("Answer only the requested entity", enabled.prompt)
+        self.assertIn("Rules:", enabled.prompt)
+
     def test_external_naive_route_override_can_select_memory_guide(self) -> None:
         compiler = EvidenceCompiler(
             max_evidence_items=2,
