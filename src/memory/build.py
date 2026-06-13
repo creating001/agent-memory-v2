@@ -435,7 +435,17 @@ def _normalize_record(
         source_ids, timestamp_by_source_id
     )
     event_time = _clean_text(raw_record.get("event_time")) or None
-    valid_from = _clean_text(raw_record.get("valid_from")) or event_time or timestamp
+    raw_valid_from = _clean_text(raw_record.get("valid_from"))
+    if raw_valid_from:
+        valid_from = raw_valid_from
+    elif raw_record.get("mention_time") or raw_record.get("event_time"):
+        valid_from = (
+            event_time or timestamp
+            if memory_type in {"profile", "preference", "relationship", "state"}
+            else ""
+        )
+    else:
+        valid_from = timestamp
     valid_to = _clean_text(raw_record.get("valid_to")) or None
     entities = _tuple_of_strings(raw_record.get("entities"))
     confidence = _safe_float(raw_record.get("confidence"), default=1.0)
@@ -565,6 +575,8 @@ def _temporal_field_prompt_lines(enabled: bool) -> list[str]:
         "- mention_time: when the supporting turn was said or recorded; usually the turn time.",
         "- event_time: when the described event/action happened, or the explicit/resolved time span in the turn text.",
         "- valid_from / valid_to: when a state, preference, profile fact, or relationship became true and stopped being true; leave valid_to null if still open.",
+        "- For one-time events, use event_time and leave valid_from/valid_to null unless the text describes an ongoing state created by that event.",
+        "- For generic background facts, public schedules, seasonal advice, or examples not tied to the speaker's own memory, do not create a validity interval; keep valid_from/valid_to null.",
         "- timestamp: the best primary time for sorting this record; use event_time when it is known, otherwise mention_time.",
         "Resolve common relative phrases such as yesterday, last week, last Friday, next month, a few years ago, and two weeks ago against the supporting turn time.",
         "Do not infer a time from unrelated turns; leave event_time null when the event time is not stated or resolvable.",

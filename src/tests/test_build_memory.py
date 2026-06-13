@@ -180,6 +180,57 @@ class BuildMemoryTest(unittest.TestCase):
         self.assertEqual(built.records[0].event_time, "2024-01-01 to 2024-01-07")
         self.assertEqual(built.records[0].valid_from, "2024-01-01 to 2024-01-07")
 
+    def test_temporal_event_time_does_not_imply_validity_interval(self) -> None:
+        class FakeBuilder(OpenAICompatibleMemoryBuilder):
+            def __init__(self) -> None:
+                super().__init__(
+                    base_url="http://unused.local/v1",
+                    model="fake-model",
+                    temperature=0.0,
+                    max_tokens=256,
+                    timeout=1.0,
+                    max_turns_per_chunk=10,
+                    max_chars_per_turn=1000,
+                    max_records_per_chunk=4,
+                    temporal_fields=True,
+                )
+
+            def _chat_completion(self, prompt: str) -> dict:
+                del prompt
+                return {
+                    "choices": [
+                        {
+                            "message": {
+                                "content": (
+                                    '{"records":[{"type":"event",'
+                                    '"text":"The speaker visited the museum during the previous week.",'
+                                    '"source_ids":["s1:t0"],"timestamp":"2024-01-01 to 2024-01-07",'
+                                    '"mention_time":"2024-01-08",'
+                                    '"event_time":"2024-01-01 to 2024-01-07",'
+                                    '"entities":["museum"],"confidence":0.9}]}'
+                                )
+                            }
+                        }
+                    ],
+                    "usage": {"total_tokens": 39},
+                }
+
+        built = FakeBuilder().build(
+            (
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="The speaker visited the museum last week.",
+                    timestamp="2024-01-08",
+                ),
+            )
+        )
+
+        self.assertEqual(built.records[0].event_time, "2024-01-01 to 2024-01-07")
+        self.assertIsNone(built.records[0].valid_from)
+
     def test_truncated_build_payload_recovers_complete_records(self) -> None:
         payload = (
             '{"records":['
