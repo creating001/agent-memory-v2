@@ -129,3 +129,29 @@ run: `v37_row_memory_bundle_lme_probe_3d3cd07`
 - answer cache hits/misses/writes: `0/20/20`
 
 结论：v37 通过 LongMemEval-S no-label average query token gate。row-linked build memory bundle 已生效，且通过降低 raw evidence char budget，把 avg query tokens 控制在 `6000` 内。下一步可以跑 LongMemEval-S full；正式记录必须同时报告 avg compiled memory records，避免只看 accuracy。
+
+## 2026-06-14 LME Full 结果
+
+run: `stage1_row_memory_bundle_v37_lme_s_full_7f1fea6`
+
+- samples: `500`
+- commit: `7f1fea62934d33252a01f0fe2000abdb483b2be8`
+- dirty: 主要为用户修改的 `docs/architecture.md`、`docs/clean_protocol.md` 和预测后新增实验记录
+- answer max input/output: `131072/16384`
+- DeepSeek judge accuracy: `0.744`
+- correct/valid/samples: `372/500/500`
+- current best v36: `0.772`, `386/500`
+- delta_vs_v36: `-14`
+- v28: `0.766`, `383/500`
+- delta_vs_v28: `-11`
+- avg build tokens: `80346.246`
+- avg query tokens: `5790.57`
+- avg compiled evidence items: `32.348`
+- avg compiled memory records: `7.478`
+- build cache hits/misses/writes: `3341/0/0`
+- embedding cache hits/misses/writes: `247238/0/0`
+- answer cache hits/misses/writes: `20/480/480`
+- evidence_recall: `1.0`
+- comparison_vs_v36: gained `29`, lost `43`, changed-answer net `-11`, same-answer judge flip net `-3`
+
+结论：v37 是负向消融。row-linked typed memory 作为 prompt 内 Structured Evidence Guide 的思路虽然 clean、general，也确实修复了一些 fact/temporal 个案，但整体让 temporal_lookup、list_count 和 current_state 回退更多。后续不继续沿着“增加 answer prompt 中 typed memory”推进；typed memory 更适合作为 retrieval/ranking/source selection/control signal，最终 answer prompt 应保留更少、更准的 raw evidence。

@@ -87,11 +87,12 @@
 
 ## 当前设计输入
 
-基于已读代码、v36 badcase 和当前双基准结果，下一阶段优先验证 v37 row-linked build memory bundle，而不是继续添加零散 answer prompt 规则：
+基于已读代码、v36/v37 badcase 和当前双基准结果，v37 row-linked build memory bundle 已被判定为负向：LongMemEval-S full `0.744`，比 v36 `0.772` 低 `14` correct。它说明 source-linked typed memory 的思路可以保留，但不宜直接作为 answer prompt 中的额外事实视图。
 
-- build 侧：继续使用现有 LLM typed memory records，暂不重建 temporal KG，避免 v30 式 full rebuild 负向风险。
-- management 侧：保留 source/provenance、dedup、supersede 和 active/superseded 状态；typed memory 不能覆盖 raw evidence。
-- query 侧：新增 `compiler.memory_record_source=evidence_rows`，只把已进入 raw evidence rows 的 source-linked typed records 交给 compiler。
-- retrieval 侧：借鉴 EverOS/SimpleMem/xMemory 的 atomic fact child retrieval -> raw episode parent expansion，但 v37 不扩大 top-k，而是让 typed memory 组织已检索 raw rows。
-- compiler 侧：typed memory 只作为 Structured Evidence Guide 的紧凑索引；最终 support/exclude/missing 仍必须回到 Memory Context raw rows。
+下一阶段设计原则：
+
+- build 侧：继续使用现有 LLM typed memory records，保留 source/provenance、dedup、supersede 和 active/superseded 状态。
+- management 侧：typed memory 不能覆盖 raw evidence，也不能无条件进入 final prompt。
+- retrieval 侧：更应借鉴 EverOS/SimpleMem/xMemory 的 atomic fact child retrieval -> raw episode parent expansion，把 typed memory 用作 source selection、reranking、coverage/control signal。
+- compiler 侧：减少派生 memory 与 raw evidence 在 prompt 中竞争，优先构造更少、更准的 raw evidence context、conflict chain 或 candidate aggregation。
 - clean 侧：所有 route 和 compiler 只能来自 question text、question_time、原始对话和 memory metadata；不能使用 LoCoMo category、LongMemEval question_type、evidence label、gold 或 judge。
