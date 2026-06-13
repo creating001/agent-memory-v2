@@ -57,7 +57,7 @@
 - v38 route-scoped top60 + role_query_snippet 已完成 LongMemEval-S full：accuracy `0.752`，低于 v36 `0.772`。它相对 v37 恢复了部分 typed-memory-prompt 回退，但相对 v36 在 `list_count` 和 `temporal_lookup` 损失更大；结论是负向 ablation，不跑 LoCoMo full，顶层 config 不长期保留。
 - v39 memory-aware evidence selector 已完成 LongMemEval-S full：accuracy `0.724`，362/500，低于 v36 `0.772` 和 v38 `0.752`。结论是 build-memory source signal 直接排序 final raw rows 会破坏 list/temporal operand coverage；负向 ablation，不跑 LoCoMo full，顶层 config 不长期保留。
 - v40 route-scoped evidence detail 已完成 LongMemEval-S full：accuracy `0.742`，371/500，低于 v36 `0.772`。它相对 v39 恢复了部分 list/temporal，但相对 v36 仍净 `-15`；结论是单纯 reader-side detailed evidence rules 不够，不跑 LoCoMo full，顶层 config 不长期保留。
-- v41 question-only LLM operation router 正在 gate：基于 v36，只用 question text 和 visible question_time 做通用 operation routing；目标是修复 temporal/list/current-state 路由错配，额外 analyzer token 全部计入 query。规划见 `experiments/v41_planning.md`。
+- v41 question-only LLM operation router 已完成 LongMemEval-S route-stratified 20 条 gate：avg_query_tokens `5837.55`，question_analysis_avg_query_tokens `331.05`，route_changed `6/20`，同子集 DeepSeek judge 与 v36 都是 `14/20`，无净收益且增加 token；不跑 full，顶层 config 不长期保留。规划和结论见 `experiments/v41_planning.md`。
 
 负向探索结论已压缩保留：
 
@@ -110,6 +110,7 @@ experiments/formal/<run_id>/
 | `v38_route_snippet_lme_probe_2091273` | 20 条 LongMemEval-S route-stratified diagnostic | v38 route-scoped top60 + `role_query_snippet` gate 通过；avg_query_tokens `5756.0`，list/temporal top60 生效，非目标 route 保持 top40；后续 full 已证明负向。 |
 | `v39_memory_aware_selector_lme_probe_fd00801` | 20 条 LongMemEval-S route-stratified diagnostic | v39 route-scoped memory-aware selector gate 通过；avg_query_tokens `5607.8`，weighted full estimate `5566.583`，avg_build_tokens `81690.45`，typed memory 只做 source selection、prompt memory records 为 0。 |
 | `v40_route_scoped_evidence_detail_lme_probe_983f882` | 20 条 LongMemEval-S route-stratified diagnostic | v40 route-scoped evidence detail gate 通过；avg_query_tokens `5714.0`，weighted full estimate `5716.6965`，avg_build_tokens `81690.45`，detail prompt 只在 `list_count` / `temporal_lookup` 生效。 |
+| `v41_llm_question_router_lme_probe_243452f` | 20 条 LongMemEval-S route-stratified diagnostic | v41 question-only LLM operation router 预算 gate 通过；avg_query_tokens `5837.55`，question_analysis_avg_query_tokens `331.05`，route_changed `6/20`。同子集 DeepSeek judge v36=`14/20`、v41=`14/20`，没有净收益，不跑 full。 |
 
 ## 保留正式结果
 

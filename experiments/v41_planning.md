@@ -78,3 +78,21 @@ clean 边界：
 - build tokens 按 logical cold-build token 记录，即 cache hit 也统计 cached usage。
 
 如果 gate 通过，再考虑 LongMemEval-S full；只有 LME full 不负向并且 token 合格，才考虑 LoCoMo non-adversarial full。
+
+## Gate 结果
+
+Run：`v41_llm_question_router_lme_probe_243452f`
+
+- commit：`243452f6e5e1664cf04e1a840da990600cf3979e`
+- dirty：True，仅用户修改的 `docs/architecture.md` 和 `docs/clean_protocol.md` 仍未提交。
+- prediction：20/20 成功。
+- answer max input/output：`131072/16384`。
+- avg_build_tokens：`81690.45`，cache hit 仍按 stored usage 计入 logical cold-build cost。
+- avg_query_tokens：`5837.55`。
+- question_analysis_avg_query_tokens：`331.05`。
+- route_changed：`6/20`。
+- prompt clean scan：`category` 命中 2 次，均为原始对话中的普通英文词；未发现 hidden metadata 进入 compiled prompt。
+- 同子集 DeepSeek judge：v36=`14/20`，v41=`14/20`，delta=`0`。
+- answer changed：`5/20`，没有 judge 改对；NAS 建议和摄影附件类变化显示 analyzer 会改变 profile/current 路由，但未带来收益。
+
+结论：v41 预算 gate 虽然通过，但 accuracy diagnostic 没有净收益，还增加了约 `331` query tokens/sample。当前不跑 LongMemEval-S full，也不保留顶层候选 config。后续更值得投入 build/management 侧的 typed event/profile/temporal organization，而不是继续单独增加 question router token。

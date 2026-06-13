@@ -1,0 +1,64 @@
+{
+  "answer_changed_count": 5,
+  "baseline_run": "v36_lme_token_safe_probe_e7ca9e5",
+  "changed_or_rejudged": [
+    {
+      "answer_changed": true,
+      "gold_answer": "Target",
+      "question": "Where did I redeem a $5 coupon on coffee creamer?",
+      "record_key": "ea4e66b0d90b6834b4168cfe",
+      "v36_answer": "The provided information is not enough.",
+      "v36_label": "WRONG",
+      "v41_answer": "The location where the $5 coupon on coffee creamer was redeemed is not specified in the provided information.",
+      "v41_label": "WRONG"
+    },
+    {
+      "answer_changed": true,
+      "gold_answer": "February 14th",
+      "question": "When did I volunteer at the local animal shelter's fundraising dinner?",
+      "record_key": "d823172b5baf1eff81acb20c",
+      "v36_answer": "February",
+      "v36_label": "WRONG",
+      "v41_answer": "February 2023",
+      "v41_label": "WRONG"
+    },
+    {
+      "answer_changed": true,
+      "gold_answer": "7",
+      "question": "How many shirts did I pack for my 5-day trip to Costa Rica?",
+      "record_key": "116289fa172f4085451617db",
+      "v36_answer": "The provided information is not enough to determine how many shirts were packed for the current 5-day trip to Costa Rica.",
+      "v36_label": "WRONG",
+      "v41_answer": "The provided information is not enough.",
+      "v41_label": "WRONG"
+    },
+    {
+      "answer_changed": true,
+      "gold_answer": "The user would prefer suggestions of Sony-compatible accessories or high-quality photography gear that can enhance their photography experience. They may not prefer suggestions of other brands' equipment or low-quality gear.",
+      "question": "Can you suggest some accessories that would complement my current photography setup?",
+      "record_key": "0a537c6dfde0742723049ca4",
+      "v36_answer": "Think Tank Photo, Lowepro, F-Stop Gear, Peak Design, MindShift Gear camera bags, cases or pouches for your flash, and external battery packs for your Sony A7R IV.",
+      "v36_label": "CORRECT",
+      "v41_answer": "Think Tank Photo, Lowepro, F-Stop Gear, Peak Design, MindShift Gear",
+      "v41_label": "CORRECT"
+    },
+    {
+      "answer_changed": true,
+      "gold_answer": "The user would prefer responses that take into account their current home network storage capacity issues and recent reliance on external hard drives, highlighting the potential benefits of a NAS device in addressing these specific needs. They might not prefer responses that ignore their current storage challenges or fail to consider their recent tech upgrades and priorities. Preferred responses would utilize the user's previous mentions of storage capacity issues and tech investments to inform their decision.",
+      "question": "I'm trying to decide whether to buy a NAS device now or wait. What do you think?",
+      "record_key": "f9ae007ab8a08057a78ba572",
+      "v36_answer": "Buy now. The current market offers suitable NAS devices with strong security and user-friendly features, and there is no indication of a better time to wait.",
+      "v36_label": "WRONG",
+      "v41_answer": "The provided information is not enough to determine whether to buy a NAS device now or wait.",
+      "v41_label": "WRONG"
+    }
+  ],
+  "conclusion": "No diagnostic accuracy gain over v36 same 20; do not run full from this gate.",
+  "delta_correct": 0,
+  "gained_count": 0,
+  "lost_count": 0,
+  "n_shared": 20,
+  "run": "v41_llm_question_router_lme_probe_243452f",
+  "v36_correct": 14,
+  "v41_correct": 14
+}
