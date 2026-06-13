@@ -12,12 +12,19 @@ if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
 from common.clean import CleanProtocolViolation, assert_clean_prediction_payload
-from memory.answer import _message_text, _parse_answer_content
+from memory.answer import CachedAnswerer, _message_text, _parse_answer_content
 from memory.build import MemoryRecord
 from memory.compiler import EvidenceCompiler
 from data.io import load_prediction_jsonl
 from memory.pipeline import Stage1Pipeline
-from common.schemas import PredictionRequest, RetrievalHit, RouteResult, Turn
+from common.schemas import (
+    AnswerResult,
+    PredictionRequest,
+    RetrievalHit,
+    RouteResult,
+    TokenUsage,
+    Turn,
+)
 
 
 class CleanSkeletonTest(unittest.TestCase):
@@ -211,6 +218,45 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual(
             _parse_answer_content(raw, output_format="json_answer"),
             "jasmine tea",
+        )
+
+    def test_cached_answerer_reuses_prompt_and_counts_cached_tokens(self) -> None:
+        compiler = EvidenceCompiler(max_evidence_items=1, max_evidence_chars=1000)
+        route = RouteResult(information_need="fact_lookup", signals=())
+        context = compiler.compile(
+            question="What tea does Alex prefer?",
+            question_time=None,
+            route=route,
+            hits=(RetrievalHit("s1:t0", 1.0, 1, "lexical_bm25"),),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Alex prefers jasmine tea.",
+                ),
+            ),
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            inner = _CountingAnswerer()
+            answerer = CachedAnswerer(
+                inner,
+                cache_path=str(Path(tmpdir) / "answer.sqlite"),
+                namespace="test",
+            )
+
+            first = answerer.answer(context)
+            second = answerer.answer(context)
+
+        self.assertEqual(first.answer, "jasmine tea")
+        self.assertEqual(second.answer, "jasmine tea")
+        self.assertEqual(first.token_usage.query_tokens, 42)
+        self.assertEqual(second.token_usage.query_tokens, 42)
+        self.assertEqual(inner.calls, 1)
+        self.assertEqual(
+            answerer.stats().to_dict(),
+            {"hits": 1, "misses": 1, "writes": 1},
         )
 
     def test_concise_answer_style_is_added_to_prompt(self) -> None:
@@ -1043,6 +1089,21 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertTrue(retrieval["session_bm25_enabled"])
         self.assertFalse(retrieval["session_bm25_applied"])
         self.assertEqual(retrieval["session_hits"], [])
+
+
+class _CountingAnswerer:
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def answer(self, context: object) -> AnswerResult:
+        del context
+        self.calls += 1
+        return AnswerResult(
+            answer="jasmine tea",
+            model="fake",
+            token_usage=TokenUsage(query_tokens=42),
+            raw_response='{"usage":{"total_tokens":42}}',
+        )
 
 
 if __name__ == "__main__":

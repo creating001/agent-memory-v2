@@ -6,7 +6,7 @@ import re
 from collections.abc import Mapping
 from typing import Any
 
-from memory.answer import NullAnswerer, OpenAICompatibleAnswerer
+from memory.answer import CachedAnswerer, NullAnswerer, OpenAICompatibleAnswerer
 from memory.build import NullMemoryBuilder, OpenAICompatibleMemoryBuilder
 from memory.compiler import EvidenceCompiler
 from memory.embeddings import CachedEmbeddingClient, OpenAICompatibleEmbeddingClient
@@ -278,6 +278,14 @@ class Stage1Pipeline:
             "route_overrides": compiler_config.get("route_overrides") or {},
         }
         answer_mode = str(answer_config.get("mode", "null_answerer"))
+        self._answer_cache_enabled = bool(
+            answer_config.get("cache", {}).get("enabled", False)
+        )
+        self._answer_cache_path = answer_config.get("cache", {}).get("path")
+        self._answer_cache_namespace = _answer_cache_namespace(
+            answer_config,
+            answer_mode,
+        )
         if answer_mode == "openai_compatible":
             self._answerer = OpenAICompatibleAnswerer(
                 base_url=str(answer_config.get("base_url", "http://127.0.0.1:8000/v1")),
@@ -297,6 +305,14 @@ class Stage1Pipeline:
                         "I do not know based on the available evidence.",
                     )
                 )
+            )
+        if self._answer_cache_enabled:
+            if self._answer_cache_path is None:
+                raise ValueError("answer.cache.path is required when cache is enabled")
+            self._answerer = CachedAnswerer(
+                self._answerer,
+                cache_path=str(self._answer_cache_path),
+                namespace=self._answer_cache_namespace,
             )
 
     def predict(self, request: PredictionRequest) -> dict[str, Any]:
@@ -419,7 +435,9 @@ class Stage1Pipeline:
             evidence_turns=evidence_turns,
             memory_records=tuple(memory_hit.record for memory_hit in memory_hits),
         )
+        answer_cache_before = _answer_cache_stats(self._answerer)
         answer = self._answerer.answer(compiled)
+        answer_cache_after = _answer_cache_stats(self._answerer)
         token_usage = TokenUsage(
             build_tokens=(
                 built_memory.token_usage.build_tokens
@@ -533,6 +551,10 @@ class Stage1Pipeline:
                 },
                 "compiled_context": compiled.to_dict(),
                 "compiler": self._compiler_trace_config,
+                "answer_cache": _answer_cache_delta(
+                    answer_cache_before,
+                    answer_cache_after,
+                ),
                 "answer": answer.to_dict(),
                 "token_cost": token_usage.to_dict(),
             },
@@ -691,7 +713,26 @@ def _embedding_cache_stats(client: object) -> dict[str, int] | None:
     return stats_method().to_dict()
 
 
+def _answer_cache_stats(client: object) -> dict[str, int] | None:
+    stats_method = getattr(client, "stats", None)
+    if stats_method is None:
+        return None
+    return stats_method().to_dict()
+
+
 def _embedding_cache_delta(
+    before: dict[str, int] | None,
+    after: dict[str, int] | None,
+) -> dict[str, int] | None:
+    if before is None or after is None:
+        return None
+    return {
+        key: int(after.get(key, 0)) - int(before.get(key, 0))
+        for key in sorted(after)
+    }
+
+
+def _answer_cache_delta(
     before: dict[str, int] | None,
     after: dict[str, int] | None,
 ) -> dict[str, int] | None:
@@ -728,6 +769,26 @@ def _answer_max_output_tokens(answer_config: Mapping[str, Any]) -> int:
     if max_tokens is not None:
         return int(max_tokens)
     return 256
+
+
+def _answer_cache_namespace(
+    answer_config: Mapping[str, Any],
+    answer_mode: str,
+) -> str:
+    cache_config = answer_config.get("cache", {})
+    namespace = cache_config.get("namespace")
+    if namespace:
+        return str(namespace)
+    fields = {
+        "mode": answer_mode,
+        "base_url": answer_config.get("base_url", "http://127.0.0.1:8000/v1"),
+        "model": answer_config.get("model", answer_mode),
+        "temperature": answer_config.get("temperature", 0.0),
+        "max_input_tokens": answer_config.get("max_input_tokens"),
+        "max_output_tokens": _answer_max_output_tokens(answer_config),
+        "output_format": answer_config.get("output_format", "text"),
+    }
+    return "answer:" + "|".join(f"{key}={fields[key]}" for key in sorted(fields))
 
 
 def _optional_int(value: object) -> int | None:

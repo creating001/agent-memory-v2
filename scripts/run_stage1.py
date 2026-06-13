@@ -64,6 +64,9 @@ def main() -> int:
     total_build_memory_cache_writes = 0
     total_memory_hits = 0
     total_memory_source_hits = 0
+    total_answer_cache_hits = 0
+    total_answer_cache_misses = 0
+    total_answer_cache_writes = 0
 
     for _index, envelope, result in results:
         token_cost = result["trace"]["token_cost"]
@@ -110,6 +113,10 @@ def main() -> int:
         total_memory_source_hits += len(
             result["trace"]["retrieval"].get("memory_source_hits") or []
         )
+        answer_cache = result["trace"].get("answer_cache") or {}
+        total_answer_cache_hits += int(answer_cache.get("hits") or 0)
+        total_answer_cache_misses += int(answer_cache.get("misses") or 0)
+        total_answer_cache_writes += int(answer_cache.get("writes") or 0)
 
     sample_count = len(records)
     metrics = {
@@ -259,7 +266,12 @@ def main() -> int:
                 total_build_memory_active_records, sample_count
             ),
         },
-        "answer": _answer_metrics(config),
+        "answer": {
+            **_answer_metrics(config),
+            "cache_hits": total_answer_cache_hits,
+            "cache_misses": total_answer_cache_misses,
+            "cache_writes": total_answer_cache_writes,
+        },
         "compiler": {
             "prompt_mode": config.get("compiler", {}).get("prompt_mode", "default"),
             "answer_style": config.get("compiler", {}).get("answer_style", "grounded"),
@@ -471,6 +483,7 @@ def _safe_average(total: int, count: int) -> float | None:
 def _answer_metrics(config: dict[str, Any]) -> dict[str, Any]:
     answer_config = config.get("answer", {})
     max_output_tokens = _answer_max_output_tokens(answer_config)
+    cache_config = answer_config.get("cache", {})
     return {
         "mode": answer_config.get("mode", "null_answerer"),
         "model": answer_config.get("model"),
@@ -481,6 +494,9 @@ def _answer_metrics(config: dict[str, Any]) -> dict[str, Any]:
         "max_tokens": max_output_tokens,
         "output_format": answer_config.get("output_format", "text"),
         "timeout": answer_config.get("timeout"),
+        "cache_enabled": cache_config.get("enabled", False),
+        "cache_path": cache_config.get("path"),
+        "cache_namespace": _answer_cache_namespace(answer_config),
     }
 
 
@@ -587,6 +603,12 @@ def _write_summary(
         f"- answer_max_input_tokens: {metrics['answer']['max_input_tokens']}",
         f"- answer_max_output_tokens: {metrics['answer']['max_output_tokens']}",
         f"- answer_output_format: {metrics['answer']['output_format']}",
+        f"- answer_cache_enabled: {metrics['answer']['cache_enabled']}",
+        f"- answer_cache_path: {metrics['answer']['cache_path']}",
+        f"- answer_cache_namespace: {metrics['answer']['cache_namespace']}",
+        f"- answer_cache_hits: {metrics['answer']['cache_hits']}",
+        f"- answer_cache_misses: {metrics['answer']['cache_misses']}",
+        f"- answer_cache_writes: {metrics['answer']['cache_writes']}",
         f"- answer_style: {metrics['compiler']['answer_style']}",
         f"- evidence_order: {metrics['compiler']['evidence_order']}",
         f"- memory_order: {metrics['compiler']['memory_order']}",
@@ -695,6 +717,12 @@ def _write_diagnosis(
         f"- temporal_priority_over_recent: {metrics['route']['temporal_priority_over_recent']}",
         f"- answer_max_input_tokens: {metrics['answer']['max_input_tokens']}",
         f"- answer_max_output_tokens: {metrics['answer']['max_output_tokens']}",
+        f"- answer_cache_enabled: {metrics['answer']['cache_enabled']}",
+        f"- answer_cache_path: {metrics['answer']['cache_path']}",
+        f"- answer_cache_namespace: {metrics['answer']['cache_namespace']}",
+        f"- answer_cache_hits: {metrics['answer']['cache_hits']}",
+        f"- answer_cache_misses: {metrics['answer']['cache_misses']}",
+        f"- answer_cache_writes: {metrics['answer']['cache_writes']}",
         f"- answer: {_answer_note(config)}",
         "",
         "## Next Steps",
@@ -721,6 +749,29 @@ def _answer_max_output_tokens(answer_config: dict[str, Any]) -> int | None:
     if max_tokens is not None:
         return int(max_tokens)
     return None
+
+
+def _answer_cache_namespace(answer_config: dict[str, Any]) -> str | None:
+    cache_config = answer_config.get("cache", {})
+    namespace = cache_config.get("namespace")
+    if namespace:
+        return str(namespace)
+    if not bool(cache_config.get("enabled", False)):
+        return None
+    max_output_tokens = _answer_max_output_tokens(answer_config)
+    if max_output_tokens is None:
+        max_output_tokens = 256
+    answer_mode = str(answer_config.get("mode", "null_answerer"))
+    fields = {
+        "mode": answer_mode,
+        "base_url": answer_config.get("base_url", "http://127.0.0.1:8000/v1"),
+        "model": answer_config.get("model", answer_mode),
+        "temperature": answer_config.get("temperature", 0.0),
+        "max_input_tokens": answer_config.get("max_input_tokens"),
+        "max_output_tokens": max_output_tokens,
+        "output_format": answer_config.get("output_format", "text"),
+    }
+    return "answer:" + "|".join(f"{key}={fields[key]}" for key in sorted(fields))
 
 
 if __name__ == "__main__":

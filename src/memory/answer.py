@@ -2,13 +2,27 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
+import sqlite3
 import urllib.error
 import urllib.request
+from dataclasses import asdict, dataclass, replace
+from pathlib import Path
 from typing import Any
 
 from common.schemas import AnswerResult, CompiledContext, TokenUsage
+
+
+@dataclass(frozen=True)
+class AnswerCacheStats:
+    hits: int = 0
+    misses: int = 0
+    writes: int = 0
+
+    def to_dict(self) -> dict[str, int]:
+        return asdict(self)
 
 
 class NullAnswerer:
@@ -25,6 +39,94 @@ class NullAnswerer:
             token_usage=TokenUsage(build_tokens=0, query_tokens=0),
             raw_response=None,
         )
+
+
+class CachedAnswerer:
+    """Prompt-keyed cache wrapper for clean answer calls."""
+
+    def __init__(
+        self,
+        inner: Any,
+        *,
+        cache_path: str,
+        namespace: str,
+    ):
+        self._inner = inner
+        self._cache_path = Path(cache_path).expanduser()
+        self._namespace = namespace
+        self._connection: sqlite3.Connection | None = None
+        self._cache_stats = AnswerCacheStats()
+
+    def answer(self, context: CompiledContext) -> AnswerResult:
+        key = _answer_cache_key(
+            namespace=self._namespace,
+            prompt=context.prompt,
+        )
+        payload = self._get(key)
+        if payload is None:
+            result = self._inner.answer(context)
+            payload = {
+                "answer": result.answer,
+                "model": result.model,
+                "token_usage": result.token_usage.to_dict(),
+                "raw_response": result.raw_response,
+            }
+            self._put(key, payload)
+        token_usage = payload.get("token_usage") or {}
+        return AnswerResult(
+            answer=str(payload.get("answer", "")),
+            model=str(payload.get("model", "cached_answerer")),
+            token_usage=TokenUsage(
+                build_tokens=int(token_usage.get("build_tokens") or 0),
+                query_tokens=int(token_usage.get("query_tokens") or 0),
+            ),
+            raw_response=payload.get("raw_response"),
+        )
+
+    def stats(self) -> AnswerCacheStats:
+        return self._cache_stats
+
+    def _get(self, key: str) -> dict[str, Any] | None:
+        row = self._connect().execute(
+            "SELECT payload_json FROM answer_cache WHERE cache_key = ?",
+            (key,),
+        ).fetchone()
+        if row is None:
+            self._cache_stats = replace(
+                self._cache_stats,
+                misses=self._cache_stats.misses + 1,
+            )
+            return None
+        self._cache_stats = replace(
+            self._cache_stats,
+            hits=self._cache_stats.hits + 1,
+        )
+        return json.loads(str(row[0]))
+
+    def _put(self, key: str, payload: dict[str, Any]) -> None:
+        self._connect().execute(
+            "INSERT OR REPLACE INTO answer_cache(cache_key, payload_json) VALUES(?, ?)",
+            (key, json.dumps(payload, ensure_ascii=False, sort_keys=True)),
+        )
+        self._connect().commit()
+        self._cache_stats = replace(
+            self._cache_stats,
+            writes=self._cache_stats.writes + 1,
+        )
+
+    def _connect(self) -> sqlite3.Connection:
+        if self._connection is None:
+            self._cache_path.parent.mkdir(parents=True, exist_ok=True)
+            self._connection = sqlite3.connect(str(self._cache_path), timeout=30.0)
+            self._connection.execute("PRAGMA busy_timeout = 30000")
+            self._connection.execute("PRAGMA journal_mode = WAL")
+            self._connection.execute(
+                "CREATE TABLE IF NOT EXISTS answer_cache("
+                "cache_key TEXT PRIMARY KEY, "
+                "payload_json TEXT NOT NULL)"
+            )
+            self._connection.commit()
+        return self._connection
 
 
 class OpenAICompatibleAnswerer:
@@ -147,3 +249,11 @@ def _extract_json_object(text: str) -> dict[str, Any] | None:
         except json.JSONDecodeError:
             return None
     return value if isinstance(value, dict) else None
+
+
+def _answer_cache_key(*, namespace: str, prompt: str) -> str:
+    digest = hashlib.sha256()
+    digest.update(namespace.encode("utf-8"))
+    digest.update(b"\0")
+    digest.update(prompt.encode("utf-8"))
+    return digest.hexdigest()
