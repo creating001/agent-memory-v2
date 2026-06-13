@@ -111,7 +111,7 @@
     "max_output_tokens": 16384,
     "max_tokens": 16384,
     "output_format": "json_answer",
-    "timeout": 120,
+    "timeout": 240,
     "cache": {
       "enabled": true,
       "path": "outputs/cache/qwen3_answer_v28.sqlite",
