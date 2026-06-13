@@ -29,7 +29,6 @@
 - `configs/stage1_route_budgeted_retrieval_v34_cached.json`：v33 的 route-budgeted 版本；非 temporal 保留 top60，temporal_lookup 回到 top40，v35 前 LoCoMo 最好。
 - `configs/stage1_answer_format_guard_v35_cached.json`：v34 上的 answer format guard；修复 JSON answer salvage 和小数 duration，当前 LoCoMo 最好。
 - `configs/stage1_lme_token_safe_format_guard_v36_cached.json`：v28 top40/evidence budget + v35 answer guard；当前 LME 最好。
-- `configs/stage1_memory_aware_selector_v39_cached.json`：v36 上的 memory-aware evidence selector 候选；list/temporal 先召回 top60 候选，再用 build-memory source signal 和 question overlap 选最终 top40 raw rows；LME route-stratified gate 已通过，下一步跑 LME full。
 
 方法摘要：
 
@@ -56,8 +55,8 @@
 - v36 LME token-safe format guard 已完成 LongMemEval-S full：accuracy `0.772`，386/500，比 v28 净 +3；avg query tokens `5715.468`，token 合格。结论是当前 LME 最好但仍是小幅正向，same-answer judge variance 可见，距 0.80 还差 14 条。
 - v37 row-linked memory bundle 已完成 LongMemEval-S full：accuracy `0.744`，372/500，低于 v36 `0.772`。它通过 token gate 且 evidence recall 仍为 `1.0`，但 typed memory 直接进入 answer prompt 后让 temporal/list/current_state 明显回退；结论是负向 ablation，不跑 LoCoMo full，顶层 config 不长期保留。
 - v38 route-scoped top60 + role_query_snippet 已完成 LongMemEval-S full：accuracy `0.752`，低于 v36 `0.772`。它相对 v37 恢复了部分 typed-memory-prompt 回退，但相对 v36 在 `list_count` 和 `temporal_lookup` 损失更大；结论是负向 ablation，不跑 LoCoMo full，顶层 config 不长期保留。
-- v39 当前候选是 memory-aware evidence selector：不增加最终 prompt row 数，不把 typed memory 作为 prompt fact，只把 build-memory source links 用于 list/temporal top60 候选到 top40 source rows 的排序选择；第三次 route-scoped gate 已通过，avg_query_tokens `5607.8`，按 LME full route 分布估算 `5566.583`，下一步跑 LME full。
-- 下一步先完成 v39 LongMemEval-S full 和 DeepSeek judge，再基于 v36/v38/v39 badcase、外部方法代码和 current best 双基准结果设计下一轮 build/query 侧通用改进；不要继续把更多 typed memory 直接塞进 answer prompt，也不要在未分析前直接开昂贵 full run。
+- v39 memory-aware evidence selector 已完成 LongMemEval-S full：accuracy `0.724`，362/500，低于 v36 `0.772` 和 v38 `0.752`。结论是 build-memory source signal 直接排序 final raw rows 会破坏 list/temporal operand coverage；负向 ablation，不跑 LoCoMo full，顶层 config 不长期保留。
+- 下一步应基于 v36/v39 badcase、外部方法代码和 current best 双基准结果设计更结构化的 build/query 侧通用改进，优先考虑 structured operand table / event-role organization；不要继续把更多 typed memory 直接塞进 answer prompt，也不要在未分析前直接开昂贵 full run。
 
 负向探索结论已压缩保留：
 
@@ -117,6 +116,7 @@ experiments/formal/<run_id>/
 | `stage1_lme_token_safe_format_guard_v36_lme_s_full_4af3244` | LongMemEval-S | full | `4af3244` | 0.772000 | 当前 LME 最好；v28 top40/evidence budget + v35 answer guard，vs v28 净 +3；仍未达 0.80。 |
 | `stage1_route_snippet_top60_v38_lme_s_full_daf98e7` | LongMemEval-S | full | `daf98e7` | 0.752000 | v36 上的 route-scoped top60 + snippet；vs v36 净 -10，list/temporal 噪声损失大于 coverage 收益，负向 ablation。 |
 | `stage1_row_memory_bundle_v37_lme_s_full_7f1fea6` | LongMemEval-S | full | `7f1fea6` | 0.744000 | v36 上的 row-linked build memory bundle；typed memory prompt 化导致 temporal/list/current_state 回退，负向 ablation，不跑 LoCoMo。 |
+| `stage1_memory_aware_selector_v39_lme_s_full_800421f` | LongMemEval-S | full | `800421f` | 0.724000 | v36 上的 memory-aware source selector；vs v36 净 -24，list/temporal final row order 噪声明显，负向 ablation，不跑 LoCoMo。 |
 | `stage1_evidence_report_contract_v28_lme_s_full_9917c22` | LongMemEval-S | full | `9917c22` | 0.766000 | v36 前 LME 最好；vs v18 净 +17，vs v26 净 +10；仍未达 0.80。 |
 | `stage1_answer_format_guard_v35_locomo_nonadv_full_80158a9` | LoCoMo | non-adversarial full | `80158a9` | 0.780377 | 当前 LoCoMo 最好；valid-only 达 0.78，invalid-as-wrong 1201/1540 仍差 1 条，close-margin。 |
 | `stage1_route_budgeted_retrieval_v34_locomo_nonadv_full_fb6c703` | LoCoMo | non-adversarial full | `fb6c703` | 0.779727 | v35 前 LoCoMo 最好；非 temporal top60、temporal top40，vs v33 净 +12，距离 0.78 还差 2 条。 |

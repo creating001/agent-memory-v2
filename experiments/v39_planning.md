@@ -131,3 +131,34 @@ route audit：
 - 第一次 gate 的 row coverage 过低问题和第二次 gate 的全局重排问题已修正。
 - `temporal_lookup` 单 route query token 略高，但 full 分布加权估计仍在 6K 内。
 - 下一步跑 LongMemEval-S full；只有 LME full 不明显负向，才安排 LoCoMo full。
+
+## 2026-06-14 Full Result
+
+正式 LongMemEval-S full run `stage1_memory_aware_selector_v39_lme_s_full_800421f` 已完成，结论为负向 ablation：
+
+- DeepSeek judge accuracy: `0.724` (`362/500`)
+- invalid judgments: `0`
+- avg build tokens: `80346.246`
+- total build tokens: `40173123`
+- avg query tokens: `5861.556`
+- total query tokens: `2930778`
+- answer max input/output: `131072/16384`
+- DeepSeek judge tokens: prompt `108739`，completion `38190`，total `146929`
+- evidence recall: `1.0`
+
+与基线对比：
+
+- vs v36 current best `0.772` (`386/500`): 净 `-24`
+- vs v38 `0.752` (`376/500`): 净 `-14`
+
+主要损失：
+
+- vs v36 lost: `temporal_lookup 19`，`list_count 17`，`fact_lookup 7`，`current_state 3`
+- vs v36 gained: `temporal_lookup 10`，`fact_lookup 9`，`list_count 2`，`profile_preference 1`
+- `temporal_lookup` 出现 2 条 query token `>8000` 的 outlier，其中 1 条长循环判错。
+
+判断：
+
+- v39 不跑 LoCoMo。
+- 顶层 config 不长期保留；历史追溯使用 formal 目录里的 `config_snapshot.json`。
+- 失败说明 build-memory source signal 不能直接作为 final row order 的轻量分数。下一步应转向 structured operand table / event-role organization，而不是继续调 row score。
