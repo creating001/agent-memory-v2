@@ -39,6 +39,7 @@
 - LoCoMo non-adversarial full 当前最好为 v14 structured evidence guide：0.735714 DeepSeek judge accuracy；相比 v13 净 +22，相比 v12 净 +57，相比 clean naive RAG 净 +58，主要收益来自 category 2/3/4 的 source-linked evidence organization。
 - v14 token gate 通过：LoCoMo avg_build_tokens 58386.008、avg_query_tokens 3818.198。build token 按逻辑冷启动成本记录，即使 build cache 全命中也计入 cached usage。
 - v14 在 LongMemEval-S full 上为 0.704，低于 v12/v13 的 0.714；因此 v14 只作为 LoCoMo 当前主线和 LME 负向/混合消融，不能直接作为统一主线。
+- v15 compact source-map guide 在 LME 上降到 0.686，在 LoCoMo 上为 0.720130，低于 v14 且略低于 v13；说明只保留 activated build memory source map 不足，v14 的 row-level organization 对 LoCoMo category 2 有实质作用，但会伤 LME。
 - v13 token gate 通过：LME avg_build_tokens 80346.246、avg_query_tokens 4614.806；LoCoMo avg_build_tokens 58386.008、avg_query_tokens 2887.880。
 - v12 仍是 LME 同分主线：LME avg_query_tokens 更低 4303.392；LoCoMo 已被 v13 明显超过。
 - v7 memory validity 在 LME 上较 v4 净提升 +5 条，和 v6 持平；avg query tokens 5858.762，接近 6K 预算。
@@ -98,6 +99,8 @@ experiments/formal/<run_id>/
 
 | run | benchmark | subset | commit | accuracy | 主要结论 |
 |---|---|---|---|---:|---|
+| `stage1_source_map_guide_v15_locomo_nonadv_full_cc7f4c8` | LoCoMo | non-adversarial full | `cc7f4c8` | 0.720130 | source-map-only 低于 v14 净 -24、低于 v13 净 -2；高于 v12/naive 但主要继承 v13 收益，不作为主线。 |
+| `stage1_source_map_guide_v15_lme_s_full_cc7f4c8` | LongMemEval-S | full | `cc7f4c8` | 0.686 | 负向；低于 v14 净 -9、低于 v13/v12 净 -14，也略低于 clean naive；说明 compact source map 未恢复 LME。 |
 | `stage1_structured_evidence_guide_v14_locomo_nonadv_full_f48cf10` | LoCoMo | non-adversarial full | `f48cf10` | 0.735714 | 当前 LoCoMo 最好；vs v13 净 +22，vs v12 净 +57，vs clean naive RAG 净 +58；structured guide 对 category 2/3/4 正向，但 LME 同配置回退。 |
 | `stage1_structured_evidence_guide_v14_lme_s_full_bc04642` | LongMemEval-S | full | `bc04642` | 0.704 | LoCoMo-positive 方法在 LME 负向；vs v13 净 -5，说明 guide 噪声会伤 knowledge-update/multi-session，不作为 LME 主线。 |
 | `stage1_temporal_aid_v13_lme_s_full_8e8f070` | LongMemEval-S | full | `8e8f070` | 0.714 | 当前 LME 并列最好；vs v12 净 0，vs clean naive RAG 净 +13；temporal aid 对 LME 无总分增益但不伤总体。 |
