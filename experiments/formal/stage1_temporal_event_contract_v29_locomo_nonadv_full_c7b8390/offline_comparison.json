@@ -1,0 +1,41 @@
+{
+  "clean_note": "This script is offline-only. Its outputs must not be read by prediction, retrieval, compiler, answer, or verifier modules.",
+  "created_at_utc": "2026-06-13T15:09:00+00:00",
+  "git": {
+    "commit": "c7b8390ca6867aac53eaa781d7a300ac2ea94759",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "M docs/architecture.md\n M docs/clean_protocol.md\n?? experiments/formal/stage1_temporal_event_contract_v29_locomo_nonadv_full_c7b8390/"
+  },
+  "labels": "/data/home_new/wujinqi/agent-memory/outputs/prepare_locomo_non_adversarial/labels.jsonl",
+  "metrics": {
+    "accuracy_exact": 0.22987012987012986,
+    "bleu_unigram": 0.4352462855390274,
+    "by_type": {
+      "1": {
+        "accuracy_exact": 0.08865248226950355,
+        "n": 282
+      },
+      "2": {
+        "accuracy_exact": 0.14953271028037382,
+        "n": 321
+      },
+      "3": {
+        "accuracy_exact": 0.14583333333333334,
+        "n": 96
+      },
+      "4": {
+        "accuracy_exact": 0.31747919143876335,
+        "n": 841
+      }
+    },
+    "f1": 0.4815149609104249,
+    "metrics_note": "Offline lexical metrics only. Judge-based benchmark accuracy should be computed in a separate offline step and must not feed prediction.",
+    "n_joined": 1540,
+    "n_labels": 1540,
+    "n_missing_gold": 0,
+    "n_predictions": 1540
+  },
+  "predictions": "/data/home_new/wujinqi/agent-memory/outputs/formal/stage1_temporal_event_contract_v29_locomo_nonadv_full_c7b8390/predictions.jsonl"
+}

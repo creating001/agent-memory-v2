@@ -9,7 +9,8 @@
 - `formal/`：只保留 `experiments/README.md` 中列出的 key full runs 的 `predictions.jsonl` 和 `traces.jsonl`。
 - `cache/qwen3_embedding.sqlite`：embedding cache，保留以减少全量实验重复成本。
 - `cache/qwen3_build_memory.sqlite`：build-stage memory cache，保留；正式 token 统计仍按冷启动逻辑成本记录。
-- `cache/qwen3_answer_v28.sqlite`：当前主线 answer cache，保留用于复查 v28。
+- `cache/qwen3_answer_v28.sqlite`：v28 answer cache，保留用于复查强对照。
+- `cache/qwen3_answer_v29.sqlite`：v29 answer cache，保留用于复查 temporal event contract 结果。
 - `services/`：本地 vLLM 服务日志/状态。
 
 ## 清理规则

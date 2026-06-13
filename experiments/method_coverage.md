@@ -24,6 +24,10 @@
 - `external/letta/letta/schemas/memory.py`：参考 core/archival/recall memory 的分层和 context window accounting。
 - `external/ACON/src/productive_agents/ctxopt/history_optimizer.py`、`experiments/smolagents/prompts/context_opt/prompt_history_v2.jinja`：参考 resumable structured summary 和错误/决策保留；不把 summary 作为唯一事实源。
 - `external/DeepResearch/WebAgent/WebResummer/src/prompt.py`：参考 iterative evidence extraction / summary，但需要限制成本和避免 tool-style benchmark adaptation。
+- `external/langmem/docs/docs/guides/manage_user_profile.md`：参考 profile 单实例 schema、namespace 和 update-in-place；profile 不能覆盖 raw evidence。
+- `external/memobase/docs/site/features/event/event.mdx`：参考 event summary / event tags / profile delta / created time 的 event-profile 双通道。
+- `external/MIRIX/mirix/schemas/episodic_memory.py`：参考 episodic event 的 `event_type`、`summary`、`details`、`actor`、`occurred_at`、`created_at`、`filter_tags`。
+- `external/MemMachine/evaluation/episodic_memory/longmemeval_models.py`：只作为负面边界/评测格式参考；其中 question_type、answer、answer_session_ids、has_answer 等字段不能进入 prediction。
 
 ## 51 项覆盖表
 
@@ -50,7 +54,7 @@
 | 19 | EM-LLM | `external/EM-LLM-model` | 已 clone，待读 | 可能参考 episodic/infinite-context memory。 |
 | 20 | HyperMem | `external/EverOS` | 已 clone，待读 HyperMem 具体目录 | 可能参考 hypergraph memory，但需要 source provenance。 |
 | 21 | IterResearch | `external/DeepResearch` | 已读 WebResummer prompt | 参考 iterative evidence extraction；全量使用前需评估 query token 成本。 |
-| 22 | LangMem | `external/langmem` | 已 clone，待读 | 可能参考 collection/profile/semantic memory。 |
+| 22 | LangMem | `external/langmem` | 已读 profile guide | 参考 profile schema、namespace、update-in-place；不让 profile 替代 raw evidence。 |
 | 23 | LCM | `external/lossless-claw` | 已 clone，待读 | 可能参考 lossless context management。 |
 | 24 | LightMem | `external/LightMem` | 已 clone，待读 | 可能参考轻量记忆压缩和索引。 |
 | 25 | LongMemEval | `external/LongMemEval` | 已 clone，使用为 benchmark 参考 | 只用于评测协议/数据理解，预测阶段不能使用 question_type/answer。 |
@@ -64,15 +68,15 @@
 | 33 | Memento-Skills | `external/Memento-Skills` | 已 clone，待读 | 只可沉淀通用 procedural skills，不能写测试实体/答案。 |
 | 34 | MemGPT / Letta | `external/letta` | 已读 memory schema | 参考 core/archival/recall memory、context accounting。 |
 | 35 | Memlayer | `external/memlayer` | 已 clone，待读 | 可能参考 SDK 层 memory abstraction。 |
-| 36 | MemMachine | `external/MemMachine` | 已 clone，待读 | 可能参考 raw episode + profile 辅助。 |
-| 37 | Memobase | `external/memobase` | 已 clone，待读 | 可能参考 profile/event timeline。 |
+| 36 | MemMachine | `external/MemMachine` | 已读评测模型入口 | 只作为负面边界/格式参考；含 answer/session 标注的逻辑不能迁移。 |
+| 37 | Memobase | `external/memobase` | 已读 event docs | 参考 event + profile delta + created time 的双通道管理。 |
 | 38 | Memori | `external/Memori` | 已 clone，待读 | 可能参考 production agent memory API。 |
 | 39 | MIA | `external/MIA` | 已 clone，待读 | 可能参考 memory intelligence / retrieval policy。 |
 | 40 | MemoryOS | `external/MemoryOS` | 已 clone，待读 | 参考 memory OS 分层治理，不作为短期主线。 |
 | 41 | MemoryBank | `external/MemoryBank-SiliconFriend` | 已 clone，待读 | 可能参考 profile summarization，但不能丢 raw evidence。 |
 | 42 | MemOS | `external/MemOS` | 已 clone，待读 | 参考 memory OS / governance，不作为短期重型依赖。 |
 | 43 | MemU | `external/memU` | 已 clone，待读 | 可能参考 memory update/API。 |
-| 44 | MIRIX | `external/MIRIX` | 已 clone，待读 | 可能参考多类型 memory taxonomy。 |
+| 44 | MIRIX | `external/MIRIX` | 已读 episodic schema | 参考 episodic/semantic/core memory taxonomy 和 event schema。 |
 | 45 | Mnemis | `external/Mnemis` | 已读 global selector/prompts | 参考层级图 selection 和 selected node 回链 episode/relation。 |
 | 46 | Nemori | `external/nemori` | 已 clone，待读 | 可能参考 adaptive distillation；需防止过度摘要。 |
 | 47 | OpenMemory | `external/openmemory` | 已 clone，待读 | 可能参考 local memory service/API。 |
@@ -83,9 +87,10 @@
 
 ## 当前设计输入
 
-基于已读代码和 v28 badcase，下一阶段应优先验证一个 general 的 source-aware typed event/time compiler，而不是继续添加 benchmark 规则：
+基于已读代码、v28 badcase 和 v29 双基准结果，下一阶段应优先设计 build-side typed event/state memory，而不是继续添加 query prompt 规则：
 
-- build 侧：typed memory 需要更明确地区分 `mention_time`、`event_time`、`valid_from`、`valid_to`、`source_ids`。
-- query 侧：retrieved row 需要以 episode/event 视图组织，保留 raw turn 作为事实源，同时把相对时间归一化结果明确绑定到“被描述事件”而不是 row/session date。
+- build 侧：typed memory 需要更明确地区分 `mention_time`、`event_time`、`valid_from`、`valid_to`、`event_type`、`source_ids`，并支持 event/state/profile 分通道。
+- management 侧：参考 LangMem/Memobase/MIRIX/Graphiti，做 profile update-in-place、event append、state supersede、episode provenance，不让 profile 或 summary 覆盖 raw evidence。
+- query 侧：retrieved row 需要以 episode/event/state 视图组织，保留 raw turn 作为事实源，同时把相对时间归一化结果明确绑定到“被描述事件”而不是 row/session date。
 - retrieval 侧：可借鉴 EverOS/SimpleMem/xMemory 的 atomic fact child retrieval -> raw episode parent expansion，但要做 ablation，避免 v20/v12 那种盲目 source/session expansion 噪声。
 - clean 侧：所有 route 和 compiler 只能来自 question text、question_time、原始对话和 memory metadata；不能使用 LoCoMo category、LongMemEval question_type、evidence label、gold 或 judge。
