@@ -46,10 +46,14 @@ SUPPORTED_INFORMATION_NEEDS = {
 ROUTE_OVERRIDE_KEYS = {
     "evidence_row_labels",
     "final_answer_checklist",
+    "max_memory_records",
     "max_evidence_chars",
     "max_evidence_items",
     "max_row_text_chars",
     "row_text_mode",
+    "structured_guide_include_memory",
+    "structured_guide_include_rows",
+    "structured_guide_max_rows",
 }
 SUPPORTED_PROMPT_MODES = {"default", "external_naive", "raw_context_only"}
 QUESTION_STOPWORDS = {
@@ -238,7 +242,9 @@ class EvidenceCompiler:
             route=route,
             memory_order=self._memory_order,
         )
-        selected_memory_records = ordered_memory_records[: self._max_memory_records]
+        selected_memory_records = ordered_memory_records[
+            : route_settings["max_memory_records"]
+        ]
 
         prompt = _build_prompt(
             question,
@@ -260,9 +266,13 @@ class EvidenceCompiler:
                     self._structured_guide_disabled_signals
                 )
             ),
-            structured_guide_max_rows=self._structured_guide_max_rows,
-            structured_guide_include_rows=self._structured_guide_include_rows,
-            structured_guide_include_memory=self._structured_guide_include_memory,
+            structured_guide_max_rows=route_settings["structured_guide_max_rows"],
+            structured_guide_include_rows=route_settings[
+                "structured_guide_include_rows"
+            ],
+            structured_guide_include_memory=route_settings[
+                "structured_guide_include_memory"
+            ],
             memory_layout=self._memory_layout,
             row_text_mode=route_settings["row_text_mode"],
             max_row_text_chars=route_settings["max_row_text_chars"],
@@ -287,8 +297,12 @@ class EvidenceCompiler:
             "final_answer_checklist": self._final_answer_checklist,
             "max_evidence_chars": self._max_evidence_chars,
             "max_evidence_items": self._max_evidence_items,
+            "max_memory_records": self._max_memory_records,
             "max_row_text_chars": self._max_row_text_chars,
             "row_text_mode": self._row_text_mode,
+            "structured_guide_include_memory": self._structured_guide_include_memory,
+            "structured_guide_include_rows": self._structured_guide_include_rows,
+            "structured_guide_max_rows": self._structured_guide_max_rows,
         }
         settings.update(self._route_overrides.get(route.information_need, {}))
         return settings
@@ -320,9 +334,25 @@ def _validate_route_overrides(
             overrides["max_evidence_chars"] = max(
                 0, int(raw_overrides["max_evidence_chars"])
             )
+        if "max_memory_records" in raw_overrides:
+            overrides["max_memory_records"] = max(
+                0, int(raw_overrides["max_memory_records"])
+            )
         if "max_row_text_chars" in raw_overrides:
             overrides["max_row_text_chars"] = (
                 int(raw_overrides["max_row_text_chars"]) or 800
+            )
+        if "structured_guide_max_rows" in raw_overrides:
+            overrides["structured_guide_max_rows"] = max(
+                1, int(raw_overrides["structured_guide_max_rows"])
+            )
+        if "structured_guide_include_rows" in raw_overrides:
+            overrides["structured_guide_include_rows"] = bool(
+                raw_overrides["structured_guide_include_rows"]
+            )
+        if "structured_guide_include_memory" in raw_overrides:
+            overrides["structured_guide_include_memory"] = bool(
+                raw_overrides["structured_guide_include_memory"]
             )
         if "row_text_mode" in raw_overrides:
             row_text_mode = str(raw_overrides["row_text_mode"])

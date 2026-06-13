@@ -498,6 +498,80 @@ class BuildMemoryTest(unittest.TestCase):
         self.assertIn("sources=Memory 2", compiled.prompt)
         self.assertIn("value=spare key in the blue bowl", compiled.prompt)
 
+    def test_external_naive_route_override_can_select_memory_guide(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=2,
+            max_evidence_chars=2000,
+            answer_style="concise",
+            max_memory_records=0,
+            prompt_mode="external_naive",
+            structured_guide=True,
+            structured_guide_include_rows=True,
+            structured_guide_include_memory=False,
+            route_overrides={
+                "temporal_lookup": {
+                    "max_memory_records": 1,
+                    "structured_guide_include_memory": True,
+                }
+            },
+        )
+        memory_record = MemoryRecord(
+            memory_id="m1",
+            memory_type="event",
+            text="Morgan visited the clinic on 2023-05-08.",
+            source_ids=("s1:t1",),
+            subject="Morgan",
+            predicate="visited",
+            value="clinic",
+            valid_from="2023-05-08",
+        )
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="Morgan",
+                text="I planned errands.",
+                timestamp="2023-05-07",
+            ),
+            Turn(
+                source_id="s1:t1",
+                session_id="s1",
+                turn_index=1,
+                role="Morgan",
+                text="I visited the clinic today.",
+                timestamp="2023-05-08",
+            ),
+        )
+
+        fact_context = compiler.compile(
+            question="Where did Morgan go?",
+            question_time=None,
+            route=RouteResult(information_need="fact_lookup", signals=()),
+            hits=(),
+            evidence_turns=turns,
+            memory_records=(memory_record,),
+        )
+        temporal_context = compiler.compile(
+            question="When did Morgan visit the clinic?",
+            question_time=None,
+            route=RouteResult(
+                information_need="temporal_lookup",
+                signals=("temporal",),
+            ),
+            hits=(),
+            evidence_turns=turns,
+            memory_records=(memory_record,),
+        )
+
+        self.assertIn("- row_index:", fact_context.prompt)
+        self.assertNotIn("- activated_build_memory:", fact_context.prompt)
+        self.assertEqual(fact_context.memory_records, ())
+        self.assertIn("- row_index:", temporal_context.prompt)
+        self.assertIn("- activated_build_memory:", temporal_context.prompt)
+        self.assertIn("sources=Memory 2", temporal_context.prompt)
+        self.assertEqual(len(temporal_context.memory_records), 1)
+
     def test_external_naive_structured_guide_can_be_disabled_by_signal(self) -> None:
         compiler = EvidenceCompiler(
             max_evidence_items=1,
