@@ -30,7 +30,7 @@
 
 当前结论：
 
-- LongMemEval-S full 当前最好为 strict clean naive RAG top-40：0.640 DeepSeek judge accuracy；未来 LME 方法必须优先超过这条线。
+- LongMemEval-S full 当前最好为 prompt-fixed strict clean naive RAG top-40：0.646 DeepSeek judge accuracy；未来 LME 方法必须优先超过这条线。
 - LoCoMo non-adversarial full v4：0.695906 DeepSeek judge accuracy，低于目标，主要短板是 temporal_lookup、category 2、list/count 和 category 3 evidence recall。
 - v7 memory validity 在 LME 上较 v4 净提升 +5 条，和 v6 持平；avg query tokens 5858.762，接近 6K 预算。
 - v7 memory validity 在 LoCoMo full 上降到 0.681818，低于 v4 的 0.695906，只比 v6 多 1 个正确；不作为 LoCoMo 主线。
@@ -86,7 +86,7 @@ experiments/formal/<run_id>/
 
 | run | benchmark | subset | commit | accuracy | 主要结论 |
 |---|---|---|---|---:|---|
-| `stage1_naive_rag_top40_lme_s_full_1b6ab0f` | LongMemEval-S | full | `1b6ab0f` | 0.640 | 新的 LME 强 baseline；dense-only raw-turn top-40 超过 v6/v7 的 0.606，temporal/preference 仍弱。 |
+| `stage1_naive_rag_top40_lme_s_full_3f40022` | LongMemEval-S | full | `3f40022` | 0.646 | 新的 LME 强 baseline；dense-only raw-turn top-40 超过 v6/v7 的 0.606，temporal/preference 仍弱。 |
 | `stage1_memory_validity_v7_lme_s_full_85ddd44_cached` | LongMemEval-S | full | `85ddd44` | 0.606 | memory validity / route-specific superseded retrieval 正向；与 v6 持平，较 v4 +5，query token 接近 6K。 |
 | `stage1_route_priority_v6_lme_s_full_a387f79_cached` | LongMemEval-S | full | `a387f79` | 0.606 | 当前 LME 并列最好；temporal route priority 小改动正向。 |
 | `stage1_route_validity_v8_lme_s_full_79c9cea_cached` | LongMemEval-S | full | `79c9cea` | 0.600 | v6+v7 组合负向；temporal-reasoning 72/133，低于 v6/v7，不作为主线。 |

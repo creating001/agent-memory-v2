@@ -1,4 +1,4 @@
-# formal/stage1_naive_rag_top40_lme_s_full_1b6ab0f
+# formal/stage1_naive_rag_top40_lme_s_full_3f40022
 
 ## Purpose
 
@@ -18,7 +18,7 @@ Stage-1 clean skeleton run: validate raw evidence storage, lexical retrieval, ne
 ## Git
 
 - inside_work_tree: True
-- commit: 1b6ab0f741fe5ef3ec0d07b2fdd6b8b6e4a3e39b
+- commit: 3f4002284260a7f2515732c5337ab6f2515ecc0c
 - dirty: False
 - note: None
 
@@ -29,7 +29,7 @@ Stage-1 clean skeleton run: validate raw evidence storage, lexical retrieval, ne
 - f1: None
 - bleu: None
 - avg_build_tokens: 0.0
-- avg_query_tokens: 5071.432
+- avg_query_tokens: 5096.818
 - avg_compiled_evidence_items: 35.218
 - build_memory_enabled: False
 - build_memory_model: None
@@ -65,7 +65,7 @@ Stage-1 clean skeleton run: validate raw evidence storage, lexical retrieval, ne
 - session_bm25_applied_count: 0
 - session_bm25_applied_rate: 0.0
 - avg_embedding_tokens: 0.0
-- avg_context_chars: 16108.018
+- avg_context_chars: 16231.018
 - compiler_prompt_mode: raw_context_only
 - answer_mode: openai_compatible
 - answer_model: Qwen/Qwen3-30B-A3B-Instruct-2507
@@ -95,22 +95,22 @@ Stage-1 clean skeleton run: validate raw evidence storage, lexical retrieval, ne
 
 ## DeepSeek Judge
 
-- accuracy: 320/500 = 0.640000
+- accuracy: 323/500 = 0.646000
 - n_valid: 500
 - n_invalid: 0
 - judge_model: deepseek-v4-flash
-- judge_prompt_tokens: 81431
-- judge_completion_tokens: 37631
-- judge_total_tokens: 119062
+- judge_prompt_tokens: 81206
+- judge_completion_tokens: 38318
+- judge_total_tokens: 119524
 
 ## DeepSeek Judge By Type
 
 - knowledge-update: 57/78 = 0.730769
-- multi-session: 69/133 = 0.518797
+- multi-session: 71/133 = 0.533835
 - single-session-assistant: 55/56 = 0.982143
-- single-session-preference: 11/30 = 0.366667
-- single-session-user: 67/70 = 0.957143
-- temporal-reasoning: 61/133 = 0.458647
+- single-session-preference: 9/30 = 0.300000
+- single-session-user: 66/70 = 0.942857
+- temporal-reasoning: 65/133 = 0.488722
 
 ## Evidence Recall
 
@@ -124,22 +124,24 @@ Stage-1 clean skeleton run: validate raw evidence storage, lexical retrieval, ne
 
 ## Comparison
 
+- naive RAG top-40 before prompt constraint: 320/500 = 0.640000
 - v6 route priority: 303/500 = 0.606000
 - v7 memory validity: 303/500 = 0.606000
-- naive RAG vs v6/v7: net_correct=+17 (plus=66, minus=49)
-- naive RAG vs v11: net_correct=+23 (plus=73, minus=50)
-- interpretation: strict clean dense-only naive RAG is the new LongMemEval-S full baseline and beats the typed build-memory branch.
-- decision: future LME methods must beat 0.640 DeepSeek judge accuracy, not the previous 0.606 line.
+- prompt-fixed naive RAG vs previous naive RAG: net_correct=+3 (plus=11, minus=8)
+- prompt-fixed naive RAG vs v6: net_correct=+20 (plus=65, minus=45)
+- prompt-fixed naive RAG vs v7: net_correct=+20 (plus=67, minus=47)
+- interpretation: strict clean dense-only naive RAG with a concise final-answer contract is the new LongMemEval-S full baseline.
+- decision: future LME methods must beat 0.646 DeepSeek judge accuracy.
 
 ## Outputs
 
-- predictions: /data/home_new/wujinqi/agent-memory/outputs/formal/stage1_naive_rag_top40_lme_s_full_1b6ab0f/predictions.jsonl
-- traces: /data/home_new/wujinqi/agent-memory/outputs/formal/stage1_naive_rag_top40_lme_s_full_1b6ab0f/traces.jsonl
-- metrics: /data/home_new/wujinqi/agent-memory/experiments/formal/stage1_naive_rag_top40_lme_s_full_1b6ab0f/metrics.json
-- manifest: /data/home_new/wujinqi/agent-memory/experiments/formal/stage1_naive_rag_top40_lme_s_full_1b6ab0f/manifest.json
-- deepseek_judge: /data/home_new/wujinqi/agent-memory/experiments/formal/stage1_naive_rag_top40_lme_s_full_1b6ab0f/deepseek_judge.json
-- deepseek_judge_partial: /data/home_new/wujinqi/agent-memory/experiments/formal/stage1_naive_rag_top40_lme_s_full_1b6ab0f/deepseek_judge.json.partial.jsonl
-- offline_evidence_recall: /data/home_new/wujinqi/agent-memory/experiments/formal/stage1_naive_rag_top40_lme_s_full_1b6ab0f/evidence_recall.json
+- predictions: /data/home_new/wujinqi/agent-memory/outputs/formal/stage1_naive_rag_top40_lme_s_full_3f40022/predictions.jsonl
+- traces: /data/home_new/wujinqi/agent-memory/outputs/formal/stage1_naive_rag_top40_lme_s_full_3f40022/traces.jsonl
+- metrics: /data/home_new/wujinqi/agent-memory/experiments/formal/stage1_naive_rag_top40_lme_s_full_3f40022/metrics.json
+- manifest: /data/home_new/wujinqi/agent-memory/experiments/formal/stage1_naive_rag_top40_lme_s_full_3f40022/manifest.json
+- deepseek_judge: /data/home_new/wujinqi/agent-memory/experiments/formal/stage1_naive_rag_top40_lme_s_full_3f40022/deepseek_judge.json
+- deepseek_judge_partial: /data/home_new/wujinqi/agent-memory/experiments/formal/stage1_naive_rag_top40_lme_s_full_3f40022/deepseek_judge.json.partial.jsonl
+- offline_evidence_recall: /data/home_new/wujinqi/agent-memory/experiments/formal/stage1_naive_rag_top40_lme_s_full_3f40022/evidence_recall.json
 
 ## Clean Notes
 
@@ -151,4 +153,4 @@ Stage-1 clean skeleton run: validate raw evidence storage, lexical retrieval, ne
 
 ## Conclusion
 
-Strict clean naive RAG top-40 reaches 0.640 LongMemEval-S full accuracy with avg_query_tokens 5071.432 and no build tokens. This corrects the baseline: the previous typed build-memory branch was weaker than a simple raw-turn dense retriever. The next method should preserve this strong retrieval floor while improving temporal reasoning, preference, and multi-session aggregation without using benchmark labels or sample-level rules.
+Prompt-fixed strict clean naive RAG top-40 reaches 0.646 LongMemEval-S full accuracy with avg_query_tokens 5096.818 and no build tokens. This is now the LME baseline to beat. Remaining weaknesses are temporal-reasoning, single-session-preference, and multi-session aggregation despite near-perfect evidence recall.
