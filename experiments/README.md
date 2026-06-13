@@ -17,8 +17,9 @@
 
 配置：
 
-- LongMemEval 当前最好：`configs/stage1_hybrid_bm25_v18_cached.json`
+- LongMemEval 当前最好：`configs/stage1_structured_answer_contract_v26_cached.json`
 - LoCoMo 当前最好：`configs/stage1_hybrid_bm25_v18_cached.json`
+- 当前 unified best：`configs/stage1_hybrid_bm25_v18_cached.json`
 
 方法摘要：
 
@@ -34,10 +35,14 @@
 - v14 在 v13 上增加 structured evidence guide：把 retrieved raw rows 与 activated build memory 的 source links 做 compact prompt 内索引，借鉴 A-Mem/HippoRAG/Hindsight/xMemory 的 memory neighborhood、provenance/backlink 和多视图检索思想，但不引入图数据库或 benchmark route 规则。
 - v17 在 v16 row-guide-only 上做 selective row guide：对普通 fact/list/temporal 问题保留 row-level organization，对通用 personalized recommendation 信号关闭 row guide，借鉴 LangMem/Mem0/Graphiti 的 profile/preference 分层和弱推断约束。
 - v18 在 v17 上增加通用 BM25 lexical + dense hybrid retrieval，借鉴 xMemory/SimpleMem/Graphiti/Hindsight 的多路检索融合，但不增加 evidence slots、不加入 LLM query planner、不使用 benchmark/sample 规则。
+- v26 在 v18 上增加 route-scoped structured answer contract，并关闭 v25 中不稳定的 count finalizer；它在 LME full 正向，但 LoCoMo full 负向，因此不是 unified best。
 
 当前结论：
 
-- LongMemEval-S full 当前最好为 v18 hybrid BM25：0.732 DeepSeek judge accuracy；相比 v17 净 +5，相比 v16 净 +12，相比 v13/v12 净 +9，相比 clean naive RAG 净 +22。主要收益来自通用 lexical+dense 融合对 temporal-reasoning 和 knowledge-update 的增强。
+- LongMemEval-S full 当前最好为 v26 structured answer contract：0.746 DeepSeek judge accuracy；相比 v18 净 +7。主要收益来自 multi-session（87/133，较 v18 +13）和 temporal-reasoning（105/133，较 v18 +6），但 knowledge-update / user / preference 退化，因此仍未达到 80% baseline target。
+- v26 在 LoCoMo non-adversarial full 上为 0.729870，低于 v18 的 0.737013，净 -11；因此当前 unified best 仍是 v18 hybrid BM25。
+- v25 structured answer contract + count finalizer 在 LME 上为 0.732，与 v18 持平；count finalizer 11 次触发只有 2 条最终 judge correct，负向明显，因此 v26 关闭 count finalizer。
+- LongMemEval-S full 的 unified baseline v18 hybrid BM25：0.732 DeepSeek judge accuracy；相比 v17 净 +5，相比 v16 净 +12，相比 v13/v12 净 +9，相比 clean naive RAG 净 +22。主要收益来自通用 lexical+dense 融合对 temporal-reasoning 和 knowledge-update 的增强。
 - v17 selective row guide 是 v18 的直接基线：0.722 DeepSeek judge accuracy；相比 v16 净 +7，相比 v13/v12 净 +4，相比 clean naive RAG 净 +17。主要收益来自 preference/recommendation 类更安全的 context organization。
 - LoCoMo non-adversarial full 当前最好为 v18 hybrid BM25：0.737013 DeepSeek judge accuracy；相比 v14 净 +2，相比 v17 净 +25，相比 v13 净 +24，相比 clean naive RAG 净 +60。优势很薄，但同一 general 方法同时刷新 LME 与 LoCoMo 当前最好。
 - v14 structured evidence guide 是 LoCoMo 前最好：0.735714 DeepSeek judge accuracy；相比 v13 净 +22，相比 v12 净 +57，相比 clean naive RAG 净 +58。v14 在 LoCoMo category 2 仍比 v18 多 5 条，source-linked evidence organization 仍值得和 v18 组合。
@@ -112,7 +117,10 @@ experiments/formal/<run_id>/
 
 | run | benchmark | subset | commit | accuracy | 主要结论 |
 |---|---|---|---|---:|---|
-| `stage1_hybrid_bm25_v18_lme_s_full_6c5ed99` | LongMemEval-S | full | `6c5ed99` | 0.732 | 当前 LME 最好；vs v17 净 +5，vs v16 净 +12，vs v13/v12 净 +9，vs clean naive RAG 净 +22；hybrid BM25+dense 在 token 预算内提升 temporal/knowledge 定位。 |
+| `stage1_structured_answer_contract_v26_lme_s_full_eecb206` | LongMemEval-S | full | `eecb206` | 0.746 | 当前 LME 最好；vs v18 净 +7，multi-session +13、temporal +6，但 KU/user/preference 退化，仍未达 80% target。 |
+| `stage1_structured_answer_contract_v26_locomo_nonadv_full_c21ef84` | LoCoMo | non-adversarial full | `c21ef84` | 0.729870 | LoCoMo 负向；vs v18 净 -11，category 2 仅 +1，category 1/3 下降；v26 不能作为 unified best。 |
+| `stage1_structured_answer_contract_v25_lme_s_full_f5ca630` | LongMemEval-S | full | `f5ca630` | 0.732 | 与 v18 持平；count finalizer 11 次触发仅 2 条最终正确，负向明显；不跑 LoCoMo。 |
+| `stage1_hybrid_bm25_v18_lme_s_full_6c5ed99` | LongMemEval-S | full | `6c5ed99` | 0.732 | 当前 unified best 的 LME 结果；vs v17 净 +5，vs v16 净 +12，vs v13/v12 净 +9，vs clean naive RAG 净 +22；hybrid BM25+dense 在 token 预算内提升 temporal/knowledge 定位。 |
 | `stage1_hybrid_bm25_v18_locomo_nonadv_full_bb1cc3c` | LoCoMo | non-adversarial full | `bb1cc3c` | 0.737013 | 当前 LoCoMo 最好；vs v14 净 +2，vs v17 净 +25，vs clean naive RAG 净 +60；优势薄但同一 general 方法跨 benchmark 正向。 |
 | `stage1_profile_memory_contract_v24_lme_s_full_bc7983d` | LongMemEval-S | full | `bc7983d` | 0.714 | 局部正向但 full 负向；preference 11/30 -> 13/30，但整体 vs v18 净 -9；不跑 LoCoMo。 |
 | `stage1_llm_retrieval_planner_v23_lme_s_full_c9fcd76` | LongMemEval-S | full | `c9fcd76` | 0.716 | 负向 query planner 消融；vs v18 净 -8，planner avg +245 query tokens，evidence recall 1.0 但 knowledge-update 退化；不跑 LoCoMo。 |

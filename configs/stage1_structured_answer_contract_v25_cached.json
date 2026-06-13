@@ -114,7 +114,9 @@
     },
     "finalizer": {
       "enabled": true,
-      "mode": "structured_evidence_mechanical"
+      "mode": "structured_evidence_mechanical",
+      "enable_count_correction": true,
+      "enable_money_sum_correction": true
     }
   }
 }
