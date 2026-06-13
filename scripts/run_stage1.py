@@ -163,6 +163,9 @@ def main() -> int:
             "lexical_protect_top_n": config.get("retrieval", {})
             .get("dense", {})
             .get("lexical_protect_top_n"),
+            "dense_protect_top_n": config.get("retrieval", {})
+            .get("dense", {})
+            .get("protect_top_n"),
             "dense_document_text_mode": config.get("retrieval", {})
             .get("dense", {})
             .get("document_text_mode", "text"),
@@ -537,6 +540,7 @@ def _write_summary(
         f"- lexical_enabled: {metrics['retrieval']['lexical_enabled']}",
         f"- dense_enabled: {metrics['retrieval']['dense_enabled']}",
         f"- lexical_protect_top_n: {metrics['retrieval']['lexical_protect_top_n']}",
+        f"- dense_protect_top_n: {metrics['retrieval']['dense_protect_top_n']}",
         f"- dense_document_text_mode: {metrics['retrieval']['dense_document_text_mode']}",
         f"- dense_query_text_mode: {metrics['retrieval']['dense_query_text_mode']}",
         f"- embedding_cache_enabled: {metrics['retrieval']['embedding_cache_enabled']}",
@@ -629,6 +633,7 @@ def _write_diagnosis(
         f"- build_memory_include_superseded_information_needs: {metrics['retrieval']['build_memory_include_superseded_information_needs']}",
         f"- avg_context_chars: {metrics['retrieval']['avg_context_chars']}",
         f"- avg_query_tokens: {metrics['token_cost']['avg_query_tokens']}",
+        f"- dense_protect_top_n: {metrics['retrieval']['dense_protect_top_n']}",
         f"- session_bm25_enabled: {metrics['retrieval']['session_bm25_enabled']}",
         f"- session_bm25_top_k: {metrics['retrieval']['session_bm25_top_k']}",
         f"- session_anchor_top_k: {metrics['retrieval']['session_anchor_top_k']}",

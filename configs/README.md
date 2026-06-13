@@ -17,6 +17,7 @@
 - `stage1_evidence_arbitration_v9_cached.json`：query-side compiler ablation，基于 v7 增加 role-aware snippets、证据行标号和末尾 answer checklist；借鉴 Hindsight 的事实/推断分离、SimpleMem 的 token-density、Mnemis 的枚举覆盖和 Graphiti/Zep 的 provenance，但只改变证据组织，不使用任何离线标签或反馈。
 - `stage1_compact_evidence_v10_cached.json`：query-side compact evidence ablation，吸收 v9 的 multi-session 正向信号，但关闭末尾 checklist、降低 snippet 长度和 evidence 行数，目标是在 6K query token 内提高证据覆盖。
 - `stage1_selective_list_expansion_v11_cached.json`：query-side selective expansion ablation，默认保持 v7，仅对 question-text router 得到的通用 `list_count` information need 使用受限 role-aware snippet 扩展；目标是在 6K 附近保留 v10 的聚合题收益，同时避免 profile/temporal/assistant 噪声。
+- `stage1_source_expansion_v12_cached.json`：build-to-query source expansion 消融，保留 external-aligned naive RAG 的 raw dense top-40、Date/role/query-time formatting 和 JSON answer contract；build-stage typed memory 只作为 raw source turn 扩展入口，不直接进入 answer prompt。借鉴 Mem0 的 ADD-only linked memory / entity boost、LangMem 的 collection/profile 分层、SimpleMem 的多视角索引和 Graphiti/Zep 的 raw episode provenance；目标是在保持强 raw baseline 的同时验证 build memory 是否能补召回。
 
 新增配置必须满足：
 

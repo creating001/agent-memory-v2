@@ -88,6 +88,7 @@ class Stage1Pipeline:
         self._dense_query_text_mode = str(dense_config.get("query_text_mode", "question"))
         self._fusion_rrf_k = int(dense_config.get("rrf_k", 60))
         self._lexical_protect_top_n = int(dense_config.get("lexical_protect_top_n", 0))
+        self._dense_protect_top_n = int(dense_config.get("protect_top_n", 0))
         cache_config = dense_config.get("cache", {})
         self._embedding_cache_enabled = bool(cache_config.get("enabled", False))
         self._embedding_cache_path = cache_config.get("path")
@@ -340,6 +341,12 @@ class Stage1Pipeline:
                     hits,
                     top_k=top_k,
                 )
+            if self._dense_protect_top_n > 0 and dense_hits:
+                hits = prepend_protected_hits(
+                    dense_hits[: self._dense_protect_top_n],
+                    hits,
+                    top_k=top_k,
+                )
         else:
             if memory_source_hits:
                 hits = _merge_hit_lists(
@@ -437,6 +444,9 @@ class Stage1Pipeline:
                     if self._dense_enabled
                     else None,
                     "lexical_protect_top_n": self._lexical_protect_top_n
+                    if self._dense_enabled
+                    else None,
+                    "dense_protect_top_n": self._dense_protect_top_n
                     if self._dense_enabled
                     else None,
                     "embedding_cache_enabled": self._embedding_cache_enabled
