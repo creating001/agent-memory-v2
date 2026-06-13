@@ -319,6 +319,9 @@ def main() -> int:
             "structured_guide_include_memory": config.get("compiler", {}).get(
                 "structured_guide_include_memory", True
             ),
+            "structured_guide_disabled_signals": config.get("compiler", {}).get(
+                "structured_guide_disabled_signals"
+            ),
             "route_overrides": config.get("compiler", {}).get(
                 "route_overrides", {}
             ),
@@ -605,6 +608,7 @@ def _write_summary(
         f"- structured_guide_max_rows: {metrics['compiler']['structured_guide_max_rows']}",
         f"- structured_guide_include_rows: {metrics['compiler']['structured_guide_include_rows']}",
         f"- structured_guide_include_memory: {metrics['compiler']['structured_guide_include_memory']}",
+        f"- structured_guide_disabled_signals: {metrics['compiler']['structured_guide_disabled_signals']}",
         f"- route_overrides: {metrics['compiler']['route_overrides']}",
         f"- enable_broad_list_patterns: {metrics['route']['enable_broad_list_patterns']}",
         f"- enable_recommendation_profile_patterns: {metrics['route']['enable_recommendation_profile_patterns']}",
@@ -685,6 +689,7 @@ def _write_diagnosis(
         f"- structured_guide_max_rows: {metrics['compiler']['structured_guide_max_rows']}",
         f"- structured_guide_include_rows: {metrics['compiler']['structured_guide_include_rows']}",
         f"- structured_guide_include_memory: {metrics['compiler']['structured_guide_include_memory']}",
+        f"- structured_guide_disabled_signals: {metrics['compiler']['structured_guide_disabled_signals']}",
         f"- route_overrides: {metrics['compiler']['route_overrides']}",
         f"- enable_recommendation_profile_patterns: {metrics['route']['enable_recommendation_profile_patterns']}",
         f"- temporal_priority_over_recent: {metrics['route']['temporal_priority_over_recent']}",

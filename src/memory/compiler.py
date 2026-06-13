@@ -123,6 +123,7 @@ class EvidenceCompiler:
         structured_guide_max_rows: int = 12,
         structured_guide_include_rows: bool = True,
         structured_guide_include_memory: bool = True,
+        structured_guide_disabled_signals: tuple[str, ...] = (),
         evidence_order: str = "retrieval",
         memory_order: str = "retrieval",
         memory_layout: str = "flat",
@@ -153,6 +154,9 @@ class EvidenceCompiler:
         self._structured_guide_max_rows = max(1, structured_guide_max_rows)
         self._structured_guide_include_rows = structured_guide_include_rows
         self._structured_guide_include_memory = structured_guide_include_memory
+        self._structured_guide_disabled_signals = tuple(
+            str(signal) for signal in structured_guide_disabled_signals
+        )
         if evidence_order not in {"retrieval", "question_overlap"}:
             raise ValueError(f"Unsupported evidence_order: {evidence_order}")
         self._evidence_order = evidence_order
@@ -250,7 +254,12 @@ class EvidenceCompiler:
             temporal_workpad_scope=self._temporal_workpad_scope,
             temporal_workpad_max_rows=self._temporal_workpad_max_rows,
             temporal_workpad_max_pairs=self._temporal_workpad_max_pairs,
-            structured_guide=self._structured_guide,
+            structured_guide=(
+                self._structured_guide
+                and not set(route.signals).intersection(
+                    self._structured_guide_disabled_signals
+                )
+            ),
             structured_guide_max_rows=self._structured_guide_max_rows,
             structured_guide_include_rows=self._structured_guide_include_rows,
             structured_guide_include_memory=self._structured_guide_include_memory,

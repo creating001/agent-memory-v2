@@ -498,6 +498,60 @@ class BuildMemoryTest(unittest.TestCase):
         self.assertIn("sources=Memory 2", compiled.prompt)
         self.assertIn("value=spare key in the blue bowl", compiled.prompt)
 
+    def test_external_naive_structured_guide_can_be_disabled_by_signal(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=1,
+            max_evidence_chars=2000,
+            answer_style="concise",
+            prompt_mode="external_naive",
+            structured_guide=True,
+            structured_guide_include_rows=True,
+            structured_guide_include_memory=False,
+            structured_guide_disabled_signals=("personalized_recommendation",),
+        )
+        disabled = compiler.compile(
+            question="Can you recommend something for dinner?",
+            question_time=None,
+            route=RouteResult(
+                information_need="profile_preference",
+                signals=("profile_or_preference", "personalized_recommendation"),
+            ),
+            hits=(),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="Alex",
+                    text="I like jasmine tea.",
+                    timestamp="2023-05-08",
+                ),
+            ),
+        )
+        enabled = compiler.compile(
+            question="What tea does Alex like?",
+            question_time=None,
+            route=RouteResult(
+                information_need="profile_preference",
+                signals=("profile_or_preference",),
+            ),
+            hits=(),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="Alex",
+                    text="I like jasmine tea.",
+                    timestamp="2023-05-08",
+                ),
+            ),
+        )
+
+        self.assertNotIn("Structured Evidence Guide:", disabled.prompt)
+        self.assertIn("Structured Evidence Guide:", enabled.prompt)
+        self.assertIn("- row_index:", enabled.prompt)
+
 
 if __name__ == "__main__":
     unittest.main()
