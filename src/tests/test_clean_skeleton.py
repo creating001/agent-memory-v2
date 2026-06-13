@@ -336,6 +336,17 @@ class CleanSkeletonTest(unittest.TestCase):
             "jasmine tea",
         )
 
+    def test_json_answer_output_salvages_answer_field_from_malformed_json(self) -> None:
+        raw = (
+            '{"reasoning":"quoted text broke the JSON: "bad quote"",'
+            '"answer":"jasmine tea"}'
+        )
+
+        self.assertEqual(
+            _parse_answer_content(raw, output_format="json_answer"),
+            "jasmine tea",
+        )
+
     def test_answer_repair_trigger_detects_uncertain_and_short_collection(self) -> None:
         raw_response = json.dumps(
             {
@@ -535,6 +546,28 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertFalse(finalization.applied)
         self.assertEqual(finalization.answer, "2")
 
+    def test_answer_finalizer_rounds_decimal_week_duration_when_enabled(self) -> None:
+        finalization = finalize_structured_answer(
+            question="How many weeks passed between Maria adopting Coco and Shadow?",
+            draft_answer="2.29 weeks",
+            raw_response=None,
+            enable_duration_rounding_correction=True,
+        )
+
+        self.assertTrue(finalization.applied)
+        self.assertEqual(finalization.reason, "duration_decimal_rounding")
+        self.assertEqual(finalization.answer, "2 weeks")
+
+    def test_answer_finalizer_does_not_round_duration_by_default(self) -> None:
+        finalization = finalize_structured_answer(
+            question="How many weeks passed between Maria adopting Coco and Shadow?",
+            draft_answer="2.29 weeks",
+            raw_response=None,
+        )
+
+        self.assertFalse(finalization.applied)
+        self.assertEqual(finalization.answer, "2.29 weeks")
+
     def test_cached_answerer_reuses_prompt_and_counts_cached_tokens(self) -> None:
         compiler = EvidenceCompiler(max_evidence_items=1, max_evidence_chars=1000)
         route = RouteResult(information_need="fact_lookup", signals=())
@@ -573,6 +606,40 @@ class CleanSkeletonTest(unittest.TestCase):
             answerer.stats().to_dict(),
             {"hits": 1, "misses": 1, "writes": 1},
         )
+
+    def test_cached_answerer_reparses_cached_json_answer_raw_response(self) -> None:
+        compiler = EvidenceCompiler(max_evidence_items=1, max_evidence_chars=1000)
+        route = RouteResult(information_need="fact_lookup", signals=())
+        context = compiler.compile(
+            question="What tea does Alex prefer?",
+            question_time=None,
+            route=route,
+            hits=(RetrievalHit("s1:t0", 1.0, 1, "lexical_bm25"),),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Alex prefers jasmine tea.",
+                ),
+            ),
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            inner = _MalformedJsonAnswerer()
+            answerer = CachedAnswerer(
+                inner,
+                cache_path=str(Path(tmpdir) / "answer.sqlite"),
+                namespace="test",
+                output_format="json_answer",
+            )
+
+            first = answerer.answer(context)
+            second = answerer.answer(context)
+
+        self.assertEqual(first.answer, "jasmine tea")
+        self.assertEqual(second.answer, "jasmine tea")
+        self.assertEqual(inner.calls, 1)
 
     def test_concise_answer_style_is_added_to_prompt(self) -> None:
         config = {
@@ -1705,6 +1772,30 @@ class _CountingAnswerer:
             model="fake",
             token_usage=TokenUsage(query_tokens=42),
             raw_response='{"usage":{"total_tokens":42}}',
+        )
+
+
+class _MalformedJsonAnswerer:
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def answer(self, context: object) -> AnswerResult:
+        del context
+        self.calls += 1
+        raw_content = (
+            '{"reasoning":"quoted text broke the JSON: "bad quote"",'
+            '"answer":"jasmine tea"}'
+        )
+        return AnswerResult(
+            answer=raw_content,
+            model="fake",
+            token_usage=TokenUsage(query_tokens=7),
+            raw_response=json.dumps(
+                {
+                    "content": raw_content,
+                    "usage": {"total_tokens": 7},
+                }
+            ),
         )
 
 

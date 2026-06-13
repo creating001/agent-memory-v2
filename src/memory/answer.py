@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import sqlite3
 import urllib.error
 import urllib.request
@@ -50,10 +51,14 @@ class CachedAnswerer:
         *,
         cache_path: str,
         namespace: str,
+        output_format: str = "text",
     ):
+        if output_format not in {"text", "json_answer"}:
+            raise ValueError(f"Unsupported cached answer output_format: {output_format}")
         self._inner = inner
         self._cache_path = Path(cache_path).expanduser()
         self._namespace = namespace
+        self._output_format = output_format
         self._connection: sqlite3.Connection | None = None
         self._cache_stats = AnswerCacheStats()
 
@@ -73,14 +78,22 @@ class CachedAnswerer:
             }
             self._put(key, payload)
         token_usage = payload.get("token_usage") or {}
+        raw_response = payload.get("raw_response")
+        answer = str(payload.get("answer", ""))
+        reparsed = _parse_cached_raw_response(
+            raw_response,
+            output_format=self._output_format,
+        )
+        if reparsed is not None:
+            answer = reparsed
         return AnswerResult(
-            answer=str(payload.get("answer", "")),
+            answer=answer,
             model=str(payload.get("model", "cached_answerer")),
             token_usage=TokenUsage(
                 build_tokens=int(token_usage.get("build_tokens") or 0),
                 query_tokens=int(token_usage.get("query_tokens") or 0),
             ),
-            raw_response=payload.get("raw_response"),
+            raw_response=raw_response,
         )
 
     def stats(self) -> AnswerCacheStats:
@@ -233,7 +246,10 @@ def _parse_answer_content(raw_content: str, *, output_format: str) -> str:
         raise ValueError(f"Unsupported answer output_format: {output_format}")
     parsed = _extract_json_object(raw_content)
     if isinstance(parsed, dict) and parsed.get("answer") is not None:
-        return str(parsed["answer"]).strip()
+        return _normalize_answer_value(parsed["answer"])
+    salvaged = _extract_answer_field_string(raw_content)
+    if salvaged is not None:
+        return salvaged
     return raw_content
 
 
@@ -250,6 +266,46 @@ def _extract_json_object(text: str) -> dict[str, Any] | None:
         except json.JSONDecodeError:
             return None
     return value if isinstance(value, dict) else None
+
+
+def _normalize_answer_value(value: Any) -> str:
+    answer = str(value).strip()
+    parsed = _extract_json_object(answer)
+    if isinstance(parsed, dict) and parsed.get("answer") is not None:
+        return _normalize_answer_value(parsed["answer"])
+    salvaged = _extract_answer_field_string(answer)
+    if salvaged is not None:
+        return salvaged
+    return answer
+
+
+def _extract_answer_field_string(text: str) -> str | None:
+    matches = list(
+        re.finditer(r'"answer"\s*:\s*"((?:[^"\\]|\\.)*)"', text, re.DOTALL)
+    )
+    if not matches:
+        return None
+    raw = matches[-1].group(1)
+    try:
+        return str(json.loads(f'"{raw}"')).strip()
+    except json.JSONDecodeError:
+        return raw.strip()
+
+
+def _parse_cached_raw_response(
+    raw_response: Any,
+    *,
+    output_format: str,
+) -> str | None:
+    if output_format != "json_answer" or not isinstance(raw_response, str):
+        return None
+    try:
+        payload = json.loads(raw_response)
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(payload, dict) or payload.get("content") is None:
+        return None
+    return _parse_answer_content(str(payload["content"]), output_format=output_format)
 
 
 def _answer_cache_key(*, namespace: str, prompt: str) -> str:

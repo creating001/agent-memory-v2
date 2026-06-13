@@ -377,6 +377,12 @@ class Stage1Pipeline:
         self._answer_finalizer_enable_money_sum_correction = bool(
             answer_finalizer_config.get("enable_money_sum_correction", True)
         )
+        self._answer_finalizer_enable_duration_rounding_correction = bool(
+            answer_finalizer_config.get(
+                "enable_duration_rounding_correction",
+                False,
+            )
+        )
         self._answer_finalizer_trace_config = {
             "enabled": self._answer_finalizer_enabled,
             "mode": self._answer_finalizer_mode,
@@ -385,6 +391,9 @@ class Stage1Pipeline:
             ),
             "enable_money_sum_correction": (
                 self._answer_finalizer_enable_money_sum_correction
+            ),
+            "enable_duration_rounding_correction": (
+                self._answer_finalizer_enable_duration_rounding_correction
             ),
         }
         self._answer_repair_enabled = bool(answer_repair_config.get("enabled", False))
@@ -473,6 +482,7 @@ class Stage1Pipeline:
                 self._answerer,
                 cache_path=str(self._answer_cache_path),
                 namespace=self._answer_cache_namespace,
+                output_format=str(answer_config.get("output_format", "text")),
             )
         if self._answer_repair_enabled:
             repair_answer_config = _repair_answer_config(
@@ -524,6 +534,9 @@ class Stage1Pipeline:
                     self._answer_repairer,
                     cache_path=str(self._answer_repair_cache_path),
                     namespace=self._answer_repair_cache_namespace,
+                    output_format=str(
+                        repair_answer_config.get("output_format", "json_answer")
+                    ),
                 )
             self._answer_repair_trace_config = {
                 **self._answer_repair_trace_config,
@@ -879,6 +892,9 @@ class Stage1Pipeline:
             enable_count_correction=self._answer_finalizer_enable_count_correction,
             enable_money_sum_correction=(
                 self._answer_finalizer_enable_money_sum_correction
+            ),
+            enable_duration_rounding_correction=(
+                self._answer_finalizer_enable_duration_rounding_correction
             ),
         )
 

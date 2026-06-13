@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import asdict, dataclass
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from typing import Any
 
 
@@ -30,6 +30,15 @@ _COUNT_QUESTION = re.compile(
 )
 _DURATION_COUNT_QUESTION = re.compile(
     r"\bhow many\s+(?:days?|weeks?|months?|years?|hours?|minutes?)\b|\bhow long\b",
+    re.IGNORECASE,
+)
+_DURATION_UNIT_QUESTION = re.compile(
+    r"\bhow many\s+(days?|weeks?|months?|years?)\b",
+    re.IGNORECASE,
+)
+_DECIMAL_DURATION_ANSWER = re.compile(
+    r"^\s*(?:about\s+|approximately\s+)?([0-9]+(?:\.[0-9]+)?)\s+"
+    r"(days?|weeks?|months?|years?)\s*$",
     re.IGNORECASE,
 )
 _SUM_QUESTION = re.compile(
@@ -71,6 +80,7 @@ def finalize_structured_answer(
     raw_response: str | None,
     enable_count_correction: bool = False,
     enable_money_sum_correction: bool = True,
+    enable_duration_rounding_correction: bool = False,
 ) -> AnswerFinalization:
     """Repair only narrow count/sum mismatches exposed by model evidence JSON.
 
@@ -78,6 +88,14 @@ def finalize_structured_answer(
     model response, and its structured evidence fields. It never reads labels,
     judge output, benchmark metadata, or sample identifiers.
     """
+
+    if enable_duration_rounding_correction:
+        rounded = _finalize_duration_rounding(
+            question=question,
+            draft_answer=draft_answer,
+        )
+        if rounded is not None:
+            return rounded
 
     content = raw_response_content(raw_response)
     if not content:
@@ -164,6 +182,41 @@ def _is_sum_question(lowered_question: str) -> bool:
 
 def _answer_is_insufficient(answer: str) -> bool:
     return bool(_INSUFFICIENT_ANSWER.search(answer))
+
+
+def _finalize_duration_rounding(
+    *,
+    question: str,
+    draft_answer: str,
+) -> AnswerFinalization | None:
+    if _answer_is_insufficient(draft_answer):
+        return None
+    question_match = _DURATION_UNIT_QUESTION.search(question)
+    if not question_match:
+        return None
+    answer_match = _DECIMAL_DURATION_ANSWER.match(draft_answer)
+    if not answer_match:
+        return None
+    value = _decimal(answer_match.group(1))
+    if value is None or value == value.to_integral_value():
+        return None
+    question_unit = _singular_unit(question_match.group(1))
+    answer_unit = _singular_unit(answer_match.group(2))
+    if question_unit != answer_unit:
+        return None
+    rounded = int(value.to_integral_value(rounding=ROUND_HALF_UP))
+    unit = question_unit if rounded == 1 else f"{question_unit}s"
+    return AnswerFinalization(
+        answer=f"{rounded} {unit}",
+        before=draft_answer,
+        applied=True,
+        reason="duration_decimal_rounding",
+        expected_value=str(rounded),
+    )
+
+
+def _singular_unit(unit: str) -> str:
+    return unit.lower().rstrip("s")
 
 
 def _extract_items(payload: dict[str, Any]) -> list[dict[str, Any]]:
