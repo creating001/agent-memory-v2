@@ -1,0 +1,31 @@
+{
+  "benchmark": "locomo",
+  "clean_assertions": [
+    "Prediction loader rejects gold/reference/target answers.",
+    "Prediction loader rejects judge outputs and benchmark labels.",
+    "Prediction loader rejects sample ids, qids, and row indices.",
+    "record_key is copied only by the runner and is not passed into pipeline modules.",
+    "Derived context rows always retain raw source_id back-links.",
+    "Build-stage typed memory is created only from raw dialogue turns and visible metadata."
+  ],
+  "config_path": "/data/home_new/wujinqi/agent-memory/configs/stage1_retrieval_top60_null_diagnostic.json",
+  "created_at_utc": "2026-06-13T18:33:37+00:00",
+  "experiment_dir": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/v33_retrieval_top60_null_locomo_full_a80816a",
+  "experiment_kind": "diagnostic",
+  "git": {
+    "commit": "8c33f60605e82c467e07611c10706048dbbbb3c0",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "M docs/architecture.md\n M docs/clean_protocol.md\n?? configs/stage1_retrieval_top60_null_diagnostic.json"
+  },
+  "input_path": "/data/home_new/wujinqi/agent-memory/outputs/prepare_locomo_non_adversarial/prediction_input.jsonl",
+  "output_path": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/v33_retrieval_top60_null_locomo_full_a80816a/predictions.jsonl",
+  "outputs": {
+    "predictions": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/v33_retrieval_top60_null_locomo_full_a80816a/predictions.jsonl",
+    "traces": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/v33_retrieval_top60_null_locomo_full_a80816a/traces.jsonl"
+  },
+  "run_id": "v33_retrieval_top60_null_locomo_full_a80816a",
+  "subset": "non_adversarial_full_retrieval_only",
+  "trace_path": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/v33_retrieval_top60_null_locomo_full_a80816a/traces.jsonl"
+}

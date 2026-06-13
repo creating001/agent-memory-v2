@@ -1,0 +1,75 @@
+# v33 Retrieval Top-60 Planning
+
+## 背景
+
+v32 selective repair 在 LoCoMo full 上 token 合格，但 accuracy 与 v29 持平。关键诊断：
+
+- repair triggered `263/1540`，applied `11/1540`，实际修改率太低。
+- repair-applied 子集 fixed `3` / broken `1`，有局部正信号，但不足以推动 full accuracy。
+- wrong case 中仍有相当比例的 gold evidence 没进入 compiled context：v32 wrong `367`，其中有 evidence labels 的 `366`，compiled hit `262`，约 `104` 个 wrong 仍是 retrieval/source coverage 缺口。
+
+因此 v33 不继续扩大同 context repair，而是先做 non-LLM retrieval expansion：在不改 build memory 和 answer contract 的情况下，把 raw-turn dense+BM25 retrieval / compiler evidence budget 从 top-40 扩到 top-60。
+
+## 外部方法借鉴
+
+- SimpleMem：借鉴 planning/reflection retrieval 的思想，即 answer 前先提高信息覆盖；v33 先做保守版本，不加额外 LLM query planner，只扩大 hybrid retrieval candidate pool。
+- DeepResearch / IterResearch：借鉴 completeness-before-answering，但 v33 不做多轮 agentic search，避免 query token 失控。
+- creating001-agent-memory：借鉴其 clean naive RAG 中 top-k retrieval、Date/role/source formatting、evidence-first answer；舍弃 rule-heavy guardrails 和 benchmark route。
+- `docs/method.md`：对应 multi-view retrieval、source expansion 和 evidence table 路线；实验必须报告 evidence recall、context size、query tokens 和 final accuracy。
+
+## Retrieval-Only 诊断
+
+run: `v33_retrieval_top60_null_locomo_full_a80816a`
+
+该 run 使用 null answer，不调用 answer LLM；prediction 阶段不读取 labels/gold/judge/category/sample id。完成后离线读取 evidence labels 计算 recall。
+
+对比 v32/v29 top-40：
+
+- top40 evidence_recall: `0.8912760416666666`
+- top60 evidence_recall: `0.91796875`
+- top40 avg_context_chars: `11416.253896103895`
+- top60 avg_context_chars: `15325.005844155845`
+- top60 avg_evidence_items: `60.0`
+- build cache hits/misses: `12411/0`
+- embedding cache hits/misses: `7422/0`
+
+按 route 的 evidence recall：
+
+- fact_lookup: `0.8748768472906404 -> 0.9064039408866995`
+- list_count: `0.8931297709923665 -> 0.916030534351145`
+- profile_preference: `0.9166666666666666 -> 0.9583333333333334`
+- temporal_lookup: `0.9349112426035503 -> 0.9467455621301775`
+- current_state: `1.0 -> 1.0`
+
+这个提升说明 top60 有足够理由进入 answer gate。
+
+## 方法设计
+
+新增 `configs/stage1_retrieval_top60_v33_cached.json`：
+
+- build memory 与 v29 保持一致。
+- route 与 v29 保持一致。
+- retrieval:
+  - `top_k=60`
+  - `max_top_k=60`
+  - dense `top_k=60`
+  - dense `protect_top_n=48`
+- compiler:
+  - `max_evidence_items=60`
+  - `max_evidence_chars=26000`
+  - evidence_report 仍为 v29 的 compact contract，不启用 v31 detail。
+- answer:
+  - Qwen/Qwen3-30B-A3B-Instruct-2507
+  - max input/output `131072/16384`
+  - repair/finalizer 关闭，隔离 retrieval expansion 效果。
+
+## Gate
+
+先跑 20 条 no-label route-stratified answer gate：
+
+- 检查 avg query tokens 是否 <= 6K。
+- 检查 answer max input/output 是否 `131072/16384`。
+- 检查 build cache、embedding cache 是否命中，build tokens 是否按 logical cold-build 统计。
+- 不读取 labels/gold/judge/category/sample id。
+
+如果 gate 通过，先跑 LoCoMo non-adversarial full。只有 LoCoMo accuracy 高于 v29/v32 且 token 合格，再考虑 LongMemEval-S full。

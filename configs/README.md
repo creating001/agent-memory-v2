@@ -13,6 +13,7 @@
 - `stage1_evidence_report_contract_v28_cached.json`：当前主线候选，在 v18 上增加可见 `evidence_report` contract，要求 answer model 先整理 support / exclude / missing 证据再输出最终答案。
 - `stage1_temporal_event_contract_v29_cached.json`：当前 LoCoMo 最强主线，针对 temporal route 显式区分 `mention_time` 与 `event_time`；也是 v32 query-side repair 的底座。
 - `stage1_selective_repair_v32_cached.json`：当前待验证候选，在 v29 draft answer 后只对运行时高风险样本触发 clean LLM verifier/repair；主 answer 和 repair 都显式使用 `128K/16K` 上限。
+- `stage1_retrieval_top60_v33_cached.json`：当前待 gate 候选，在 v29 底座上把 raw-turn dense+BM25 retrieval/compiler evidence budget 从 top-40 扩到 top-60，先用 evidence recall 诊断验证 source coverage，再跑 answer gate。
 
 ## 新配置规则
 
