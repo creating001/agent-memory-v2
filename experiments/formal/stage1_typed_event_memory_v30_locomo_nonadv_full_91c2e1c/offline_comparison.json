@@ -1,0 +1,691 @@
+{
+  "runs": {
+    "baseline": "stage1_temporal_event_contract_v29_locomo_nonadv_full_c7b8390",
+    "candidate": "stage1_typed_event_memory_v30_locomo_nonadv_full_91c2e1c"
+  },
+  "n_keys": 1540,
+  "summary": {
+    "both_correct": 1106,
+    "both_wrong_or_invalid": 310,
+    "lost": 67,
+    "gained": 57
+  },
+  "v29_correct": 1173,
+  "v30_correct": 1163,
+  "v30_valid": 1539,
+  "v30_invalid": 1,
+  "by_route": {
+    "current_state": {
+      "both_correct": 3,
+      "both_wrong_or_invalid": 1
+    },
+    "fact_lookup": {
+      "both_correct": 764,
+      "both_wrong_or_invalid": 187,
+      "lost": 34,
+      "gained": 33
+    },
+    "list_count": {
+      "both_wrong_or_invalid": 46,
+      "gained": 6,
+      "both_correct": 70,
+      "lost": 9
+    },
+    "profile_preference": {
+      "both_correct": 35,
+      "both_wrong_or_invalid": 8,
+      "lost": 3,
+      "gained": 3
+    },
+    "temporal_lookup": {
+      "both_correct": 234,
+      "both_wrong_or_invalid": 68,
+      "gained": 15,
+      "lost": 21
+    }
+  },
+  "by_category": {
+    "1": {
+      "both_correct": 169,
+      "both_wrong_or_invalid": 83,
+      "lost": 17,
+      "gained": 13
+    },
+    "2": {
+      "both_correct": 217,
+      "both_wrong_or_invalid": 71,
+      "gained": 15,
+      "lost": 18
+    },
+    "3": {
+      "both_correct": 55,
+      "both_wrong_or_invalid": 35,
+      "gained": 4,
+      "lost": 2
+    },
+    "4": {
+      "both_correct": 665,
+      "both_wrong_or_invalid": 121,
+      "lost": 30,
+      "gained": 25
+    }
+  },
+  "examples": {
+    "gained": [
+      {
+        "record_key": "fd6de094822579ef6391673e",
+        "category": 2,
+        "route_v30": "temporal_lookup",
+        "question": "When did Caroline apply to adoption agencies?",
+        "gold_answer": "The week of 23 August 2023",
+        "v29_answer": "2023-05-25",
+        "v30_answer": "2023-08-23",
+        "v29_label": "WRONG",
+        "v30_label": "CORRECT",
+        "v29_trace": {
+          "route": "temporal_lookup",
+          "memory_hits": 20,
+          "memory_source_hits": 20,
+          "evidence_rows": 40,
+          "context_chars": 14057
+        },
+        "v30_trace": {
+          "route": "temporal_lookup",
+          "memory_hits": 20,
+          "memory_source_hits": 25,
+          "evidence_rows": 40,
+          "context_chars": 16217
+        }
+      },
+      {
+        "record_key": "109edb15a81b883aab67f8ce",
+        "category": 2,
+        "route_v30": "temporal_lookup",
+        "question": "When did Melanie's family go on a roadtrip?",
+        "gold_answer": "The weekend before 20 October 2023",
+        "v29_answer": "2023-10-19",
+        "v30_answer": "2023-10-14 to 2023-10-15",
+        "v29_label": "WRONG",
+        "v30_label": "CORRECT",
+        "v29_trace": {
+          "route": "temporal_lookup",
+          "memory_hits": 20,
+          "memory_source_hits": 20,
+          "evidence_rows": 40,
+          "context_chars": 13423
+        },
+        "v30_trace": {
+          "route": "temporal_lookup",
+          "memory_hits": 20,
+          "memory_source_hits": 23,
+          "evidence_rows": 40,
+          "context_chars": 14825
+        }
+      },
+      {
+        "record_key": "53e7cce0fbf6e8b5ba7cfabf",
+        "category": 1,
+        "route_v30": "list_count",
+        "question": "How many children does Melanie have?",
+        "gold_answer": 3,
+        "v29_answer": "The provided information is not enough to determine the exact number of children Melanie has.",
+        "v30_answer": "more than one child",
+        "v29_label": "WRONG",
+        "v30_label": "CORRECT",
+        "v29_trace": {
+          "route": "list_count",
+          "memory_hits": 20,
+          "memory_source_hits": 24,
+          "evidence_rows": 40,
+          "context_chars": 10341
+        },
+        "v30_trace": {
+          "route": "list_count",
+          "memory_hits": 20,
+          "memory_source_hits": 23,
+          "evidence_rows": 40,
+          "context_chars": 10000
+        }
+      },
+      {
+        "record_key": "6a00dae1ee0cf6a0b4b91a43",
+        "category": 1,
+        "route_v30": "temporal_lookup",
+        "question": "When did Melanie go on a hike after the roadtrip?",
+        "gold_answer": "19 October 2023",
+        "v29_answer": "The provided information is not enough to determine when Melanie went on a hike after the roadtrip.",
+        "v30_answer": "2023-10-19",
+        "v29_label": "WRONG",
+        "v30_label": "CORRECT",
+        "v29_trace": {
+          "route": "temporal_lookup",
+          "memory_hits": 20,
+          "memory_source_hits": 27,
+          "evidence_rows": 40,
+          "context_chars": 14160
+        },
+        "v30_trace": {
+          "route": "temporal_lookup",
+          "memory_hits": 20,
+          "memory_source_hits": 24,
+          "evidence_rows": 40,
+          "context_chars": 14852
+        }
+      },
+      {
+        "record_key": "416aa21dfb71a42ec833cfeb",
+        "category": 2,
+        "route_v30": "temporal_lookup",
+        "question": "When did Gina get her tattoo?",
+        "gold_answer": "A few years ago",
+        "v29_answer": "The provided information is not enough to determine the exact date when Gina got her tattoo.",
+        "v30_answer": "2023-02-08",
+        "v29_label": "WRONG",
+        "v30_label": "CORRECT",
+        "v29_trace": {
+          "route": "temporal_lookup",
+          "memory_hits": 20,
+          "memory_source_hits": 31,
+          "evidence_rows": 40,
+          "context_chars": 10809
+        },
+        "v30_trace": {
+          "route": "temporal_lookup",
+          "memory_hits": 20,
+          "memory_source_hits": 31,
+          "evidence_rows": 40,
+          "context_chars": 11974
+        }
+      },
+      {
+        "record_key": "f32506eabf8b9384df950965",
+        "category": 2,
+        "route_v30": "temporal_lookup",
+        "question": "When Jon is planning to open his dance studio?",
+        "gold_answer": "20 June, 2023",
+        "v29_answer": "The provided information is not enough to determine when Jon will open his dance studio.",
+        "v30_answer": "20 June 2023",
+        "v29_label": "WRONG",
+        "v30_label": "CORRECT",
+        "v29_trace": {
+          "route": "temporal_lookup",
+          "memory_hits": 20,
+          "memory_source_hits": 20,
+          "evidence_rows": 40,
+          "context_chars": 14175
+        },
+        "v30_trace": {
+          "route": "temporal_lookup",
+          "memory_hits": 20,
+          "memory_source_hits": 22,
+          "evidence_rows": 40,
+          "context_chars": 16186
+        }
+      },
+      {
+        "record_key": "00cb2762eabaf86347b3330f",
+        "category": 4,
+        "route_v30": "fact_lookup",
+        "question": "What offer does Gina make to Jon regarding social media?",
+        "gold_answer": "Helping with making content and managing his social media accounts.",
+        "v29_answer": "The provided information is not enough to determine what offer Gina made to Jon regarding social media.",
+        "v30_answer": "Gina offers to create cool content and manage Jon's social media accounts.",
+        "v29_label": "WRONG",
+        "v30_label": "CORRECT",
+        "v29_trace": {
+          "route": "fact_lookup",
+          "memory_hits": 20,
+          "memory_source_hits": 34,
+          "evidence_rows": 40,
+          "context_chars": 9611
+        },
+        "v30_trace": {
+          "route": "fact_lookup",
+          "memory_hits": 20,
+          "memory_source_hits": 34,
+          "evidence_rows": 40,
+          "context_chars": 9552
+        }
+      },
+      {
+        "record_key": "36e0ab9cd568e5088574aae6",
+        "category": 1,
+        "route_v30": "fact_lookup",
+        "question": "What type of volunteering have John and Maria both done?",
+        "gold_answer": "Volunteering at a homeless shelter",
+        "v29_answer": "Both John and Maria have volunteered, but not the same type. Maria has volunteered at a homeless shelter, and John has volunteered as a mentor for a local school. They have also volunteered together in the past, but the specific type of shared volunteering is not specified.",
+        "v30_answer": "homeless shelter",
+        "v29_label": "WRONG",
+        "v30_label": "CORRECT",
+        "v29_trace": {
+          "route": "fact_lookup",
+          "memory_hits": 20,
+          "memory_source_hits": 28,
+          "evidence_rows": 40,
+          "context_chars": 11420
+        },
+        "v30_trace": {
+          "route": "fact_lookup",
+          "memory_hits": 20,
+          "memory_source_hits": 23,
+          "evidence_rows": 40,
+          "context_chars": 11321
+        }
+      },
+      {
+        "record_key": "bdbae12e48fe07583e50b3ad",
+        "category": 1,
+        "route_v30": "fact_lookup",
+        "question": "What shelters does Maria volunteer at?",
+        "gold_answer": "The homeless shelter, the dog shelter",
+        "v29_answer": "['homeless shelter']",
+        "v30_answer": "homeless shelter, dog shelter",
+        "v29_label": "WRONG",
+        "v30_label": "CORRECT",
+        "v29_trace": {
+          "route": "fact_lookup",
+          "memory_hits": 20,
+          "memory_source_hits": 25,
+          "evidence_rows": 40,
+          "context_chars": 12709
+        },
+        "v30_trace": {
+          "route": "fact_lookup",
+          "memory_hits": 20,
+          "memory_source_hits": 23,
+          "evidence_rows": 40,
+          "context_chars": 12750
+        }
+      },
+      {
+        "record_key": "df3dd885decd4a22e9ae4509",
+        "category": 4,
+        "route_v30": "fact_lookup",
+        "question": "What did John receive a certificate for?",
+        "gold_answer": "completion of a university degree",
+        "v29_answer": "promotion at work",
+        "v30_answer": "graduating from his degree",
+        "v29_label": "WRONG",
+        "v30_label": "CORRECT",
+        "v29_trace": {
+          "route": "fact_lookup",
+          "memory_hits": 20,
+          "memory_source_hits": 24,
+          "evidence_rows": 40,
+          "context_chars": 10445
+        },
+        "v30_trace": {
+          "route": "fact_lookup",
+          "memory_hits": 20,
+          "memory_source_hits": 25,
+          "evidence_rows": 40,
+          "context_chars": 10018
+        }
+      },
+      {
+        "record_key": "c9d1aa67ae4d9c0afc119cd3",
+        "category": 4,
+        "route_v30": "fact_lookup",
+        "question": "How does John describe the support he received during his journey to becoming assistant manager?",
+        "gold_answer": "having support at home and his own grit",
+        "v29_answer": "John describes the support he received as coming from his family, Maria, and peers during boot camp, all of whom provided encouragement, belief in him, and emotional strength, helping him overcome self-doubt and obstacles on his journey to becoming assistant manager.",
+        "v30_answer": "John describes the support he received as coming from Maria, his family, and his peers—emotional encouragement, belief in his abilities, and practical help during tough times, especially self-doubt and obstacles.",
+        "v29_label": "WRONG",
+        "v30_label": "CORRECT",
+        "v29_trace": {
+          "route": "fact_lookup",
+          "memory_hits": 20,
+          "memory_source_hits": 26,
+          "evidence_rows": 40,
+          "context_chars": 11616
+        },
+        "v30_trace": {
+          "route": "fact_lookup",
+          "memory_hits": 20,
+          "memory_source_hits": 24,
+          "evidence_rows": 40,
+          "context_chars": 11692
+        }
+      },
+      {
+        "record_key": "91f361d0243bb6913211dc85",
+        "category": 4,
+        "route_v30": "fact_lookup",
+        "question": "What motivated Maria and John to discuss potential solutions for their community on 7 July, 2023?",
+        "gold_answer": "Flood in John's old area",
+        "v29_answer": "Their shared commitment to improving their community and mutual support motivated Maria and John to discuss potential solutions on 7 July 2023.",
+        "v30_answer": "Their shared commitment to improving their community, especially in education and infrastructure, and Maria's empathetic response to a recent hardship in John's area motivated them to discuss potential solutions.",
+        "v29_label": "WRONG",
+        "v30_label": "CORRECT",
+        "v29_trace": {
+          "route": "fact_lookup",
+          "memory_hits": 20,
+          "memory_source_hits": 31,
+          "evidence_rows": 40,
+          "context_chars": 10905
+        },
+        "v30_trace": {
+          "route": "fact_lookup",
+          "memory_hits": 20,
+          "memory_source_hits": 32,
+          "evidence_rows": 40,
+          "context_chars": 10767
+        }
+      }
+    ],
+    "lost": [
+      {
+        "record_key": "aa88e50253b91ab0fc834727",
+        "category": 1,
+        "route_v30": "fact_lookup",
+        "question": "What LGBTQ+ events has Caroline participated in?",
+        "gold_answer": "Pride parade, school speech, support group",
+        "v29_answer": "['LGBTQ+ pride parade', 'LGBTQ pride event', 'LGBTQ conference', 'transgender conference', 'LGBTQ+ counseling workshop', 'LGBTQ support group', 'LGBTQ art show']",
+        "v30_answer": "LGBTQ+ pride parade, LGBTQ pride event, LGBTQ conference, transgender conference, LGBTQ art show, LGBTQ+ counseling workshop, LGBTQ support group",
+        "v29_label": "CORRECT",
+        "v30_label": "WRONG",
+        "v29_trace": {
+          "route": "fact_lookup",
+          "memory_hits": 20,
+          "memory_source_hits": 21,
+          "evidence_rows": 40,
+          "context_chars": 14008
+        },
+        "v30_trace": {
+          "route": "fact_lookup",
+          "memory_hits": 20,
+          "memory_source_hits": 25,
+          "evidence_rows": 40,
+          "context_chars": 13857
+        }
+      },
+      {
+        "record_key": "79937f8a6c5567ea76f11886",
+        "category": 1,
+        "route_v30": "fact_lookup",
+        "question": "What book did Melanie read from Caroline's suggestion?",
+        "gold_answer": "\"Becoming Nicole\"",
+        "v29_answer": "Becoming Nicole",
+        "v30_answer": "The book Melanie read from Caroline's suggestion is not named in the provided context.",
+        "v29_label": "CORRECT",
+        "v30_label": "WRONG",
+        "v29_trace": {
+          "route": "fact_lookup",
+          "memory_hits": 20,
+          "memory_source_hits": 29,
+          "evidence_rows": 40,
+          "context_chars": 9835
+        },
+        "v30_trace": {
+          "route": "fact_lookup",
+          "memory_hits": 20,
+          "memory_source_hits": 27,
+          "evidence_rows": 40,
+          "context_chars": 9669
+        }
+      },
+      {
+        "record_key": "62ab4fad6530c9c8964d798d",
+        "category": 4,
+        "route_v30": "fact_lookup",
+        "question": "How did Melanie's son handle the accident?",
+        "gold_answer": "He was scared but reassured by his family",
+        "v29_answer": "Melanie's son was scared but reassured and physically unharmed after the accident.",
+        "v30_answer": "Melanie's son was scared but physically unharmed after the accident.",
+        "v29_label": "CORRECT",
+        "v30_label": "WRONG",
+        "v29_trace": {
+          "route": "fact_lookup",
+          "memory_hits": 20,
+          "memory_source_hits": 26,
+          "evidence_rows": 40,
+          "context_chars": 10578
+        },
+        "v30_trace": {
+          "route": "fact_lookup",
+          "memory_hits": 20,
+          "memory_source_hits": 23,
+          "evidence_rows": 40,
+          "context_chars": 10268
+        }
+      },
+      {
+        "record_key": "8fd747f0c1272452a98d5170",
+        "category": 2,
+        "route_v30": "temporal_lookup",
+        "question": "When did Jon start expanding his studio's social media presence?",
+        "gold_answer": "April, 2023",
+        "v29_answer": "2023-04-03",
+        "v30_answer": "2023-06-16",
+        "v29_label": "CORRECT",
+        "v30_label": "WRONG",
+        "v29_trace": {
+          "route": "temporal_lookup",
+          "memory_hits": 20,
+          "memory_source_hits": 24,
+          "evidence_rows": 40,
+          "context_chars": 13776
+        },
+        "v30_trace": {
+          "route": "temporal_lookup",
+          "memory_hits": 20,
+          "memory_source_hits": 26,
+          "evidence_rows": 40,
+          "context_chars": 16169
+        }
+      },
+      {
+        "record_key": "a1028df42b244dd21a55ac8d",
+        "category": 2,
+        "route_v30": "temporal_lookup",
+        "question": "When did Jon go to a fair to get more exposure for his dance studio?",
+        "gold_answer": "24 April, 2023",
+        "v29_answer": "2023-04-24",
+        "v30_answer": "2023-05-10",
+        "v29_label": "CORRECT",
+        "v30_label": "WRONG",
+        "v29_trace": {
+          "route": "temporal_lookup",
+          "memory_hits": 20,
+          "memory_source_hits": 20,
+          "evidence_rows": 40,
+          "context_chars": 14578
+        },
+        "v30_trace": {
+          "route": "temporal_lookup",
+          "memory_hits": 20,
+          "memory_source_hits": 22,
+          "evidence_rows": 40,
+          "context_chars": 16352
+        }
+      },
+      {
+        "record_key": "57c3fe653fd8d9a2d636457e",
+        "category": 4,
+        "route_v30": "fact_lookup",
+        "question": "What did Gina want her customers to feel in her store?",
+        "gold_answer": "cozy and comfortable",
+        "v29_answer": "a cool oasis and cozy",
+        "v30_answer": "a cool oasis",
+        "v29_label": "CORRECT",
+        "v30_label": "WRONG",
+        "v29_trace": {
+          "route": "fact_lookup",
+          "memory_hits": 20,
+          "memory_source_hits": 31,
+          "evidence_rows": 40,
+          "context_chars": 12477
+        },
+        "v30_trace": {
+          "route": "fact_lookup",
+          "memory_hits": 20,
+          "memory_source_hits": 31,
+          "evidence_rows": 40,
+          "context_chars": 12500
+        }
+      },
+      {
+        "record_key": "19e8f0e8ba0a43ea5fe3d7aa",
+        "category": 4,
+        "route_v30": "fact_lookup",
+        "question": "What advice does Gina give to Jon about running a successful business?",
+        "gold_answer": "build relationships with customers, create a strong brand image, stay positive",
+        "v29_answer": "Don't be scared to reach out to people in your field for help and contacts. Networking was a lifesaver for me and opened me up to amazing products that I might not have found otherwise.",
+        "v30_answer": "Don't be scared to reach out to people in your field for help and contacts. Networking was a lifesaver for me and opened me up to amazing products that I might not have found otherwise.",
+        "v29_label": "CORRECT",
+        "v30_label": "WRONG",
+        "v29_trace": {
+          "route": "fact_lookup",
+          "memory_hits": 20,
+          "memory_source_hits": 29,
+          "evidence_rows": 40,
+          "context_chars": 11903
+        },
+        "v30_trace": {
+          "route": "fact_lookup",
+          "memory_hits": 20,
+          "memory_source_hits": 33,
+          "evidence_rows": 40,
+          "context_chars": 12199
+        }
+      },
+      {
+        "record_key": "5914a80c05561014ce603442",
+        "category": 1,
+        "route_v30": "fact_lookup",
+        "question": "Where has Maria made friends?",
+        "gold_answer": "homeless shelter, gym, church",
+        "v29_answer": "homeless shelter, church, gym, home",
+        "v30_answer": "with a fellow volunteer, from church, and from the gym",
+        "v29_label": "CORRECT",
+        "v30_label": "WRONG",
+        "v29_trace": {
+          "route": "fact_lookup",
+          "memory_hits": 20,
+          "memory_source_hits": 24,
+          "evidence_rows": 40,
+          "context_chars": 10258
+        },
+        "v30_trace": {
+          "route": "fact_lookup",
+          "memory_hits": 20,
+          "memory_source_hits": 24,
+          "evidence_rows": 40,
+          "context_chars": 9878
+        }
+      },
+      {
+        "record_key": "9da8d27e3728675dfd371b5a",
+        "category": 1,
+        "route_v30": "fact_lookup",
+        "question": "What events is Maria planning for the homeless shelter funraiser?",
+        "gold_answer": "Chili cook-off, ring-toss tournament",
+        "v29_answer": "ring-toss tournament",
+        "v30_answer": "ring-toss tournament",
+        "v29_label": "CORRECT",
+        "v30_label": "WRONG",
+        "v29_trace": {
+          "route": "fact_lookup",
+          "memory_hits": 20,
+          "memory_source_hits": 19,
+          "evidence_rows": 40,
+          "context_chars": 13007
+        },
+        "v30_trace": {
+          "route": "fact_lookup",
+          "memory_hits": 20,
+          "memory_source_hits": 21,
+          "evidence_rows": 40,
+          "context_chars": 13055
+        }
+      },
+      {
+        "record_key": "a3dcdc94dae552eda121b33a",
+        "category": 1,
+        "route_v30": "fact_lookup",
+        "question": "What causes has John done events for?",
+        "gold_answer": "Toy drive, Community food drive, veterans, domestic violence",
+        "v29_answer": "community, service-related causes",
+        "v30_answer": "John has done events for causes, but specific causes are not named in the provided context.",
+        "v29_label": "CORRECT",
+        "v30_label": "WRONG",
+        "v29_trace": {
+          "route": "fact_lookup",
+          "memory_hits": 20,
+          "memory_source_hits": 22,
+          "evidence_rows": 40,
+          "context_chars": 10402
+        },
+        "v30_trace": {
+          "route": "fact_lookup",
+          "memory_hits": 20,
+          "memory_source_hits": 25,
+          "evidence_rows": 40,
+          "context_chars": 10136
+        }
+      },
+      {
+        "record_key": "16d70285e40a99b09091bd7a",
+        "category": 2,
+        "route_v30": "temporal_lookup",
+        "question": "How many weeks passed between Maria adopting Coco and Shadow?",
+        "gold_answer": "two weeks",
+        "v29_answer": "2",
+        "v30_answer": "{\n  \"reasoning\": \"Maria adopted Coco two weeks before 11 August 2023, as stated in Memory 1. This places the adoption date at 28 July 2023. Maria adopted Shadow on 13 August 2023, as stated in Memory 2. The time between 28 July 2023 and 13 August 2023 is 16 days, which is approximately 2.29 weeks. However, the question asks for the number of weeks that passed, and since the adoption of Shadow occurred after Coco, the exact duration is 16 days, which is not a whole number of weeks. The context does not state a whole number of weeks between the events, but the closest whole weeks are 2 weeks (14 days) and 3 weeks (21 days). Since 16 days is closer to 2 weeks than 3, and no exact week count is given, the answer must be based on direct calculation. The difference is 16 days, which is 2.29 weeks, but the question likely expects a whole number. However, the only explicit time reference is 'two weeks ago' for Coco, and Shadow was adopted on 13 August, which is 2 days after Coco's adoption date (28 July). Thus, the time between the two adoptions is 16 days, or 2.29 weeks. Since the question asks for 'how many weeks', and no exact whole number is stated, the answer must be derived from the dates. The correct duration is 16 days, which is 2.29 weeks, but since the question likely expects a whole number, and 16 days is more than 2 weeks (14 days), it is 2 full weeks and 2 extra days. However, the context does not state a whole number of weeks between the events. The only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and no exact whole number is given, the answer must be based on the exact duration. The context does not state a whole number of weeks between the events, so the answer is not a whole number. However, the question may expect the number of full weeks. Since 16 days is 2 full weeks and 2 days, the number of full weeks is 2. But the question does not specify 'full weeks'. Therefore, the answer is 2.29 weeks, but since the answer must be a whole number, and the context does not provide one, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But the question asks for 'how many weeks', and the answer must be a number. The context does not state a whole number of weeks between the events. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 2023 and 13 August 2023 is 16 days, which is 2.29 weeks. But since the question asks for 'how many weeks', and the answer must be a number, the answer is 2.29 weeks. But the answer must be a whole number. Therefore, the answer is not directly available. However, the only way to answer is to calculate the exact duration. The difference between 28 July 20",
+        "v29_label": "CORRECT",
+        "v30_label": "WRONG",
+        "v29_trace": {
+          "route": "temporal_lookup",
+          "memory_hits": 20,
+          "memory_source_hits": 25,
+          "evidence_rows": 40,
+          "context_chars": 14815
+        },
+        "v30_trace": {
+          "route": "temporal_lookup",
+          "memory_hits": 20,
+          "memory_source_hits": 23,
+          "evidence_rows": 40,
+          "context_chars": 16724
+        }
+      },
+      {
+        "record_key": "01a8e9c6eaf81609dee164a1",
+        "category": 4,
+        "route_v30": "fact_lookup",
+        "question": "What did Jean go through before meeting Maria?",
+        "gold_answer": "divorce, job loss, homelessness",
+        "v29_answer": "Jean went through a divorce, lost her job, and became homeless, yet remained optimistic and resilient, valuing small things and believing in the goodness of kindness.",
+        "v30_answer": "Jean had been through a lot yet remained optimistic and resilient.",
+        "v29_label": "CORRECT",
+        "v30_label": "WRONG",
+        "v29_trace": {
+          "route": "fact_lookup",
+          "memory_hits": 20,
+          "memory_source_hits": 23,
+          "evidence_rows": 40,
+          "context_chars": 12334
+        },
+        "v30_trace": {
+          "route": "fact_lookup",
+          "memory_hits": 20,
+          "memory_source_hits": 26,
+          "evidence_rows": 40,
+          "context_chars": 12641
+        }
+      }
+    ],
+    "invalid": [
+      {
+        "record_key": "2245ba33bb4c804acc9e76ea",
+        "category": 3,
+        "route_v30": "fact_lookup",
+        "question": "What is something that Andrew could do to make birdwatching hobby to fit in his city schedule?",
+        "gold_answer": "Install a bird feeder outside where he can see the birds without going outdoors.",
+        "v30_answer": "Andrew could make birdwatching fit into his city schedule by visiting nearby parks or going on weekend hikes to enjoy nature and observe birds.",
+        "raw_response": ""
+      }
+    ]
+  },
+  "clean_note": "Offline comparison reads labels/judge/traces only after prediction; do not feed this into prediction logic."
+}

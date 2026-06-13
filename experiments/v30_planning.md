@@ -81,3 +81,22 @@ Commit `0eb44da` 增加：
 本次诊断发现并修正了一个重要问题：LLM 会把 `valid_from/valid_to` 过度填到一次性 event/fact/plan 上。当前代码在 `build_memory.temporal_fields=true` 时只让 `state/profile/preference/relationship` 参与 validity/supersede 管理；`event/fact/plan` 使用 `event_time` 表达事件时间，不再被当作持续状态。
 
 字段质量与 token gate 已通过。下一步建议先提交 v30 validity 修正，再跑 LoCoMo non-adversarial full 验证是否保留 v29 temporal 收益；随后必须跑 LongMemEval-S full，因为 v29 在 LME 回退。
+
+## 2026-06-14 LoCoMo full 结果
+
+`stage1_typed_event_memory_v30_locomo_nonadv_full_91c2e1c` 已完成 LoCoMo non-adversarial full。
+
+- DeepSeek judge accuracy: `0.755685510071475`
+- correct/valid/total: `1163/1539/1540`
+- v29 accuracy: `0.7616883116883116`
+- v30 vs v29: `-10` correct overall
+- avg build tokens: `61047.40909090909`
+- avg query tokens: `4047.9045454545453`
+- evidence recall: `0.8802083333333334`
+- v29 evidence recall: `0.8893229166666666`
+- avg memory source hits: `21.43896103896104`
+- v29 avg memory source hits: `22.381168831168832`
+- avg build memory records: `94.45454545454545`
+- v29 avg build memory records: `136.65974025974026`
+
+结论：v30 字段语义更 clean，但当前 config 是负向 ablation。不要基于这版直接跑 LongMemEval full。下一步 v31 应保留 stateful validity 语义，同时恢复/提升 source activation 覆盖；typed temporal fields 应作为 compiler 辅助视图，而不能降低 raw evidence recall。

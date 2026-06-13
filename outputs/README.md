@@ -14,6 +14,7 @@
 - `cache/qwen3_answer_v30.sqlite`：v30 diagnostic answer cache，保留用于 typed temporal/event build memory 后续 full run 复查。
 - `diagnostic/v30_route_stratified_probe/`：v30 字段门禁抽样输入，来自 prediction input + question router，无 labels/gold/judge/category/sample id。
 - `diagnostic/v30_stateful_validity_probe_3525934/`：当前有效 v30 字段门禁 outputs；人类记录在 `experiments/diagnostic/v30_stateful_validity_probe_3525934/`。
+- `formal/stage1_typed_event_memory_v30_locomo_nonadv_full_91c2e1c/`：v30 LoCoMo full prediction/traces；DeepSeek judge、metrics、diagnosis 在 `experiments/formal/stage1_typed_event_memory_v30_locomo_nonadv_full_91c2e1c/`。
 - `services/`：本地 vLLM 服务日志/状态。
 
 ## 清理规则
