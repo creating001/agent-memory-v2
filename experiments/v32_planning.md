@@ -95,3 +95,23 @@ v31 证明“无差别加长 evidence_report prompt”会提升部分 evidence u
 用 v29 full traces 做离线风险体检，新触发器预计触发 `258/1540 = 16.75%`。若粗略用 v31 答案替换触发样本，投影 `1186/1540 = 0.7701`，相对 v29 净 `+13`。该投影只用于判断 v32 值得跑 full；预测阶段不读取 judge、gold、category、sample id 或样本级规则。
 
 结论：v32 通过 no-label/token gate，可以跑 LoCoMo non-adversarial full。若 LoCoMo full accuracy 正向并且 avg query tokens <= 6K，再补 LongMemEval-S full。
+
+## 2026-06-14 LoCoMo full 结果
+
+严格 draft-cache 对照版 run：`stage1_selective_repair_v32_locomo_nonadv_full_a80816a`
+
+- commit: `a80816a`
+- dirty: 用户编辑的 `docs/architecture.md`、`docs/clean_protocol.md`，以及本次实验输出目录
+- DeepSeek judge accuracy: `0.7616883116883116`
+- correct/valid/total: `1173/1540/1540`
+- v29 reference: `1173/1540 = 0.7616883116883116`
+- avg build tokens: `58386.00779220779`
+- avg query tokens: `4466.223376623377`
+- evidence recall: `0.8912760416666666`
+- repair triggered: `263/1540 = 0.17077922077922078`
+- repair applied: `11/1540 = 0.007142857142857143`
+- repair-applied delta: fixed `3`, broken `1`, both_correct `2`, both_wrong `5`
+- draft answer cache hits/misses/writes: `1540/0/0`
+- repair cache hits/misses/writes: `263/0/0`
+
+结论：v32 token 合格、clean、可追溯，但 LoCoMo full 与 v29 持平，不是性能提升。不要跑 v32 LongMemEval-S full。下一步需要设计更强的 v33：优先考虑 query-side evidence expansion / gap-aware verifier，或 build-side memory management 改进，而不是继续扩大同 context repair 的触发率。
