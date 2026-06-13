@@ -247,6 +247,9 @@ class Stage1Pipeline:
             evidence_report_max_items=int(
                 compiler_config.get("evidence_report_max_items", 8)
             ),
+            evidence_report_detail=bool(
+                compiler_config.get("evidence_report_detail", False)
+            ),
             operation_workpad=bool(compiler_config.get("operation_workpad", False)),
             operation_workpad_information_needs=_tuple_config(
                 compiler_config.get(
@@ -340,6 +343,9 @@ class Stage1Pipeline:
             ),
             "evidence_report_max_items": int(
                 compiler_config.get("evidence_report_max_items", 8)
+            ),
+            "evidence_report_detail": bool(
+                compiler_config.get("evidence_report_detail", False)
             ),
             "operation_workpad": bool(
                 compiler_config.get("operation_workpad", False)

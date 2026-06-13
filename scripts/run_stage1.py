@@ -367,6 +367,9 @@ def main() -> int:
             "evidence_report_max_items": config.get("compiler", {}).get(
                 "evidence_report_max_items", 8
             ),
+            "evidence_report_detail": config.get("compiler", {}).get(
+                "evidence_report_detail", False
+            ),
             "operation_workpad": config.get("compiler", {}).get(
                 "operation_workpad", False
             ),
@@ -696,6 +699,7 @@ def _write_summary(
         f"- evidence_report_contract: {metrics['compiler']['evidence_report_contract']}",
         f"- evidence_report_information_needs: {metrics['compiler']['evidence_report_information_needs']}",
         f"- evidence_report_max_items: {metrics['compiler']['evidence_report_max_items']}",
+        f"- evidence_report_detail: {metrics['compiler']['evidence_report_detail']}",
         f"- route_overrides: {metrics['compiler']['route_overrides']}",
         f"- enable_broad_list_patterns: {metrics['route']['enable_broad_list_patterns']}",
         f"- enable_recommendation_profile_patterns: {metrics['route']['enable_recommendation_profile_patterns']}",
@@ -785,6 +789,7 @@ def _write_diagnosis(
         f"- evidence_report_contract: {metrics['compiler']['evidence_report_contract']}",
         f"- evidence_report_information_needs: {metrics['compiler']['evidence_report_information_needs']}",
         f"- evidence_report_max_items: {metrics['compiler']['evidence_report_max_items']}",
+        f"- evidence_report_detail: {metrics['compiler']['evidence_report_detail']}",
         f"- route_overrides: {metrics['compiler']['route_overrides']}",
         f"- enable_recommendation_profile_patterns: {metrics['route']['enable_recommendation_profile_patterns']}",
         f"- temporal_priority_over_recent: {metrics['route']['temporal_priority_over_recent']}",

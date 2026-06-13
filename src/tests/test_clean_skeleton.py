@@ -595,6 +595,54 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertNotIn('"evidence_report"', list_context.prompt)
         self.assertIn('"answer": "concise answer"', fact_context.prompt)
 
+    def test_detailed_evidence_report_rules_are_config_gated(self) -> None:
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text="Alex read Dune and then discussed Foundation.",
+                timestamp="2024-01-01",
+            ),
+        )
+        route = RouteResult(information_need="fact_lookup", signals=())
+        default_compiler = EvidenceCompiler(
+            max_evidence_items=1,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            evidence_report_contract=True,
+            evidence_report_information_needs=("fact_lookup",),
+        )
+        detailed_compiler = EvidenceCompiler(
+            max_evidence_items=1,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            evidence_report_contract=True,
+            evidence_report_information_needs=("fact_lookup",),
+            evidence_report_detail=True,
+        )
+
+        default_context = default_compiler.compile(
+            question="What books has Alex read?",
+            question_time=None,
+            route=route,
+            hits=(),
+            evidence_turns=turns,
+        )
+        detailed_context = detailed_compiler.compile(
+            question="What books has Alex read?",
+            question_time=None,
+            route=route,
+            hits=(),
+            evidence_turns=turns,
+        )
+
+        self.assertNotIn("Do not treat owning, discussing", default_context.prompt)
+        self.assertIn("Do not treat owning, discussing", detailed_context.prompt)
+        self.assertIn("preserve all distinct in-scope item names", detailed_context.prompt)
+        self.assertNotIn("question_type", detailed_context.prompt)
+
     def test_temporal_event_contract_separates_mention_time_from_event_time(self) -> None:
         compiler = EvidenceCompiler(
             max_evidence_items=1,

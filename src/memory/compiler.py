@@ -140,6 +140,7 @@ class EvidenceCompiler:
             sorted(SUPPORTED_INFORMATION_NEEDS)
         ),
         evidence_report_max_items: int = 8,
+        evidence_report_detail: bool = False,
         operation_workpad: bool = False,
         operation_workpad_information_needs: tuple[str, ...] = (
             DEFAULT_STRUCTURED_ANSWER_CONTRACT_NEEDS
@@ -192,6 +193,7 @@ class EvidenceCompiler:
             field_name="evidence_report_information_needs",
         )
         self._evidence_report_max_items = max(1, int(evidence_report_max_items))
+        self._evidence_report_detail = evidence_report_detail
         self._operation_workpad = operation_workpad
         self._operation_workpad_information_needs = _validate_information_needs(
             operation_workpad_information_needs,
@@ -323,6 +325,7 @@ class EvidenceCompiler:
                 and route.information_need in self._evidence_report_information_needs
             ),
             evidence_report_max_items=self._evidence_report_max_items,
+            evidence_report_detail=self._evidence_report_detail,
             operation_workpad=(
                 self._operation_workpad
                 and route.information_need in self._operation_workpad_information_needs
@@ -617,6 +620,7 @@ def _build_prompt(
     structured_answer_contract_max_items: int,
     evidence_report_contract: bool,
     evidence_report_max_items: int,
+    evidence_report_detail: bool,
     operation_workpad: bool,
     memory_layout: str,
     row_text_mode: str,
@@ -659,6 +663,7 @@ def _build_prompt(
             structured_answer_contract_max_items=structured_answer_contract_max_items,
             evidence_report_contract=evidence_report_contract,
             evidence_report_max_items=evidence_report_max_items,
+            evidence_report_detail=evidence_report_detail,
             operation_workpad=operation_workpad,
         )
 
@@ -805,6 +810,7 @@ def _build_external_naive_prompt(
     structured_answer_contract_max_items: int,
     evidence_report_contract: bool,
     evidence_report_max_items: int,
+    evidence_report_detail: bool,
     operation_workpad: bool,
 ) -> str:
     use_temporal_event_contract = (
@@ -867,8 +873,10 @@ def _build_external_naive_prompt(
     if evidence_report_contract and not structured_answer_contract:
         rules.extend(
             _external_evidence_report_rules(
+                question,
                 route,
                 temporal_event_contract=use_temporal_event_contract,
+                detailed=evidence_report_detail,
             )
         )
     operation_workpad_block = ""
@@ -966,9 +974,11 @@ def _build_external_naive_prompt(
 
 
 def _external_evidence_report_rules(
+    question: str,
     route: RouteResult,
     *,
     temporal_event_contract: bool = False,
+    detailed: bool = False,
 ) -> list[str]:
     """General visible evidence report instructions for clean reader discipline."""
 
@@ -979,6 +989,8 @@ def _external_evidence_report_rules(
         "If a required target, operand, endpoint, or speaker source is missing, set sufficient=false and explain the missing part.",
         "Do not use Structured Evidence Guide or Temporal Aid as independent evidence; they only point to Memory Context rows.",
     ]
+    if detailed:
+        rules.extend(_detailed_evidence_report_rules(question))
     if route.information_need == "list_count":
         rules.extend(
             [
@@ -1022,6 +1034,30 @@ def _external_evidence_report_rules(
             [
                 "For fact lookup questions, match the requested slot exactly: place, person, date, object, service, organization, or event.",
                 "Do not answer with a related source, method, discussion topic, or explanation when the question asks for a different slot.",
+            ]
+        )
+    return rules
+
+
+def _detailed_evidence_report_rules(question: str) -> list[str]:
+    """Additional generic evidence discipline adapted from external memory QA systems."""
+
+    rules = [
+        "Include every candidate row that may change the final answer; preserve exact numbers, dates, names, places, titles, units, and event descriptions.",
+        "Set status=support only when the row explicitly satisfies the requested action, object, relation, time range, and scope; mark related but mismatched candidates as exclude instead of silently ignoring them.",
+        "Do not treat owning, discussing, planning, liking, asking about, recommending, or considering something as buying, attending, completing, using, reading, moving, or doing it unless the row says so explicitly.",
+        "Assistant suggestions, estimates, recommendations, or hypothetical plans are support only when the question asks about assistant suggestions/plans or the user later confirms them.",
+        "Do not treat missing evidence as zero, false, or none; if only a lower bound is supported, answer with that lower bound instead of inventing an exact value.",
+        "For current/latest/recent/now questions, compare older and newer directly relevant candidates; for previous/initial/original questions, answer the requested historical state rather than the newest state.",
+        "Preserve the evidence unit and wording when it directly answers the question; do not convert '45 minutes each way' into a different total unless the question asks for that total.",
+    ]
+    lowered = question.lower()
+    if _asks_collection_operation(lowered) or _looks_like_plural_slot_question(lowered):
+        rules.extend(
+            [
+                "For list-style what/which questions, preserve all distinct in-scope item names or values, not just one example or a broad category.",
+                "Merge repeated mentions of the same real-world item, event, process, person, trip, purchase, or role under one canonical value.",
+                "If a row is ambiguous between a duplicate and a separate new item, mark it exclude as ambiguous_duplicate unless the answer can be a supported lower bound.",
             ]
         )
     return rules
@@ -1707,6 +1743,16 @@ def _asks_collection_operation(question: str) -> bool:
         re.search(
             r"\b(?:how many|count|total|sum|average|difference|both|shared|common|all|list|which|first|earlier|later|more|less)\b",
             question.lower(),
+        )
+    )
+
+
+def _looks_like_plural_slot_question(question: str) -> bool:
+    lowered = question.lower()
+    return bool(
+        re.search(
+            r"\b(?:what|which)\s+(?:types?|kinds?|events?|books?|movies?|shows?|places?|cities?|schools?|organizations?|items?|things?|activities?|hobbies?|[a-z]+s)\b",
+            lowered,
         )
     )
 

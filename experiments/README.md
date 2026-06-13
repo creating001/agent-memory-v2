@@ -24,6 +24,7 @@
 - `configs/stage1_structured_answer_contract_v26_cached.json`：structured answer contract 关键对照。
 - `configs/stage1_evidence_report_contract_v28_cached.json`：当前 LME 最好主线候选，也是 v29 的底座。
 - `configs/stage1_typed_event_memory_v30_cached.json`：build-side typed temporal/event memory 负向 ablation；字段更 clean，但 LoCoMo full 低于 v29。
+- `configs/stage1_evidence_report_detail_v31_cached.json`：v29 底座上的 query-side detailed evidence_report 候选，尚未 full 验证。
 
 方法摘要：
 
@@ -42,7 +43,7 @@
 - LoCoMo 诊断显示，很多 wrong case 已有 evidence 进入 context，主要问题是 answer 阶段混淆 mention date / event time、列表边界和隐含推理；下一步应改 build/query 两侧的 memory organization，而不是继续只堆 answer prompt。
 - v29 temporal event contract 已完成双基准验证：LME `0.762`，低于 v28 `0.766`；LoCoMo `0.761688`，显著高于 v28 `0.737662` 但仍未达 `0.78` target。结论是 event-time 组织对 LoCoMo 有价值，但需要前移到 build-side typed memory，不能只靠 query prompt。
 - v30 typed temporal/event build memory 已完成 LoCoMo full：DeepSeek judge accuracy `0.755686`，低于 v29 `0.761688`。字段门禁通过且 token gate 通过，但 evidence recall 从 `0.889323` 降到 `0.880208`，avg memory source hits 从 `22.381` 降到 `21.439`；结论是负向 ablation，不应作为当前主线。
-- 下一步不应基于 v30 直接盲跑 LongMemEval full，而应设计 v31：保留 stateful validity 语义，同时恢复/提升 source activation 覆盖，并让 typed temporal fields 作为 compiler 辅助视图。
+- v31 已设计为 query-side detailed evidence_report：复用 v29 build memory/source activation，加入通用 include/exclude、slot exact、去重、assistant suggestion gating、lower-bound、current/previous 区分等 evidence discipline；先过 no-label gate，再跑 LoCoMo full。
 
 负向探索结论已压缩保留：
 
