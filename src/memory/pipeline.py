@@ -310,9 +310,21 @@ class Stage1Pipeline:
         self._answer_finalizer_mode = str(
             answer_finalizer_config.get("mode", "structured_evidence_mechanical")
         )
+        self._answer_finalizer_enable_count_correction = bool(
+            answer_finalizer_config.get("enable_count_correction", False)
+        )
+        self._answer_finalizer_enable_money_sum_correction = bool(
+            answer_finalizer_config.get("enable_money_sum_correction", True)
+        )
         self._answer_finalizer_trace_config = {
             "enabled": self._answer_finalizer_enabled,
             "mode": self._answer_finalizer_mode,
+            "enable_count_correction": (
+                self._answer_finalizer_enable_count_correction
+            ),
+            "enable_money_sum_correction": (
+                self._answer_finalizer_enable_money_sum_correction
+            ),
         }
         self._answer_cache_enabled = bool(
             answer_config.get("cache", {}).get("enabled", False)
@@ -632,6 +644,10 @@ class Stage1Pipeline:
             question=question,
             draft_answer=answer.answer,
             raw_response=answer.raw_response,
+            enable_count_correction=self._answer_finalizer_enable_count_correction,
+            enable_money_sum_correction=(
+                self._answer_finalizer_enable_money_sum_correction
+            ),
         )
 
     def _retrieve_session_hits(

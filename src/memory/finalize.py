@@ -69,6 +69,8 @@ def finalize_structured_answer(
     question: str,
     draft_answer: str,
     raw_response: str | None,
+    enable_count_correction: bool = False,
+    enable_money_sum_correction: bool = True,
 ) -> AnswerFinalization:
     """Repair only narrow count/sum mismatches exposed by model evidence JSON.
 
@@ -91,7 +93,7 @@ def finalize_structured_answer(
         return _noop(draft_answer, "no_structured_evidence_items")
 
     lowered_question = question.lower()
-    if _is_sum_question(lowered_question):
+    if enable_money_sum_correction and _is_sum_question(lowered_question):
         summed = _finalize_money_sum(
             lowered_question=lowered_question,
             draft_answer=draft_answer,
@@ -100,7 +102,7 @@ def finalize_structured_answer(
         if summed is not None:
             return summed
 
-    if _is_count_question(lowered_question):
+    if enable_count_correction and _is_count_question(lowered_question):
         counted = _finalize_count(
             lowered_question=lowered_question,
             draft_answer=draft_answer,

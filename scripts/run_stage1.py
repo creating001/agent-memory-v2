@@ -521,6 +521,12 @@ def _answer_metrics(config: dict[str, Any]) -> dict[str, Any]:
         "finalizer_mode": answer_config.get("finalizer", {}).get(
             "mode", "structured_evidence_mechanical"
         ),
+        "finalizer_enable_count_correction": answer_config.get(
+            "finalizer", {}
+        ).get("enable_count_correction", False),
+        "finalizer_enable_money_sum_correction": answer_config.get(
+            "finalizer", {}
+        ).get("enable_money_sum_correction", True),
     }
 
 
@@ -635,6 +641,8 @@ def _write_summary(
         f"- answer_cache_writes: {metrics['answer']['cache_writes']}",
         f"- answer_finalizer_enabled: {metrics['answer']['finalizer_enabled']}",
         f"- answer_finalizer_mode: {metrics['answer']['finalizer_mode']}",
+        f"- answer_finalizer_enable_count_correction: {metrics['answer']['finalizer_enable_count_correction']}",
+        f"- answer_finalizer_enable_money_sum_correction: {metrics['answer']['finalizer_enable_money_sum_correction']}",
         f"- answer_finalizer_applied_count: {metrics['answer']['finalizer_applied_count']}",
         f"- answer_finalizer_applied_rate: {metrics['answer']['finalizer_applied_rate']}",
         f"- answer_style: {metrics['compiler']['answer_style']}",
@@ -759,6 +767,8 @@ def _write_diagnosis(
         f"- answer_cache_writes: {metrics['answer']['cache_writes']}",
         f"- answer_finalizer_enabled: {metrics['answer']['finalizer_enabled']}",
         f"- answer_finalizer_mode: {metrics['answer']['finalizer_mode']}",
+        f"- answer_finalizer_enable_count_correction: {metrics['answer']['finalizer_enable_count_correction']}",
+        f"- answer_finalizer_enable_money_sum_correction: {metrics['answer']['finalizer_enable_money_sum_correction']}",
         f"- answer_finalizer_applied_count: {metrics['answer']['finalizer_applied_count']}",
         f"- answer_finalizer_applied_rate: {metrics['answer']['finalizer_applied_rate']}",
         f"- answer: {_answer_note(config)}",

@@ -261,12 +261,35 @@ class CleanSkeletonTest(unittest.TestCase):
             question="How many model kits did Alex mention?",
             draft_answer="2",
             raw_response=raw_response,
+            enable_count_correction=True,
         )
 
         self.assertTrue(finalization.applied)
         self.assertEqual(finalization.expected_value, "3")
         self.assertIn("3:", finalization.answer)
         self.assertIn("Tamiya Spitfire", finalization.answer)
+
+    def test_structured_answer_finalizer_does_not_count_by_default(self) -> None:
+        content = json.dumps(
+            {
+                "sufficient": True,
+                "evidence_items": [
+                    {"canonical_item": "first kit", "include": True},
+                    {"canonical_item": "second kit", "include": True},
+                ],
+                "answer": "1",
+            }
+        )
+        raw_response = json.dumps({"content": content})
+
+        finalization = finalize_structured_answer(
+            question="How many model kits did Alex mention?",
+            draft_answer="1",
+            raw_response=raw_response,
+        )
+
+        self.assertFalse(finalization.applied)
+        self.assertEqual(finalization.answer, "1")
 
     def test_structured_answer_finalizer_repairs_money_sum_mismatch(self) -> None:
         content = json.dumps(

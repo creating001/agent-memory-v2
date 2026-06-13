@@ -25,6 +25,7 @@
 - `stage1_selective_row_guide_v17_cached.json`：query-side selective row-guide 消融，在 v16 上打开通用 personalized recommendation router，并对 `personalized_recommendation` signal 关闭 row guide；目标是修复 v16 在推荐/偏好题上被 row overview 干扰的问题。借鉴 LangMem 的 PreferenceMemory/profile schema 和 Mem0 的“推荐请求也包含隐含偏好、不要让请求遮蔽事实”的抽取逻辑，但预测阶段只用 question text、raw evidence 和 runtime route signal。
 - `stage1_hybrid_bm25_v18_cached.json`：query-side hybrid retrieval 主线，在 v17 上加入 raw-turn BM25 lexical retrieval，与 dense top-40 和 build-memory source expansion 融合；借鉴 xMemory/SimpleMem/Graphiti/Hindsight 的多路检索融合，但不增加 evidence slots、不使用 benchmark/sample 规则。
 - `stage1_structured_answer_contract_v25_cached.json`：query-side answer/compiler 消融，基于 v18 不改 build/retrieval，只对通用 `list_count` 和 `temporal_lookup` 启用单次结构化 answer contract，让 answer model 输出紧凑 evidence_items/calculation/answer，并用保守 mechanical finalizer 只修模型自身结构化证据支持的 count 和金钱 sum 不一致；借鉴旧 creating001 的 evidence table/finalizer、xMemory 的 decouple-to-aggregate、SimpleMem 的 temporal normalization 和 Hindsight 的 evidence separation，但不迁移旧项目的 benchmark 词表、样本规则或 judge/gold/test feedback。
+- `stage1_structured_answer_contract_v26_cached.json`：v25 的安全收缩消融，保留相同 structured answer contract 和 answer cache namespace，但关闭 count finalizer，仅保留更窄的 money-sum finalizer；用于验证结构化契约本身是否有收益，避免把数量题误修正扩展到 LoCoMo。
 新增配置必须满足：
 
 - 不使用 gold answer、judge output、benchmark label、sample id、qid、row index 或 test feedback。
