@@ -73,3 +73,30 @@ v37 regression 显示 raw rows 基本仍在 context，但 typed memory 进入 pr
 - Route override 只使用 generic `information_need`。
 - `role_query_snippet` 只根据 question terms 从当前 raw row 中截取片段，不引入外部答案或 label。
 - DeepSeek judge、evidence recall 和 badcase 只用于离线诊断。
+
+## 2026-06-14 LME Gate 结果
+
+run: `v38_route_snippet_lme_probe_2091273`
+
+- samples: `20`
+- source: `outputs/diagnostic/v35_lme_route_stratified_probe/prediction_input.jsonl`
+- commit: `2091273de71daad9f50201f2f2be3bc185466b70`
+- dirty: 仅用户修改的 `docs/architecture.md`、`docs/clean_protocol.md`
+- answer max input/output: `131072/16384`
+- avg build tokens: `81690.45`
+- avg query tokens: `5756.0`
+- avg compiled evidence items: `40.45`
+- avg context chars: `18780.65`
+- build cache hits/misses/writes: `137/0/0`
+- embedding cache hits/misses/writes: `10079/0/0`
+- answer cache hits/misses/writes: `18/2/2`
+
+Route audit:
+
+- current_state: top_k `40`, avg query `6048.0`
+- fact_lookup: top_k `40`, avg query `5116.8`
+- list_count: top_k `60`, avg query `5778.5`
+- profile_preference: top_k `40`, avg query `5287.5`
+- temporal_lookup: top_k `60`, avg query `6549.2`
+
+结论：修正版 v38 通过 LongMemEval-S no-label average query token gate。非目标 route 已保持 top40，`list_count` 和 `temporal_lookup` 扩到 top60 生效。按 full LME route 分布粗略加权估算 avg query tokens 约 `5782`，仍在 `6000` 预算内。下一步可以跑 LongMemEval-S full；正式结果必须主要看 DeepSeek judge accuracy。

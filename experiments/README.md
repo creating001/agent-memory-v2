@@ -55,7 +55,7 @@
 - v35 answer format guard 已完成 LoCoMo full：valid-only accuracy `0.780377`，invalid-as-wrong `0.779870`，比 v34 净 +1；只改 6 条 prediction，finalizer applied 2 条。结论是 close-margin 正向，valid-only 达标，但必须同时报告 invalid-as-wrong 仍差 1 条和 same-answer judge variance。
 - v36 LME token-safe format guard 已完成 LongMemEval-S full：accuracy `0.772`，386/500，比 v28 净 +3；avg query tokens `5715.468`，token 合格。结论是当前 LME 最好但仍是小幅正向，same-answer judge variance 可见，距 0.80 还差 14 条。
 - v37 row-linked memory bundle 已完成 LongMemEval-S full：accuracy `0.744`，372/500，低于 v36 `0.772`。它通过 token gate 且 evidence recall 仍为 `1.0`，但 typed memory 直接进入 answer prompt 后让 temporal/list/current_state 明显回退；结论是负向 ablation，不跑 LoCoMo full，顶层 config 不长期保留。
-- v38 当前候选是 route-scoped top60 + role_query_snippet：不把 typed memory 放进 answer prompt，只扩大 `list_count`/`temporal_lookup` 的 raw evidence 覆盖并压缩长 row；必须先过 LME token gate。
+- v38 当前候选是 route-scoped top60 + role_query_snippet：不把 typed memory 放进 answer prompt，只扩大 `list_count`/`temporal_lookup` 的 raw evidence 覆盖并压缩长 row；LME 20 条 route-stratified token gate 已通过，下一步跑 LME full。
 - 下一步应基于 v36/v37 badcase、外部方法代码和 current best 双基准结果设计 build/query 侧通用改进；不要继续把更多 typed memory 直接塞进 answer prompt，也不要在未分析前直接开昂贵 full run。
 
 负向探索结论已压缩保留：
@@ -106,6 +106,7 @@ experiments/formal/<run_id>/
 | `v35_lme_route_probe_e6de8c5` | 20 条 LongMemEval-S route-stratified diagnostic | v35 LoCoMo-winning config 未通过 LME query token gate；avg_query_tokens `7109.2`，p95 `8059`，不能直接跑 LME full。 |
 | `v36_lme_token_safe_probe_e7ca9e5` | 20 条 LongMemEval-S route-stratified diagnostic | v36 token-safe config 通过 LME average query token gate；avg_query_tokens `5579.7`，随后已完成 LME full。 |
 | `v37_row_memory_bundle_lme_probe_3d3cd07` | 20 条 LongMemEval-S route-stratified diagnostic | v37 row-linked build memory bundle 通过 LME average query token gate；avg_query_tokens `5564.5`，avg_compiled_memory_records `7.1`；后续 full 已证明负向。 |
+| `v38_route_snippet_lme_probe_2091273` | 20 条 LongMemEval-S route-stratified diagnostic | v38 route-scoped top60 + `role_query_snippet` gate 通过；avg_query_tokens `5756.0`，list/temporal top60 生效，非目标 route 保持 top40，可跑 LME full。 |
 
 ## 保留正式结果
 
