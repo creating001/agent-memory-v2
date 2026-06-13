@@ -97,6 +97,6 @@
     "max_input_tokens": 131072,
     "max_output_tokens": 16384,
     "max_tokens": 16384,
-    "timeout": 120.0
+    "timeout": 300.0
   }
 }
