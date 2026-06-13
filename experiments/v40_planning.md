@@ -91,3 +91,43 @@ Gate 不通过就停止，不跑 full。Gate 通过后，也只先跑 LongMemEva
 - `list_count` / `temporal_lookup` 来自项目内部 question-text router，不来自 benchmark 隐藏标签。
 - prompt 中不写具体测试答案、测试实体或测试样本编号。
 - DeepSeek judge、evidence recall、badcase digest 只用于离线诊断，不能进入同一轮 prediction pipeline。
+
+## 2026-06-14 Gate Result
+
+Diagnostic run `v40_route_scoped_evidence_detail_lme_probe_983f882` 通过 LME route-stratified gate：
+
+- commit: `983f882ca0cdb3a2a2b5869f09ad5dff98699f41`
+- dirty: `true`，仅包含用户修改的 `docs/architecture.md` 和 `docs/clean_protocol.md`
+- answer max input/output: `131072/16384`
+- avg build tokens: `81690.45`
+- total build tokens: `1633809`
+- avg query tokens: `5714.0`
+- total query tokens: `114280`
+- 按 LME full route 分布估算 avg query tokens: `5716.6965`
+- max query tokens: `6888`
+- avg compiled evidence items: `33.9`
+- avg compiled memory records: `0.0`
+- build cache hits/misses/writes: `137/0/0`
+- embedding cache hits/misses/writes: `10079/0/0`
+- answer cache hits/misses/writes: `15/5/5`
+
+route audit：
+
+| information_need | n | top_k | dense_top_k | avg query tokens | max query tokens | avg rows | detail prompts |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| current_state | 4 | 40 | 40 | 6086.25 | 6253 | 28.75 | 0/4 |
+| fact_lookup | 4 | 40 | 40 | 5125.75 | 5301 | 37.00 | 0/4 |
+| list_count | 4 | 40 | 40 | 5627.00 | 5867 | 33.75 | 4/4 |
+| profile_preference | 4 | 40 | 40 | 5286.75 | 5575 | 36.00 | 0/4 |
+| temporal_lookup | 4 | 40 | 40 | 6444.25 | 6888 | 34.00 | 4/4 |
+
+clean scan：
+
+- `question_type` / `sample_id` / `qid` / `row index` / `gold answer` / `judge output`: `0`
+- v40 detail rule no longer contains the word `category`; remaining raw-context occurrences are user dialogue text, not hidden benchmark metadata.
+
+结论：
+
+- v40 gate 通过，可以进入 LongMemEval-S full。
+- 由于 v40 只改 reader/compiler detail，且 token 估算与 v36 接近，full run 风险可接受。
+- LoCoMo full 暂不跑；只有 LME full 相对 v36 不明显负向后再安排。

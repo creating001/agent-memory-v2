@@ -57,7 +57,7 @@
 - v37 row-linked memory bundle 已完成 LongMemEval-S full：accuracy `0.744`，372/500，低于 v36 `0.772`。它通过 token gate 且 evidence recall 仍为 `1.0`，但 typed memory 直接进入 answer prompt 后让 temporal/list/current_state 明显回退；结论是负向 ablation，不跑 LoCoMo full，顶层 config 不长期保留。
 - v38 route-scoped top60 + role_query_snippet 已完成 LongMemEval-S full：accuracy `0.752`，低于 v36 `0.772`。它相对 v37 恢复了部分 typed-memory-prompt 回退，但相对 v36 在 `list_count` 和 `temporal_lookup` 损失更大；结论是负向 ablation，不跑 LoCoMo full，顶层 config 不长期保留。
 - v39 memory-aware evidence selector 已完成 LongMemEval-S full：accuracy `0.724`，362/500，低于 v36 `0.772` 和 v38 `0.752`。结论是 build-memory source signal 直接排序 final raw rows 会破坏 list/temporal operand coverage；负向 ablation，不跑 LoCoMo full，顶层 config 不长期保留。
-- v40 route-scoped evidence detail 当前处于 gate 前候选：基于 v36/v39 badcase 和外部 evidence extraction 代码，只在 `list_count` / `temporal_lookup` 上增加通用 include/exclude/missing evidence 操作规则；不扩大 top-k，不新增 LLM stage，不把 typed memory 直接塞进 answer prompt。只有 route-stratified gate 通过后才跑 LME full。
+- v40 route-scoped evidence detail 已通过 LongMemEval-S route-stratified gate：avg query tokens `5714.0`，full 分布加权估计 `5716.6965`，detail prompt 只在 `list_count` / `temporal_lookup` 生效，compiled memory records `0.0`。下一步跑 LME full；LoCoMo 只有在 LME 不明显负向后再安排。
 
 负向探索结论已压缩保留：
 
@@ -109,6 +109,7 @@ experiments/formal/<run_id>/
 | `v37_row_memory_bundle_lme_probe_3d3cd07` | 20 条 LongMemEval-S route-stratified diagnostic | v37 row-linked build memory bundle 通过 LME average query token gate；avg_query_tokens `5564.5`，avg_compiled_memory_records `7.1`；后续 full 已证明负向。 |
 | `v38_route_snippet_lme_probe_2091273` | 20 条 LongMemEval-S route-stratified diagnostic | v38 route-scoped top60 + `role_query_snippet` gate 通过；avg_query_tokens `5756.0`，list/temporal top60 生效，非目标 route 保持 top40；后续 full 已证明负向。 |
 | `v39_memory_aware_selector_lme_probe_fd00801` | 20 条 LongMemEval-S route-stratified diagnostic | v39 route-scoped memory-aware selector gate 通过；avg_query_tokens `5607.8`，weighted full estimate `5566.583`，avg_build_tokens `81690.45`，typed memory 只做 source selection、prompt memory records 为 0。 |
+| `v40_route_scoped_evidence_detail_lme_probe_983f882` | 20 条 LongMemEval-S route-stratified diagnostic | v40 route-scoped evidence detail gate 通过；avg_query_tokens `5714.0`，weighted full estimate `5716.6965`，avg_build_tokens `81690.45`，detail prompt 只在 `list_count` / `temporal_lookup` 生效。 |
 
 ## 保留正式结果
 
