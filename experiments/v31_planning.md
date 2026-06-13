@@ -55,3 +55,20 @@ v30 LoCoMo full 证明 build-side typed temporal memory 字段更 clean，但当
 - evidence recall 只能在 prediction 后离线算，不能作为 prediction 输入。
 
 如果 gate 正常，v31 是 query-side 改动，可以直接跑 LoCoMo non-adversarial full；若 accuracy 有收益，再补 LongMemEval-S full。
+
+## 2026-06-14 Gate 结果
+
+`v31_evidence_report_detail_probe_b913567` 已完成 no-label route-stratified diagnostic。
+
+- samples: `20/20`
+- avg build tokens: `63177.1`
+- avg query tokens: `5152.6`
+- answer max input/output: `131072/16384`
+- `evidence_report_detail`: `true`
+- detailed evidence rules present: `20/20` prompts
+- plural/list slot rules present: `7/20` prompts
+- build_memory_temporal_fields: `false`
+- build memory records: avg `116.75`
+- build memory source hits: avg `13.7`
+
+Gate 通过。该诊断不读取 labels/gold/judge/category/sample id，不计算 accuracy。下一步可以跑 LoCoMo non-adversarial full v31 prediction，并在完成后离线 DeepSeek judge。

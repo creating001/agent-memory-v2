@@ -43,7 +43,7 @@
 - LoCoMo 诊断显示，很多 wrong case 已有 evidence 进入 context，主要问题是 answer 阶段混淆 mention date / event time、列表边界和隐含推理；下一步应改 build/query 两侧的 memory organization，而不是继续只堆 answer prompt。
 - v29 temporal event contract 已完成双基准验证：LME `0.762`，低于 v28 `0.766`；LoCoMo `0.761688`，显著高于 v28 `0.737662` 但仍未达 `0.78` target。结论是 event-time 组织对 LoCoMo 有价值，但需要前移到 build-side typed memory，不能只靠 query prompt。
 - v30 typed temporal/event build memory 已完成 LoCoMo full：DeepSeek judge accuracy `0.755686`，低于 v29 `0.761688`。字段门禁通过且 token gate 通过，但 evidence recall 从 `0.889323` 降到 `0.880208`，avg memory source hits 从 `22.381` 降到 `21.439`；结论是负向 ablation，不应作为当前主线。
-- v31 已设计为 query-side detailed evidence_report：复用 v29 build memory/source activation，加入通用 include/exclude、slot exact、去重、assistant suggestion gating、lower-bound、current/previous 区分等 evidence discipline；先过 no-label gate，再跑 LoCoMo full。
+- v31 已设计为 query-side detailed evidence_report：复用 v29 build memory/source activation，加入通用 include/exclude、slot exact、去重、assistant suggestion gating、lower-bound、current/previous 区分等 evidence discipline；no-label gate 已通过，下一步跑 LoCoMo full。
 
 负向探索结论已压缩保留：
 
@@ -86,6 +86,7 @@ experiments/formal/<run_id>/
 | run | scope | 主要结论 |
 |---|---|---|
 | `v30_stateful_validity_probe_3525934` | 20 条 route-stratified mixed diagnostic | v30 build memory 字段质量通过；`mention_time=1711/1711`，`event_time=424/1711`，validity 只保留在 `state/profile/preference/relationship`，token gate 通过。 |
+| `v31_evidence_report_detail_probe_b913567` | 20 条 route-stratified mixed diagnostic | v31 detailed evidence_report gate 通过；avg_query_tokens `5152.6`，detail rules `20/20` prompts，answer max output `16384`。 |
 
 ## 保留正式结果
 
