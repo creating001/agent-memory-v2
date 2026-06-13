@@ -13,6 +13,7 @@
 - `stage1_temporal_text_v5_cached.json`：query-side ablation，在 v4 上打开 clean temporal text normalization，把 raw row text 中的 yesterday / last Sunday / two weeks ago 等通用相对时间表达写入 workpad 候选；借鉴 SimpleMem 的时间归一化和 Graphiti/Zep 的 temporal validity，但不读 gold、category、judge 或样本 id。
 - `stage1_route_priority_v6_cached.json`：query-side ablation，在 v4 上显式打开 `temporal_priority_over_recent`，让明确的 when / duration / days 等 temporal intent 优先于 latest / current 等描述性 recent 词；借鉴 Hindsight/GAM 的 question-intent-first compiler 思路，不使用 gold、category、judge 或样本 id。
 - `stage1_memory_validity_v7_cached.json`：build-memory management ablation，在 v4 上给 typed memory 暴露 valid_from / valid_to，并仅对 temporal_lookup / list_count 检索 superseded memory；借鉴 Graphiti/Zep 的 temporal validity、Memobase 的 event/profile timeline 和 Mnemis 的结构化枚举，但 derived memory 仍只做召回/组织，最终答案必须回到 raw evidence。
+- `stage1_route_validity_v8_cached.json`：组合消融，把 v6 的 temporal route priority 与 v7 的 validity/superseded retrieval 合并；目的是验证两个 clean 通用改动是否互补，仍不使用 gold、category、judge、样本 id 或测试反馈。
 
 新增配置必须满足：
 
