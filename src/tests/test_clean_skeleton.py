@@ -978,6 +978,47 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertIn("preserve all distinct in-scope item names", detailed_context.prompt)
         self.assertNotIn("question_type", detailed_context.prompt)
 
+    def test_evidence_report_detail_can_be_route_scoped(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=1,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            evidence_report_contract=True,
+            evidence_report_information_needs=("fact_lookup", "list_count"),
+            evidence_report_detail=False,
+            route_overrides={"list_count": {"evidence_report_detail": True}},
+        )
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text="Alex read Dune and then discussed Foundation.",
+                timestamp="2024-01-01",
+            ),
+        )
+
+        fact_context = compiler.compile(
+            question="Which book did Alex read?",
+            question_time=None,
+            route=RouteResult(information_need="fact_lookup", signals=()),
+            hits=(),
+            evidence_turns=turns,
+        )
+        list_context = compiler.compile(
+            question="What books has Alex read?",
+            question_time=None,
+            route=RouteResult(information_need="list_count", signals=("list_or_count",)),
+            hits=(),
+            evidence_turns=turns,
+        )
+
+        self.assertIn('"evidence_report"', fact_context.prompt)
+        self.assertNotIn("Do not treat owning, discussing", fact_context.prompt)
+        self.assertIn("Do not treat owning, discussing", list_context.prompt)
+        self.assertIn("preserve all distinct in-scope item names", list_context.prompt)
+
     def test_temporal_event_contract_separates_mention_time_from_event_time(self) -> None:
         compiler = EvidenceCompiler(
             max_evidence_items=1,

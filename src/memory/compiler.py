@@ -45,6 +45,7 @@ SUPPORTED_INFORMATION_NEEDS = {
 }
 ROUTE_OVERRIDE_KEYS = {
     "evidence_order",
+    "evidence_report_detail",
     "evidence_row_labels",
     "final_answer_checklist",
     "max_memory_records",
@@ -327,7 +328,7 @@ class EvidenceCompiler:
                 and route.information_need in self._evidence_report_information_needs
             ),
             evidence_report_max_items=self._evidence_report_max_items,
-            evidence_report_detail=self._evidence_report_detail,
+            evidence_report_detail=route_settings["evidence_report_detail"],
             operation_workpad=(
                 self._operation_workpad
                 and route.information_need in self._operation_workpad_information_needs
@@ -354,6 +355,7 @@ class EvidenceCompiler:
         settings: dict[str, Any] = {
             "evidence_row_labels": self._evidence_row_labels,
             "evidence_order": self._evidence_order,
+            "evidence_report_detail": self._evidence_report_detail,
             "final_answer_checklist": self._final_answer_checklist,
             "max_evidence_chars": self._max_evidence_chars,
             "max_evidence_items": self._max_evidence_items,
@@ -424,6 +426,10 @@ def _validate_route_overrides(
             if evidence_order not in {"retrieval", "question_overlap", "memory_aware"}:
                 raise ValueError(f"Unsupported evidence_order: {evidence_order}")
             overrides["evidence_order"] = evidence_order
+        if "evidence_report_detail" in raw_overrides:
+            overrides["evidence_report_detail"] = bool(
+                raw_overrides["evidence_report_detail"]
+            )
         if "evidence_row_labels" in raw_overrides:
             overrides["evidence_row_labels"] = bool(
                 raw_overrides["evidence_row_labels"]
