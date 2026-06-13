@@ -6,7 +6,7 @@
 
 ## 方法
 
-- 配置：`configs/stage1_temporal_session_anchor_v20_cached.json`
+- 原始配置：`configs/stage1_temporal_session_anchor_v20_cached.json`；负向后已从主配置入口删除，当前保留本目录 `config_snapshot.json`
 - prediction commit：`c32486cf82fce8f02ef73bb22b60beeb28aa5e87`
 - prediction dirty：`false`
 - answer max input/output：`131072 / 16384`
@@ -48,4 +48,4 @@ v20 不是 LME 新主线：总分低于 v18。但它把 temporal-reasoning 从 v
 
 ## 下一步
 
-继续跑 LoCoMo non-adversarial full：v20 的 LME 总分不如 v18，但 temporal-reasoning 有正向，且 LoCoMo v18 相对 v14 的短板集中在 temporal/category 2。LoCoMo 结果用于判断 session anchors 是否值得进一步收缩或融合，不直接替代 v18 主线。
+LoCoMo non-adversarial full 已完成，结果为 `0.727273`，低于 v18 和 v14；因此 v20 不作为主线。v20 配置不长期保留在 `configs/`，两个正式实验目录保留 config snapshot 和诊断记录。

@@ -1,0 +1,234 @@
+{
+  "accuracy": null,
+  "answer": {
+    "base_url": "http://127.0.0.1:8000/v1",
+    "max_input_tokens": 131072,
+    "max_output_tokens": 16384,
+    "max_tokens": 16384,
+    "mode": "openai_compatible",
+    "model": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "output_format": "json_answer",
+    "temperature": 0,
+    "timeout": 120
+  },
+  "benchmark": "locomo",
+  "bleu": null,
+  "build_memory": {
+    "avg_active_records": 125.21103896103897,
+    "avg_chunks": 8.059090909090909,
+    "avg_records": 136.65974025974026,
+    "base_url": "http://127.0.0.1:8000/v1",
+    "cache_enabled": true,
+    "cache_hits": 12411,
+    "cache_misses": 0,
+    "cache_path": "outputs/cache/qwen3_build_memory.sqlite",
+    "cache_writes": 0,
+    "enabled": true,
+    "include_superseded": false,
+    "include_superseded_information_needs": [
+      "temporal_lookup",
+      "list_count"
+    ],
+    "max_chars_per_turn": 500,
+    "max_records_per_chunk": 20,
+    "max_tokens": 2048,
+    "max_turns_per_chunk": 80,
+    "mode": "openai_compatible",
+    "model": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "temperature": 0,
+    "total_active_records": 192825,
+    "total_chunks": 12411,
+    "total_records": 210456,
+    "total_superseded_records": 17631
+  },
+  "compiler": {
+    "answer_style": "concise",
+    "evidence_order": "retrieval",
+    "evidence_row_labels": false,
+    "final_answer_checklist": false,
+    "max_memory_records": 0,
+    "max_row_text_chars": 0,
+    "memory_layout": "flat",
+    "memory_order": "retrieval",
+    "prompt_mode": "external_naive",
+    "route_guidance": false,
+    "route_overrides": {},
+    "row_text_mode": "full",
+    "structured_guide": true,
+    "structured_guide_disabled_signals": [
+      "personalized_recommendation"
+    ],
+    "structured_guide_include_memory": false,
+    "structured_guide_include_rows": true,
+    "structured_guide_max_rows": 12,
+    "temporal_grounding": false,
+    "temporal_hints": false,
+    "temporal_text_normalization": true,
+    "temporal_workpad": true,
+    "temporal_workpad_max_pairs": 12,
+    "temporal_workpad_max_rows": 12,
+    "temporal_workpad_scope": "route"
+  },
+  "experiment_kind": "formal",
+  "f1": null,
+  "metrics_note": "No gold answers or judge outputs are used by this prediction runner.",
+  "n_samples": 1540,
+  "offline_evidence_recall": {
+    "by_type": {
+      "1": {
+        "evidence_recall": 0.8936170212765957,
+        "n": 282
+      },
+      "2": {
+        "evidence_recall": 0.8940809968847352,
+        "n": 321
+      },
+      "3": {
+        "evidence_recall": 0.6739130434782609,
+        "n": 92
+      },
+      "4": {
+        "evidence_recall": 0.9108204518430439,
+        "n": 841
+      }
+    },
+    "evidence_recall": 0.8899739583333334,
+    "n_with_evidence_labels": 1536,
+    "note": "Offline-only diagnostic; evidence labels are not available to prediction.",
+    "output_path": "/data/home_new/wujinqi/agent-memory/experiments/formal/stage1_temporal_session_anchor_v20_locomo_nonadv_full_4e4a939/evidence_recall.json"
+  },
+  "offline_judge": {
+    "accuracy": 0.7272727272727273,
+    "benchmark": "locomo",
+    "by_category": {
+      "1": {
+        "accuracy": 0.6276595744680851,
+        "correct": 177,
+        "n": 282
+      },
+      "2": {
+        "accuracy": 0.5763239875389408,
+        "correct": 185,
+        "n": 321
+      },
+      "3": {
+        "accuracy": 0.6041666666666666,
+        "correct": 58,
+        "n": 96
+      },
+      "4": {
+        "accuracy": 0.8323424494649228,
+        "correct": 700,
+        "n": 841
+      }
+    },
+    "correct": 1120,
+    "model": "deepseek-v4-flash",
+    "n_invalid": 0,
+    "n_judgments": 1540,
+    "n_valid": 1540,
+    "note": "Offline-only DeepSeek judge after prediction; not consumed by prediction pipeline.",
+    "output_path": "/data/home_new/wujinqi/agent-memory/experiments/formal/stage1_temporal_session_anchor_v20_locomo_nonadv_full_4e4a939/deepseek_judge.json",
+    "usage": {
+      "completion_tokens": 152889,
+      "prompt_tokens": 495516,
+      "total_tokens": 648405
+    }
+  },
+  "prompt_diagnostics": {
+    "activated_build_memory_prompts": 0,
+    "avg_selected_memory_records": 0.0,
+    "note": "Prompt-form diagnostics computed from prediction traces; no gold or judge data used.",
+    "personalized_recommendation_prompts": 0,
+    "personalized_recommendation_with_structured_guide": 0,
+    "route_information_needs": {
+      "current_state": 4,
+      "fact_lookup": 1018,
+      "list_count": 131,
+      "profile_preference": 49,
+      "temporal_lookup": 338
+    },
+    "route_signals": {
+      "list_or_count": 131,
+      "profile_or_preference": 49,
+      "recent_or_current": 4,
+      "temporal": 338
+    },
+    "row_index_prompts": 1540,
+    "structured_guide_prompts": 1540,
+    "temporal_aid_prompts": 391
+  },
+  "retrieval": {
+    "avg_compiled_evidence_items": 40.0,
+    "avg_context_chars": 9952.511688311688,
+    "avg_embedding_tokens": 0.0,
+    "avg_memory_hits": 19.84155844155844,
+    "avg_memory_source_hits": 22.381168831168832,
+    "build_memory_enabled": true,
+    "build_memory_include_superseded": false,
+    "build_memory_include_superseded_information_needs": [
+      "temporal_lookup",
+      "list_count"
+    ],
+    "build_memory_max_sources_per_record": 4,
+    "build_memory_top_k": 20,
+    "dense_document_text_mode": "external_naive",
+    "dense_enabled": true,
+    "dense_protect_top_n": 32,
+    "dense_query_text_mode": "external_naive",
+    "drop_query_stopwords": true,
+    "embedding_cache_enabled": true,
+    "embedding_cache_hits": 7422,
+    "embedding_cache_misses": 0,
+    "embedding_cache_path": "outputs/cache/qwen3_embedding.sqlite",
+    "embedding_cache_writes": 0,
+    "lexical_enabled": true,
+    "lexical_protect_top_n": 0,
+    "max_top_k": 40,
+    "neighbor_order": "hit_priority",
+    "neighbor_window": 0,
+    "session_anchor_top_k": 1,
+    "session_bm25_applied_count": 338,
+    "session_bm25_applied_rate": 0.21948051948051947,
+    "session_bm25_enabled": true,
+    "session_bm25_top_k": 4,
+    "session_enabled_information_needs": [
+      "temporal_lookup"
+    ],
+    "session_enabled_query_patterns": null,
+    "session_enabled_route_signals": null,
+    "session_max_anchor_hits": 4,
+    "session_protect_turn_hits": 32,
+    "top_k": 40,
+    "total_embedding_tokens": 0
+  },
+  "retrieval_diagnostics": {
+    "avg_dense_hits": 40.0,
+    "avg_final_hits": 40.27467532467532,
+    "avg_final_session_anchor_hits": 0.4896103896103896,
+    "avg_lexical_hits": 39.622727272727275,
+    "avg_session_anchor_hits": 0.8779220779220779,
+    "dense_enabled_prompts": 1540,
+    "lexical_enabled_prompts": 1540,
+    "note": "Trace-only retrieval diagnostics; no gold, judge, benchmark label, or sample-id signal is used by prediction.",
+    "prompts_with_final_lexical_hits": 1313,
+    "prompts_with_lexical_hits": 1540,
+    "prompts_with_session_anchor_hits": 338,
+    "session_bm25_applied_prompts": 338
+  },
+  "route": {
+    "enable_broad_list_patterns": false,
+    "enable_recommendation_profile_patterns": true,
+    "temporal_priority_over_recent": false
+  },
+  "runner": {
+    "workers": 8
+  },
+  "subset": "non_adversarial_full",
+  "token_cost": {
+    "avg_build_tokens": 58386.00779220779,
+    "avg_query_tokens": 3269.8493506493505,
+    "total_build_tokens": 89914452,
+    "total_query_tokens": 5035568
+  }
+}

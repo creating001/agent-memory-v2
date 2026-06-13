@@ -43,4 +43,4 @@ v20 比 v17 持平、比 v13/naive 好，但没有超过 v18。当前 LongMemEva
 
 ## 下一步
 
-跑 LoCoMo full 是有价值的，因为 v20 的 temporal 局部收益正好对应 v18/v14 在 LoCoMo category 2 的差异。如果 LoCoMo 不能超过 v18/v14，则删除 v20 配置，只保留实验记录；如果 LoCoMo 明显提升，再回到 LME 做更保守的触发/保护策略。
+LoCoMo full 已验证为负向：`0.727273`，低于 v18/v14，category 2 也退化。删除 v20 主配置入口，只保留正式实验记录；下一步转向不改变 evidence row 排序的 raw evidence organization。

@@ -48,7 +48,7 @@
 - v16 row guide 在 LME 上为 0.708，在 LoCoMo 上为 0.729870；说明 row-level evidence organization 比 typed memory source map 更稳，是 v14 收益的主要来源之一，但 LME preference 退化明显，不能无条件作为统一主线。
 - v18 token gate 通过：LME avg_build_tokens 80346.246、avg_query_tokens 5117.622；LoCoMo avg_build_tokens 58386.008、avg_query_tokens 3270.569。build token 按逻辑冷启动成本记录，即使 build cache 全命中也计入 cached usage。
 - v19 selective temporal source-linked guide 在 LME 上降到 0.714，低于 v18 净 -9，且 query token 更高；不跑 LoCoMo full，不作为主线。结论是不要把 build-memory source map 直接恢复到 prompt，即使只限 temporal route 也会带来 LME 噪声。
-- v20 temporal session anchor 在 LME 上为 0.722，低于 v18 净 -5，但 temporal-reasoning 提到 101/133，且 query token 低于 v18；作为 LoCoMo temporal/category 2 诊断继续跑 full，不是 LME 主线。
+- v20 temporal session anchor 在 LME 上为 0.722、LoCoMo 上为 0.727273，均低于 v18；虽然 LME temporal-reasoning 提到 101/133，但 LoCoMo category 2 从 v18 的 190/321 降到 185/321。不作为主线，配置不长期保留。
 - v17 token gate 通过：LME avg_build_tokens 80346.246、avg_query_tokens 5022.590；LoCoMo avg_build_tokens 58386.008、avg_query_tokens 3303.915。
 - v13/v12 仍是重要 LME 对照：v13/v12 accuracy 均为 0.714，v12 query token 更低；LoCoMo 已被 v14 明显超过。
 - v7 memory validity 在 LME 上较 v4 净提升 +5 条，和 v6 持平；avg query tokens 5858.762，接近 6K 预算。
@@ -110,7 +110,8 @@ experiments/formal/<run_id>/
 |---|---|---|---|---:|---|
 | `stage1_hybrid_bm25_v18_lme_s_full_6c5ed99` | LongMemEval-S | full | `6c5ed99` | 0.732 | 当前 LME 最好；vs v17 净 +5，vs v16 净 +12，vs v13/v12 净 +9，vs clean naive RAG 净 +22；hybrid BM25+dense 在 token 预算内提升 temporal/knowledge 定位。 |
 | `stage1_hybrid_bm25_v18_locomo_nonadv_full_bb1cc3c` | LoCoMo | non-adversarial full | `bb1cc3c` | 0.737013 | 当前 LoCoMo 最好；vs v14 净 +2，vs v17 净 +25，vs clean naive RAG 净 +60；优势薄但同一 general 方法跨 benchmark 正向。 |
-| `stage1_temporal_session_anchor_v20_lme_s_full_c32486c` | LongMemEval-S | full | `c32486c` | 0.722 | temporal 局部正向但总分负向；vs v18 净 -5，temporal-reasoning 101/133 高于 v18；继续跑 LoCoMo full 做 category 2 诊断，不是 LME 主线。 |
+| `stage1_temporal_session_anchor_v20_lme_s_full_c32486c` | LongMemEval-S | full | `c32486c` | 0.722 | temporal 局部正向但总分负向；vs v18 净 -5，temporal-reasoning 101/133 高于 v18；LoCoMo full 已验证负向，不作为主线。 |
+| `stage1_temporal_session_anchor_v20_locomo_nonadv_full_4e4a939` | LoCoMo | non-adversarial full | `4e4a939` | 0.727273 | 负向诊断；vs v18 净 -15，vs v14 净 -13，category 2 185/321 低于 v18/v14；不作为主线。 |
 | `stage1_temporal_source_link_v19_lme_s_full_42dca7d` | LongMemEval-S | full | `42dca7d` | 0.714 | 负向诊断；只对 temporal_lookup 打开 build-memory source map 后 vs v18 净 -9，query token 更高；不跑 LoCoMo，不作为主线。 |
 | `stage1_selective_row_guide_v17_lme_s_full_68b671b` | LongMemEval-S | full | `68b671b` | 0.722 | v18 的直接基线；vs v16 净 +7，vs v13/v12 净 +4，vs clean naive RAG 净 +17；profile-safe selective guide 改善 preference/recommendation。 |
 | `stage1_selective_row_guide_v17_locomo_nonadv_full_68b671b` | LoCoMo | non-adversarial full | `68b671b` | 0.720779 | 非 LoCoMo 主线；低于 v16/v14、略低于 v13，但高于 v12/naive；LoCoMo 仍以 v14 为最好。 |

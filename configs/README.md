@@ -24,7 +24,6 @@
 - `stage1_row_guide_v16_cached.json`：query-side row-guide 消融，在 v13 上只加入 retrieved raw rows 的紧凑 row overview，关闭 activated build-memory source map，并把 `max_memory_records` 设为 0；目标是隔离 v14 收益是否来自 row-level date/role/matched-term organization，而不是 typed memory 二手摘要。该设计借鉴 Hindsight 的多路 source ranks、xMemory 的 episode view 和 SimpleMem 的 structured entry，但最终事实仍只来自 Memory Context。
 - `stage1_selective_row_guide_v17_cached.json`：query-side selective row-guide 消融，在 v16 上打开通用 personalized recommendation router，并对 `personalized_recommendation` signal 关闭 row guide；目标是修复 v16 在推荐/偏好题上被 row overview 干扰的问题。借鉴 LangMem 的 PreferenceMemory/profile schema 和 Mem0 的“推荐请求也包含隐含偏好、不要让请求遮蔽事实”的抽取逻辑，但预测阶段只用 question text、raw evidence 和 runtime route signal。
 - `stage1_hybrid_bm25_v18_cached.json`：query-side hybrid retrieval 主线，在 v17 上加入 raw-turn BM25 lexical retrieval，与 dense top-40 和 build-memory source expansion 融合；借鉴 xMemory/SimpleMem/Graphiti/Hindsight 的多路检索融合，但不增加 evidence slots、不使用 benchmark/sample 规则。
-- `stage1_temporal_session_anchor_v20_cached.json`：query-side raw session anchor 消融，在 v18 上只对通用 `temporal_lookup` route 启用 session-level BM25，再把少量 session 内 anchor turns 折回 raw evidence；借鉴 HippoRAG/xMemory 的 graph/session 信号回流到原文 passage，而不把派生 memory 文本放进 prompt。
 
 新增配置必须满足：
 
