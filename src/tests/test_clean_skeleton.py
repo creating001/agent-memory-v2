@@ -1221,6 +1221,56 @@ class CleanSkeletonTest(unittest.TestCase):
 
         self.assertEqual(compiled.evidence_rows[0].source_id, "s1:t1")
 
+    def test_memory_aware_evidence_order_uses_source_link_without_prompting_memory(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=1,
+            max_evidence_chars=4000,
+            evidence_order="memory_aware",
+            max_memory_records=0,
+        )
+        route = RouteResult(information_need="fact_lookup", signals=())
+        memory = MemoryRecord(
+            memory_id="m1",
+            memory_type="fact",
+            text="The user owns a Korg B1 piano.",
+            source_ids=("s1:t1",),
+            subject="user",
+            predicate="owns",
+            value="Korg B1 piano",
+            entities=("Korg B1", "piano"),
+        )
+        compiled = compiler.compile(
+            question="Which instrument do I own?",
+            question_time=None,
+            route=route,
+            hits=(
+                RetrievalHit("s1:t0", 1.0, 1, "dense_embedding"),
+                RetrievalHit("s1:t1", 0.9, 2, "build_memory_bm25"),
+            ),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="I need advice about music lessons.",
+                ),
+                Turn(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="I bought a Korg B1 last year.",
+                ),
+            ),
+            memory_records=(memory,),
+        )
+
+        self.assertEqual(compiled.evidence_rows[0].source_id, "s1:t1")
+        self.assertEqual(compiled.memory_records, ())
+        self.assertIn("I bought a Korg B1 last year.", compiled.prompt)
+        self.assertNotIn("The user owns a Korg B1 piano.", compiled.prompt)
+
     def test_compiler_route_overrides_only_apply_to_matching_information_need(self) -> None:
         compiler = EvidenceCompiler(
             max_evidence_items=1,

@@ -28,6 +28,10 @@
 - `external/memobase/docs/site/features/event/event.mdx`：参考 event summary / event tags / profile delta / created time 的 event-profile 双通道。
 - `external/MIRIX/mirix/schemas/episodic_memory.py`：参考 episodic event 的 `event_type`、`summary`、`details`、`actor`、`occurred_at`、`created_at`、`filter_tags`。
 - `external/MemMachine/evaluation/episodic_memory/longmemeval_models.py`：只作为负面边界/评测格式参考；其中 question_type、answer、answer_session_ids、has_answer 等字段不能进入 prediction。
+- `external/HippoRAG/src/hipporag/HippoRAG.py`、`rerank.py`：参考 fact/entity 检索后回链 passage/raw chunk，以及 dense passage 兜底；不迁移 gold_docs/gold_answers 评测入口和 DSPy demo filter 作为预测规则。
+- `external/LightMem/src/lightmem/memory_toolkits/memories/layers/naive_rag.py`、`memzero.py`：参考 memory layer search wrapper、metadata 和 used_content 格式；不引入外部 memory backend 依赖。
+- `external/Memary/src/memary/memory/entity_knowledge_store.py`：参考 entity/count/date 聚合的轻量 memory 管理思想；v39 不迁移固定 entity 规则。
+- `external/MIA/Memory-Serve/*.py`、`external/MIA/Inference/*`：确认其中大量 correct/incorrect feedback、judge/gold 相关逻辑只可作为负面边界，不可迁移到 prediction。
 
 ## 51 项覆盖表
 
@@ -43,7 +47,7 @@
 | 8 | LoCoMo | `external/LoCoMo` | 已 clone，使用为 benchmark 参考 | 只用于数据格式/评测理解，预测阶段不能使用标签/evidence。 |
 | 9 | EverOS | `external/EverOS` | 已读 memory models/search/strategies | 参考 episode、atomic fact、profile、cascade 管理和 hierarchy retrieval。 |
 | 10 | Everything is Context | `external/aigne-framework` | 已 clone，待读 | 可能参考 file/context abstraction，不作为当前设计依据。 |
-| 11 | From RAG to Memory / HippoRAG2 | `external/HippoRAG` | 已 clone，待读核心 | 可能参考 graph/PPR/multi-hop retrieval，但需要 raw evidence 回链和成本控制。 |
+| 11 | From RAG to Memory / HippoRAG2 | `external/HippoRAG` | 已读核心 retrieval/rerank | 参考 fact/entity -> passage 回链、PPR/dense passage fusion；不迁移 gold_docs/gold_answers 评测入口和 DSPy demo filter。 |
 | 12 | gbrain | `external/gbrain` | 已 clone，待读 | 可能参考 personal graph memory。 |
 | 13 | General Agentic Memory via Deep Research | `external/general-agentic-memory` | 已 clone，待读 | 可能参考 agentic retrieval 和 reflection，需要严格限制 feedback 泄漏。 |
 | 14 | Generative Agents | `external/generative_agents` | 已 clone，待读 | 参考 reflection/importance/recency 的经典结构；不直接适配 benchmark。 |
@@ -56,13 +60,13 @@
 | 21 | IterResearch | `external/DeepResearch` | 已读 WebResummer prompt | 参考 iterative evidence extraction；全量使用前需评估 query token 成本。 |
 | 22 | LangMem | `external/langmem` | 已读 profile guide | 参考 profile schema、namespace、update-in-place；不让 profile 替代 raw evidence。 |
 | 23 | LCM | `external/lossless-claw` | 已 clone，待读 | 可能参考 lossless context management。 |
-| 24 | LightMem | `external/LightMem` | 已 clone，待读 | 可能参考轻量记忆压缩和索引。 |
+| 24 | LightMem | `external/LightMem` | 已读 memory layer 检索入口 | 参考 NaiveRAG/MemZero wrapper、metadata 和 used_content 组织；不引入其外部 backend。 |
 | 25 | LongMemEval | `external/LongMemEval` | 已 clone，使用为 benchmark 参考 | 只用于评测协议/数据理解，预测阶段不能使用 question_type/answer。 |
 | 26 | MAGMA | `external/MAMGA` | 已读 memory builder/query/temporal | 参考 multi-graph/RRF/temporal parser；不迁移 session id/keyword 样本规则。 |
 | 27 | Mem0 | `external/mem0`、`external/TeleMem` | 已读 mem0 main，TeleMem 待读 | 参考 metadata scope、filter、memory lifecycle。 |
 | 28 | Mem9 | `external/mem9` | 已 clone，待读 | 可能参考 memory SDK/API。 |
 | 29 | Memanto | `external/memanto` | 已读 parsing/read/write service | 参考 memory taxonomy、namespace、as-of/superseded/TTL。 |
-| 30 | Memary | `external/Memary` | 已 clone，待读 | 可能参考 agent memory framework / profile API；未读代码前不作为设计依据。 |
+| 30 | Memary | `external/Memary` | 已读 entity knowledge store | 参考 entity/count/date 聚合管理；只采用通用思想，不迁移固定 entity 规则。 |
 | 31 | MemClaw | `external/caura-memclaw` | 已 clone，待读 | 可能参考 memory lifecycle / retrieval。 |
 | 32 | Memento 2 | `external/Memento` | 已 clone，待读 | 只可能参考 stateful reflective memory；防止写入 benchmark 反馈。 |
 | 33 | Memento-Skills | `external/Memento-Skills` | 已 clone，待读 | 只可沉淀通用 procedural skills，不能写测试实体/答案。 |
@@ -71,7 +75,7 @@
 | 36 | MemMachine | `external/MemMachine` | 已读评测模型入口 | 只作为负面边界/格式参考；含 answer/session 标注的逻辑不能迁移。 |
 | 37 | Memobase | `external/memobase` | 已读 event docs | 参考 event + profile delta + created time 的双通道管理。 |
 | 38 | Memori | `external/Memori` | 已 clone，待读 | 可能参考 production agent memory API。 |
-| 39 | MIA | `external/MIA` | 已 clone，待读 | 可能参考 memory intelligence / retrieval policy。 |
+| 39 | MIA | `external/MIA` | 已读部分 memory serve / inference 入口 | 多数 correct/incorrect feedback 与 judge/gold 相关逻辑不 clean，只做负面边界；候选选择与最终生成分离的工程思想可参考。 |
 | 40 | MemoryOS | `external/MemoryOS` | 已 clone，待读 | 参考 memory OS 分层治理，不作为短期主线。 |
 | 41 | MemoryBank | `external/MemoryBank-SiliconFriend` | 已 clone，待读 | 可能参考 profile summarization，但不能丢 raw evidence。 |
 | 42 | MemOS | `external/MemOS` | 已 clone，待读 | 参考 memory OS / governance，不作为短期重型依赖。 |
@@ -96,4 +100,5 @@
 - retrieval 侧：更应借鉴 EverOS/SimpleMem/xMemory 的 atomic fact child retrieval -> raw episode parent expansion，把 typed memory 用作 source selection、reranking、coverage/control signal。
 - compiler 侧：减少派生 memory 与 raw evidence 在 prompt 中竞争，优先构造更少、更准的 raw evidence context、conflict chain 或 candidate aggregation。
 - v38 具体采用 route-scoped raw top60 + `role_query_snippet`：借鉴 creating001 的 source-turn materialization 和 ACON/LCM 的 query-focused context compression，但不引入 LLM reranker、summary 替代事实源或 benchmark-specific guardrail。
+- v39 采用 memory-aware evidence selector：借鉴 HippoRAG/EverOS 的 fact/entity/typed memory -> raw passage 回链，把 top60 候选压回 top40 raw evidence；typed memory 只做 source-linked selection signal，不进入 prompt fact view。
 - clean 侧：所有 route 和 compiler 只能来自 question text、question_time、原始对话和 memory metadata；不能使用 LoCoMo category、LongMemEval question_type、evidence label、gold 或 judge。

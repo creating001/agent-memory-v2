@@ -17,6 +17,7 @@
 - `stage1_route_budgeted_retrieval_v34_cached.json`：v33 的 route-budgeted 版本；非 temporal 保留 top60，temporal_lookup 回到 top40，v35 前 LoCoMo 最好。
 - `stage1_answer_format_guard_v35_cached.json`：v34 上的 answer format guard；修复 JSON answer salvage 和小数 duration，当前 LoCoMo 最好。
 - `stage1_lme_token_safe_format_guard_v36_cached.json`：v28 top40/evidence budget + v35 answer guard；当前 LME 最好。
+- `stage1_memory_aware_selector_v39_cached.json`：v36 上的 memory-aware evidence selector 候选；list/temporal 先召回 top60 候选，再用 build-memory source signal 和 question overlap 选最终 top40 raw rows。
 
 ## 新配置规则
 

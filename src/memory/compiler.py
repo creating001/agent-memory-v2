@@ -199,7 +199,7 @@ class EvidenceCompiler:
             operation_workpad_information_needs,
             field_name="operation_workpad_information_needs",
         )
-        if evidence_order not in {"retrieval", "question_overlap"}:
+        if evidence_order not in {"retrieval", "question_overlap", "memory_aware"}:
             raise ValueError(f"Unsupported evidence_order: {evidence_order}")
         self._evidence_order = evidence_order
         if memory_order not in {"retrieval", "question_overlap"}:
@@ -254,6 +254,7 @@ class EvidenceCompiler:
             question=question,
             route=route,
             evidence_order=self._evidence_order,
+            memory_records=tuple(memory_records),
         )
         rows: list[EvidenceRow] = []
         used_chars = 0
@@ -446,13 +447,34 @@ def _order_rows(
     question: str,
     route: RouteResult,
     evidence_order: str,
+    memory_records: tuple[MemoryRecord, ...] = (),
 ) -> tuple[EvidenceRow, ...]:
     if evidence_order == "retrieval":
         return rows
-    if evidence_order != "question_overlap":
+    if evidence_order not in {"question_overlap", "memory_aware"}:
         raise ValueError(f"Unsupported evidence_order: {evidence_order}")
 
     question_terms = _content_terms(question)
+    if evidence_order == "memory_aware":
+        memory_source_scores = _memory_source_scores(
+            memory_records,
+            question_terms=question_terms,
+            route=route,
+        )
+        return tuple(
+            row
+            for _, row in sorted(
+                enumerate(rows),
+                key=lambda item: _memory_aware_row_key(
+                    index=item[0],
+                    row=item[1],
+                    question_terms=question_terms,
+                    route=route,
+                    memory_source_scores=memory_source_scores,
+                ),
+            )
+        )
+
     return tuple(
         row
         for _, row in sorted(
@@ -491,6 +513,72 @@ def _question_overlap_key(
     return (-score, missing_rank, rank, time_key, row.session_id, row.turn_index, index)
 
 
+def _memory_source_scores(
+    records: tuple[MemoryRecord, ...],
+    *,
+    question_terms: frozenset[str],
+    route: RouteResult,
+) -> dict[str, float]:
+    """Score raw source turns through source-linked build memory records."""
+
+    scores: dict[str, float] = {}
+    for index, record in enumerate(records):
+        record_terms = _content_terms(record.search_text)
+        overlap = len(question_terms.intersection(record_terms))
+        if overlap <= 0 and _memory_type_bonus(record, route) <= 0:
+            continue
+        rank_bonus = 1.0 / (index + 1)
+        confidence_bonus = min(max(record.confidence, 0.0), 1.0) * 0.1
+        score = (
+            overlap
+            + _memory_type_bonus(record, route)
+            + rank_bonus
+            + confidence_bonus
+        )
+        for source_id in record.source_ids:
+            scores[source_id] = max(scores.get(source_id, 0.0), score)
+    return scores
+
+
+def _memory_aware_row_key(
+    index: int,
+    row: EvidenceRow,
+    question_terms: frozenset[str],
+    route: RouteResult,
+    memory_source_scores: dict[str, float],
+) -> tuple[float, int, int, str, str, int, int]:
+    row_terms = _content_terms(row.text)
+    overlap = len(question_terms.intersection(row_terms))
+    rank = row.retrieval_rank if row.retrieval_rank is not None else 1_000_000
+    rank_bonus = 1.0 / (rank + 4.0) if row.retrieval_rank is not None else 0.0
+    memory_bonus = min(memory_source_scores.get(row.source_id, 0.0), 4.0) * 0.35
+    direct_hit_bonus = 1.0 if row.retrieval_rank is not None else 0.0
+    temporal_bonus = (
+        0.25
+        if (
+            route.information_need in {"current_state", "temporal_lookup"}
+            and (row.timestamp or _has_time_expression(row.text))
+        )
+        else 0.0
+    )
+    quantity_bonus = (
+        0.2
+        if route.information_need == "list_count" and _has_quantity_expression(row.text)
+        else 0.0
+    )
+    score = (
+        overlap
+        + direct_hit_bonus
+        + rank_bonus
+        + memory_bonus
+        + temporal_bonus
+        + quantity_bonus
+    )
+    missing_rank = 1 if row.retrieval_rank is None else 0
+    time_key = _timestamp_sort_key(row.timestamp, route)
+    return (-score, missing_rank, rank, time_key, row.session_id, row.turn_index, index)
+
+
 def _content_terms(text: str) -> frozenset[str]:
     terms = [
         match.group(0).lower()
@@ -498,6 +586,28 @@ def _content_terms(text: str) -> frozenset[str]:
         if match.group(0).lower() not in QUESTION_STOPWORDS
     ]
     return frozenset(terms)
+
+
+def _has_quantity_expression(text: str) -> bool:
+    lowered = text.lower()
+    if re.search(r"\b\d+(?:[.,]\d+)?\b", lowered):
+        return True
+    return any(word in lowered for word in NUMBER_WORDS)
+
+
+def _has_time_expression(text: str) -> bool:
+    lowered = text.lower()
+    return bool(
+        re.search(r"\b\d{4}[-/]\d{1,2}[-/]\d{1,2}\b", lowered)
+        or re.search(
+            r"\b(?:yesterday|today|tomorrow|last|next|ago|week|month|year)\b",
+            lowered,
+        )
+        or re.search(
+            r"\b(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b",
+            lowered,
+        )
+    )
 
 
 def _order_memory_records(
