@@ -2,21 +2,18 @@
 
 `outputs/` 只保留当前仍有用的运行产物和本地缓存。预测文件、trace、日志和中间产物不能替代 `experiments/` 下的人类可读记录。
 
-当前保留：
+## 当前保留
 
 - `prepare_longmemeval_s_cleaned/`：LongMemEval-S clean prediction input 和离线 labels。
 - `prepare_locomo_non_adversarial/`：LoCoMo non-adversarial prediction input 和离线 labels。
-- `cache/`：本地 embedding cache。
+- `formal/`：只保留 `experiments/README.md` 中列出的 key full runs 的 `predictions.jsonl` 和 `traces.jsonl`。
+- `cache/qwen3_embedding.sqlite`：embedding cache，保留以减少全量实验重复成本。
+- `cache/qwen3_build_memory.sqlite`：build-stage memory cache，保留；正式 token 统计仍按冷启动逻辑成本记录。
+- `cache/qwen3_answer_v28.sqlite`：当前主线 answer cache，保留用于复查 v28。
 - `services/`：本地 vLLM 服务日志/状态。
-- `stage1_session_bm25_temporal_p4_grounded_strict_*_100/`：strict baseline 100 条诊断输出。
-- `stage1_route_guidance_*_100/`：route guidance 100 条诊断输出。
-- `stage1_cached_strict_lme_s_100_*warm/`：cache 成本诊断输出。
 
-正式 full run 会生成：
+## 清理规则
 
-```text
-outputs/<formal_run_id>/predictions.jsonl
-outputs/<formal_run_id>/traces.jsonl
-```
-
-旧 smoke、小样本、负向 ablation 输出应及时删除；有价值的结论写入 `experiments/README.md` 或对应正式实验记录。
+- 旧 smoke、小样本、负向 ablation 输出及时删除。
+- 旧 partial judge、过期 answer cache、query planner cache 不长期保留。
+- 如果某个 ignored 输出对正式结果有价值，必须把 summary、metrics、diagnosis、config snapshot 和输出路径写入 `experiments/`，不能只依赖 `outputs/`。
