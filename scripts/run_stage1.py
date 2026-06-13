@@ -30,8 +30,8 @@ def main() -> int:
     args = _parse_args()
     config = _load_json(args.config)
     run_id = args.run_id
-    output_dir = REPO_ROOT / "outputs" / run_id
-    experiment_dir = REPO_ROOT / "experiments" / run_id
+    output_dir = REPO_ROOT / "outputs" / args.experiment_kind / run_id
+    experiment_dir = REPO_ROOT / "experiments" / args.experiment_kind / run_id
     predictions_path = output_dir / "predictions.jsonl"
     traces_path = output_dir / "traces.jsonl"
 
