@@ -960,6 +960,111 @@ class CleanSkeletonTest(unittest.TestCase):
             compiled.prompt.index("Raw context table"),
         )
 
+    def test_profile_preference_contract_is_disabled_by_default(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=1,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+        )
+        route = RouteResult(
+            information_need="profile_preference",
+            signals=("personalized_recommendation",),
+        )
+        compiled = compiler.compile(
+            question="Can you recommend something to watch?",
+            question_time=None,
+            route=route,
+            hits=(RetrievalHit("s1:t0", 1.0, 1, "lexical_bm25"),),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Alex likes stand-up comedy specials with storytelling.",
+                ),
+            ),
+        )
+
+        self.assertNotIn("stable preferences, constraints", compiled.prompt)
+
+    def test_profile_preference_contract_adds_recommendation_rules(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=1,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            profile_preference_answer_contract=True,
+        )
+        route = RouteResult(
+            information_need="profile_preference",
+            signals=("personalized_recommendation",),
+        )
+        compiled = compiler.compile(
+            question="Can you recommend something to watch?",
+            question_time=None,
+            route=route,
+            hits=(RetrievalHit("s1:t0", 1.0, 1, "lexical_bm25"),),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Alex likes stand-up comedy specials with storytelling.",
+                ),
+            ),
+        )
+
+        self.assertIn("stable preferences, constraints", compiled.prompt)
+        self.assertIn("no live catalog", compiled.prompt)
+
+    def test_structured_guide_force_information_need_overrides_disabled_signal(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=1,
+            max_evidence_chars=4000,
+            max_memory_records=1,
+            prompt_mode="external_naive",
+            structured_guide=True,
+            structured_guide_include_rows=True,
+            structured_guide_include_memory=True,
+            structured_guide_disabled_signals=("personalized_recommendation",),
+            structured_guide_force_information_needs=("profile_preference",),
+        )
+        route = RouteResult(
+            information_need="profile_preference",
+            signals=("personalized_recommendation",),
+        )
+        compiled = compiler.compile(
+            question="Can you recommend tea?",
+            question_time=None,
+            route=route,
+            hits=(RetrievalHit("s1:t0", 1.0, 1, "lexical_bm25"),),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Alex prefers jasmine tea.",
+                ),
+            ),
+            memory_records=(
+                MemoryRecord(
+                    memory_id="pref",
+                    memory_type="preference",
+                    text="Alex prefers jasmine tea.",
+                    source_ids=("s1:t0",),
+                    subject="Alex",
+                    predicate="prefers",
+                    value="jasmine tea",
+                ),
+            ),
+        )
+
+        self.assertIn("Structured Evidence Guide", compiled.prompt)
+        self.assertIn("activated_build_memory", compiled.prompt)
+        self.assertIn("type=preference", compiled.prompt)
+
     def test_session_bm25_anchor_can_feed_compiled_raw_evidence(self) -> None:
         config = {
             "retrieval": {
