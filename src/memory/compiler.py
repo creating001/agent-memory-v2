@@ -1113,6 +1113,8 @@ def _external_memory_guide_lines(
         fields = [
             f"type={record.memory_type}",
             f"status={record.status}",
+            f"mention_time={record.mention_time or record.timestamp or 'unknown'}",
+            f"event_time={record.event_time or 'unknown'}",
             f"valid_from={record.valid_from or record.timestamp or 'unknown'}",
             f"valid_to={record.valid_to or 'open'}",
             f"sources={', '.join(source_labels[:6])}",
@@ -1381,6 +1383,8 @@ def _format_memory_record(record: MemoryRecord) -> str:
     subject_part = f" | subject={record.subject}" if record.subject else ""
     predicate_part = f" | predicate={record.predicate}" if record.predicate else ""
     validity_part = (
+        f" | mention_time={record.mention_time or record.timestamp or 'unknown'}"
+        f" | event_time={record.event_time or 'unknown'}"
         f" | valid_from={record.valid_from or record.timestamp or 'unknown'}"
         f" | valid_to={record.valid_to or 'open'}"
     )

@@ -245,6 +245,9 @@ def main() -> int:
             "max_records_per_chunk": config.get("build_memory", {}).get(
                 "max_records_per_chunk"
             ),
+            "temporal_fields": config.get("build_memory", {}).get(
+                "temporal_fields", False
+            ),
             "include_superseded": config.get("build_memory", {}).get(
                 "include_superseded", False
             ),
@@ -609,6 +612,7 @@ def _write_summary(
         f"- avg_compiled_evidence_items: {metrics['retrieval']['avg_compiled_evidence_items']}",
         f"- build_memory_enabled: {metrics['build_memory']['enabled']}",
         f"- build_memory_model: {metrics['build_memory']['model']}",
+        f"- build_memory_temporal_fields: {metrics['build_memory']['temporal_fields']}",
         f"- build_memory_cache_enabled: {metrics['build_memory']['cache_enabled']}",
         f"- build_memory_cache_path: {metrics['build_memory']['cache_path']}",
         f"- build_memory_cache_hits: {metrics['build_memory']['cache_hits']}",
@@ -735,6 +739,7 @@ def _write_diagnosis(
         "- build_token_accounting: logical cold-build LLM tokens; cached build chunks count from stored usage, while cache hits only avoid repeated local API calls.",
         f"- avg_build_memory_records: {metrics['build_memory']['avg_records']}",
         f"- avg_active_build_memory_records: {metrics['build_memory']['avg_active_records']}",
+        f"- build_memory_temporal_fields: {metrics['build_memory']['temporal_fields']}",
         f"- build_memory_cache_hits: {metrics['build_memory']['cache_hits']}",
         f"- build_memory_cache_misses: {metrics['build_memory']['cache_misses']}",
         f"- build_memory_cache_writes: {metrics['build_memory']['cache_writes']}",

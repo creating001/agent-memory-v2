@@ -166,6 +166,7 @@ class Stage1Pipeline:
                     )
                 ),
                 api_key_env=build_memory_config.get("api_key_env"),
+                temporal_fields=bool(build_memory_config.get("temporal_fields", False)),
             )
         if self._dense_enabled:
             self._embedding_client = OpenAICompatibleEmbeddingClient(

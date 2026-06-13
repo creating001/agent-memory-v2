@@ -12,6 +12,7 @@
 - `stage1_structured_answer_contract_v26_cached.json`：在 v18 上增加 route-scoped structured answer contract，关闭不稳定 count finalizer；LME 正向、LoCoMo 负向，是 reader 约束的重要对照。
 - `stage1_evidence_report_contract_v28_cached.json`：当前主线候选，在 v18 上增加可见 `evidence_report` contract，要求 answer model 先整理 support / exclude / missing 证据再输出最终答案。
 - `stage1_temporal_event_contract_v29_cached.json`：v28 的 query-side 可消融候选，针对 temporal route 显式区分 `mention_time` 与 `event_time`；待全量验证。
+- `stage1_typed_event_memory_v30_cached.json`：v29 后的 build-side typed event/state memory 候选，构建阶段显式抽取 `mention_time`、`event_time`、`valid_from`、`valid_to`；待小样本诊断和全量前规划。
 
 ## 新配置规则
 

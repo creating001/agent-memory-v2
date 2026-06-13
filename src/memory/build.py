@@ -41,6 +41,8 @@ class MemoryRecord:
     predicate: str = ""
     value: str = ""
     timestamp: str | None = None
+    mention_time: str | None = None
+    event_time: str | None = None
     valid_from: str | None = None
     valid_to: str | None = None
     entities: tuple[str, ...] = ()
@@ -60,6 +62,8 @@ class MemoryRecord:
                 self.subject,
                 self.predicate,
                 self.value,
+                self.mention_time or "",
+                self.event_time or "",
                 self.valid_from or "",
                 self.valid_to or "",
                 " ".join(self.entities),
@@ -132,6 +136,7 @@ class OpenAICompatibleMemoryBuilder:
         cache_path: str | None = None,
         cache_namespace: str | None = None,
         api_key_env: str | None = None,
+        temporal_fields: bool = False,
     ):
         self._base_url = base_url.rstrip("/")
         self._model = model
@@ -144,6 +149,7 @@ class OpenAICompatibleMemoryBuilder:
         self._cache_path = Path(cache_path).expanduser() if cache_path else None
         self._cache_namespace = cache_namespace or model
         self._api_key_env = api_key_env
+        self._temporal_fields = temporal_fields
         self._connection: sqlite3.Connection | None = None
         self._cache_stats = BuildMemoryCacheStats()
 
@@ -223,8 +229,7 @@ class OpenAICompatibleMemoryBuilder:
             "When a turn contains multiple independent memory-worthy facts, create separate atomic records instead of merging them into one broad summary.",
             "Put salient names, entities, values, times, and quantities in entities/value when present.",
             "Each record must include source_ids copied exactly from the turns that support it.",
-            "Return ONLY valid JSON with this schema:",
-            '{"records":[{"type":"event|fact|preference|profile|state|relationship|plan","text":"short memory","subject":"","predicate":"","value":"","source_ids":["..."],"timestamp":"YYYY-MM-DD or null","entities":["..."],"confidence":0.0}]}',
+            *_temporal_field_prompt_lines(self._temporal_fields),
             f"Return at most {self._max_records_per_chunk} records.",
             "",
             "Dialogue turns:",
@@ -426,7 +431,11 @@ def _normalize_record(
     timestamp = _clean_text(raw_record.get("timestamp")) or _first_timestamp(
         source_ids, timestamp_by_source_id
     )
-    valid_from = _clean_text(raw_record.get("valid_from")) or timestamp
+    mention_time = _clean_text(raw_record.get("mention_time")) or _first_timestamp(
+        source_ids, timestamp_by_source_id
+    )
+    event_time = _clean_text(raw_record.get("event_time")) or None
+    valid_from = _clean_text(raw_record.get("valid_from")) or event_time or timestamp
     valid_to = _clean_text(raw_record.get("valid_to")) or None
     entities = _tuple_of_strings(raw_record.get("entities"))
     confidence = _safe_float(raw_record.get("confidence"), default=1.0)
@@ -447,6 +456,8 @@ def _normalize_record(
         predicate=predicate,
         value=value,
         timestamp=timestamp or None,
+        mention_time=mention_time or None,
+        event_time=event_time,
         valid_from=valid_from or None,
         valid_to=valid_to,
         entities=entities,
@@ -541,6 +552,25 @@ def _message_text(message: dict[str, Any]) -> str:
         if value is not None:
             return str(value)
     return ""
+
+
+def _temporal_field_prompt_lines(enabled: bool) -> list[str]:
+    if not enabled:
+        return [
+            "Return ONLY valid JSON with this schema:",
+            '{"records":[{"type":"event|fact|preference|profile|state|relationship|plan","text":"short memory","subject":"","predicate":"","value":"","source_ids":["..."],"timestamp":"YYYY-MM-DD or null","entities":["..."],"confidence":0.0}]}',
+        ]
+    return [
+        "Track time with separate fields when possible:",
+        "- mention_time: when the supporting turn was said or recorded; usually the turn time.",
+        "- event_time: when the described event/action happened, or the explicit/resolved time span in the turn text.",
+        "- valid_from / valid_to: when a state, preference, profile fact, or relationship became true and stopped being true; leave valid_to null if still open.",
+        "- timestamp: the best primary time for sorting this record; use event_time when it is known, otherwise mention_time.",
+        "Resolve common relative phrases such as yesterday, last week, last Friday, next month, a few years ago, and two weeks ago against the supporting turn time.",
+        "Do not infer a time from unrelated turns; leave event_time null when the event time is not stated or resolvable.",
+        "Return ONLY valid JSON with this schema:",
+        '{"records":[{"type":"event|fact|preference|profile|state|relationship|plan","text":"short memory","subject":"","predicate":"","value":"","source_ids":["..."],"timestamp":"YYYY-MM-DD or null","mention_time":"YYYY-MM-DD or null","event_time":"YYYY-MM-DD, time span, duration, or null","valid_from":"YYYY-MM-DD, time span, or null","valid_to":"YYYY-MM-DD, time span, or null","entities":["..."],"confidence":0.0}]}',
+    ]
 
 
 def _tuple_of_strings(value: Any) -> tuple[str, ...]:

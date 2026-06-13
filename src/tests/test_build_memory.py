@@ -86,6 +86,100 @@ class BuildMemoryTest(unittest.TestCase):
         self.assertEqual(second.cache_stats.misses, 0)
         self.assertEqual(second.cache_stats.hits, 1)
 
+    def test_temporal_build_fields_are_opt_in(self) -> None:
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text="The speaker visited the museum last week.",
+                timestamp="2024-01-08",
+            ),
+        )
+        default_builder = OpenAICompatibleMemoryBuilder(
+            base_url="http://unused.local/v1",
+            model="fake-model",
+            temperature=0.0,
+            max_tokens=256,
+            timeout=1.0,
+            max_turns_per_chunk=10,
+            max_chars_per_turn=1000,
+            max_records_per_chunk=4,
+        )
+        temporal_builder = OpenAICompatibleMemoryBuilder(
+            base_url="http://unused.local/v1",
+            model="fake-model",
+            temperature=0.0,
+            max_tokens=256,
+            timeout=1.0,
+            max_turns_per_chunk=10,
+            max_chars_per_turn=1000,
+            max_records_per_chunk=4,
+            temporal_fields=True,
+        )
+
+        self.assertNotIn("mention_time", default_builder._build_prompt(turns))
+        temporal_prompt = temporal_builder._build_prompt(turns)
+        self.assertIn("mention_time", temporal_prompt)
+        self.assertIn("event_time", temporal_prompt)
+        self.assertIn("valid_from", temporal_prompt)
+
+    def test_temporal_build_fields_are_preserved(self) -> None:
+        class FakeBuilder(OpenAICompatibleMemoryBuilder):
+            def __init__(self) -> None:
+                super().__init__(
+                    base_url="http://unused.local/v1",
+                    model="fake-model",
+                    temperature=0.0,
+                    max_tokens=256,
+                    timeout=1.0,
+                    max_turns_per_chunk=10,
+                    max_chars_per_turn=1000,
+                    max_records_per_chunk=4,
+                    temporal_fields=True,
+            )
+
+            def _chat_completion(self, prompt: str) -> dict:
+                assert "event_time" in prompt
+                return {
+                    "choices": [
+                        {
+                            "message": {
+                                "content": (
+                                    '{"records":[{"type":"event",'
+                                    '"text":"The speaker visited the museum during the previous week.",'
+                                    '"subject":"speaker","predicate":"visited","value":"museum",'
+                                    '"source_ids":["s1:t0"],"timestamp":"2024-01-01 to 2024-01-07",'
+                                    '"mention_time":"2024-01-08",'
+                                    '"event_time":"2024-01-01 to 2024-01-07",'
+                                    '"valid_from":"2024-01-01 to 2024-01-07",'
+                                    '"entities":["museum"],"confidence":0.9}]}'
+                                )
+                            }
+                        }
+                    ],
+                    "usage": {"total_tokens": 41},
+                }
+
+        built = FakeBuilder().build(
+            (
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="The speaker visited the museum last week.",
+                    timestamp="2024-01-08",
+                ),
+            )
+        )
+
+        self.assertEqual(len(built.records), 1)
+        self.assertEqual(built.records[0].mention_time, "2024-01-08")
+        self.assertEqual(built.records[0].event_time, "2024-01-01 to 2024-01-07")
+        self.assertEqual(built.records[0].valid_from, "2024-01-01 to 2024-01-07")
+
     def test_truncated_build_payload_recovers_complete_records(self) -> None:
         payload = (
             '{"records":['
@@ -273,6 +367,52 @@ class BuildMemoryTest(unittest.TestCase):
         self.assertIn("valid_from=2023-05-01", compiled.prompt)
         self.assertIn("valid_to=open", compiled.prompt)
         self.assertEqual(compiled.memory_records[0].memory_id, "m1")
+
+    def test_compiler_includes_build_memory_temporal_fields(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=1,
+            max_evidence_chars=2000,
+            answer_style="concise",
+            max_memory_records=1,
+            prompt_mode="external_naive",
+            structured_guide=True,
+            structured_guide_include_memory=True,
+        )
+        route = RouteResult(information_need="temporal_lookup", signals=("temporal",))
+        memory_record = MemoryRecord(
+            memory_id="m1",
+            memory_type="event",
+            text="The speaker visited the museum during the previous week.",
+            source_ids=("s1:t0",),
+            subject="speaker",
+            predicate="visited",
+            value="museum",
+            timestamp="2024-01-01 to 2024-01-07",
+            mention_time="2024-01-08",
+            event_time="2024-01-01 to 2024-01-07",
+            valid_from="2024-01-01 to 2024-01-07",
+        )
+        compiled = compiler.compile(
+            question="When did the speaker visit the museum?",
+            question_time=None,
+            route=route,
+            hits=(RetrievalHit("s1:t0", 1.0, 1, "test"),),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="The speaker visited the museum last week.",
+                    timestamp="2024-01-08",
+                ),
+            ),
+            memory_records=(memory_record,),
+        )
+
+        self.assertIn("activated_build_memory", compiled.prompt)
+        self.assertIn("mention_time=2024-01-08", compiled.prompt)
+        self.assertIn("event_time=2024-01-01 to 2024-01-07", compiled.prompt)
 
     def test_external_naive_prompt_can_include_temporal_aid(self) -> None:
         compiler = EvidenceCompiler(
