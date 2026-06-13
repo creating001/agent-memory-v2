@@ -1,0 +1,74 @@
+{
+  "accuracy": 0.742,
+  "correct": 371,
+  "total": 500,
+  "invalid": 0,
+  "label_counts": {
+    "CORRECT": 371,
+    "WRONG": 129
+  },
+  "judge_usage": {
+    "completion_tokens": 43064,
+    "prompt_tokens": 78152,
+    "total_tokens": 121216
+  },
+  "by_question_type": {
+    "knowledge-update": {
+      "correct": 63,
+      "total": 78,
+      "accuracy": 0.8076923076923077
+    },
+    "multi-session": {
+      "correct": 79,
+      "total": 133,
+      "accuracy": 0.5939849624060151
+    },
+    "single-session-assistant": {
+      "correct": 52,
+      "total": 56,
+      "accuracy": 0.9285714285714286
+    },
+    "single-session-preference": {
+      "correct": 11,
+      "total": 30,
+      "accuracy": 0.36666666666666664
+    },
+    "single-session-user": {
+      "correct": 66,
+      "total": 70,
+      "accuracy": 0.9428571428571428
+    },
+    "temporal-reasoning": {
+      "correct": 100,
+      "total": 133,
+      "accuracy": 0.7518796992481203
+    }
+  },
+  "by_information_need": {
+    "current_state": {
+      "correct": 12,
+      "total": 22,
+      "accuracy": 0.5454545454545454
+    },
+    "fact_lookup": {
+      "correct": 146,
+      "total": 183,
+      "accuracy": 0.7978142076502732
+    },
+    "list_count": {
+      "correct": 90,
+      "total": 119,
+      "accuracy": 0.7563025210084033
+    },
+    "profile_preference": {
+      "correct": 9,
+      "total": 15,
+      "accuracy": 0.6
+    },
+    "temporal_lookup": {
+      "correct": 114,
+      "total": 161,
+      "accuracy": 0.7080745341614907
+    }
+  }
+}

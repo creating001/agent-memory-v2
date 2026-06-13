@@ -131,3 +131,34 @@ clean scan：
 - v40 gate 通过，可以进入 LongMemEval-S full。
 - 由于 v40 只改 reader/compiler detail，且 token 估算与 v36 接近，full run 风险可接受。
 - LoCoMo full 暂不跑；只有 LME full 相对 v36 不明显负向后再安排。
+
+## 2026-06-14 Full Result
+
+正式 LongMemEval-S full run `stage1_route_scoped_evidence_detail_v40_lme_s_full_1559c80` 已完成，结论为负向 ablation：
+
+- DeepSeek judge accuracy: `0.742` (`371/500`)
+- invalid judgments: `0`
+- avg build tokens: `80346.246`
+- total build tokens: `40173123`
+- avg query tokens: `5910.438`
+- total query tokens: `2955219`
+- answer max input/output: `131072/16384`
+- DeepSeek judge tokens: prompt `78152`，completion `43064`，total `121216`
+- evidence recall: `1.0`
+
+与基线对比：
+
+- vs v36 current best `0.772` (`386/500`): 净 `-15`
+- vs v39 negative result `0.724` (`362/500`): 净 `+9`
+- vs v38 `0.752` (`376/500`): 净 `-5`
+
+主要损失：
+
+- vs v36 lost: `temporal_lookup 13`，`list_count 10`，`fact_lookup 10`，`current_state 4`
+- vs v36 gained: `fact_lookup 9`，`temporal_lookup 7`，`list_count 4`，`current_state 1`，`profile_preference 1`
+
+判断：
+
+- v40 不跑 LoCoMo。
+- 顶层 config 不长期保留；历史追溯使用 formal 目录里的 `config_snapshot.json`。
+- 失败说明 reader-side detailed evidence_report 只能局部修复，不能稳定解决 evidence organization。下一步应转向 build/compiler 侧的 structured operand table、event-role view 或 temporal state organization，并在运行前继续看 v36/v40 badcase 和外部方法代码。
