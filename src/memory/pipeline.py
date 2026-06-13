@@ -10,6 +10,7 @@ from memory.answer import NullAnswerer, OpenAICompatibleAnswerer
 from memory.build import NullMemoryBuilder, OpenAICompatibleMemoryBuilder
 from memory.compiler import EvidenceCompiler
 from memory.embeddings import CachedEmbeddingClient, OpenAICompatibleEmbeddingClient
+from memory.query_planner import NullQueryPlanner, OpenAICompatibleQueryPlanner
 from memory.retrieval import (
     BuildMemoryBM25Retriever,
     DenseEmbeddingRetriever,
@@ -35,6 +36,7 @@ class Stage1Pipeline:
         lexical_config = retrieval_config.get("lexical", {})
         dense_config = retrieval_config.get("dense", {})
         session_config = retrieval_config.get("session_bm25", {})
+        query_planner_config = self._config.get("query_planner", {})
         route_config = self._config.get("route", {})
         compiler_config = self._config.get("compiler", {})
         answer_config = self._config.get("answer", {})
@@ -131,6 +133,59 @@ class Stage1Pipeline:
         self._session_bm25_enabled_query_patterns = _tuple_config(
             session_config.get("enabled_query_patterns")
         )
+        self._query_planner = NullQueryPlanner()
+        self._query_planner_enabled = bool(query_planner_config.get("enabled", False))
+        self._query_planner_trace_config = {
+            "enabled": self._query_planner_enabled,
+            "mode": query_planner_config.get("mode", "null"),
+            "model": query_planner_config.get("model"),
+            "base_url": query_planner_config.get("base_url"),
+            "temperature": query_planner_config.get("temperature"),
+            "max_tokens": query_planner_config.get("max_tokens"),
+            "max_queries": query_planner_config.get("max_queries"),
+            "max_query_chars": query_planner_config.get("max_query_chars"),
+            "response_format_json": query_planner_config.get(
+                "response_format_json",
+                False,
+            ),
+            "cache_enabled": query_planner_config.get("cache", {}).get(
+                "enabled",
+                False,
+            ),
+            "cache_path": query_planner_config.get("cache", {}).get("path"),
+        }
+        if self._query_planner_enabled:
+            planner_mode = str(query_planner_config.get("mode", "openai_compatible"))
+            if planner_mode != "openai_compatible":
+                raise ValueError(f"Unsupported query_planner.mode: {planner_mode}")
+            planner_cache_config = query_planner_config.get("cache", {})
+            planner_cache_path = (
+                planner_cache_config.get("path")
+                if bool(planner_cache_config.get("enabled", False))
+                else None
+            )
+            self._query_planner = OpenAICompatibleQueryPlanner(
+                base_url=str(
+                    query_planner_config.get("base_url", "http://127.0.0.1:8000/v1")
+                ),
+                model=str(query_planner_config["model"]),
+                temperature=float(query_planner_config.get("temperature", 0.0)),
+                max_tokens=int(query_planner_config.get("max_tokens", 512)),
+                timeout=float(query_planner_config.get("timeout", 120.0)),
+                max_queries=int(query_planner_config.get("max_queries", 4)),
+                max_query_chars=int(query_planner_config.get("max_query_chars", 240)),
+                cache_path=planner_cache_path,
+                cache_namespace=str(
+                    planner_cache_config.get(
+                        "namespace",
+                        query_planner_config.get("model", "unknown"),
+                    )
+                ),
+                api_key_env=query_planner_config.get("api_key_env"),
+                response_format_json=bool(
+                    query_planner_config.get("response_format_json", False)
+                ),
+            )
         self._embedding_client = None
         self._memory_builder = NullMemoryBuilder()
         if self._build_memory_enabled:
@@ -303,17 +358,32 @@ class Stage1Pipeline:
         store = RawEvidenceStore(request.turns)
         built_memory = self._memory_builder.build(store.turns)
         route = self._router.route(request.question, request.question_time)
+        retrieval_plan = self._query_planner.plan(
+            request.question,
+            request.question_time,
+            route,
+        )
+        retrieval_queries = retrieval_plan.queries or (request.question,)
         top_k = min(self._base_top_k * route.retrieval_multiplier, self._max_top_k)
         retriever = LexicalBM25Retriever(
             store.turns,
             drop_query_stopwords=self._drop_query_stopwords,
         )
+        lexical_hit_lists: list[tuple[RetrievalHit, ...]] = []
         lexical_hits = ()
         if self._lexical_enabled:
-            lexical_hits = retriever.retrieve(
-                request.question,
+            for query in retrieval_queries:
+                lexical_hit_lists.append(
+                    retriever.retrieve(
+                        query,
+                        top_k=top_k,
+                        score_threshold=self._score_threshold,
+                    )
+                )
+            lexical_hits = _merge_query_hit_lists(
+                lexical_hit_lists,
                 top_k=top_k,
-                score_threshold=self._score_threshold,
+                rrf_k=self._fusion_rrf_k,
             )
         memory_hits = ()
         memory_source_hits = ()
@@ -323,38 +393,60 @@ class Stage1Pipeline:
             in self._build_memory_include_superseded_information_needs
         )
         if self._build_memory_enabled and self._build_memory_top_k > 0:
-            memory_hits = BuildMemoryBM25Retriever(
+            memory_retriever = BuildMemoryBM25Retriever(
                 built_memory.records,
                 drop_query_stopwords=self._build_memory_drop_query_stopwords,
                 include_superseded=build_memory_include_superseded,
-            ).retrieve(
-                request.question,
-                top_k=self._build_memory_top_k,
-                score_threshold=0.0,
             )
-            memory_source_hits = memory_hits_to_source_hits(
-                memory_hits,
-                max_sources_per_memory=self._build_memory_max_sources_per_record,
+            memory_hit_lists = [
+                memory_retriever.retrieve(
+                    query,
+                    top_k=self._build_memory_top_k,
+                    score_threshold=0.0,
+                )
+                for query in retrieval_queries
+            ]
+            memory_hits = _merge_memory_hit_lists(memory_hit_lists)
+            memory_source_hits = _merge_query_hit_lists(
+                [
+                    memory_hits_to_source_hits(
+                        hits,
+                        max_sources_per_memory=self._build_memory_max_sources_per_record,
+                    )
+                    for hits in memory_hit_lists
+                ],
+                top_k=top_k,
+                rrf_k=self._fusion_rrf_k,
             )
         dense_hits = ()
+        dense_protected_hits = ()
         embedding_tokens = 0
         embedding_cache_before = _embedding_cache_stats(self._embedding_client)
         if self._embedding_client is not None:
-            dense_result = DenseEmbeddingRetriever(
+            dense_retriever = DenseEmbeddingRetriever(
                 store.turns,
                 self._embedding_client,
                 batch_size=self._dense_batch_size,
                 document_text_mode=self._dense_document_text_mode,
-            ).retrieve(
-                _dense_query_text(
-                    request.question,
-                    request.question_time,
-                    mode=self._dense_query_text_mode,
-                ),
-                top_k=self._dense_top_k,
             )
-            dense_hits = dense_result.hits
-            embedding_tokens = dense_result.embedding_tokens
+            dense_hit_lists: list[tuple[RetrievalHit, ...]] = []
+            for query in retrieval_queries:
+                dense_result = dense_retriever.retrieve(
+                    _dense_query_text(
+                        query,
+                        request.question_time,
+                        mode=self._dense_query_text_mode,
+                    ),
+                    top_k=self._dense_top_k,
+                )
+                dense_hit_lists.append(dense_result.hits)
+                embedding_tokens += dense_result.embedding_tokens
+            dense_protected_hits = dense_hit_lists[0] if dense_hit_lists else ()
+            dense_hits = _merge_query_hit_lists(
+                dense_hit_lists,
+                top_k=self._dense_top_k,
+                rrf_k=self._fusion_rrf_k,
+            )
             hit_lists = tuple(
                 hits for hits in (lexical_hits, dense_hits) if hits
             )
@@ -367,9 +459,9 @@ class Stage1Pipeline:
                     hits,
                     top_k=top_k,
                 )
-            if self._dense_protect_top_n > 0 and dense_hits:
+            if self._dense_protect_top_n > 0 and dense_protected_hits:
                 hits = prepend_protected_hits(
-                    dense_hits[: self._dense_protect_top_n],
+                    dense_protected_hits[: self._dense_protect_top_n],
                     hits,
                     top_k=top_k,
                 )
@@ -425,7 +517,10 @@ class Stage1Pipeline:
                 built_memory.token_usage.build_tokens
                 + answer.token_usage.build_tokens
             ),
-            query_tokens=answer.token_usage.query_tokens,
+            query_tokens=(
+                retrieval_plan.token_usage.query_tokens
+                + answer.token_usage.query_tokens
+            ),
         )
         return {
             "answer": answer.answer,
@@ -434,6 +529,10 @@ class Stage1Pipeline:
                 "build_memory": built_memory.to_dict(),
                 "route": route.to_dict(),
                 "route_config": self._route_trace_config,
+                "query_planner": {
+                    **retrieval_plan.to_dict(),
+                    "config": self._query_planner_trace_config,
+                },
                 "retrieval": {
                     "retriever": _retriever_name(
                         lexical_enabled=self._lexical_enabled,
@@ -446,6 +545,7 @@ class Stage1Pipeline:
                     "neighbor_window": self._neighbor_window,
                     "neighbor_order": self._neighbor_order,
                     "drop_query_stopwords": self._drop_query_stopwords,
+                    "retrieval_queries": list(retrieval_queries),
                     "lexical_enabled": self._lexical_enabled,
                     "build_memory_enabled": self._build_memory_enabled,
                     "build_memory_top_k": self._build_memory_top_k,
@@ -661,6 +761,37 @@ def _merge_turn_and_session_anchor_hits(
             score=hit.score,
             rank=rank,
             retriever=hit.retriever,
+            matched_terms=hit.matched_terms,
+        )
+        for rank, hit in enumerate(selected, start=1)
+    )
+
+
+def _merge_query_hit_lists(
+    hit_lists: list[tuple[RetrievalHit, ...]] | tuple[tuple[RetrievalHit, ...], ...],
+    *,
+    top_k: int,
+    rrf_k: int,
+) -> tuple[RetrievalHit, ...]:
+    non_empty = tuple(hits for hits in hit_lists if hits)
+    return _merge_hit_lists(non_empty, top_k=top_k, rrf_k=rrf_k)
+
+
+def _merge_memory_hit_lists(hit_lists: list[tuple[Any, ...]]) -> tuple[Any, ...]:
+    selected = []
+    seen_memory_ids: set[str] = set()
+    for hits in hit_lists:
+        for hit in hits:
+            memory_id = str(hit.record.memory_id)
+            if memory_id in seen_memory_ids:
+                continue
+            seen_memory_ids.add(memory_id)
+            selected.append(hit)
+    return tuple(
+        type(hit)(
+            record=hit.record,
+            score=hit.score,
+            rank=rank,
             matched_terms=hit.matched_terms,
         )
         for rank, hit in enumerate(selected, start=1)
