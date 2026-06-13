@@ -28,6 +28,7 @@
 - `configs/stage1_retrieval_top60_v33_cached.json`：v29 底座上的 clean top-60 retrieval expansion；v34 前 LoCoMo 最好结果，但 temporal_lookup 回退。
 - `configs/stage1_route_budgeted_retrieval_v34_cached.json`：v33 的 route-budgeted 版本；非 temporal 保留 top60，temporal_lookup 回到 top40，v35 前 LoCoMo 最好。
 - `configs/stage1_answer_format_guard_v35_cached.json`：v34 上的 answer format guard；修复 JSON answer salvage 和小数 duration，当前 LoCoMo 最好。
+- `configs/stage1_lme_token_safe_format_guard_v36_cached.json`：v28 top40/evidence budget + v35 answer guard；LME token-safe full 候选。
 
 方法摘要：
 
@@ -99,6 +100,7 @@ experiments/formal/<run_id>/
 | `v33_top60_locomo_probe_65daf7d` | 20 条 LoCoMo-only route-stratified diagnostic | v33 top-60 LoCoMo gate 通过；avg_query_tokens `5287.0`，avg_build_tokens `44168.8`，answer max output `16384`。 |
 | `v34_route_budgeted_probe_8ce3c3b` | 20 条 LoCoMo-only route-stratified diagnostic | v34 route-budgeted retrieval gate 通过；avg_query_tokens `5050.0`，temporal top40、非 temporal top60 均生效，answer max output `16384`。 |
 | `v35_lme_route_probe_e6de8c5` | 20 条 LongMemEval-S route-stratified diagnostic | v35 LoCoMo-winning config 未通过 LME query token gate；avg_query_tokens `7109.2`，p95 `8059`，不能直接跑 LME full。 |
+| `v36_lme_token_safe_probe_e7ca9e5` | 20 条 LongMemEval-S route-stratified diagnostic | v36 token-safe config 通过 LME average query token gate；avg_query_tokens `5579.7`，可跑 LME full。 |
 
 ## 保留正式结果
 

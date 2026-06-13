@@ -52,3 +52,21 @@ v35 在 LoCoMo non-adversarial full 上达到 valid-only `0.7803768680961664`，
 - 检查 build/embedding cache 和 logical build token accounting。
 
 如果 gate 合格，再用 v28 LME full traces 预热 v36 answer cache，并跑 LongMemEval-S full prediction + DeepSeek judge。
+
+## 2026-06-14 Gate 结果
+
+run: `v36_lme_token_safe_probe_e7ca9e5`
+
+- samples: `20`
+- source: `outputs/diagnostic/v35_lme_route_stratified_probe/prediction_input.jsonl`
+- commit: `e7ca9e5bba5b279592e0a11b9c156025a148ed62`
+- dirty: 仅用户修改的 `docs/architecture.md`、`docs/clean_protocol.md`
+- answer max input/output: `131072/16384`
+- avg build tokens: `81690.45`
+- avg query tokens: `5579.7`
+- query token distribution: min `4810`, p50 `5484`, p90 `6463`, p95 `6528`, max `6622`
+- avg compiled evidence items: `33.9`
+- build cache hits/misses/writes: `137/0/0`
+- embedding cache hits/misses/writes: `10079/0/0`
+
+结论：v36 通过 LongMemEval-S no-label average query token gate，可以跑 LME full。下一步使用 v28 LME traces 预热 v36 answer cache，然后跑 LongMemEval-S full prediction + DeepSeek judge。
