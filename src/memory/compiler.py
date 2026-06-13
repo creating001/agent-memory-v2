@@ -44,6 +44,7 @@ SUPPORTED_INFORMATION_NEEDS = {
     "temporal_lookup",
 }
 ROUTE_OVERRIDE_KEYS = {
+    "context_layout",
     "evidence_order",
     "evidence_report_detail",
     "evidence_row_labels",
@@ -147,6 +148,7 @@ class EvidenceCompiler:
         operation_workpad_information_needs: tuple[str, ...] = (
             DEFAULT_STRUCTURED_ANSWER_CONTRACT_NEEDS
         ),
+        context_layout: str = "flat",
         evidence_order: str = "retrieval",
         memory_order: str = "retrieval",
         memory_layout: str = "flat",
@@ -201,6 +203,9 @@ class EvidenceCompiler:
             operation_workpad_information_needs,
             field_name="operation_workpad_information_needs",
         )
+        if context_layout not in {"flat", "session_thread"}:
+            raise ValueError(f"Unsupported context_layout: {context_layout}")
+        self._context_layout = context_layout
         if evidence_order not in {"retrieval", "question_overlap", "memory_aware"}:
             raise ValueError(f"Unsupported evidence_order: {evidence_order}")
         self._evidence_order = evidence_order
@@ -286,13 +291,17 @@ class EvidenceCompiler:
         selected_memory_records = ordered_memory_records[
             : route_settings["max_memory_records"]
         ]
+        laid_out_rows = _layout_rows(
+            tuple(rows),
+            context_layout=route_settings["context_layout"],
+        )
 
         prompt = _build_prompt(
             question,
             question_time,
             route,
             tuple(selected_memory_records),
-            tuple(rows),
+            laid_out_rows,
             answer_style=self._answer_style,
             temporal_grounding=self._temporal_grounding,
             temporal_hints=self._temporal_hints,
@@ -333,6 +342,7 @@ class EvidenceCompiler:
                 self._operation_workpad
                 and route.information_need in self._operation_workpad_information_needs
             ),
+            context_layout=route_settings["context_layout"],
             memory_layout=self._memory_layout,
             row_text_mode=route_settings["row_text_mode"],
             max_row_text_chars=route_settings["max_row_text_chars"],
@@ -345,7 +355,7 @@ class EvidenceCompiler:
             question=question,
             question_time=question_time,
             route=route,
-            evidence_rows=tuple(rows),
+            evidence_rows=laid_out_rows,
             prompt=prompt,
             context_chars=len(prompt),
             memory_records=tuple(selected_memory_records),
@@ -354,6 +364,7 @@ class EvidenceCompiler:
     def _settings_for_route(self, route: RouteResult) -> dict[str, Any]:
         settings: dict[str, Any] = {
             "evidence_row_labels": self._evidence_row_labels,
+            "context_layout": self._context_layout,
             "evidence_order": self._evidence_order,
             "evidence_report_detail": self._evidence_report_detail,
             "final_answer_checklist": self._final_answer_checklist,
@@ -434,6 +445,11 @@ def _validate_route_overrides(
             overrides["evidence_row_labels"] = bool(
                 raw_overrides["evidence_row_labels"]
             )
+        if "context_layout" in raw_overrides:
+            context_layout = str(raw_overrides["context_layout"])
+            if context_layout not in {"flat", "session_thread"}:
+                raise ValueError(f"Unsupported context_layout: {context_layout}")
+            overrides["context_layout"] = context_layout
         if "final_answer_checklist" in raw_overrides:
             overrides["final_answer_checklist"] = bool(
                 raw_overrides["final_answer_checklist"]
@@ -500,6 +516,39 @@ def _order_rows(
             ),
         )
     )
+
+
+def _layout_rows(
+    rows: tuple[EvidenceRow, ...],
+    *,
+    context_layout: str,
+) -> tuple[EvidenceRow, ...]:
+    if context_layout == "flat":
+        return rows
+    if context_layout != "session_thread":
+        raise ValueError(f"Unsupported context_layout: {context_layout}")
+
+    grouped: dict[str, list[EvidenceRow]] = {}
+    session_order: list[str] = []
+    for row in rows:
+        if row.session_id not in grouped:
+            grouped[row.session_id] = []
+            session_order.append(row.session_id)
+        grouped[row.session_id].append(row)
+
+    laid_out: list[EvidenceRow] = []
+    for session_id in session_order:
+        laid_out.extend(
+            sorted(
+                grouped[session_id],
+                key=lambda row: (
+                    row.turn_index,
+                    row.retrieval_rank if row.retrieval_rank is not None else 1_000_000,
+                    row.source_id,
+                ),
+            )
+        )
+    return tuple(laid_out)
 
 
 def _question_overlap_key(
@@ -745,6 +794,7 @@ def _build_prompt(
     evidence_report_max_items: int,
     evidence_report_detail: bool,
     operation_workpad: bool,
+    context_layout: str,
     memory_layout: str,
     row_text_mode: str,
     max_row_text_chars: int,
@@ -762,6 +812,7 @@ def _build_prompt(
             row_text_mode=row_text_mode,
             max_row_text_chars=max_row_text_chars,
             evidence_row_labels=evidence_row_labels,
+            context_layout=context_layout,
         )
     if prompt_mode == "external_naive":
         return _build_external_naive_prompt(
@@ -788,6 +839,7 @@ def _build_prompt(
             evidence_report_max_items=evidence_report_max_items,
             evidence_report_detail=evidence_report_detail,
             operation_workpad=operation_workpad,
+            context_layout=context_layout,
         )
 
     lines = [
@@ -873,6 +925,7 @@ def _build_raw_context_only_prompt(
     row_text_mode: str,
     max_row_text_chars: int,
     evidence_row_labels: bool,
+    context_layout: str,
 ) -> str:
     lines = [
         "Answer the user's question using only the provided memory context.",
@@ -935,6 +988,7 @@ def _build_external_naive_prompt(
     evidence_report_max_items: int,
     evidence_report_detail: bool,
     operation_workpad: bool,
+    context_layout: str,
 ) -> str:
     use_temporal_event_contract = (
         temporal_event_contract and route.information_need == "temporal_lookup"
@@ -983,6 +1037,10 @@ def _build_external_naive_prompt(
     if temporal_aid:
         rules.append(
             "Use Temporal Aid only to interpret row dates and relative time phrases in the memory context; it is not independent evidence."
+        )
+    if context_layout == "session_thread":
+        rules.append(
+            "Memory Context is grouped by session in chronological turn order within each session; use nearby turns in the same session to resolve implicit references, but do not merge unrelated sessions."
         )
     if structured_answer_contract:
         rules.extend(
@@ -1084,6 +1142,7 @@ def _build_external_naive_prompt(
                 question=question,
                 row_text_mode=row_text_mode,
                 max_row_text_chars=max_row_text_chars,
+                context_layout=context_layout,
             ),
             temporal_aid,
             "",
@@ -1474,9 +1533,19 @@ def _external_naive_context(
     question: str,
     row_text_mode: str,
     max_row_text_chars: int,
+    context_layout: str = "flat",
 ) -> str:
     if not rows:
         return "None"
+    if context_layout == "session_thread":
+        return _external_session_thread_context(
+            rows,
+            question=question,
+            row_text_mode=row_text_mode,
+            max_row_text_chars=max_row_text_chars,
+        )
+    if context_layout != "flat":
+        raise ValueError(f"Unsupported context_layout: {context_layout}")
     blocks = []
     for index, row in enumerate(rows, start=1):
         header = f"### Memory {index}"
@@ -1484,6 +1553,38 @@ def _external_naive_context(
             header += f"\nDate: {row.timestamp}"
         if row.session_id:
             header += f"\nSession: {row.session_id}"
+        text = _row_prompt_text(
+            row.text,
+            question=question,
+            role=row.role,
+            row_text_mode=row_text_mode,
+            max_row_text_chars=max_row_text_chars,
+        )
+        blocks.append(f"{header}\n{row.role}: {text}")
+    return "\n\n".join(blocks)
+
+
+def _external_session_thread_context(
+    rows: tuple[EvidenceRow, ...],
+    *,
+    question: str,
+    row_text_mode: str,
+    max_row_text_chars: int,
+) -> str:
+    blocks: list[str] = []
+    current_session: str | None = None
+    episode_index = 0
+    for index, row in enumerate(rows, start=1):
+        if row.session_id != current_session:
+            episode_index += 1
+            current_session = row.session_id
+            blocks.append(f"### Episode {episode_index}\nSession: {row.session_id}")
+        header = f"#### Memory {index}"
+        if row.timestamp:
+            header += f"\nDate: {row.timestamp}"
+        header += f"\nTurn: {row.turn_index}"
+        if row.retrieval_rank is not None:
+            header += f"\nRetrieval rank: {row.retrieval_rank}"
         text = _row_prompt_text(
             row.text,
             question=question,

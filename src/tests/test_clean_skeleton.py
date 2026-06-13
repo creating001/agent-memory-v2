@@ -425,6 +425,42 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertTrue(result["trace"]["question_analysis"]["route_changed"])
         self.assertEqual(result["trace"]["token_cost"]["query_tokens"], 7)
 
+    def test_pipeline_traces_context_layout_config(self) -> None:
+        config = {
+            "retrieval": {"top_k": 2, "max_top_k": 2, "neighbor_window": 0},
+            "compiler": {
+                "max_evidence_items": 2,
+                "max_evidence_chars": 2000,
+                "prompt_mode": "external_naive",
+                "context_layout": "session_thread",
+            },
+            "answer": {"fallback_answer": "unknown"},
+        }
+        request = PredictionRequest(
+            question="How many items does Alex need to pick up?",
+            turns=(
+                Turn(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="Alex needs to pick up boots.",
+                ),
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Alex needs to pick up dry cleaning.",
+                ),
+            ),
+        )
+
+        result = Stage1Pipeline(config).predict(request)
+
+        self.assertEqual(result["trace"]["compiler"]["context_layout"], "session_thread")
+        self.assertIn("### Episode 1", result["trace"]["compiled_context"]["prompt"])
+
     def test_pipeline_rejects_inconsistent_answer_output_token_config(self) -> None:
         config = {
             "retrieval": {"top_k": 1, "max_top_k": 1, "neighbor_window": 0},

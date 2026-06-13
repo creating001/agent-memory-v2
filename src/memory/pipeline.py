@@ -320,6 +320,7 @@ class Stage1Pipeline:
                     ("list_count", "temporal_lookup"),
                 )
             ),
+            context_layout=str(compiler_config.get("context_layout", "flat")),
             evidence_order=str(compiler_config.get("evidence_order", "retrieval")),
             memory_order=str(compiler_config.get("memory_order", "retrieval")),
             memory_layout=str(compiler_config.get("memory_layout", "flat")),
@@ -423,6 +424,7 @@ class Stage1Pipeline:
                     ("list_count", "temporal_lookup"),
                 )
             ),
+            "context_layout": str(compiler_config.get("context_layout", "flat")),
             "max_memory_records": int(compiler_config.get("max_memory_records", 12)),
             "route_overrides": compiler_config.get("route_overrides") or {},
         }

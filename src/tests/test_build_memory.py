@@ -847,6 +847,115 @@ class BuildMemoryTest(unittest.TestCase):
         self.assertIn("sources=Memory 2", temporal_context.prompt)
         self.assertEqual(len(temporal_context.memory_records), 1)
 
+    def test_external_naive_context_can_group_by_session_thread(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=3,
+            max_evidence_chars=4000,
+            answer_style="concise",
+            prompt_mode="external_naive",
+            context_layout="session_thread",
+        )
+        route = RouteResult(information_need="temporal_lookup", signals=("temporal",))
+        compiled = compiler.compile(
+            question="When did Morgan visit the clinic?",
+            question_time=None,
+            route=route,
+            hits=(
+                RetrievalHit("s1:t2", 1.0, 1, "test"),
+                RetrievalHit("s2:t0", 0.9, 2, "test"),
+                RetrievalHit("s1:t0", 0.8, 3, "test"),
+            ),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t2",
+                    session_id="s1",
+                    turn_index=2,
+                    role="Morgan",
+                    text="I visited the clinic today.",
+                    timestamp="2023-05-08",
+                ),
+                Turn(
+                    source_id="s2:t0",
+                    session_id="s2",
+                    turn_index=0,
+                    role="Morgan",
+                    text="I planned a grocery trip.",
+                    timestamp="2023-05-09",
+                ),
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="Morgan",
+                    text="I woke up early.",
+                    timestamp="2023-05-08",
+                ),
+            ),
+        )
+
+        self.assertEqual(
+            [row.source_id for row in compiled.evidence_rows],
+            ["s1:t0", "s1:t2", "s2:t0"],
+        )
+        self.assertIn("### Episode 1\nSession: s1", compiled.prompt)
+        self.assertIn("#### Memory 1\nDate: 2023-05-08\nTurn: 0", compiled.prompt)
+        self.assertIn("#### Memory 2\nDate: 2023-05-08\nTurn: 2", compiled.prompt)
+        self.assertIn("Memory Context is grouped by session", compiled.prompt)
+
+    def test_external_naive_route_override_can_select_session_thread_layout(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=2,
+            max_evidence_chars=3000,
+            answer_style="concise",
+            prompt_mode="external_naive",
+            context_layout="flat",
+            route_overrides={
+                "list_count": {
+                    "context_layout": "session_thread",
+                }
+            },
+        )
+        turns = (
+            Turn(
+                source_id="s1:t1",
+                session_id="s1",
+                turn_index=1,
+                role="Morgan",
+                text="I need to pick up boots.",
+                timestamp="2023-05-08",
+            ),
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="Morgan",
+                text="I need to pick up dry cleaning.",
+                timestamp="2023-05-08",
+            ),
+        )
+
+        fact_context = compiler.compile(
+            question="What does Morgan need to pick up?",
+            question_time=None,
+            route=RouteResult(information_need="fact_lookup", signals=()),
+            hits=(RetrievalHit("s1:t1", 1.0, 1, "test"),),
+            evidence_turns=turns,
+        )
+        list_context = compiler.compile(
+            question="How many items does Morgan need to pick up?",
+            question_time=None,
+            route=RouteResult(information_need="list_count", signals=("list_or_count",)),
+            hits=(RetrievalHit("s1:t1", 1.0, 1, "test"),),
+            evidence_turns=turns,
+        )
+
+        self.assertNotIn("### Episode 1", fact_context.prompt)
+        self.assertIn("### Episode 1", list_context.prompt)
+        self.assertEqual(
+            [row.source_id for row in list_context.evidence_rows],
+            ["s1:t0", "s1:t1"],
+        )
+
     def test_external_naive_structured_guide_can_be_disabled_by_signal(self) -> None:
         compiler = EvidenceCompiler(
             max_evidence_items=1,

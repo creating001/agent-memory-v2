@@ -101,4 +101,5 @@
 - compiler 侧：减少派生 memory 与 raw evidence 在 prompt 中竞争，优先构造更少、更准的 raw evidence context、conflict chain 或 candidate aggregation。
 - v38 具体采用 route-scoped raw top60 + `role_query_snippet`：借鉴 creating001 的 source-turn materialization 和 ACON/LCM 的 query-focused context compression，但不引入 LLM reranker、summary 替代事实源或 benchmark-specific guardrail。
 - v39 采用 memory-aware evidence selector：借鉴 HippoRAG/EverOS 的 fact/entity/typed memory -> raw passage 回链，把 top60 候选压回 top40 raw evidence；typed memory 只做 source-linked selection signal，不进入 prompt fact view。
+- v43 采用 session-thread evidence layout + row-linked build memory guide：借鉴 xMemory/SimpleMem 的 episodic raw message 回链、Mnemis 的 selected node -> episode 回链和 Graphiti/Zep 的 temporal/provenance 思路；typed memory 只作为已召回 raw rows 的定位 guide，不作为独立事实源。
 - clean 侧：所有 route 和 compiler 只能来自 question text、question_time、原始对话和 memory metadata；不能使用 LoCoMo category、LongMemEval question_type、evidence label、gold 或 judge。
