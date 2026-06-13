@@ -64,11 +64,6 @@ def main() -> int:
     total_build_memory_cache_writes = 0
     total_memory_hits = 0
     total_memory_source_hits = 0
-    total_query_planner_queries = 0
-    total_query_planner_cache_hits = 0
-    total_query_planner_cache_misses = 0
-    total_query_planner_cache_writes = 0
-    total_query_planner_tokens = 0
 
     for _index, envelope, result in results:
         token_cost = result["trace"]["token_cost"]
@@ -115,16 +110,6 @@ def main() -> int:
         total_memory_source_hits += len(
             result["trace"]["retrieval"].get("memory_source_hits") or []
         )
-        query_planner = result["trace"].get("query_planner") or {}
-        total_query_planner_queries += len(query_planner.get("queries") or [])
-        query_planner_cache = query_planner.get("cache") or {}
-        total_query_planner_cache_hits += int(query_planner_cache.get("hits") or 0)
-        total_query_planner_cache_misses += int(query_planner_cache.get("misses") or 0)
-        total_query_planner_cache_writes += int(query_planner_cache.get("writes") or 0)
-        query_planner_usage = query_planner.get("token_usage") or {}
-        total_query_planner_tokens += int(
-            query_planner_usage.get("query_tokens") or 0
-        )
 
     sample_count = len(records)
     metrics = {
@@ -141,39 +126,6 @@ def main() -> int:
             "total_query_tokens": total_query_tokens,
             "avg_build_tokens": _safe_average(total_build_tokens, sample_count),
             "avg_query_tokens": _safe_average(total_query_tokens, sample_count),
-        },
-        "query_planner": {
-            "enabled": config.get("query_planner", {}).get("enabled", False),
-            "mode": config.get("query_planner", {}).get("mode"),
-            "model": config.get("query_planner", {}).get("model"),
-            "base_url": config.get("query_planner", {}).get("base_url"),
-            "temperature": config.get("query_planner", {}).get("temperature"),
-            "max_tokens": config.get("query_planner", {}).get("max_tokens"),
-            "max_queries": config.get("query_planner", {}).get("max_queries"),
-            "max_query_chars": config.get("query_planner", {}).get(
-                "max_query_chars"
-            ),
-            "response_format_json": config.get("query_planner", {}).get(
-                "response_format_json",
-                False,
-            ),
-            "cache_enabled": config.get("query_planner", {})
-            .get("cache", {})
-            .get("enabled", False),
-            "cache_path": config.get("query_planner", {}).get("cache", {}).get("path"),
-            "cache_namespace": config.get("query_planner", {})
-            .get("cache", {})
-            .get("namespace"),
-            "cache_hits": total_query_planner_cache_hits,
-            "cache_misses": total_query_planner_cache_misses,
-            "cache_writes": total_query_planner_cache_writes,
-            "total_queries": total_query_planner_queries,
-            "avg_queries": _safe_average(total_query_planner_queries, sample_count),
-            "total_query_tokens": total_query_planner_tokens,
-            "avg_query_tokens": _safe_average(
-                total_query_planner_tokens,
-                sample_count,
-            ),
         },
         "retrieval": {
             "top_k": config.get("retrieval", {}).get("top_k"),
@@ -590,16 +542,6 @@ def _write_summary(
         f"- avg_build_tokens: {metrics['token_cost']['avg_build_tokens']}",
         "- build_token_accounting: logical cold-build LLM tokens; cached build chunks count from stored usage, while cache hits only avoid repeated local API calls.",
         f"- avg_query_tokens: {metrics['token_cost']['avg_query_tokens']}",
-        f"- query_planner_enabled: {metrics['query_planner']['enabled']}",
-        f"- query_planner_model: {metrics['query_planner']['model']}",
-        f"- query_planner_cache_enabled: {metrics['query_planner']['cache_enabled']}",
-        f"- query_planner_cache_path: {metrics['query_planner']['cache_path']}",
-        f"- query_planner_cache_hits: {metrics['query_planner']['cache_hits']}",
-        f"- query_planner_cache_misses: {metrics['query_planner']['cache_misses']}",
-        f"- query_planner_cache_writes: {metrics['query_planner']['cache_writes']}",
-        f"- avg_query_planner_queries: {metrics['query_planner']['avg_queries']}",
-        f"- avg_query_planner_tokens: {metrics['query_planner']['avg_query_tokens']}",
-        f"- query_planner_response_format_json: {metrics['query_planner']['response_format_json']}",
         f"- avg_compiled_evidence_items: {metrics['retrieval']['avg_compiled_evidence_items']}",
         f"- build_memory_enabled: {metrics['build_memory']['enabled']}",
         f"- build_memory_model: {metrics['build_memory']['model']}",
@@ -719,14 +661,6 @@ def _write_diagnosis(
         f"- build_memory_include_superseded_information_needs: {metrics['retrieval']['build_memory_include_superseded_information_needs']}",
         f"- avg_context_chars: {metrics['retrieval']['avg_context_chars']}",
         f"- avg_query_tokens: {metrics['token_cost']['avg_query_tokens']}",
-        f"- query_planner_enabled: {metrics['query_planner']['enabled']}",
-        f"- query_planner_model: {metrics['query_planner']['model']}",
-        f"- query_planner_cache_hits: {metrics['query_planner']['cache_hits']}",
-        f"- query_planner_cache_misses: {metrics['query_planner']['cache_misses']}",
-        f"- query_planner_cache_writes: {metrics['query_planner']['cache_writes']}",
-        f"- avg_query_planner_queries: {metrics['query_planner']['avg_queries']}",
-        f"- avg_query_planner_tokens: {metrics['query_planner']['avg_query_tokens']}",
-        f"- query_planner_response_format_json: {metrics['query_planner']['response_format_json']}",
         f"- dense_protect_top_n: {metrics['retrieval']['dense_protect_top_n']}",
         f"- session_bm25_enabled: {metrics['retrieval']['session_bm25_enabled']}",
         f"- session_bm25_top_k: {metrics['retrieval']['session_bm25_top_k']}",
