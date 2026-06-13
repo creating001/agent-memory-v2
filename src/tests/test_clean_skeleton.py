@@ -16,10 +16,13 @@ from memory.answer import CachedAnswerer, _message_text, _parse_answer_content
 from memory.build import MemoryRecord
 from memory.compiler import EvidenceCompiler
 from memory.finalize import finalize_structured_answer, raw_response_content
+from memory.repair import build_repair_prompt, repair_trigger_reasons
 from data.io import load_prediction_jsonl
 from memory.pipeline import Stage1Pipeline
 from common.schemas import (
     AnswerResult,
+    CompiledContext,
+    EvidenceRow,
     PredictionRequest,
     RetrievalHit,
     RouteResult,
@@ -193,6 +196,48 @@ class CleanSkeletonTest(unittest.TestCase):
         pipeline = Stage1Pipeline(config)
         self.assertIsNotNone(pipeline)
 
+    def test_pipeline_selective_repair_is_traceable_and_counts_in_answer(self) -> None:
+        config = {
+            "retrieval": {"top_k": 1, "max_top_k": 1, "neighbor_window": 0},
+            "compiler": {"max_evidence_items": 1, "max_evidence_chars": 1000},
+            "answer": {
+                "fallback_answer": "unknown",
+                "repair": {
+                    "enabled": True,
+                    "mode": "null_answerer",
+                    "fallback_answer": "jasmine tea",
+                    "information_needs": ["fact_lookup", "profile_preference"],
+                    "enable_uncertain_trigger": True,
+                    "enable_short_list_trigger": False,
+                    "enable_temporal_conflict_trigger": False,
+                },
+            },
+        }
+        request = PredictionRequest(
+            question="What tea does Alex prefer?",
+            turns=(
+                Turn(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="Alex prefers jasmine tea.",
+                ),
+            ),
+        )
+
+        result = Stage1Pipeline(config).predict(request)
+
+        self.assertEqual(result["answer"], "jasmine tea")
+        self.assertEqual(result["trace"]["answer_draft"]["answer"], "unknown")
+        self.assertTrue(result["trace"]["answer_repair"]["triggered"])
+        self.assertTrue(result["trace"]["answer_repair"]["applied"])
+        self.assertIn(
+            "uncertain_or_missing",
+            result["trace"]["answer_repair"]["reasons"],
+        )
+        self.assertEqual(result["trace"]["token_cost"]["query_tokens"], 0)
+
     def test_pipeline_rejects_inconsistent_answer_output_token_config(self) -> None:
         config = {
             "retrieval": {"top_k": 1, "max_top_k": 1, "neighbor_window": 0},
@@ -220,6 +265,86 @@ class CleanSkeletonTest(unittest.TestCase):
             _parse_answer_content(raw, output_format="json_answer"),
             "jasmine tea",
         )
+
+    def test_answer_repair_trigger_detects_uncertain_and_short_collection(self) -> None:
+        raw_response = json.dumps(
+            {
+                "content": json.dumps(
+                    {
+                        "sufficient": False,
+                        "answer_type": "unknown",
+                        "missing": "target value",
+                        "answer": "unknown",
+                    }
+                )
+            }
+        )
+
+        reasons = repair_trigger_reasons(
+            question="What events has Alex attended?",
+            route_information_need="fact_lookup",
+            draft_answer="unknown",
+            raw_response=raw_response,
+            enable_uncertain_trigger=True,
+            enable_short_list_trigger=True,
+            enable_temporal_conflict_trigger=True,
+        )
+
+        self.assertIn("uncertain_or_missing", reasons)
+
+        short_reasons = repair_trigger_reasons(
+            question="What events has Alex attended?",
+            route_information_need="fact_lookup",
+            draft_answer="conference",
+            raw_response=json.dumps(
+                {"content": json.dumps({"sufficient": True, "answer_type": "list"})}
+            ),
+            enable_uncertain_trigger=True,
+            enable_short_list_trigger=True,
+            enable_temporal_conflict_trigger=True,
+        )
+
+        self.assertIn("short_collection_answer", short_reasons)
+
+    def test_answer_repair_prompt_uses_runtime_context_and_draft(self) -> None:
+        context = CompiledContext(
+            question="What tea does Alex prefer?",
+            question_time="2026-01-01",
+            route=RouteResult(information_need="fact_lookup", signals=()),
+            evidence_rows=(
+                EvidenceRow(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="Alex prefers jasmine tea.",
+                    timestamp="2025-12-31",
+                    retrieval_rank=1,
+                    retrieval_score=1.0,
+                ),
+            ),
+            prompt="original prompt",
+            context_chars=0,
+        )
+        draft = AnswerResult(
+            answer="unknown",
+            model="draft",
+            token_usage=TokenUsage(query_tokens=3),
+            raw_response=json.dumps({"content": '{"answer":"unknown"}'}),
+        )
+
+        prompt, context_chars = build_repair_prompt(
+            compiled=context,
+            draft=draft,
+            reasons=("uncertain_or_missing",),
+            max_context_chars=1000,
+            max_row_text_chars=200,
+        )
+
+        self.assertIn("What tea does Alex prefer?", prompt)
+        self.assertIn("Draft Answer:", prompt)
+        self.assertIn("Alex prefers jasmine tea.", prompt)
+        self.assertGreater(context_chars, 0)
 
     def test_raw_response_content_extracts_answerer_content(self) -> None:
         raw_response = json.dumps(

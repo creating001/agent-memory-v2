@@ -68,6 +68,12 @@ def main() -> int:
     total_answer_cache_misses = 0
     total_answer_cache_writes = 0
     total_answer_finalizer_applied = 0
+    total_answer_repair_triggered = 0
+    total_answer_repair_applied = 0
+    total_answer_repair_query_tokens = 0
+    total_answer_repair_cache_hits = 0
+    total_answer_repair_cache_misses = 0
+    total_answer_repair_cache_writes = 0
 
     for _index, envelope, result in results:
         token_cost = result["trace"]["token_cost"]
@@ -121,6 +127,20 @@ def main() -> int:
         answer_finalizer = result["trace"].get("answer_finalizer") or {}
         if answer_finalizer.get("applied"):
             total_answer_finalizer_applied += 1
+        answer_repair = result["trace"].get("answer_repair") or {}
+        if answer_repair.get("triggered"):
+            total_answer_repair_triggered += 1
+        if answer_repair.get("applied"):
+            total_answer_repair_applied += 1
+        repair_response = answer_repair.get("response") or {}
+        repair_token_usage = repair_response.get("token_usage") or {}
+        total_answer_repair_query_tokens += int(
+            repair_token_usage.get("query_tokens") or 0
+        )
+        repair_cache = answer_repair.get("cache") or {}
+        total_answer_repair_cache_hits += int(repair_cache.get("hits") or 0)
+        total_answer_repair_cache_misses += int(repair_cache.get("misses") or 0)
+        total_answer_repair_cache_writes += int(repair_cache.get("writes") or 0)
 
     sample_count = len(records)
     metrics = {
@@ -283,6 +303,24 @@ def main() -> int:
                 total_answer_finalizer_applied,
                 sample_count,
             ),
+            "repair_triggered_count": total_answer_repair_triggered,
+            "repair_triggered_rate": _safe_average(
+                total_answer_repair_triggered,
+                sample_count,
+            ),
+            "repair_applied_count": total_answer_repair_applied,
+            "repair_applied_rate": _safe_average(
+                total_answer_repair_applied,
+                sample_count,
+            ),
+            "repair_total_query_tokens": total_answer_repair_query_tokens,
+            "repair_avg_query_tokens_when_triggered": _safe_average(
+                total_answer_repair_query_tokens,
+                total_answer_repair_triggered,
+            ),
+            "repair_cache_hits": total_answer_repair_cache_hits,
+            "repair_cache_misses": total_answer_repair_cache_misses,
+            "repair_cache_writes": total_answer_repair_cache_writes,
         },
         "compiler": {
             "prompt_mode": config.get("compiler", {}).get("prompt_mode", "default"),
@@ -526,6 +564,9 @@ def _answer_metrics(config: dict[str, Any]) -> dict[str, Any]:
     answer_config = config.get("answer", {})
     max_output_tokens = _answer_max_output_tokens(answer_config)
     cache_config = answer_config.get("cache", {})
+    repair_config = answer_config.get("repair", {})
+    repair_cache_config = repair_config.get("cache", {})
+    repair_answer_config = _repair_answer_config_for_metrics(answer_config, repair_config)
     return {
         "mode": answer_config.get("mode", "null_answerer"),
         "model": answer_config.get("model"),
@@ -551,6 +592,29 @@ def _answer_metrics(config: dict[str, Any]) -> dict[str, Any]:
         "finalizer_enable_money_sum_correction": answer_config.get(
             "finalizer", {}
         ).get("enable_money_sum_correction", True),
+        "repair_enabled": repair_config.get("enabled", False),
+        "repair_mode": repair_config.get("mode", answer_config.get("mode")),
+        "repair_model": repair_answer_config.get("model"),
+        "repair_base_url": repair_answer_config.get("base_url"),
+        "repair_temperature": repair_answer_config.get("temperature"),
+        "repair_max_input_tokens": repair_answer_config.get("max_input_tokens"),
+        "repair_max_output_tokens": _answer_max_output_tokens(repair_answer_config),
+        "repair_output_format": repair_answer_config.get("output_format", "json_answer"),
+        "repair_information_needs": repair_config.get("information_needs"),
+        "repair_enable_uncertain_trigger": repair_config.get(
+            "enable_uncertain_trigger", True
+        ),
+        "repair_enable_short_list_trigger": repair_config.get(
+            "enable_short_list_trigger", True
+        ),
+        "repair_enable_temporal_conflict_trigger": repair_config.get(
+            "enable_temporal_conflict_trigger", True
+        ),
+        "repair_max_context_chars": repair_config.get("max_context_chars", 14000),
+        "repair_max_row_text_chars": repair_config.get("max_row_text_chars", 700),
+        "repair_cache_enabled": repair_cache_config.get("enabled", False),
+        "repair_cache_path": repair_cache_config.get("path"),
+        "repair_cache_namespace": repair_cache_config.get("namespace"),
     }
 
 
@@ -567,6 +631,33 @@ def _answer_note(config: dict[str, Any]) -> str:
     if answer["mode"] == "null_answerer":
         return "Null answerer; generated answers are placeholders and accuracy is not meaningful."
     return f"Answer mode: {answer['mode']}."
+
+
+def _repair_answer_config_for_metrics(
+    answer_config: dict[str, Any],
+    repair_config: dict[str, Any],
+) -> dict[str, Any]:
+    inherited_keys = (
+        "base_url",
+        "model",
+        "temperature",
+        "max_input_tokens",
+        "max_output_tokens",
+        "max_tokens",
+        "timeout",
+        "api_key_env",
+        "output_format",
+        "fallback_answer",
+    )
+    merged = {
+        key: answer_config[key] for key in inherited_keys if key in answer_config
+    }
+    for key in inherited_keys:
+        if key in repair_config:
+            merged[key] = repair_config[key]
+    if "output_format" not in merged:
+        merged["output_format"] = "json_answer"
+    return merged
 
 
 def _write_summary(
@@ -670,6 +761,30 @@ def _write_summary(
         f"- answer_finalizer_enable_money_sum_correction: {metrics['answer']['finalizer_enable_money_sum_correction']}",
         f"- answer_finalizer_applied_count: {metrics['answer']['finalizer_applied_count']}",
         f"- answer_finalizer_applied_rate: {metrics['answer']['finalizer_applied_rate']}",
+        f"- answer_repair_enabled: {metrics['answer']['repair_enabled']}",
+        f"- answer_repair_mode: {metrics['answer']['repair_mode']}",
+        f"- answer_repair_model: {metrics['answer']['repair_model']}",
+        f"- answer_repair_max_input_tokens: {metrics['answer']['repair_max_input_tokens']}",
+        f"- answer_repair_max_output_tokens: {metrics['answer']['repair_max_output_tokens']}",
+        f"- answer_repair_output_format: {metrics['answer']['repair_output_format']}",
+        f"- answer_repair_information_needs: {metrics['answer']['repair_information_needs']}",
+        f"- answer_repair_enable_uncertain_trigger: {metrics['answer']['repair_enable_uncertain_trigger']}",
+        f"- answer_repair_enable_short_list_trigger: {metrics['answer']['repair_enable_short_list_trigger']}",
+        f"- answer_repair_enable_temporal_conflict_trigger: {metrics['answer']['repair_enable_temporal_conflict_trigger']}",
+        f"- answer_repair_max_context_chars: {metrics['answer']['repair_max_context_chars']}",
+        f"- answer_repair_max_row_text_chars: {metrics['answer']['repair_max_row_text_chars']}",
+        f"- answer_repair_cache_enabled: {metrics['answer']['repair_cache_enabled']}",
+        f"- answer_repair_cache_path: {metrics['answer']['repair_cache_path']}",
+        f"- answer_repair_cache_namespace: {metrics['answer']['repair_cache_namespace']}",
+        f"- answer_repair_cache_hits: {metrics['answer']['repair_cache_hits']}",
+        f"- answer_repair_cache_misses: {metrics['answer']['repair_cache_misses']}",
+        f"- answer_repair_cache_writes: {metrics['answer']['repair_cache_writes']}",
+        f"- answer_repair_triggered_count: {metrics['answer']['repair_triggered_count']}",
+        f"- answer_repair_triggered_rate: {metrics['answer']['repair_triggered_rate']}",
+        f"- answer_repair_applied_count: {metrics['answer']['repair_applied_count']}",
+        f"- answer_repair_applied_rate: {metrics['answer']['repair_applied_rate']}",
+        f"- answer_repair_total_query_tokens: {metrics['answer']['repair_total_query_tokens']}",
+        f"- answer_repair_avg_query_tokens_when_triggered: {metrics['answer']['repair_avg_query_tokens_when_triggered']}",
         f"- answer_style: {metrics['compiler']['answer_style']}",
         f"- evidence_order: {metrics['compiler']['evidence_order']}",
         f"- memory_order: {metrics['compiler']['memory_order']}",
@@ -807,6 +922,21 @@ def _write_diagnosis(
         f"- answer_finalizer_enable_money_sum_correction: {metrics['answer']['finalizer_enable_money_sum_correction']}",
         f"- answer_finalizer_applied_count: {metrics['answer']['finalizer_applied_count']}",
         f"- answer_finalizer_applied_rate: {metrics['answer']['finalizer_applied_rate']}",
+        f"- answer_repair_enabled: {metrics['answer']['repair_enabled']}",
+        f"- answer_repair_mode: {metrics['answer']['repair_mode']}",
+        f"- answer_repair_model: {metrics['answer']['repair_model']}",
+        f"- answer_repair_max_input_tokens: {metrics['answer']['repair_max_input_tokens']}",
+        f"- answer_repair_max_output_tokens: {metrics['answer']['repair_max_output_tokens']}",
+        f"- answer_repair_information_needs: {metrics['answer']['repair_information_needs']}",
+        f"- answer_repair_triggered_count: {metrics['answer']['repair_triggered_count']}",
+        f"- answer_repair_triggered_rate: {metrics['answer']['repair_triggered_rate']}",
+        f"- answer_repair_applied_count: {metrics['answer']['repair_applied_count']}",
+        f"- answer_repair_applied_rate: {metrics['answer']['repair_applied_rate']}",
+        f"- answer_repair_total_query_tokens: {metrics['answer']['repair_total_query_tokens']}",
+        f"- answer_repair_avg_query_tokens_when_triggered: {metrics['answer']['repair_avg_query_tokens_when_triggered']}",
+        f"- answer_repair_cache_hits: {metrics['answer']['repair_cache_hits']}",
+        f"- answer_repair_cache_misses: {metrics['answer']['repair_cache_misses']}",
+        f"- answer_repair_cache_writes: {metrics['answer']['repair_cache_writes']}",
         f"- answer: {_answer_note(config)}",
         "",
         "## Next Steps",

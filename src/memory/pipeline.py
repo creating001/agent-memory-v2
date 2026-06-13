@@ -11,6 +11,7 @@ from memory.build import NullMemoryBuilder, OpenAICompatibleMemoryBuilder
 from memory.compiler import EvidenceCompiler
 from memory.embeddings import CachedEmbeddingClient, OpenAICompatibleEmbeddingClient
 from memory.finalize import AnswerFinalization, finalize_structured_answer
+from memory.repair import maybe_repair_answer
 from memory.retrieval import (
     BuildMemoryBM25Retriever,
     DenseEmbeddingRetriever,
@@ -40,6 +41,7 @@ class Stage1Pipeline:
         compiler_config = self._config.get("compiler", {})
         answer_config = self._config.get("answer", {})
         answer_finalizer_config = answer_config.get("finalizer", {})
+        answer_repair_config = answer_config.get("repair", {})
         self._router = QuestionRouter(
             enable_broad_list_patterns=bool(
                 route_config.get("enable_broad_list_patterns", False)
@@ -382,6 +384,57 @@ class Stage1Pipeline:
                 self._answer_finalizer_enable_money_sum_correction
             ),
         }
+        self._answer_repair_enabled = bool(answer_repair_config.get("enabled", False))
+        self._answer_repair_information_needs = _tuple_config(
+            answer_repair_config.get(
+                "information_needs",
+                (
+                    "current_state",
+                    "fact_lookup",
+                    "list_count",
+                    "profile_preference",
+                    "temporal_lookup",
+                ),
+            )
+        )
+        self._answer_repair_enable_uncertain_trigger = bool(
+            answer_repair_config.get("enable_uncertain_trigger", True)
+        )
+        self._answer_repair_enable_short_list_trigger = bool(
+            answer_repair_config.get("enable_short_list_trigger", True)
+        )
+        self._answer_repair_enable_temporal_conflict_trigger = bool(
+            answer_repair_config.get("enable_temporal_conflict_trigger", True)
+        )
+        self._answer_repair_max_context_chars = int(
+            answer_repair_config.get("max_context_chars", 14000)
+        )
+        self._answer_repair_max_row_text_chars = int(
+            answer_repair_config.get("max_row_text_chars", 700)
+        )
+        self._answer_repair_mode = str(answer_repair_config.get("mode", answer_mode))
+        self._answer_repair_trace_config = {
+            "enabled": self._answer_repair_enabled,
+            "mode": self._answer_repair_mode if self._answer_repair_enabled else None,
+            "information_needs": self._answer_repair_information_needs,
+            "enable_uncertain_trigger": self._answer_repair_enable_uncertain_trigger,
+            "enable_short_list_trigger": (
+                self._answer_repair_enable_short_list_trigger
+            ),
+            "enable_temporal_conflict_trigger": (
+                self._answer_repair_enable_temporal_conflict_trigger
+            ),
+            "max_context_chars": self._answer_repair_max_context_chars,
+            "max_row_text_chars": self._answer_repair_max_row_text_chars,
+        }
+        self._answer_repairer = None
+        self._answer_repair_cache_enabled = bool(
+            answer_repair_config.get("cache", {}).get("enabled", False)
+        )
+        self._answer_repair_cache_path = answer_repair_config.get("cache", {}).get(
+            "path"
+        )
+        self._answer_repair_cache_namespace = ""
         self._answer_cache_enabled = bool(
             answer_config.get("cache", {}).get("enabled", False)
         )
@@ -418,6 +471,71 @@ class Stage1Pipeline:
                 cache_path=str(self._answer_cache_path),
                 namespace=self._answer_cache_namespace,
             )
+        if self._answer_repair_enabled:
+            repair_answer_config = _repair_answer_config(
+                answer_config,
+                answer_repair_config,
+            )
+            self._answer_repair_cache_namespace = _answer_cache_namespace(
+                repair_answer_config,
+                self._answer_repair_mode,
+            )
+            if self._answer_repair_mode == "openai_compatible":
+                self._answer_repairer = OpenAICompatibleAnswerer(
+                    base_url=str(
+                        repair_answer_config.get(
+                            "base_url", "http://127.0.0.1:8000/v1"
+                        )
+                    ),
+                    model=str(repair_answer_config["model"]),
+                    temperature=float(repair_answer_config.get("temperature", 0.0)),
+                    max_tokens=_answer_max_output_tokens(repair_answer_config),
+                    timeout=float(repair_answer_config.get("timeout", 120.0)),
+                    max_input_tokens=_optional_int(
+                        repair_answer_config.get("max_input_tokens")
+                    ),
+                    api_key_env=repair_answer_config.get("api_key_env"),
+                    output_format=str(
+                        repair_answer_config.get("output_format", "json_answer")
+                    ),
+                )
+            elif self._answer_repair_mode == "null_answerer":
+                self._answer_repairer = NullAnswerer(
+                    fallback_answer=str(
+                        repair_answer_config.get(
+                            "fallback_answer",
+                            "I do not know based on the available evidence.",
+                        )
+                    )
+                )
+            else:
+                raise ValueError(
+                    f"Unsupported answer.repair.mode: {self._answer_repair_mode}"
+                )
+            if self._answer_repair_cache_enabled:
+                if self._answer_repair_cache_path is None:
+                    raise ValueError(
+                        "answer.repair.cache.path is required when cache is enabled"
+                    )
+                self._answer_repairer = CachedAnswerer(
+                    self._answer_repairer,
+                    cache_path=str(self._answer_repair_cache_path),
+                    namespace=self._answer_repair_cache_namespace,
+                )
+            self._answer_repair_trace_config = {
+                **self._answer_repair_trace_config,
+                "model": repair_answer_config.get("model"),
+                "base_url": repair_answer_config.get("base_url"),
+                "temperature": repair_answer_config.get("temperature"),
+                "max_input_tokens": repair_answer_config.get("max_input_tokens"),
+                "max_output_tokens": _answer_max_output_tokens(repair_answer_config),
+                "output_format": repair_answer_config.get(
+                    "output_format", "json_answer"
+                ),
+                "cache_enabled": self._answer_repair_cache_enabled,
+                "cache_path": self._answer_repair_cache_path,
+                "cache_namespace": self._answer_repair_cache_namespace,
+            }
 
     def predict(self, request: PredictionRequest) -> dict[str, Any]:
         store = RawEvidenceStore(request.turns)
@@ -540,8 +658,25 @@ class Stage1Pipeline:
             memory_records=tuple(memory_hit.record for memory_hit in memory_hits),
         )
         answer_cache_before = _answer_cache_stats(self._answerer)
-        answer = self._answerer.answer(compiled)
+        draft_answer = self._answerer.answer(compiled)
         answer_cache_after = _answer_cache_stats(self._answerer)
+        repair_cache_before = _answer_cache_stats(self._answer_repairer)
+        answer_repair = maybe_repair_answer(
+            answerer=self._answer_repairer,
+            compiled=compiled,
+            draft=draft_answer,
+            enabled=self._answer_repair_enabled,
+            information_needs=self._answer_repair_information_needs,
+            enable_uncertain_trigger=self._answer_repair_enable_uncertain_trigger,
+            enable_short_list_trigger=self._answer_repair_enable_short_list_trigger,
+            enable_temporal_conflict_trigger=(
+                self._answer_repair_enable_temporal_conflict_trigger
+            ),
+            max_context_chars=self._answer_repair_max_context_chars,
+            max_row_text_chars=self._answer_repair_max_row_text_chars,
+        )
+        repair_cache_after = _answer_cache_stats(self._answer_repairer)
+        answer = answer_repair.answer
         answer_finalization = self._finalize_answer(
             question=request.question,
             answer=answer,
@@ -670,6 +805,15 @@ class Stage1Pipeline:
                     answer_cache_before,
                     answer_cache_after,
                 ),
+                "answer_draft": draft_answer.to_dict(),
+                "answer_repair": {
+                    **self._answer_repair_trace_config,
+                    **answer_repair.to_dict(),
+                    "cache": _answer_cache_delta(
+                        repair_cache_before,
+                        repair_cache_after,
+                    ),
+                },
                 "answer_finalizer": {
                     **self._answer_finalizer_trace_config,
                     **answer_finalization.to_dict(),
@@ -935,6 +1079,34 @@ def _answer_cache_namespace(
         "output_format": answer_config.get("output_format", "text"),
     }
     return "answer:" + "|".join(f"{key}={fields[key]}" for key in sorted(fields))
+
+
+def _repair_answer_config(
+    answer_config: Mapping[str, Any],
+    repair_config: Mapping[str, Any],
+) -> dict[str, Any]:
+    inherited_keys = (
+        "base_url",
+        "model",
+        "temperature",
+        "max_input_tokens",
+        "max_output_tokens",
+        "max_tokens",
+        "timeout",
+        "api_key_env",
+        "output_format",
+        "fallback_answer",
+    )
+    merged: dict[str, Any] = {
+        key: answer_config[key] for key in inherited_keys if key in answer_config
+    }
+    for key in inherited_keys:
+        if key in repair_config:
+            merged[key] = repair_config[key]
+    merged["cache"] = repair_config.get("cache", {})
+    if "output_format" not in merged:
+        merged["output_format"] = "json_answer"
+    return merged
 
 
 def _optional_int(value: object) -> int | None:

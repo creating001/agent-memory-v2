@@ -1,6 +1,6 @@
 {
-  "name": "stage1_typed_event_memory_v30_cached",
-  "description": "Build-side typed temporal/event memory ablation after v29. Keep v29 retrieval and temporal event contract, but ask the build LLM to emit mention_time, event_time, valid_from, and valid_to. Query-side compiler only exposes activated typed memory for temporal/current-state routes, with raw evidence still serving as the final fact source. This is informed by Graphiti/Zep temporal validity, SimpleMem lossless temporal memory, LangMem profile update, Memobase event/profile delta, MIRIX episodic event schema, and xMemory episode provenance. It avoids gold, judge output, benchmark labels, category, sample ids, row indices, and sample-level rules.",
+  "name": "stage1_selective_repair_v32_cached",
+  "description": "Query-side selective verifier/repair ablation on top of v29. Keep v29 build memory, retrieval, compiler, temporal event contract, and draft answer prompt unchanged, then run a second clean LLM read only when runtime artifacts indicate risk: uncertainty/missing evidence, short collection answer, or temporal answer/evidence conflict. The repair prompt uses only question text, route, retrieved Memory Context, draft answer, and draft JSON; it does not use gold, judge output, benchmark labels, category, sample ids, qids, row indices, test feedback, or sample-level rules. This borrows verifier/reflection discipline from creating001 evidence tables, SimpleMem reflection retrieval, DeepResearch reflect loops, Memento failure-aware reflection, and method.md's retrieve+evidence table+verifier direction, while keeping the trigger general and token-budgeted.",
   "build_memory": {
     "enabled": true,
     "mode": "openai_compatible",
@@ -12,7 +12,6 @@
     "max_turns_per_chunk": 80,
     "max_chars_per_turn": 500,
     "max_records_per_chunk": 20,
-    "temporal_fields": true,
     "top_k": 20,
     "max_sources_per_record": 4,
     "drop_query_stopwords": true,
@@ -24,7 +23,7 @@
     "cache": {
       "enabled": true,
       "path": "outputs/cache/qwen3_build_memory.sqlite",
-      "namespace": "stage1_typed_event_memory_v30_qwen3_30b_cold"
+      "namespace": "stage1_agent_memory_v1_qwen3_30b_cold"
     }
   },
   "retrieval": {
@@ -102,17 +101,7 @@
     "evidence_row_labels": false,
     "final_answer_checklist": false,
     "temporal_text_normalization": true,
-    "temporal_event_contract": true,
-    "route_overrides": {
-      "temporal_lookup": {
-        "max_memory_records": 8,
-        "structured_guide_include_memory": true
-      },
-      "current_state": {
-        "max_memory_records": 6,
-        "structured_guide_include_memory": true
-      }
-    }
+    "temporal_event_contract": true
   },
   "answer": {
     "mode": "openai_compatible",
@@ -126,11 +115,40 @@
     "timeout": 600,
     "cache": {
       "enabled": true,
-      "path": "outputs/cache/qwen3_answer_v30.sqlite",
-      "namespace": "stage1_typed_event_memory_v30_qwen3_30b"
+      "path": "outputs/cache/qwen3_answer_v29.sqlite",
+      "namespace": "stage1_temporal_event_contract_v29_qwen3_30b"
     },
     "finalizer": {
       "enabled": false
+    },
+    "repair": {
+      "enabled": true,
+      "mode": "openai_compatible",
+      "base_url": "http://127.0.0.1:8000/v1",
+      "model": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+      "temperature": 0,
+      "max_input_tokens": 131072,
+      "max_output_tokens": 16384,
+      "max_tokens": 16384,
+      "output_format": "json_answer",
+      "timeout": 600,
+      "information_needs": [
+        "current_state",
+        "fact_lookup",
+        "list_count",
+        "profile_preference",
+        "temporal_lookup"
+      ],
+      "enable_uncertain_trigger": true,
+      "enable_short_list_trigger": true,
+      "enable_temporal_conflict_trigger": true,
+      "max_context_chars": 14000,
+      "max_row_text_chars": 700,
+      "cache": {
+        "enabled": true,
+        "path": "outputs/cache/qwen3_answer_repair_v32.sqlite",
+        "namespace": "stage1_selective_repair_v32_qwen3_30b"
+      }
     }
   }
 }
