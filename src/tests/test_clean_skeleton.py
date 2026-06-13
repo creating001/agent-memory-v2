@@ -16,6 +16,7 @@ from memory.answer import CachedAnswerer, _message_text, _parse_answer_content
 from memory.build import MemoryRecord
 from memory.compiler import EvidenceCompiler
 from memory.finalize import finalize_structured_answer, raw_response_content
+from memory.question_analysis import QuestionAnalysisResult
 from memory.repair import build_repair_prompt, repair_trigger_reasons
 from memory.retrieval import MemoryHit
 from data.io import load_prediction_jsonl
@@ -380,6 +381,49 @@ class CleanSkeletonTest(unittest.TestCase):
             result["trace"]["answer_repair"]["reasons"],
         )
         self.assertEqual(result["trace"]["token_cost"]["query_tokens"], 0)
+
+    def test_pipeline_question_analysis_counts_query_tokens(self) -> None:
+        class StaticQuestionAnalyzer:
+            def analyze(self, *, question: str, question_time: str | None):
+                del question, question_time
+                return QuestionAnalysisResult(
+                    task="multi_evidence",
+                    operation="count",
+                    temporal_subtype="date_time",
+                    answer_slot="count",
+                    temporal_hints=("last month",),
+                    confidence=0.9,
+                    route_source="test_question_analysis",
+                    token_usage=TokenUsage(query_tokens=7),
+                    raw_response="{}",
+                )
+
+        config = {
+            "retrieval": {"top_k": 1, "max_top_k": 1, "neighbor_window": 0},
+            "compiler": {"max_evidence_items": 1, "max_evidence_chars": 1000},
+            "answer": {"fallback_answer": "unknown"},
+            "question_analysis": {"enabled": True, "model": "test-model"},
+        }
+        pipeline = Stage1Pipeline(config)
+        pipeline._question_analyzer = StaticQuestionAnalyzer()
+        request = PredictionRequest(
+            question="How many books did Alex read last month?",
+            turns=(
+                Turn(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="Alex read Dune.",
+                ),
+            ),
+        )
+
+        result = pipeline.predict(request)
+
+        self.assertEqual(result["trace"]["route"]["information_need"], "list_count")
+        self.assertTrue(result["trace"]["question_analysis"]["route_changed"])
+        self.assertEqual(result["trace"]["token_cost"]["query_tokens"], 7)
 
     def test_pipeline_rejects_inconsistent_answer_output_token_config(self) -> None:
         config = {

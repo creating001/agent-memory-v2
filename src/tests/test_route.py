@@ -9,6 +9,11 @@ SRC_ROOT = REPO_ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
+from common.schemas import RouteResult, TokenUsage
+from memory.question_analysis import (
+    QuestionAnalysisResult,
+    route_from_question_analysis,
+)
 from memory.route import QuestionRouter
 
 
@@ -97,6 +102,31 @@ class RouteTest(unittest.TestCase):
 
         self.assertEqual(route.information_need, "current_state")
         self.assertIn("recent_or_current", route.signals)
+
+    def test_question_analysis_routes_count_with_time_scope_as_list_count(self) -> None:
+        fallback = RouteResult(
+            information_need="temporal_lookup",
+            signals=("temporal",),
+            retrieval_multiplier=2,
+        )
+        analysis = QuestionAnalysisResult(
+            task="multi_evidence",
+            operation="count",
+            temporal_subtype="date_time",
+            answer_slot="count",
+            temporal_hints=("past month",),
+            confidence=0.9,
+            route_source="llm_question_analysis",
+            token_usage=TokenUsage(query_tokens=123),
+            raw_response="{}",
+        )
+
+        route = route_from_question_analysis(analysis, fallback)
+
+        self.assertEqual(route.information_need, "list_count")
+        self.assertIn("llm_question_analysis", route.signals)
+        self.assertIn("operation:count", route.signals)
+        self.assertIn("temporal", route.signals)
 
 
 if __name__ == "__main__":

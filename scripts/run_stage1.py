@@ -78,6 +78,11 @@ def main() -> int:
     total_answer_repair_cache_hits = 0
     total_answer_repair_cache_misses = 0
     total_answer_repair_cache_writes = 0
+    total_question_analysis_query_tokens = 0
+    total_question_analysis_cache_hits = 0
+    total_question_analysis_cache_misses = 0
+    total_question_analysis_cache_writes = 0
+    total_question_analysis_route_changed = 0
 
     for _index, envelope, result in results:
         token_cost = result["trace"]["token_cost"]
@@ -95,6 +100,26 @@ def main() -> int:
         records.append(result)
         total_build_tokens += int(token_cost["build_tokens"])
         total_query_tokens += int(token_cost["query_tokens"])
+        question_analysis = result["trace"].get("question_analysis") or {}
+        question_analysis_result = question_analysis.get("result") or {}
+        question_analysis_token_usage = (
+            question_analysis_result.get("token_usage") or {}
+        )
+        total_question_analysis_query_tokens += int(
+            question_analysis_token_usage.get("query_tokens") or 0
+        )
+        question_analysis_cache = question_analysis.get("cache") or {}
+        total_question_analysis_cache_hits += int(
+            question_analysis_cache.get("hits") or 0
+        )
+        total_question_analysis_cache_misses += int(
+            question_analysis_cache.get("misses") or 0
+        )
+        total_question_analysis_cache_writes += int(
+            question_analysis_cache.get("writes") or 0
+        )
+        if question_analysis.get("route_changed"):
+            total_question_analysis_route_changed += 1
         total_evidence_items += len(compiled["evidence_rows"])
         total_compiler_memory_records += len(compiled.get("memory_records") or [])
         total_context_chars += int(compiled["context_chars"])
@@ -168,6 +193,35 @@ def main() -> int:
             "total_query_tokens": total_query_tokens,
             "avg_build_tokens": _safe_average(total_build_tokens, sample_count),
             "avg_query_tokens": _safe_average(total_query_tokens, sample_count),
+        },
+        "question_analysis": {
+            "enabled": config.get("question_analysis", {}).get("enabled", False),
+            "mode": config.get("question_analysis", {}).get("mode"),
+            "model": config.get("question_analysis", {}).get("model"),
+            "base_url": config.get("question_analysis", {}).get("base_url"),
+            "max_tokens": config.get("question_analysis", {}).get("max_tokens"),
+            "total_query_tokens": total_question_analysis_query_tokens,
+            "avg_query_tokens": _safe_average(
+                total_question_analysis_query_tokens,
+                sample_count,
+            ),
+            "route_changed_count": total_question_analysis_route_changed,
+            "route_changed_rate": _safe_average(
+                total_question_analysis_route_changed,
+                sample_count,
+            ),
+            "cache_enabled": config.get("question_analysis", {})
+            .get("cache", {})
+            .get("enabled", False),
+            "cache_path": config.get("question_analysis", {})
+            .get("cache", {})
+            .get("path"),
+            "cache_namespace": config.get("question_analysis", {})
+            .get("cache", {})
+            .get("namespace"),
+            "cache_hits": total_question_analysis_cache_hits,
+            "cache_misses": total_question_analysis_cache_misses,
+            "cache_writes": total_question_analysis_cache_writes,
         },
         "retrieval": {
             "top_k": config.get("retrieval", {}).get("top_k"),
@@ -733,6 +787,13 @@ def _write_summary(
         f"- avg_build_tokens: {metrics['token_cost']['avg_build_tokens']}",
         "- build_token_accounting: logical cold-build LLM tokens; cached build chunks count from stored usage, while cache hits only avoid repeated local API calls.",
         f"- avg_query_tokens: {metrics['token_cost']['avg_query_tokens']}",
+        f"- question_analysis_enabled: {metrics['question_analysis']['enabled']}",
+        f"- question_analysis_model: {metrics['question_analysis']['model']}",
+        f"- question_analysis_avg_query_tokens: {metrics['question_analysis']['avg_query_tokens']}",
+        f"- question_analysis_route_changed_count: {metrics['question_analysis']['route_changed_count']}",
+        f"- question_analysis_cache_hits: {metrics['question_analysis']['cache_hits']}",
+        f"- question_analysis_cache_misses: {metrics['question_analysis']['cache_misses']}",
+        f"- question_analysis_cache_writes: {metrics['question_analysis']['cache_writes']}",
         f"- avg_compiled_evidence_items: {metrics['retrieval']['avg_compiled_evidence_items']}",
         f"- retrieval_route_overrides: {metrics['retrieval']['route_overrides']}",
         f"- avg_effective_top_k: {metrics['retrieval']['avg_effective_top_k']}",
@@ -905,6 +966,13 @@ def _write_diagnosis(
         f"- build_memory_include_superseded_information_needs: {metrics['retrieval']['build_memory_include_superseded_information_needs']}",
         f"- avg_context_chars: {metrics['retrieval']['avg_context_chars']}",
         f"- avg_query_tokens: {metrics['token_cost']['avg_query_tokens']}",
+        f"- question_analysis_enabled: {metrics['question_analysis']['enabled']}",
+        f"- question_analysis_model: {metrics['question_analysis']['model']}",
+        f"- question_analysis_avg_query_tokens: {metrics['question_analysis']['avg_query_tokens']}",
+        f"- question_analysis_route_changed_count: {metrics['question_analysis']['route_changed_count']}",
+        f"- question_analysis_cache_hits: {metrics['question_analysis']['cache_hits']}",
+        f"- question_analysis_cache_misses: {metrics['question_analysis']['cache_misses']}",
+        f"- question_analysis_cache_writes: {metrics['question_analysis']['cache_writes']}",
         f"- retrieval_route_overrides: {metrics['retrieval']['route_overrides']}",
         f"- avg_effective_top_k: {metrics['retrieval']['avg_effective_top_k']}",
         f"- avg_effective_dense_top_k: {metrics['retrieval']['avg_effective_dense_top_k']}",

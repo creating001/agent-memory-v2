@@ -18,6 +18,10 @@
 - `stage1_answer_format_guard_v35_cached.json`：v34 上的 answer format guard；修复 JSON answer salvage 和小数 duration，当前 LoCoMo 最好。
 - `stage1_lme_token_safe_format_guard_v36_cached.json`：v28 top40/evidence budget + v35 answer guard；当前 LME 最好。
 
+## 当前候选
+
+- `stage1_llm_question_router_v41_cached.json`：v36 上的 question-only LLM operation router；只读取 question text 和 visible question_time，输出通用 operation/answer_slot/temporal hints 并计入 query tokens。当前仅作 gate 候选，未通过 full 前不视为保留主线。
+
 ## 新配置规则
 
 - 不使用 gold answer、judge output、benchmark label、sample id、qid、row index 或 test feedback。

@@ -11,6 +11,11 @@ from memory.build import NullMemoryBuilder, OpenAICompatibleMemoryBuilder
 from memory.compiler import EvidenceCompiler, SUPPORTED_INFORMATION_NEEDS
 from memory.embeddings import CachedEmbeddingClient, OpenAICompatibleEmbeddingClient
 from memory.finalize import AnswerFinalization, finalize_structured_answer
+from memory.question_analysis import (
+    CachedQuestionAnalyzer,
+    OpenAICompatibleQuestionAnalyzer,
+    route_from_question_analysis,
+)
 from memory.repair import maybe_repair_answer
 from memory.retrieval import (
     BuildMemoryBM25Retriever,
@@ -38,6 +43,7 @@ class Stage1Pipeline:
         dense_config = retrieval_config.get("dense", {})
         session_config = retrieval_config.get("session_bm25", {})
         route_config = self._config.get("route", {})
+        question_analysis_config = self._config.get("question_analysis", {})
         compiler_config = self._config.get("compiler", {})
         answer_config = self._config.get("answer", {})
         answer_finalizer_config = answer_config.get("finalizer", {})
@@ -64,6 +70,58 @@ class Stage1Pipeline:
                 route_config.get("temporal_priority_over_recent", False)
             ),
         }
+        self._question_analysis_enabled = bool(
+            question_analysis_config.get("enabled", False)
+        )
+        self._question_analyzer = None
+        self._question_analysis_trace_config = {
+            "enabled": self._question_analysis_enabled,
+            "mode": question_analysis_config.get("mode"),
+            "model": question_analysis_config.get("model"),
+            "base_url": question_analysis_config.get("base_url"),
+            "temperature": question_analysis_config.get("temperature"),
+            "max_tokens": question_analysis_config.get("max_tokens"),
+            "cache_enabled": bool(
+                question_analysis_config.get("cache", {}).get("enabled", False)
+            ),
+            "cache_path": question_analysis_config.get("cache", {}).get("path"),
+            "cache_namespace": question_analysis_config.get("cache", {}).get(
+                "namespace"
+            ),
+        }
+        if self._question_analysis_enabled:
+            analysis_mode = str(
+                question_analysis_config.get("mode", "openai_compatible")
+            )
+            if analysis_mode != "openai_compatible":
+                raise ValueError(
+                    f"Unsupported question_analysis.mode: {analysis_mode}"
+                )
+            self._question_analyzer = OpenAICompatibleQuestionAnalyzer(
+                base_url=str(
+                    question_analysis_config.get(
+                        "base_url",
+                        "http://127.0.0.1:8000/v1",
+                    )
+                ),
+                model=str(question_analysis_config["model"]),
+                temperature=float(question_analysis_config.get("temperature", 0.0)),
+                max_tokens=int(question_analysis_config.get("max_tokens", 512)),
+                timeout=float(question_analysis_config.get("timeout", 120.0)),
+                api_key_env=question_analysis_config.get("api_key_env"),
+            )
+            analysis_cache_config = question_analysis_config.get("cache", {})
+            if bool(analysis_cache_config.get("enabled", False)):
+                self._question_analyzer = CachedQuestionAnalyzer(
+                    self._question_analyzer,
+                    cache_path=str(analysis_cache_config["path"]),
+                    namespace=str(
+                        analysis_cache_config.get(
+                            "namespace",
+                            question_analysis_config.get("model", "unknown"),
+                        )
+                    ),
+                )
         self._base_top_k = int(retrieval_config.get("top_k", 8))
         self._max_top_k = int(retrieval_config.get("max_top_k", self._base_top_k))
         self._retrieval_route_overrides = _validate_retrieval_route_overrides(
@@ -560,7 +618,17 @@ class Stage1Pipeline:
     def predict(self, request: PredictionRequest) -> dict[str, Any]:
         store = RawEvidenceStore(request.turns)
         built_memory = self._memory_builder.build(store.turns)
-        route = self._router.route(request.question, request.question_time)
+        heuristic_route = self._router.route(request.question, request.question_time)
+        route = heuristic_route
+        question_analysis = None
+        question_analysis_cache_before = _answer_cache_stats(self._question_analyzer)
+        if self._question_analyzer is not None:
+            question_analysis = self._question_analyzer.analyze(
+                question=request.question,
+                question_time=request.question_time,
+            )
+            route = route_from_question_analysis(question_analysis, heuristic_route)
+        question_analysis_cache_after = _answer_cache_stats(self._question_analyzer)
         retrieval_settings = self._retrieval_settings_for_route(route)
         top_k = retrieval_settings["top_k"]
         dense_top_k = retrieval_settings["dense_top_k"]
@@ -722,8 +790,20 @@ class Stage1Pipeline:
             build_tokens=(
                 built_memory.token_usage.build_tokens
                 + answer.token_usage.build_tokens
+                + (
+                    question_analysis.token_usage.build_tokens
+                    if question_analysis is not None
+                    else 0
+                )
             ),
-            query_tokens=answer.token_usage.query_tokens,
+            query_tokens=(
+                answer.token_usage.query_tokens
+                + (
+                    question_analysis.token_usage.query_tokens
+                    if question_analysis is not None
+                    else 0
+                )
+            ),
         )
         return {
             "answer": answer.answer,
@@ -731,7 +811,22 @@ class Stage1Pipeline:
                 "store": store.manifest(),
                 "build_memory": built_memory.to_dict(),
                 "route": route.to_dict(),
+                "heuristic_route": heuristic_route.to_dict(),
                 "route_config": self._route_trace_config,
+                "question_analysis": {
+                    **self._question_analysis_trace_config,
+                    "result": (
+                        question_analysis.to_dict()
+                        if question_analysis is not None
+                        else None
+                    ),
+                    "route_changed": route.information_need
+                    != heuristic_route.information_need,
+                    "cache": _answer_cache_delta(
+                        question_analysis_cache_before,
+                        question_analysis_cache_after,
+                    ),
+                },
                 "retrieval": {
                     "retriever": _retriever_name(
                         lexical_enabled=self._lexical_enabled,
