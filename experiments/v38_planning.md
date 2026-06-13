@@ -100,3 +100,40 @@ Route audit:
 - temporal_lookup: top_k `60`, avg query `6549.2`
 
 结论：修正版 v38 通过 LongMemEval-S no-label average query token gate。非目标 route 已保持 top40，`list_count` 和 `temporal_lookup` 扩到 top60 生效。按 full LME route 分布粗略加权估算 avg query tokens 约 `5782`，仍在 `6000` 预算内。下一步可以跑 LongMemEval-S full；正式结果必须主要看 DeepSeek judge accuracy。
+
+## 2026-06-14 LME Full 结果
+
+run: `stage1_route_snippet_top60_v38_lme_s_full_daf98e7`
+
+- samples: `500`
+- benchmark/subset: `LongMemEval-S / full`
+- commit: `daf98e726fd837ddffb1f2cb44226db201e6a9bf`
+- dirty: 仅用户修改的 `docs/architecture.md`、`docs/clean_protocol.md`
+- answer max input/output: `131072/16384`
+- DeepSeek judge accuracy: `0.752`
+- correct/total: `376/500`
+- invalid judge: `0`
+- evidence recall: `1.0`
+- avg build tokens: `80346.246`
+- total build tokens: `40173123`
+- avg query tokens: `5934.178`
+- total query tokens: `2967089`
+- DeepSeek judge tokens: prompt `78212`，completion `43228`，total `121440`
+- build cache hits/misses/writes: `3341/0/0`
+- embedding cache hits/misses/writes: `247238/0/0`
+- answer cache hits/misses/writes: `20/480/480`
+
+与主线对比：
+
+- vs v36 current best: `376` vs `386`，净 `-10`
+- vs v28 previous mainline: `376` vs `383`，净 `-7`
+- vs v37 row-linked typed memory prompt: `376` vs `372`，净 `+4`
+
+v38 相比 v36 的主要变化：
+
+- gained `20`，lost `30`
+- `fact_lookup`: gained `9`，lost `6`
+- `list_count`: gained `3`，lost `10`
+- `temporal_lookup`: gained `6`，lost `12`
+
+结论：v38 是负向 ablation，不作为当前主线，不跑 LoCoMo full。它验证了一个方向性结论：更宽 raw evidence 能修复部分跨 session 聚合漏项，但如果缺少更强的 include/exclude 边界选择，会在 `list_count` 和 `temporal_lookup` 上引入更多噪声。下一步应从 v36 出发，优先设计 build/query 侧的 memory organization 或 rerank/selection，而不是继续扩大最终 answer prompt。
