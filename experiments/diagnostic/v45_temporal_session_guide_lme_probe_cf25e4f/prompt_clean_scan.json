@@ -1,0 +1,25 @@
+{
+  "clean_note": "Prompt scan is over compiled_context.prompt after prediction. Offline labels/judge are not part of this scan.",
+  "run_id": "v45_temporal_session_guide_lme_probe_cf25e4f",
+  "prompt_forbidden_counts": {},
+  "prompt_forbidden_hit_records": {},
+  "prompt_category_term_hits": [],
+  "config_note_static_hits": [
+    {
+      "term": "sample id",
+      "count": 1,
+      "reason": "appears in config clean/prohibition note"
+    },
+    {
+      "term": "judge output",
+      "count": 1,
+      "reason": "appears in config clean/prohibition note"
+    },
+    {
+      "term": "reference answer",
+      "count": 1,
+      "reason": "appears in config clean/prohibition note"
+    }
+  ],
+  "manual_conclusion": "No forbidden prompt leakage found. Static config note mentions forbidden concepts only to prohibit them."
+}

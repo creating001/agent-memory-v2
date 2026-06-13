@@ -1,0 +1,42 @@
+{
+  "current_state": {
+    "n": 4,
+    "session_thread_enabled": 0,
+    "memory_guide_enabled": 0,
+    "compiled_memory_records_total": 0,
+    "compiled_memory_records_max": 0,
+    "avg_compiled_memory_records": 0.0
+  },
+  "fact_lookup": {
+    "n": 4,
+    "session_thread_enabled": 0,
+    "memory_guide_enabled": 0,
+    "compiled_memory_records_total": 0,
+    "compiled_memory_records_max": 0,
+    "avg_compiled_memory_records": 0.0
+  },
+  "list_count": {
+    "n": 4,
+    "session_thread_enabled": 0,
+    "memory_guide_enabled": 0,
+    "compiled_memory_records_total": 0,
+    "compiled_memory_records_max": 0,
+    "avg_compiled_memory_records": 0.0
+  },
+  "profile_preference": {
+    "n": 4,
+    "session_thread_enabled": 0,
+    "memory_guide_enabled": 0,
+    "compiled_memory_records_total": 0,
+    "compiled_memory_records_max": 0,
+    "avg_compiled_memory_records": 0.0
+  },
+  "temporal_lookup": {
+    "n": 4,
+    "session_thread_enabled": 4,
+    "memory_guide_enabled": 4,
+    "compiled_memory_records_total": 4,
+    "compiled_memory_records_max": 1,
+    "avg_compiled_memory_records": 1.0
+  }
+}

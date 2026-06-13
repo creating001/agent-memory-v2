@@ -66,3 +66,29 @@ v45 的取舍是更保守：不增加 build schema，不做 graph，不新增 LL
 ## 预期决策
 
 如果 v45 过 token 和 accuracy gate，再跑 LongMemEval-S full。若 v45 丢掉 v44 的 exact-date 修复或 full token estimate 仍超预算，则停止 session-thread prompt 方向，转向 build-side memory schema/aggregation 方法。
+
+## Gate 结果
+
+run：`v45_temporal_session_guide_lme_probe_cf25e4f`
+
+- prediction：20/20 成功。
+- DeepSeek judge：`16/20 = 0.800`。
+- v42 same-20：`15/20 = 0.750`。
+- 相对 v42：gain `1`，loss `0`，answer_changed `1`。
+- 保留了 animal shelter fundraising dinner exact-date 修复：`February 2023` -> `2023-02-14`。
+- avg_build_tokens：`81690.45`，total_build_tokens：`1633809`。
+- avg_query_tokens：`5744.5`，total_query_tokens：`114890`，max_query_tokens：`7352`。
+- answer max input/output：`131072/16384`。
+- build cache hits/misses/writes：`137/0/0`，cache hit 仍按 stored usage 计入 build token。
+- answer cache hits/misses/writes：`17/3/3`，cache hit 仍按 stored usage 计入 query token。
+- prompt clean scan：实际 compiled prompt forbidden counts 为 `{}`。
+- route audit：session_thread 和 memory guide 只在 `temporal_lookup` 启用。
+
+full route-mix 估算：
+
+- v42 full avg query tokens：`5865.644`
+- v45 temporal_lookup probe delta：`+421.25`
+- weighted full delta：`+135.6425`
+- estimated full avg query tokens：`6001.2865`
+
+结论：质量 gate 正向，但 estimated full avg query tokens 略高于 `6000`，没有安全余量。因此 v45 不跑 LongMemEval-S full；顶层 config 删除，只保留诊断目录和 `config_snapshot.json`。下一步设计 v46，优先验证关闭/压缩 temporal memory guide 后能否保留 exact-date 收益并明确通过 6K 预算。

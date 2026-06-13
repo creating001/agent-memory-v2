@@ -1,0 +1,56 @@
+{
+  "clean_note": "Estimate uses only prediction traces and route mix after prediction; no labels/judge output used.",
+  "run_id": "v45_temporal_session_guide_lme_probe_cf25e4f",
+  "base_full_run": "stage1_operation_workpad_v42_lme_s_full_f7eb076",
+  "base_full_avg_query_tokens": 5865.644,
+  "full_n": 500,
+  "full_route_counts": {
+    "current_state": 22,
+    "fact_lookup": 183,
+    "list_count": 119,
+    "profile_preference": 15,
+    "temporal_lookup": 161
+  },
+  "probe_route_deltas": {
+    "current_state": {
+      "full_count": 22,
+      "base_probe_avg_query_tokens": 6062.5,
+      "current_probe_avg_query_tokens": 6062.5,
+      "delta": 0.0,
+      "weighted_delta": 0.0
+    },
+    "fact_lookup": {
+      "full_count": 183,
+      "base_probe_avg_query_tokens": 5136.25,
+      "current_probe_avg_query_tokens": 5136.25,
+      "delta": 0.0,
+      "weighted_delta": 0.0
+    },
+    "list_count": {
+      "full_count": 119,
+      "base_probe_avg_query_tokens": 5469.5,
+      "current_probe_avg_query_tokens": 5469.5,
+      "delta": 0.0,
+      "weighted_delta": 0.0
+    },
+    "profile_preference": {
+      "full_count": 15,
+      "base_probe_avg_query_tokens": 5226.0,
+      "current_probe_avg_query_tokens": 5226.0,
+      "delta": 0.0,
+      "weighted_delta": 0.0
+    },
+    "temporal_lookup": {
+      "full_count": 161,
+      "base_probe_avg_query_tokens": 6407.0,
+      "current_probe_avg_query_tokens": 6828.25,
+      "delta": 421.25,
+      "weighted_delta": 135.6425
+    }
+  },
+  "estimated_weighted_delta": 135.6425,
+  "estimated_full_avg_query_tokens": 6001.2865,
+  "budget_avg_query_tokens": 6000,
+  "passes_budget_estimate": false,
+  "note": "This is a route-mix estimate from the route-stratified 20 probe; full prediction would be needed for exact cost."
+}
