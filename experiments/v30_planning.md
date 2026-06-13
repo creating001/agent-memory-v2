@@ -61,3 +61,23 @@ Commit `0eb44da` 增加：
 - temporal_lookup 有正向迹象，list_count/current_state 没有系统性回退。
 - avg query tokens 仍明显低于 6K；build tokens 预计仍低于 LME 300K / LoCoMo 100K。
 - 方案能解释为通用 agent memory management，不是 benchmark prompt tuning。
+
+## 2026-06-13 诊断更新
+
+`v30_stateful_validity_probe_3525934` 是当前有效的字段门禁：
+
+- samples: `20`，来自 route-stratified prediction input，不使用 label/gold/judge/category/sample id/evidence。
+- avg build tokens: `65592.3`
+- avg query tokens: `4984.55`
+- build cache: `128/0/0` hit/miss/write，token 成本仍按 cold-start logical usage 记录。
+- build records: `1711`
+- `mention_time`: `1711/1711`
+- `event_time`: `424/1711`
+- `valid_from`: `458/1711`
+- `valid_to`: `97/1711`
+- non-stateful validity records: `0`
+- answer max input/output: `131072/16384`
+
+本次诊断发现并修正了一个重要问题：LLM 会把 `valid_from/valid_to` 过度填到一次性 event/fact/plan 上。当前代码在 `build_memory.temporal_fields=true` 时只让 `state/profile/preference/relationship` 参与 validity/supersede 管理；`event/fact/plan` 使用 `event_time` 表达事件时间，不再被当作持续状态。
+
+字段质量与 token gate 已通过。下一步建议先提交 v30 validity 修正，再跑 LoCoMo non-adversarial full 验证是否保留 v29 temporal 收益；随后必须跑 LongMemEval-S full，因为 v29 在 LME 回退。

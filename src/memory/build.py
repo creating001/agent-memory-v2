@@ -27,6 +27,8 @@ _MEMORY_TYPES = {
     "plan",
     "unknown",
 }
+_STATEFUL_MEMORY_TYPES = frozenset({"preference", "profile", "relationship", "state"})
+_DEFAULT_MANAGED_MEMORY_TYPES = frozenset((*_STATEFUL_MEMORY_TYPES, "fact"))
 
 
 @dataclass(frozen=True)
@@ -204,11 +206,19 @@ class OpenAICompatibleMemoryBuilder:
                     ordinal=ordinal,
                     valid_source_ids=valid_source_ids,
                     timestamp_by_source_id=timestamp_by_source_id,
+                    temporal_fields=self._temporal_fields,
                 )
                 if record is not None:
                     all_records.append(record)
 
-        managed = _manage_records(tuple(all_records))
+        managed = _manage_records(
+            tuple(all_records),
+            managed_memory_types=(
+                _STATEFUL_MEMORY_TYPES
+                if self._temporal_fields
+                else _DEFAULT_MANAGED_MEMORY_TYPES
+            ),
+        )
         return BuiltMemory(
             records=managed,
             token_usage=TokenUsage(build_tokens=total_tokens, query_tokens=0),
@@ -409,6 +419,7 @@ def _normalize_record(
     ordinal: int,
     valid_source_ids: set[str],
     timestamp_by_source_id: dict[str, str | None],
+    temporal_fields: bool = False,
 ) -> MemoryRecord | None:
     source_ids = _tuple_of_strings(raw_record.get("source_ids"))
     source_ids = tuple(source_id for source_id in source_ids if source_id in valid_source_ids)
@@ -436,17 +447,17 @@ def _normalize_record(
     )
     event_time = _clean_text(raw_record.get("event_time")) or None
     raw_valid_from = _clean_text(raw_record.get("valid_from"))
-    if raw_valid_from:
-        valid_from = raw_valid_from
-    elif raw_record.get("mention_time") or raw_record.get("event_time"):
-        valid_from = (
-            event_time or timestamp
-            if memory_type in {"profile", "preference", "relationship", "state"}
-            else ""
-        )
+    raw_valid_to = _clean_text(raw_record.get("valid_to"))
+    if temporal_fields:
+        if memory_type in {"profile", "preference", "relationship", "state"}:
+            valid_from = raw_valid_from or event_time or timestamp
+            valid_to = raw_valid_to or None
+        else:
+            valid_from = ""
+            valid_to = None
     else:
-        valid_from = timestamp
-    valid_to = _clean_text(raw_record.get("valid_to")) or None
+        valid_from = raw_valid_from or timestamp
+        valid_to = raw_valid_to or None
     entities = _tuple_of_strings(raw_record.get("entities"))
     confidence = _safe_float(raw_record.get("confidence"), default=1.0)
     confidence = min(1.0, max(0.0, confidence))
@@ -475,7 +486,10 @@ def _normalize_record(
     )
 
 
-def _manage_records(records: tuple[MemoryRecord, ...]) -> tuple[MemoryRecord, ...]:
+def _manage_records(
+    records: tuple[MemoryRecord, ...],
+    managed_memory_types: frozenset[str] = _DEFAULT_MANAGED_MEMORY_TYPES,
+) -> tuple[MemoryRecord, ...]:
     deduped: dict[tuple[str, str, tuple[str, ...]], MemoryRecord] = {}
     for record in records:
         key = (
@@ -501,7 +515,7 @@ def _manage_records(records: tuple[MemoryRecord, ...]) -> tuple[MemoryRecord, ..
     managed = list(deduped.values())
     grouped: dict[tuple[str, str, str], list[MemoryRecord]] = defaultdict(list)
     for record in managed:
-        if record.memory_type not in {"preference", "profile", "state", "fact"}:
+        if record.memory_type not in managed_memory_types:
             continue
         if not record.subject or not record.predicate:
             continue
@@ -576,6 +590,7 @@ def _temporal_field_prompt_lines(enabled: bool) -> list[str]:
         "- event_time: when the described event/action happened, or the explicit/resolved time span in the turn text.",
         "- valid_from / valid_to: when a state, preference, profile fact, or relationship became true and stopped being true; leave valid_to null if still open.",
         "- For one-time events, use event_time and leave valid_from/valid_to null unless the text describes an ongoing state created by that event.",
+        "- For event, fact, or plan records, do not use valid_from/valid_to to restate event_time; if the memory is ongoing, classify it as state, profile, preference, or relationship.",
         "- For generic background facts, public schedules, seasonal advice, or examples not tied to the speaker's own memory, do not create a validity interval; keep valid_from/valid_to null.",
         "- timestamp: the best primary time for sorting this record; use event_time when it is known, otherwise mention_time.",
         "Resolve common relative phrases such as yesterday, last week, last Friday, next month, a few years ago, and two weeks ago against the supporting turn time.",

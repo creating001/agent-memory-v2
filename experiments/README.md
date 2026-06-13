@@ -23,6 +23,7 @@
 - `configs/stage1_hybrid_bm25_v18_cached.json`：hybrid BM25+dense 强 baseline。
 - `configs/stage1_structured_answer_contract_v26_cached.json`：structured answer contract 关键对照。
 - `configs/stage1_evidence_report_contract_v28_cached.json`：当前 LME 最好主线候选，也是 v29 的底座。
+- `configs/stage1_typed_event_memory_v30_cached.json`：build-side typed temporal/event memory 诊断候选，尚未跑 full。
 
 方法摘要：
 
@@ -40,6 +41,7 @@
 - v28/v29 token gate 均通过：v28 LME avg_build_tokens 80346.246、avg_query_tokens 5736.928；v29 LoCoMo avg_build_tokens 58386.008、avg_query_tokens 3932.560。
 - LoCoMo 诊断显示，很多 wrong case 已有 evidence 进入 context，主要问题是 answer 阶段混淆 mention date / event time、列表边界和隐含推理；下一步应改 build/query 两侧的 memory organization，而不是继续只堆 answer prompt。
 - v29 temporal event contract 已完成双基准验证：LME `0.762`，低于 v28 `0.766`；LoCoMo `0.761688`，显著高于 v28 `0.737662` 但仍未达 `0.78` target。结论是 event-time 组织对 LoCoMo 有价值，但需要前移到 build-side typed memory，不能只靠 query prompt。
+- v30 typed temporal/event build memory 已通过字段门禁 `v30_stateful_validity_probe_3525934`：20 条 route-stratified diagnostic，avg_build_tokens `65592.3`，avg_query_tokens `4984.55`，`non_stateful_validity_records=0`。下一步应提交代码后跑 full，优先 LoCoMo，再 LongMemEval。
 
 负向探索结论已压缩保留：
 
@@ -76,6 +78,12 @@ experiments/formal/<run_id>/
 - accuracy-first 诊断结论
 
 如果必须做子集，只能标成 diagnostic，并优先按 question-derived information need 分层采样；不能把前 N 条子集当正式结论。
+
+## 关键诊断目录
+
+| run | scope | 主要结论 |
+|---|---|---|
+| `v30_stateful_validity_probe_3525934` | 20 条 route-stratified mixed diagnostic | v30 build memory 字段质量通过；`mention_time=1711/1711`，`event_time=424/1711`，validity 只保留在 `state/profile/preference/relationship`，token gate 通过。 |
 
 ## 保留正式结果
 

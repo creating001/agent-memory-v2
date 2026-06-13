@@ -11,6 +11,9 @@
 - `cache/qwen3_build_memory.sqlite`：build-stage memory cache，保留；正式 token 统计仍按冷启动逻辑成本记录。
 - `cache/qwen3_answer_v28.sqlite`：v28 answer cache，保留用于复查强对照。
 - `cache/qwen3_answer_v29.sqlite`：v29 answer cache，保留用于复查 temporal event contract 结果。
+- `cache/qwen3_answer_v30.sqlite`：v30 diagnostic answer cache，保留用于 typed temporal/event build memory 后续 full run 复查。
+- `diagnostic/v30_route_stratified_probe/`：v30 字段门禁抽样输入，来自 prediction input + question router，无 labels/gold/judge/category/sample id。
+- `diagnostic/v30_stateful_validity_probe_3525934/`：当前有效 v30 字段门禁 outputs；人类记录在 `experiments/diagnostic/v30_stateful_validity_probe_3525934/`。
 - `services/`：本地 vLLM 服务日志/状态。
 
 ## 清理规则

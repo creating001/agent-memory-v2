@@ -125,7 +125,7 @@ class BuildMemoryTest(unittest.TestCase):
         self.assertIn("event_time", temporal_prompt)
         self.assertIn("valid_from", temporal_prompt)
 
-    def test_temporal_build_fields_are_preserved(self) -> None:
+    def test_temporal_build_fields_preserve_event_time_but_not_event_validity(self) -> None:
         class FakeBuilder(OpenAICompatibleMemoryBuilder):
             def __init__(self) -> None:
                 super().__init__(
@@ -178,7 +178,59 @@ class BuildMemoryTest(unittest.TestCase):
         self.assertEqual(len(built.records), 1)
         self.assertEqual(built.records[0].mention_time, "2024-01-08")
         self.assertEqual(built.records[0].event_time, "2024-01-01 to 2024-01-07")
-        self.assertEqual(built.records[0].valid_from, "2024-01-01 to 2024-01-07")
+        self.assertIsNone(built.records[0].valid_from)
+
+    def test_temporal_build_fields_preserve_state_validity(self) -> None:
+        class FakeBuilder(OpenAICompatibleMemoryBuilder):
+            def __init__(self) -> None:
+                super().__init__(
+                    base_url="http://unused.local/v1",
+                    model="fake-model",
+                    temperature=0.0,
+                    max_tokens=256,
+                    timeout=1.0,
+                    max_turns_per_chunk=10,
+                    max_chars_per_turn=1000,
+                    max_records_per_chunk=4,
+                    temporal_fields=True,
+                )
+
+            def _chat_completion(self, prompt: str) -> dict:
+                del prompt
+                return {
+                    "choices": [
+                        {
+                            "message": {
+                                "content": (
+                                    '{"records":[{"type":"state",'
+                                    '"text":"The speaker lives in Seattle.",'
+                                    '"subject":"speaker","predicate":"lives in","value":"Seattle",'
+                                    '"source_ids":["s1:t0"],"timestamp":"2024-01-08",'
+                                    '"mention_time":"2024-01-08",'
+                                    '"valid_from":"2024-01-01",'
+                                    '"entities":["Seattle"],"confidence":0.9}]}'
+                                )
+                            }
+                        }
+                    ],
+                    "usage": {"total_tokens": 41},
+                }
+
+        built = FakeBuilder().build(
+            (
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="The speaker moved to Seattle last week and lives there now.",
+                    timestamp="2024-01-08",
+                ),
+            )
+        )
+
+        self.assertEqual(len(built.records), 1)
+        self.assertEqual(built.records[0].valid_from, "2024-01-01")
 
     def test_temporal_event_time_does_not_imply_validity_interval(self) -> None:
         class FakeBuilder(OpenAICompatibleMemoryBuilder):
@@ -370,6 +422,38 @@ class BuildMemoryTest(unittest.TestCase):
         self.assertEqual(by_id["old"].superseded_by, "new")
         self.assertEqual(by_id["new"].status, "active")
         self.assertIsNone(by_id["new"].valid_to)
+
+    def test_temporal_memory_manager_does_not_supersede_plain_facts(self) -> None:
+        managed = _manage_records(
+            (
+                MemoryRecord(
+                    memory_id="old",
+                    memory_type="fact",
+                    text="Alex bought black tea.",
+                    source_ids=("s1:t0",),
+                    subject="Alex",
+                    predicate="bought",
+                    value="black tea",
+                    timestamp="2023-01-01",
+                ),
+                MemoryRecord(
+                    memory_id="new",
+                    memory_type="fact",
+                    text="Alex bought jasmine tea.",
+                    source_ids=("s1:t1",),
+                    subject="Alex",
+                    predicate="bought",
+                    value="jasmine tea",
+                    timestamp="2023-02-01",
+                ),
+            ),
+            managed_memory_types=frozenset({"preference", "profile", "relationship", "state"}),
+        )
+        by_id = {record.memory_id: record for record in managed}
+
+        self.assertEqual(by_id["old"].status, "active")
+        self.assertIsNone(by_id["old"].valid_to)
+        self.assertEqual(by_id["new"].status, "active")
 
     def test_compiler_includes_build_memory_view(self) -> None:
         compiler = EvidenceCompiler(
