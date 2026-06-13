@@ -28,7 +28,8 @@
 - `configs/stage1_retrieval_top60_v33_cached.json`：v29 底座上的 clean top-60 retrieval expansion；v34 前 LoCoMo 最好结果，但 temporal_lookup 回退。
 - `configs/stage1_route_budgeted_retrieval_v34_cached.json`：v33 的 route-budgeted 版本；非 temporal 保留 top60，temporal_lookup 回到 top40，v35 前 LoCoMo 最好。
 - `configs/stage1_answer_format_guard_v35_cached.json`：v34 上的 answer format guard；修复 JSON answer salvage 和小数 duration，当前 LoCoMo 最好。
-- `configs/stage1_lme_token_safe_format_guard_v36_cached.json`：v28 top40/evidence budget + v35 answer guard；当前 LME 最好。
+- `configs/stage1_lme_token_safe_format_guard_v36_cached.json`：v28 top40/evidence budget + v35 answer guard；v42 前 LME 最好，也是当前强 baseline。
+- `configs/stage1_operation_workpad_v42_cached.json`：v36 上的短 operation workpad；当前 LME 最好，但只是 close-margin 小幅正向。
 
 方法摘要：
 
@@ -41,7 +42,7 @@
 
 当前结论：
 
-- LongMemEval-S full 当前最好为 v36：0.772 DeepSeek judge accuracy，386/500；距 0.80 baseline target 仍差 14 条。
+- LongMemEval-S full 当前最好为 v42：0.774 DeepSeek judge accuracy，387/500；距 0.80 baseline target 仍差 13 条。
 - LoCoMo non-adversarial full 当前最高为 v35：valid-only 0.780377，invalid-as-wrong 1201/1540 = 0.779870；valid-only 已达到 0.78 baseline target，保守 invalid-as-wrong 还差 1 条。
 - v28/v29 token gate 均通过：v28 LME avg_build_tokens 80346.246、avg_query_tokens 5736.928；v29 LoCoMo avg_build_tokens 58386.008、avg_query_tokens 3932.560。
 - LoCoMo 诊断显示，很多 wrong case 已有 evidence 进入 context，主要问题是 answer 阶段混淆 mention date / event time、列表边界和隐含推理；下一步应改 build/query 两侧的 memory organization，而不是继续只堆 answer prompt。
@@ -58,7 +59,7 @@
 - v39 memory-aware evidence selector 已完成 LongMemEval-S full：accuracy `0.724`，362/500，低于 v36 `0.772` 和 v38 `0.752`。结论是 build-memory source signal 直接排序 final raw rows 会破坏 list/temporal operand coverage；负向 ablation，不跑 LoCoMo full，顶层 config 不长期保留。
 - v40 route-scoped evidence detail 已完成 LongMemEval-S full：accuracy `0.742`，371/500，低于 v36 `0.772`。它相对 v39 恢复了部分 list/temporal，但相对 v36 仍净 `-15`；结论是单纯 reader-side detailed evidence rules 不够，不跑 LoCoMo full，顶层 config 不长期保留。
 - v41 question-only LLM operation router 已完成 LongMemEval-S route-stratified 20 条 gate：avg_query_tokens `5837.55`，question_analysis_avg_query_tokens `331.05`，route_changed `6/20`，同子集 DeepSeek judge 与 v36 都是 `14/20`，无净收益且增加 token；不跑 full，顶层 config 不长期保留。规划和结论见 `experiments/v41_planning.md`。
-- v42 operation workpad 已完成 LongMemEval-S route-stratified 20 条 gate：avg_query_tokens `5660.25`，weighted full estimate `5668.1925`，workpad 只在 `list_count` / `temporal_lookup` 生效；同子集 DeepSeek judge v36=`14/20`、v42=`15/20`，净 +1 且无 regression。下一步跑 LME full。规划见 `experiments/v42_planning.md`。
+- v42 operation workpad 已完成 LongMemEval-S full：accuracy `0.774`，387/500，比 v36 净 `+1`；avg_build_tokens `80346.246`，avg_query_tokens `5865.644`，answer max input/output `131072/16384`。结论是当前 LME 最好但只是 close-margin 小幅正向；继续加长 reader prompt 不划算，下一步应转向 build-to-query memory organization。规划和结论见 `experiments/v42_planning.md`。
 
 负向探索结论已压缩保留：
 
@@ -112,13 +113,14 @@ experiments/formal/<run_id>/
 | `v39_memory_aware_selector_lme_probe_fd00801` | 20 条 LongMemEval-S route-stratified diagnostic | v39 route-scoped memory-aware selector gate 通过；avg_query_tokens `5607.8`，weighted full estimate `5566.583`，avg_build_tokens `81690.45`，typed memory 只做 source selection、prompt memory records 为 0。 |
 | `v40_route_scoped_evidence_detail_lme_probe_983f882` | 20 条 LongMemEval-S route-stratified diagnostic | v40 route-scoped evidence detail gate 通过；avg_query_tokens `5714.0`，weighted full estimate `5716.6965`，avg_build_tokens `81690.45`，detail prompt 只在 `list_count` / `temporal_lookup` 生效。 |
 | `v41_llm_question_router_lme_probe_243452f` | 20 条 LongMemEval-S route-stratified diagnostic | v41 question-only LLM operation router 预算 gate 通过；avg_query_tokens `5837.55`，question_analysis_avg_query_tokens `331.05`，route_changed `6/20`。同子集 DeepSeek judge v36=`14/20`、v41=`14/20`，没有净收益，不跑 full。 |
-| `v42_operation_workpad_lme_probe_df25f6a` | 20 条 LongMemEval-S route-stratified diagnostic | v42 operation workpad gate 通过；avg_query_tokens `5660.25`，weighted full estimate `5668.1925`，workpad 只在 `list_count` / `temporal_lookup` 生效。同子集 DeepSeek judge v36=`14/20`、v42=`15/20`，净 +1，无 regression，进入 LME full。 |
+| `v42_operation_workpad_lme_probe_df25f6a` | 20 条 LongMemEval-S route-stratified diagnostic | v42 operation workpad gate 通过；avg_query_tokens `5660.25`，weighted full estimate `5668.1925`，workpad 只在 `list_count` / `temporal_lookup` 生效。同子集 DeepSeek judge v36=`14/20`、v42=`15/20`，净 +1，无 regression；后续 full 只取得 close-margin `+1/500`。 |
 
 ## 保留正式结果
 
 | run | benchmark | subset | commit | accuracy | 主要结论 |
 |---|---|---|---|---:|---|
-| `stage1_lme_token_safe_format_guard_v36_lme_s_full_4af3244` | LongMemEval-S | full | `4af3244` | 0.772000 | 当前 LME 最好；v28 top40/evidence budget + v35 answer guard，vs v28 净 +3；仍未达 0.80。 |
+| `stage1_operation_workpad_v42_lme_s_full_f7eb076` | LongMemEval-S | full | `f7eb076` | 0.774000 | 当前 LME 最好；v36 上的短 operation workpad，vs v36 净 +1，仍未达 0.80。收益很小，不能视为突破。 |
+| `stage1_lme_token_safe_format_guard_v36_lme_s_full_4af3244` | LongMemEval-S | full | `4af3244` | 0.772000 | v42 前 LME 最好和当前强 baseline；v28 top40/evidence budget + v35 answer guard，vs v28 净 +3；仍未达 0.80。 |
 | `stage1_route_snippet_top60_v38_lme_s_full_daf98e7` | LongMemEval-S | full | `daf98e7` | 0.752000 | v36 上的 route-scoped top60 + snippet；vs v36 净 -10，list/temporal 噪声损失大于 coverage 收益，负向 ablation。 |
 | `stage1_route_scoped_evidence_detail_v40_lme_s_full_1559c80` | LongMemEval-S | full | `1559c80` | 0.742000 | v36 上的 route-scoped detailed evidence_report；vs v36 净 -15，reader-side 规则不足以稳定提升 list/temporal，不跑 LoCoMo。 |
 | `stage1_row_memory_bundle_v37_lme_s_full_7f1fea6` | LongMemEval-S | full | `7f1fea6` | 0.744000 | v36 上的 row-linked build memory bundle；typed memory prompt 化导致 temporal/list/current_state 回退，负向 ablation，不跑 LoCoMo。 |

@@ -92,4 +92,50 @@ Run：`v42_operation_workpad_lme_probe_df25f6a`
 - answer_changed：`6/20`；gained `1`、lost `0`。
 - 关键 gained case：Costa Rica 5-day trip shirt count，从 insufficient 改为 `7`。
 
-结论：v42 满足 token gate，有净正向诊断信号，且无同子集 judge regression。下一步跑 LongMemEval-S full；若 full 不负向且 token 合格，再考虑 LoCoMo non-adversarial full。
+结论：v42 满足 token gate，有净正向诊断信号，且无同子集 judge regression。进入 LongMemEval-S full。
+
+## Full 结果
+
+Run：`stage1_operation_workpad_v42_lme_s_full_f7eb076`
+
+- commit：`f7eb0761216ef6038b04c2405b1f183c4241a095`
+- dirty：True，主要是用户修改的 `docs/architecture.md` 和 `docs/clean_protocol.md` 未提交。
+- prediction：500/500 成功。
+- answer max input/output：`131072/16384`。
+- avg_build_tokens：`80346.246`，total `40173123`。
+- avg_query_tokens：`5865.644`，total `2932822`。
+- max_query_tokens：`8842`，来自 temporal_lookup outlier；平均仍在 `6000` 预算内。
+- build cache hits/misses/writes：`3341/0/0`，但 build token 按 cold-build logical usage 统计。
+- answer cache hits/misses/writes：`20/480/480`。
+- DeepSeek judge：`387/500 = 0.774`，invalid `0`。
+- judge usage：prompt `77794`，completion `41344`，total `119138`。
+
+与 v36 对比：
+
+- v36：`386/500 = 0.772`
+- v42：`387/500 = 0.774`
+- gained：`26`
+- lost：`25`
+- net：`+1`
+- changed_answer_count：`150`
+- same_answer_judge_flip_count：`4`
+
+分桶表现：
+
+- current_state：`12/22 = 0.5455`
+- fact_lookup：`150/183 = 0.8197`
+- list_count：`95/119 = 0.7983`
+- profile_preference：`10/15 = 0.6667`
+- temporal_lookup：`120/161 = 0.7453`
+
+badcase 摘要：
+
+- wrong total：`113`
+- temporal：`59`
+- large_context：`56`
+- count_or_quantity：`54`
+- over_abstain：`22`
+- update_or_state：`19`
+- should_abstain：`15`
+
+Full 结论：v42 是当前 LongMemEval-S full 最好，但只是 close-margin 小幅正向。它说明短 operation discipline 比 v40 的 detailed reader rules 更稳，但相对 v36 的提升不够。后续不能继续随手加 prompt，应优先设计 build-to-query 的 memory organization 和 candidate aggregation。LoCoMo full 如果运行，只应作为 v42 迁移性验证，而不是替代下一阶段方法设计。
