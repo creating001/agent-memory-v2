@@ -72,3 +72,24 @@ v30 LoCoMo full 证明 build-side typed temporal memory 字段更 clean，但当
 - build memory source hits: avg `13.7`
 
 Gate 通过。该诊断不读取 labels/gold/judge/category/sample id，不计算 accuracy。下一步可以跑 LoCoMo non-adversarial full v31 prediction，并在完成后离线 DeepSeek judge。
+
+## 2026-06-14 LoCoMo full 结果
+
+`stage1_evidence_report_detail_v31_locomo_nonadv_full_894c7ee` 已完成 LoCoMo non-adversarial full。
+
+- DeepSeek judge accuracy: `0.7551948051948052`
+- correct/valid/total: `1163/1540/1540`
+- v29 accuracy: `0.7616883116883116`
+- v31 vs v29: `-10` correct overall
+- avg build tokens: `58386.00779220779`
+- avg query tokens: `4275.424025974026`
+- evidence recall: `0.8912760416666666`
+- v29 evidence recall: `0.8893229166666666`
+- delta: both_correct `1118`, both_wrong `322`, gained `45`, lost `55`
+- route deltas:
+  - fact_lookup `+30/-25`
+  - temporal_lookup `+6/-16`
+  - list_count `+8/-10`
+  - profile_preference `+1/-4`
+
+结论：v31 是负向 ablation。它恢复并略微提升 source coverage，但 detailed evidence_report 让 answer 更保守，尤其 temporal/list/profile 回退。不要跑 v31 LongMemEval full。下一步应回到 v29 底座，设计 selective repair/verifier，而不是继续无差别加长主 prompt。

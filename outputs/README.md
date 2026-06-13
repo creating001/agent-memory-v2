@@ -16,6 +16,7 @@
 - `diagnostic/v30_route_stratified_probe/`：v30 字段门禁抽样输入，来自 prediction input + question router，无 labels/gold/judge/category/sample id。
 - `diagnostic/v30_stateful_validity_probe_3525934/`：当前有效 v30 字段门禁 outputs；人类记录在 `experiments/diagnostic/v30_stateful_validity_probe_3525934/`。
 - `diagnostic/v31_evidence_report_detail_probe_b913567/`：v31 no-label gate outputs；人类记录在 `experiments/diagnostic/v31_evidence_report_detail_probe_b913567/`。
+- `formal/stage1_evidence_report_detail_v31_locomo_nonadv_full_894c7ee/`：v31 LoCoMo full prediction/traces；DeepSeek judge、metrics、diagnosis 在 `experiments/formal/stage1_evidence_report_detail_v31_locomo_nonadv_full_894c7ee/`。
 - `formal/stage1_typed_event_memory_v30_locomo_nonadv_full_91c2e1c/`：v30 LoCoMo full prediction/traces；DeepSeek judge、metrics、diagnosis 在 `experiments/formal/stage1_typed_event_memory_v30_locomo_nonadv_full_91c2e1c/`。
 - `services/`：本地 vLLM 服务日志/状态。
 

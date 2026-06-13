@@ -1,0 +1,346 @@
+{
+  "runs": {
+    "baseline": "stage1_temporal_event_contract_v29_locomo_nonadv_full_c7b8390",
+    "candidate": "stage1_evidence_report_detail_v31_locomo_nonadv_full_894c7ee"
+  },
+  "n_keys": 1540,
+  "summary": {
+    "both_correct": 1118,
+    "both_wrong": 322,
+    "gained": 45,
+    "lost": 55
+  },
+  "by_route": {
+    "current_state": {
+      "both_correct": 3,
+      "both_wrong": 1
+    },
+    "fact_lookup": {
+      "both_correct": 773,
+      "gained": 30,
+      "both_wrong": 190,
+      "lost": 25
+    },
+    "list_count": {
+      "both_wrong": 44,
+      "gained": 8,
+      "both_correct": 69,
+      "lost": 10
+    },
+    "profile_preference": {
+      "both_correct": 34,
+      "both_wrong": 10,
+      "gained": 1,
+      "lost": 4
+    },
+    "temporal_lookup": {
+      "both_correct": 239,
+      "both_wrong": 77,
+      "gained": 6,
+      "lost": 16
+    }
+  },
+  "by_category": {
+    "1": {
+      "both_correct": 169,
+      "gained": 19,
+      "both_wrong": 77,
+      "lost": 17
+    },
+    "2": {
+      "both_correct": 218,
+      "both_wrong": 80,
+      "gained": 6,
+      "lost": 17
+    },
+    "3": {
+      "both_correct": 54,
+      "both_wrong": 34,
+      "lost": 3,
+      "gained": 5
+    },
+    "4": {
+      "both_correct": 677,
+      "both_wrong": 131,
+      "lost": 18,
+      "gained": 15
+    }
+  },
+  "same_answer_label_flip": {
+    "changed_WRONG_to_CORRECT": 35,
+    "changed_CORRECT_to_WRONG": 48,
+    "same_WRONG_to_CORRECT": 10,
+    "same_CORRECT_to_WRONG": 7
+  },
+  "examples": {
+    "lost": [
+      {
+        "record_key": "aa88e50253b91ab0fc834727",
+        "category": 1,
+        "route": "fact_lookup",
+        "question": "What LGBTQ+ events has Caroline participated in?",
+        "gold_answer": "Pride parade, school speech, support group",
+        "v29_answer": "['LGBTQ+ pride parade', 'LGBTQ pride event', 'LGBTQ conference', 'transgender conference', 'LGBTQ+ counseling workshop', 'LGBTQ support group', 'LGBTQ art show']",
+        "v31_answer": "LGBTQ+ pride parade (3 July 2023), LGBTQ pride event (June 2023), LGBTQ conference (10 July 2023), transgender conference (July 2023), pride parade (14 August 2023), LGBTQ support group (7 May 2023)",
+        "v29_label": "CORRECT",
+        "v31_label": "WRONG"
+      },
+      {
+        "record_key": "69730f4d8f3e6ea00c896356",
+        "category": 1,
+        "route": "fact_lookup",
+        "question": "What has Melanie painted?",
+        "gold_answer": "Horse, sunset, sunrise",
+        "v29_answer": "landscapes, still life, nature-inspired paintings, sunsets, lake sunrises, horse paintings, and abstract paintings",
+        "v31_answer": "a horse painting, a sunrise-inspired painting, a lake sunrise painting, an abstract painting, a nature-inspired painting, and landscapes and still life",
+        "v29_label": "CORRECT",
+        "v31_label": "WRONG"
+      },
+      {
+        "record_key": "036d1c42efe355bbef56df4a",
+        "category": 2,
+        "route": "temporal_lookup",
+        "question": "When did Jon visit networking events for his store?",
+        "gold_answer": "20 June, 2023",
+        "v29_answer": "2023-06-20",
+        "v31_answer": "2023-07-21",
+        "v29_label": "CORRECT",
+        "v31_label": "WRONG"
+      },
+      {
+        "record_key": "8c8a1e2cc1c2e9bc1a1dfc4a",
+        "category": 4,
+        "route": "fact_lookup",
+        "question": "What kind of professional experience did Gina get accepted for on May 23, 2023?",
+        "gold_answer": "fashion internship",
+        "v29_answer": "fashion internship",
+        "v31_answer": "The provided information is not enough to determine the professional experience Gina was accepted for on May 23, 2023.",
+        "v29_label": "CORRECT",
+        "v31_label": "WRONG"
+      },
+      {
+        "record_key": "a62c827bb1793e98e020b1f4",
+        "category": 3,
+        "route": "list_count",
+        "question": "Around which US holiday did Maria get into a car accident?",
+        "gold_answer": "Independence Day",
+        "v29_answer": "Independence Day",
+        "v31_answer": "Maria did not get into a car accident around a US holiday. The accident occurred on 3 July 2023, which is not a US holiday. The closest US holiday is Independence Day on 4 July 2023, but the accident was not on that day.",
+        "v29_label": "CORRECT",
+        "v31_label": "WRONG"
+      },
+      {
+        "record_key": "0f12b20501887ba1ad098125",
+        "category": 1,
+        "route": "fact_lookup",
+        "question": "What exercises has John done?",
+        "gold_answer": "Weight training, Circuit training, Kickboxing, yoga",
+        "v29_answer": "kickboxing, taekwondo, boot camps, weight training, yoga, circuit training",
+        "v31_answer": "kickboxing, taekwondo, weight training, boot camps",
+        "v29_label": "CORRECT",
+        "v31_label": "WRONG"
+      },
+      {
+        "record_key": "a3dcdc94dae552eda121b33a",
+        "category": 1,
+        "route": "fact_lookup",
+        "question": "What causes has John done events for?",
+        "gold_answer": "Toy drive, Community food drive, veterans, domestic violence",
+        "v29_answer": "community, service-related causes",
+        "v31_answer": "community service, local causes, civic engagement, education and infrastructure issues",
+        "v29_label": "CORRECT",
+        "v31_label": "WRONG"
+      },
+      {
+        "record_key": "43b9ae422254fd6868d68c4c",
+        "category": 4,
+        "route": "fact_lookup",
+        "question": "What kind of food did Maria have on her dinner spread iwth her mother?",
+        "gold_answer": "Salads, sandwiches, homemade desserts",
+        "v29_answer": "salads, sandwiches, homemade desserts, banana split sundae",
+        "v31_answer": "The provided information is not enough to determine the exact food Maria had on her dinner spread with her mother.",
+        "v29_label": "CORRECT",
+        "v31_label": "WRONG"
+      },
+      {
+        "record_key": "bb235fc1c3bcc6f7a9cbb987",
+        "category": 2,
+        "route": "temporal_lookup",
+        "question": "When did Joanna hike with her buddies?",
+        "gold_answer": "The weekend after 3June, 2022.",
+        "v29_answer": "2022-06-04 to 2022-06-05",
+        "v31_answer": "2022-06-03",
+        "v29_label": "CORRECT",
+        "v31_label": "WRONG"
+      },
+      {
+        "record_key": "24c07a556f9dec26cea98f6e",
+        "category": 2,
+        "route": "temporal_lookup",
+        "question": "When did someone write Joanna a touching letter?",
+        "gold_answer": "The week before 14August, 2022.",
+        "v29_answer": "2022-08-07 to 2022-08-13",
+        "v31_answer": "2022-08-14",
+        "v29_label": "CORRECT",
+        "v31_label": "WRONG"
+      },
+      {
+        "record_key": "0968f8b1c60a55755c7aeccc",
+        "category": 1,
+        "route": "list_count",
+        "question": "How many times has Joanna's scripts been rejected?",
+        "gold_answer": "Twice",
+        "v29_answer": "2",
+        "v31_answer": "The provided information is not enough to determine the exact number of times Joanna's scripts have been rejected.",
+        "v29_label": "CORRECT",
+        "v31_label": "WRONG"
+      },
+      {
+        "record_key": "09a2a65e4a6c1022f1d5f266",
+        "category": 1,
+        "route": "fact_lookup",
+        "question": "What are the skills that Nate has helped others learn?",
+        "gold_answer": "coconut milk ice cream recipe, reset high scores, tips to improve gaming skills",
+        "v29_answer": "improving game performance, resetting high scores, competitive gaming, encouragement and motivation",
+        "v31_answer": "improving game performance, resetting high scores in gaming, competitive gaming, and gaming encouragement and motivation",
+        "v29_label": "CORRECT",
+        "v31_label": "WRONG"
+      }
+    ],
+    "gained": [
+      {
+        "record_key": "28821506df08ca36f78e989a",
+        "category": 1,
+        "route": "fact_lookup",
+        "question": "What is Caroline's relationship status?",
+        "gold_answer": "Single",
+        "v29_answer": "unknown",
+        "v31_answer": "Caroline is not in a romantic relationship; she is in a close, supportive friendship with Melanie.",
+        "v29_label": "WRONG",
+        "v31_label": "CORRECT"
+      },
+      {
+        "record_key": "0bb99b11d4e9e2211195173a",
+        "category": 1,
+        "route": "fact_lookup",
+        "question": "What symbols are important to Caroline?",
+        "gold_answer": "Rainbow flag, transgender symbol",
+        "v29_answer": "['rainbow flag mural', 'eagle']",
+        "v31_answer": "rainbow flag mural, eagle symbol",
+        "v29_label": "WRONG",
+        "v31_label": "CORRECT"
+      },
+      {
+        "record_key": "8db077bd9ef00b3cd8c4574e",
+        "category": 1,
+        "route": "fact_lookup",
+        "question": "What musical artists/bands has Melanie seen?",
+        "gold_answer": "Summer Sounds, Matt Patterson",
+        "v29_answer": "Matt Patterson",
+        "v31_answer": "Matt Patterson",
+        "v29_label": "WRONG",
+        "v31_label": "CORRECT"
+      },
+      {
+        "record_key": "53e7cce0fbf6e8b5ba7cfabf",
+        "category": 1,
+        "route": "list_count",
+        "question": "How many children does Melanie have?",
+        "gold_answer": 3,
+        "v29_answer": "The provided information is not enough to determine the exact number of children Melanie has.",
+        "v31_answer": "more than one",
+        "v29_label": "WRONG",
+        "v31_label": "CORRECT"
+      },
+      {
+        "record_key": "1c96c79744028a8d6da023e6",
+        "category": 1,
+        "route": "fact_lookup",
+        "question": "What items has Melanie bought?",
+        "gold_answer": "Figurines, shoes",
+        "v29_answer": "figurines",
+        "v31_answer": "figurines",
+        "v29_label": "WRONG",
+        "v31_label": "CORRECT"
+      },
+      {
+        "record_key": "416aa21dfb71a42ec833cfeb",
+        "category": 2,
+        "route": "temporal_lookup",
+        "question": "When did Gina get her tattoo?",
+        "gold_answer": "A few years ago",
+        "v29_answer": "The provided information is not enough to determine the exact date when Gina got her tattoo.",
+        "v31_answer": "a few years ago",
+        "v29_label": "WRONG",
+        "v31_label": "CORRECT"
+      },
+      {
+        "record_key": "5999440645da0241d1e8429b",
+        "category": 1,
+        "route": "list_count",
+        "question": "Which events has Jon participated in to promote his business venture?",
+        "gold_answer": "fair, networking events, dance competition",
+        "v29_answer": "fair, networking events, event next month (May 2023), event where he met investors",
+        "v31_answer": "fair, networking event",
+        "v29_label": "WRONG",
+        "v31_label": "CORRECT"
+      },
+      {
+        "record_key": "00cb2762eabaf86347b3330f",
+        "category": 4,
+        "route": "fact_lookup",
+        "question": "What offer does Gina make to Jon regarding social media?",
+        "gold_answer": "Helping with making content and managing his social media accounts.",
+        "v29_answer": "The provided information is not enough to determine what offer Gina made to Jon regarding social media.",
+        "v31_answer": "Gina offers to help Jon with making content and managing his social media.",
+        "v29_label": "WRONG",
+        "v31_label": "CORRECT"
+      },
+      {
+        "record_key": "2f8ce2af74b9f264f4c1b7db",
+        "category": 2,
+        "route": "fact_lookup",
+        "question": "Who did Maria have dinner with on May 3, 2023?",
+        "gold_answer": "her mother",
+        "v29_answer": "The provided information is not enough.",
+        "v31_answer": "mom",
+        "v29_label": "WRONG",
+        "v31_label": "CORRECT"
+      },
+      {
+        "record_key": "36e0ab9cd568e5088574aae6",
+        "category": 1,
+        "route": "fact_lookup",
+        "question": "What type of volunteering have John and Maria both done?",
+        "gold_answer": "Volunteering at a homeless shelter",
+        "v29_answer": "Both John and Maria have volunteered, but not the same type. Maria has volunteered at a homeless shelter, and John has volunteered as a mentor for a local school. They have also volunteered together in the past, but the specific type of shared volunteering is not specified.",
+        "v31_answer": "homeless shelter, mentor for a local school",
+        "v29_label": "WRONG",
+        "v31_label": "CORRECT"
+      },
+      {
+        "record_key": "bdbae12e48fe07583e50b3ad",
+        "category": 1,
+        "route": "fact_lookup",
+        "question": "What shelters does Maria volunteer at?",
+        "gold_answer": "The homeless shelter, the dog shelter",
+        "v29_answer": "['homeless shelter']",
+        "v31_answer": "homeless shelter, dog shelter",
+        "v29_label": "WRONG",
+        "v31_label": "CORRECT"
+      },
+      {
+        "record_key": "1f5337edc092c29fa6a47ebb",
+        "category": 4,
+        "route": "fact_lookup",
+        "question": "What did Maria participate in last weekend before April 10, 2023?",
+        "gold_answer": "a 5K charity run",
+        "v29_answer": "The provided information is not enough.",
+        "v31_answer": "5K charity run for a homeless shelter",
+        "v29_label": "WRONG",
+        "v31_label": "CORRECT"
+      }
+    ]
+  },
+  "clean_note": "Offline comparison reads labels/judge/traces only after prediction; do not feed this into prediction logic."
+}
