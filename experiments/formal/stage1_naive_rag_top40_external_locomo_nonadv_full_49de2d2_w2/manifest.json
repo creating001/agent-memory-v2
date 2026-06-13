@@ -1,0 +1,26 @@
+{
+  "clean_assertions": [
+    "Prediction loader rejects gold/reference/target answers.",
+    "Prediction loader rejects judge outputs and benchmark labels.",
+    "Prediction loader rejects sample ids, qids, and row indices.",
+    "record_key is copied only by the runner and is not passed into pipeline modules.",
+    "Derived context rows always retain raw source_id back-links.",
+    "Build-stage typed memory is created only from raw dialogue turns and visible metadata."
+  ],
+  "config_path": "/data/home_new/wujinqi/agent-memory/configs/stage1_naive_rag_top40_external.json",
+  "created_at_utc": "2026-06-13T05:37:14+00:00",
+  "experiment_dir": "/data/home_new/wujinqi/agent-memory/experiments/formal/stage1_naive_rag_top40_external_locomo_nonadv_full_49de2d2_w2",
+  "git": {
+    "commit": "49de2d2e9e6eb6cd1eb50d69e651dce3f50aa20d",
+    "dirty": false,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": ""
+  },
+  "input_path": "/data/home_new/wujinqi/agent-memory/outputs/prepare_locomo_non_adversarial/prediction_input.jsonl",
+  "outputs": {
+    "predictions": "/data/home_new/wujinqi/agent-memory/outputs/formal/stage1_naive_rag_top40_external_locomo_nonadv_full_49de2d2_w2/predictions.jsonl",
+    "traces": "/data/home_new/wujinqi/agent-memory/outputs/formal/stage1_naive_rag_top40_external_locomo_nonadv_full_49de2d2_w2/traces.jsonl"
+  },
+  "run_id": "formal/stage1_naive_rag_top40_external_locomo_nonadv_full_49de2d2_w2"
+}

@@ -1,0 +1,241 @@
+{
+  "accuracy": null,
+  "answer": {
+    "base_url": "http://127.0.0.1:8000/v1",
+    "max_input_tokens": 131072,
+    "max_output_tokens": 16384,
+    "max_tokens": 16384,
+    "mode": "openai_compatible",
+    "model": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "output_format": "json_answer",
+    "temperature": 0.0,
+    "timeout": 120.0
+  },
+  "benchmark": "locomo",
+  "bleu": null,
+  "build_memory": {
+    "avg_active_records": 0.0,
+    "avg_chunks": 0.0,
+    "avg_records": 0.0,
+    "base_url": null,
+    "cache_enabled": false,
+    "cache_hits": 0,
+    "cache_misses": 0,
+    "cache_path": null,
+    "cache_writes": 0,
+    "enabled": false,
+    "include_superseded": false,
+    "include_superseded_information_needs": null,
+    "max_chars_per_turn": null,
+    "max_records_per_chunk": null,
+    "max_tokens": null,
+    "max_turns_per_chunk": null,
+    "mode": null,
+    "model": null,
+    "temperature": null,
+    "total_active_records": 0,
+    "total_chunks": 0,
+    "total_records": 0,
+    "total_superseded_records": 0
+  },
+  "compiler": {
+    "answer_style": "concise",
+    "evidence_order": "retrieval",
+    "evidence_row_labels": false,
+    "final_answer_checklist": false,
+    "max_memory_records": 0,
+    "max_row_text_chars": 0,
+    "memory_layout": "flat",
+    "memory_order": "retrieval",
+    "prompt_mode": "external_naive",
+    "route_guidance": false,
+    "route_overrides": {},
+    "row_text_mode": "full",
+    "temporal_grounding": false,
+    "temporal_hints": false,
+    "temporal_text_normalization": false,
+    "temporal_workpad": false,
+    "temporal_workpad_max_pairs": 12,
+    "temporal_workpad_max_rows": 10,
+    "temporal_workpad_scope": "route"
+  },
+  "experiment_kind": "formal",
+  "f1": null,
+  "metrics_note": "No gold answers or judge outputs are used by this prediction runner.",
+  "n_samples": 1540,
+  "offline_comparison": {
+    "v4_locomo_current_best": {
+      "minus": 167,
+      "net_correct": 4,
+      "other_accuracy_on_shared": 0.6954545454545454,
+      "other_correct": 1071,
+      "plus": 171,
+      "shared": 1540,
+      "this_accuracy_on_shared": 0.698051948051948,
+      "this_correct": 1075
+    },
+    "v7_memory_validity": {
+      "minus": 160,
+      "net_correct": 25,
+      "other_accuracy_on_shared": 0.6818181818181818,
+      "other_correct": 1050,
+      "plus": 185,
+      "shared": 1540,
+      "this_accuracy_on_shared": 0.698051948051948,
+      "this_correct": 1075
+    }
+  },
+  "offline_evidence_recall": {
+    "by_category": {
+      "1": {
+        "evidence_recall": 0.875886524822695,
+        "n": 282
+      },
+      "2": {
+        "evidence_recall": 0.8753894080996885,
+        "n": 321
+      },
+      "3": {
+        "evidence_recall": 0.6413043478260869,
+        "n": 92
+      },
+      "4": {
+        "evidence_recall": 0.8692033293697978,
+        "n": 841
+      }
+    },
+    "clean_note": "Offline-only retrieval diagnostic. Evidence labels must not feed prediction, route, retrieval, compiler, answer, or verifier modules.",
+    "evidence_recall": 0.8580729166666666,
+    "n_with_evidence_labels": 1536,
+    "output": "experiments/formal/stage1_naive_rag_top40_external_locomo_nonadv_full_49de2d2_w2/evidence_recall.json"
+  },
+  "offline_judge": {
+    "accuracy": 0.6985055230669266,
+    "accuracy_invalid_as_wrong": 0.698051948051948,
+    "by_category": {
+      "1": {
+        "accuracy": 0.648936,
+        "correct": 183,
+        "total": 282,
+        "valid": 282
+      },
+      "2": {
+        "accuracy": 0.47352,
+        "correct": 152,
+        "total": 321,
+        "valid": 321
+      },
+      "3": {
+        "accuracy": 0.604167,
+        "correct": 58,
+        "total": 96,
+        "valid": 96
+      },
+      "4": {
+        "accuracy": 0.811905,
+        "correct": 682,
+        "invalid": 1,
+        "total": 841,
+        "valid": 840
+      }
+    },
+    "by_route": {
+      "current_state": {
+        "accuracy": 0.75,
+        "correct": 3,
+        "total": 4,
+        "valid": 4
+      },
+      "fact_lookup": {
+        "accuracy": 0.774828,
+        "correct": 788,
+        "invalid": 1,
+        "total": 1018,
+        "valid": 1017
+      },
+      "list_count": {
+        "accuracy": 0.526718,
+        "correct": 69,
+        "total": 131,
+        "valid": 131
+      },
+      "profile_preference": {
+        "accuracy": 0.693878,
+        "correct": 34,
+        "total": 49,
+        "valid": 49
+      },
+      "temporal_lookup": {
+        "accuracy": 0.535503,
+        "correct": 181,
+        "total": 338,
+        "valid": 338
+      }
+    },
+    "clean_note": "DeepSeek judge ran offline after prediction; judge outputs and labels must not be consumed by prediction code.",
+    "correct": 1075,
+    "judge_output": "experiments/formal/stage1_naive_rag_top40_external_locomo_nonadv_full_49de2d2_w2/deepseek_judge.json",
+    "model": "deepseek-v4-flash",
+    "n_invalid": 1,
+    "n_valid": 1539,
+    "usage": {
+      "completion_tokens": 159077,
+      "prompt_tokens": 496353,
+      "total_tokens": 655430
+    },
+    "wrong": 464
+  },
+  "retrieval": {
+    "avg_compiled_evidence_items": 40.0,
+    "avg_context_chars": 8214.93051948052,
+    "avg_embedding_tokens": 196.98311688311688,
+    "avg_memory_hits": 0.0,
+    "avg_memory_source_hits": 0.0,
+    "build_memory_enabled": false,
+    "build_memory_include_superseded": false,
+    "build_memory_include_superseded_information_needs": null,
+    "build_memory_max_sources_per_record": null,
+    "build_memory_top_k": null,
+    "dense_document_text_mode": "external_naive",
+    "dense_enabled": true,
+    "dense_query_text_mode": "external_naive",
+    "drop_query_stopwords": false,
+    "embedding_cache_enabled": true,
+    "embedding_cache_hits": 1540,
+    "embedding_cache_misses": 5882,
+    "embedding_cache_path": "outputs/cache/qwen3_embedding.sqlite",
+    "embedding_cache_writes": 5882,
+    "lexical_enabled": false,
+    "lexical_protect_top_n": 0,
+    "max_top_k": 40,
+    "neighbor_order": "hit_priority",
+    "neighbor_window": 0,
+    "session_anchor_top_k": null,
+    "session_bm25_applied_count": 0,
+    "session_bm25_applied_rate": 0.0,
+    "session_bm25_enabled": false,
+    "session_bm25_top_k": null,
+    "session_enabled_information_needs": null,
+    "session_enabled_query_patterns": null,
+    "session_enabled_route_signals": null,
+    "session_max_anchor_hits": null,
+    "session_protect_turn_hits": null,
+    "top_k": 40,
+    "total_embedding_tokens": 303354
+  },
+  "route": {
+    "enable_broad_list_patterns": false,
+    "enable_recommendation_profile_patterns": false,
+    "temporal_priority_over_recent": false
+  },
+  "runner": {
+    "workers": 2
+  },
+  "subset": "non-adversarial-full",
+  "token_cost": {
+    "avg_build_tokens": 0.0,
+    "avg_query_tokens": 2650.6435064935067,
+    "total_build_tokens": 0,
+    "total_query_tokens": 4081991
+  }
+}
