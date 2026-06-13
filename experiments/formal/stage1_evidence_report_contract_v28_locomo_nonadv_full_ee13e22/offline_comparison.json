@@ -1,0 +1,1108 @@
+{
+  "runs": {
+    "naive": "stage1_naive_rag_top40_external_locomo_nonadv_full_49de2d2_w2",
+    "v18": "stage1_hybrid_bm25_v18_locomo_nonadv_full_bb1cc3c",
+    "v26": "stage1_structured_answer_contract_v26_locomo_nonadv_full_c21ef84",
+    "v28": "stage1_evidence_report_contract_v28_locomo_nonadv_full_ee13e22"
+  },
+  "summary": {
+    "naive": {
+      "accuracy": 0.6985055230669266,
+      "correct": 1075,
+      "n": 1540,
+      "by_category": {
+        "1": {
+          "n": 282,
+          "accuracy": 0.648936170212766
+        },
+        "2": {
+          "n": 321,
+          "accuracy": 0.4735202492211838
+        },
+        "3": {
+          "n": 96,
+          "accuracy": 0.6041666666666666
+        },
+        "4": {
+          "n": 841,
+          "accuracy": 0.8109393579072532
+        }
+      },
+      "by_need": {
+        "current_state": {
+          "n": 4,
+          "accuracy": 0.75
+        },
+        "fact_lookup": {
+          "n": 1018,
+          "accuracy": 0.7740667976424361
+        },
+        "list_count": {
+          "n": 131,
+          "accuracy": 0.5267175572519084
+        },
+        "profile_preference": {
+          "n": 49,
+          "accuracy": 0.6938775510204082
+        },
+        "temporal_lookup": {
+          "n": 338,
+          "accuracy": 0.5355029585798816
+        }
+      }
+    },
+    "v18": {
+      "accuracy": 0.737012987012987,
+      "correct": 1135,
+      "n": 1540,
+      "by_category": {
+        "1": {
+          "n": 282,
+          "accuracy": 0.6631205673758865
+        },
+        "2": {
+          "n": 321,
+          "accuracy": 0.5919003115264797
+        },
+        "3": {
+          "n": 96,
+          "accuracy": 0.625
+        },
+        "4": {
+          "n": 841,
+          "accuracy": 0.8299643281807372
+        }
+      },
+      "by_need": {
+        "current_state": {
+          "n": 4,
+          "accuracy": 1.0
+        },
+        "fact_lookup": {
+          "n": 1018,
+          "accuracy": 0.7907662082514735
+        },
+        "list_count": {
+          "n": 131,
+          "accuracy": 0.5877862595419847
+        },
+        "profile_preference": {
+          "n": 49,
+          "accuracy": 0.7551020408163265
+        },
+        "temporal_lookup": {
+          "n": 338,
+          "accuracy": 0.6272189349112426
+        }
+      }
+    },
+    "v26": {
+      "accuracy": 0.7298701298701299,
+      "correct": 1124,
+      "n": 1540,
+      "by_category": {
+        "1": {
+          "n": 282,
+          "accuracy": 0.6276595744680851
+        },
+        "2": {
+          "n": 321,
+          "accuracy": 0.5950155763239875
+        },
+        "3": {
+          "n": 96,
+          "accuracy": 0.6041666666666666
+        },
+        "4": {
+          "n": 841,
+          "accuracy": 0.8299643281807372
+        }
+      },
+      "by_need": {
+        "current_state": {
+          "n": 4,
+          "accuracy": 0.75
+        },
+        "fact_lookup": {
+          "n": 1018,
+          "accuracy": 0.7819253438113949
+        },
+        "list_count": {
+          "n": 131,
+          "accuracy": 0.5801526717557252
+        },
+        "profile_preference": {
+          "n": 49,
+          "accuracy": 0.7551020408163265
+        },
+        "temporal_lookup": {
+          "n": 338,
+          "accuracy": 0.6272189349112426
+        }
+      }
+    },
+    "v28": {
+      "accuracy": 0.7376623376623377,
+      "correct": 1136,
+      "n": 1540,
+      "by_category": {
+        "1": {
+          "n": 282,
+          "accuracy": 0.648936170212766
+        },
+        "2": {
+          "n": 321,
+          "accuracy": 0.6199376947040498
+        },
+        "3": {
+          "n": 96,
+          "accuracy": 0.5833333333333334
+        },
+        "4": {
+          "n": 841,
+          "accuracy": 0.8299643281807372
+        }
+      },
+      "by_need": {
+        "current_state": {
+          "n": 4,
+          "accuracy": 0.75
+        },
+        "fact_lookup": {
+          "n": 1018,
+          "accuracy": 0.7838899803536346
+        },
+        "list_count": {
+          "n": 131,
+          "accuracy": 0.5877862595419847
+        },
+        "profile_preference": {
+          "n": 49,
+          "accuracy": 0.7959183673469388
+        },
+        "temporal_lookup": {
+          "n": 338,
+          "accuracy": 0.6479289940828402
+        }
+      }
+    }
+  },
+  "comparisons": {
+    "naive": {
+      "buckets": {
+        "v28_only": 152,
+        "both_correct": 984,
+        "both_wrong": 313,
+        "naive_only": 91
+      },
+      "same_norm": 349,
+      "same_norm_judge_diff": 2,
+      "by_category_need_diff": {
+        "1|fact_lookup": {
+          "v28_only": 18,
+          "naive_only": 19
+        },
+        "1|list_count": {
+          "naive_only": 6,
+          "v28_only": 6
+        },
+        "1|profile_preference": {
+          "v28_only": 2
+        },
+        "1|temporal_lookup": {
+          "naive_only": 1
+        },
+        "2|fact_lookup": {
+          "naive_only": 1,
+          "v28_only": 2
+        },
+        "2|list_count": {
+          "v28_only": 4,
+          "naive_only": 2
+        },
+        "2|temporal_lookup": {
+          "v28_only": 64,
+          "naive_only": 20
+        },
+        "3|fact_lookup": {
+          "naive_only": 4,
+          "v28_only": 3
+        },
+        "3|list_count": {
+          "v28_only": 1,
+          "naive_only": 1
+        },
+        "3|temporal_lookup": {
+          "naive_only": 1
+        },
+        "4|fact_lookup": {
+          "naive_only": 27,
+          "v28_only": 38
+        },
+        "4|list_count": {
+          "v28_only": 7,
+          "naive_only": 1
+        },
+        "4|profile_preference": {
+          "v28_only": 5,
+          "naive_only": 2
+        },
+        "4|temporal_lookup": {
+          "naive_only": 6,
+          "v28_only": 2
+        }
+      },
+      "examples": [
+        {
+          "record_key": "5e7fd17974e60e8ebb29c30d",
+          "category": "2",
+          "information_need": "temporal_lookup",
+          "naive": false,
+          "v28": true,
+          "same_norm_answer": false,
+          "question": "When did Caroline go to the LGBTQ support group?",
+          "gold": "7 May 2023",
+          "naive_answer": "8 May, 2023",
+          "v28_answer": "2023-05-07"
+        },
+        {
+          "record_key": "d41bb903497cfadc9e9f9682",
+          "category": "1",
+          "information_need": "fact_lookup",
+          "naive": false,
+          "v28": true,
+          "same_norm_answer": false,
+          "question": "What did Caroline research?",
+          "gold": "Adoption agencies",
+          "naive_answer": "Counseling and mental health work.",
+          "v28_answer": "adoption agencies"
+        },
+        {
+          "record_key": "28821506df08ca36f78e989a",
+          "category": "1",
+          "information_need": "fact_lookup",
+          "naive": true,
+          "v28": false,
+          "same_norm_answer": false,
+          "question": "What is Caroline's relationship status?",
+          "gold": "Single",
+          "naive_answer": "Caroline is not in a romantic relationship; she is focused on adopting a child.",
+          "v28_answer": "The provided information is not enough to determine Caroline's relationship status."
+        },
+        {
+          "record_key": "2726a17928daef593183a90f",
+          "category": "2",
+          "information_need": "temporal_lookup",
+          "naive": false,
+          "v28": true,
+          "same_norm_answer": false,
+          "question": "When did Caroline give a speech at a school?",
+          "gold": "The week before 9 June 2023",
+          "naive_answer": "9 June, 2023",
+          "v28_answer": "2023-06-02 to 2023-06-08"
+        },
+        {
+          "record_key": "daf5a3f4af72f6e342152a73",
+          "category": "3",
+          "information_need": "fact_lookup",
+          "naive": true,
+          "v28": false,
+          "same_norm_answer": false,
+          "question": "Would Caroline still want to pursue counseling as a career if she hadn't received support growing up?",
+          "gold": "Likely no",
+          "naive_answer": "No, Caroline likely would not have pursued counseling as a career if she hadn't received support growing up, as her desire to help others stems from her own positive experience with support.",
+          "v28_answer": "The provided information is not enough to determine if Caroline would still want to pursue counseling as a career without support growing up."
+        },
+        {
+          "record_key": "050de4d029518a005ce9e39a",
+          "category": "1",
+          "information_need": "fact_lookup",
+          "naive": true,
+          "v28": false,
+          "same_norm_answer": false,
+          "question": "What activities does Melanie partake in?",
+          "gold": "pottery, camping, painting, swimming",
+          "naive_answer": "Melanie participates in running, reading, playing the violin and clarinet, hiking, camping, swimming, pottery, painting, and spending time with her family.",
+          "v28_answer": "running, reading, playing violin, playing clarinet, hiking, camping, pottery, swimming"
+        },
+        {
+          "record_key": "bf0313aefcf43c7abfe9585a",
+          "category": "2",
+          "information_need": "temporal_lookup",
+          "naive": false,
+          "v28": true,
+          "same_norm_answer": false,
+          "question": "When did Melanie sign up for a pottery class?",
+          "gold": "2 July 2023",
+          "naive_answer": "3 July 2023",
+          "v28_answer": "2023-07-02"
+        },
+        {
+          "record_key": "6b6d09d7e82567bbb2a34cf0",
+          "category": "1",
+          "information_need": "profile_preference",
+          "naive": false,
+          "v28": true,
+          "same_norm_answer": false,
+          "question": "What do Melanie's kids like?",
+          "gold": "dinosaurs, nature",
+          "naive_answer": "Melanie's kids like outdoor activities, creative projects, museum visits, camping, and learning about nature.",
+          "v28_answer": "beach trips, clay art and creativity, dinosaurs and museums, camping, hiking, and nature exploration"
+        },
+        {
+          "record_key": "b7dee92eaaa814f776ceae01",
+          "category": "2",
+          "information_need": "temporal_lookup",
+          "naive": false,
+          "v28": true,
+          "same_norm_answer": false,
+          "question": "When did Melanie go to the museum?",
+          "gold": "5 July 2023",
+          "naive_answer": "6 July 2023",
+          "v28_answer": "2023-07-05"
+        },
+        {
+          "record_key": "dd6aa7b1aa4977e0fdd66669",
+          "category": "2",
+          "information_need": "temporal_lookup",
+          "naive": false,
+          "v28": true,
+          "same_norm_answer": false,
+          "question": "When did Melanie read the book \"nothing is impossible\"?",
+          "gold": 2022,
+          "naive_answer": "The provided information is not enough.",
+          "v28_answer": "2022"
+        },
+        {
+          "record_key": "083031bd755c4d90cc9caff6",
+          "category": "2",
+          "information_need": "temporal_lookup",
+          "naive": false,
+          "v28": true,
+          "same_norm_answer": false,
+          "question": "When did Caroline go to the adoption meeting?",
+          "gold": "The friday before 15 July 2023",
+          "naive_answer": "15 July 2023",
+          "v28_answer": "2023-07-14"
+        },
+        {
+          "record_key": "aa88e50253b91ab0fc834727",
+          "category": "1",
+          "information_need": "fact_lookup",
+          "naive": true,
+          "v28": false,
+          "same_norm_answer": false,
+          "question": "What LGBTQ+ events has Caroline participated in?",
+          "gold": "Pride parade, school speech, support group",
+          "naive_answer": "Caroline has participated in a Pride parade, an LGBTQ conference, an LGBTQ art show, a mentorship program for LGBTQ youth, and joined an LGBTQ activist group.",
+          "v28_answer": "['LGBTQ+ pride parade', 'LGBTQ pride event', 'LGBTQ conference', 'LGBTQ+ counseling workshop', 'LGBTQ art show', 'LGBTQ activist group meeting', 'volunteering at LGBTQ+ youth center']"
+        },
+        {
+          "record_key": "5e011cc0e92cdb6f16e40633",
+          "category": "1",
+          "information_need": "fact_lookup",
+          "naive": true,
+          "v28": false,
+          "same_norm_answer": false,
+          "question": "What events has Caroline participated in to help children?",
+          "gold": "Mentoring program, school speech",
+          "naive_answer": "Caroline has participated in volunteering at a youth center, mentoring young people, and organizing a talent show for children.",
+          "v28_answer": "volunteering at an LGBTQ+ youth center, organizing a talent show for kids"
+        },
+        {
+          "record_key": "f07b4728d028a1bce5489f14",
+          "category": "1",
+          "information_need": "fact_lookup",
+          "naive": false,
+          "v28": true,
+          "same_norm_answer": false,
+          "question": "What did Melanie paint recently?",
+          "gold": "sunset",
+          "naive_answer": "A horse",
+          "v28_answer": "a painting inspired by sunsets"
+        },
+        {
+          "record_key": "d3a8d12b5be57abcc6ef6dc6",
+          "category": "1",
+          "information_need": "list_count",
+          "naive": true,
+          "v28": false,
+          "same_norm_answer": false,
+          "question": "How many times has Melanie gone to the beach in 2023?",
+          "gold": 2,
+          "naive_answer": "2",
+          "v28_answer": "1"
+        },
+        {
+          "record_key": "c76a54d6c47bee06e2bee3d8",
+          "category": "1",
+          "information_need": "fact_lookup",
+          "naive": true,
+          "v28": false,
+          "same_norm_answer": false,
+          "question": "Who supports Caroline when she has a negative experience?",
+          "gold": "Her mentors, family, and friends",
+          "naive_answer": "Friends, family, mentors, and her support group support Caroline during negative experiences.",
+          "v28_answer": "Melanie"
+        },
+        {
+          "record_key": "675b67dbe55a172fbf9b7416",
+          "category": "2",
+          "information_need": "temporal_lookup",
+          "naive": false,
+          "v28": true,
+          "same_norm_answer": false,
+          "question": "When did Caroline and Melanie go to a pride fesetival together?",
+          "gold": 2022,
+          "naive_answer": "17 August, 2023",
+          "v28_answer": "2022"
+        },
+        {
+          "record_key": "fd6de094822579ef6391673e",
+          "category": "2",
+          "information_need": "temporal_lookup",
+          "naive": true,
+          "v28": false,
+          "same_norm_answer": false,
+          "question": "When did Caroline apply to adoption agencies?",
+          "gold": "The week of 23 August 2023",
+          "naive_answer": "23 August 2023",
+          "v28_answer": "2023-05-25"
+        },
+        {
+          "record_key": "8cd07ac3e2937d6c5051ce9c",
+          "category": "2",
+          "information_need": "temporal_lookup",
+          "naive": false,
+          "v28": true,
+          "same_norm_answer": false,
+          "question": "When did Melanie make a plate in pottery class?",
+          "gold": "24 August 2023",
+          "naive_answer": "25 August 2023",
+          "v28_answer": "2023-08-24"
+        },
+        {
+          "record_key": "90166a1fb128ed22a1654faa",
+          "category": "2",
+          "information_need": "temporal_lookup",
+          "naive": true,
+          "v28": false,
+          "same_norm_answer": false,
+          "question": "When did Caroline go biking with friends?",
+          "gold": "The weekend before 13 September 2023",
+          "naive_answer": "Caroline went biking with friends the weekend before 13 September 2023.",
+          "v28_answer": "2023-09-13"
+        }
+      ]
+    },
+    "v18": {
+      "buckets": {
+        "both_correct": 1044,
+        "both_wrong": 313,
+        "v18_only": 91,
+        "v28_only": 92
+      },
+      "same_norm": 569,
+      "same_norm_judge_diff": 8,
+      "by_category_need_diff": {
+        "1|fact_lookup": {
+          "v18_only": 21,
+          "v28_only": 17
+        },
+        "1|list_count": {
+          "v18_only": 7,
+          "v28_only": 7
+        },
+        "1|profile_preference": {
+          "v28_only": 2,
+          "v18_only": 1
+        },
+        "1|temporal_lookup": {
+          "v18_only": 1
+        },
+        "2|fact_lookup": {
+          "v18_only": 2
+        },
+        "2|list_count": {
+          "v28_only": 4,
+          "v18_only": 2
+        },
+        "2|temporal_lookup": {
+          "v18_only": 18,
+          "v28_only": 27
+        },
+        "3|fact_lookup": {
+          "v18_only": 4,
+          "v28_only": 1
+        },
+        "3|list_count": {
+          "v18_only": 2,
+          "v28_only": 1
+        },
+        "4|current_state": {
+          "v18_only": 1
+        },
+        "4|fact_lookup": {
+          "v28_only": 30,
+          "v18_only": 28
+        },
+        "4|list_count": {
+          "v18_only": 1
+        },
+        "4|profile_preference": {
+          "v18_only": 2,
+          "v28_only": 3
+        },
+        "4|temporal_lookup": {
+          "v18_only": 1
+        }
+      },
+      "examples": [
+        {
+          "record_key": "05a2fa4682ace156a523b92c",
+          "category": "2",
+          "information_need": "temporal_lookup",
+          "v18": true,
+          "v28": false,
+          "same_norm_answer": false,
+          "question": "When did Caroline meet up with her friends, family, and mentors?",
+          "gold": "The week before 9 June 2023",
+          "v18_answer": "2023-06-02 to 2023-06-08",
+          "v28_answer": "2023-06-09"
+        },
+        {
+          "record_key": "daf5a3f4af72f6e342152a73",
+          "category": "3",
+          "information_need": "fact_lookup",
+          "v18": true,
+          "v28": false,
+          "same_norm_answer": false,
+          "question": "Would Caroline still want to pursue counseling as a career if she hadn't received support growing up?",
+          "gold": "Likely no",
+          "v18_answer": "No, Caroline's pursuit of counseling as a career is strongly influenced by the support she received, so it is unlikely she would want to pursue it without that support.",
+          "v28_answer": "The provided information is not enough to determine if Caroline would still want to pursue counseling as a career without support growing up."
+        },
+        {
+          "record_key": "050de4d029518a005ce9e39a",
+          "category": "1",
+          "information_need": "fact_lookup",
+          "v18": true,
+          "v28": false,
+          "same_norm_answer": false,
+          "question": "What activities does Melanie partake in?",
+          "gold": "pottery, camping, painting, swimming",
+          "v18_answer": "Melanie participates in running, reading, playing the violin and clarinet, hiking, camping, swimming, pottery, painting, and spending time in nature with her family.",
+          "v28_answer": "running, reading, playing violin, playing clarinet, hiking, camping, pottery, swimming"
+        },
+        {
+          "record_key": "6b6d09d7e82567bbb2a34cf0",
+          "category": "1",
+          "information_need": "profile_preference",
+          "v18": false,
+          "v28": true,
+          "same_norm_answer": false,
+          "question": "What do Melanie's kids like?",
+          "gold": "dinosaurs, nature",
+          "v18_answer": "Melanie's kids like going to the beach, camping, visiting museums, and doing creative activities like making clay art.",
+          "v28_answer": "beach trips, clay art and creativity, dinosaurs and museums, camping, hiking, and nature exploration"
+        },
+        {
+          "record_key": "b7dee92eaaa814f776ceae01",
+          "category": "2",
+          "information_need": "temporal_lookup",
+          "v18": false,
+          "v28": true,
+          "same_norm_answer": false,
+          "question": "When did Melanie go to the museum?",
+          "gold": "5 July 2023",
+          "v18_answer": "2023-07-06",
+          "v28_answer": "2023-07-05"
+        },
+        {
+          "record_key": "7a46c72efd3f51977889864f",
+          "category": "2",
+          "information_need": "temporal_lookup",
+          "v18": true,
+          "v28": false,
+          "same_norm_answer": false,
+          "question": "When did Caroline have a picnic?",
+          "gold": "The week before 6 July 2023",
+          "v18_answer": "2023-06-29 to 2023-07-05",
+          "v28_answer": "2023-07-06"
+        },
+        {
+          "record_key": "bd082252b340b47f699fd4eb",
+          "category": "1",
+          "information_need": "fact_lookup",
+          "v18": true,
+          "v28": false,
+          "same_norm_answer": false,
+          "question": "What books has Melanie read?",
+          "gold": "\"Nothing is Impossible\", \"Charlotte's Web\"",
+          "v18_answer": "Melanie has read 'Charlotte's Web' and a book recommended by Caroline.",
+          "v28_answer": "[\"Charlotte's Web\"]"
+        },
+        {
+          "record_key": "04a4ca37a584ea4afde09c96",
+          "category": "2",
+          "information_need": "temporal_lookup",
+          "v18": true,
+          "v28": false,
+          "same_norm_answer": false,
+          "question": "When did Melanie go camping in June?",
+          "gold": "The week before 27 June 2023",
+          "v18_answer": "June 20-26, 2023",
+          "v28_answer": "2023-06-27"
+        },
+        {
+          "record_key": "aa88e50253b91ab0fc834727",
+          "category": "1",
+          "information_need": "fact_lookup",
+          "v18": true,
+          "v28": false,
+          "same_norm_answer": false,
+          "question": "What LGBTQ+ events has Caroline participated in?",
+          "gold": "Pride parade, school speech, support group",
+          "v18_answer": "Caroline has participated in a LGBTQ+ pride parade, an LGBTQ conference, a transgender counseling workshop, an LGBTQ art show, and volunteered at an LGBTQ+ youth center.",
+          "v28_answer": "['LGBTQ+ pride parade', 'LGBTQ pride event', 'LGBTQ conference', 'LGBTQ+ counseling workshop', 'LGBTQ art show', 'LGBTQ activist group meeting', 'volunteering at LGBTQ+ youth center']"
+        },
+        {
+          "record_key": "5e011cc0e92cdb6f16e40633",
+          "category": "1",
+          "information_need": "fact_lookup",
+          "v18": true,
+          "v28": false,
+          "same_norm_answer": false,
+          "question": "What events has Caroline participated in to help children?",
+          "gold": "Mentoring program, school speech",
+          "v18_answer": "Caroline has participated in volunteering at a youth center, organizing a talent show for kids, and mentoring children through mental health advocacy.",
+          "v28_answer": "volunteering at an LGBTQ+ youth center, organizing a talent show for kids"
+        },
+        {
+          "record_key": "48ee78dba3d2e536dfabf68e",
+          "category": "2",
+          "information_need": "temporal_lookup",
+          "v18": true,
+          "v28": false,
+          "same_norm_answer": false,
+          "question": "When did Caroline draw a self-portrait?",
+          "gold": "The week before 23 August 2023",
+          "v18_answer": "2023-08-16 to 2023-08-22",
+          "v28_answer": "2023-08-23"
+        },
+        {
+          "record_key": "0bb99b11d4e9e2211195173a",
+          "category": "1",
+          "information_need": "fact_lookup",
+          "v18": true,
+          "v28": false,
+          "same_norm_answer": false,
+          "question": "What symbols are important to Caroline?",
+          "gold": "Rainbow flag, transgender symbol",
+          "v18_answer": "The rainbow flag mural and the eagle symbol are important to Caroline.",
+          "v28_answer": "['rainbow flag mural', 'eagle']"
+        },
+        {
+          "record_key": "8cd07ac3e2937d6c5051ce9c",
+          "category": "2",
+          "information_need": "temporal_lookup",
+          "v18": false,
+          "v28": true,
+          "same_norm_answer": false,
+          "question": "When did Melanie make a plate in pottery class?",
+          "gold": "24 August 2023",
+          "v18_answer": "2023-08-25",
+          "v28_answer": "2023-08-24"
+        },
+        {
+          "record_key": "8db077bd9ef00b3cd8c4574e",
+          "category": "1",
+          "information_need": "fact_lookup",
+          "v18": true,
+          "v28": false,
+          "same_norm_answer": false,
+          "question": "What musical artists/bands has Melanie seen?",
+          "gold": "Summer Sounds, Matt Patterson",
+          "v18_answer": "Melanie has seen Matt Patterson and enjoys music by Ed Sheeran and classical composers like Bach and Mozart.",
+          "v28_answer": "Matt Patterson"
+        },
+        {
+          "record_key": "65a58a5dd3bc5a5b7f9af9fe",
+          "category": "3",
+          "information_need": "fact_lookup",
+          "v18": true,
+          "v28": false,
+          "same_norm_answer": false,
+          "question": "Would Caroline want to move back to her home country soon?",
+          "gold": "No; she's in the process of adopting children.",
+          "v18_answer": "No, Caroline does not want to move back to her home country soon.",
+          "v28_answer": "unknown"
+        },
+        {
+          "record_key": "98204abce8fdb37acb9681af",
+          "category": "4",
+          "information_need": "current_state",
+          "v18": true,
+          "v28": false,
+          "same_norm_answer": false,
+          "question": "What did Mel and her kids paint in their latest project in July 2023?",
+          "gold": "a sunset with a palm tree",
+          "v18_answer": "A nature-inspired painting",
+          "v28_answer": "Mel and her kids painted a nature-inspired artwork featuring flowers in their latest project in July 2023."
+        },
+        {
+          "record_key": "5c4e87db43015d886ee15ad1",
+          "category": "4",
+          "information_need": "fact_lookup",
+          "v18": false,
+          "v28": true,
+          "same_norm_answer": false,
+          "question": "What pets does Melanie have?",
+          "gold": "Two cats and a dog",
+          "v18_answer": "Melanie has a dog named Luna and a cat named Oliver.",
+          "v28_answer": "a dog named Luna, and two cats named Oliver and Bailey"
+        },
+        {
+          "record_key": "4e2cdd3b52043fd06b2acbdb",
+          "category": "4",
+          "information_need": "fact_lookup",
+          "v18": false,
+          "v28": true,
+          "same_norm_answer": false,
+          "question": "What did Caroline make for a local church?",
+          "gold": "a stained glass window",
+          "v18_answer": "A painting showing her journey as a transgender woman and the theme of change.",
+          "v28_answer": "a piece of art"
+        },
+        {
+          "record_key": "b79bd643671108319bfce3ec",
+          "category": "4",
+          "information_need": "fact_lookup",
+          "v18": false,
+          "v28": true,
+          "same_norm_answer": false,
+          "question": "What setback did Melanie face in October 2023?",
+          "gold": "She got hurt and had to take a break from pottery.",
+          "v18_answer": "Melanie got hurt in September 2023 and had to take a break from pottery.",
+          "v28_answer": "Melanie got hurt and had to take a break from pottery."
+        },
+        {
+          "record_key": "5535cefb3250570b78be549b",
+          "category": "4",
+          "information_need": "fact_lookup",
+          "v18": true,
+          "v28": false,
+          "same_norm_answer": false,
+          "question": "What kind of painting did Caroline share with Melanie on October 13, 2023?",
+          "gold": "An abstract painting with blue streaks on a wall.",
+          "v18_answer": "Abstract painting",
+          "v28_answer": "drawing"
+        }
+      ]
+    },
+    "v26": {
+      "buckets": {
+        "both_correct": 1047,
+        "both_wrong": 327,
+        "v26_only": 77,
+        "v28_only": 89
+      },
+      "same_norm": 627,
+      "same_norm_judge_diff": 8,
+      "by_category_need_diff": {
+        "1|fact_lookup": {
+          "v28_only": 18,
+          "v26_only": 15
+        },
+        "1|list_count": {
+          "v26_only": 5,
+          "v28_only": 6
+        },
+        "1|profile_preference": {
+          "v28_only": 4,
+          "v26_only": 1
+        },
+        "1|temporal_lookup": {
+          "v26_only": 1
+        },
+        "2|fact_lookup": {
+          "v26_only": 2
+        },
+        "2|list_count": {
+          "v28_only": 3,
+          "v26_only": 1
+        },
+        "2|temporal_lookup": {
+          "v26_only": 15,
+          "v28_only": 23
+        },
+        "3|fact_lookup": {
+          "v26_only": 3,
+          "v28_only": 3
+        },
+        "3|list_count": {
+          "v26_only": 2
+        },
+        "4|fact_lookup": {
+          "v28_only": 29,
+          "v26_only": 28
+        },
+        "4|list_count": {
+          "v28_only": 1,
+          "v26_only": 1
+        },
+        "4|profile_preference": {
+          "v26_only": 2,
+          "v28_only": 1
+        },
+        "4|temporal_lookup": {
+          "v26_only": 1,
+          "v28_only": 1
+        }
+      },
+      "examples": [
+        {
+          "record_key": "05a2fa4682ace156a523b92c",
+          "category": "2",
+          "information_need": "temporal_lookup",
+          "v26": true,
+          "v28": false,
+          "same_norm_answer": false,
+          "question": "When did Caroline meet up with her friends, family, and mentors?",
+          "gold": "The week before 9 June 2023",
+          "v26_answer": "2023-06-02 to 2023-06-08",
+          "v28_answer": "2023-06-09"
+        },
+        {
+          "record_key": "f5e68c54090a60fac1b80246",
+          "category": "1",
+          "information_need": "fact_lookup",
+          "v26": false,
+          "v28": true,
+          "same_norm_answer": true,
+          "question": "What career path has Caroline decided to persue?",
+          "gold": "counseling or mental health for Transgender people",
+          "v26_answer": "Counseling and mental health",
+          "v28_answer": "counseling and mental health"
+        },
+        {
+          "record_key": "daf5a3f4af72f6e342152a73",
+          "category": "3",
+          "information_need": "fact_lookup",
+          "v26": true,
+          "v28": false,
+          "same_norm_answer": false,
+          "question": "Would Caroline still want to pursue counseling as a career if she hadn't received support growing up?",
+          "gold": "Likely no",
+          "v26_answer": "No, Caroline's desire to pursue counseling as a career is strongly influenced by the support she received, so it is unlikely she would still want to pursue it without that support.",
+          "v28_answer": "The provided information is not enough to determine if Caroline would still want to pursue counseling as a career without support growing up."
+        },
+        {
+          "record_key": "050de4d029518a005ce9e39a",
+          "category": "1",
+          "information_need": "fact_lookup",
+          "v26": true,
+          "v28": false,
+          "same_norm_answer": false,
+          "question": "What activities does Melanie partake in?",
+          "gold": "pottery, camping, painting, swimming",
+          "v26_answer": "Melanie participates in running, reading, playing the violin and clarinet, hiking, camping, swimming, pottery, painting, and spending time in nature with her family.",
+          "v28_answer": "running, reading, playing violin, playing clarinet, hiking, camping, pottery, swimming"
+        },
+        {
+          "record_key": "6b6d09d7e82567bbb2a34cf0",
+          "category": "1",
+          "information_need": "profile_preference",
+          "v26": false,
+          "v28": true,
+          "same_norm_answer": false,
+          "question": "What do Melanie's kids like?",
+          "gold": "dinosaurs, nature",
+          "v26_answer": "Melanie's kids like camping, the beach, museums, hiking, and creative activities like making clay art.",
+          "v28_answer": "beach trips, clay art and creativity, dinosaurs and museums, camping, hiking, and nature exploration"
+        },
+        {
+          "record_key": "b7dee92eaaa814f776ceae01",
+          "category": "2",
+          "information_need": "temporal_lookup",
+          "v26": false,
+          "v28": true,
+          "same_norm_answer": false,
+          "question": "When did Melanie go to the museum?",
+          "gold": "5 July 2023",
+          "v26_answer": "2023-07-06",
+          "v28_answer": "2023-07-05"
+        },
+        {
+          "record_key": "7a46c72efd3f51977889864f",
+          "category": "2",
+          "information_need": "temporal_lookup",
+          "v26": true,
+          "v28": false,
+          "same_norm_answer": false,
+          "question": "When did Caroline have a picnic?",
+          "gold": "The week before 6 July 2023",
+          "v26_answer": "2023-07-05",
+          "v28_answer": "2023-07-06"
+        },
+        {
+          "record_key": "04a4ca37a584ea4afde09c96",
+          "category": "2",
+          "information_need": "temporal_lookup",
+          "v26": true,
+          "v28": false,
+          "same_norm_answer": false,
+          "question": "When did Melanie go camping in June?",
+          "gold": "The week before 27 June 2023",
+          "v26_answer": "June 20–26, 2023",
+          "v28_answer": "2023-06-27"
+        },
+        {
+          "record_key": "aa88e50253b91ab0fc834727",
+          "category": "1",
+          "information_need": "fact_lookup",
+          "v26": true,
+          "v28": false,
+          "same_norm_answer": false,
+          "question": "What LGBTQ+ events has Caroline participated in?",
+          "gold": "Pride parade, school speech, support group",
+          "v26_answer": "Caroline has participated in a LGBTQ+ pride parade, an LGBTQ conference, a transgender counseling workshop, an LGBTQ art show, and has mentored LGBTQ youth and volunteered at an LGBTQ+ youth center.",
+          "v28_answer": "['LGBTQ+ pride parade', 'LGBTQ pride event', 'LGBTQ conference', 'LGBTQ+ counseling workshop', 'LGBTQ art show', 'LGBTQ activist group meeting', 'volunteering at LGBTQ+ youth center']"
+        },
+        {
+          "record_key": "5e011cc0e92cdb6f16e40633",
+          "category": "1",
+          "information_need": "fact_lookup",
+          "v26": true,
+          "v28": false,
+          "same_norm_answer": false,
+          "question": "What events has Caroline participated in to help children?",
+          "gold": "Mentoring program, school speech",
+          "v26_answer": "Caroline has participated in volunteering at a youth center, organizing a talent show for kids, and mentoring children through mental health advocacy.",
+          "v28_answer": "volunteering at an LGBTQ+ youth center, organizing a talent show for kids"
+        },
+        {
+          "record_key": "30c13a6c513ad053bb393271",
+          "category": "2",
+          "information_need": "temporal_lookup",
+          "v26": true,
+          "v28": false,
+          "same_norm_answer": false,
+          "question": "When did Caroline attend a pride parade in August?",
+          "gold": "The Friday before 14 August 2023",
+          "v26_answer": "2023-08-11",
+          "v28_answer": "2023-08-14"
+        },
+        {
+          "record_key": "69730f4d8f3e6ea00c896356",
+          "category": "1",
+          "information_need": "fact_lookup",
+          "v26": false,
+          "v28": true,
+          "same_norm_answer": false,
+          "question": "What has Melanie painted?",
+          "gold": "Horse, sunset, sunrise",
+          "v26_answer": "Melanie has painted landscapes, still life, sunsets, and horses.",
+          "v28_answer": "Melanie has painted a horse, landscapes, still life, sunsets, a lake sunrise, and an abstract painting."
+        },
+        {
+          "record_key": "fd6de094822579ef6391673e",
+          "category": "2",
+          "information_need": "temporal_lookup",
+          "v26": true,
+          "v28": false,
+          "same_norm_answer": false,
+          "question": "When did Caroline apply to adoption agencies?",
+          "gold": "The week of 23 August 2023",
+          "v26_answer": "2023-08-23",
+          "v28_answer": "2023-05-25"
+        },
+        {
+          "record_key": "48ee78dba3d2e536dfabf68e",
+          "category": "2",
+          "information_need": "temporal_lookup",
+          "v26": true,
+          "v28": false,
+          "same_norm_answer": false,
+          "question": "When did Caroline draw a self-portrait?",
+          "gold": "The week before 23 August 2023",
+          "v26_answer": "2023-08-16 to 2023-08-22",
+          "v28_answer": "2023-08-23"
+        },
+        {
+          "record_key": "109edb15a81b883aab67f8ce",
+          "category": "2",
+          "information_need": "temporal_lookup",
+          "v26": false,
+          "v28": true,
+          "same_norm_answer": false,
+          "question": "When did Melanie's family go on a roadtrip?",
+          "gold": "The weekend before 20 October 2023",
+          "v26_answer": "October 15–16, 2023",
+          "v28_answer": "2023-10-14 to 2023-10-15"
+        },
+        {
+          "record_key": "65a58a5dd3bc5a5b7f9af9fe",
+          "category": "3",
+          "information_need": "fact_lookup",
+          "v26": true,
+          "v28": false,
+          "same_norm_answer": false,
+          "question": "Would Caroline want to move back to her home country soon?",
+          "gold": "No; she's in the process of adopting children.",
+          "v26_answer": "No, Caroline does not want to move back to her home country soon.",
+          "v28_answer": "unknown"
+        },
+        {
+          "record_key": "5c4e87db43015d886ee15ad1",
+          "category": "4",
+          "information_need": "fact_lookup",
+          "v26": false,
+          "v28": true,
+          "same_norm_answer": false,
+          "question": "What pets does Melanie have?",
+          "gold": "Two cats and a dog",
+          "v26_answer": "Melanie has a dog named Luna and a cat named Oliver.",
+          "v28_answer": "a dog named Luna, and two cats named Oliver and Bailey"
+        },
+        {
+          "record_key": "4e2cdd3b52043fd06b2acbdb",
+          "category": "4",
+          "information_need": "fact_lookup",
+          "v26": false,
+          "v28": true,
+          "same_norm_answer": false,
+          "question": "What did Caroline make for a local church?",
+          "gold": "a stained glass window",
+          "v26_answer": "A painting showing her journey as a transgender woman and the theme of change.",
+          "v28_answer": "a piece of art"
+        },
+        {
+          "record_key": "b79bd643671108319bfce3ec",
+          "category": "4",
+          "information_need": "fact_lookup",
+          "v26": false,
+          "v28": true,
+          "same_norm_answer": false,
+          "question": "What setback did Melanie face in October 2023?",
+          "gold": "She got hurt and had to take a break from pottery.",
+          "v26_answer": "Melanie got hurt in September 2023 and had to take a break from pottery.",
+          "v28_answer": "Melanie got hurt and had to take a break from pottery."
+        },
+        {
+          "record_key": "5535cefb3250570b78be549b",
+          "category": "4",
+          "information_need": "fact_lookup",
+          "v26": true,
+          "v28": false,
+          "same_norm_answer": false,
+          "question": "What kind of painting did Caroline share with Melanie on October 13, 2023?",
+          "gold": "An abstract painting with blue streaks on a wall.",
+          "v26_answer": "abstract painting",
+          "v28_answer": "drawing"
+        }
+      ]
+    }
+  },
+  "note": "Offline-only judge/gold diagnostic; do not feed into prediction."
+}
