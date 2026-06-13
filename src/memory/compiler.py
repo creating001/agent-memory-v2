@@ -595,12 +595,14 @@ def _build_raw_context_only_prompt(
 ) -> str:
     lines = [
         "Answer the user's question using only the provided memory context.",
+        "Keep the answer concise and specific.",
+        "Return only the final answer; do not include reasoning, row ids, citations, or JSON.",
         "If the memory context is insufficient, answer that the information is not available.",
         "Do not use benchmark labels, gold answers, judge output, sample ids, or row indices.",
     ]
     if answer_style == "concise":
         lines.insert(
-            1,
+            3,
             "Use the shortest direct answer that is fully supported; avoid explanations unless needed.",
         )
     lines.extend(

@@ -263,6 +263,7 @@ class CleanSkeletonTest(unittest.TestCase):
 
         self.assertIn("Memory context:", prompt)
         self.assertIn("shortest direct answer", prompt)
+        self.assertIn("Return only the final answer", prompt)
         self.assertNotIn("Build-stage typed memory view", prompt)
         self.assertNotIn("Information need:", prompt)
 
