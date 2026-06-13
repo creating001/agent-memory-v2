@@ -431,6 +431,73 @@ class BuildMemoryTest(unittest.TestCase):
         self.assertNotIn("Structured Evidence Guide:", compiled.prompt)
         self.assertNotIn("Use Structured Evidence Guide only", compiled.prompt)
 
+    def test_external_naive_structured_guide_can_use_source_map_only(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=2,
+            max_evidence_chars=2000,
+            answer_style="concise",
+            max_memory_records=1,
+            prompt_mode="external_naive",
+            structured_guide=True,
+            structured_guide_include_rows=False,
+            structured_guide_include_memory=True,
+        )
+        route = RouteResult(information_need="fact_lookup", signals=())
+        memory_record = MemoryRecord(
+            memory_id="m1",
+            memory_type="fact",
+            text="Morgan keeps the spare key in the blue bowl.",
+            source_ids=("s1:t1",),
+            subject="Morgan",
+            predicate="keeps",
+            value="spare key in the blue bowl",
+            valid_from="2023-05-08",
+        )
+        compiled = compiler.compile(
+            question="Where does Morgan keep the spare key?",
+            question_time=None,
+            route=route,
+            hits=(
+                RetrievalHit(
+                    source_id="s1:t0",
+                    score=1.0,
+                    rank=1,
+                    retriever="test",
+                ),
+                RetrievalHit(
+                    source_id="s1:t1",
+                    score=0.9,
+                    rank=2,
+                    retriever="test",
+                ),
+            ),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="Morgan",
+                    text="I moved some things around today.",
+                    timestamp="2023-05-08",
+                ),
+                Turn(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="Morgan",
+                    text="I keep the spare key in the blue bowl by the door.",
+                    timestamp="2023-05-08",
+                ),
+            ),
+            memory_records=(memory_record,),
+        )
+
+        self.assertIn("Structured Evidence Guide:", compiled.prompt)
+        self.assertNotIn("- row_index:", compiled.prompt)
+        self.assertIn("- activated_build_memory:", compiled.prompt)
+        self.assertIn("sources=Memory 2", compiled.prompt)
+        self.assertIn("value=spare key in the blue bowl", compiled.prompt)
+
 
 if __name__ == "__main__":
     unittest.main()

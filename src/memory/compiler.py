@@ -121,6 +121,8 @@ class EvidenceCompiler:
         temporal_workpad_max_pairs: int = 12,
         structured_guide: bool = False,
         structured_guide_max_rows: int = 12,
+        structured_guide_include_rows: bool = True,
+        structured_guide_include_memory: bool = True,
         evidence_order: str = "retrieval",
         memory_order: str = "retrieval",
         memory_layout: str = "flat",
@@ -149,6 +151,8 @@ class EvidenceCompiler:
         self._temporal_workpad_max_pairs = max(0, temporal_workpad_max_pairs)
         self._structured_guide = structured_guide
         self._structured_guide_max_rows = max(1, structured_guide_max_rows)
+        self._structured_guide_include_rows = structured_guide_include_rows
+        self._structured_guide_include_memory = structured_guide_include_memory
         if evidence_order not in {"retrieval", "question_overlap"}:
             raise ValueError(f"Unsupported evidence_order: {evidence_order}")
         self._evidence_order = evidence_order
@@ -248,6 +252,8 @@ class EvidenceCompiler:
             temporal_workpad_max_pairs=self._temporal_workpad_max_pairs,
             structured_guide=self._structured_guide,
             structured_guide_max_rows=self._structured_guide_max_rows,
+            structured_guide_include_rows=self._structured_guide_include_rows,
+            structured_guide_include_memory=self._structured_guide_include_memory,
             memory_layout=self._memory_layout,
             row_text_mode=route_settings["row_text_mode"],
             max_row_text_chars=route_settings["max_row_text_chars"],
@@ -498,6 +504,8 @@ def _build_prompt(
     temporal_workpad_max_pairs: int,
     structured_guide: bool,
     structured_guide_max_rows: int,
+    structured_guide_include_rows: bool,
+    structured_guide_include_memory: bool,
     memory_layout: str,
     row_text_mode: str,
     max_row_text_chars: int,
@@ -532,6 +540,8 @@ def _build_prompt(
             temporal_workpad_max_pairs=temporal_workpad_max_pairs,
             structured_guide=structured_guide,
             structured_guide_max_rows=structured_guide_max_rows,
+            structured_guide_include_rows=structured_guide_include_rows,
+            structured_guide_include_memory=structured_guide_include_memory,
         )
 
     lines = [
@@ -670,6 +680,8 @@ def _build_external_naive_prompt(
     temporal_workpad_max_pairs: int,
     structured_guide: bool,
     structured_guide_max_rows: int,
+    structured_guide_include_rows: bool,
+    structured_guide_include_memory: bool,
 ) -> str:
     user_question = (
         f"Current Date: {question_time}\nQuestion: {question}"
@@ -698,6 +710,8 @@ def _build_external_naive_prompt(
             memory_records=memory_records,
             max_rows=structured_guide_max_rows,
             include_relative_text=temporal_text_normalization,
+            include_rows=structured_guide_include_rows,
+            include_memory=structured_guide_include_memory,
         )
         if guide_lines:
             structured_guide_block = "\n".join(
@@ -756,8 +770,10 @@ def _external_structured_guide_lines(
     memory_records: tuple[MemoryRecord, ...],
     max_rows: int,
     include_relative_text: bool,
+    include_rows: bool,
+    include_memory: bool,
 ) -> list[str]:
-    if not rows and not memory_records:
+    if (not include_rows and not include_memory) or (not rows and not memory_records):
         return []
 
     lines = [
@@ -768,7 +784,7 @@ def _external_structured_guide_lines(
         row.source_id: index for index, row in enumerate(rows, start=1)
     }
 
-    if rows:
+    if include_rows and rows:
         lines.append("- row_index:")
         for index, row in enumerate(rows[:max_rows], start=1):
             row_date = _parse_date(row.timestamp)
@@ -790,13 +806,16 @@ def _external_structured_guide_lines(
                 f"matched_terms={matched_text}{relative_text}"
             )
 
-    memory_lines = _external_memory_guide_lines(
-        memory_records=memory_records,
-        source_to_memory_index=source_to_memory_index,
-    )
-    if memory_lines:
-        lines.append("- activated_build_memory:")
-        lines.extend(memory_lines)
+    if include_memory:
+        memory_lines = _external_memory_guide_lines(
+            memory_records=memory_records,
+            source_to_memory_index=source_to_memory_index,
+        )
+        if memory_lines:
+            lines.append("- activated_build_memory:")
+            lines.extend(memory_lines)
+    if len(lines) == 1:
+        return []
     return lines
 
 

@@ -313,6 +313,12 @@ def main() -> int:
             "structured_guide_max_rows": config.get("compiler", {}).get(
                 "structured_guide_max_rows", 12
             ),
+            "structured_guide_include_rows": config.get("compiler", {}).get(
+                "structured_guide_include_rows", True
+            ),
+            "structured_guide_include_memory": config.get("compiler", {}).get(
+                "structured_guide_include_memory", True
+            ),
             "route_overrides": config.get("compiler", {}).get(
                 "route_overrides", {}
             ),
@@ -597,6 +603,8 @@ def _write_summary(
         f"- temporal_workpad_max_pairs: {metrics['compiler']['temporal_workpad_max_pairs']}",
         f"- structured_guide: {metrics['compiler']['structured_guide']}",
         f"- structured_guide_max_rows: {metrics['compiler']['structured_guide_max_rows']}",
+        f"- structured_guide_include_rows: {metrics['compiler']['structured_guide_include_rows']}",
+        f"- structured_guide_include_memory: {metrics['compiler']['structured_guide_include_memory']}",
         f"- route_overrides: {metrics['compiler']['route_overrides']}",
         f"- enable_broad_list_patterns: {metrics['route']['enable_broad_list_patterns']}",
         f"- enable_recommendation_profile_patterns: {metrics['route']['enable_recommendation_profile_patterns']}",
@@ -675,6 +683,8 @@ def _write_diagnosis(
         f"- temporal_workpad_max_pairs: {metrics['compiler']['temporal_workpad_max_pairs']}",
         f"- structured_guide: {metrics['compiler']['structured_guide']}",
         f"- structured_guide_max_rows: {metrics['compiler']['structured_guide_max_rows']}",
+        f"- structured_guide_include_rows: {metrics['compiler']['structured_guide_include_rows']}",
+        f"- structured_guide_include_memory: {metrics['compiler']['structured_guide_include_memory']}",
         f"- route_overrides: {metrics['compiler']['route_overrides']}",
         f"- enable_recommendation_profile_patterns: {metrics['route']['enable_recommendation_profile_patterns']}",
         f"- temporal_priority_over_recent: {metrics['route']['temporal_priority_over_recent']}",

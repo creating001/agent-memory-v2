@@ -202,6 +202,12 @@ class Stage1Pipeline:
             structured_guide_max_rows=int(
                 compiler_config.get("structured_guide_max_rows", 12)
             ),
+            structured_guide_include_rows=bool(
+                compiler_config.get("structured_guide_include_rows", True)
+            ),
+            structured_guide_include_memory=bool(
+                compiler_config.get("structured_guide_include_memory", True)
+            ),
             evidence_order=str(compiler_config.get("evidence_order", "retrieval")),
             memory_order=str(compiler_config.get("memory_order", "retrieval")),
             memory_layout=str(compiler_config.get("memory_layout", "flat")),
@@ -255,6 +261,12 @@ class Stage1Pipeline:
             "structured_guide": bool(compiler_config.get("structured_guide", False)),
             "structured_guide_max_rows": int(
                 compiler_config.get("structured_guide_max_rows", 12)
+            ),
+            "structured_guide_include_rows": bool(
+                compiler_config.get("structured_guide_include_rows", True)
+            ),
+            "structured_guide_include_memory": bool(
+                compiler_config.get("structured_guide_include_memory", True)
             ),
             "max_memory_records": int(compiler_config.get("max_memory_records", 12)),
             "route_overrides": compiler_config.get("route_overrides") or {},
