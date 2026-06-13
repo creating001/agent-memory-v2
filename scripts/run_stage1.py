@@ -329,8 +329,13 @@ def main() -> int:
     manifest = {
         "run_id": run_id,
         "created_at_utc": utc_now_iso(),
+        "benchmark": args.benchmark,
+        "subset": args.subset,
+        "experiment_kind": args.experiment_kind,
         "config_path": str(Path(args.config).resolve()),
         "input_path": str(Path(args.input).resolve()),
+        "output_path": str(predictions_path),
+        "trace_path": str(traces_path),
         "outputs": {
             "predictions": str(predictions_path),
             "traces": str(traces_path),
