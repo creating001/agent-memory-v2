@@ -163,6 +163,12 @@ def main() -> int:
             "lexical_protect_top_n": config.get("retrieval", {})
             .get("dense", {})
             .get("lexical_protect_top_n"),
+            "dense_document_text_mode": config.get("retrieval", {})
+            .get("dense", {})
+            .get("document_text_mode", "text"),
+            "dense_query_text_mode": config.get("retrieval", {})
+            .get("dense", {})
+            .get("query_text_mode", "question"),
             "embedding_cache_enabled": config.get("retrieval", {})
             .get("dense", {})
             .get("cache", {})
@@ -450,6 +456,7 @@ def _answer_metrics(config: dict[str, Any]) -> dict[str, Any]:
         "max_input_tokens": answer_config.get("max_input_tokens"),
         "max_output_tokens": max_output_tokens,
         "max_tokens": max_output_tokens,
+        "output_format": answer_config.get("output_format", "text"),
         "timeout": answer_config.get("timeout"),
     }
 
@@ -530,6 +537,8 @@ def _write_summary(
         f"- lexical_enabled: {metrics['retrieval']['lexical_enabled']}",
         f"- dense_enabled: {metrics['retrieval']['dense_enabled']}",
         f"- lexical_protect_top_n: {metrics['retrieval']['lexical_protect_top_n']}",
+        f"- dense_document_text_mode: {metrics['retrieval']['dense_document_text_mode']}",
+        f"- dense_query_text_mode: {metrics['retrieval']['dense_query_text_mode']}",
         f"- embedding_cache_enabled: {metrics['retrieval']['embedding_cache_enabled']}",
         f"- embedding_cache_path: {metrics['retrieval']['embedding_cache_path']}",
         f"- embedding_cache_hits: {metrics['retrieval']['embedding_cache_hits']}",
@@ -552,6 +561,7 @@ def _write_summary(
         f"- answer_model: {metrics['answer']['model']}",
         f"- answer_max_input_tokens: {metrics['answer']['max_input_tokens']}",
         f"- answer_max_output_tokens: {metrics['answer']['max_output_tokens']}",
+        f"- answer_output_format: {metrics['answer']['output_format']}",
         f"- answer_style: {metrics['compiler']['answer_style']}",
         f"- evidence_order: {metrics['compiler']['evidence_order']}",
         f"- memory_order: {metrics['compiler']['memory_order']}",

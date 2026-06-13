@@ -391,10 +391,14 @@ class DenseEmbeddingRetriever:
         turns: tuple[Turn, ...],
         embedder: Embedder,
         batch_size: int = 32,
+        document_text_mode: str = "text",
     ):
+        if document_text_mode not in {"text", "external_naive"}:
+            raise ValueError(f"Unsupported dense document_text_mode: {document_text_mode}")
         self._turns = turns
         self._embedder = embedder
         self._batch_size = batch_size
+        self._document_text_mode = document_text_mode
         self._doc_vectors: tuple[tuple[float, ...], ...]
         self._document_embedding_tokens = 0
         self._doc_vectors, self._document_embedding_tokens = (
@@ -403,13 +407,13 @@ class DenseEmbeddingRetriever:
 
     def retrieve(
         self,
-        question: str,
+        query_text: str,
         top_k: int,
         score_threshold: float = -1.0,
     ) -> DenseRetrievalResult:
         if not self._turns:
             return DenseRetrievalResult(hits=(), embedding_tokens=0)
-        query_batch = self._embedder.embed_texts([question], input_type="query")
+        query_batch = self._embedder.embed_texts([query_text], input_type="query")
         if not query_batch.vectors:
             return DenseRetrievalResult(
                 hits=(),
@@ -439,7 +443,7 @@ class DenseEmbeddingRetriever:
         )
 
     def _load_or_embed_documents(self) -> tuple[tuple[tuple[float, ...], ...], int]:
-        cache_key = _dense_document_cache_key(self._turns)
+        cache_key = _dense_document_cache_key(self._turns, self._document_text_mode)
         cached = _get_dense_document_cache(cache_key)
         if cached is not None:
             return cached, 0
@@ -459,7 +463,10 @@ class DenseEmbeddingRetriever:
         for start in range(0, len(self._turns), self._batch_size):
             batch_turns = self._turns[start : start + self._batch_size]
             batch = self._embedder.embed_texts(
-                [turn.text for turn in batch_turns],
+                [
+                    _dense_document_text(turn, mode=self._document_text_mode)
+                    for turn in batch_turns
+                ],
                 input_type="document",
             )
             tokens += batch.total_tokens
@@ -467,8 +474,21 @@ class DenseEmbeddingRetriever:
         return tuple(vectors), tokens
 
 
-def _dense_document_cache_key(turns: tuple[Turn, ...]) -> str:
+def _dense_document_text(turn: Turn, *, mode: str) -> str:
+    if mode == "text":
+        return turn.text
+    if mode != "external_naive":
+        raise ValueError(f"Unsupported dense document_text_mode: {mode}")
+    text = f"{turn.role}: {turn.text}"
+    if turn.timestamp:
+        return f"Date: {turn.timestamp}\n{text}"
+    return text
+
+
+def _dense_document_cache_key(turns: tuple[Turn, ...], document_text_mode: str) -> str:
     digest = hashlib.sha256()
+    digest.update(document_text_mode.encode("utf-8"))
+    digest.update(b"\0")
     for turn in turns:
         digest.update(turn.source_id.encode("utf-8"))
         digest.update(b"\0")

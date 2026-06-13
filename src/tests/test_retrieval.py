@@ -167,6 +167,33 @@ class RetrievalTest(unittest.TestCase):
         self.assertEqual(embedder.document_calls, 1)
         self.assertEqual(embedder.query_calls, 2)
 
+    def test_dense_retriever_external_naive_document_text_includes_date_and_role(self) -> None:
+        with _DENSE_DOCUMENT_CACHE_LOCK:
+            _DENSE_DOCUMENT_CACHE.clear()
+            _DENSE_DOCUMENT_CACHE_LOCKS.clear()
+        turns = (
+            Turn(
+                source_id="career",
+                session_id="s1",
+                turn_index=1,
+                role="user",
+                text="counseling and mental health career",
+                timestamp="2024-01-01",
+            ),
+        )
+        embedder = _RecordingEmbedder()
+
+        DenseEmbeddingRetriever(
+            turns,
+            embedder,
+            document_text_mode="external_naive",
+        ).retrieve("career", top_k=1)
+
+        self.assertEqual(
+            embedder.document_texts,
+            ["Date: 2024-01-01\nuser: counseling and mental health career"],
+        )
+
     def test_prepend_protected_hits_preserves_primary_order(self) -> None:
         protected = (
             RetrievalHit("lexical-a", 10.0, 1, "lexical_bm25"),
@@ -203,6 +230,16 @@ class _CountingEmbedder(_FakeEmbedder):
             self.document_calls += 1
         if input_type == "query":
             self.query_calls += 1
+        return super().embed_texts(texts, input_type)
+
+
+class _RecordingEmbedder(_FakeEmbedder):
+    def __init__(self) -> None:
+        self.document_texts: list[str] = []
+
+    def embed_texts(self, texts: list[str], input_type: str) -> EmbeddingBatch:
+        if input_type == "document":
+            self.document_texts.extend(texts)
         return super().embed_texts(texts, input_type)
 
 

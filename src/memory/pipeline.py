@@ -84,6 +84,8 @@ class Stage1Pipeline:
         self._dense_enabled = bool(dense_config.get("enabled", False))
         self._dense_top_k = int(dense_config.get("top_k", self._base_top_k))
         self._dense_batch_size = int(dense_config.get("batch_size", 32))
+        self._dense_document_text_mode = str(dense_config.get("document_text_mode", "text"))
+        self._dense_query_text_mode = str(dense_config.get("query_text_mode", "question"))
         self._fusion_rrf_k = int(dense_config.get("rrf_k", 60))
         self._lexical_protect_top_n = int(dense_config.get("lexical_protect_top_n", 0))
         cache_config = dense_config.get("cache", {})
@@ -258,6 +260,7 @@ class Stage1Pipeline:
                 timeout=float(answer_config.get("timeout", 120.0)),
                 max_input_tokens=_optional_int(answer_config.get("max_input_tokens")),
                 api_key_env=answer_config.get("api_key_env"),
+                output_format=str(answer_config.get("output_format", "text")),
             )
         else:
             self._answerer = NullAnswerer(
@@ -314,8 +317,13 @@ class Stage1Pipeline:
                 store.turns,
                 self._embedding_client,
                 batch_size=self._dense_batch_size,
+                document_text_mode=self._dense_document_text_mode,
             ).retrieve(
-                request.question,
+                _dense_query_text(
+                    request.question,
+                    request.question_time,
+                    mode=self._dense_query_text_mode,
+                ),
                 top_k=self._dense_top_k,
             )
             dense_hits = dense_result.hits
@@ -422,6 +430,12 @@ class Stage1Pipeline:
                     ),
                     "dense_enabled": self._dense_enabled,
                     "dense_top_k": self._dense_top_k if self._dense_enabled else None,
+                    "dense_document_text_mode": self._dense_document_text_mode
+                    if self._dense_enabled
+                    else None,
+                    "dense_query_text_mode": self._dense_query_text_mode
+                    if self._dense_enabled
+                    else None,
                     "lexical_protect_top_n": self._lexical_protect_top_n
                     if self._dense_enabled
                     else None,
@@ -684,6 +698,16 @@ def _optional_int(value: object) -> int | None:
     if value is None:
         return None
     return int(value)
+
+
+def _dense_query_text(question: str, question_time: str | None, *, mode: str) -> str:
+    if mode == "question":
+        return question
+    if mode == "external_naive":
+        if question_time:
+            return f"Current Date: {question_time}\nQuestion: {question}"
+        return question
+    raise ValueError(f"Unsupported dense query_text_mode: {mode}")
 
 
 def _retriever_name(

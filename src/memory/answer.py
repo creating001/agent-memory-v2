@@ -39,7 +39,10 @@ class OpenAICompatibleAnswerer:
         timeout: float,
         max_input_tokens: int | None = None,
         api_key_env: str | None = None,
+        output_format: str = "text",
     ):
+        if output_format not in {"text", "json_answer"}:
+            raise ValueError(f"Unsupported answer output_format: {output_format}")
         self._base_url = base_url.rstrip("/")
         self._model = model
         self._temperature = temperature
@@ -47,11 +50,13 @@ class OpenAICompatibleAnswerer:
         self._timeout = timeout
         self._max_input_tokens = max_input_tokens
         self._api_key_env = api_key_env
+        self._output_format = output_format
 
     def answer(self, context: CompiledContext) -> AnswerResult:
         response = self._chat_completion(context.prompt)
         message = response["choices"][0]["message"]
-        content = _message_text(message).strip()
+        raw_content = _message_text(message).strip()
+        content = _parse_answer_content(raw_content, output_format=self._output_format)
         usage = response.get("usage") or {}
         prompt_tokens = int(usage.get("prompt_tokens") or 0)
         completion_tokens = int(usage.get("completion_tokens") or 0)
@@ -81,14 +86,15 @@ class OpenAICompatibleAnswerer:
 
     def _chat_completion(self, prompt: str) -> dict[str, Any]:
         endpoint = self._base_url + "/chat/completions"
-        request_body = json.dumps(
-            {
-                "model": self._model,
-                "messages": [{"role": "user", "content": prompt}],
-                "temperature": self._temperature,
-                "max_tokens": self._max_tokens,
-            }
-        ).encode("utf-8")
+        payload: dict[str, Any] = {
+            "model": self._model,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": self._temperature,
+            "max_tokens": self._max_tokens,
+        }
+        if self._output_format == "json_answer":
+            payload["response_format"] = {"type": "json_object"}
+        request_body = json.dumps(payload).encode("utf-8")
         headers = {"Content-Type": "application/json"}
         if self._api_key_env:
             api_key = os.environ.get(self._api_key_env)
@@ -115,3 +121,29 @@ def _message_text(message: dict[str, Any]) -> str:
         if value is not None:
             return str(value)
     return ""
+
+
+def _parse_answer_content(raw_content: str, *, output_format: str) -> str:
+    if output_format == "text":
+        return raw_content
+    if output_format != "json_answer":
+        raise ValueError(f"Unsupported answer output_format: {output_format}")
+    parsed = _extract_json_object(raw_content)
+    if isinstance(parsed, dict) and parsed.get("answer") is not None:
+        return str(parsed["answer"]).strip()
+    return raw_content
+
+
+def _extract_json_object(text: str) -> dict[str, Any] | None:
+    try:
+        value = json.loads(text)
+    except json.JSONDecodeError:
+        start = text.find("{")
+        end = text.rfind("}")
+        if start < 0 or end <= start:
+            return None
+        try:
+            value = json.loads(text[start : end + 1])
+        except json.JSONDecodeError:
+            return None
+    return value if isinstance(value, dict) else None

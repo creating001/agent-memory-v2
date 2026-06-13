@@ -51,7 +51,7 @@ ROUTE_OVERRIDE_KEYS = {
     "max_row_text_chars",
     "row_text_mode",
 }
-SUPPORTED_PROMPT_MODES = {"default", "raw_context_only"}
+SUPPORTED_PROMPT_MODES = {"default", "external_naive", "raw_context_only"}
 QUESTION_STOPWORDS = {
     "a",
     "an",
@@ -508,6 +508,14 @@ def _build_prompt(
             max_row_text_chars=max_row_text_chars,
             evidence_row_labels=evidence_row_labels,
         )
+    if prompt_mode == "external_naive":
+        return _build_external_naive_prompt(
+            question=question,
+            question_time=question_time,
+            rows=rows,
+            row_text_mode=row_text_mode,
+            max_row_text_chars=max_row_text_chars,
+        )
 
     lines = [
         "Answer the question using the build-stage memory view and raw context.",
@@ -627,6 +635,76 @@ def _build_raw_context_only_prompt(
             )
         )
     return "\n".join(lines)
+
+
+def _build_external_naive_prompt(
+    *,
+    question: str,
+    question_time: str | None,
+    rows: tuple[EvidenceRow, ...],
+    row_text_mode: str,
+    max_row_text_chars: int,
+) -> str:
+    user_question = (
+        f"Current Date: {question_time}\nQuestion: {question}"
+        if question_time
+        else question
+    )
+    return "\n".join(
+        [
+            "Answer the user's question using only the provided memory context.",
+            "",
+            "User Question:",
+            user_question,
+            "",
+            "Memory Context:",
+            _external_naive_context(
+                rows,
+                question=question,
+                row_text_mode=row_text_mode,
+                max_row_text_chars=max_row_text_chars,
+            ),
+            "",
+            "Rules:",
+            "1. Use only the memory context.",
+            "2. If the context is insufficient, say the provided information is not enough.",
+            "3. Keep the answer concise and specific.",
+            "4. Return only valid JSON.",
+            "",
+            "Output JSON:",
+            "{",
+            '  "reasoning": "one short sentence",',
+            '  "answer": "concise answer"',
+            "}",
+        ]
+    )
+
+
+def _external_naive_context(
+    rows: tuple[EvidenceRow, ...],
+    *,
+    question: str,
+    row_text_mode: str,
+    max_row_text_chars: int,
+) -> str:
+    if not rows:
+        return "None"
+    blocks = []
+    for index, row in enumerate(rows, start=1):
+        header = f"### Memory {index}"
+        if row.timestamp:
+            header += f"\nDate: {row.timestamp}"
+        if row.session_id:
+            header += f"\nSession: {row.session_id}"
+        text = _row_prompt_text(
+            row.text,
+            question=question,
+            role=row.role,
+            row_text_mode=row_text_mode,
+            max_row_text_chars=max_row_text_chars,
+        )
+        blocks.append(f"{header}\n{row.role}: {text}")
+    return "\n\n".join(blocks)
 
 
 def _format_memory_records(

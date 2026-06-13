@@ -12,7 +12,7 @@ if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
 from common.clean import CleanProtocolViolation, assert_clean_prediction_payload
-from memory.answer import _message_text
+from memory.answer import _message_text, _parse_answer_content
 from memory.build import MemoryRecord
 from memory.compiler import EvidenceCompiler
 from data.io import load_prediction_jsonl
@@ -206,6 +206,13 @@ class CleanSkeletonTest(unittest.TestCase):
     def test_answer_message_text_accepts_reasoning_field(self) -> None:
         self.assertEqual(_message_text({"content": None, "reasoning": "answer"}), "answer")
 
+    def test_json_answer_output_extracts_answer_field(self) -> None:
+        raw = '{"reasoning":"supported by memory","answer":"jasmine tea"}'
+        self.assertEqual(
+            _parse_answer_content(raw, output_format="json_answer"),
+            "jasmine tea",
+        )
+
     def test_concise_answer_style_is_added_to_prompt(self) -> None:
         config = {
             "retrieval": {"top_k": 1, "max_top_k": 1, "neighbor_window": 0},
@@ -266,6 +273,41 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertIn("Return only the final answer", prompt)
         self.assertNotIn("Build-stage typed memory view", prompt)
         self.assertNotIn("Information need:", prompt)
+
+    def test_external_naive_prompt_matches_json_answer_contract(self) -> None:
+        config = {
+            "retrieval": {"top_k": 1, "max_top_k": 1, "neighbor_window": 0},
+            "compiler": {
+                "max_evidence_items": 1,
+                "max_evidence_chars": 1000,
+                "prompt_mode": "external_naive",
+            },
+            "answer": {"fallback_answer": "I do not know."},
+        }
+        request = PredictionRequest(
+            question="What tea does Alex prefer?",
+            question_time="2024-01-02",
+            turns=(
+                Turn(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="Alex prefers jasmine tea.",
+                    timestamp="2024-01-01",
+                ),
+            ),
+        )
+
+        result = Stage1Pipeline(config).predict(request)
+        prompt = result["trace"]["compiled_context"]["prompt"]
+
+        self.assertIn("Current Date: 2024-01-02", prompt)
+        self.assertIn("Memory Context:", prompt)
+        self.assertIn("### Memory 1", prompt)
+        self.assertIn("Date: 2024-01-01", prompt)
+        self.assertIn('"answer": "concise answer"', prompt)
+        self.assertNotIn("Build-stage typed memory view", prompt)
 
     def test_evidence_labels_role_snippets_and_final_checklist_are_added(self) -> None:
         config = {
