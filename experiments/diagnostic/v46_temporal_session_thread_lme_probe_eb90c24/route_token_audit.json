@@ -1,0 +1,66 @@
+{
+  "base_probe": {
+    "current_state": {
+      "n": 4,
+      "avg_query_tokens": 6062.5,
+      "max_query_tokens": 6352,
+      "min_query_tokens": 5538
+    },
+    "fact_lookup": {
+      "n": 4,
+      "avg_query_tokens": 5136.25,
+      "max_query_tokens": 5343,
+      "min_query_tokens": 4854
+    },
+    "list_count": {
+      "n": 4,
+      "avg_query_tokens": 5469.5,
+      "max_query_tokens": 5656,
+      "min_query_tokens": 5136
+    },
+    "profile_preference": {
+      "n": 4,
+      "avg_query_tokens": 5226.0,
+      "max_query_tokens": 5597,
+      "min_query_tokens": 4747
+    },
+    "temporal_lookup": {
+      "n": 4,
+      "avg_query_tokens": 6407.0,
+      "max_query_tokens": 6908,
+      "min_query_tokens": 5825
+    }
+  },
+  "current_probe": {
+    "current_state": {
+      "n": 4,
+      "avg_query_tokens": 6062.5,
+      "max_query_tokens": 6352,
+      "min_query_tokens": 5538
+    },
+    "fact_lookup": {
+      "n": 4,
+      "avg_query_tokens": 5136.25,
+      "max_query_tokens": 5343,
+      "min_query_tokens": 4854
+    },
+    "list_count": {
+      "n": 4,
+      "avg_query_tokens": 5469.5,
+      "max_query_tokens": 5656,
+      "min_query_tokens": 5136
+    },
+    "profile_preference": {
+      "n": 4,
+      "avg_query_tokens": 5226.0,
+      "max_query_tokens": 5597,
+      "min_query_tokens": 4747
+    },
+    "temporal_lookup": {
+      "n": 4,
+      "avg_query_tokens": 6718.25,
+      "max_query_tokens": 7274,
+      "min_query_tokens": 6068
+    }
+  }
+}

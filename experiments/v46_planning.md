@@ -66,3 +66,30 @@ v46 只隔离 session ordering：保留 temporal route 的 `session_thread` raw 
 ## 预期决策
 
 如果 v46 保留 v45 的 exact-date gain，并且 full token estimate 明确低于 `6000`，再考虑 LongMemEval-S full。若 v46 丢失 gain，说明 v45 的收益主要来自 typed memory guide；下一步不能继续加 prompt，而应转向 build-side temporal memory schema 或更轻的 evidence-side date normalization。
+
+## Gate 结果
+
+run：`v46_temporal_session_thread_lme_probe_eb90c24`
+
+- prediction：20/20 成功。
+- DeepSeek judge：`15/20 = 0.750`。
+- v42 same-20：`15/20 = 0.750`。
+- 相对 v42 raw judge：gain `1`，loss `1`，answer_changed `1`。
+- changed-answer delta：唯一变化是 animal shelter fundraising dinner exact-date 修复，`February 2023` -> `February 14, 2023`。
+- raw judge loss 是 same-answer variance：photography recommendation 的 v42/v46 answer 完全相同，但 judge label 从 correct 变 wrong。
+- avg_build_tokens：`81690.45`，total_build_tokens：`1633809`。
+- avg_query_tokens：`5722.5`，total_query_tokens：`114450`，max_query_tokens：`7274`。
+- answer max input/output：`131072/16384`。
+- build cache hits/misses/writes：`137/0/0`，cache hit 仍按 stored usage 计入 build token。
+- answer cache hits/misses/writes：`16/4/4`，cache hit 仍按 stored usage 计入 query token。
+- prompt clean scan：实际 compiled prompt forbidden counts 为 `{}`。
+- route audit：session_thread 只在 `temporal_lookup` 启用，memory guide 和 compiled memory records 都为 `0`。
+
+full route-mix 估算：
+
+- v42 full avg query tokens：`5865.644`
+- v46 temporal_lookup probe delta：`+311.25`
+- weighted full delta：`+100.2225`
+- estimated full avg query tokens：`5965.8665`
+
+结论：v46 token gate 通过，且 changed-answer delta 正向，但 strict DeepSeek same-20 accuracy 没有净增。因此不直接跑 LongMemEval-S full；顶层 config 删除，只保留诊断目录和 `config_snapshot.json`。下一步需要基于 temporal wrong/badcase 做更有信息量的设计，而不是继续靠加长 prompt。

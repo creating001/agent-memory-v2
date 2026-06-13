@@ -63,6 +63,7 @@
 - v43 session-thread memory guide 已完成 LongMemEval-S route-stratified 20 条 gate：DeepSeek judge `15/20`，与 v42 same20 持平；avg_query_tokens `6023.95`、max `8003`，未过 token gate。结论是负向/中性 diagnostic，不跑 full，顶层 config 不长期保留。规划和结论见 `experiments/v43_planning.md`。
 - v44 temporal-only session guide 已完成 LongMemEval-S route-stratified 20 条 gate：DeepSeek judge `16/20`，比 v42 same20 净 `+1`；avg_query_tokens `5783.75`、max `7631`。但按 v42 full route mix 估计 full avg query `6064.479`，暂不跑 full，先做 v45 token-safe 收窄。规划和结论见 `experiments/v44_planning.md`。
 - v45 temporal session guide token-safe 收窄已完成 LongMemEval-S route-stratified 20 条 gate：DeepSeek judge `16/20`，比 v42 same20 净 `+1`、无新增错误；avg_build_tokens `81690.45`，avg_query_tokens `5744.5`，max `7352`，answer max input/output `131072/16384`。但按 v42 full route mix 估计 full avg query `6001.2865`，略超 6K 预算，不跑 full，顶层 config 不长期保留。规划和结论见 `experiments/v45_planning.md`。
+- v46 temporal session-thread-only 已完成 LongMemEval-S route-stratified 20 条 gate：DeepSeek judge `15/20`，与 v42 same20 持平；avg_build_tokens `81690.45`，avg_query_tokens `5722.5`，max `7274`，full route-mix 估计 `5965.8665` 通过 6K。changed-answer delta 为正，修复 exact-date case；raw loss 是同答案 judge variance。结论是不直接跑 full，继续做 temporal badcase 设计。规划和结论见 `experiments/v46_planning.md`。
 
 负向探索结论已压缩保留：
 
@@ -120,6 +121,7 @@ experiments/formal/<run_id>/
 | `v43_session_thread_memory_guide_lme_probe_cb5e118` | 20 条 LongMemEval-S route-stratified diagnostic | v43 session-thread evidence layout + row-linked memory guide 未过 gate；avg_query_tokens `6023.95`、max `8003`，同子集 DeepSeek judge v43=`15/20`、v42=`15/20`，gained/lost `1/1`。不跑 full，顶层 config 不长期保留。 |
 | `v44_temporal_session_guide_lme_probe_b39687d` | 20 条 LongMemEval-S route-stratified diagnostic | v44 temporal-only session guide 20 条质量 gate 通过；avg_query_tokens `5783.75`、max `7631`，同子集 DeepSeek judge v44=`16/20`、v42=`15/20`。但 full route-mix 估计 avg query `6064.479`，暂不跑 full，继续收窄。 |
 | `v45_temporal_session_guide_lme_probe_cf25e4f` | 20 条 LongMemEval-S route-stratified diagnostic | v45 token-safe temporal session guide same20 DeepSeek judge `16/20`，比 v42 净 +1、无 regression；avg_build_tokens `81690.45`，avg_query_tokens `5744.5`，max `7352`。但 full route-mix 估计 avg query `6001.2865`，略超 6K，不跑 full。 |
+| `v46_temporal_session_thread_lme_probe_eb90c24` | 20 条 LongMemEval-S route-stratified diagnostic | v46 session-thread-only same20 DeepSeek judge `15/20`，与 v42 持平；avg_build_tokens `81690.45`，avg_query_tokens `5722.5`，max `7274`，full route-mix 估计 `5965.8665`。changed-answer delta 正向但 strict judge 不净增，不跑 full。 |
 
 ## 保留正式结果
 

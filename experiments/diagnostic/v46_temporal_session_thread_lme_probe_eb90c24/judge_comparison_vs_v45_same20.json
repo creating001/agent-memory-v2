@@ -1,0 +1,213 @@
+{
+  "clean_note": "Offline comparison only.",
+  "current_run": "v46_temporal_session_thread_lme_probe_eb90c24",
+  "base_run": "v45_temporal_session_guide_lme_probe_cf25e4f",
+  "n_shared": 20,
+  "v45_accuracy_same20": 0.8,
+  "v46_accuracy_same20": 0.75,
+  "gain_count": 0,
+  "loss_count": 1,
+  "answer_changed_count": 1,
+  "items": [
+    {
+      "record_key": "0a537c6dfde0742723049ca4",
+      "question": "Can you suggest some accessories that would complement my current photography setup?",
+      "v45_label": "CORRECT",
+      "v46_label": "WRONG",
+      "v45_answer": "Camera bags compatible with Sony cameras, protective cases for the Godox V1 flash, and external battery packs for the Sony A7R IV.",
+      "v46_answer": "Camera bags compatible with Sony cameras, protective cases for the Godox V1 flash, and external battery packs for the Sony A7R IV.",
+      "answer_changed": false,
+      "delta": "loss_vs_v45"
+    },
+    {
+      "record_key": "0f97337d8046ed5cfefbb5e6",
+      "question": "What degree did I graduate with?",
+      "v45_label": "CORRECT",
+      "v46_label": "CORRECT",
+      "v45_answer": "Business Administration",
+      "v46_answer": "Business Administration",
+      "answer_changed": false,
+      "delta": "same_correct"
+    },
+    {
+      "record_key": "116289fa172f4085451617db",
+      "question": "How many shirts did I pack for my 5-day trip to Costa Rica?",
+      "v45_label": "CORRECT",
+      "v46_label": "CORRECT",
+      "v45_answer": "7",
+      "v46_answer": "7",
+      "answer_changed": false,
+      "delta": "same_correct"
+    },
+    {
+      "record_key": "158692bc43ef28e0e43d991f",
+      "question": "Can you recommend some recent publications or conferences that I might find interesting?",
+      "v45_label": "WRONG",
+      "v46_label": "WRONG",
+      "v45_answer": "The provided information is not enough to recommend recent publications or conferences.",
+      "v46_answer": "The provided information is not enough to recommend recent publications or conferences.",
+      "answer_changed": false,
+      "delta": "same_wrong"
+    },
+    {
+      "record_key": "661a360933a3aa7475fdb37e",
+      "question": "What is the name of the playlist I created on Spotify?",
+      "v45_label": "CORRECT",
+      "v46_label": "CORRECT",
+      "v45_answer": "Summer Vibes",
+      "v46_answer": "Summer Vibes",
+      "answer_changed": false,
+      "delta": "same_correct"
+    },
+    {
+      "record_key": "81df9103418e931f73ff48af",
+      "question": "How long is my daily commute to work?",
+      "v45_label": "CORRECT",
+      "v46_label": "CORRECT",
+      "v45_answer": "45 minutes each way",
+      "v46_answer": "45 minutes each way",
+      "answer_changed": false,
+      "delta": "same_correct"
+    },
+    {
+      "record_key": "85ae6b5e68e69ee40244dc92",
+      "question": "How long did it take me to assemble the IKEA bookshelf?",
+      "v45_label": "CORRECT",
+      "v46_label": "CORRECT",
+      "v45_answer": "4 hours",
+      "v46_answer": "4 hours",
+      "answer_changed": false,
+      "delta": "same_correct"
+    },
+    {
+      "record_key": "9797c162e16958517922f115",
+      "question": "How many bikes do I own?",
+      "v45_label": "CORRECT",
+      "v46_label": "CORRECT",
+      "v45_answer": "3",
+      "v46_answer": "3",
+      "answer_changed": false,
+      "delta": "same_correct"
+    },
+    {
+      "record_key": "a1e403c5b6ee9c67eceee109",
+      "question": "How long have I been working in my current role?",
+      "v45_label": "WRONG",
+      "v46_label": "WRONG",
+      "v45_answer": "3 years and 9 months",
+      "v46_answer": "3 years and 9 months",
+      "answer_changed": false,
+      "delta": "same_wrong"
+    },
+    {
+      "record_key": "a5db395d1829dd458f2c5745",
+      "question": "How many largemouth bass did I catch on my fishing trip to Lake Michigan?",
+      "v45_label": "CORRECT",
+      "v46_label": "CORRECT",
+      "v45_answer": "12",
+      "v46_answer": "12",
+      "answer_changed": false,
+      "delta": "same_correct"
+    },
+    {
+      "record_key": "acd2357eb392d2850a5d582e",
+      "question": "How many playlists do I have on Spotify?",
+      "v45_label": "CORRECT",
+      "v46_label": "CORRECT",
+      "v45_answer": "20",
+      "v46_answer": "20",
+      "answer_changed": false,
+      "delta": "same_correct"
+    },
+    {
+      "record_key": "be89496871c2b9edcce09c6b",
+      "question": "What brand are my favorite running shoes?",
+      "v45_label": "CORRECT",
+      "v46_label": "CORRECT",
+      "v45_answer": "Nike",
+      "v46_answer": "Nike",
+      "answer_changed": false,
+      "delta": "same_correct"
+    },
+    {
+      "record_key": "c81c7b973943d16a63e11e3b",
+      "question": "What play did I attend at the local community theater?",
+      "v45_label": "CORRECT",
+      "v46_label": "CORRECT",
+      "v45_answer": "The Glass Menagerie",
+      "v46_answer": "The Glass Menagerie",
+      "answer_changed": false,
+      "delta": "same_correct"
+    },
+    {
+      "record_key": "cd06f284ad43094e95945ab4",
+      "question": "Can you recommend some resources where I can learn more about video editing?",
+      "v45_label": "CORRECT",
+      "v46_label": "CORRECT",
+      "v45_answer": "Adobe Premiere Pro's official documentation and tutorials, YouTube channels like Premiere Bro, Video Copilot, and Adobe Creative Cloud, online courses on platforms like Udemy, LinkedIn Learning, and Skillshare, Premiere Pro communities and forums such as Reddit's r/premierepro and Adobe's Premiere Pro forum",
+      "v46_answer": "Adobe Premiere Pro's official documentation and tutorials, YouTube channels like Premiere Bro, Video Copilot, and Adobe Creative Cloud, online courses on platforms like Udemy, LinkedIn Learning, and Skillshare, Premiere Pro communities and forums such as Reddit's r/premierepro and Adobe's Premiere Pro forum",
+      "answer_changed": false,
+      "delta": "same_correct"
+    },
+    {
+      "record_key": "d823172b5baf1eff81acb20c",
+      "question": "When did I volunteer at the local animal shelter's fundraising dinner?",
+      "v45_label": "CORRECT",
+      "v46_label": "CORRECT",
+      "v45_answer": "2023-02-14",
+      "v46_answer": "February 14, 2023",
+      "answer_changed": true,
+      "delta": "same_correct"
+    },
+    {
+      "record_key": "dbfea355f09572ac6a7492db",
+      "question": "What type of rice is my favorite?",
+      "v45_label": "CORRECT",
+      "v46_label": "CORRECT",
+      "v45_answer": "Japanese short-grain rice",
+      "v46_answer": "Japanese short-grain rice",
+      "answer_changed": false,
+      "delta": "same_correct"
+    },
+    {
+      "record_key": "e5712fd6209d369a21f35da5",
+      "question": "What percentage of the countryside property's price is the cost of the renovations I plan to do on my current house?",
+      "v45_label": "CORRECT",
+      "v46_label": "CORRECT",
+      "v45_answer": "10%",
+      "v46_answer": "10%",
+      "answer_changed": false,
+      "delta": "same_correct"
+    },
+    {
+      "record_key": "ea4e66b0d90b6834b4168cfe",
+      "question": "Where did I redeem a $5 coupon on coffee creamer?",
+      "v45_label": "WRONG",
+      "v46_label": "WRONG",
+      "v45_answer": "The provided information is not enough to determine where the $5 coupon on coffee creamer was redeemed.",
+      "v46_answer": "The provided information is not enough to determine where the $5 coupon on coffee creamer was redeemed.",
+      "answer_changed": false,
+      "delta": "same_wrong"
+    },
+    {
+      "record_key": "ee21a060aa4b38aa588eec07",
+      "question": "How many amateur comedians did I watch perform at the open mic night?",
+      "v45_label": "CORRECT",
+      "v46_label": "CORRECT",
+      "v45_answer": "10",
+      "v46_answer": "10",
+      "answer_changed": false,
+      "delta": "same_correct"
+    },
+    {
+      "record_key": "f9ae007ab8a08057a78ba572",
+      "question": "I'm trying to decide whether to buy a NAS device now or wait. What do you think?",
+      "v45_label": "WRONG",
+      "v46_label": "WRONG",
+      "v45_answer": "Buy now. The available NAS options are well-documented and suitable for your needs, with strong security and setup support.",
+      "v46_answer": "Buy now. The available NAS options are well-documented and suitable for your needs, with strong security and setup support.",
+      "answer_changed": false,
+      "delta": "same_wrong"
+    }
+  ]
+}
