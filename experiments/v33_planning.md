@@ -73,3 +73,28 @@ run: `v33_retrieval_top60_null_locomo_full_a80816a`
 - 不读取 labels/gold/judge/category/sample id。
 
 如果 gate 通过，先跑 LoCoMo non-adversarial full。只有 LoCoMo accuracy 高于 v29/v32 且 token 合格，再考虑 LongMemEval-S full。
+
+## 2026-06-14 Gate 结果
+
+先跑了一个 mixed route-stratified probe，因包含 LongMemEval 长样本，avg query tokens `6483.5`，不适合作为 LoCoMo gate；该无用记录已删除。LongMemEval 如需验证 top60，必须单独做 LME gate 或增加 row truncation。
+
+随后生成 LoCoMo-only route-stratified no-label probe：
+
+- source: `outputs/prepare_locomo_non_adversarial/prediction_input.jsonl`
+- sampling: first 4 examples per question-derived information_need route
+- routes: fact_lookup、temporal_lookup、list_count、profile_preference、current_state 各 4 条
+- clean: 不读取 labels/gold/judge/category/sample id；`record_key` 只留在 sampling manifest，不进入 pipeline。
+
+LoCoMo-only gate run: `v33_top60_locomo_probe_65daf7d`
+
+- samples: `20/20`
+- avg build tokens: `44168.8`
+- avg query tokens: `5287.0`
+- query token min/max: `4447/6323`
+- avg context chars: `15565.4`
+- avg evidence items: `60.0`
+- build cache hits/misses/writes: `123/0/0`
+- answer cache hits/misses/writes: `0/20/20`
+- answer max input/output: `131072/16384`
+
+结论：v33 top60 通过 LoCoMo no-label/token gate，可以跑 LoCoMo non-adversarial full。暂不跑 LongMemEval，除非 LoCoMo full 正向且 LME 单独 gate 合格。
