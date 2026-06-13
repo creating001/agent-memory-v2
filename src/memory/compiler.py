@@ -518,6 +518,10 @@ def _format_memory_record(record: MemoryRecord) -> str:
     value_part = f" | value={record.value}" if record.value else ""
     subject_part = f" | subject={record.subject}" if record.subject else ""
     predicate_part = f" | predicate={record.predicate}" if record.predicate else ""
+    validity_part = (
+        f" | valid_from={record.valid_from or record.timestamp or 'unknown'}"
+        f" | valid_to={record.valid_to or 'open'}"
+    )
     status_part = (
         f" | status={record.status}"
         + (f" superseded_by={record.superseded_by}" if record.superseded_by else "")
@@ -525,7 +529,7 @@ def _format_memory_record(record: MemoryRecord) -> str:
     return (
         f"- memory_id={record.memory_id} | type={record.memory_type}"
         f"{subject_part}{predicate_part}{value_part}"
-        f" | time={record.timestamp or 'unknown'} | entities={entities}"
+        f" | time={record.timestamp or 'unknown'}{validity_part} | entities={entities}"
         f" | sources=[{source_ids}]{status_part}: {record.text}"
     )
 

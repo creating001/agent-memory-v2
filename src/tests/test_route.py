@@ -75,7 +75,7 @@ class RouteTest(unittest.TestCase):
         self.assertIn("temporal", route.signals)
 
     def test_explicit_duration_overrides_latest_entity_description(self) -> None:
-        route = QuestionRouter().route(
+        route = QuestionRouter(temporal_priority_over_recent=True).route(
             "How many days had passed since I finished the novel when I attended "
             "the event where the author discussed her latest thriller?"
         )
@@ -86,6 +86,14 @@ class RouteTest(unittest.TestCase):
 
     def test_plain_latest_question_still_routes_to_current_state(self) -> None:
         route = QuestionRouter().route("What is my latest phone model?")
+
+        self.assertEqual(route.information_need, "current_state")
+        self.assertIn("recent_or_current", route.signals)
+
+    def test_recent_current_has_default_priority_over_temporal(self) -> None:
+        route = QuestionRouter().route(
+            "How many days had passed before the latest event?"
+        )
 
         self.assertEqual(route.information_need, "current_state")
         self.assertIn("recent_or_current", route.signals)

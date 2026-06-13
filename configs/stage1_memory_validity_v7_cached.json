@@ -1,6 +1,6 @@
 {
-  "name": "stage1_route_priority_v6_cached",
-  "description": "Query-side v6 ablation reusing the v4 build cache: v4 plus generic information-need priority so explicit temporal/duration questions route before recent/current mentions.",
+  "name": "stage1_memory_validity_v7_cached",
+  "description": "Build-memory management v7 ablation reusing the v4 build cache: adds validity interval metadata and route-specific superseded memory retrieval for temporal/list questions.",
   "build_memory": {
     "enabled": true,
     "mode": "openai_compatible",
@@ -16,6 +16,10 @@
     "max_sources_per_record": 4,
     "drop_query_stopwords": true,
     "include_superseded": false,
+    "include_superseded_information_needs": [
+      "temporal_lookup",
+      "list_count"
+    ],
     "cache": {
       "enabled": true,
       "path": "outputs/cache/qwen3_build_memory.sqlite",
@@ -66,8 +70,7 @@
     }
   },
   "route": {
-    "enable_recommendation_profile_patterns": true,
-    "temporal_priority_over_recent": true
+    "enable_recommendation_profile_patterns": true
   },
   "compiler": {
     "max_evidence_items": 36,

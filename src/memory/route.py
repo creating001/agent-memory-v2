@@ -69,18 +69,22 @@ class QuestionRouter:
         self,
         enable_broad_list_patterns: bool = False,
         enable_recommendation_profile_patterns: bool = False,
+        temporal_priority_over_recent: bool = False,
     ):
         self._enable_broad_list_patterns = enable_broad_list_patterns
         self._enable_recommendation_profile_patterns = (
             enable_recommendation_profile_patterns
         )
+        self._temporal_priority_over_recent = temporal_priority_over_recent
 
     def route(self, question: str, question_time: str | None = None) -> RouteResult:
         del question_time
         normalized = question.lower()
         signals: list[str] = []
 
-        if _matches_any(normalized, self._TEMPORAL_PATTERNS):
+        if self._temporal_priority_over_recent and _matches_any(
+            normalized, self._TEMPORAL_PATTERNS
+        ):
             signals.append("temporal")
             return RouteResult(
                 information_need="temporal_lookup",
@@ -91,6 +95,13 @@ class QuestionRouter:
             signals.append("recent_or_current")
             return RouteResult(
                 information_need="current_state",
+                signals=tuple(signals),
+                retrieval_multiplier=2,
+            )
+        if _matches_any(normalized, self._TEMPORAL_PATTERNS):
+            signals.append("temporal")
+            return RouteResult(
+                information_need="temporal_lookup",
                 signals=tuple(signals),
                 retrieval_multiplier=2,
             )

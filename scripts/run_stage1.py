@@ -147,6 +147,9 @@ def main() -> int:
             "build_memory_include_superseded": config.get("build_memory", {}).get(
                 "include_superseded", False
             ),
+            "build_memory_include_superseded_information_needs": config.get(
+                "build_memory", {}
+            ).get("include_superseded_information_needs"),
             "avg_memory_hits": _safe_average(total_memory_hits, sample_count),
             "avg_memory_source_hits": _safe_average(
                 total_memory_source_hits, sample_count
@@ -219,6 +222,12 @@ def main() -> int:
             "max_records_per_chunk": config.get("build_memory", {}).get(
                 "max_records_per_chunk"
             ),
+            "include_superseded": config.get("build_memory", {}).get(
+                "include_superseded", False
+            ),
+            "include_superseded_information_needs": config.get("build_memory", {}).get(
+                "include_superseded_information_needs"
+            ),
             "cache_enabled": config.get("build_memory", {})
             .get("cache", {})
             .get("enabled", False),
@@ -286,6 +295,9 @@ def main() -> int:
             ),
             "enable_recommendation_profile_patterns": config.get("route", {}).get(
                 "enable_recommendation_profile_patterns", False
+            ),
+            "temporal_priority_over_recent": config.get("route", {}).get(
+                "temporal_priority_over_recent", False
             ),
         },
         "runner": {
@@ -493,6 +505,8 @@ def _write_summary(
         f"- avg_active_build_memory_records: {metrics['build_memory']['avg_active_records']}",
         f"- avg_memory_hits: {metrics['retrieval']['avg_memory_hits']}",
         f"- avg_memory_source_hits: {metrics['retrieval']['avg_memory_source_hits']}",
+        f"- build_memory_include_superseded: {metrics['retrieval']['build_memory_include_superseded']}",
+        f"- build_memory_include_superseded_information_needs: {metrics['retrieval']['build_memory_include_superseded_information_needs']}",
         f"- neighbor_order: {metrics['retrieval']['neighbor_order']}",
         f"- drop_query_stopwords: {metrics['retrieval']['drop_query_stopwords']}",
         f"- dense_enabled: {metrics['retrieval']['dense_enabled']}",
@@ -533,6 +547,7 @@ def _write_summary(
         f"- temporal_workpad_max_pairs: {metrics['compiler']['temporal_workpad_max_pairs']}",
         f"- enable_broad_list_patterns: {metrics['route']['enable_broad_list_patterns']}",
         f"- enable_recommendation_profile_patterns: {metrics['route']['enable_recommendation_profile_patterns']}",
+        f"- temporal_priority_over_recent: {metrics['route']['temporal_priority_over_recent']}",
         "",
         "## Outputs",
         "",
@@ -575,6 +590,8 @@ def _write_diagnosis(
         f"- build_memory_cache_writes: {metrics['build_memory']['cache_writes']}",
         f"- avg_memory_hits: {metrics['retrieval']['avg_memory_hits']}",
         f"- avg_memory_source_hits: {metrics['retrieval']['avg_memory_source_hits']}",
+        f"- build_memory_include_superseded: {metrics['retrieval']['build_memory_include_superseded']}",
+        f"- build_memory_include_superseded_information_needs: {metrics['retrieval']['build_memory_include_superseded_information_needs']}",
         f"- avg_context_chars: {metrics['retrieval']['avg_context_chars']}",
         f"- avg_query_tokens: {metrics['token_cost']['avg_query_tokens']}",
         f"- session_bm25_enabled: {metrics['retrieval']['session_bm25_enabled']}",
@@ -599,6 +616,7 @@ def _write_diagnosis(
         f"- temporal_workpad_max_rows: {metrics['compiler']['temporal_workpad_max_rows']}",
         f"- temporal_workpad_max_pairs: {metrics['compiler']['temporal_workpad_max_pairs']}",
         f"- enable_recommendation_profile_patterns: {metrics['route']['enable_recommendation_profile_patterns']}",
+        f"- temporal_priority_over_recent: {metrics['route']['temporal_priority_over_recent']}",
         f"- answer: {_answer_note(config)}",
         "",
         "## Next Steps",

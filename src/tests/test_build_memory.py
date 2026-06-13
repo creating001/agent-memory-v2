@@ -9,7 +9,13 @@ SRC_ROOT = REPO_ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
-from memory.build import MemoryRecord, _bounded_records, _cache_key, _records_from_payload
+from memory.build import (
+    MemoryRecord,
+    _bounded_records,
+    _cache_key,
+    _manage_records,
+    _records_from_payload,
+)
 from memory.compiler import EvidenceCompiler
 from memory.retrieval import BuildMemoryBM25Retriever, memory_hits_to_source_hits
 from common.schemas import RetrievalHit, RouteResult, Turn
@@ -80,6 +86,82 @@ class BuildMemoryTest(unittest.TestCase):
         self.assertEqual(source_hits[0].source_id, "s1:t1")
         self.assertEqual(source_hits[0].retriever, "build_memory_bm25")
 
+    def test_build_memory_retriever_filters_superseded_by_default(self) -> None:
+        records = (
+            MemoryRecord(
+                memory_id="old",
+                memory_type="state",
+                text="Alex used to prefer black tea.",
+                source_ids=("s1:t0",),
+                subject="Alex",
+                predicate="prefers",
+                value="black tea",
+                status="superseded",
+            ),
+            MemoryRecord(
+                memory_id="new",
+                memory_type="state",
+                text="Alex now prefers jasmine tea.",
+                source_ids=("s1:t1",),
+                subject="Alex",
+                predicate="prefers",
+                value="jasmine tea",
+            ),
+        )
+
+        default_hits = BuildMemoryBM25Retriever(records).retrieve(
+            "What tea did Alex prefer?",
+            top_k=5,
+        )
+        history_hits = BuildMemoryBM25Retriever(
+            records,
+            include_superseded=True,
+        ).retrieve(
+            "What tea did Alex prefer?",
+            top_k=5,
+        )
+
+        self.assertEqual([hit.record.memory_id for hit in default_hits], ["new"])
+        self.assertEqual(
+            {hit.record.memory_id for hit in history_hits},
+            {"old", "new"},
+        )
+
+    def test_memory_manager_adds_validity_interval_to_superseded_record(self) -> None:
+        managed = _manage_records(
+            (
+                MemoryRecord(
+                    memory_id="old",
+                    memory_type="state",
+                    text="Alex prefers black tea.",
+                    source_ids=("s1:t0",),
+                    subject="Alex",
+                    predicate="prefers",
+                    value="black tea",
+                    timestamp="2023-01-01",
+                    valid_from="2023-01-01",
+                ),
+                MemoryRecord(
+                    memory_id="new",
+                    memory_type="state",
+                    text="Alex prefers jasmine tea.",
+                    source_ids=("s1:t1",),
+                    subject="Alex",
+                    predicate="prefers",
+                    value="jasmine tea",
+                    timestamp="2023-02-01",
+                    valid_from="2023-02-01",
+                ),
+            )
+        )
+        by_id = {record.memory_id: record for record in managed}
+
+        self.assertEqual(by_id["old"].status, "superseded")
+        self.assertEqual(by_id["old"].valid_to, "2023-02-01")
+        self.assertEqual(by_id["old"].superseded_by, "new")
+        self.assertEqual(by_id["new"].status, "active")
+        self.assertIsNone(by_id["new"].valid_to)
+
     def test_compiler_includes_build_memory_view(self) -> None:
         compiler = EvidenceCompiler(
             max_evidence_items=2,
@@ -96,6 +178,7 @@ class BuildMemoryTest(unittest.TestCase):
             subject="Alex",
             predicate="prefers",
             value="jasmine tea",
+            valid_from="2023-05-01",
         )
         compiled = compiler.compile(
             question="What tea does Alex prefer?",
@@ -123,6 +206,8 @@ class BuildMemoryTest(unittest.TestCase):
 
         self.assertIn("Build-stage typed memory view", compiled.prompt)
         self.assertIn("Alex prefers jasmine tea", compiled.prompt)
+        self.assertIn("valid_from=2023-05-01", compiled.prompt)
+        self.assertIn("valid_to=open", compiled.prompt)
         self.assertEqual(compiled.memory_records[0].memory_id, "m1")
 
 

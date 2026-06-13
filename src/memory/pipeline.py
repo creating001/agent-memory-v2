@@ -43,8 +43,22 @@ class Stage1Pipeline:
             ),
             enable_recommendation_profile_patterns=bool(
                 route_config.get("enable_recommendation_profile_patterns", False)
-            )
+            ),
+            temporal_priority_over_recent=bool(
+                route_config.get("temporal_priority_over_recent", False)
+            ),
         )
+        self._route_trace_config = {
+            "enable_broad_list_patterns": bool(
+                route_config.get("enable_broad_list_patterns", False)
+            ),
+            "enable_recommendation_profile_patterns": bool(
+                route_config.get("enable_recommendation_profile_patterns", False)
+            ),
+            "temporal_priority_over_recent": bool(
+                route_config.get("temporal_priority_over_recent", False)
+            ),
+        }
         self._base_top_k = int(retrieval_config.get("top_k", 8))
         self._max_top_k = int(retrieval_config.get("max_top_k", self._base_top_k))
         self._neighbor_window = int(retrieval_config.get("neighbor_window", 1))
@@ -58,6 +72,9 @@ class Stage1Pipeline:
         )
         self._build_memory_include_superseded = bool(
             build_memory_config.get("include_superseded", False)
+        )
+        self._build_memory_include_superseded_information_needs = _tuple_config(
+            build_memory_config.get("include_superseded_information_needs")
         )
         self._build_memory_drop_query_stopwords = bool(
             build_memory_config.get("drop_query_stopwords", True)
@@ -249,11 +266,16 @@ class Stage1Pipeline:
         )
         memory_hits = ()
         memory_source_hits = ()
+        build_memory_include_superseded = (
+            self._build_memory_include_superseded
+            or route.information_need
+            in self._build_memory_include_superseded_information_needs
+        )
         if self._build_memory_enabled and self._build_memory_top_k > 0:
             memory_hits = BuildMemoryBM25Retriever(
                 built_memory.records,
                 drop_query_stopwords=self._build_memory_drop_query_stopwords,
-                include_superseded=self._build_memory_include_superseded,
+                include_superseded=build_memory_include_superseded,
             ).retrieve(
                 request.question,
                 top_k=self._build_memory_top_k,
@@ -351,6 +373,7 @@ class Stage1Pipeline:
                 "store": store.manifest(),
                 "build_memory": built_memory.to_dict(),
                 "route": route.to_dict(),
+                "route_config": self._route_trace_config,
                 "retrieval": {
                     "retriever": _retriever_name(
                         dense_enabled=self._dense_enabled,
@@ -368,7 +391,13 @@ class Stage1Pipeline:
                         self._build_memory_max_sources_per_record
                     ),
                     "build_memory_include_superseded": (
+                        build_memory_include_superseded
+                    ),
+                    "build_memory_include_superseded_default": (
                         self._build_memory_include_superseded
+                    ),
+                    "build_memory_include_superseded_information_needs": (
+                        self._build_memory_include_superseded_information_needs
                     ),
                     "dense_enabled": self._dense_enabled,
                     "dense_top_k": self._dense_top_k if self._dense_enabled else None,

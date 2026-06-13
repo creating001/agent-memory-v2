@@ -41,6 +41,8 @@ class MemoryRecord:
     predicate: str = ""
     value: str = ""
     timestamp: str | None = None
+    valid_from: str | None = None
+    valid_to: str | None = None
     entities: tuple[str, ...] = ()
     confidence: float = 1.0
     status: str = "active"
@@ -58,6 +60,8 @@ class MemoryRecord:
                 self.subject,
                 self.predicate,
                 self.value,
+                self.valid_from or "",
+                self.valid_to or "",
                 " ".join(self.entities),
                 self.text,
             )
@@ -419,6 +423,8 @@ def _normalize_record(
     timestamp = _clean_text(raw_record.get("timestamp")) or _first_timestamp(
         source_ids, timestamp_by_source_id
     )
+    valid_from = _clean_text(raw_record.get("valid_from")) or timestamp
+    valid_to = _clean_text(raw_record.get("valid_to")) or None
     entities = _tuple_of_strings(raw_record.get("entities"))
     confidence = _safe_float(raw_record.get("confidence"), default=1.0)
     confidence = min(1.0, max(0.0, confidence))
@@ -438,6 +444,8 @@ def _normalize_record(
         predicate=predicate,
         value=value,
         timestamp=timestamp or None,
+        valid_from=valid_from or None,
+        valid_to=valid_to,
         entities=entities,
         confidence=confidence,
     )
@@ -493,14 +501,22 @@ def _manage_records(records: tuple[MemoryRecord, ...]) -> tuple[MemoryRecord, ..
             if record.memory_id != newest.memory_id:
                 superseded[record.memory_id] = newest.memory_id
 
+    managed_by_id = {record.memory_id: record for record in managed}
     result = []
     for record in managed:
         if record.memory_id in superseded:
+            superseding_record = managed_by_id.get(superseded[record.memory_id])
+            valid_to = (
+                superseding_record.valid_from or superseding_record.timestamp
+                if superseding_record is not None
+                else record.valid_to
+            )
             result.append(
                 replace(
                     record,
                     status="superseded",
                     superseded_by=superseded[record.memory_id],
+                    valid_to=valid_to,
                 )
             )
         else:
