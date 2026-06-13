@@ -105,6 +105,7 @@ experiments/formal/<run_id>/
 | `v34_route_budgeted_probe_8ce3c3b` | 20 条 LoCoMo-only route-stratified diagnostic | v34 route-budgeted retrieval gate 通过；avg_query_tokens `5050.0`，temporal top40、非 temporal top60 均生效，answer max output `16384`。 |
 | `v35_lme_route_probe_e6de8c5` | 20 条 LongMemEval-S route-stratified diagnostic | v35 LoCoMo-winning config 未通过 LME query token gate；avg_query_tokens `7109.2`，p95 `8059`，不能直接跑 LME full。 |
 | `v36_lme_token_safe_probe_e7ca9e5` | 20 条 LongMemEval-S route-stratified diagnostic | v36 token-safe config 通过 LME average query token gate；avg_query_tokens `5579.7`，随后已完成 LME full。 |
+| `v37_row_memory_bundle_lme_probe_3d3cd07` | 20 条 LongMemEval-S route-stratified diagnostic | v37 row-linked build memory bundle 通过 LME average query token gate；avg_query_tokens `5564.5`，avg_compiled_memory_records `7.1`，可跑 LME full。 |
 
 ## 保留正式结果
 
