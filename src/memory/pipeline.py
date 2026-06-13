@@ -236,8 +236,9 @@ class Stage1Pipeline:
                 base_url=str(answer_config.get("base_url", "http://127.0.0.1:8000/v1")),
                 model=str(answer_config["model"]),
                 temperature=float(answer_config.get("temperature", 0.0)),
-                max_tokens=int(answer_config.get("max_tokens", 256)),
+                max_tokens=_answer_max_output_tokens(answer_config),
                 timeout=float(answer_config.get("timeout", 120.0)),
+                max_input_tokens=_optional_int(answer_config.get("max_input_tokens")),
                 api_key_env=answer_config.get("api_key_env"),
             )
         else:
@@ -640,6 +641,29 @@ def _tuple_config(value: object) -> tuple[str, ...]:
     if isinstance(value, (list, tuple)):
         return tuple(str(item) for item in value)
     return (str(value),)
+
+
+def _answer_max_output_tokens(answer_config: Mapping[str, Any]) -> int:
+    max_tokens = answer_config.get("max_tokens")
+    max_output_tokens = answer_config.get("max_output_tokens")
+    if max_tokens is not None and max_output_tokens is not None:
+        if int(max_tokens) != int(max_output_tokens):
+            raise ValueError(
+                "answer.max_tokens and answer.max_output_tokens must match "
+                f"when both are configured: {max_tokens} != {max_output_tokens}"
+            )
+        return int(max_tokens)
+    if max_output_tokens is not None:
+        return int(max_output_tokens)
+    if max_tokens is not None:
+        return int(max_tokens)
+    return 256
+
+
+def _optional_int(value: object) -> int | None:
+    if value is None:
+        return None
+    return int(value)
 
 
 def _retriever_name(

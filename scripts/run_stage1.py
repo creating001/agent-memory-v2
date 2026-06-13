@@ -428,12 +428,15 @@ def _safe_average(total: int, count: int) -> float | None:
 
 def _answer_metrics(config: dict[str, Any]) -> dict[str, Any]:
     answer_config = config.get("answer", {})
+    max_output_tokens = _answer_max_output_tokens(answer_config)
     return {
         "mode": answer_config.get("mode", "null_answerer"),
         "model": answer_config.get("model"),
         "base_url": answer_config.get("base_url"),
         "temperature": answer_config.get("temperature"),
-        "max_tokens": answer_config.get("max_tokens"),
+        "max_input_tokens": answer_config.get("max_input_tokens"),
+        "max_output_tokens": max_output_tokens,
+        "max_tokens": max_output_tokens,
         "timeout": answer_config.get("timeout"),
     }
 
@@ -444,7 +447,9 @@ def _answer_note(config: dict[str, Any]) -> str:
         return (
             "OpenAI-compatible answerer using "
             f"{answer['model']} at {answer['base_url']} with temperature "
-            f"{answer['temperature']} and max_tokens {answer['max_tokens']}."
+            f"{answer['temperature']}, max_input_tokens "
+            f"{answer['max_input_tokens']}, and max_output_tokens "
+            f"{answer['max_output_tokens']}."
         )
     if answer["mode"] == "null_answerer":
         return "Null answerer; generated answers are placeholders and accuracy is not meaningful."
@@ -530,6 +535,8 @@ def _write_summary(
         f"- avg_context_chars: {metrics['retrieval']['avg_context_chars']}",
         f"- answer_mode: {metrics['answer']['mode']}",
         f"- answer_model: {metrics['answer']['model']}",
+        f"- answer_max_input_tokens: {metrics['answer']['max_input_tokens']}",
+        f"- answer_max_output_tokens: {metrics['answer']['max_output_tokens']}",
         f"- answer_style: {metrics['compiler']['answer_style']}",
         f"- evidence_order: {metrics['compiler']['evidence_order']}",
         f"- memory_order: {metrics['compiler']['memory_order']}",
@@ -617,6 +624,8 @@ def _write_diagnosis(
         f"- temporal_workpad_max_pairs: {metrics['compiler']['temporal_workpad_max_pairs']}",
         f"- enable_recommendation_profile_patterns: {metrics['route']['enable_recommendation_profile_patterns']}",
         f"- temporal_priority_over_recent: {metrics['route']['temporal_priority_over_recent']}",
+        f"- answer_max_input_tokens: {metrics['answer']['max_input_tokens']}",
+        f"- answer_max_output_tokens: {metrics['answer']['max_output_tokens']}",
         f"- answer: {_answer_note(config)}",
         "",
         "## Next Steps",
@@ -626,6 +635,23 @@ def _write_diagnosis(
         "- Keep each new method behind explicit config toggles for ablation.",
     ]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def _answer_max_output_tokens(answer_config: dict[str, Any]) -> int | None:
+    max_tokens = answer_config.get("max_tokens")
+    max_output_tokens = answer_config.get("max_output_tokens")
+    if max_tokens is not None and max_output_tokens is not None:
+        if int(max_tokens) != int(max_output_tokens):
+            raise ValueError(
+                "answer.max_tokens and answer.max_output_tokens must match "
+                f"when both are configured: {max_tokens} != {max_output_tokens}"
+            )
+        return int(max_tokens)
+    if max_output_tokens is not None:
+        return int(max_output_tokens)
+    if max_tokens is not None:
+        return int(max_tokens)
+    return None
 
 
 if __name__ == "__main__":

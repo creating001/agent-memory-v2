@@ -37,6 +37,7 @@ class OpenAICompatibleAnswerer:
         temperature: float,
         max_tokens: int,
         timeout: float,
+        max_input_tokens: int | None = None,
         api_key_env: str | None = None,
     ):
         self._base_url = base_url.rstrip("/")
@@ -44,6 +45,7 @@ class OpenAICompatibleAnswerer:
         self._temperature = temperature
         self._max_tokens = max_tokens
         self._timeout = timeout
+        self._max_input_tokens = max_input_tokens
         self._api_key_env = api_key_env
 
     def answer(self, context: CompiledContext) -> AnswerResult:
@@ -54,6 +56,14 @@ class OpenAICompatibleAnswerer:
         prompt_tokens = int(usage.get("prompt_tokens") or 0)
         completion_tokens = int(usage.get("completion_tokens") or 0)
         total_tokens = int(usage.get("total_tokens") or prompt_tokens + completion_tokens)
+        if (
+            self._max_input_tokens is not None
+            and prompt_tokens > self._max_input_tokens
+        ):
+            raise RuntimeError(
+                "Answer prompt exceeded configured max_input_tokens: "
+                f"{prompt_tokens} > {self._max_input_tokens}"
+            )
         return AnswerResult(
             answer=content,
             model=self._model,
