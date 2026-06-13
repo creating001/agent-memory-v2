@@ -47,6 +47,7 @@
 - v15 compact source-map guide 在 LME 上降到 0.686，在 LoCoMo 上为 0.720130，低于 v14 且略低于 v13；说明只保留 activated build memory source map 不足，v14 的 row-level organization 对 LoCoMo category 2 有实质作用，但会伤 LME。
 - v16 row guide 在 LME 上为 0.708，在 LoCoMo 上为 0.729870；说明 row-level evidence organization 比 typed memory source map 更稳，是 v14 收益的主要来源之一，但 LME preference 退化明显，不能无条件作为统一主线。
 - v18 token gate 通过：LME avg_build_tokens 80346.246、avg_query_tokens 5117.622；LoCoMo avg_build_tokens 58386.008、avg_query_tokens 3270.569。build token 按逻辑冷启动成本记录，即使 build cache 全命中也计入 cached usage。
+- v19 selective temporal source-linked guide 在 LME 上降到 0.714，低于 v18 净 -9，且 query token 更高；不跑 LoCoMo full，不作为主线。结论是不要把 build-memory source map 直接恢复到 prompt，即使只限 temporal route 也会带来 LME 噪声。
 - v17 token gate 通过：LME avg_build_tokens 80346.246、avg_query_tokens 5022.590；LoCoMo avg_build_tokens 58386.008、avg_query_tokens 3303.915。
 - v13/v12 仍是重要 LME 对照：v13/v12 accuracy 均为 0.714，v12 query token 更低；LoCoMo 已被 v14 明显超过。
 - v7 memory validity 在 LME 上较 v4 净提升 +5 条，和 v6 持平；avg query tokens 5858.762，接近 6K 预算。
@@ -108,6 +109,7 @@ experiments/formal/<run_id>/
 |---|---|---|---|---:|---|
 | `stage1_hybrid_bm25_v18_lme_s_full_6c5ed99` | LongMemEval-S | full | `6c5ed99` | 0.732 | 当前 LME 最好；vs v17 净 +5，vs v16 净 +12，vs v13/v12 净 +9，vs clean naive RAG 净 +22；hybrid BM25+dense 在 token 预算内提升 temporal/knowledge 定位。 |
 | `stage1_hybrid_bm25_v18_locomo_nonadv_full_bb1cc3c` | LoCoMo | non-adversarial full | `bb1cc3c` | 0.737013 | 当前 LoCoMo 最好；vs v14 净 +2，vs v17 净 +25，vs clean naive RAG 净 +60；优势薄但同一 general 方法跨 benchmark 正向。 |
+| `stage1_temporal_source_link_v19_lme_s_full_42dca7d` | LongMemEval-S | full | `42dca7d` | 0.714 | 负向诊断；只对 temporal_lookup 打开 build-memory source map 后 vs v18 净 -9，query token 更高；不跑 LoCoMo，不作为主线。 |
 | `stage1_selective_row_guide_v17_lme_s_full_68b671b` | LongMemEval-S | full | `68b671b` | 0.722 | v18 的直接基线；vs v16 净 +7，vs v13/v12 净 +4，vs clean naive RAG 净 +17；profile-safe selective guide 改善 preference/recommendation。 |
 | `stage1_selective_row_guide_v17_locomo_nonadv_full_68b671b` | LoCoMo | non-adversarial full | `68b671b` | 0.720779 | 非 LoCoMo 主线；低于 v16/v14、略低于 v13，但高于 v12/naive；LoCoMo 仍以 v14 为最好。 |
 | `stage1_row_guide_v16_locomo_nonadv_full_5221021` | LoCoMo | non-adversarial full | `5221021` | 0.729870 | rows-only guide 高于 v13/v15/v12/naive，但低于 v14 净 -9；证明 row-level evidence organization 是主要正向来源。 |
