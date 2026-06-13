@@ -39,6 +39,7 @@
 - LoCoMo non-adversarial full 当前最高为 v28：0.737662，1136/1540；只比 v18 多 1 条，距 0.78 baseline target 仍有明显差距。
 - v28 token gate 通过：LME avg_build_tokens 80346.246、avg_query_tokens 5736.928；LoCoMo avg_build_tokens 58386.008、avg_query_tokens 3864.537。
 - LoCoMo 诊断显示，很多 wrong case 已有 evidence 进入 context，主要问题是 answer 阶段混淆 mention date / event time、列表边界和隐含推理；下一步应改 build/query 两侧的 memory organization，而不是继续只堆 answer prompt。
+- v29 temporal event contract 已完成 LME full 验证：`0.762`，低于 v28 `0.766`；它改善 temporal_lookup 但伤害 current_state/list_count，不能替代 v28 主线。
 
 负向探索结论已压缩保留：
 
@@ -81,6 +82,7 @@ experiments/formal/<run_id>/
 | run | benchmark | subset | commit | accuracy | 主要结论 |
 |---|---|---|---|---:|---|
 | `stage1_evidence_report_contract_v28_lme_s_full_9917c22` | LongMemEval-S | full | `9917c22` | 0.766000 | 当前 LME 最好；vs v18 净 +17，vs v26 净 +10；仍未达 0.80。 |
+| `stage1_temporal_event_contract_v29_lme_s_full_23e8b78` | LongMemEval-S | full | `23e8b78` | 0.762000 | v28 上的 temporal event contract query-side ablation；temporal_lookup 净 +2，但 current_state/list_count 回退，整体低于 v28。 |
 | `stage1_evidence_report_contract_v28_locomo_nonadv_full_ee13e22` | LoCoMo | non-adversarial full | `ee13e22` | 0.737662 | 当前 LoCoMo 最高但只比 v18 多 1 条；不足以证明突破。 |
 | `stage1_hybrid_bm25_v18_lme_s_full_6c5ed99` | LongMemEval-S | full | `6c5ed99` | 0.732000 | 强 baseline；dense+BM25+build source expansion 的稳定底座。 |
 | `stage1_hybrid_bm25_v18_locomo_nonadv_full_bb1cc3c` | LoCoMo | non-adversarial full | `bb1cc3c` | 0.737013 | LoCoMo 强 baseline；v28 基本与其持平。 |
