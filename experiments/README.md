@@ -40,6 +40,7 @@
 - v14 token gate 通过：LoCoMo avg_build_tokens 58386.008、avg_query_tokens 3818.198。build token 按逻辑冷启动成本记录，即使 build cache 全命中也计入 cached usage。
 - v14 在 LongMemEval-S full 上为 0.704，低于 v12/v13 的 0.714；因此 v14 只作为 LoCoMo 当前主线和 LME 负向/混合消融，不能直接作为统一主线。
 - v15 compact source-map guide 在 LME 上降到 0.686，在 LoCoMo 上为 0.720130，低于 v14 且略低于 v13；说明只保留 activated build memory source map 不足，v14 的 row-level organization 对 LoCoMo category 2 有实质作用，但会伤 LME。
+- v16 row guide 在 LME 上为 0.708，在 LoCoMo 上为 0.729870；说明 row-level evidence organization 比 typed memory source map 更稳，是 v14 收益的主要来源之一，但 LME preference 退化明显，不能无条件作为统一主线。
 - v13 token gate 通过：LME avg_build_tokens 80346.246、avg_query_tokens 4614.806；LoCoMo avg_build_tokens 58386.008、avg_query_tokens 2887.880。
 - v12 仍是 LME 同分主线：LME avg_query_tokens 更低 4303.392；LoCoMo 已被 v13 明显超过。
 - v7 memory validity 在 LME 上较 v4 净提升 +5 条，和 v6 持平；avg query tokens 5858.762，接近 6K 预算。
@@ -51,7 +52,7 @@
 - v6 route priority 是 LME clean 正向消融，但 LoCoMo full 降到 0.681611，不作为 LoCoMo 主线。
 - v5 relative temporal text normalization 在 LME 上降到 0.590，不作为主线。
 - v4.1 compact temporal workpad 降低 token 但 accuracy 退化，不作为主线。
-- 下一步优先做 general 的 high-confidence source-linked guide / compact memory source map，保留 v14 的 LoCoMo 收益，同时降低 LME 的上下文噪声；新方法必须先参考外部方法代码库，再做 general 的 memory/retrieval 改进，避免继续堆 benchmark 形态的触发规则。
+- 下一步优先做 general 的 selective row guide / profile-safe compiler：对 temporal/list/fact lookup 保留 row-level organization，对 profile_preference 改用更合适的 profile/event view；新方法必须先参考外部方法代码库，再做 general 的 memory/retrieval 改进，避免继续堆 benchmark 形态的触发规则。
 
 外部方法借鉴与取舍：
 
@@ -99,6 +100,8 @@ experiments/formal/<run_id>/
 
 | run | benchmark | subset | commit | accuracy | 主要结论 |
 |---|---|---|---|---:|---|
+| `stage1_row_guide_v16_locomo_nonadv_full_5221021` | LoCoMo | non-adversarial full | `5221021` | 0.729870 | rows-only guide 高于 v13/v15/v12/naive，但低于 v14 净 -9；证明 row-level evidence organization 是主要正向来源。 |
+| `stage1_row_guide_v16_lme_s_full_5221021` | LongMemEval-S | full | `5221021` | 0.708 | rows-only guide 高于 v14/v15/naive，但低于 v12/v13 净 -3；preference 退化明显，不作为 LME 主线。 |
 | `stage1_source_map_guide_v15_locomo_nonadv_full_cc7f4c8` | LoCoMo | non-adversarial full | `cc7f4c8` | 0.720130 | source-map-only 低于 v14 净 -24、低于 v13 净 -2；高于 v12/naive 但主要继承 v13 收益，不作为主线。 |
 | `stage1_source_map_guide_v15_lme_s_full_cc7f4c8` | LongMemEval-S | full | `cc7f4c8` | 0.686 | 负向；低于 v14 净 -9、低于 v13/v12 净 -14，也略低于 clean naive；说明 compact source map 未恢复 LME。 |
 | `stage1_structured_evidence_guide_v14_locomo_nonadv_full_f48cf10` | LoCoMo | non-adversarial full | `f48cf10` | 0.735714 | 当前 LoCoMo 最好；vs v13 净 +22，vs v12 净 +57，vs clean naive RAG 净 +58；structured guide 对 category 2/3/4 正向，但 LME 同配置回退。 |
