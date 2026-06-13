@@ -22,13 +22,13 @@
 - `configs/stage1_structured_evidence_guide_v14_cached.json`：structured evidence guide 关键对照。
 - `configs/stage1_hybrid_bm25_v18_cached.json`：hybrid BM25+dense 强 baseline。
 - `configs/stage1_structured_answer_contract_v26_cached.json`：structured answer contract 关键对照。
-- `configs/stage1_evidence_report_contract_v28_cached.json`：当前 LME 最好主线候选，也是 v29 的底座。
+- `configs/stage1_evidence_report_contract_v28_cached.json`：v36 前 LME 最好主线候选，也是 v29/v36 的底座。
 - `configs/stage1_temporal_event_contract_v29_cached.json`：v33 前 LoCoMo 最强主线，显式区分 `mention_time` 与 `event_time`。
 - `configs/stage1_selective_repair_v32_cached.json`：v29 底座上的 selective answer repair/verifier；token 合格但 LoCoMo full 与 v29 持平。
 - `configs/stage1_retrieval_top60_v33_cached.json`：v29 底座上的 clean top-60 retrieval expansion；v34 前 LoCoMo 最好结果，但 temporal_lookup 回退。
 - `configs/stage1_route_budgeted_retrieval_v34_cached.json`：v33 的 route-budgeted 版本；非 temporal 保留 top60，temporal_lookup 回到 top40，v35 前 LoCoMo 最好。
 - `configs/stage1_answer_format_guard_v35_cached.json`：v34 上的 answer format guard；修复 JSON answer salvage 和小数 duration，当前 LoCoMo 最好。
-- `configs/stage1_lme_token_safe_format_guard_v36_cached.json`：v28 top40/evidence budget + v35 answer guard；LME token-safe full 候选。
+- `configs/stage1_lme_token_safe_format_guard_v36_cached.json`：v28 top40/evidence budget + v35 answer guard；当前 LME 最好。
 
 方法摘要：
 
@@ -41,7 +41,7 @@
 
 当前结论：
 
-- LongMemEval-S full 当前最好为 v28：0.766 DeepSeek judge accuracy，383/500；距 0.80 baseline target 仍差 17 条。
+- LongMemEval-S full 当前最好为 v36：0.772 DeepSeek judge accuracy，386/500；距 0.80 baseline target 仍差 14 条。
 - LoCoMo non-adversarial full 当前最高为 v35：valid-only 0.780377，invalid-as-wrong 1201/1540 = 0.779870；valid-only 已达到 0.78 baseline target，保守 invalid-as-wrong 还差 1 条。
 - v28/v29 token gate 均通过：v28 LME avg_build_tokens 80346.246、avg_query_tokens 5736.928；v29 LoCoMo avg_build_tokens 58386.008、avg_query_tokens 3932.560。
 - LoCoMo 诊断显示，很多 wrong case 已有 evidence 进入 context，主要问题是 answer 阶段混淆 mention date / event time、列表边界和隐含推理；下一步应改 build/query 两侧的 memory organization，而不是继续只堆 answer prompt。
@@ -52,7 +52,8 @@
 - v33 top-60 retrieval expansion 已完成 LoCoMo full：valid-only accuracy `0.771930`，invalid-as-wrong `0.771429`，比 v29/v32 净 +15；evidence recall 从 top-40 的 `0.891276` 提到 `0.917969`，但 temporal_lookup 净 -9。
 - v34 route-budgeted retrieval 已完成 LoCoMo full：valid-only accuracy `0.779727`，invalid-as-wrong `0.779221`，比 v33 净 +12、比 v29 净 +27；temporal_lookup 相对 v33 净 +7，说明 temporal top40 / non-temporal top60 的 budget 控制有效。
 - v35 answer format guard 已完成 LoCoMo full：valid-only accuracy `0.780377`，invalid-as-wrong `0.779870`，比 v34 净 +1；只改 6 条 prediction，finalizer applied 2 条。结论是 close-margin 正向，valid-only 达标，但必须同时报告 invalid-as-wrong 仍差 1 条和 same-answer judge variance。
-- 下一步应做 LongMemEval-S token gate，并考虑为 DeepSeek judge invalid 输出添加通用 retry policy；不要继续只在 LoCoMo 上做微小 answer formatting。
+- v36 LME token-safe format guard 已完成 LongMemEval-S full：accuracy `0.772`，386/500，比 v28 净 +3；avg query tokens `5715.468`，token 合格。结论是当前 LME 最好但仍是小幅正向，same-answer judge variance 可见，距 0.80 还差 14 条。
+- 下一步应基于 v36 badcase、外部方法代码和 current best 双基准结果设计 build/query 侧通用改进；不要继续做零散 answer formatting，也不要在未分析前直接开昂贵 full run。
 
 负向探索结论已压缩保留：
 
@@ -100,13 +101,14 @@ experiments/formal/<run_id>/
 | `v33_top60_locomo_probe_65daf7d` | 20 条 LoCoMo-only route-stratified diagnostic | v33 top-60 LoCoMo gate 通过；avg_query_tokens `5287.0`，avg_build_tokens `44168.8`，answer max output `16384`。 |
 | `v34_route_budgeted_probe_8ce3c3b` | 20 条 LoCoMo-only route-stratified diagnostic | v34 route-budgeted retrieval gate 通过；avg_query_tokens `5050.0`，temporal top40、非 temporal top60 均生效，answer max output `16384`。 |
 | `v35_lme_route_probe_e6de8c5` | 20 条 LongMemEval-S route-stratified diagnostic | v35 LoCoMo-winning config 未通过 LME query token gate；avg_query_tokens `7109.2`，p95 `8059`，不能直接跑 LME full。 |
-| `v36_lme_token_safe_probe_e7ca9e5` | 20 条 LongMemEval-S route-stratified diagnostic | v36 token-safe config 通过 LME average query token gate；avg_query_tokens `5579.7`，可跑 LME full。 |
+| `v36_lme_token_safe_probe_e7ca9e5` | 20 条 LongMemEval-S route-stratified diagnostic | v36 token-safe config 通过 LME average query token gate；avg_query_tokens `5579.7`，随后已完成 LME full。 |
 
 ## 保留正式结果
 
 | run | benchmark | subset | commit | accuracy | 主要结论 |
 |---|---|---|---|---:|---|
-| `stage1_evidence_report_contract_v28_lme_s_full_9917c22` | LongMemEval-S | full | `9917c22` | 0.766000 | 当前 LME 最好；vs v18 净 +17，vs v26 净 +10；仍未达 0.80。 |
+| `stage1_lme_token_safe_format_guard_v36_lme_s_full_4af3244` | LongMemEval-S | full | `4af3244` | 0.772000 | 当前 LME 最好；v28 top40/evidence budget + v35 answer guard，vs v28 净 +3；仍未达 0.80。 |
+| `stage1_evidence_report_contract_v28_lme_s_full_9917c22` | LongMemEval-S | full | `9917c22` | 0.766000 | v36 前 LME 最好；vs v18 净 +17，vs v26 净 +10；仍未达 0.80。 |
 | `stage1_answer_format_guard_v35_locomo_nonadv_full_80158a9` | LoCoMo | non-adversarial full | `80158a9` | 0.780377 | 当前 LoCoMo 最好；valid-only 达 0.78，invalid-as-wrong 1201/1540 仍差 1 条，close-margin。 |
 | `stage1_route_budgeted_retrieval_v34_locomo_nonadv_full_fb6c703` | LoCoMo | non-adversarial full | `fb6c703` | 0.779727 | v35 前 LoCoMo 最好；非 temporal top60、temporal top40，vs v33 净 +12，距离 0.78 还差 2 条。 |
 | `stage1_retrieval_top60_v33_locomo_nonadv_full_f016f9a` | LoCoMo | non-adversarial full | `f016f9a` | 0.771930 | v34 前 LoCoMo 最好；top-60 retrieval 带来 +15 correct，但 temporal_lookup 净 -9。 |

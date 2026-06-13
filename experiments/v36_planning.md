@@ -70,3 +70,48 @@ run: `v36_lme_token_safe_probe_e7ca9e5`
 - embedding cache hits/misses/writes: `10079/0/0`
 
 结论：v36 通过 LongMemEval-S no-label average query token gate，可以跑 LME full。下一步使用 v28 LME traces 预热 v36 answer cache，然后跑 LongMemEval-S full prediction + DeepSeek judge。
+
+## 2026-06-14 Full 结果
+
+run: `stage1_lme_token_safe_format_guard_v36_lme_s_full_4af3244`
+
+- benchmark/subset: LongMemEval-S full
+- samples: `500`
+- commit: `4af32444a58fff4e7b86c44906ec7da448a68e7c`
+- dirty: 仅用户修改的 `docs/architecture.md`、`docs/clean_protocol.md`
+- answer max input/output: `131072/16384`
+- avg build tokens: `80346.246`
+- total build tokens: `40173123`
+- avg query tokens: `5715.468`
+- total query tokens: `2857734`
+- build cache hits/misses/writes: `3341/0/0`
+- embedding cache hits/misses/writes: `247238/0/0`
+- answer cache hits/misses/writes: `412/88/88`
+- avg build memory records: `129.662`
+- avg active build memory records: `116.456`
+- avg compiled evidence items: `34.062`
+- DeepSeek judge accuracy: `0.772`
+- correct/valid/samples: `386/500/500`
+- judge invalid: `0`
+- judge total tokens: `119844`
+
+对比 v28:
+
+- v28 accuracy: `0.766`, `383/500`
+- v36 accuracy: `0.772`, `386/500`
+- net: `+3`
+- gained/lost: `15/12`
+- answer_changed: `24/500`
+- changed-answer net: `+2`
+- same-answer judge flip net: `+1`
+
+结论：v36 是当前 LME 最好 full formal 结果，且 token 合格；但收益只有 `+3` correct，距 0.80 还差 `14` correct。下一步不能继续做零散 answer formatting，应基于 v36 badcase 和外部方法代码，设计 build/query memory organization 的通用改进。
+
+输出:
+
+- summary: `experiments/formal/stage1_lme_token_safe_format_guard_v36_lme_s_full_4af3244/summary.md`
+- diagnosis: `experiments/formal/stage1_lme_token_safe_format_guard_v36_lme_s_full_4af3244/diagnosis.md`
+- judge: `experiments/formal/stage1_lme_token_safe_format_guard_v36_lme_s_full_4af3244/deepseek_judge.json`
+- comparison: `experiments/formal/stage1_lme_token_safe_format_guard_v36_lme_s_full_4af3244/judge_comparison_vs_v28.json`
+- predictions: `outputs/formal/stage1_lme_token_safe_format_guard_v36_lme_s_full_4af3244/predictions.jsonl`
+- traces: `outputs/formal/stage1_lme_token_safe_format_guard_v36_lme_s_full_4af3244/traces.jsonl`
