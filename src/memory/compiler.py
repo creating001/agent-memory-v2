@@ -512,9 +512,15 @@ def _build_prompt(
         return _build_external_naive_prompt(
             question=question,
             question_time=question_time,
+            route=route,
             rows=rows,
             row_text_mode=row_text_mode,
             max_row_text_chars=max_row_text_chars,
+            temporal_workpad=temporal_workpad,
+            temporal_text_normalization=temporal_text_normalization,
+            temporal_workpad_scope=temporal_workpad_scope,
+            temporal_workpad_max_rows=temporal_workpad_max_rows,
+            temporal_workpad_max_pairs=temporal_workpad_max_pairs,
         )
 
     lines = [
@@ -641,15 +647,48 @@ def _build_external_naive_prompt(
     *,
     question: str,
     question_time: str | None,
+    route: RouteResult,
     rows: tuple[EvidenceRow, ...],
     row_text_mode: str,
     max_row_text_chars: int,
+    temporal_workpad: bool,
+    temporal_text_normalization: bool,
+    temporal_workpad_scope: str,
+    temporal_workpad_max_rows: int,
+    temporal_workpad_max_pairs: int,
 ) -> str:
     user_question = (
         f"Current Date: {question_time}\nQuestion: {question}"
         if question_time
         else question
     )
+    temporal_aid = ""
+    if temporal_workpad and _should_add_temporal_workpad(
+        question, route, temporal_workpad_scope
+    ):
+        temporal_aid_lines = _external_temporal_aid_lines(
+            question=question,
+            question_time=question_time,
+            rows=rows,
+            max_rows=temporal_workpad_max_rows,
+            max_pairs=temporal_workpad_max_pairs,
+            include_relative_text=temporal_text_normalization,
+        )
+        if temporal_aid_lines:
+            temporal_aid = "\n".join(["", "Temporal Aid:", *temporal_aid_lines, ""])
+    rules = ["Use only the memory context."]
+    if temporal_aid:
+        rules.append(
+            "Use Temporal Aid only to interpret row dates and relative time phrases in the memory context; it is not independent evidence."
+        )
+    rules.extend(
+        [
+            "If the context is insufficient, say the provided information is not enough.",
+            "Keep the answer concise and specific.",
+            "Return only valid JSON.",
+        ]
+    )
+    rule_lines = [f"{index}. {rule}" for index, rule in enumerate(rules, start=1)]
     return "\n".join(
         [
             "Answer the user's question using only the provided memory context.",
@@ -664,12 +703,10 @@ def _build_external_naive_prompt(
                 row_text_mode=row_text_mode,
                 max_row_text_chars=max_row_text_chars,
             ),
+            temporal_aid,
             "",
             "Rules:",
-            "1. Use only the memory context.",
-            "2. If the context is insufficient, say the provided information is not enough.",
-            "3. Keep the answer concise and specific.",
-            "4. Return only valid JSON.",
+            *rule_lines,
             "",
             "Output JSON:",
             "{",
@@ -678,6 +715,131 @@ def _build_external_naive_prompt(
             "}",
         ]
     )
+
+
+def _external_temporal_aid_lines(
+    *,
+    question: str,
+    question_time: str | None,
+    rows: tuple[EvidenceRow, ...],
+    max_rows: int,
+    max_pairs: int,
+    include_relative_text: bool,
+) -> list[str]:
+    candidates = _external_dated_candidate_rows(
+        question,
+        rows,
+        include_relative_text=include_relative_text,
+    )
+    if not candidates:
+        return []
+
+    lines = [
+        "Use this only as a date arithmetic aid derived from Memory Context row timestamps; final facts must still come from Memory Context."
+    ]
+    question_date = _parse_date(question_time)
+    if question_date is not None:
+        lines.append(f"- question_date={question_date.isoformat()}")
+
+    selected = candidates[:max(1, max_rows)]
+    lines.append("- memory_dates:")
+    for candidate in selected:
+        matched = ", ".join(candidate["matched_terms"]) or "none"
+        relative = ""
+        relative_times = candidate.get("relative_times", ())
+        if include_relative_text and relative_times:
+            relative = " | relative_time_mentions=" + "; ".join(
+                f'phrase="{phrase}" normalized="{normalized}"'
+                for phrase, normalized in relative_times
+            )
+        lines.append(
+            f"  - Memory {candidate['memory_index']}: row_date={candidate['date']} "
+            f"role={candidate['role']} matched_terms={matched}{relative}"
+        )
+
+    chronological = sorted(
+        selected,
+        key=lambda item: (str(item["date"]), int(item["memory_index"])),
+    )
+    if _asks_order(question) and len(chronological) >= 2:
+        order = " -> ".join(
+            f"Memory {item['memory_index']}({item['date']})" for item in chronological
+        )
+        lines.append(f"- chronological_order_by_row_date: {order}")
+
+    if max_pairs > 0 and _asks_pairwise_duration(question) and len(selected) >= 2:
+        lines.append("- pairwise_date_gaps:")
+        for left, right in _external_pairwise_temporal_gaps(selected)[:max_pairs]:
+            start = _parse_date(str(left["date"]))
+            end = _parse_date(str(right["date"]))
+            if start is None or end is None:
+                continue
+            days = abs((end - start).days)
+            inclusive_days = days + 1
+            lines.append(
+                f"  - Memory {left['memory_index']}({start.isoformat()}) <-> "
+                f"Memory {right['memory_index']}({end.isoformat()}): {days} days "
+                f"({inclusive_days} inclusive), {days / 7:.2f} weeks, "
+                f"{days / 30.44:.2f} approx months, {days / 365.25:.2f} approx years"
+            )
+    return lines
+
+
+def _external_dated_candidate_rows(
+    question: str,
+    rows: tuple[EvidenceRow, ...],
+    include_relative_text: bool,
+) -> list[dict[str, object]]:
+    question_terms = _content_terms(question)
+    candidates: list[dict[str, object]] = []
+    for index, row in enumerate(rows, start=1):
+        row_date = _parse_date(row.timestamp)
+        if row_date is None:
+            continue
+        matched_terms = tuple(sorted(question_terms.intersection(_content_terms(row.text))))
+        relative_times = (
+            tuple(_relative_time_values(row.text, row_date))
+            if include_relative_text
+            else ()
+        )
+        retrieval_bonus = 1 if row.retrieval_rank is not None else 0
+        candidates.append(
+            {
+                "date": row_date.isoformat(),
+                "index": index,
+                "matched_terms": matched_terms[:8],
+                "memory_index": index,
+                "relative_times": relative_times,
+                "role": row.role,
+                "score": len(matched_terms) + retrieval_bonus + len(relative_times),
+            }
+        )
+    candidates.sort(
+        key=lambda item: (
+            -int(item["score"]),
+            int(item["index"]),
+        )
+    )
+    return candidates
+
+
+def _external_pairwise_temporal_gaps(
+    dated_rows: list[dict[str, object]],
+) -> list[tuple[dict[str, object], dict[str, object]]]:
+    pairs: list[tuple[int, int, int, dict[str, object], dict[str, object]]] = []
+    for left_index, left in enumerate(dated_rows):
+        left_date = _parse_date(str(left["date"]))
+        if left_date is None:
+            continue
+        for right_index, right in enumerate(dated_rows[left_index + 1 :], start=left_index + 1):
+            right_date = _parse_date(str(right["date"]))
+            if right_date is None or left_date == right_date:
+                continue
+            combined_score = int(left["score"]) + int(right["score"])
+            index_distance = abs(int(left["index"]) - int(right["index"]))
+            pairs.append((combined_score, -index_distance, -right_index, left, right))
+    pairs.sort(key=lambda item: (item[0], item[1], item[2]), reverse=True)
+    return [(left, right) for _, _, _, left, right in pairs]
 
 
 def _external_naive_context(
@@ -1203,11 +1365,76 @@ def _relative_time_values(text: str, row_date: date) -> list[tuple[str, str]]:
 def _parse_date(value: str | None) -> date | None:
     if value is None:
         return None
-    normalized = value.strip()[:10].replace("/", "-")
+    text = value.strip()
+    normalized = text[:10].replace("/", "-")
     try:
         return date.fromisoformat(normalized)
     except ValueError:
+        pass
+
+    numeric_match = re.search(
+        r"\b(?P<year>\d{4})[-/](?P<month>\d{1,2})[-/](?P<day>\d{1,2})\b",
+        text,
+    )
+    if numeric_match:
+        parsed = _date_from_parts(
+            int(numeric_match.group("year")),
+            int(numeric_match.group("month")),
+            int(numeric_match.group("day")),
+        )
+        if parsed is not None:
+            return parsed
+
+    day_month_match = re.search(
+        r"\b(?P<day>\d{1,2})(?:st|nd|rd|th)?\s+"
+        r"(?P<month>[A-Za-z]+),?\s+(?P<year>\d{4})\b",
+        text,
+    )
+    if day_month_match:
+        month = _month_number(day_month_match.group("month"))
+        if month is not None:
+            parsed = _date_from_parts(
+                int(day_month_match.group("year")),
+                month,
+                int(day_month_match.group("day")),
+            )
+            if parsed is not None:
+                return parsed
+
+    month_day_match = re.search(
+        r"\b(?P<month>[A-Za-z]+)\s+"
+        r"(?P<day>\d{1,2})(?:st|nd|rd|th)?,?\s+(?P<year>\d{4})\b",
+        text,
+    )
+    if month_day_match:
+        month = _month_number(month_day_match.group("month"))
+        if month is not None:
+            parsed = _date_from_parts(
+                int(month_day_match.group("year")),
+                month,
+                int(month_day_match.group("day")),
+            )
+            if parsed is not None:
+                return parsed
+    return None
+
+
+def _date_from_parts(year: int, month: int, day: int) -> date | None:
+    try:
+        return date(year, month, day)
+    except ValueError:
         return None
+
+
+def _month_number(value: str) -> int | None:
+    normalized = value.strip().lower()
+    for index, name in enumerate(calendar.month_name):
+        if index and normalized == name.lower():
+            return index
+    for index, name in enumerate(calendar.month_abbr):
+        if index and normalized == name.lower():
+            return index
+    return None
 
 
 def _shift_month(value: date, delta: int) -> date:

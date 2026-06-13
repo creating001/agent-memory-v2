@@ -274,6 +274,79 @@ class BuildMemoryTest(unittest.TestCase):
         self.assertIn("valid_to=open", compiled.prompt)
         self.assertEqual(compiled.memory_records[0].memory_id, "m1")
 
+    def test_external_naive_prompt_can_include_temporal_aid(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=2,
+            max_evidence_chars=2000,
+            answer_style="concise",
+            max_memory_records=0,
+            prompt_mode="external_naive",
+            temporal_workpad=True,
+            temporal_text_normalization=True,
+            temporal_workpad_scope="route",
+        )
+        route = RouteResult(information_need="temporal_lookup", signals=("temporal",))
+        compiled = compiler.compile(
+            question="When did Caroline go to the support group?",
+            question_time=None,
+            route=route,
+            hits=(
+                RetrievalHit(
+                    source_id="s1:t0",
+                    score=1.0,
+                    rank=1,
+                    retriever="test",
+                ),
+            ),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="Caroline",
+                    text="I went to a LGBTQ support group yesterday and it was powerful.",
+                    timestamp="1:56 pm on 8 May, 2023",
+                ),
+            ),
+        )
+
+        self.assertIn("Temporal Aid:", compiled.prompt)
+        self.assertIn("Memory 1: row_date=2023-05-08", compiled.prompt)
+        self.assertIn('phrase="yesterday" normalized="2023-05-07"', compiled.prompt)
+        self.assertIn("Use Temporal Aid only to interpret row dates", compiled.prompt)
+
+    def test_external_naive_prompt_omits_temporal_aid_when_disabled(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=2,
+            max_evidence_chars=2000,
+            answer_style="concise",
+            max_memory_records=0,
+            prompt_mode="external_naive",
+            temporal_workpad=False,
+            temporal_text_normalization=False,
+        )
+        route = RouteResult(information_need="temporal_lookup", signals=("temporal",))
+        compiled = compiler.compile(
+            question="When did Caroline go to the support group?",
+            question_time=None,
+            route=route,
+            hits=(),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="Caroline",
+                    text="I went to a LGBTQ support group yesterday and it was powerful.",
+                    timestamp="2023-05-08",
+                ),
+            ),
+        )
+
+        self.assertNotIn("Temporal Aid:", compiled.prompt)
+        self.assertNotIn("Use Temporal Aid only", compiled.prompt)
+        self.assertIn("2. If the context is insufficient", compiled.prompt)
+
 
 if __name__ == "__main__":
     unittest.main()
