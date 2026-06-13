@@ -1,0 +1,44 @@
+{
+  "blocked_counts": {
+    "gold answer": 0,
+    "judge output": 0,
+    "offline evaluator": 0,
+    "qid": 0,
+    "question_type": 0,
+    "reference answer": 0,
+    "row index": 0,
+    "sample id": 0,
+    "sample_id": 0
+  },
+  "blocked_examples": {},
+  "category_examples": [
+    "a consistent filing system, both physical and digital, to store and categorize your documents. This could include folders, binders, or digital files labeled by category (e.g., expenses, invoices, receipts, etc.).\n2. **Digitize your documents**: Scan or digitize paper documents to reduce clutter and make them easily sea",
+    "gpt_Clr6oyu_0\nuser: Can you make an outline for my video\n\n### Memory 15\nDate: 2023/05/20 (Sat) 06:10\nSession: sharegpt_85Y0l0J_365\nuser: could just give me the category title and then also give me up to 6 bullet points that summarise what we could do in that space\n\n### Memory 16\nDate: 2023/05/24 (Wed) 19:24\nSession: e1"
+  ],
+  "category_hit_count": 2,
+  "interpretation": "category hits are ordinary raw dialogue text, not hidden benchmark labels; operation workpad appeared only on configured information needs.",
+  "run": "v42_operation_workpad_lme_probe_df25f6a",
+  "scope": "compiled_context.prompt only",
+  "workpad_by_information_need": {
+    "current_state": {
+      "total": 4,
+      "workpad": 0
+    },
+    "fact_lookup": {
+      "total": 4,
+      "workpad": 0
+    },
+    "list_count": {
+      "total": 4,
+      "workpad": 4
+    },
+    "profile_preference": {
+      "total": 4,
+      "workpad": 0
+    },
+    "temporal_lookup": {
+      "total": 4,
+      "workpad": 4
+    }
+  }
+}

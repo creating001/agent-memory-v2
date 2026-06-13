@@ -73,3 +73,23 @@ v36 full 的 badcase 更像是 evidence aggregation 问题：
 - avg query tokens <= `6000`，max query tokens < `8000`。
 - operation_workpad 只出现在 `list_count` / `temporal_lookup` prompts。
 - 同子集 DeepSeek judge 相对 v36 有净收益，或至少修复关键 count/list badcase 且无明显新增错；否则不跑 full。
+
+## Gate 结果
+
+Run：`v42_operation_workpad_lme_probe_df25f6a`
+
+- commit：`df25f6a8198af35ff7498f3d4ca505b1f8014bd2`
+- dirty：True，仅用户修改的 `docs/architecture.md` 和 `docs/clean_protocol.md` 未提交。
+- prediction：20/20 成功。
+- answer max input/output：`131072/16384`。
+- avg_build_tokens：`81690.45`。
+- avg_query_tokens：`5660.25`。
+- max_query_tokens：`6908`。
+- weighted LME full avg query estimate：`5668.1925`。
+- operation_workpad 生效范围：`list_count 4/4`，`temporal_lookup 4/4`；其他 route `0/12`。
+- prompt clean scan：无 hidden metadata 命中；`category` 仅来自原始对话普通词。
+- 同子集 DeepSeek judge：v36=`14/20`，v42=`15/20`，delta=`+1`。
+- answer_changed：`6/20`；gained `1`、lost `0`。
+- 关键 gained case：Costa Rica 5-day trip shirt count，从 insufficient 改为 `7`。
+
+结论：v42 满足 token gate，有净正向诊断信号，且无同子集 judge regression。下一步跑 LongMemEval-S full；若 full 不负向且 token 合格，再考虑 LoCoMo non-adversarial full。

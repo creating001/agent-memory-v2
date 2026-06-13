@@ -1,0 +1,114 @@
+# Diagnosis for v42_operation_workpad_lme_probe_df25f6a
+
+## Summary
+
+The run validates pipeline shape, clean traceability, and answerer integration under the configured experiment kind.
+
+## Observations
+
+- samples_processed: 20
+- avg_compiled_evidence_items: 33.9
+- avg_build_tokens: 81690.45
+- build_token_accounting: logical cold-build LLM tokens; cached build chunks count from stored usage, while cache hits only avoid repeated local API calls.
+- avg_build_memory_records: 130.95
+- avg_active_build_memory_records: 117.5
+- build_memory_temporal_fields: False
+- build_memory_cache_hits: 137
+- build_memory_cache_misses: 0
+- build_memory_cache_writes: 0
+- avg_memory_hits: 5.5
+- avg_memory_source_hits: 5.35
+- build_memory_include_superseded: False
+- build_memory_include_superseded_information_needs: ['temporal_lookup', 'list_count']
+- avg_context_chars: 19294.8
+- avg_query_tokens: 5660.25
+- question_analysis_enabled: False
+- question_analysis_model: None
+- question_analysis_avg_query_tokens: 0.0
+- question_analysis_route_changed_count: 0
+- question_analysis_cache_hits: 0
+- question_analysis_cache_misses: 0
+- question_analysis_cache_writes: 0
+- retrieval_route_overrides: {}
+- avg_effective_top_k: 40.0
+- avg_effective_dense_top_k: 40.0
+- avg_effective_dense_protect_top_n: 32.0
+- dense_protect_top_n: 32
+- session_bm25_enabled: False
+- session_bm25_top_k: None
+- session_anchor_top_k: None
+- session_enabled_route_signals: None
+- session_bm25_applied_count: 0
+- session_bm25_applied_rate: 0.0
+- embedding_cache_enabled: True
+- embedding_cache_hits: 10079
+- embedding_cache_misses: 0
+- evidence_order: retrieval
+- memory_record_source: retrieval
+- avg_compiled_memory_records: 0.0
+- memory_order: retrieval
+- memory_layout: flat
+- row_text_mode: full
+- max_row_text_chars: 0
+- evidence_row_labels: False
+- final_answer_checklist: False
+- max_memory_records: 0
+- route_guidance: False
+- temporal_workpad: True
+- temporal_text_normalization: True
+- temporal_event_contract: False
+- temporal_workpad_scope: route
+- temporal_workpad_max_rows: 12
+- temporal_workpad_max_pairs: 12
+- structured_guide: True
+- structured_guide_max_rows: 12
+- structured_guide_include_rows: True
+- structured_guide_include_memory: False
+- structured_guide_disabled_signals: ['personalized_recommendation']
+- structured_answer_contract: False
+- structured_answer_contract_information_needs: None
+- structured_answer_contract_max_items: 10
+- evidence_report_contract: True
+- evidence_report_information_needs: ['current_state', 'fact_lookup', 'list_count', 'profile_preference', 'temporal_lookup']
+- evidence_report_max_items: 8
+- evidence_report_detail: False
+- route_overrides: {}
+- enable_recommendation_profile_patterns: True
+- temporal_priority_over_recent: False
+- answer_max_input_tokens: 131072
+- answer_max_output_tokens: 16384
+- answer_cache_enabled: True
+- answer_cache_path: outputs/cache/qwen3_answer_v42_operation_workpad.sqlite
+- answer_cache_namespace: stage1_operation_workpad_v42_qwen3_30b
+- answer_cache_hits: 0
+- answer_cache_misses: 20
+- answer_cache_writes: 20
+- answer_finalizer_enabled: True
+- answer_finalizer_mode: structured_evidence_mechanical
+- answer_finalizer_enable_count_correction: False
+- answer_finalizer_enable_money_sum_correction: False
+- answer_finalizer_enable_duration_rounding_correction: True
+- answer_finalizer_applied_count: 0
+- answer_finalizer_applied_rate: 0.0
+- answer_repair_enabled: False
+- answer_repair_mode: openai_compatible
+- answer_repair_model: Qwen/Qwen3-30B-A3B-Instruct-2507
+- answer_repair_max_input_tokens: 131072
+- answer_repair_max_output_tokens: 16384
+- answer_repair_information_needs: None
+- answer_repair_triggered_count: 0
+- answer_repair_triggered_rate: 0.0
+- answer_repair_applied_count: 0
+- answer_repair_applied_rate: 0.0
+- answer_repair_total_query_tokens: 0
+- answer_repair_avg_query_tokens_when_triggered: None
+- answer_repair_cache_hits: 0
+- answer_repair_cache_misses: 0
+- answer_repair_cache_writes: 0
+- answer: OpenAI-compatible answerer using Qwen/Qwen3-30B-A3B-Instruct-2507 at http://127.0.0.1:8000/v1 with temperature 0, max_input_tokens 131072, and max_output_tokens 16384.
+
+## Next Steps
+
+- Run LongMemEval-S full for this exact v42 configuration: same-20 DeepSeek judge improved from v36 `14/20` to v42 `15/20`, with no judge regression and avg query tokens under budget.
+- After LME full, compare against v36 and v40 by information_need and question type; only consider LoCoMo if LME is not negative.
+- If v42 full is negative, remove the top-level config and move on to build/management-side typed candidate organization.
