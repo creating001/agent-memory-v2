@@ -1,0 +1,31 @@
+{
+  "benchmark": "longmemeval_s",
+  "clean_assertions": [
+    "Prediction loader rejects gold/reference/target answers.",
+    "Prediction loader rejects judge outputs and benchmark labels.",
+    "Prediction loader rejects sample ids, qids, and row indices.",
+    "record_key is copied only by the runner and is not passed into pipeline modules.",
+    "Derived context rows always retain raw source_id back-links.",
+    "Build-stage typed memory is created only from raw dialogue turns and visible metadata."
+  ],
+  "config_path": "/data/home_new/wujinqi/agent-memory/configs/stage1_answer_format_guard_v35_cached.json",
+  "created_at_utc": "2026-06-13T19:51:42+00:00",
+  "experiment_dir": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/v35_lme_route_probe_e6de8c5",
+  "experiment_kind": "diagnostic",
+  "git": {
+    "commit": "e6de8c5e16e89a763bf65cba1fac34586cb0babb",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "M docs/architecture.md\n M docs/clean_protocol.md"
+  },
+  "input_path": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/v35_lme_route_stratified_probe/prediction_input.jsonl",
+  "output_path": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/v35_lme_route_probe_e6de8c5/predictions.jsonl",
+  "outputs": {
+    "predictions": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/v35_lme_route_probe_e6de8c5/predictions.jsonl",
+    "traces": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/v35_lme_route_probe_e6de8c5/traces.jsonl"
+  },
+  "run_id": "v35_lme_route_probe_e6de8c5",
+  "subset": "route_probe",
+  "trace_path": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/v35_lme_route_probe_e6de8c5/traces.jsonl"
+}

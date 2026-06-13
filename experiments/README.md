@@ -98,6 +98,7 @@ experiments/formal/<run_id>/
 | `v32_selective_repair_probe_7cde029` | 20 条 route-stratified mixed diagnostic | v32 selective repair gate 通过；avg_query_tokens `5017.3`，repair triggered `1/20`，answer/repair max output `16384`。 |
 | `v33_top60_locomo_probe_65daf7d` | 20 条 LoCoMo-only route-stratified diagnostic | v33 top-60 LoCoMo gate 通过；avg_query_tokens `5287.0`，avg_build_tokens `44168.8`，answer max output `16384`。 |
 | `v34_route_budgeted_probe_8ce3c3b` | 20 条 LoCoMo-only route-stratified diagnostic | v34 route-budgeted retrieval gate 通过；avg_query_tokens `5050.0`，temporal top40、非 temporal top60 均生效，answer max output `16384`。 |
+| `v35_lme_route_probe_e6de8c5` | 20 条 LongMemEval-S route-stratified diagnostic | v35 LoCoMo-winning config 未通过 LME query token gate；avg_query_tokens `7109.2`，p95 `8059`，不能直接跑 LME full。 |
 
 ## 保留正式结果
 

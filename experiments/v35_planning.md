@@ -94,3 +94,19 @@ v34 对照:
 - same-answer gained/lost: `24/26`
 
 结论：v35 是当前 LoCoMo 最好，并首次在 valid-only DeepSeek accuracy 下达到 `0.78` baseline target。但它是 close-margin result，且 invalid-as-wrong 仍差 1 条；必须在汇报时同时写明 judge variance 和 invalid-as-wrong 口径。下一步不应继续只在 LoCoMo 上微调，应先做 LongMemEval-S token gate，并考虑为 judge invalid 输出添加通用 retry policy。
+
+## 2026-06-14 LME Token Gate
+
+run: `v35_lme_route_probe_e6de8c5`
+
+- source: `outputs/prepare_longmemeval_s_cleaned/prediction_input.jsonl`
+- sampling: first up to 4 examples per question-derived information_need route; no labels/gold/judge/question_type read
+- samples: `20`
+- route counts in full LME input: current_state `22`, fact_lookup `183`, list_count `119`, profile_preference `15`, temporal_lookup `161`
+- answer max input/output: `131072/16384`
+- avg build tokens: `81690.45`
+- avg query tokens: `7109.2`
+- query token distribution: min `5883`, p50 `7152`, p90 `7664`, p95 `8059`, max `8371`
+- avg compiled evidence items: `47.3`
+
+结论：v35 LoCoMo-winning config 不通过 LongMemEval-S 默认 query budget；不能直接跑 LME full。下一步应设计 token-safe LME candidate，优先考虑 v28-style top40/evidence budget + v35 answer format guard，然后重新做 LME gate。
