@@ -19,6 +19,7 @@
 - `stage1_selective_list_expansion_v11_cached.json`：query-side selective expansion ablation，默认保持 v7，仅对 question-text router 得到的通用 `list_count` information need 使用受限 role-aware snippet 扩展；目标是在 6K 附近保留 v10 的聚合题收益，同时避免 profile/temporal/assistant 噪声。
 - `stage1_source_expansion_v12_cached.json`：build-to-query source expansion 消融，保留 external-aligned naive RAG 的 raw dense top-40、Date/role/query-time formatting 和 JSON answer contract；build-stage typed memory 只作为 raw source turn 扩展入口，不直接进入 answer prompt。借鉴 Mem0 的 ADD-only linked memory / entity boost、LangMem 的 collection/profile 分层、SimpleMem 的多视角索引和 Graphiti/Zep 的 raw episode provenance；目标是在保持强 raw baseline 的同时验证 build memory 是否能补召回。
 - `stage1_temporal_aid_v13_cached.json`：query-side temporal aid 消融，在 v12 上只增加通用日历换算辅助，把 retrieved raw rows 中的 yesterday / last Saturday / N days ago 等相对时间按该 row timestamp 归一化给 answer model；不读取 benchmark category、question_type、gold、judge、sample id，也不写具体实体或样本规则。借鉴 SimpleMem 的 absolute timestamp normalization 与 Graphiti/Zep 的 episode reference time，但仍以 raw evidence 为最终事实来源。
+- `stage1_structured_evidence_guide_v14_cached.json`：query-side context organization 消融，在 v13 上增加 structured evidence guide，把已召回 raw rows 的日期/角色/问题词重叠/相对时间候选，以及 build-stage typed memory 命中的 source 回链压成紧凑索引；guide 不是独立证据，最终事实仍需来自 Memory Context。借鉴 SimpleMem 的 structured memory entry、多视角索引，Graphiti/Zep/HippoRAG 的 semantic-to-episode 回链，A-MEM/Hindsight/xMemory 的 link expansion / hybrid retrieval 思路；本轮不新增 benchmark 规则，也不同时打开 lexical 检索，便于归因。
 
 新增配置必须满足：
 

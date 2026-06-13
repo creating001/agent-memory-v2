@@ -119,6 +119,8 @@ class EvidenceCompiler:
         temporal_workpad_scope: str = "route",
         temporal_workpad_max_rows: int = 10,
         temporal_workpad_max_pairs: int = 12,
+        structured_guide: bool = False,
+        structured_guide_max_rows: int = 12,
         evidence_order: str = "retrieval",
         memory_order: str = "retrieval",
         memory_layout: str = "flat",
@@ -145,6 +147,8 @@ class EvidenceCompiler:
         self._temporal_workpad_scope = temporal_workpad_scope
         self._temporal_workpad_max_rows = max(1, temporal_workpad_max_rows)
         self._temporal_workpad_max_pairs = max(0, temporal_workpad_max_pairs)
+        self._structured_guide = structured_guide
+        self._structured_guide_max_rows = max(1, structured_guide_max_rows)
         if evidence_order not in {"retrieval", "question_overlap"}:
             raise ValueError(f"Unsupported evidence_order: {evidence_order}")
         self._evidence_order = evidence_order
@@ -242,6 +246,8 @@ class EvidenceCompiler:
             temporal_workpad_scope=self._temporal_workpad_scope,
             temporal_workpad_max_rows=self._temporal_workpad_max_rows,
             temporal_workpad_max_pairs=self._temporal_workpad_max_pairs,
+            structured_guide=self._structured_guide,
+            structured_guide_max_rows=self._structured_guide_max_rows,
             memory_layout=self._memory_layout,
             row_text_mode=route_settings["row_text_mode"],
             max_row_text_chars=route_settings["max_row_text_chars"],
@@ -490,6 +496,8 @@ def _build_prompt(
     temporal_workpad_scope: str,
     temporal_workpad_max_rows: int,
     temporal_workpad_max_pairs: int,
+    structured_guide: bool,
+    structured_guide_max_rows: int,
     memory_layout: str,
     row_text_mode: str,
     max_row_text_chars: int,
@@ -513,6 +521,7 @@ def _build_prompt(
             question=question,
             question_time=question_time,
             route=route,
+            memory_records=memory_records,
             rows=rows,
             row_text_mode=row_text_mode,
             max_row_text_chars=max_row_text_chars,
@@ -521,6 +530,8 @@ def _build_prompt(
             temporal_workpad_scope=temporal_workpad_scope,
             temporal_workpad_max_rows=temporal_workpad_max_rows,
             temporal_workpad_max_pairs=temporal_workpad_max_pairs,
+            structured_guide=structured_guide,
+            structured_guide_max_rows=structured_guide_max_rows,
         )
 
     lines = [
@@ -648,6 +659,7 @@ def _build_external_naive_prompt(
     question: str,
     question_time: str | None,
     route: RouteResult,
+    memory_records: tuple[MemoryRecord, ...],
     rows: tuple[EvidenceRow, ...],
     row_text_mode: str,
     max_row_text_chars: int,
@@ -656,6 +668,8 @@ def _build_external_naive_prompt(
     temporal_workpad_scope: str,
     temporal_workpad_max_rows: int,
     temporal_workpad_max_pairs: int,
+    structured_guide: bool,
+    structured_guide_max_rows: int,
 ) -> str:
     user_question = (
         f"Current Date: {question_time}\nQuestion: {question}"
@@ -676,7 +690,24 @@ def _build_external_naive_prompt(
         )
         if temporal_aid_lines:
             temporal_aid = "\n".join(["", "Temporal Aid:", *temporal_aid_lines, ""])
+    structured_guide_block = ""
+    if structured_guide:
+        guide_lines = _external_structured_guide_lines(
+            question=question,
+            rows=rows,
+            memory_records=memory_records,
+            max_rows=structured_guide_max_rows,
+            include_relative_text=temporal_text_normalization,
+        )
+        if guide_lines:
+            structured_guide_block = "\n".join(
+                ["", "Structured Evidence Guide:", *guide_lines, ""]
+            )
     rules = ["Use only the memory context."]
+    if structured_guide_block:
+        rules.append(
+            "Use Structured Evidence Guide only as an index into Memory Context; it is not independent evidence."
+        )
     if temporal_aid:
         rules.append(
             "Use Temporal Aid only to interpret row dates and relative time phrases in the memory context; it is not independent evidence."
@@ -695,6 +726,7 @@ def _build_external_naive_prompt(
             "",
             "User Question:",
             user_question,
+            structured_guide_block,
             "",
             "Memory Context:",
             _external_naive_context(
@@ -715,6 +747,100 @@ def _build_external_naive_prompt(
             "}",
         ]
     )
+
+
+def _external_structured_guide_lines(
+    *,
+    question: str,
+    rows: tuple[EvidenceRow, ...],
+    memory_records: tuple[MemoryRecord, ...],
+    max_rows: int,
+    include_relative_text: bool,
+) -> list[str]:
+    if not rows and not memory_records:
+        return []
+
+    lines = [
+        "Use this compact guide to locate relevant raw Memory Context rows; verify final facts in those rows."
+    ]
+    question_terms = _content_terms(question)
+    source_to_memory_index = {
+        row.source_id: index for index, row in enumerate(rows, start=1)
+    }
+
+    if rows:
+        lines.append("- row_index:")
+        for index, row in enumerate(rows[:max_rows], start=1):
+            row_date = _parse_date(row.timestamp)
+            row_date_text = row_date.isoformat() if row_date is not None else "unknown"
+            matched_terms = tuple(
+                sorted(question_terms.intersection(_content_terms(row.text)))
+            )[:8]
+            matched_text = ", ".join(matched_terms) or "none"
+            relative_text = ""
+            if include_relative_text and row_date is not None:
+                relative_times = tuple(_relative_time_values(row.text, row_date))
+                if relative_times:
+                    relative_text = " | relative_time_mentions=" + "; ".join(
+                        f'"{phrase}"=>"{normalized}"'
+                        for phrase, normalized in relative_times[:4]
+                    )
+            lines.append(
+                f"  - Memory {index}: row_date={row_date_text} role={row.role} "
+                f"matched_terms={matched_text}{relative_text}"
+            )
+
+    memory_lines = _external_memory_guide_lines(
+        memory_records=memory_records,
+        source_to_memory_index=source_to_memory_index,
+    )
+    if memory_lines:
+        lines.append("- activated_build_memory:")
+        lines.extend(memory_lines)
+    return lines
+
+
+def _external_memory_guide_lines(
+    *,
+    memory_records: tuple[MemoryRecord, ...],
+    source_to_memory_index: dict[str, int],
+) -> list[str]:
+    lines: list[str] = []
+    seen_memory_ids: set[str] = set()
+    for record in memory_records:
+        if record.memory_id in seen_memory_ids:
+            continue
+        seen_memory_ids.add(record.memory_id)
+        source_labels = []
+        for source_id in record.source_ids:
+            memory_index = source_to_memory_index.get(source_id)
+            if memory_index is not None:
+                source_labels.append(f"Memory {memory_index}")
+        source_labels = list(dict.fromkeys(source_labels))
+        if not source_labels:
+            continue
+        text = _truncate_text(_single_line(record.text), 220)
+        fields = [
+            f"type={record.memory_type}",
+            f"status={record.status}",
+            f"valid_from={record.valid_from or record.timestamp or 'unknown'}",
+            f"valid_to={record.valid_to or 'open'}",
+            f"sources={', '.join(source_labels[:6])}",
+        ]
+        if record.subject:
+            fields.append(f"subject={_truncate_text(_single_line(record.subject), 80)}")
+        if record.predicate:
+            fields.append(
+                f"predicate={_truncate_text(_single_line(record.predicate), 80)}"
+            )
+        if record.value:
+            fields.append(f"value={_truncate_text(_single_line(record.value), 120)}")
+        lines.append(f"  - {' | '.join(fields)}: {text}")
+    return lines
+
+
+def _single_line(text: str) -> str:
+    return re.sub(r"\s+", " ", text).strip()
 
 
 def _external_temporal_aid_lines(

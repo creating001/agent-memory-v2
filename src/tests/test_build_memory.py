@@ -347,6 +347,90 @@ class BuildMemoryTest(unittest.TestCase):
         self.assertNotIn("Use Temporal Aid only", compiled.prompt)
         self.assertIn("2. If the context is insufficient", compiled.prompt)
 
+    def test_external_naive_prompt_can_include_structured_evidence_guide(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=2,
+            max_evidence_chars=2000,
+            answer_style="concise",
+            max_memory_records=2,
+            prompt_mode="external_naive",
+            structured_guide=True,
+            structured_guide_max_rows=2,
+            temporal_text_normalization=True,
+        )
+        route = RouteResult(information_need="profile_preference", signals=())
+        memory_record = MemoryRecord(
+            memory_id="m1",
+            memory_type="preference",
+            text="Alex prefers jasmine tea.",
+            source_ids=("s1:t0",),
+            subject="Alex",
+            predicate="prefers",
+            value="jasmine tea",
+            valid_from="2023-05-08",
+        )
+        compiled = compiler.compile(
+            question="What tea does Alex prefer?",
+            question_time=None,
+            route=route,
+            hits=(
+                RetrievalHit(
+                    source_id="s1:t0",
+                    score=1.0,
+                    rank=1,
+                    retriever="test",
+                ),
+            ),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="Alex",
+                    text="I preferred jasmine tea yesterday.",
+                    timestamp="2023-05-08",
+                ),
+            ),
+            memory_records=(memory_record,),
+        )
+
+        self.assertIn("Structured Evidence Guide:", compiled.prompt)
+        self.assertIn("Memory 1: row_date=2023-05-08", compiled.prompt)
+        self.assertIn('"yesterday"=>"2023-05-07"', compiled.prompt)
+        self.assertIn("activated_build_memory", compiled.prompt)
+        self.assertIn("type=preference", compiled.prompt)
+        self.assertIn("sources=Memory 1", compiled.prompt)
+        self.assertIn("Use Structured Evidence Guide only as an index", compiled.prompt)
+
+    def test_external_naive_prompt_omits_structured_guide_when_disabled(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=1,
+            max_evidence_chars=2000,
+            answer_style="concise",
+            prompt_mode="external_naive",
+            structured_guide=False,
+        )
+        route = RouteResult(information_need="fact_lookup", signals=())
+        compiled = compiler.compile(
+            question="What tea does Alex prefer?",
+            question_time=None,
+            route=route,
+            hits=(),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="Alex",
+                    text="I prefer jasmine tea.",
+                    timestamp="2023-05-08",
+                ),
+            ),
+        )
+
+        self.assertNotIn("Structured Evidence Guide:", compiled.prompt)
+        self.assertNotIn("Use Structured Evidence Guide only", compiled.prompt)
+
 
 if __name__ == "__main__":
     unittest.main()

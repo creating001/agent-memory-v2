@@ -307,6 +307,12 @@ def main() -> int:
             "temporal_workpad_max_pairs": config.get("compiler", {}).get(
                 "temporal_workpad_max_pairs", 12
             ),
+            "structured_guide": config.get("compiler", {}).get(
+                "structured_guide", False
+            ),
+            "structured_guide_max_rows": config.get("compiler", {}).get(
+                "structured_guide_max_rows", 12
+            ),
             "route_overrides": config.get("compiler", {}).get(
                 "route_overrides", {}
             ),
@@ -589,6 +595,8 @@ def _write_summary(
         f"- temporal_workpad_scope: {metrics['compiler']['temporal_workpad_scope']}",
         f"- temporal_workpad_max_rows: {metrics['compiler']['temporal_workpad_max_rows']}",
         f"- temporal_workpad_max_pairs: {metrics['compiler']['temporal_workpad_max_pairs']}",
+        f"- structured_guide: {metrics['compiler']['structured_guide']}",
+        f"- structured_guide_max_rows: {metrics['compiler']['structured_guide_max_rows']}",
         f"- route_overrides: {metrics['compiler']['route_overrides']}",
         f"- enable_broad_list_patterns: {metrics['route']['enable_broad_list_patterns']}",
         f"- enable_recommendation_profile_patterns: {metrics['route']['enable_recommendation_profile_patterns']}",
@@ -665,6 +673,8 @@ def _write_diagnosis(
         f"- temporal_workpad_scope: {metrics['compiler']['temporal_workpad_scope']}",
         f"- temporal_workpad_max_rows: {metrics['compiler']['temporal_workpad_max_rows']}",
         f"- temporal_workpad_max_pairs: {metrics['compiler']['temporal_workpad_max_pairs']}",
+        f"- structured_guide: {metrics['compiler']['structured_guide']}",
+        f"- structured_guide_max_rows: {metrics['compiler']['structured_guide_max_rows']}",
         f"- route_overrides: {metrics['compiler']['route_overrides']}",
         f"- enable_recommendation_profile_patterns: {metrics['route']['enable_recommendation_profile_patterns']}",
         f"- temporal_priority_over_recent: {metrics['route']['temporal_priority_over_recent']}",
