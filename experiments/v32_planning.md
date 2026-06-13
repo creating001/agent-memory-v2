@@ -67,3 +67,31 @@ v31 证明“无差别加长 evidence_report prompt”会提升部分 evidence u
 - 检查 repair trace 是否存在、触发率是否接近预期、avg query tokens 是否小于 6K。
 - 检查 build cache logical token 统计是否正常，answer max input/output 是否仍为 `131072/16384`。
 - 如果 gate 通过，跑 LoCoMo non-adversarial full；只有 LoCoMo 有正向且 token 合格，再跑 LongMemEval-S full。
+
+## 2026-06-14 Gate 结果
+
+第一版触发器过宽，20 条 no-label probe 中触发 `8/20`，avg query tokens `6117.55` 超过 6K，且 8 次 repair 全部 keep。该失败 gate 已删除，不作为保留实验记录。
+
+随后收窄 `short_collection_answer`：
+
+- 不再把任意 `what/which` 问句视为集合问题。
+- 明确数字 count answer 不再因 short trigger 触发。
+- 只保留真正复数/集合名词问题，或 `has/have/had + collection action` 形态。
+
+通过 gate：`v32_selective_repair_probe_7cde029`
+
+- samples: `20/20`
+- avg build tokens: `63181.8`
+- avg query tokens: `5017.3`
+- build cache: hits `128`, misses `0`, writes `0`
+- draft answer cache: hits `20`, misses `0`, writes `0`
+- repair triggered: `1/20 = 0.05`
+- repair applied: `0/20`
+- repair query tokens: total `3596`, avg when triggered `3596.0`
+- answer max input/output: `131072/16384`
+- repair max input/output: `131072/16384`
+- dirty: 仅用户编辑的 `docs/architecture.md` 与 `docs/clean_protocol.md`，以及本次诊断输出。
+
+用 v29 full traces 做离线风险体检，新触发器预计触发 `258/1540 = 16.75%`。若粗略用 v31 答案替换触发样本，投影 `1186/1540 = 0.7701`，相对 v29 净 `+13`。该投影只用于判断 v32 值得跑 full；预测阶段不读取 judge、gold、category、sample id 或样本级规则。
+
+结论：v32 通过 no-label/token gate，可以跑 LoCoMo non-adversarial full。若 LoCoMo full accuracy 正向并且 avg query tokens <= 6K，再补 LongMemEval-S full。

@@ -1,0 +1,31 @@
+{
+  "benchmark": "mixed",
+  "clean_assertions": [
+    "Prediction loader rejects gold/reference/target answers.",
+    "Prediction loader rejects judge outputs and benchmark labels.",
+    "Prediction loader rejects sample ids, qids, and row indices.",
+    "record_key is copied only by the runner and is not passed into pipeline modules.",
+    "Derived context rows always retain raw source_id back-links.",
+    "Build-stage typed memory is created only from raw dialogue turns and visible metadata."
+  ],
+  "config_path": "/data/home_new/wujinqi/agent-memory/configs/stage1_selective_repair_v32_cached.json",
+  "created_at_utc": "2026-06-13T17:59:01+00:00",
+  "experiment_dir": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/v32_selective_repair_probe_7cde029",
+  "experiment_kind": "diagnostic",
+  "git": {
+    "commit": "7cde029d2f526cc8ea87b0ec833ae17ecc54fceb",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "M docs/architecture.md\n M docs/clean_protocol.md\n?? experiments/diagnostic/v32_selective_repair_probe_39be45e/"
+  },
+  "input_path": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/v30_route_stratified_probe/prediction_input.jsonl",
+  "output_path": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/v32_selective_repair_probe_7cde029/predictions.jsonl",
+  "outputs": {
+    "predictions": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/v32_selective_repair_probe_7cde029/predictions.jsonl",
+    "traces": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/v32_selective_repair_probe_7cde029/traces.jsonl"
+  },
+  "run_id": "v32_selective_repair_probe_7cde029",
+  "subset": "route_stratified_20",
+  "trace_path": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/v32_selective_repair_probe_7cde029/traces.jsonl"
+}
