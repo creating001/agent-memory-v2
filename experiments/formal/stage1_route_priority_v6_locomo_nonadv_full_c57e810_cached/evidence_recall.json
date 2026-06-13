@@ -1,0 +1,36 @@
+{
+  "clean_note": "This is offline-only evidence analysis. Its output must not be read by prediction, route, retrieval, compiler, answer, or verifier modules.",
+  "created_at_utc": "2026-06-13T00:46:54+00:00",
+  "git": {
+    "commit": "c57e8103b683e163d71f7d71211c9f1874e496b2",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "?? experiments/formal/stage1_route_priority_v6_locomo_nonadv_full_c57e810_cached/"
+  },
+  "labels": "/data/home_new/wujinqi/agent-memory/outputs/prepare_locomo_non_adversarial/labels.jsonl",
+  "metrics": {
+    "by_type": {
+      "1": {
+        "evidence_recall": 0.7375886524822695,
+        "n": 282
+      },
+      "2": {
+        "evidence_recall": 0.8566978193146417,
+        "n": 321
+      },
+      "3": {
+        "evidence_recall": 0.5,
+        "n": 92
+      },
+      "4": {
+        "evidence_recall": 0.8870392390011891,
+        "n": 841
+      }
+    },
+    "diagnostic_note": "Offline-only retrieval diagnostic. Evidence labels must not feed prediction, route, retrieval, compiler, answer, or verifier modules.",
+    "evidence_recall": 0.830078125,
+    "n_with_evidence_labels": 1536
+  },
+  "traces": "/data/home_new/wujinqi/agent-memory/outputs/formal/stage1_route_priority_v6_locomo_nonadv_full_c57e810_cached/traces.jsonl"
+}
