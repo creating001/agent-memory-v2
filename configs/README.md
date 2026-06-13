@@ -19,6 +19,10 @@
 - `stage1_lme_token_safe_format_guard_v36_cached.json`：v28 top40/evidence budget + v35 answer guard；v42 前 LME 最好，也是当前强 baseline。
 - `stage1_operation_workpad_v42_cached.json`：v36 上的短 operation workpad；不新增 LLM 调用，不改 retrieval/build，只在 `list_count` / `temporal_lookup` 的 evidence_report prompt 中加入通用操作聚合纪律。当前 LongMemEval-S full 最好，但仅比 v36 净 +1，属于 close-margin 小幅正向。
 
+## 当前候选
+
+- `stage1_temporal_session_guide_v44_cached.json`：v43 失败后的 token-safe 收窄版本；只对 `temporal_lookup` 打开 session-thread evidence layout 和最多 3 条 row-linked build memory guide，非 temporal prompt 与 v42 等价。待 gate，通过前不视为保留主线。
+
 ## 新配置规则
 
 - 不使用 gold answer、judge output、benchmark label、sample id、qid、row index 或 test feedback。
