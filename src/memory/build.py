@@ -180,18 +180,12 @@ class OpenAICompatibleMemoryBuilder:
                 message = response["choices"][0]["message"]
                 content = _message_text(message).strip()
                 usage = response.get("usage") or {}
-                total_tokens += int(
-                    usage.get("total_tokens")
-                    or (
-                        int(usage.get("prompt_tokens") or 0)
-                        + int(usage.get("completion_tokens") or 0)
-                    )
-                )
                 payload = {
                     "content": content,
                     "usage": usage,
                 }
                 self._put(cache_key, payload)
+            total_tokens += _usage_total_tokens(payload.get("usage"))
 
             raw_records = _bounded_records(
                 _records_from_payload(payload.get("content", "")),
@@ -329,6 +323,15 @@ def _chunk_turns(turns: tuple[Turn, ...], max_turns_per_chunk: int) -> tuple[tup
     for start in range(0, len(turns), max_turns_per_chunk):
         chunks.append(turns[start : start + max_turns_per_chunk])
     return tuple(chunks)
+
+
+def _usage_total_tokens(usage: Any) -> int:
+    if not isinstance(usage, dict):
+        return 0
+    total = usage.get("total_tokens")
+    if total is not None:
+        return int(total)
+    return int(usage.get("prompt_tokens") or 0) + int(usage.get("completion_tokens") or 0)
 
 
 def _records_from_payload(content: str) -> list[dict[str, Any]]:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -11,6 +12,7 @@ if str(SRC_ROOT) not in sys.path:
 
 from memory.build import (
     MemoryRecord,
+    OpenAICompatibleMemoryBuilder,
     _bounded_records,
     _cache_key,
     _manage_records,
@@ -22,6 +24,68 @@ from common.schemas import RetrievalHit, RouteResult, Turn
 
 
 class BuildMemoryTest(unittest.TestCase):
+    def test_build_cache_hit_counts_cached_usage_as_logical_build_cost(self) -> None:
+        class FakeBuilder(OpenAICompatibleMemoryBuilder):
+            def __init__(self, cache_path: str):
+                super().__init__(
+                    base_url="http://unused.local/v1",
+                    model="fake-model",
+                    temperature=0.0,
+                    max_tokens=256,
+                    timeout=1.0,
+                    max_turns_per_chunk=10,
+                    max_chars_per_turn=1000,
+                    max_records_per_chunk=4,
+                    cache_path=cache_path,
+                    cache_namespace="test",
+                )
+                self.calls = 0
+
+            def _chat_completion(self, prompt: str) -> dict:
+                del prompt
+                self.calls += 1
+                return {
+                    "choices": [
+                        {
+                            "message": {
+                                "content": (
+                                    '{"records":[{"type":"fact","text":"Alex prefers jasmine tea.",'
+                                    '"subject":"Alex","predicate":"prefers","value":"jasmine tea",'
+                                    '"source_ids":["s1:t0"],"confidence":0.9}]}'
+                                )
+                            }
+                        }
+                    ],
+                    "usage": {
+                        "prompt_tokens": 30,
+                        "completion_tokens": 7,
+                        "total_tokens": 37,
+                    },
+                }
+
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text="Alex prefers jasmine tea.",
+            ),
+        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            builder = FakeBuilder(str(Path(temp_dir) / "build.sqlite3"))
+
+            first = builder.build(turns)
+            second = builder.build(turns)
+
+        self.assertEqual(builder.calls, 1)
+        self.assertEqual(first.token_usage.build_tokens, 37)
+        self.assertEqual(first.cache_stats.misses, 1)
+        self.assertEqual(first.cache_stats.hits, 0)
+        self.assertEqual(second.token_usage.build_tokens, 37)
+        self.assertEqual(second.cache_stats.misses, 0)
+        self.assertEqual(second.cache_stats.hits, 1)
+
     def test_truncated_build_payload_recovers_complete_records(self) -> None:
         payload = (
             '{"records":['
