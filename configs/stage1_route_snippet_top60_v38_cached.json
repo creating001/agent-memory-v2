@@ -28,7 +28,7 @@
   },
   "retrieval": {
     "top_k": 40,
-    "max_top_k": 60,
+    "max_top_k": 40,
     "route_overrides": {
       "list_count": {
         "top_k": 60,
