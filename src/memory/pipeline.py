@@ -10,6 +10,7 @@ from memory.answer import CachedAnswerer, NullAnswerer, OpenAICompatibleAnswerer
 from memory.build import NullMemoryBuilder, OpenAICompatibleMemoryBuilder
 from memory.compiler import EvidenceCompiler
 from memory.embeddings import CachedEmbeddingClient, OpenAICompatibleEmbeddingClient
+from memory.finalize import AnswerFinalization, finalize_structured_answer
 from memory.retrieval import (
     BuildMemoryBM25Retriever,
     DenseEmbeddingRetriever,
@@ -21,7 +22,7 @@ from memory.retrieval import (
     reciprocal_rank_fusion,
 )
 from memory.route import QuestionRouter
-from common.schemas import PredictionRequest, RetrievalHit, RouteResult, TokenUsage
+from common.schemas import AnswerResult, PredictionRequest, RetrievalHit, RouteResult, TokenUsage
 from memory.store import RawEvidenceStore
 
 
@@ -38,6 +39,7 @@ class Stage1Pipeline:
         route_config = self._config.get("route", {})
         compiler_config = self._config.get("compiler", {})
         answer_config = self._config.get("answer", {})
+        answer_finalizer_config = answer_config.get("finalizer", {})
         self._router = QuestionRouter(
             enable_broad_list_patterns=bool(
                 route_config.get("enable_broad_list_patterns", False)
@@ -211,6 +213,18 @@ class Stage1Pipeline:
             structured_guide_disabled_signals=_tuple_config(
                 compiler_config.get("structured_guide_disabled_signals")
             ),
+            structured_answer_contract=bool(
+                compiler_config.get("structured_answer_contract", False)
+            ),
+            structured_answer_contract_information_needs=_tuple_config(
+                compiler_config.get(
+                    "structured_answer_contract_information_needs",
+                    ("list_count", "temporal_lookup"),
+                )
+            ),
+            structured_answer_contract_max_items=int(
+                compiler_config.get("structured_answer_contract_max_items", 10)
+            ),
             evidence_order=str(compiler_config.get("evidence_order", "retrieval")),
             memory_order=str(compiler_config.get("memory_order", "retrieval")),
             memory_layout=str(compiler_config.get("memory_layout", "flat")),
@@ -274,10 +288,32 @@ class Stage1Pipeline:
             "structured_guide_disabled_signals": _tuple_config(
                 compiler_config.get("structured_guide_disabled_signals")
             ),
+            "structured_answer_contract": bool(
+                compiler_config.get("structured_answer_contract", False)
+            ),
+            "structured_answer_contract_information_needs": _tuple_config(
+                compiler_config.get(
+                    "structured_answer_contract_information_needs",
+                    ("list_count", "temporal_lookup"),
+                )
+            ),
+            "structured_answer_contract_max_items": int(
+                compiler_config.get("structured_answer_contract_max_items", 10)
+            ),
             "max_memory_records": int(compiler_config.get("max_memory_records", 12)),
             "route_overrides": compiler_config.get("route_overrides") or {},
         }
         answer_mode = str(answer_config.get("mode", "null_answerer"))
+        self._answer_finalizer_enabled = bool(
+            answer_finalizer_config.get("enabled", False)
+        )
+        self._answer_finalizer_mode = str(
+            answer_finalizer_config.get("mode", "structured_evidence_mechanical")
+        )
+        self._answer_finalizer_trace_config = {
+            "enabled": self._answer_finalizer_enabled,
+            "mode": self._answer_finalizer_mode,
+        }
         self._answer_cache_enabled = bool(
             answer_config.get("cache", {}).get("enabled", False)
         )
@@ -438,6 +474,17 @@ class Stage1Pipeline:
         answer_cache_before = _answer_cache_stats(self._answerer)
         answer = self._answerer.answer(compiled)
         answer_cache_after = _answer_cache_stats(self._answerer)
+        answer_finalization = self._finalize_answer(
+            question=request.question,
+            answer=answer,
+        )
+        if answer_finalization.applied:
+            answer = AnswerResult(
+                answer=answer_finalization.answer,
+                model=answer.model,
+                token_usage=answer.token_usage,
+                raw_response=answer.raw_response,
+            )
         token_usage = TokenUsage(
             build_tokens=(
                 built_memory.token_usage.build_tokens
@@ -555,10 +602,37 @@ class Stage1Pipeline:
                     answer_cache_before,
                     answer_cache_after,
                 ),
+                "answer_finalizer": {
+                    **self._answer_finalizer_trace_config,
+                    **answer_finalization.to_dict(),
+                },
                 "answer": answer.to_dict(),
                 "token_cost": token_usage.to_dict(),
             },
         }
+
+    def _finalize_answer(
+        self,
+        *,
+        question: str,
+        answer: AnswerResult,
+    ) -> AnswerFinalization:
+        if not self._answer_finalizer_enabled:
+            return AnswerFinalization(
+                answer=answer.answer,
+                before=answer.answer,
+                applied=False,
+                reason="disabled",
+            )
+        if self._answer_finalizer_mode != "structured_evidence_mechanical":
+            raise ValueError(
+                f"Unsupported answer.finalizer.mode: {self._answer_finalizer_mode}"
+            )
+        return finalize_structured_answer(
+            question=question,
+            draft_answer=answer.answer,
+            raw_response=answer.raw_response,
+        )
 
     def _retrieve_session_hits(
         self,

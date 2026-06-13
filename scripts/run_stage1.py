@@ -67,6 +67,7 @@ def main() -> int:
     total_answer_cache_hits = 0
     total_answer_cache_misses = 0
     total_answer_cache_writes = 0
+    total_answer_finalizer_applied = 0
 
     for _index, envelope, result in results:
         token_cost = result["trace"]["token_cost"]
@@ -117,6 +118,9 @@ def main() -> int:
         total_answer_cache_hits += int(answer_cache.get("hits") or 0)
         total_answer_cache_misses += int(answer_cache.get("misses") or 0)
         total_answer_cache_writes += int(answer_cache.get("writes") or 0)
+        answer_finalizer = result["trace"].get("answer_finalizer") or {}
+        if answer_finalizer.get("applied"):
+            total_answer_finalizer_applied += 1
 
     sample_count = len(records)
     metrics = {
@@ -271,6 +275,11 @@ def main() -> int:
             "cache_hits": total_answer_cache_hits,
             "cache_misses": total_answer_cache_misses,
             "cache_writes": total_answer_cache_writes,
+            "finalizer_applied_count": total_answer_finalizer_applied,
+            "finalizer_applied_rate": _safe_average(
+                total_answer_finalizer_applied,
+                sample_count,
+            ),
         },
         "compiler": {
             "prompt_mode": config.get("compiler", {}).get("prompt_mode", "default"),
@@ -333,6 +342,15 @@ def main() -> int:
             ),
             "structured_guide_disabled_signals": config.get("compiler", {}).get(
                 "structured_guide_disabled_signals"
+            ),
+            "structured_answer_contract": config.get("compiler", {}).get(
+                "structured_answer_contract", False
+            ),
+            "structured_answer_contract_information_needs": config.get(
+                "compiler", {}
+            ).get("structured_answer_contract_information_needs"),
+            "structured_answer_contract_max_items": config.get("compiler", {}).get(
+                "structured_answer_contract_max_items", 10
             ),
             "route_overrides": config.get("compiler", {}).get(
                 "route_overrides", {}
@@ -497,6 +515,12 @@ def _answer_metrics(config: dict[str, Any]) -> dict[str, Any]:
         "cache_enabled": cache_config.get("enabled", False),
         "cache_path": cache_config.get("path"),
         "cache_namespace": _answer_cache_namespace(answer_config),
+        "finalizer_enabled": answer_config.get("finalizer", {}).get(
+            "enabled", False
+        ),
+        "finalizer_mode": answer_config.get("finalizer", {}).get(
+            "mode", "structured_evidence_mechanical"
+        ),
     }
 
 
@@ -609,6 +633,10 @@ def _write_summary(
         f"- answer_cache_hits: {metrics['answer']['cache_hits']}",
         f"- answer_cache_misses: {metrics['answer']['cache_misses']}",
         f"- answer_cache_writes: {metrics['answer']['cache_writes']}",
+        f"- answer_finalizer_enabled: {metrics['answer']['finalizer_enabled']}",
+        f"- answer_finalizer_mode: {metrics['answer']['finalizer_mode']}",
+        f"- answer_finalizer_applied_count: {metrics['answer']['finalizer_applied_count']}",
+        f"- answer_finalizer_applied_rate: {metrics['answer']['finalizer_applied_rate']}",
         f"- answer_style: {metrics['compiler']['answer_style']}",
         f"- evidence_order: {metrics['compiler']['evidence_order']}",
         f"- memory_order: {metrics['compiler']['memory_order']}",
@@ -631,6 +659,9 @@ def _write_summary(
         f"- structured_guide_include_rows: {metrics['compiler']['structured_guide_include_rows']}",
         f"- structured_guide_include_memory: {metrics['compiler']['structured_guide_include_memory']}",
         f"- structured_guide_disabled_signals: {metrics['compiler']['structured_guide_disabled_signals']}",
+        f"- structured_answer_contract: {metrics['compiler']['structured_answer_contract']}",
+        f"- structured_answer_contract_information_needs: {metrics['compiler']['structured_answer_contract_information_needs']}",
+        f"- structured_answer_contract_max_items: {metrics['compiler']['structured_answer_contract_max_items']}",
         f"- route_overrides: {metrics['compiler']['route_overrides']}",
         f"- enable_broad_list_patterns: {metrics['route']['enable_broad_list_patterns']}",
         f"- enable_recommendation_profile_patterns: {metrics['route']['enable_recommendation_profile_patterns']}",
@@ -712,6 +743,9 @@ def _write_diagnosis(
         f"- structured_guide_include_rows: {metrics['compiler']['structured_guide_include_rows']}",
         f"- structured_guide_include_memory: {metrics['compiler']['structured_guide_include_memory']}",
         f"- structured_guide_disabled_signals: {metrics['compiler']['structured_guide_disabled_signals']}",
+        f"- structured_answer_contract: {metrics['compiler']['structured_answer_contract']}",
+        f"- structured_answer_contract_information_needs: {metrics['compiler']['structured_answer_contract_information_needs']}",
+        f"- structured_answer_contract_max_items: {metrics['compiler']['structured_answer_contract_max_items']}",
         f"- route_overrides: {metrics['compiler']['route_overrides']}",
         f"- enable_recommendation_profile_patterns: {metrics['route']['enable_recommendation_profile_patterns']}",
         f"- temporal_priority_over_recent: {metrics['route']['temporal_priority_over_recent']}",
@@ -723,6 +757,10 @@ def _write_diagnosis(
         f"- answer_cache_hits: {metrics['answer']['cache_hits']}",
         f"- answer_cache_misses: {metrics['answer']['cache_misses']}",
         f"- answer_cache_writes: {metrics['answer']['cache_writes']}",
+        f"- answer_finalizer_enabled: {metrics['answer']['finalizer_enabled']}",
+        f"- answer_finalizer_mode: {metrics['answer']['finalizer_mode']}",
+        f"- answer_finalizer_applied_count: {metrics['answer']['finalizer_applied_count']}",
+        f"- answer_finalizer_applied_rate: {metrics['answer']['finalizer_applied_rate']}",
         f"- answer: {_answer_note(config)}",
         "",
         "## Next Steps",

@@ -177,6 +177,7 @@ class OpenAICompatibleAnswerer:
             token_usage=TokenUsage(build_tokens=0, query_tokens=total_tokens),
             raw_response=json.dumps(
                 {
+                    "content": raw_content,
                     "id": response.get("id"),
                     "model": response.get("model"),
                     "usage": usage,

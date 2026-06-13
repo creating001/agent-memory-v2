@@ -15,6 +15,7 @@ from common.clean import CleanProtocolViolation, assert_clean_prediction_payload
 from memory.answer import CachedAnswerer, _message_text, _parse_answer_content
 from memory.build import MemoryRecord
 from memory.compiler import EvidenceCompiler
+from memory.finalize import finalize_structured_answer, raw_response_content
 from data.io import load_prediction_jsonl
 from memory.pipeline import Stage1Pipeline
 from common.schemas import (
@@ -220,6 +221,102 @@ class CleanSkeletonTest(unittest.TestCase):
             "jasmine tea",
         )
 
+    def test_raw_response_content_extracts_answerer_content(self) -> None:
+        raw_response = json.dumps(
+            {
+                "content": '{"answer":"jasmine tea"}',
+                "usage": {"total_tokens": 42},
+            }
+        )
+
+        self.assertEqual(raw_response_content(raw_response), '{"answer":"jasmine tea"}')
+
+    def test_structured_answer_finalizer_repairs_count_mismatch(self) -> None:
+        content = json.dumps(
+            {
+                "sufficient": True,
+                "evidence_items": [
+                    {
+                        "canonical_item": "Tamiya Spitfire",
+                        "include": True,
+                        "reason": "in scope",
+                    },
+                    {
+                        "canonical_item": "Bandai X-wing",
+                        "include": True,
+                        "reason": "in scope",
+                    },
+                    {
+                        "canonical_item": "Revell Mustang",
+                        "include": True,
+                        "reason": "in scope",
+                    },
+                ],
+                "answer": "2",
+            }
+        )
+        raw_response = json.dumps({"content": content})
+
+        finalization = finalize_structured_answer(
+            question="How many model kits did Alex mention?",
+            draft_answer="2",
+            raw_response=raw_response,
+        )
+
+        self.assertTrue(finalization.applied)
+        self.assertEqual(finalization.expected_value, "3")
+        self.assertIn("3:", finalization.answer)
+        self.assertIn("Tamiya Spitfire", finalization.answer)
+
+    def test_structured_answer_finalizer_repairs_money_sum_mismatch(self) -> None:
+        content = json.dumps(
+            {
+                "sufficient": True,
+                "evidence_items": [
+                    {
+                        "canonical_item": "bike chain",
+                        "value": "$25",
+                        "include": True,
+                        "reason": "expense",
+                    },
+                    {
+                        "canonical_item": "tune-up",
+                        "value": "$65",
+                        "include": True,
+                        "reason": "expense",
+                    },
+                    {
+                        "canonical_item": "rack",
+                        "value": "$95",
+                        "include": True,
+                        "reason": "expense",
+                    },
+                ],
+                "answer": "$65",
+            }
+        )
+        raw_response = json.dumps({"content": content})
+
+        finalization = finalize_structured_answer(
+            question="How much did Alex spend on bike expenses in total?",
+            draft_answer="$65",
+            raw_response=raw_response,
+        )
+
+        self.assertTrue(finalization.applied)
+        self.assertEqual(finalization.expected_value, "185")
+        self.assertIn("$185 total", finalization.answer)
+
+    def test_structured_answer_finalizer_noops_without_content(self) -> None:
+        finalization = finalize_structured_answer(
+            question="How many model kits did Alex mention?",
+            draft_answer="2",
+            raw_response='{"usage":{"total_tokens":42}}',
+        )
+
+        self.assertFalse(finalization.applied)
+        self.assertEqual(finalization.answer, "2")
+
     def test_cached_answerer_reuses_prompt_and_counts_cached_tokens(self) -> None:
         compiler = EvidenceCompiler(max_evidence_items=1, max_evidence_chars=1000)
         route = RouteResult(information_need="fact_lookup", signals=())
@@ -354,6 +451,45 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertIn("Date: 2024-01-01", prompt)
         self.assertIn('"answer": "concise answer"', prompt)
         self.assertNotIn("Build-stage typed memory view", prompt)
+
+    def test_structured_answer_contract_is_route_scoped(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=1,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            structured_answer_contract=True,
+            structured_answer_contract_information_needs=("list_count",),
+            structured_answer_contract_max_items=5,
+        )
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text="Alex bought a Tamiya Spitfire model kit.",
+                timestamp="2024-01-01",
+            ),
+        )
+
+        fact_context = compiler.compile(
+            question="Which model kit did Alex buy?",
+            question_time=None,
+            route=RouteResult(information_need="fact_lookup", signals=()),
+            hits=(),
+            evidence_turns=turns,
+        )
+        list_context = compiler.compile(
+            question="How many model kits did Alex buy?",
+            question_time=None,
+            route=RouteResult(information_need="list_count", signals=("list_or_count",)),
+            hits=(),
+            evidence_turns=turns,
+        )
+
+        self.assertNotIn('"evidence_items"', fact_context.prompt)
+        self.assertIn('"evidence_items"', list_context.prompt)
+        self.assertIn("Use at most 5 evidence_items", list_context.prompt)
 
     def test_evidence_labels_role_snippets_and_final_checklist_are_added(self) -> None:
         config = {

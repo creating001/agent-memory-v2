@@ -56,6 +56,7 @@ ROUTE_OVERRIDE_KEYS = {
     "structured_guide_max_rows",
 }
 SUPPORTED_PROMPT_MODES = {"default", "external_naive", "raw_context_only"}
+DEFAULT_STRUCTURED_ANSWER_CONTRACT_NEEDS = ("list_count", "temporal_lookup")
 QUESTION_STOPWORDS = {
     "a",
     "an",
@@ -128,6 +129,11 @@ class EvidenceCompiler:
         structured_guide_include_rows: bool = True,
         structured_guide_include_memory: bool = True,
         structured_guide_disabled_signals: tuple[str, ...] = (),
+        structured_answer_contract: bool = False,
+        structured_answer_contract_information_needs: tuple[str, ...] = (
+            DEFAULT_STRUCTURED_ANSWER_CONTRACT_NEEDS
+        ),
+        structured_answer_contract_max_items: int = 10,
         evidence_order: str = "retrieval",
         memory_order: str = "retrieval",
         memory_layout: str = "flat",
@@ -160,6 +166,14 @@ class EvidenceCompiler:
         self._structured_guide_include_memory = structured_guide_include_memory
         self._structured_guide_disabled_signals = tuple(
             str(signal) for signal in structured_guide_disabled_signals
+        )
+        self._structured_answer_contract = structured_answer_contract
+        self._structured_answer_contract_information_needs = _validate_information_needs(
+            structured_answer_contract_information_needs,
+            field_name="structured_answer_contract_information_needs",
+        )
+        self._structured_answer_contract_max_items = max(
+            1, int(structured_answer_contract_max_items)
         )
         if evidence_order not in {"retrieval", "question_overlap"}:
             raise ValueError(f"Unsupported evidence_order: {evidence_order}")
@@ -273,6 +287,14 @@ class EvidenceCompiler:
             structured_guide_include_memory=route_settings[
                 "structured_guide_include_memory"
             ],
+            structured_answer_contract=(
+                self._structured_answer_contract
+                and route.information_need
+                in self._structured_answer_contract_information_needs
+            ),
+            structured_answer_contract_max_items=(
+                self._structured_answer_contract_max_items
+            ),
             memory_layout=self._memory_layout,
             row_text_mode=route_settings["row_text_mode"],
             max_row_text_chars=route_settings["max_row_text_chars"],
@@ -368,6 +390,19 @@ def _validate_route_overrides(
                 raw_overrides["final_answer_checklist"]
             )
         normalized[information_need] = overrides
+    return normalized
+
+
+def _validate_information_needs(
+    information_needs: tuple[str, ...],
+    *,
+    field_name: str,
+) -> tuple[str, ...]:
+    normalized = tuple(str(value) for value in information_needs)
+    unknown = set(normalized).difference(SUPPORTED_INFORMATION_NEEDS)
+    if unknown:
+        keys = ", ".join(sorted(unknown))
+        raise ValueError(f"Unsupported compiler.{field_name}: {keys}")
     return normalized
 
 
@@ -545,6 +580,8 @@ def _build_prompt(
     structured_guide_max_rows: int,
     structured_guide_include_rows: bool,
     structured_guide_include_memory: bool,
+    structured_answer_contract: bool,
+    structured_answer_contract_max_items: int,
     memory_layout: str,
     row_text_mode: str,
     max_row_text_chars: int,
@@ -581,6 +618,8 @@ def _build_prompt(
             structured_guide_max_rows=structured_guide_max_rows,
             structured_guide_include_rows=structured_guide_include_rows,
             structured_guide_include_memory=structured_guide_include_memory,
+            structured_answer_contract=structured_answer_contract,
+            structured_answer_contract_max_items=structured_answer_contract_max_items,
         )
 
     lines = [
@@ -721,6 +760,8 @@ def _build_external_naive_prompt(
     structured_guide_max_rows: int,
     structured_guide_include_rows: bool,
     structured_guide_include_memory: bool,
+    structured_answer_contract: bool,
+    structured_answer_contract_max_items: int,
 ) -> str:
     user_question = (
         f"Current Date: {question_time}\nQuestion: {question}"
@@ -765,6 +806,15 @@ def _build_external_naive_prompt(
         rules.append(
             "Use Temporal Aid only to interpret row dates and relative time phrases in the memory context; it is not independent evidence."
         )
+    if structured_answer_contract:
+        rules.extend(
+            [
+                "Before the final answer, identify the in-scope evidence items needed for count, list, sum, duration, order, or date questions.",
+                "For count/list/sum questions, mark each candidate as included or excluded, merge duplicates under one canonical_item, and show compact arithmetic when needed.",
+                "For temporal questions, prefer an event date or time phrase stated in the content over the Memory row Date; resolve relative phrases from that row Date and preserve the original phrase when useful.",
+                "Keep evidence_items compact; include excluded candidates only when they explain a duplicate or out-of-scope decision.",
+            ]
+        )
     rules.extend(
         [
             "If the context is insufficient, say the provided information is not enough.",
@@ -773,6 +823,27 @@ def _build_external_naive_prompt(
         ]
     )
     rule_lines = [f"{index}. {rule}" for index, rule in enumerate(rules, start=1)]
+    if structured_answer_contract:
+        output_json_lines = [
+            "{",
+            '  "reasoning": "one short sentence",',
+            '  "sufficient": true,',
+            '  "answer_type": "fact|count|list|sum|duration|date|order|preference|unknown",',
+            '  "evidence_items": [',
+            '    {"memory": "Memory 1", "canonical_item": "item/event/operand", "date": "date or empty", "value": "number/name/date/unit or empty", "include": true, "reason": "why it counts or is excluded"}',
+            "  ],",
+            '  "calculation": "short arithmetic or selection rule; empty if none",',
+            '  "answer": "concise answer"',
+            "}",
+            f"Use at most {structured_answer_contract_max_items} evidence_items.",
+        ]
+    else:
+        output_json_lines = [
+            "{",
+            '  "reasoning": "one short sentence",',
+            '  "answer": "concise answer"',
+            "}",
+        ]
     return "\n".join(
         [
             "Answer the user's question using only the provided memory context.",
@@ -794,10 +865,7 @@ def _build_external_naive_prompt(
             *rule_lines,
             "",
             "Output JSON:",
-            "{",
-            '  "reasoning": "one short sentence",',
-            '  "answer": "concise answer"',
-            "}",
+            *output_json_lines,
         ]
     )
 
