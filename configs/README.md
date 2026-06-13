@@ -10,10 +10,14 @@
 - `stage1_structured_evidence_guide_v14_cached.json`：在 v13 基础上增加 structured evidence guide，是 LoCoMo evidence organization 的关键正向对照。
 - `stage1_hybrid_bm25_v18_cached.json`：在 selective row guide 上加入 raw-turn BM25 lexical retrieval，与 dense top-40 和 build-memory source expansion 融合；当前强 baseline。
 - `stage1_structured_answer_contract_v26_cached.json`：在 v18 上增加 route-scoped structured answer contract，关闭不稳定 count finalizer；LME 正向、LoCoMo 负向，是 reader 约束的重要对照。
-- `stage1_evidence_report_contract_v28_cached.json`：当前主线候选，在 v18 上增加可见 `evidence_report` contract，要求 answer model 先整理 support / exclude / missing 证据再输出最终答案。
-- `stage1_temporal_event_contract_v29_cached.json`：当前 LoCoMo 最强主线，针对 temporal route 显式区分 `mention_time` 与 `event_time`；也是 v32 query-side repair 的底座。
-- `stage1_selective_repair_v32_cached.json`：当前待验证候选，在 v29 draft answer 后只对运行时高风险样本触发 clean LLM verifier/repair；主 answer 和 repair 都显式使用 `128K/16K` 上限。
-- `stage1_retrieval_top60_v33_cached.json`：当前待 gate 候选，在 v29 底座上把 raw-turn dense+BM25 retrieval/compiler evidence budget 从 top-40 扩到 top-60，先用 evidence recall 诊断验证 source coverage，再跑 answer gate。
+- `stage1_evidence_report_contract_v28_cached.json`：v36 前 LME 最好主线，在 v18 上增加可见 `evidence_report` contract，要求 answer model 先整理 support / exclude / missing 证据再输出最终答案。
+- `stage1_temporal_event_contract_v29_cached.json`：v33 前 LoCoMo 最强主线，针对 temporal route 显式区分 `mention_time` 与 `event_time`；也是 v32 query-side repair 的底座。
+- `stage1_selective_repair_v32_cached.json`：v29 draft answer 后只对运行时高风险样本触发 clean LLM verifier/repair；token 合格但 LoCoMo full 与 v29 持平。
+- `stage1_retrieval_top60_v33_cached.json`：在 v29 底座上把 raw-turn dense+BM25 retrieval/compiler evidence budget 从 top-40 扩到 top-60；LoCoMo 正向但 temporal_lookup 回退。
+- `stage1_route_budgeted_retrieval_v34_cached.json`：v33 的 route-budgeted 版本；非 temporal 保留 top60，temporal_lookup 回到 top40，v35 前 LoCoMo 最好。
+- `stage1_answer_format_guard_v35_cached.json`：v34 上的 answer format guard；修复 JSON answer salvage 和小数 duration，当前 LoCoMo 最好。
+- `stage1_lme_token_safe_format_guard_v36_cached.json`：v28 top40/evidence budget + v35 answer guard；当前 LME 最好。
+- `stage1_row_memory_bundle_v37_cached.json`：v36 上的 row-linked build memory bundle 候选；typed memory 只作为已检索 raw rows 的紧凑索引，需先通过 LME token gate。
 
 ## 新配置规则
 

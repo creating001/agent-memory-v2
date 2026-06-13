@@ -278,8 +278,12 @@ class Stage1Pipeline:
             prompt_mode=str(compiler_config.get("prompt_mode", "default")),
             route_overrides=compiler_config.get("route_overrides") or {},
         )
+        self._compiler_memory_record_source = _validate_memory_record_source(
+            str(compiler_config.get("memory_record_source", "retrieval"))
+        )
         self._compiler_trace_config = {
             "prompt_mode": str(compiler_config.get("prompt_mode", "default")),
+            "memory_record_source": self._compiler_memory_record_source,
             "evidence_order": str(compiler_config.get("evidence_order", "retrieval")),
             "memory_order": str(compiler_config.get("memory_order", "retrieval")),
             "memory_layout": str(compiler_config.get("memory_layout", "flat")),
@@ -669,13 +673,19 @@ class Stage1Pipeline:
             window=self._neighbor_window,
             order=self._neighbor_order,
         )
+        compiler_memory_records = _compiler_memory_records(
+            source=self._compiler_memory_record_source,
+            memory_hits=memory_hits,
+            built_memory_records=built_memory.records,
+            evidence_turns=evidence_turns,
+        )
         compiled = self._compiler.compile(
             question=request.question,
             question_time=request.question_time,
             route=route,
             hits=hits,
             evidence_turns=evidence_turns,
-            memory_records=tuple(memory_hit.record for memory_hit in memory_hits),
+            memory_records=compiler_memory_records,
         )
         answer_cache_before = _answer_cache_stats(self._answerer)
         draft_answer = self._answerer.answer(compiled)
@@ -813,6 +823,10 @@ class Stage1Pipeline:
                     "embedding_tokens": embedding_tokens,
                     "lexical_hits": [hit.to_dict() for hit in lexical_hits],
                     "memory_hits": [hit.to_dict() for hit in memory_hits],
+                    "compiler_memory_record_source": self._compiler_memory_record_source,
+                    "compiler_memory_records": [
+                        record.to_dict() for record in compiler_memory_records
+                    ],
                     "memory_source_hits": [
                         hit.to_dict() for hit in memory_source_hits
                     ],
@@ -974,6 +988,54 @@ def _session_documents(store: RawEvidenceStore) -> tuple[SessionDocument, ...]:
             )
         )
     return tuple(documents)
+
+
+def _validate_memory_record_source(value: str) -> str:
+    if value not in {"retrieval", "evidence_rows", "retrieval_and_evidence_rows"}:
+        raise ValueError(f"Unsupported compiler.memory_record_source: {value}")
+    return value
+
+
+def _compiler_memory_records(
+    *,
+    source: str,
+    memory_hits: tuple[Any, ...],
+    built_memory_records: tuple[Any, ...],
+    evidence_turns: tuple[Any, ...],
+) -> tuple[Any, ...]:
+    """Select build memory records for compiler guidance.
+
+    `retrieval` preserves the historical behavior: only typed memory records
+    found by memory BM25 enter the compiler. `evidence_rows` links records to
+    raw rows already selected for context, so typed memory acts as an index over
+    visible evidence instead of adding independent facts.
+    """
+
+    _validate_memory_record_source(source)
+    if source == "retrieval":
+        return tuple(memory_hit.record for memory_hit in memory_hits)
+
+    records: list[Any] = []
+    if source == "retrieval_and_evidence_rows":
+        records.extend(memory_hit.record for memory_hit in memory_hits)
+
+    evidence_source_ids = {turn.source_id for turn in evidence_turns}
+    for record in built_memory_records:
+        if any(source_id in evidence_source_ids for source_id in record.source_ids):
+            records.append(record)
+    return _dedupe_memory_records(tuple(records))
+
+
+def _dedupe_memory_records(records: tuple[Any, ...]) -> tuple[Any, ...]:
+    result = []
+    seen: set[str] = set()
+    for record in records:
+        memory_id = getattr(record, "memory_id", "")
+        if memory_id in seen:
+            continue
+        seen.add(memory_id)
+        result.append(record)
+    return tuple(result)
 
 
 def _session_anchor_hit(

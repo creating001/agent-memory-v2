@@ -87,10 +87,11 @@
 
 ## 当前设计输入
 
-基于已读代码、v28 badcase 和 v29 双基准结果，下一阶段应优先设计 build-side typed event/state memory，而不是继续添加 query prompt 规则：
+基于已读代码、v36 badcase 和当前双基准结果，下一阶段优先验证 v37 row-linked build memory bundle，而不是继续添加零散 answer prompt 规则：
 
-- build 侧：typed memory 需要更明确地区分 `mention_time`、`event_time`、`valid_from`、`valid_to`、`event_type`、`source_ids`，并支持 event/state/profile 分通道。
-- management 侧：参考 LangMem/Memobase/MIRIX/Graphiti，做 profile update-in-place、event append、state supersede、episode provenance，不让 profile 或 summary 覆盖 raw evidence。
-- query 侧：retrieved row 需要以 episode/event/state 视图组织，保留 raw turn 作为事实源，同时把相对时间归一化结果明确绑定到“被描述事件”而不是 row/session date。
-- retrieval 侧：可借鉴 EverOS/SimpleMem/xMemory 的 atomic fact child retrieval -> raw episode parent expansion，但要做 ablation，避免 v20/v12 那种盲目 source/session expansion 噪声。
+- build 侧：继续使用现有 LLM typed memory records，暂不重建 temporal KG，避免 v30 式 full rebuild 负向风险。
+- management 侧：保留 source/provenance、dedup、supersede 和 active/superseded 状态；typed memory 不能覆盖 raw evidence。
+- query 侧：新增 `compiler.memory_record_source=evidence_rows`，只把已进入 raw evidence rows 的 source-linked typed records 交给 compiler。
+- retrieval 侧：借鉴 EverOS/SimpleMem/xMemory 的 atomic fact child retrieval -> raw episode parent expansion，但 v37 不扩大 top-k，而是让 typed memory 组织已检索 raw rows。
+- compiler 侧：typed memory 只作为 Structured Evidence Guide 的紧凑索引；最终 support/exclude/missing 仍必须回到 Memory Context raw rows。
 - clean 侧：所有 route 和 compiler 只能来自 question text、question_time、原始对话和 memory metadata；不能使用 LoCoMo category、LongMemEval question_type、evidence label、gold 或 judge。

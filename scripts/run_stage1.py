@@ -49,6 +49,7 @@ def main() -> int:
     total_query_tokens = 0
     total_build_tokens = 0
     total_evidence_items = 0
+    total_compiler_memory_records = 0
     total_context_chars = 0
     total_embedding_tokens = 0
     total_effective_top_k = 0
@@ -95,6 +96,7 @@ def main() -> int:
         total_build_tokens += int(token_cost["build_tokens"])
         total_query_tokens += int(token_cost["query_tokens"])
         total_evidence_items += len(compiled["evidence_rows"])
+        total_compiler_memory_records += len(compiled.get("memory_records") or [])
         total_context_chars += int(compiled["context_chars"])
         retrieval_trace = result["trace"]["retrieval"]
         total_embedding_tokens += int(retrieval_trace.get("embedding_tokens") or 0)
@@ -344,6 +346,12 @@ def main() -> int:
         "compiler": {
             "prompt_mode": config.get("compiler", {}).get("prompt_mode", "default"),
             "answer_style": config.get("compiler", {}).get("answer_style", "grounded"),
+            "memory_record_source": config.get("compiler", {}).get(
+                "memory_record_source", "retrieval"
+            ),
+            "avg_compiled_memory_records": _safe_average(
+                total_compiler_memory_records, sample_count
+            ),
             "evidence_order": config.get("compiler", {}).get(
                 "evidence_order", "retrieval"
             ),
@@ -770,6 +778,8 @@ def _write_summary(
         f"- avg_embedding_tokens: {metrics['retrieval']['avg_embedding_tokens']}",
         f"- avg_context_chars: {metrics['retrieval']['avg_context_chars']}",
         f"- compiler_prompt_mode: {metrics['compiler']['prompt_mode']}",
+        f"- compiler_memory_record_source: {metrics['compiler']['memory_record_source']}",
+        f"- avg_compiled_memory_records: {metrics['compiler']['avg_compiled_memory_records']}",
         f"- answer_mode: {metrics['answer']['mode']}",
         f"- answer_model: {metrics['answer']['model']}",
         f"- answer_max_input_tokens: {metrics['answer']['max_input_tokens']}",
@@ -910,6 +920,8 @@ def _write_diagnosis(
         f"- embedding_cache_hits: {metrics['retrieval']['embedding_cache_hits']}",
         f"- embedding_cache_misses: {metrics['retrieval']['embedding_cache_misses']}",
         f"- evidence_order: {metrics['compiler']['evidence_order']}",
+        f"- memory_record_source: {metrics['compiler']['memory_record_source']}",
+        f"- avg_compiled_memory_records: {metrics['compiler']['avg_compiled_memory_records']}",
         f"- memory_order: {metrics['compiler']['memory_order']}",
         f"- memory_layout: {metrics['compiler']['memory_layout']}",
         f"- row_text_mode: {metrics['compiler']['row_text_mode']}",

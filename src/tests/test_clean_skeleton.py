@@ -17,8 +17,9 @@ from memory.build import MemoryRecord
 from memory.compiler import EvidenceCompiler
 from memory.finalize import finalize_structured_answer, raw_response_content
 from memory.repair import build_repair_prompt, repair_trigger_reasons
+from memory.retrieval import MemoryHit
 from data.io import load_prediction_jsonl
-from memory.pipeline import Stage1Pipeline
+from memory.pipeline import Stage1Pipeline, _compiler_memory_records
 from common.schemas import (
     AnswerResult,
     CompiledContext,
@@ -200,6 +201,78 @@ class CleanSkeletonTest(unittest.TestCase):
                 "route_overrides": {"question_type": {"top_k": 1}},
             },
             "compiler": {"max_evidence_items": 1, "max_evidence_chars": 1000},
+            "answer": {"fallback_answer": "I do not know."},
+        }
+
+        with self.assertRaises(ValueError):
+            Stage1Pipeline(config)
+
+    def test_compiler_memory_records_can_link_to_evidence_rows(self) -> None:
+        row_record = MemoryRecord(
+            memory_id="mem-row",
+            memory_type="fact",
+            text="Alex redeemed the coupon at Target.",
+            source_ids=("s1:t1",),
+            subject="Alex",
+            predicate="redeemed at",
+            value="Target",
+        )
+        retrieval_record = MemoryRecord(
+            memory_id="mem-retrieval",
+            memory_type="fact",
+            text="Alex discussed coupons.",
+            source_ids=("s1:t0",),
+        )
+        memory_hits = (
+            MemoryHit(record=retrieval_record, score=1.0, rank=1),
+        )
+        evidence_turns = (
+            Turn(
+                source_id="s1:t1",
+                session_id="s1",
+                turn_index=1,
+                role="user",
+                text="I redeemed the coupon at Target.",
+            ),
+        )
+
+        row_linked = _compiler_memory_records(
+            source="evidence_rows",
+            memory_hits=memory_hits,
+            built_memory_records=(retrieval_record, row_record),
+            evidence_turns=evidence_turns,
+        )
+        retrieval_only = _compiler_memory_records(
+            source="retrieval",
+            memory_hits=memory_hits,
+            built_memory_records=(retrieval_record, row_record),
+            evidence_turns=evidence_turns,
+        )
+        combined = _compiler_memory_records(
+            source="retrieval_and_evidence_rows",
+            memory_hits=memory_hits,
+            built_memory_records=(retrieval_record, row_record),
+            evidence_turns=evidence_turns,
+        )
+
+        self.assertEqual([record.memory_id for record in row_linked], ["mem-row"])
+        self.assertEqual(
+            [record.memory_id for record in retrieval_only],
+            ["mem-retrieval"],
+        )
+        self.assertEqual(
+            [record.memory_id for record in combined],
+            ["mem-retrieval", "mem-row"],
+        )
+
+    def test_compiler_memory_record_source_rejects_unknown_value(self) -> None:
+        config = {
+            "retrieval": {"top_k": 1, "max_top_k": 1},
+            "compiler": {
+                "max_evidence_items": 1,
+                "max_evidence_chars": 1000,
+                "memory_record_source": "question_type",
+            },
             "answer": {"fallback_answer": "I do not know."},
         }
 
