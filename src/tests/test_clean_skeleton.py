@@ -204,6 +204,52 @@ class CleanSkeletonTest(unittest.TestCase):
 
         self.assertIn("shortest direct answer", prompt)
 
+    def test_evidence_labels_role_snippets_and_final_checklist_are_added(self) -> None:
+        config = {
+            "retrieval": {"top_k": 2, "max_top_k": 2, "neighbor_window": 0},
+            "compiler": {
+                "max_evidence_items": 2,
+                "max_evidence_chars": 1000,
+                "row_text_mode": "role_query_snippet",
+                "max_row_text_chars": 80,
+                "evidence_row_labels": True,
+                "final_answer_checklist": True,
+            },
+            "answer": {"fallback_answer": "I do not know."},
+        }
+        request = PredictionRequest(
+            question="Which bike did Alex service?",
+            turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="assistant",
+                    text=(
+                        "General cycling advice. " * 20
+                        + "Alex serviced the road bike at the shop."
+                        + " More general cycling advice. " * 20
+                    ),
+                ),
+                Turn(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="Alex asked about bike maintenance.",
+                ),
+            ),
+        )
+
+        result = Stage1Pipeline(config).predict(request)
+        prompt = result["trace"]["compiled_context"]["prompt"]
+
+        self.assertIn("- E1 source_id=", prompt)
+        self.assertIn("Final answer checklist:", prompt)
+        self.assertIn("exact asked entity", prompt)
+        self.assertIn("Alex serviced the road bike", prompt)
+        self.assertIn("...", prompt)
+
     def test_temporal_grounding_is_added_to_prompt(self) -> None:
         config = {
             "retrieval": {"top_k": 1, "max_top_k": 1, "neighbor_window": 0},

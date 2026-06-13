@@ -199,6 +199,12 @@ class Stage1Pipeline:
             row_text_mode=str(compiler_config.get("row_text_mode", "full")),
             max_row_text_chars=int(compiler_config.get("max_row_text_chars", 0)),
             route_guidance=bool(compiler_config.get("route_guidance", False)),
+            evidence_row_labels=bool(
+                compiler_config.get("evidence_row_labels", False)
+            ),
+            final_answer_checklist=bool(
+                compiler_config.get("final_answer_checklist", False)
+            ),
             max_memory_records=int(compiler_config.get("max_memory_records", 12)),
         )
         self._compiler_trace_config = {
@@ -207,6 +213,12 @@ class Stage1Pipeline:
             "memory_layout": str(compiler_config.get("memory_layout", "flat")),
             "row_text_mode": str(compiler_config.get("row_text_mode", "full")),
             "max_row_text_chars": int(compiler_config.get("max_row_text_chars", 0)),
+            "evidence_row_labels": bool(
+                compiler_config.get("evidence_row_labels", False)
+            ),
+            "final_answer_checklist": bool(
+                compiler_config.get("final_answer_checklist", False)
+            ),
             "route_guidance": bool(compiler_config.get("route_guidance", False)),
             "answer_style": str(compiler_config.get("answer_style", "grounded")),
             "temporal_grounding": bool(

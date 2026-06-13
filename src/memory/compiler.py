@@ -107,6 +107,8 @@ class EvidenceCompiler:
         row_text_mode: str = "full",
         max_row_text_chars: int = 0,
         route_guidance: bool = False,
+        evidence_row_labels: bool = False,
+        final_answer_checklist: bool = False,
         max_memory_records: int = 12,
     ):
         self._max_evidence_items = max_evidence_items
@@ -132,11 +134,13 @@ class EvidenceCompiler:
         if memory_layout not in {"flat", "typed_sections"}:
             raise ValueError(f"Unsupported memory_layout: {memory_layout}")
         self._memory_layout = memory_layout
-        if row_text_mode not in {"full", "query_snippet"}:
+        if row_text_mode not in {"full", "query_snippet", "role_query_snippet"}:
             raise ValueError(f"Unsupported row_text_mode: {row_text_mode}")
         self._row_text_mode = row_text_mode
         self._max_row_text_chars = max_row_text_chars or 800
         self._route_guidance = route_guidance
+        self._evidence_row_labels = evidence_row_labels
+        self._final_answer_checklist = final_answer_checklist
         self._max_memory_records = max(0, max_memory_records)
 
     def compile(
@@ -216,6 +220,8 @@ class EvidenceCompiler:
             row_text_mode=self._row_text_mode,
             max_row_text_chars=self._max_row_text_chars,
             route_guidance=self._route_guidance,
+            evidence_row_labels=self._evidence_row_labels,
+            final_answer_checklist=self._final_answer_checklist,
         )
         return CompiledContext(
             question=question,
@@ -402,6 +408,8 @@ def _build_prompt(
     row_text_mode: str,
     max_row_text_chars: int,
     route_guidance: bool,
+    evidence_row_labels: bool,
+    final_answer_checklist: bool,
 ) -> str:
     lines = [
         "Answer the question using the build-stage memory view and raw context.",
@@ -454,13 +462,14 @@ def _build_prompt(
     lines.extend(["", "Raw context table:"])
     if not rows:
         lines.append("(no evidence retrieved)")
-    for row in rows:
+    for row_index, row in enumerate(rows, start=1):
         lines.append(
             _format_row(
                 row,
                 question=question,
                 row_text_mode=row_text_mode,
                 max_row_text_chars=max_row_text_chars,
+                row_label=f"E{row_index}" if evidence_row_labels else None,
             )
         )
     if temporal_grounding and temporal_hints:
@@ -468,6 +477,11 @@ def _build_prompt(
         if hints:
             lines.extend(("", "Temporal normalization hints derived from row timestamps:"))
             lines.extend(hints)
+    if final_answer_checklist:
+        checklist = _final_answer_checklist_lines(route)
+        if checklist:
+            lines.extend(("", "Final answer checklist:"))
+            lines.extend(checklist)
     return "\n".join(lines)
 
 
@@ -539,6 +553,7 @@ def _format_row(
     question: str,
     row_text_mode: str,
     max_row_text_chars: int,
+    row_label: str | None = None,
 ) -> str:
     rank = row.retrieval_rank if row.retrieval_rank is not None else "neighbor"
     score = f"{row.retrieval_score:.4f}" if row.retrieval_score is not None else "n/a"
@@ -546,11 +561,13 @@ def _format_row(
     text = _row_prompt_text(
         row.text,
         question=question,
+        role=row.role,
         row_text_mode=row_text_mode,
         max_row_text_chars=max_row_text_chars,
     )
+    label_prefix = f"{row_label} " if row_label else ""
     return (
-        f"- source_id={row.source_id} session={row.session_id} "
+        f"- {label_prefix}source_id={row.source_id} session={row.session_id} "
         f"turn={row.turn_index} role={row.role} time={timestamp} "
         f"rank={rank} score={score}: {text}"
     )
@@ -559,10 +576,19 @@ def _format_row(
 def _row_prompt_text(
     text: str,
     question: str,
+    role: str,
     row_text_mode: str,
     max_row_text_chars: int,
 ) -> str:
     if row_text_mode == "full":
+        return text
+    if row_text_mode == "role_query_snippet":
+        normalized_role = role.lower()
+        if normalized_role == "assistant":
+            return _query_snippet(text, question, max_row_text_chars)
+        user_budget = max_row_text_chars * 2
+        if len(text) > user_budget:
+            return _query_snippet(text, question, user_budget)
         return text
     if row_text_mode != "query_snippet":
         raise ValueError(f"Unsupported row_text_mode: {row_text_mode}")
@@ -637,6 +663,43 @@ def _route_guidance_lines(route: RouteResult) -> list[str]:
             "- Ignore unrelated rows even if they share generic question words.",
         ]
     return []
+
+
+def _final_answer_checklist_lines(route: RouteResult) -> list[str]:
+    lines = [
+        "- Privately identify the raw evidence row ids that directly support the final answer.",
+        "- If no raw row supports the exact asked entity, object, relation, or time constraint, answer that the information is not available.",
+        "- Do not answer from a related but different entity, object, activity, person, or collection.",
+        "- If build-stage memory conflicts with raw rows, trust the raw rows.",
+    ]
+    if route.information_need == "current_state":
+        lines.extend(
+            [
+                "- For current/latest questions, prefer the latest explicit raw row that matches the asked entity and relation.",
+                "- If the question asks both previous and current values, provide both and do not collapse them to the latest value.",
+            ]
+        )
+    if route.information_need == "temporal_lookup":
+        lines.extend(
+            [
+                "- For how-long/how-many-days-ago questions, compute the requested duration; do not answer with only the event date.",
+                "- For order/which-happened-first questions, answer with event descriptions in chronological order, not only dates.",
+                "- Use row timestamps only to ground events described in that row; do not treat unrelated rows on the same date as the target event.",
+            ]
+        )
+    if route.information_need == "list_count":
+        lines.extend(
+            [
+                "- For list/count questions, gather all distinct supported items before answering; do not stop at the first matching row.",
+                "- Do not count assistant suggestions unless the question asks for suggestions or assistant-provided items.",
+            ]
+        )
+    if route.information_need == "profile_preference":
+        lines.append(
+            "- For preference/profile questions, require an explicit user preference or stable self-description."
+        )
+    lines.append("- Final response should contain only the answer, not the row ids or reasoning.")
+    return lines
 
 
 def _should_add_temporal_workpad(

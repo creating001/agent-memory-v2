@@ -263,6 +263,12 @@ def main() -> int:
             "max_row_text_chars": config.get("compiler", {}).get(
                 "max_row_text_chars", 0
             ),
+            "evidence_row_labels": config.get("compiler", {}).get(
+                "evidence_row_labels", False
+            ),
+            "final_answer_checklist": config.get("compiler", {}).get(
+                "final_answer_checklist", False
+            ),
             "max_memory_records": config.get("compiler", {}).get(
                 "max_memory_records", 12
             ),
@@ -543,6 +549,8 @@ def _write_summary(
         f"- memory_layout: {metrics['compiler']['memory_layout']}",
         f"- row_text_mode: {metrics['compiler']['row_text_mode']}",
         f"- max_row_text_chars: {metrics['compiler']['max_row_text_chars']}",
+        f"- evidence_row_labels: {metrics['compiler']['evidence_row_labels']}",
+        f"- final_answer_checklist: {metrics['compiler']['final_answer_checklist']}",
         f"- max_memory_records: {metrics['compiler']['max_memory_records']}",
         f"- route_guidance: {metrics['compiler']['route_guidance']}",
         f"- temporal_grounding: {metrics['compiler']['temporal_grounding']}",
@@ -615,6 +623,8 @@ def _write_diagnosis(
         f"- memory_layout: {metrics['compiler']['memory_layout']}",
         f"- row_text_mode: {metrics['compiler']['row_text_mode']}",
         f"- max_row_text_chars: {metrics['compiler']['max_row_text_chars']}",
+        f"- evidence_row_labels: {metrics['compiler']['evidence_row_labels']}",
+        f"- final_answer_checklist: {metrics['compiler']['final_answer_checklist']}",
         f"- max_memory_records: {metrics['compiler']['max_memory_records']}",
         f"- route_guidance: {metrics['compiler']['route_guidance']}",
         f"- temporal_workpad: {metrics['compiler']['temporal_workpad']}",
