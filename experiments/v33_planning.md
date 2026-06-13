@@ -98,3 +98,53 @@ LoCoMo-only gate run: `v33_top60_locomo_probe_65daf7d`
 - answer max input/output: `131072/16384`
 
 结论：v33 top60 通过 LoCoMo no-label/token gate，可以跑 LoCoMo non-adversarial full。暂不跑 LongMemEval，除非 LoCoMo full 正向且 LME 单独 gate 合格。
+
+## 2026-06-14 LoCoMo Full 结果
+
+run: `stage1_retrieval_top60_v33_locomo_nonadv_full_f016f9a`
+
+- benchmark/subset: LoCoMo non-adversarial full
+- samples: `1540`
+- commit: `f016f9a7233172a6d3bb75f247a68cd1e8ec9556`
+- dirty: prediction run 开始时仅有用户修改的 `docs/architecture.md`、`docs/clean_protocol.md`；未发现预测代码或 v33 config 的未提交修改。
+- answer max input/output: `131072/16384`
+- avg build tokens: `58386.00779220779`
+- avg query tokens: `5191.105844155844`
+- total build tokens: `89914452`
+- total query tokens: `7994303`
+- judge tokens: `666030`
+- build cache hits/misses/writes: `12411/0/0`
+- embedding cache hits/misses/writes: `7422/0/0`
+- answer cache hits/misses/writes: `31/1509/1509`
+- avg compiled evidence items: `60.0`
+- avg context chars: `15325.005844155845`
+
+DeepSeek judge:
+
+- valid-only accuracy: `0.7719298245614035`
+- invalid-as-wrong accuracy: `1188/1540 = 0.7714285714285715`
+- previous best v29/v32: `1173/1540 = 0.7616883116883116`
+- net improvement: `+15` correct
+- LoCoMo target gap: still short by about `14` correct examples.
+
+Evidence recall:
+
+- overall: `0.91796875`
+- type 1: `0.925531914893617`
+- type 2: `0.9190031152647975`
+- type 3: `0.6956521739130435`
+- type 4: `0.93935790725327`
+
+v29 对照:
+
+- both_correct: `1112`
+- both_wrong: `291`
+- gained: `76`
+- lost: `61`
+- fact_lookup net `+16`
+- list_count net `+5`
+- profile_preference net `+2`
+- current_state net `+1`
+- temporal_lookup net `-9`
+
+结论：v33 证明扩大 retrieval/compiled evidence 对 LoCoMo 有真实正收益，但 temporal_lookup 不适合无差别扩大 context。下一轮不继续盲目堆 top-k，而是做 v34 route-budgeted retrieval：非 temporal route 保留 top60，temporal_lookup 回到更窄 top40/compile budget，仍只依赖 question-derived information_need，保持 general/clean。

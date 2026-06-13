@@ -1,0 +1,204 @@
+{
+  "answer_delta": {
+    "changed_CORRECT_to_WRONG": 50,
+    "changed_WRONG_to_CORRECT": 68,
+    "changed_both_correct": 368,
+    "changed_both_wrong": 127,
+    "same_CORRECT_to_WRONG": 11,
+    "same_WRONG_to_CORRECT": 8,
+    "same_both_correct": 744,
+    "same_both_wrong": 164
+  },
+  "by_route": {
+    "current_state": {
+      "both_correct": 3,
+      "gained": 1
+    },
+    "fact_lookup": {
+      "both_correct": 764,
+      "both_wrong": 170,
+      "gained": 50,
+      "lost": 34
+    },
+    "list_count": {
+      "both_correct": 72,
+      "both_wrong": 40,
+      "gained": 12,
+      "lost": 7
+    },
+    "profile_preference": {
+      "both_correct": 35,
+      "both_wrong": 6,
+      "gained": 5,
+      "lost": 3
+    },
+    "temporal_lookup": {
+      "both_correct": 238,
+      "both_wrong": 75,
+      "gained": 8,
+      "lost": 17
+    }
+  },
+  "clean_note": "Offline comparison reads judge/traces only after prediction; do not feed this into prediction logic.",
+  "examples": {
+    "gained": [
+      {
+        "baseline_answer": "The provided information is not enough to determine what offer Gina made to Jon regarding social media.",
+        "candidate_answer": "Gina offers to help Jon create content and manage his social media accounts.",
+        "record_key": "00cb2762eabaf86347b3330f",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "make sense of everything, relieve stress, and feel like a restart",
+        "candidate_answer": "Exercise helps Jolene feel like she can make sense of everything, relieve stress, feel balanced, centered, and grounded.",
+        "record_key": "019e094a5e94175b0e5c7d4c",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "The provided information is not enough to determine if John and James are fans of the same football team.",
+        "candidate_answer": "No",
+        "record_key": "01fa5e0de1bdb7407a1958cd",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "['rainbow flag mural', 'eagle']",
+        "candidate_answer": "rainbow flag mural, eagle symbol",
+        "record_key": "0bb99b11d4e9e2211195173a",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "The provided information is not enough to determine where Jolene and her partner spent most of September 2023.",
+        "candidate_answer": "Phuket",
+        "record_key": "0bd234ac04c7e45eab9d62ab",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "Deborah enhances her yoga practice by teaching yoga, attending yoga retreats, practicing mindful breathing, and using candles and essential oils. Jolene enhances her practice by doing yoga and meditation with her partner, attending yoga classes in Rio de Janeiro, and planning a camping trip to practice yoga in nature.",
+        "candidate_answer": "Deborah enhances her yoga practice by teaching yoga, organizing community events, using calming scents, and practicing mindful breathing. Jolene enhances her practice by using music, practicing yoga and meditation, and planning nature-based trips and retreats with her partner.",
+        "record_key": "0c492e347d929d5e17b66a89",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "3",
+        "candidate_answer": "2",
+        "record_key": "0c7884e56e39737f4875f3de",
+        "route": "list_count"
+      },
+      {
+        "baseline_answer": "The provided information is not enough to determine which specific type of bird mesmerizes Andrew.",
+        "candidate_answer": "eagles",
+        "record_key": "0dd7f9ce033028d1cf8922c1",
+        "route": "list_count"
+      },
+      {
+        "baseline_answer": "home country",
+        "candidate_answer": "home country",
+        "record_key": "13fc31c4da9f316b40c10d39",
+        "route": "temporal_lookup"
+      },
+      {
+        "baseline_answer": "animals",
+        "candidate_answer": "turtles",
+        "record_key": "1666795fcdd34ea45f11384a",
+        "route": "profile_preference"
+      },
+      {
+        "baseline_answer": "playing video games",
+        "candidate_answer": "watching fantasy and sci-fi movies",
+        "record_key": "1915b951ad3af93f95b839e8",
+        "route": "list_count"
+      },
+      {
+        "baseline_answer": "building his brand, pursuing endorsements, supporting youth sports, organizing basketball camps, holding benefit games",
+        "candidate_answer": "building his brand, pursuing endorsements, supporting youth sports, organizing basketball camps",
+        "record_key": "1ba1789ca790bb6323a5ac22",
+        "route": "fact_lookup"
+      }
+    ],
+    "lost": [
+      {
+        "baseline_answer": "2022",
+        "candidate_answer": "The provided information is not enough to determine the exact date of John's camping trip with Max.",
+        "record_key": "077dc113032925d7209f2c6a",
+        "route": "temporal_lookup"
+      },
+      {
+        "baseline_answer": "Playing in a doggy daycare's indoor space",
+        "candidate_answer": "Playing at a doggy daycare with a big indoor space for dogs to play",
+        "record_key": "0b71bc5435ed4023bf41dedd",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "a convention",
+        "candidate_answer": "The provided information is not enough to determine what John attended with his colleagues in March 2023.",
+        "record_key": "15aff1e8412a6f24885c7cc6",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "yummy honey garlic chicken with roasted veg",
+        "candidate_answer": "honey garlic chicken with roasted veg",
+        "record_key": "17e4a8f272b46c0a9ad5d9df",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "2013-06-27",
+        "candidate_answer": "2013-06-27",
+        "record_key": "1c98645d234a3d42586e2b99",
+        "route": "temporal_lookup"
+      },
+      {
+        "baseline_answer": "Yes",
+        "candidate_answer": "Only Gina participated in dance competitions.",
+        "record_key": "1d67a87a17c4422a25326bd1",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "Boston",
+        "candidate_answer": "Tokyo",
+        "record_key": "1d9b391b557452a5a69ffc0e",
+        "route": "list_count"
+      },
+      {
+        "baseline_answer": "hiking",
+        "candidate_answer": "running",
+        "record_key": "23cab7e7f9f1332e7b350a41",
+        "route": "list_count"
+      },
+      {
+        "baseline_answer": "sit, stay, paw, and rollover",
+        "candidate_answer": "sit, stay, paw, and rollover",
+        "record_key": "2527ce4bd3ac4170381daee2",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "fresh pastries",
+        "candidate_answer": "fresh pastries",
+        "record_key": "27f657a9bc77e72f8ce99129",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "A cookbook with healthy, easy-to-make recipes would be an appropriate gift to encourage Evan and Sam's healthy lifestyles, as both are actively improving their diets and cooking habits.",
+        "candidate_answer": "The provided information is not enough to determine an appropriate gift for both Evan and Sam to encourage their healthy lifestyles.",
+        "record_key": "29810bc865f064d647127d7e",
+        "route": "fact_lookup"
+      },
+      {
+        "baseline_answer": "love, support, joy, and meaningful moments",
+        "candidate_answer": "love, support, joy, and quality time",
+        "record_key": "2c6a370fd1c7a33b4c4bef8a",
+        "route": "fact_lookup"
+      }
+    ]
+  },
+  "n_keys": 1540,
+  "runs": {
+    "baseline": "stage1_temporal_event_contract_v29_locomo_nonadv_full_c7b8390",
+    "candidate": "stage1_retrieval_top60_v33_locomo_nonadv_full_f016f9a"
+  },
+  "summary": {
+    "both_correct": 1112,
+    "both_wrong": 291,
+    "gained": 76,
+    "lost": 61
+  }
+}
