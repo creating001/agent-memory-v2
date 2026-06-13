@@ -1,6 +1,6 @@
 {
   "name": "stage1_memory_aware_selector_v39_cached",
-  "description": "V39 candidate on top of v36. Keep the v36 answer contract, build memory, token-safe 40-row final context, and answer format guard. For list_count and temporal_lookup, retrieve a 60-row candidate pool, then use memory_aware evidence ordering to select the final 40 raw rows. Build-stage typed memory is used only as a source-linked selection signal; typed memory records are not printed as independent answer facts. This is a general clean retrieval/selection ablation and does not use gold, judge output, benchmark labels, category, question_type, sample ids, qids, row indices, test feedback, or sample-level rules.",
+  "description": "V39 candidate on top of v36. Keep the v36 answer contract, build memory, token-safe 40-row final context, and answer format guard. For list_count and temporal_lookup, retrieve a 60-row candidate pool, then use memory_aware evidence ordering to select the final 40 source rows with query-focused snippets in the answer prompt. Build-stage typed memory is used only as a source-linked selection signal; typed memory records are not printed as independent answer facts. This is a general clean retrieval/selection ablation and does not use gold, judge output, benchmark labels, category, question_type, sample ids, qids, row indices, test feedback, or sample-level rules.",
   "retrieval": {
     "top_k": 40,
     "max_top_k": 40,
@@ -108,6 +108,20 @@
     "memory_order": "retrieval",
     "memory_layout": "flat",
     "row_text_mode": "full",
+    "route_overrides": {
+      "list_count": {
+        "max_evidence_items": 40,
+        "max_evidence_chars": 18000,
+        "row_text_mode": "role_query_snippet",
+        "max_row_text_chars": 700
+      },
+      "temporal_lookup": {
+        "max_evidence_items": 40,
+        "max_evidence_chars": 18000,
+        "row_text_mode": "role_query_snippet",
+        "max_row_text_chars": 700
+      }
+    },
     "route_guidance": false,
     "evidence_row_labels": false,
     "final_answer_checklist": false,
