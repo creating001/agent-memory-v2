@@ -1,0 +1,24 @@
+{
+  "clean_note": "Offline prompt scan only. Findings require manual review because raw user text can contain benign words. Repair prompt templates are code-level static prompts and are covered by unit tests; only persisted prompt-like trace fields are scanned here.",
+  "n_prompts": 30,
+  "forbidden_terms": [
+    "question_type",
+    "sample_id",
+    "sample id",
+    "qid",
+    "row index",
+    "gold answer",
+    "judge output",
+    "reference answer",
+    "offline evaluator",
+    "correct answer",
+    "ground truth",
+    "source_question_id",
+    "answer_session_ids",
+    "benchmark label",
+    "category label",
+    "test feedback"
+  ],
+  "n_findings": 0,
+  "findings": []
+}
