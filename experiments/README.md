@@ -81,6 +81,7 @@
 - v60 dialogue + temporal reader contract 已完成 LongMemEval-S `weak_route_87` 诊断：DeepSeek judge `58/87 = 0.666667`，低于 v42 same87 `59/87 = 0.678161`；gain/loss `6/7`，answer_changed `29`，avg_build_tokens `80991.862`，avg_query_tokens `6202.195` 超过 6K。`current_state` 小幅正向 `12/22 -> 13/22`，但 `list_count` 回退 `15/20 -> 14/20`、`profile_preference` 回退 `10/15 -> 9/15`、`temporal_lookup` 持平。结论是继续加 reader prompt 不值得，不跑 full，顶层 config 删除，仅保留实验快照。
 - v61 fact operation workpad gate 已完成 LongMemEval-S `fact_operation_33` 诊断：DeepSeek judge `27/33 = 0.818182`，与 v42 same33 持平；gain/loss `2/2`，answer_changed `12`，avg_build_tokens `80906.667`，avg_query_tokens `5694.030`。修复少数 exact numeric/format case，但引入等量 over-count / insufficient-answer regression；结论是中性，不跑 full，顶层 config 删除，仅保留实验快照。
 - v62 dialogue episode layout 已完成 LongMemEval-S `fact_lookup_183` 诊断：DeepSeek judge `141/183 = 0.770492`，低于 v42 same183 `150/183 = 0.819672`；gain/loss `8/17`，answer_changed `54`，avg_build_tokens `80561.590`，avg_query_tokens `6220.005` 超过 6K。结论是负向且超预算，删除顶层 config 和对应源码分支，仅保留实验快照。
+- v64 list_count-only adjacent-turn window BM25 已完成 LongMemEval-S `list_count_119` 诊断：DeepSeek judge `93/119 = 0.781513`，低于 v42 same119 `95/119 = 0.798319`；gain/loss `5/7`，answer_changed `17`，avg_query_tokens `5648.555`。结论是 clean 且 token 合格但负向，不跑 full，顶层 config 删除，仅保留实验快照。
 
 负向探索结论已压缩保留：
 
@@ -138,6 +139,7 @@ experiments/formal/<run_id>/
 | `v60_dialogue_temporal_lme_weakroute_fb0376b` | 87 条 LongMemEval-S question-derived weak-route diagnostic | v60 dialogue inference + temporal order reader contract 失败；DeepSeek judge `58/87`，低于 v42 same87 `59/87`，gain/loss `6/7`，avg_query_tokens `6202.195` 超 6K。current_state 小正向不足以抵消 list/profile 回退；不跑 full，顶层 config 删除。 |
 | `v61_fact_operation_lme_diag_2dcb668` | 33 条 LongMemEval-S question-derived fact operation diagnostic | v61 fact_lookup operation workpad gate 中性；DeepSeek judge `27/33`，与 v42 same33 持平，gain/loss `2/2`，avg_query_tokens `5694.030`。收益上限小且不稳定；不跑 full，顶层 config 删除。 |
 | `v62_dialogue_episode_fact_lme_diag_4293e55` | 183 条 LongMemEval-S question-derived fact_lookup diagnostic | v62 dialogue episode layout 失败；DeepSeek judge `141/183`，低于 v42 same183 `150/183`，gain/loss `8/17`，avg_query_tokens `6220.005` 超 6K。更长的 episode prompt 增加歧义，源码分支已删除。 |
+| `v64_list_count_turn_window_lme_diag_f7eb691` | 119 条 LongMemEval-S question-derived list_count diagnostic | v64 list_count-only adjacent-turn window BM25 失败；DeepSeek judge `93/119`，低于 v42 same119 `95/119`，gain/loss `5/7`，avg_query_tokens `5648.555`。相邻窗口修复少量漏项但引入更多回退，不跑 full。 |
 
 ## 保留正式结果
 

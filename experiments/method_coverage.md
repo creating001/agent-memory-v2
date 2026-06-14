@@ -112,5 +112,5 @@
 - v38 具体采用 route-scoped raw top60 + `role_query_snippet`：借鉴 creating001 的 source-turn materialization 和 ACON/LCM 的 query-focused context compression，但不引入 LLM reranker、summary 替代事实源或 benchmark-specific guardrail。
 - v39 采用 memory-aware evidence selector：借鉴 HippoRAG/EverOS 的 fact/entity/typed memory -> raw passage 回链，把 top60 候选压回 top40 raw evidence；typed memory 只做 source-linked selection signal，不进入 prompt fact view。
 - v43 采用 session-thread evidence layout + row-linked build memory guide：借鉴 xMemory/SimpleMem 的 episodic raw message 回链、Mnemis 的 selected node -> episode 回链和 Graphiti/Zep 的 temporal/provenance 思路；typed memory 只作为已召回 raw rows 的定位 guide，不作为独立事实源。
-- v64 采用 list_count-only adjacent-turn window BM25：借鉴 creating001 的 turn-pair/source-turn materialization，并结合 v54 在 `list_count` diagnostic 上 gain/loss `1/0` 的局部信号；只按 question-derived information need 触发，不使用 benchmark label 或样本级规则。若 119 条 list_count diagnostic 不正向，则删除顶层 config。
+- v64 采用 list_count-only adjacent-turn window BM25：借鉴 creating001 的 turn-pair/source-turn materialization，并结合 v54 在 `list_count` diagnostic 上 gain/loss `1/0` 的局部信号；119 条 LongMemEval-S list_count diagnostic 已验证负向（v64 `93/119` < v42 same119 `95/119`），顶层 config 删除，只保留诊断快照。
 - clean 侧：所有 route 和 compiler 只能来自 question text、question_time、原始对话和 memory metadata；不能使用 LoCoMo category、LongMemEval question_type、evidence label、gold 或 judge。

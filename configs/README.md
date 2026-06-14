@@ -21,7 +21,7 @@
 
 ## 当前候选
 
-- `stage1_list_count_turn_window_v64_cached.json`：v42 上的 list_count-only adjacent-turn window BM25 候选。它借鉴 creating001 的 source-turn materialization 和 v54 在 list_count 子集上的小幅正向信号，只按 question-derived information need 触发；先跑 LongMemEval-S list_count diagnostic，正向且 token 合格才考虑 full。
+暂无。v64 list_count-only adjacent-turn window BM25 已完成 LongMemEval-S list_count diagnostic：token 合格但 accuracy 低于 v42 same119；顶层 config 删除，只保留 diagnostic 快照。
 
 负向诊断只保留在对应 `experiments/diagnostic/<run_id>/config_snapshot.json` 中，不保留顶层 config。
 
