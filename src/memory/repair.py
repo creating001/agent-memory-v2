@@ -280,7 +280,9 @@ def _profile_preference_repair_rules(compiled: CompiledContext) -> list[str]:
         "9. If the draft refused but Memory Context has relevant anchors, revise to a tailored answer using those anchors instead of generic advice.",
         "10. If the exact requested named option is not in Memory Context, answer with the type, criteria, or constraints the user would likely prefer; do not invent unsupported specific names.",
         "11. This no-new-names rule applies even when you know plausible real-world shows, conferences, hotels, products, publications, venues, or events; use only names present in Memory Context.",
-        "12. Include the key personalized constraint or reason in the final answer when needed for the answer to satisfy the request.",
+        "12. The final answer must not contain a proper noun, title, organization, venue, platform, publication, conference, hotel, product, show, movie, restaurant, or event name unless that exact name appears verbatim in Memory Context.",
+        "13. If no exact named option is present, answer with preference type, selection criteria, or constraints only.",
+        "14. Include the key personalized constraint or reason in the final answer when needed for the answer to satisfy the request.",
     ]
 
 

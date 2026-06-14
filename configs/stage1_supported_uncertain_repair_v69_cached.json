@@ -1,6 +1,6 @@
 {
-  "name": "stage1_supported_uncertain_repair_v68_cached",
-  "description": "V68 token-safe candidate on top of v67/v42: keep the supported-uncertain repair trigger, but reduce repair context to 10k chars and 500 chars per row, and strengthen the profile repair prompt against unsupported named recommendations. Draft answer/build/retrieval/compiler remain v42. The repair uses only prediction-time artifacts and no gold, judge output, benchmark labels, sample ids, row indices, test feedback, or sample-level rules.",
+  "name": "stage1_supported_uncertain_repair_v69_cached",
+  "description": "V69 token-safe supported-uncertain repair on top of v42: repair only when draft is uncertain/missing and evidence_report has support, with 7k repair context, 400 chars per row, and stricter profile no-new-names instruction. Draft answer/build/retrieval/compiler remain v42. No gold, judge output, benchmark labels, sample ids, row indices, test feedback, or sample-level rules.",
   "build_memory": {
     "enabled": true,
     "mode": "openai_compatible",
@@ -148,12 +148,12 @@
       "enable_short_list_trigger": false,
       "enable_temporal_conflict_trigger": false,
       "enable_profile_preference_trigger": false,
-      "max_context_chars": 10000,
-      "max_row_text_chars": 500,
+      "max_context_chars": 7000,
+      "max_row_text_chars": 400,
       "cache": {
         "enabled": true,
-        "path": "outputs/cache/qwen3_answer_repair_v68_supported_uncertain.sqlite",
-        "namespace": "stage1_supported_uncertain_repair_v68_qwen3_30b"
+        "path": "outputs/cache/qwen3_answer_repair_v69_supported_uncertain.sqlite",
+        "namespace": "stage1_supported_uncertain_repair_v69_qwen3_30b"
       }
     }
   }
