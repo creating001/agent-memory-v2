@@ -1,0 +1,223 @@
+{
+  "clean_note": "Offline-only comparison. This file must not be read by prediction, route, retrieval, compiler, answer, or verifier modules.",
+  "run": "stage1_endpoint_validation_v72_lme_s_full_8a7144a",
+  "baseline": "stage1_operation_workpad_v42_repro_fix_lme_s_full_d6c6e8e",
+  "accuracy": {
+    "v72": 0.766,
+    "v42_repro": 0.772,
+    "delta": -0.006000000000000005
+  },
+  "tokens": {
+    "v72": {
+      "avg_build_tokens": 80346.246,
+      "avg_query_tokens": 5884.82,
+      "total_build_tokens": 40173123,
+      "total_query_tokens": 2942410
+    },
+    "v42_repro": {
+      "avg_build_tokens": 80346.246,
+      "avg_query_tokens": 5864.706,
+      "total_build_tokens": 40173123,
+      "total_query_tokens": 2932353
+    }
+  },
+  "answer_cache": {
+    "cache_hits": 432,
+    "cache_misses": 68,
+    "cache_writes": 68,
+    "max_input_tokens": 131072,
+    "max_output_tokens": 16384,
+    "max_tokens": 16384
+  },
+  "endpoint_prompt_count": 68,
+  "endpoint_prompt_routes": {
+    "temporal_lookup": 33,
+    "list_count": 35
+  },
+  "prediction_changed_count": 15,
+  "judge_transition_summary": {
+    "same:CORRECT->CORRECT": 367,
+    "same:WRONG->WRONG": 104,
+    "changed:WRONG->WRONG": 2,
+    "same:CORRECT->WRONG": 7,
+    "same:WRONG->CORRECT": 7,
+    "changed:CORRECT->WRONG": 4,
+    "changed:CORRECT->CORRECT": 8,
+    "changed:WRONG->CORRECT": 1
+  },
+  "changed_route_transition_summary": {
+    "temporal_lookup:WRONG->WRONG": 2,
+    "temporal_lookup:CORRECT->WRONG": 3,
+    "temporal_lookup:CORRECT->CORRECT": 2,
+    "list_count:CORRECT->CORRECT": 6,
+    "temporal_lookup:WRONG->CORRECT": 1,
+    "list_count:CORRECT->WRONG": 1
+  },
+  "changed_examples": [
+    {
+      "record_key": "040a4510206229039b25c860",
+      "question": "What is the order of the concerts and musical events I attended in the past two months, starting from the earliest?",
+      "question_type": "temporal-reasoning",
+      "route": "temporal_lookup",
+      "base_label": "WRONG",
+      "new_label": "WRONG",
+      "base_answer": "Billie Eilish concert at Wells Fargo Center in Philly (2023-03-18), free outdoor concert series in the park (2023-03-25), jazz night at a local bar (2023-04-08), music festival in Brooklyn (2023-04-15)",
+      "new_answer": "1. Billie Eilish concert at Wells Fargo Center in Philly (2023-03-18), 2. Free outdoor concert series in the park (2023-03-25), 3. Free outdoor concert series in the park (2023-04-01), 4. Jazz night at a local bar (2023-04-08), 5. Jazz night at a local bar (2023-04-08), 6. Charity gala for Children's Hospital (2023-04-11), 7. Music festival in Brooklyn (2023-04-15)",
+      "gold_answer": "The order of the concerts I attended is: 1. Billie Eilish concert at the Wells Fargo Center in Philly, 2. Free outdoor concert series in the park, 3. Music festival in Brooklyn, 4. Jazz night at a local bar, 5. Queen + Adam Lambert concert at the Prudential Center in Newark, NJ."
+    },
+    {
+      "record_key": "1afa4fb00c6e7626e63dca62",
+      "question": "How many pieces of jewelry did I acquire in the last two months?",
+      "question_type": "multi-session",
+      "route": "temporal_lookup",
+      "base_label": "CORRECT",
+      "new_label": "WRONG",
+      "base_answer": "3",
+      "new_answer": "4",
+      "gold_answer": 3
+    },
+    {
+      "record_key": "1db38df3ec49cf8d8220ddc4",
+      "question": "How many years older is my grandma than me?",
+      "question_type": "multi-session",
+      "route": "temporal_lookup",
+      "base_label": "CORRECT",
+      "new_label": "WRONG",
+      "base_answer": "43",
+      "new_answer": "The provided information is not enough.",
+      "gold_answer": "43"
+    },
+    {
+      "record_key": "44ac73d719eb7b979ee4988f",
+      "question": "How many months before my anniversary did Rachel get engaged?",
+      "question_type": "temporal-reasoning",
+      "route": "temporal_lookup",
+      "base_label": "CORRECT",
+      "new_label": "CORRECT",
+      "base_answer": "1",
+      "new_answer": "2",
+      "gold_answer": "2"
+    },
+    {
+      "record_key": "5662691a4bc7b9290f5727a8",
+      "question": "How much total money did I spend on attending workshops in the last four months?",
+      "question_type": "multi-session",
+      "route": "temporal_lookup",
+      "base_label": "CORRECT",
+      "new_label": "WRONG",
+      "base_answer": "720",
+      "new_answer": "The provided information is not enough.",
+      "gold_answer": "$720"
+    },
+    {
+      "record_key": "676e521b39cdfb9666007421",
+      "question": "Which trip did the narrator take first, the solo trip to Europe or the family road trip across the American Southwest?",
+      "question_type": "temporal-reasoning",
+      "route": "list_count",
+      "base_label": "CORRECT",
+      "new_label": "CORRECT",
+      "base_answer": "The family road trip across the American Southwest",
+      "new_answer": "the family road trip across the American Southwest",
+      "gold_answer": "The family road trip across the American Southwest"
+    },
+    {
+      "record_key": "6778983aaf41f9823f490730",
+      "question": "How many plants did I acquire in the last month?",
+      "question_type": "multi-session",
+      "route": "temporal_lookup",
+      "base_label": "WRONG",
+      "new_label": "WRONG",
+      "base_answer": "2",
+      "new_answer": "1",
+      "gold_answer": 3
+    },
+    {
+      "record_key": "767dc4d1e636373a70a888ac",
+      "question": "How many autographed baseballs have I added to my collection in the first three months of collection?",
+      "question_type": "knowledge-update",
+      "route": "temporal_lookup",
+      "base_label": "WRONG",
+      "new_label": "CORRECT",
+      "base_answer": "20",
+      "new_answer": "15",
+      "gold_answer": "15"
+    },
+    {
+      "record_key": "894441430f5e247c1b3bb6ab",
+      "question": "Which device did I set up first, the smart thermostat or the new router?",
+      "question_type": "temporal-reasoning",
+      "route": "list_count",
+      "base_label": "CORRECT",
+      "new_label": "CORRECT",
+      "base_answer": "The new router",
+      "new_answer": "The new router was set up first.",
+      "gold_answer": "new router"
+    },
+    {
+      "record_key": "91acf3e8a6fd94c1c879fe27",
+      "question": "Which seeds were started first, the tomatoes or the marigolds?",
+      "question_type": "temporal-reasoning",
+      "route": "list_count",
+      "base_label": "CORRECT",
+      "new_label": "CORRECT",
+      "base_answer": "The tomatoes were started first.",
+      "new_answer": "tomatoes",
+      "gold_answer": "Tomatoes"
+    },
+    {
+      "record_key": "a75ee94df8a589d1c8796201",
+      "question": "Which show did I start watching first, 'The Crown' or 'Game of Thrones'?",
+      "question_type": "temporal-reasoning",
+      "route": "list_count",
+      "base_label": "CORRECT",
+      "new_label": "WRONG",
+      "base_answer": "Game of Thrones",
+      "new_answer": "The Crown",
+      "gold_answer": "'Game of Thrones'"
+    },
+    {
+      "record_key": "c802e8c2392644a2449a9b8e",
+      "question": "Which event happened first, my cousin's wedding or Michael's engagement party?",
+      "question_type": "temporal-reasoning",
+      "route": "list_count",
+      "base_label": "CORRECT",
+      "new_label": "CORRECT",
+      "base_answer": "Michael's engagement party happened first.",
+      "new_answer": "Michael's engagement party",
+      "gold_answer": "Michael's engagement party"
+    },
+    {
+      "record_key": "d3a8504efbe4132f7b69d534",
+      "question": "How many days passed between the day I started watering my herb garden and the day I harvested my first batch of fresh herbs?",
+      "question_type": "temporal-reasoning",
+      "route": "temporal_lookup",
+      "base_label": "CORRECT",
+      "new_label": "CORRECT",
+      "base_answer": "24 days",
+      "new_answer": "24",
+      "gold_answer": "24 days. 25 days (including the last day) is also acceptable."
+    },
+    {
+      "record_key": "eab72ce78f7700de859fcba2",
+      "question": "Which project did I start first, the Ferrari model or the Japanese Zero fighter plane model?",
+      "question_type": "temporal-reasoning",
+      "route": "list_count",
+      "base_label": "CORRECT",
+      "new_label": "CORRECT",
+      "base_answer": "Japanese Zero fighter plane model",
+      "new_answer": "Japanese Zero fighter plane",
+      "gold_answer": "Japanese Zero fighter plane model"
+    },
+    {
+      "record_key": "f1fff4bc6c0bed93d8f6cf00",
+      "question": "Which event did I participate in first, the volleyball league or the charity 5K run to raise money for a local children's hospital?",
+      "question_type": "temporal-reasoning",
+      "route": "list_count",
+      "base_label": "CORRECT",
+      "new_label": "CORRECT",
+      "base_answer": "volleyball league",
+      "new_answer": "The volleyball league",
+      "gold_answer": "volleyball league"
+    }
+  ]
+}
