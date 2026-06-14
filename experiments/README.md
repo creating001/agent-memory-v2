@@ -71,6 +71,8 @@
 - v51 profile/advice answer repair 已完成 LongMemEval-S `single-session-preference_30` 诊断：DeepSeek judge `16/30 = 0.533333`，高于 v42 same-30 `13/30 = 0.433333` 和 v50 same-30 `12/30 = 0.400000`；gain/loss `6/3`，repair applied `6/30`，applied draft `0/6` -> final `3/6`。但 avg_query_tokens `8382.667`，超过 8K diagnostic 边界；结论是 repair 思路有效但过贵，不跑 full，下一步做 token-safe profile-anchor repair，顶层 config 不长期保留。
 - v52 profile uncertain repair 先在 LongMemEval-S `single-session-preference_30` 诊断正向：DeepSeek judge `15/30 = 0.500000`，高于 v42 same-30 `13/30 = 0.433333`，avg_query_tokens `5954.533`。但 full 失败：`385/500 = 0.770000`，低于 v42 `387/500 = 0.774000`；vs v42 gain/loss `19/21`，answer_changed `106`。结论是 answer-side repair 局部有效但 full 不稳定，不跑 LoCoMo，顶层 config 删除。
 - v53 scoped evidence 两阶段回答已完成 LongMemEval-S `temporal_aggregation_106` 诊断：DeepSeek judge `63/106 = 0.594340`，低于 v42 same-106 `81/106 = 0.764151` 和 v47 `75/106 = 0.707547`；gain/loss `5/23`，answer_changed `68`，avg_query_tokens `5113.226`。结论是 clean 且 token 合格，但 extracted JSON 作为唯一事实输入会放大 extractor 边界错误，不跑 full，顶层 config 删除。规划和结论见 `experiments/v53_planning.md`。
+- v54 turn-window retrieval 已完成 LongMemEval-S `weak_route_87` 诊断：DeepSeek judge `59/87 = 0.678161`，与 v42 same-87 持平；gain/loss `7/7`，answer_changed `25`，avg_query_tokens `5959.874`。`list_count` 小正向被 profile/current/temporal 回退抵消，不跑 full，顶层 config 删除。
+- v55 turn-window dense32 消融已完成 LongMemEval-S `weak_route_87` 诊断：DeepSeek judge `57/87 = 0.655172`，低于 v42/v54 same-87；gain/loss vs v42 `6/8`，avg_query_tokens `6000.310` 略超 6K。结论是当前 turn-window BM25 参数方向不稳定，停止继续微调，顶层 config 删除。
 
 负向探索结论已压缩保留：
 
@@ -136,6 +138,8 @@ experiments/formal/<run_id>/
 | `v51_profile_repair_lme_pref_79b1424` | 30 条 LongMemEval-S single-session-preference diagnostic | v51 profile/advice answer repair 有正向质量信号；DeepSeek judge `16/30`，高于 v42 same-30 `13/30`，repair applied draft `0/6` -> final `3/6`。但 avg_query_tokens `8382.667` 超预算，不跑 full；下一步收窄触发并压缩 repair context。 |
 | `v52_profile_uncertain_repair_lme_pref_aa0f67c` | 30 条 LongMemEval-S single-session-preference diagnostic | v52 只在 profile/advice draft 拒答/unknown/missing 时 repair；DeepSeek judge `15/30`，高于 v42 same-30 `13/30`，avg_query_tokens `5954.533`，repair triggered `6/30`。后续 full 已证明整体负向。 |
 | `v53_scoped_evidence_lme_diag_4db0bde` | 106 条 LongMemEval-S question-derived temporal/list diagnostic | v53 scoped evidence 两阶段回答失败；DeepSeek judge `63/106`，低于 v42 same-106 `81/106`，gain/loss `5/23`。token gate 和 clean scan 通过，但 extracted JSON 替代 raw evidence 后边界错误被放大，不跑 full，顶层 config 已删除。 |
+| `v54_turn_window_lme_weakroute_fc48b22` | 87 条 LongMemEval-S question-derived weak-route diagnostic | v54 adjacent-turn window BM25 retrieval 持平 v42 same87；DeepSeek judge `59/87`，gain/loss `7/7`，avg_query_tokens `5959.874`。有局部 list/count 正向，但不稳定，不跑 full。 |
+| `v55_turn_window_dense32_lme_weakroute_be846f3` | 87 条 LongMemEval-S question-derived weak-route diagnostic | v55 恢复 dense `protect_top_n=32` 后失败；DeepSeek judge `57/87`，低于 v42/v54 same87，avg_query_tokens `6000.310` 略超预算。停止当前 turn-window 参数方向。 |
 
 ## 保留正式结果
 
