@@ -6,7 +6,7 @@ import math
 import re
 import hashlib
 import threading
-from collections import Counter, OrderedDict
+from collections import Counter, OrderedDict, defaultdict
 from dataclasses import dataclass
 from typing import Protocol
 
@@ -272,6 +272,187 @@ class SessionBM25Retriever:
                 )
             )
         return tuple(hits)
+
+
+@dataclass(frozen=True)
+class TurnWindowDocument:
+    """Adjacent raw-turn window used only as a retrieval document."""
+
+    document_id: str
+    source_ids: tuple[str, ...]
+    center_source_id: str
+    session_id: str
+    center_turn_index: int
+    text: str
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "document_id": self.document_id,
+            "source_ids": self.source_ids,
+            "center_source_id": self.center_source_id,
+            "session_id": self.session_id,
+            "center_turn_index": self.center_turn_index,
+            "text_chars": len(self.text),
+        }
+
+
+@dataclass(frozen=True)
+class TurnWindowHit:
+    document: TurnWindowDocument
+    score: float
+    rank: int
+    matched_terms: tuple[str, ...] = ()
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "document": self.document.to_dict(),
+            "score": self.score,
+            "rank": self.rank,
+            "matched_terms": self.matched_terms,
+        }
+
+
+class TurnWindowBM25Retriever:
+    """BM25 over adjacent turn windows, projected back to raw turns later."""
+
+    def __init__(
+        self,
+        documents: tuple[TurnWindowDocument, ...],
+        k1: float = 1.5,
+        b: float = 0.75,
+        drop_query_stopwords: bool = True,
+    ):
+        self._documents = documents
+        self._index = _BM25Index(
+            texts=tuple(document.text for document in documents),
+            sort_keys=tuple(
+                (document.session_id, document.center_turn_index, document.document_id)
+                for document in documents
+            ),
+            k1=k1,
+            b=b,
+            drop_query_stopwords=drop_query_stopwords,
+        )
+
+    def retrieve(
+        self,
+        question: str,
+        top_k: int,
+        score_threshold: float = 0.0,
+    ) -> tuple[TurnWindowHit, ...]:
+        hits = []
+        for rank, scored in enumerate(
+            self._index.retrieve(question, top_k=top_k, score_threshold=score_threshold),
+            start=1,
+        ):
+            hits.append(
+                TurnWindowHit(
+                    document=self._documents[scored.index],
+                    score=scored.score,
+                    rank=rank,
+                    matched_terms=scored.matched_terms,
+                )
+            )
+        return tuple(hits)
+
+
+def build_turn_window_documents(
+    turns: tuple[Turn, ...],
+    *,
+    window_before: int,
+    window_after: int,
+    max_chars_per_turn: int = 0,
+) -> tuple[TurnWindowDocument, ...]:
+    """Build query-time retrieval windows from visible raw conversation turns."""
+
+    if window_before < 0 or window_after < 0:
+        raise ValueError("turn-window sizes must be non-negative")
+
+    grouped: dict[str, list[Turn]] = defaultdict(list)
+    for turn in turns:
+        grouped[turn.session_id].append(turn)
+
+    documents: list[TurnWindowDocument] = []
+    for session_id in sorted(grouped):
+        session_turns = sorted(grouped[session_id], key=lambda item: item.turn_index)
+        for position, center_turn in enumerate(session_turns):
+            start = max(0, position - window_before)
+            end = min(len(session_turns), position + window_after + 1)
+            window_turns = tuple(session_turns[start:end])
+            start_turn_index = window_turns[0].turn_index
+            end_turn_index = window_turns[-1].turn_index
+            documents.append(
+                TurnWindowDocument(
+                    document_id=(
+                        f"{session_id}:window:"
+                        f"{start_turn_index}:"
+                        f"{center_turn.turn_index}:"
+                        f"{end_turn_index}"
+                    ),
+                    source_ids=tuple(turn.source_id for turn in window_turns),
+                    center_source_id=center_turn.source_id,
+                    session_id=session_id,
+                    center_turn_index=center_turn.turn_index,
+                    text="\n".join(
+                        _turn_window_text(turn, max_chars=max_chars_per_turn)
+                        for turn in window_turns
+                    ),
+                )
+            )
+    return tuple(documents)
+
+
+def turn_window_hits_to_source_hits(
+    window_hits: tuple[TurnWindowHit, ...],
+    max_sources_per_window: int,
+) -> tuple[RetrievalHit, ...]:
+    """Project window hits to original raw source turns for clean prompting."""
+
+    if max_sources_per_window <= 0:
+        return ()
+
+    hits: list[RetrievalHit] = []
+    seen: set[str] = set()
+    rank = 1
+    for window_hit in window_hits:
+        for offset, source_id in enumerate(_window_source_projection(window_hit.document)):
+            if offset >= max_sources_per_window:
+                break
+            if source_id in seen:
+                continue
+            seen.add(source_id)
+            hits.append(
+                RetrievalHit(
+                    source_id=source_id,
+                    score=window_hit.score - (offset * 1e-6),
+                    rank=rank,
+                    retriever="turn_window_bm25",
+                    matched_terms=window_hit.matched_terms,
+                )
+            )
+            rank += 1
+    return tuple(hits)
+
+
+def _turn_window_text(turn: Turn, *, max_chars: int) -> str:
+    text = turn.text
+    if max_chars > 0 and len(text) > max_chars:
+        text = text[:max_chars].rstrip()
+    prefix = " ".join(part for part in (turn.timestamp, turn.role) if part)
+    return f"{prefix}: {text}" if prefix else text
+
+
+def _window_source_projection(document: TurnWindowDocument) -> tuple[str, ...]:
+    if document.center_source_id not in document.source_ids:
+        return document.source_ids
+    return (
+        document.center_source_id,
+        *(
+            source_id
+            for source_id in document.source_ids
+            if source_id != document.center_source_id
+        ),
+    )
 
 
 @dataclass(frozen=True)

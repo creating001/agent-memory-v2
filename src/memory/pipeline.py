@@ -23,9 +23,12 @@ from memory.retrieval import (
     LexicalBM25Retriever,
     SessionBM25Retriever,
     SessionDocument,
+    TurnWindowBM25Retriever,
+    build_turn_window_documents,
     memory_hits_to_source_hits,
     prepend_protected_hits,
     reciprocal_rank_fusion,
+    turn_window_hits_to_source_hits,
 )
 from memory.route import QuestionRouter
 from memory.scoped_evidence import (
@@ -59,6 +62,7 @@ class Stage1Pipeline:
         lexical_config = retrieval_config.get("lexical", {})
         dense_config = retrieval_config.get("dense", {})
         session_config = retrieval_config.get("session_bm25", {})
+        turn_window_config = retrieval_config.get("turn_window_bm25", {})
         route_config = self._config.get("route", {})
         question_analysis_config = self._config.get("question_analysis", {})
         compiler_config = self._config.get("compiler", {})
@@ -219,6 +223,35 @@ class Stage1Pipeline:
         )
         self._session_bm25_enabled_query_patterns = _tuple_config(
             session_config.get("enabled_query_patterns")
+        )
+        self._turn_window_bm25_enabled = bool(turn_window_config.get("enabled", False))
+        self._turn_window_bm25_top_k = int(turn_window_config.get("top_k", 0))
+        self._turn_window_bm25_window_before = int(
+            turn_window_config.get("window_before", 1)
+        )
+        self._turn_window_bm25_window_after = int(
+            turn_window_config.get("window_after", 1)
+        )
+        self._turn_window_bm25_max_sources_per_window = int(
+            turn_window_config.get("max_sources_per_window", 3)
+        )
+        self._turn_window_bm25_max_chars_per_turn = int(
+            turn_window_config.get("max_chars_per_turn", 0)
+        )
+        self._turn_window_bm25_drop_query_stopwords = bool(
+            turn_window_config.get("drop_query_stopwords", self._drop_query_stopwords)
+        )
+        self._turn_window_bm25_score_threshold = float(
+            turn_window_config.get("score_threshold", 0.0)
+        )
+        self._turn_window_bm25_enabled_signals = _tuple_config(
+            turn_window_config.get("enabled_route_signals")
+        )
+        self._turn_window_bm25_enabled_information_needs = _tuple_config(
+            turn_window_config.get("enabled_information_needs")
+        )
+        self._turn_window_bm25_enabled_query_patterns = _tuple_config(
+            turn_window_config.get("enabled_query_patterns")
         )
         self._embedding_client = None
         self._memory_builder = NullMemoryBuilder()
@@ -800,6 +833,40 @@ class Stage1Pipeline:
                 memory_hits,
                 max_sources_per_memory=self._build_memory_max_sources_per_record,
             )
+        turn_window_hits = ()
+        turn_window_source_hits = ()
+        turn_window_bm25_applied = False
+        if (
+            self._turn_window_bm25_enabled
+            and self._turn_window_bm25_top_k > 0
+            and self._turn_window_bm25_max_sources_per_window > 0
+            and _turn_window_bm25_applies(
+                route=route,
+                question=request.question,
+                enabled_signals=self._turn_window_bm25_enabled_signals,
+                enabled_information_needs=self._turn_window_bm25_enabled_information_needs,
+                enabled_query_patterns=self._turn_window_bm25_enabled_query_patterns,
+            )
+        ):
+            turn_window_bm25_applied = True
+            turn_window_documents = build_turn_window_documents(
+                store.turns,
+                window_before=self._turn_window_bm25_window_before,
+                window_after=self._turn_window_bm25_window_after,
+                max_chars_per_turn=self._turn_window_bm25_max_chars_per_turn,
+            )
+            turn_window_hits = TurnWindowBM25Retriever(
+                turn_window_documents,
+                drop_query_stopwords=self._turn_window_bm25_drop_query_stopwords,
+            ).retrieve(
+                request.question,
+                top_k=self._turn_window_bm25_top_k,
+                score_threshold=self._turn_window_bm25_score_threshold,
+            )
+            turn_window_source_hits = turn_window_hits_to_source_hits(
+                turn_window_hits,
+                max_sources_per_window=self._turn_window_bm25_max_sources_per_window,
+            )
         dense_hits = ()
         embedding_tokens = 0
         embedding_cache_before = _embedding_cache_stats(self._embedding_client)
@@ -824,6 +891,8 @@ class Stage1Pipeline:
             )
             if memory_source_hits:
                 hit_lists = (*hit_lists, memory_source_hits)
+            if turn_window_source_hits:
+                hit_lists = (*hit_lists, turn_window_source_hits)
             hits = _merge_hit_lists(hit_lists, top_k=top_k, rrf_k=self._fusion_rrf_k)
             if lexical_protect_top_n > 0 and lexical_hits:
                 hits = prepend_protected_hits(
@@ -838,9 +907,17 @@ class Stage1Pipeline:
                     top_k=top_k,
                 )
         else:
-            if memory_source_hits:
+            if memory_source_hits or turn_window_source_hits:
                 hits = _merge_hit_lists(
-                    tuple(hits for hits in (lexical_hits, memory_source_hits) if hits),
+                    tuple(
+                        hits
+                        for hits in (
+                            lexical_hits,
+                            memory_source_hits,
+                            turn_window_source_hits,
+                        )
+                        if hits
+                    ),
                     top_k=top_k,
                     rrf_k=self._fusion_rrf_k,
                 )
@@ -987,6 +1064,7 @@ class Stage1Pipeline:
                         lexical_enabled=self._lexical_enabled,
                         dense_enabled=self._dense_enabled,
                         session_bm25_enabled=self._session_bm25_enabled,
+                        turn_window_bm25_enabled=self._turn_window_bm25_enabled,
                         build_memory_enabled=self._build_memory_enabled,
                     ),
                     "top_k": top_k,
@@ -1070,6 +1148,45 @@ class Stage1Pipeline:
                     "session_enabled_query_patterns": (
                         self._session_bm25_enabled_query_patterns
                     ),
+                    "turn_window_bm25_enabled": self._turn_window_bm25_enabled,
+                    "turn_window_bm25_applied": turn_window_bm25_applied,
+                    "turn_window_top_k": self._turn_window_bm25_top_k
+                    if turn_window_bm25_applied
+                    else None,
+                    "turn_window_window_before": (
+                        self._turn_window_bm25_window_before
+                        if turn_window_bm25_applied
+                        else None
+                    ),
+                    "turn_window_window_after": (
+                        self._turn_window_bm25_window_after
+                        if turn_window_bm25_applied
+                        else None
+                    ),
+                    "turn_window_max_sources_per_window": (
+                        self._turn_window_bm25_max_sources_per_window
+                        if turn_window_bm25_applied
+                        else None
+                    ),
+                    "turn_window_max_chars_per_turn": (
+                        self._turn_window_bm25_max_chars_per_turn
+                        if turn_window_bm25_applied
+                        else None
+                    ),
+                    "turn_window_drop_query_stopwords": (
+                        self._turn_window_bm25_drop_query_stopwords
+                        if turn_window_bm25_applied
+                        else None
+                    ),
+                    "turn_window_enabled_route_signals": (
+                        self._turn_window_bm25_enabled_signals
+                    ),
+                    "turn_window_enabled_information_needs": (
+                        self._turn_window_bm25_enabled_information_needs
+                    ),
+                    "turn_window_enabled_query_patterns": (
+                        self._turn_window_bm25_enabled_query_patterns
+                    ),
                     "embedding_tokens": embedding_tokens,
                     "lexical_hits": [hit.to_dict() for hit in lexical_hits],
                     "memory_hits": [hit.to_dict() for hit in memory_hits],
@@ -1081,6 +1198,12 @@ class Stage1Pipeline:
                         hit.to_dict() for hit in memory_source_hits
                     ],
                     "dense_hits": [hit.to_dict() for hit in dense_hits],
+                    "turn_window_hits": [
+                        hit.to_dict() for hit in turn_window_hits
+                    ],
+                    "turn_window_source_hits": [
+                        hit.to_dict() for hit in turn_window_source_hits
+                    ],
                     "turn_hits": [hit.to_dict() for hit in turn_hits],
                     "session_hits": [hit.to_dict() for hit in session_hits],
                     "session_anchor_hits": [
@@ -1435,6 +1558,22 @@ def _session_bm25_applies(
     return any(re.search(pattern, normalized) for pattern in enabled_query_patterns)
 
 
+def _turn_window_bm25_applies(
+    route: RouteResult,
+    question: str,
+    enabled_signals: tuple[str, ...],
+    enabled_information_needs: tuple[str, ...],
+    enabled_query_patterns: tuple[str, ...],
+) -> bool:
+    return _session_bm25_applies(
+        route=route,
+        question=question,
+        enabled_signals=enabled_signals,
+        enabled_information_needs=enabled_information_needs,
+        enabled_query_patterns=enabled_query_patterns,
+    )
+
+
 def _embedding_cache_stats(client: object) -> dict[str, int] | None:
     stats_method = getattr(client, "stats", None)
     if stats_method is None:
@@ -1711,6 +1850,7 @@ def _retriever_name(
     lexical_enabled: bool,
     dense_enabled: bool,
     session_bm25_enabled: bool,
+    turn_window_bm25_enabled: bool,
     build_memory_enabled: bool,
 ) -> str:
     names = []
@@ -1722,6 +1862,8 @@ def _retriever_name(
         names.append("build_memory_bm25")
     if session_bm25_enabled:
         names.append("session_bm25")
+    if turn_window_bm25_enabled:
+        names.append("turn_window_bm25")
     return "+".join(names) or "no_retriever"
 
 

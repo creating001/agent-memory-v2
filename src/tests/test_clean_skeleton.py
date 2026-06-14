@@ -18,7 +18,12 @@ from memory.compiler import EvidenceCompiler
 from memory.finalize import finalize_structured_answer, raw_response_content
 from memory.question_analysis import QuestionAnalysisResult
 from memory.repair import build_repair_prompt, repair_trigger_reasons
-from memory.retrieval import MemoryHit
+from memory.retrieval import (
+    MemoryHit,
+    TurnWindowBM25Retriever,
+    build_turn_window_documents,
+    turn_window_hits_to_source_hits,
+)
 from memory.scoped_evidence import (
     build_scoped_evidence_answer_prompt,
     build_scoped_evidence_extraction_prompt,
@@ -144,6 +149,98 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertFalse(result["trace"]["retrieval"]["lexical_enabled"])
         self.assertEqual(result["trace"]["retrieval"]["retriever"], "no_retriever")
         self.assertEqual(result["trace"]["compiled_context"]["evidence_rows"], [])
+
+    def test_turn_window_bm25_projects_adjacent_raw_sources(self) -> None:
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text="Alex mentioned redeeming a coupon after work.",
+            ),
+            Turn(
+                source_id="s1:t1",
+                session_id="s1",
+                turn_index=1,
+                role="assistant",
+                text="The relevant store was Target.",
+            ),
+        )
+
+        documents = build_turn_window_documents(
+            turns,
+            window_before=0,
+            window_after=1,
+        )
+        window_hits = TurnWindowBM25Retriever(
+            documents,
+            drop_query_stopwords=True,
+        ).retrieve("Where did Alex redeem the coupon at Target?", top_k=1)
+        source_hits = turn_window_hits_to_source_hits(
+            window_hits,
+            max_sources_per_window=2,
+        )
+
+        self.assertEqual(source_hits[0].source_id, "s1:t0")
+        self.assertEqual(source_hits[1].source_id, "s1:t1")
+        self.assertEqual(source_hits[0].retriever, "turn_window_bm25")
+
+    def test_pipeline_turn_window_bm25_is_traceable_and_clean(self) -> None:
+        config = {
+            "retrieval": {
+                "top_k": 4,
+                "max_top_k": 4,
+                "neighbor_window": 0,
+                "lexical": {"enabled": False},
+                "turn_window_bm25": {
+                    "enabled": True,
+                    "top_k": 1,
+                    "window_before": 0,
+                    "window_after": 1,
+                    "max_sources_per_window": 2,
+                    "drop_query_stopwords": True,
+                },
+            },
+            "compiler": {"max_evidence_items": 4, "max_evidence_chars": 4000},
+            "answer": {"fallback_answer": "unknown"},
+        }
+        request = PredictionRequest(
+            question="Where did Alex redeem the coupon at Target?",
+            turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Alex mentioned redeeming a coupon after work.",
+                ),
+                Turn(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="assistant",
+                    text="The relevant store was Target.",
+                ),
+            ),
+        )
+
+        result = Stage1Pipeline(config).predict(request)
+        retrieval_trace = result["trace"]["retrieval"]
+        row_source_ids = [
+            row["source_id"]
+            for row in result["trace"]["compiled_context"]["evidence_rows"]
+        ]
+
+        self.assertTrue(retrieval_trace["turn_window_bm25_applied"])
+        self.assertTrue(retrieval_trace["turn_window_hits"])
+        self.assertEqual(
+            [hit["source_id"] for hit in retrieval_trace["turn_window_source_hits"]],
+            ["s1:t0", "s1:t1"],
+        )
+        self.assertEqual(row_source_ids, ["s1:t0", "s1:t1"])
+        self.assertNotIn("question_type", result["trace"]["compiled_context"]["prompt"])
+        self.assertEqual(result["trace"]["token_cost"]["query_tokens"], 0)
 
     def test_scoped_evidence_is_disabled_by_default(self) -> None:
         result = Stage1Pipeline(
