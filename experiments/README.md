@@ -29,7 +29,8 @@
 - `configs/stage1_route_budgeted_retrieval_v34_cached.json`：v33 的 route-budgeted 版本；非 temporal 保留 top60，temporal_lookup 回到 top40，v35 前 LoCoMo 最好。
 - `configs/stage1_answer_format_guard_v35_cached.json`：v34 上的 answer format guard；修复 JSON answer salvage 和小数 duration，当前 LoCoMo 最好。
 - `configs/stage1_lme_token_safe_format_guard_v36_cached.json`：v28 top40/evidence budget + v35 answer guard；v42 前 LME 最好，也是当前强 baseline。
-- `configs/stage1_operation_workpad_v42_cached.json`：v36 上的短 operation workpad；当前 LME 最好，但只是 close-margin 小幅正向。
+- `configs/stage1_operation_workpad_v42_cached.json`：v36 上的短 operation workpad；v73 前 LME 最好，但只是 close-margin 小幅正向。
+- `configs/stage1_finalizer_duration_fix_v73_cached.json`：当前 LongMemEval-S 最好主线；从 v42 出发只关闭有害的机械 duration decimal rounding finalizer。
 
 方法摘要：
 
@@ -42,7 +43,7 @@
 
 当前结论：
 
-- LongMemEval-S full 当前最好为 v42：0.774 DeepSeek judge accuracy，387/500；距 0.80 baseline target 仍差 13 条。
+- LongMemEval-S full 当前最好为 v73：0.778 DeepSeek judge accuracy，389/500；距 0.80 baseline target 仍差 11 条。
 - LoCoMo non-adversarial full 当前最高为 v35：valid-only 0.780377，invalid-as-wrong 1201/1540 = 0.779870；valid-only 已达到 0.78 baseline target，保守 invalid-as-wrong 还差 1 条。
 - v28/v29 token gate 均通过：v28 LME avg_build_tokens 80346.246、avg_query_tokens 5736.928；v29 LoCoMo avg_build_tokens 58386.008、avg_query_tokens 3932.560。
 - LoCoMo 诊断显示，很多 wrong case 已有 evidence 进入 context，主要问题是 answer 阶段混淆 mention date / event time、列表边界和隐含推理；下一步应改 build/query 两侧的 memory organization，而不是继续只堆 answer prompt。
@@ -61,6 +62,10 @@
 - v41 question-only LLM operation router 已完成 LongMemEval-S route-stratified 20 条 gate：avg_query_tokens `5837.55`，question_analysis_avg_query_tokens `331.05`，route_changed `6/20`，同子集 DeepSeek judge 与 v36 都是 `14/20`，无净收益且增加 token；不跑 full，顶层 config 不长期保留。
 - v42 operation workpad 已完成 LongMemEval-S full：accuracy `0.774`，387/500，比 v36 净 `+1`；avg_build_tokens `80346.246`，avg_query_tokens `5865.644`，answer max input/output `131072/16384`。结论是当前 LME 最好但只是 close-margin 小幅正向；继续加长 reader prompt 不划算，下一步应转向 build-to-query memory organization。
 - v42 复现修复控制已完成：commit `d6c6e8e` 修复 answer cache 命中二次解析和 `external_naive` disabled-block prompt drift；新控制 run 与原 v42 prediction `500/500` 完全一致。DeepSeek judge 重跑为 `0.772`，原 v42 为 `0.774`；差异来自同答案 judge variance，不是方法变化。后续方法比较必须基于修复后的代码。
+- v73 duration finalizer fix 已完成 LongMemEval-S full：accuracy `0.778`，389/500，比 v42 修复控制 `0.772` 高 3 条；avg_build_tokens `80346.246`，avg_query_tokens `5864.706`。结论是当前 LME 最好主线；它只关闭一个明确有害的 duration rounding finalizer，不改变 retrieval/build/prompt。
+- v74 build 4K 输出上限消融已完成 LongMemEval-S full：accuracy `0.766`，383/500，低于 v73 `0.778`；avg_build_tokens 增至 `84656.5`，evidence recall 仍为 `1.0`。结论是负向 build-side 消融，顶层 config 删除，只保留 formal 快照。
+- v75 all-profile compact repair 已完成 LongMemEval-S full：accuracy `0.766`，383/500，低于 v73 `0.778`；avg_query_tokens `5985.758`，接近 6K。controlled changed subset 对 v73 为轻微正向，但 all-profile repair 会误伤已支持的个性化答案，顶层 config 删除，只保留 formal 快照。
+- v76 uncertain-only profile repair 已完成 LongMemEval-S full：accuracy `0.768`，384/500，低于 v73 `0.778`；avg_query_tokens `5880.232`，repair triggered/applied `6/4`。controlled changed subset 为 391/500，但 fresh full 不支撑主线。结论是 profile repair 只能作为低频拒答补救信号，不能继续作为通用重写器；顶层 config 删除，只保留 formal 快照。
 - v66 route-aware context budget 已完成 LongMemEval-S full：accuracy `0.754`，377/500，低于 v42 修复控制 `0.772`；avg_query_tokens 从 `5864.706` 降到 `5235.538`，但 CORRECT->WRONG 27、WRONG->CORRECT 18，净 -9。结论是固定 route row/char 截断负向；query token 不是越多越好，但不能机械压缩上下文。
 - v70 route snippet compact 已完成 LongMemEval-S full：accuracy `0.758`，379/500，低于 v42 修复控制 `0.772`；seeded cache 控制后 answer cache hits/misses `359/141`，prediction_changed `26/500`，changed subset `CORRECT->WRONG 13`、`WRONG->CORRECT 3`，主要损失来自 `list_count`。结论是纯 snippet 压缩负向；list/count 需要完整候选细节，不能靠 query snippet 换分。
 - v71 temporal-order router 已完成 LongMemEval-S full：accuracy `0.770`，385/500，低于 v42 修复控制 `0.772`；seeded cache 控制后 answer cache hits/misses `462/38`，prediction_changed `11/500`，changed subset `WRONG->CORRECT 1`、`CORRECT->WRONG 1`。结论是 route-only 修正中性，不保留顶层 config 或 src route 改动；顺序题仍需要 endpoint/candidate validation。
@@ -151,8 +156,12 @@ experiments/formal/<run_id>/
 
 | run | benchmark | subset | commit | accuracy | 主要结论 |
 |---|---|---|---|---:|---|
+| `stage1_finalizer_duration_fix_v73_lme_s_full_24396f9` | LongMemEval-S | full | `24396f9` | 0.778000 | 当前 LME 最好主线；只关闭 v42 中有害的机械 duration rounding finalizer，prediction_changed 1/500，token 不增加。 |
+| `stage1_profile_uncertain_compact_repair_v76_lme_s_full_5e1d4eb` | LongMemEval-S | full | `5e1d4eb` | 0.768000 | v75 的 uncertain-only profile repair；token 合格、controlled changed subset 轻微正向，但 fresh full 低于 v73，不进主线。 |
+| `stage1_profile_compact_repair_v75_lme_s_full_f21f16b` | LongMemEval-S | full | `f21f16b` | 0.766000 | all-profile compact repair；changed subset 有信号，但会误伤已支持的个性化答案，avg query tokens 接近 6K，不进主线。 |
+| `stage1_build4k_r20_v74_lme_s_full_8e4c88e` | LongMemEval-S | full | `8e4c88e` | 0.766000 | build 输出 2K->4K 消融；build tokens 增加但 accuracy 下降，evidence recall 不变，不进主线。 |
 | `stage1_operation_workpad_v42_repro_fix_lme_s_full_d6c6e8e` | LongMemEval-S | full | `d6c6e8e` | 0.772000 | v42 复现修复控制，不是新方法；prediction 与原 v42 500/500 相同。judge 重跑比原 v42 少 1 条正确，属于同答案 judge variance。 |
-| `stage1_operation_workpad_v42_lme_s_full_f7eb076` | LongMemEval-S | full | `f7eb076` | 0.774000 | 当前 LME 最好；v36 上的短 operation workpad，vs v36 净 +1，仍未达 0.80。收益很小，不能视为突破。 |
+| `stage1_operation_workpad_v42_lme_s_full_f7eb076` | LongMemEval-S | full | `f7eb076` | 0.774000 | v73 前 LME 最好；v36 上的短 operation workpad，vs v36 净 +1，收益很小，不能视为突破。 |
 | `stage1_temporal_order_router_v71_lme_s_full_6e75890` | LongMemEval-S | full | `6e75890` | 0.770000 | v42 上的 temporal-order route 修正；changed subset 1 gain / 1 loss，整体中性。顶层 config 和 src route 改动撤出主线。 |
 | `stage1_route_snippet_compact_v70_lme_s_full_6db4d31` | LongMemEval-S | full | `6db4d31` | 0.758000 | v42 上的 route-scoped query snippet 压缩；seeded cache 控制后只改 26 条 prediction，但 list_count 损失明显，顶层 config 删除。 |
 | `stage1_supported_uncertain_repair_v69_lme_s_full_cd1fbbf` | LongMemEval-S | full | `cd1fbbf` | 0.760000 | v42 上的 supported uncertain repair；6 条实际改动中修复 2 条拒答，但 full judge 低于 v42，且 profile/preference repair 有 unsupported 泛化风险。顶层 config 删除。 |

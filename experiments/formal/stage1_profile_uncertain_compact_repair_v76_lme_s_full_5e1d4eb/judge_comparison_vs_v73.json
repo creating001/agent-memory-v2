@@ -1,0 +1,507 @@
+{
+  "baseline": "stage1_finalizer_duration_fix_v73_lme_s_full_24396f9",
+  "candidate": "stage1_profile_uncertain_compact_repair_v76_lme_s_full_5e1d4eb",
+  "changed_predictions": [
+    {
+      "gold_answer": "The user would prefer responses that build upon their previous experimentation with turbinado sugar, suggesting ingredients or techniques that complement its richer flavor. They might not prefer generic cookie-making advice or suggestions that don't take into account their existing use of turbinado sugar.",
+      "question": "I've been feeling like my chocolate chip cookies need something extra. Any advice?",
+      "question_type": "single-session-preference",
+      "record_key": "08cccaf312a179d4f4b961d3",
+      "repair_applied": false,
+      "repair_triggered": false,
+      "transition": "WRONG->WRONG",
+      "v73_answer": "Try adding turbinado sugar and chopped nuts (like almonds or pecans) for a richer flavor and extra crunch. You could also experiment with a pinch of cinnamon or a touch of espresso powder to deepen the taste.",
+      "v73_label": "WRONG",
+      "v75_answer": "Try using turbinado or muscovado sugar instead of regular sugar, and add chopped nuts, cinnamon, or a hint of citrus zest for extra flavor and texture.",
+      "v75_label": "WRONG",
+      "v76_answer": "Try using turbinado or muscovado sugar instead of regular sugar, and add a pinch of cinnamon or a handful of chopped nuts for extra flavor and texture.",
+      "v76_label": "WRONG"
+    },
+    {
+      "gold_answer": "The user would prefer suggestions related to recent research papers, articles, or conferences that focus on artificial intelligence in healthcare, particularly those that involve deep learning for medical image analysis. They would not be interested in general AI topics or those unrelated to healthcare.",
+      "question": "Can you recommend some recent publications or conferences that I might find interesting?",
+      "question_type": "single-session-preference",
+      "record_key": "158692bc43ef28e0e43d991f",
+      "repair_applied": true,
+      "repair_triggered": true,
+      "transition": "WRONG->CORRECT",
+      "v73_answer": "The provided information is not enough to recommend specific recent publications or conferences.",
+      "v73_label": "WRONG",
+      "v75_answer": "Based on your interest in deep learning for medical image analysis, particularly in multi-modal fusion, transfer learning, domain adaptation, and explainable AI with a focus on visualization, you may find recent publications and conference presentations in these areas valuable. Look for venues specializing in medical imaging and AI, such as MICCAI, IEEE ISBI, or CVPR workshops on medical image analysis.",
+      "v75_label": "CORRECT",
+      "v76_answer": "Based on your interest in advanced deep learning topics for medical image analysis—such as explainable AI, multi-modal image fusion, transfer learning, and domain adaptation—consider exploring recent publications and conference proceedings in these areas, particularly those focusing on visualization and interpretation of deep learning models in medical imaging.",
+      "v76_label": "CORRECT"
+    },
+    {
+      "gold_answer": "The user would prefer responses that build upon their previous mention of purchasing a portable power bank, such as suggestions on how to optimize its use, like ensuring it's fully charged before use. They might also appreciate tips on utilizing battery-saving features on their phone. The user may not prefer responses that suggest alternative solutions or unrelated advice.",
+      "question": "I've been having trouble with the battery life on my phone lately. Any tips?",
+      "question_type": "single-session-preference",
+      "record_key": "32f0df330fed5b12b138734e",
+      "repair_applied": true,
+      "repair_triggered": true,
+      "transition": "WRONG->CORRECT",
+      "v73_answer": "The provided information is not enough to answer the question.",
+      "v73_label": "WRONG",
+      "v75_answer": "Consider reducing screen brightness, turning off background app refresh, and using battery-saving modes. Since you've shown interest in portable power banks and travel tech organization, keeping a compact power bank charged and using it during travel may help maintain battery life when needed.",
+      "v75_label": "CORRECT",
+      "v76_answer": "Consider reducing screen brightness, turning off background app refresh, and using a portable power bank for extended use, especially when traveling.",
+      "v76_label": "CORRECT"
+    },
+    {
+      "gold_answer": "The user would prefer responses that provide tips and advice specifically tailored to their slow cooker experiences, utilizing their recent success with beef stew and interest in making yogurt in the slow cooker. They might not prefer general slow cooker recipes or advice unrelated to their specific experiences and interests.",
+      "question": "I've been struggling with my slow cooker recipes. Any advice on getting better results?",
+      "question_type": "single-session-preference",
+      "record_key": "3560e79cab2520e5c40eb980",
+      "repair_applied": false,
+      "repair_triggered": false,
+      "transition": "CORRECT->WRONG",
+      "v73_answer": "Try recipes like Chili Con Carne, Pulled Pork, Beef Stew, Lentil Curry, Roasted Vegetable Stew, Black Bean Chili, Vegan Mac and Cheese, and Chickpea and Spinach Curry. For yogurt, experiment with flavorings like vanilla, fruit, cinnamon, or honey, and use sweeteners like maple syrup or stevia. Use a variety of vegetables, grains, and spices to enhance flavor and nutrition.",
+      "v73_label": "CORRECT",
+      "v75_answer": "Try recipes like Beef Stew, Pulled Pork, Lentil Curry, Roasted Vegetable Stew, Black Bean Chili, and Vegan Mac and Cheese for better slow cooker results.",
+      "v75_label": "WRONG",
+      "v76_answer": "Try these slow cooker recipes for better results: Chili Con Carne, Pulled Pork, Beef Stew, Korean BBQ Beef, Indian Butter Chicken, Mexican Chicken Tacos, Lentil Curry, Roasted Vegetable Stew, Black Bean Chili, Mac and Cheese, Chicken and Dumplings, Pot Roast, Greek Chicken, Jamaican Jerk Chicken, and Breakfast Casserole.",
+      "v76_label": "WRONG"
+    },
+    {
+      "gold_answer": "The user would prefer responses that take into account their existing plans to replace the bedroom dresser and their interest in mid-century modern style, suggesting furniture layouts that accommodate the new dresser and incorporate elements of this design aesthetic. They might not prefer general furniture arrangement tips or suggestions that do not consider their specific design preferences.",
+      "question": "I was thinking about rearranging the furniture in my bedroom this weekend. Any tips?",
+      "question_type": "single-session-preference",
+      "record_key": "4247325975aa83eade14f4aa",
+      "repair_applied": true,
+      "repair_triggered": true,
+      "transition": "WRONG->CORRECT",
+      "v73_answer": "The provided information is not enough to give tips on rearranging bedroom furniture.",
+      "v73_label": "WRONG",
+      "v75_answer": "Consider arranging your furniture to highlight your mid-century modern dresser, using open space around it to emphasize its design and create a focal point in the room.",
+      "v75_label": "CORRECT",
+      "v76_answer": "Consider arranging your furniture to highlight mid-century modern features, such as placing the dresser as a focal point and ensuring clear pathways for easy movement, while maintaining open space around key pieces for visual balance.",
+      "v76_label": "CORRECT"
+    },
+    {
+      "gold_answer": "The user would prefer responses that take into account their previous experience in Denver, specifically their interest in live music and memorable encounter with Brandon Flowers. They might appreciate suggestions that revisit or build upon this experience, such as revisiting the same bar or exploring similar music venues in the area. The user may not prefer general tourist recommendations or activities unrelated to their interest in live music.",
+      "question": "I'm planning a trip to Denver soon. Any suggestions on what to do there?",
+      "question_type": "single-session-preference",
+      "record_key": "589b37fd0ba97f533c07aa37",
+      "repair_applied": false,
+      "repair_triggered": false,
+      "transition": "WRONG->WRONG",
+      "v73_answer": "Visit Red Rocks Amphitheater and try nearby BBQ restaurants.",
+      "v73_label": "WRONG",
+      "v75_answer": "Check out live music at Red Rocks Amphitheater, visit nearby BBQ restaurants, and explore new bands and concerts in Denver's vibrant music scene.",
+      "v75_label": "WRONG",
+      "v76_answer": "Check out Red Rocks Amphitheater for concerts and nearby BBQ restaurants for dining.",
+      "v76_label": "WRONG"
+    },
+    {
+      "gold_answer": "The user would prefer responses that draw upon their personal experiences and memories, specifically their positive high school experiences such as being part of the debate team and taking advanced placement courses. They would prefer suggestions that highlight the potential benefits of attending the reunion, such as reconnecting with old friends and revisiting favorite subjects like history and economics. The user might not prefer generic or vague responses that do not take into account their individual experiences and interests.",
+      "question": "I've been feeling nostalgic lately. Do you think it would be a good idea to attend my high school reunion?",
+      "question_type": "single-session-preference",
+      "record_key": "676f08cb0b1213adf24077d5",
+      "repair_applied": false,
+      "repair_triggered": false,
+      "transition": "WRONG->CORRECT",
+      "v73_answer": "Yes, attending your high school reunion could be a good idea, as you have positive memories and feelings of nostalgia tied to your high school years.",
+      "v73_label": "WRONG",
+      "v75_answer": "Yes, attending your high school reunion could be a good idea, as you have positive memories of your time in high school, including being part of the debate team and taking AP courses.",
+      "v75_label": "CORRECT",
+      "v76_answer": "Yes, attending your high school reunion could be a good idea, as you have positive memories of your time in high school, including being part of the debate team and taking AP courses.",
+      "v76_label": "CORRECT"
+    },
+    {
+      "gold_answer": "The user would prefer responses that consider the potential impact of their cat, Luna, and her shedding on their sneezing, as well as the recent deep clean of the living room and its possible effect on stirring up dust. They might not prefer responses that fail to take into account these specific details previously mentioned, such as generic suggestions or unrelated factors.",
+      "question": "I've been sneezing quite a bit lately. Do you think it might be my living room?",
+      "question_type": "single-session-preference",
+      "record_key": "709447e6ba096ba2b432bcce",
+      "repair_applied": false,
+      "repair_triggered": false,
+      "transition": "CORRECT->WRONG",
+      "v73_answer": "Yes, your sneezing might be related to your living room, especially due to dust and cat shedding, which can trigger allergies.",
+      "v73_label": "CORRECT",
+      "v75_answer": "Yes, your living room could be contributing to your sneezing, especially if it has accumulated dust from your cat's shedding. Consider regular vacuuming, using damp cloths to dust, and grooming your cat more frequently.",
+      "v75_label": "CORRECT",
+      "v76_answer": "Yes, your living room could be contributing to your sneezing, especially if it has accumulated dust from your cat's shedding. Consider regular vacuuming, using a damp cloth to dust, and grooming your cat more frequently.",
+      "v76_label": "WRONG"
+    },
+    {
+      "gold_answer": "The user would prefer dinner suggestions that incorporate their homegrown cherry tomatoes and herbs like basil and mint, highlighting recipes that showcase their garden produce. They might not prefer suggestions that do not utilize these specific ingredients or do not emphasize the use of homegrown elements.",
+      "question": "What should I serve for dinner this weekend with my homegrown ingredients?",
+      "question_type": "single-session-preference",
+      "record_key": "73ce3d0bb5e45781a780269c",
+      "repair_applied": false,
+      "repair_triggered": false,
+      "transition": "WRONG->CORRECT",
+      "v73_answer": "Grilled Chicken or Fish with Roasted Vegetables, Quinoa or Brown Rice Bowl Bar, Veggie-Packed Pasta Primavera, Stuffed Bell Peppers, Grilled Chicken and Berry Salad, Mediterranean Mash-Up, Roasted Veggie Delight, Tuna Salad Niçoise, Southwestern Fiesta, Autumn Harvest, Protein Power, Winter Wonder",
+      "v73_label": "WRONG",
+      "v75_answer": "Serve a quinoa salad with roasted vegetables, mixed greens, cherry tomatoes, fresh basil, and mint. Alternatively, try grilled chicken or fish with a side of roasted vegetables.",
+      "v75_label": "CORRECT",
+      "v76_answer": "Serve a quinoa salad with roasted vegetables, mixed greens, and vinaigrette, or grilled chicken or fish with roasted vegetables. Incorporate homegrown ingredients like cherry tomatoes, basil, and mint.",
+      "v76_label": "CORRECT"
+    },
+    {
+      "gold_answer": "The user would prefer baking suggestions that take into account their previous success with the lemon poppyseed cake, such as variations of that recipe or other desserts that share similar qualities. They might prefer suggestions that balance impressiveness with manageability, considering their previous experience. The user may not prefer overly complex or unfamiliar recipes, or suggestions that do not build upon their existing baking experience.",
+      "question": "I'm thinking of inviting my colleagues over for a small gathering. Any tips on what to bake?",
+      "question_type": "single-session-preference",
+      "record_key": "7f1ca033e152dbd9b1de7225",
+      "repair_applied": false,
+      "repair_triggered": false,
+      "transition": "CORRECT->WRONG",
+      "v73_answer": "chocolate chip cookies, lemon flavored cake, chocolate cake with caramel ganache frosting, lemon lavender pound cake, oatmeal raisin cookies with nuts",
+      "v73_label": "CORRECT",
+      "v75_answer": "Chocolate chip cookies",
+      "v75_label": "WRONG",
+      "v76_answer": "Chocolate chip cookies",
+      "v76_label": "WRONG"
+    },
+    {
+      "gold_answer": "The user would prefer recommendations for stand-up comedy specials on Netflix, especially those that are known for their storytelling. They may not prefer recommendations for other genres or platforms.",
+      "question": "Can you recommend a show or movie for me to watch tonight?",
+      "question_type": "single-session-preference",
+      "record_key": "8b879add5b99d7c3de847de7",
+      "repair_applied": true,
+      "repair_triggered": true,
+      "transition": "WRONG->WRONG",
+      "v73_answer": "The provided information is not enough to recommend a specific show or movie.",
+      "v73_label": "WRONG",
+      "v75_answer": "A political show or movie from the 20th century with a conservative perspective would align with your interests.",
+      "v75_label": "WRONG",
+      "v76_answer": "A political show or movie from the 20th century with a conservative perspective would align with your interests.",
+      "v76_label": "WRONG"
+    },
+    {
+      "gold_answer": "The user would prefer responses that acknowledge their desire for social interaction and collaboration while working remotely, utilizing their previous experiences with company initiatives and team collaborations. They might prefer suggestions of virtual team-building activities, regular check-ins, or joining interest-based groups within the company. The user may not prefer generic suggestions that do not take into account their specific work situation or previous attempts at staying connected with colleagues.",
+      "question": "I've been thinking about ways to stay connected with my colleagues. Any suggestions?",
+      "question_type": "single-session-preference",
+      "record_key": "9c4dfeccc8eedfdf0598998b",
+      "repair_applied": false,
+      "repair_triggered": false,
+      "transition": "WRONG->WRONG",
+      "v73_answer": "1. Virtual Coffee Breaks\n2. Online Team Activities\n3. Collaborative Projects\n4. Social Channels\n5. Recognition and Celebrations\n6. Interest-Based Groups",
+      "v73_label": "WRONG",
+      "v75_answer": "Virtual Coffee Breaks, Online Team Activities, Collaborative Projects, Social Channels, Recognition and Celebrations, Interest-Based Groups",
+      "v75_label": "WRONG",
+      "v76_answer": "Virtual Coffee Breaks, Online Team Activities, Collaborative Projects, Social Channels, Recognition and Celebrations, Interest-Based Groups",
+      "v76_label": "WRONG"
+    },
+    {
+      "gold_answer": "The user would prefer responses that acknowledge and build upon their existing efforts to organize their kitchen, such as utilizing their new utensil holder to keep countertops clutter-free. They would also appreciate tips that address their concern for maintaining their granite surface, particularly around the sink area. Preferred responses would provide practical and actionable steps to maintain cleanliness, leveraging the user's current tools and setup. They might not prefer generic or vague suggestions that do not take into account their specific kitchen setup or concerns.",
+      "question": "My kitchen's becoming a bit of a mess again. Any tips for keeping it clean?",
+      "question_type": "single-session-preference",
+      "record_key": "ac5399ae37b4c99dcc33ba43",
+      "repair_applied": false,
+      "repair_triggered": false,
+      "transition": "WRONG->WRONG",
+      "v73_answer": "Purge and categorize utensils, assign a home for each group, use dividers, store frequently used items front and center, utilize vertical space, store small items in containers, hang utensils, label the holder, clean the holder regularly, store by task.",
+      "v73_label": "WRONG",
+      "v75_answer": "Purge and categorize utensils, assign a home, use dividers, store frequently used items front and center, utilize vertical space, store small items in containers, hang utensils, label the holder, clean the holder regularly, store by task",
+      "v75_label": "WRONG",
+      "v76_answer": "Purge and categorize utensils, assign a home, use dividers, store frequently used items front and center, utilize vertical space, store small items in containers, hang utensils, label the holder, clean the holder regularly, store by task",
+      "v76_label": "WRONG"
+    },
+    {
+      "gold_answer": "The user would prefer responses that build upon their existing sources of inspiration, such as revisiting Instagram art accounts or exploring new techniques from online tutorials. They might also appreciate suggestions that revisit previous themes they found enjoyable, like painting flowers. The user would not prefer generic or vague suggestions for finding inspiration, and would likely appreciate responses that utilize their recent 30-day painting challenge experience.",
+      "question": "I've been feeling a bit stuck with my paintings lately. Do you have any ideas on how I can find new inspiration?",
+      "question_type": "single-session-preference",
+      "record_key": "acd33e2950f233611481511a",
+      "repair_applied": false,
+      "repair_triggered": false,
+      "transition": "WRONG->CORRECT",
+      "v73_answer": "Try joining a 30-day painting challenge and explore art on social media platforms like Instagram, especially themed content such as flower paintings, to spark new ideas.",
+      "v73_label": "WRONG",
+      "v75_answer": "Try exploring new content on social media or restarting a 30-day painting challenge to reignite your inspiration.",
+      "v75_label": "CORRECT",
+      "v76_answer": "Try revisiting social media for visual inspiration and consider restarting a 30-day painting challenge to reignite your creativity.",
+      "v76_label": "CORRECT"
+    },
+    {
+      "gold_answer": "The user would prefer theme park suggestions that cater to their interest in both thrill rides and special events, utilizing their previous experiences at Disneyland, Knott's Berry Farm, Six Flags Magic Mountain, and Universal Studios Hollywood as a reference point. They would also appreciate recommendations that highlight unique food experiences and nighttime shows. The user might not prefer suggestions that focus solely on one aspect of theme parks, such as only thrill rides or only family-friendly attractions, and may not be interested in parks that lack special events or unique dining options.",
+      "question": "I am planning another theme park weekend; do you have any suggestions?",
+      "question_type": "single-session-preference",
+      "record_key": "c1aa11de095f137c23c26fae",
+      "repair_applied": false,
+      "repair_triggered": false,
+      "transition": "CORRECT->CORRECT",
+      "v73_answer": "Consider visiting Disneyland for Halloween Time (mid-September) and holiday festivities, Knott's Berry Farm for Knott's Scary Farm, Six Flags Magic Mountain for Fright Fest, and Universal Studios Hollywood for Halloween Horror Nights and Grinchmas. Each offers unique thrill rides, themed food, and nighttime shows.",
+      "v73_label": "CORRECT",
+      "v75_answer": "Consider visiting Disneyland for Halloween Time (mid-September to early November), Knott's Berry Farm for Knott's Scary Farm, Six Flags Magic Mountain for Fright Fest, and Universal Studios Hollywood for Halloween Horror Nights, all of which feature exclusive Halloween-themed food, seasonal dining experiences, and special entertainment tailored to your interest in unique culinary offerings and immersive events.",
+      "v75_label": "CORRECT",
+      "v76_answer": "Consider visiting Disneyland for Halloween Time (mid-September to early November), Knott's Berry Farm for Knott's Scary Farm, Six Flags Magic Mountain for Fright Fest, or Universal Studios Hollywood for Halloween Horror Nights. Each offers themed rides, haunted attractions, special food, and nighttime entertainment.",
+      "v76_label": "CORRECT"
+    },
+    {
+      "gold_answer": "The user would prefer responses that highlight the differences between Fender Stratocaster and Gibson Les Paul electric guitars, such as the feel of the neck, weight, and sound profile. They might not prefer general tips on buying an electric guitar or suggestions that do not take into account their current guitar and desired upgrade.",
+      "question": "I'm getting excited about my visit to the music store this weekend. Any tips on what to look for in a new guitar?",
+      "question_type": "single-session-preference",
+      "record_key": "dd0bbac643885d79aa0ac2a2",
+      "repair_applied": false,
+      "repair_triggered": false,
+      "transition": "CORRECT->WRONG",
+      "v73_answer": "Look for a guitar with tonal flexibility such as coil-tap or coil-splitting features, consider the differences between models like Fender Stratocaster and Gibson Les Paul, and ensure it handles open D tuning well for your desired sound.",
+      "v73_label": "CORRECT",
+      "v75_answer": "Look for a guitar with a coil-tap or coil-splitting feature for greater tonal flexibility, especially if you plan to play in open D tuning.",
+      "v75_label": "WRONG",
+      "v76_answer": "Look for a guitar with coil-tap or coil-splitting features for greater tonal flexibility, especially if you plan to use open D tuning. Consider models like the Gibson Les Paul, known for their rich tone and suitability for such tunings.",
+      "v76_label": "WRONG"
+    }
+  ],
+  "clean_note": "Offline diagnosis only. Reads labels/judge after prediction and must not feed prediction, retrieval, compiler, answer, or verifier.",
+  "metrics": {
+    "all_judge_transitions_vs_v73": {
+      "CORRECT->CORRECT": 375,
+      "CORRECT->WRONG": 14,
+      "WRONG->CORRECT": 9,
+      "WRONG->WRONG": 102
+    },
+    "by_type_all_judge_transitions_vs_v73": {
+      "knowledge-update": {
+        "CORRECT->CORRECT": 64,
+        "WRONG->WRONG": 14
+      },
+      "multi-session": {
+        "CORRECT->CORRECT": 85,
+        "CORRECT->WRONG": 2,
+        "WRONG->WRONG": 46
+      },
+      "single-session-assistant": {
+        "CORRECT->CORRECT": 51,
+        "CORRECT->WRONG": 2,
+        "WRONG->CORRECT": 2,
+        "WRONG->WRONG": 1
+      },
+      "single-session-preference": {
+        "CORRECT->CORRECT": 8,
+        "CORRECT->WRONG": 7,
+        "WRONG->CORRECT": 6,
+        "WRONG->WRONG": 9
+      },
+      "single-session-user": {
+        "CORRECT->CORRECT": 64,
+        "CORRECT->WRONG": 2,
+        "WRONG->CORRECT": 1,
+        "WRONG->WRONG": 3
+      },
+      "temporal-reasoning": {
+        "CORRECT->CORRECT": 103,
+        "CORRECT->WRONG": 1,
+        "WRONG->WRONG": 29
+      }
+    },
+    "by_type_changed_prediction_transitions_vs_v73": {
+      "single-session-preference": {
+        "CORRECT->CORRECT": 1,
+        "CORRECT->WRONG": 4,
+        "WRONG->CORRECT": 6,
+        "WRONG->WRONG": 5
+      }
+    },
+    "by_type_v73": {
+      "knowledge-update": {
+        "accuracy": 0.8205128205128205,
+        "correct": 64,
+        "n": 78
+      },
+      "multi-session": {
+        "accuracy": 0.6541353383458647,
+        "correct": 87,
+        "n": 133
+      },
+      "single-session-assistant": {
+        "accuracy": 0.9464285714285714,
+        "correct": 53,
+        "n": 56
+      },
+      "single-session-preference": {
+        "accuracy": 0.5,
+        "correct": 15,
+        "n": 30
+      },
+      "single-session-user": {
+        "accuracy": 0.9428571428571428,
+        "correct": 66,
+        "n": 70
+      },
+      "temporal-reasoning": {
+        "accuracy": 0.7819548872180451,
+        "correct": 104,
+        "n": 133
+      }
+    },
+    "by_type_v75": {
+      "knowledge-update": {
+        "accuracy": 0.7948717948717948,
+        "correct": 62,
+        "n": 78
+      },
+      "multi-session": {
+        "accuracy": 0.6466165413533834,
+        "correct": 86,
+        "n": 133
+      },
+      "single-session-assistant": {
+        "accuracy": 0.9285714285714286,
+        "correct": 52,
+        "n": 56
+      },
+      "single-session-preference": {
+        "accuracy": 0.4666666666666667,
+        "correct": 14,
+        "n": 30
+      },
+      "single-session-user": {
+        "accuracy": 0.9428571428571428,
+        "correct": 66,
+        "n": 70
+      },
+      "temporal-reasoning": {
+        "accuracy": 0.7744360902255639,
+        "correct": 103,
+        "n": 133
+      }
+    },
+    "by_type_v76": {
+      "knowledge-update": {
+        "accuracy": 0.8205128205128205,
+        "correct": 64,
+        "n": 78
+      },
+      "multi-session": {
+        "accuracy": 0.6390977443609023,
+        "correct": 85,
+        "n": 133
+      },
+      "single-session-assistant": {
+        "accuracy": 0.9464285714285714,
+        "correct": 53,
+        "n": 56
+      },
+      "single-session-preference": {
+        "accuracy": 0.4666666666666667,
+        "correct": 14,
+        "n": 30
+      },
+      "single-session-user": {
+        "accuracy": 0.9285714285714286,
+        "correct": 65,
+        "n": 70
+      },
+      "temporal-reasoning": {
+        "accuracy": 0.7744360902255639,
+        "correct": 103,
+        "n": 133
+      }
+    },
+    "changed_prediction_transitions_vs_v73": {
+      "CORRECT->CORRECT": 1,
+      "CORRECT->WRONG": 4,
+      "WRONG->CORRECT": 6,
+      "WRONG->WRONG": 5
+    },
+    "controlled_accuracy_using_v73_for_unchanged": 0.782,
+    "controlled_correct_using_v73_for_unchanged": 391,
+    "fresh_delta_vs_v73": -0.010000000000000009,
+    "fresh_delta_vs_v75": 0.0020000000000000018,
+    "fresh_v73_accuracy": 0.778,
+    "fresh_v75_accuracy": 0.766,
+    "fresh_v76_accuracy": 0.768,
+    "prediction_changed_vs_v73": 16,
+    "repair_applied_count": 4,
+    "repair_triggered_count": 6
+  },
+  "repair_cases": [
+    {
+      "after": "Based on your interest in advanced deep learning topics for medical image analysis—such as explainable AI, multi-modal image fusion, transfer learning, and domain adaptation—consider exploring recent publications and conference proceedings in these areas, particularly those focusing on visualization and interpretation of deep learning models in medical imaging.",
+      "applied": true,
+      "before": "The provided information is not enough to recommend specific recent publications or conferences.",
+      "gold_answer": "The user would prefer suggestions related to recent research papers, articles, or conferences that focus on artificial intelligence in healthcare, particularly those that involve deep learning for medical image analysis. They would not be interested in general AI topics or those unrelated to healthcare.",
+      "question": "Can you recommend some recent publications or conferences that I might find interesting?",
+      "question_type": "single-session-preference",
+      "reasons": [
+        "uncertain_or_missing"
+      ],
+      "record_key": "158692bc43ef28e0e43d991f",
+      "v73_answer": "The provided information is not enough to recommend specific recent publications or conferences.",
+      "v73_label": "WRONG",
+      "v76_answer": "Based on your interest in advanced deep learning topics for medical image analysis—such as explainable AI, multi-modal image fusion, transfer learning, and domain adaptation—consider exploring recent publications and conference proceedings in these areas, particularly those focusing on visualization and interpretation of deep learning models in medical imaging.",
+      "v76_label": "CORRECT"
+    },
+    {
+      "after": "The provided information is not enough to recommend a hotel in Miami.",
+      "applied": false,
+      "before": "The provided information is not enough to recommend a hotel in Miami.",
+      "gold_answer": "The user would prefer suggestions of hotels in Miami that offer great views, possibly of the ocean or the city skyline, and have unique features such as a rooftop pool or a hot tub on the balcony. They may not prefer suggestions of basic or budget hotels without these features.",
+      "question": "Can you suggest a hotel for my upcoming trip to Miami?",
+      "question_type": "single-session-preference",
+      "reasons": [
+        "uncertain_or_missing"
+      ],
+      "record_key": "431c6d9ef160528ca54104f8",
+      "v73_answer": "The provided information is not enough to recommend a hotel in Miami.",
+      "v73_label": "WRONG",
+      "v76_answer": "The provided information is not enough to recommend a hotel in Miami.",
+      "v76_label": "WRONG"
+    },
+    {
+      "after": "The provided information is not enough to recommend specific cultural events happening this weekend.",
+      "applied": false,
+      "before": "The provided information is not enough to recommend specific cultural events happening this weekend.",
+      "gold_answer": "The user would prefer responses that suggest cultural events where they can practice their language skills, particularly Spanish and French. They would also appreciate if the event has a focus on language learning resources. They would not prefer events that do not provide opportunities for language practice or cultural exchange.",
+      "question": "Can you recommend some interesting cultural events happening around me this weekend?",
+      "question_type": "single-session-preference",
+      "reasons": [
+        "uncertain_or_missing"
+      ],
+      "record_key": "5110d0ed1a7cb0fefd131e4d",
+      "v73_answer": "The provided information is not enough to recommend specific cultural events happening this weekend.",
+      "v73_label": "CORRECT",
+      "v76_answer": "The provided information is not enough to recommend specific cultural events happening this weekend.",
+      "v76_label": "WRONG"
+    },
+    {
+      "after": "A political show or movie from the 20th century with a conservative perspective would align with your interests.",
+      "applied": true,
+      "before": "The provided information is not enough to recommend a specific show or movie.",
+      "gold_answer": "The user would prefer recommendations for stand-up comedy specials on Netflix, especially those that are known for their storytelling. They may not prefer recommendations for other genres or platforms.",
+      "question": "Can you recommend a show or movie for me to watch tonight?",
+      "question_type": "single-session-preference",
+      "reasons": [
+        "uncertain_or_missing"
+      ],
+      "record_key": "8b879add5b99d7c3de847de7",
+      "v73_answer": "The provided information is not enough to recommend a specific show or movie.",
+      "v73_label": "WRONG",
+      "v76_answer": "A political show or movie from the 20th century with a conservative perspective would align with your interests.",
+      "v76_label": "WRONG"
+    },
+    {
+      "after": "Consider reducing screen brightness, turning off background app refresh, and using a portable power bank for extended use, especially when traveling.",
+      "applied": true,
+      "before": "The provided information is not enough to answer the question.",
+      "gold_answer": "The user would prefer responses that build upon their previous mention of purchasing a portable power bank, such as suggestions on how to optimize its use, like ensuring it's fully charged before use. They might also appreciate tips on utilizing battery-saving features on their phone. The user may not prefer responses that suggest alternative solutions or unrelated advice.",
+      "question": "I've been having trouble with the battery life on my phone lately. Any tips?",
+      "question_type": "single-session-preference",
+      "reasons": [
+        "uncertain_or_missing"
+      ],
+      "record_key": "32f0df330fed5b12b138734e",
+      "v73_answer": "The provided information is not enough to answer the question.",
+      "v73_label": "WRONG",
+      "v76_answer": "Consider reducing screen brightness, turning off background app refresh, and using a portable power bank for extended use, especially when traveling.",
+      "v76_label": "CORRECT"
+    },
+    {
+      "after": "Consider arranging your furniture to highlight mid-century modern features, such as placing the dresser as a focal point and ensuring clear pathways for easy movement, while maintaining open space around key pieces for visual balance.",
+      "applied": true,
+      "before": "The provided information is not enough to give tips on rearranging bedroom furniture.",
+      "gold_answer": "The user would prefer responses that take into account their existing plans to replace the bedroom dresser and their interest in mid-century modern style, suggesting furniture layouts that accommodate the new dresser and incorporate elements of this design aesthetic. They might not prefer general furniture arrangement tips or suggestions that do not consider their specific design preferences.",
+      "question": "I was thinking about rearranging the furniture in my bedroom this weekend. Any tips?",
+      "question_type": "single-session-preference",
+      "reasons": [
+        "uncertain_or_missing"
+      ],
+      "record_key": "4247325975aa83eade14f4aa",
+      "v73_answer": "The provided information is not enough to give tips on rearranging bedroom furniture.",
+      "v73_label": "WRONG",
+      "v76_answer": "Consider arranging your furniture to highlight mid-century modern features, such as placing the dresser as a focal point and ensuring clear pathways for easy movement, while maintaining open space around key pieces for visual balance.",
+      "v76_label": "CORRECT"
+    }
+  ]
+}
