@@ -1138,6 +1138,34 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertFalse(finalization.applied)
         self.assertEqual(finalization.answer, "3000")
 
+    def test_answer_finalizer_prefers_explicit_time_unit_over_spend(self) -> None:
+        content = json.dumps({"sufficient": True, "answer": "10"})
+        raw_response = json.dumps({"content": content})
+
+        finalization = finalize_structured_answer(
+            question="How many hours did I spend watching documentaries?",
+            draft_answer="10",
+            raw_response=raw_response,
+            enable_unit_completion=True,
+        )
+
+        self.assertTrue(finalization.applied)
+        self.assertEqual(finalization.answer, "10 hours")
+
+    def test_answer_finalizer_does_not_treat_view_as_views_unit(self) -> None:
+        content = json.dumps({"sufficient": True, "answer": "2"})
+        raw_response = json.dumps({"content": content})
+
+        finalization = finalize_structured_answer(
+            question="How many properties did I view before making an offer?",
+            draft_answer="2",
+            raw_response=raw_response,
+            enable_unit_completion=True,
+        )
+
+        self.assertFalse(finalization.applied)
+        self.assertEqual(finalization.answer, "2")
+
     def test_answer_finalizer_repairs_additive_quantity_from_report(self) -> None:
         content = json.dumps(
             {

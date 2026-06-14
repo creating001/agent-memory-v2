@@ -378,7 +378,7 @@ def _finalize_unit_completion(
     unit = _question_answer_unit(lowered_question)
     if not unit:
         return None
-    if unit not in {"$", "hours", "minutes", "pages", "views", "comments"}:
+    if unit not in {"$", "hours", "minutes", "pages"}:
         evidence_unit = _dominant_evidence_unit(payload)
         if evidence_unit:
             unit = evidence_unit
@@ -614,24 +614,27 @@ def _evidence_report_quantity(item: dict[str, Any]) -> tuple[str, Decimal, str] 
 
 
 def _question_answer_unit(lowered_question: str) -> str:
+    if "miles per gallon" in lowered_question:
+        return ""
+    explicit_unit_patterns = (
+        (r"\bhours?\b", "hours"),
+        (r"\bminutes?\b", "minutes"),
+        (r"\bpages?\b", "pages"),
+    )
+    for pattern, unit in explicit_unit_patterns:
+        if re.search(pattern, lowered_question):
+            return unit
     if re.search(
-        r"\b(total amount|money|spent|spend|cost|costs|expense|expenses|"
+        r"\b(total amount|money|cost|costs|expense|expenses|"
         r"paid|price|prices|raise|raised|earned|dollars?)\b",
         lowered_question,
     ):
         return "$"
-    if "miles per gallon" in lowered_question:
-        return ""
-    unit_patterns = (
-        (r"\bhours?\b", "hours"),
-        (r"\bminutes?\b", "minutes"),
-        (r"\bpages?\b", "pages"),
-        (r"\bviews?\b", "views"),
-        (r"\bcomments?\b", "comments"),
+    evidence_backed_patterns = (
         (r"\b(?:distance|miles?)\b", "miles"),
         (r"\b(?:weight|feed|pounds?|lbs?)\b", "pounds"),
     )
-    for pattern, unit in unit_patterns:
+    for pattern, unit in evidence_backed_patterns:
         if re.search(pattern, lowered_question):
             return unit
     return ""
