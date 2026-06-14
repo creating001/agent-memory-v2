@@ -21,9 +21,9 @@
 
 ## 当前候选
 
-- `stage1_supported_uncertain_repair_v69_cached.json`：v42 上的 token-safe supported-uncertain verifier/repair。只在 draft 自己显示 insufficient/unknown/missing，且 draft evidence_report 至少有 1 个 support item 时触发二次 clean repair；相对 v68 进一步收窄 repair context，并强化 profile repair 不得使用外部知识生成具体新名字。
+暂无新的顶层候选配置。下一轮应从 `stage1_operation_workpad_v42_cached.json` 出发，优先做低噪声 build/query memory organization，而不是继续扩大 answer repair 或机械压缩 context。
 
-v67/v68 preliminary supported-uncertain repair 因 full avg query tokens 略超 6K，不作为主线配置保留；v69 是 token-safe replacement。v66 route-aware context budget 已完成 LongMemEval-S full：query token 明显下降但 accuracy 低于 v42，顶层 config 删除，只保留 formal 快照。v65 unit/sum mechanical finalizer 已完成 LongMemEval-S full：accuracy 低于 v42，且不是纯 finalizer 正向消融；顶层 config 和源码分支删除，只保留 formal 快照。v64 list_count-only adjacent-turn window BM25 也已验证负向，只保留 diagnostic 快照。
+v69 supported-uncertain repair 已完成 LongMemEval-S full：full judge `0.760`，低于 v42 修复控制 `0.772`；实际改动 6 条中 `WRONG->CORRECT 2`、`WRONG->WRONG 4`，但 full judge 重跑受 same-answer variance 影响明显。结论是局部小正向但不足以作为主线，顶层 config 删除，只保留 formal 快照。v67/v68 preliminary supported-uncertain repair 因 full avg query tokens 略超 6K，不作为主线配置保留。v66 route-aware context budget 已完成 LongMemEval-S full：query token 明显下降但 accuracy 低于 v42，顶层 config 删除，只保留 formal 快照。v65 unit/sum mechanical finalizer 已完成 LongMemEval-S full：accuracy 低于 v42，且不是纯 finalizer 正向消融；顶层 config 和源码分支删除，只保留 formal 快照。v64 list_count-only adjacent-turn window BM25 也已验证负向，只保留 diagnostic 快照。
 
 负向诊断只保留在对应 `experiments/diagnostic/<run_id>/config_snapshot.json` 中，不保留顶层 config。
 
