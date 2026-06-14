@@ -32,9 +32,10 @@
 - `configs/stage1_operation_workpad_v42_cached.json`：v36 上的短 operation workpad；v73 前 LME 最好，但只是 close-margin 小幅正向。
 - `configs/stage1_finalizer_duration_fix_v73_cached.json`：v79 前 LongMemEval-S 最好主线；从 v42 出发只关闭有害的机械 duration decimal rounding finalizer。
 - `configs/stage1_missing_detail_finalizer_v79_cached.json`：v73 上的 missing-detail finalizer；把 answer JSON 中的 `missing` 细节透出到短拒答。
-- `configs/stage1_update_conflict_guide_v80_cached.json`：v79 上的 update/conflict candidate chain；只在 `current_state` / `fact_lookup` 对有旧值、新值、更正、历史范围信号的 user raw rows 加 source-preserving 索引，当前 LongMemEval-S 最好。
+- `configs/stage1_update_conflict_guide_v80_cached.json`：v79 上的 update/conflict candidate chain；只在 `current_state` / `fact_lookup` 对有旧值、新值、更正、历史范围信号的 user raw rows 加 source-preserving 索引，v88 前 LongMemEval-S 最好。
 - `configs/stage1_update_conflict_value_slot_v81_cached.json`：v80 的 value-slot 收窄诊断；changed subset 正向，但 fresh full judge 未超过 v80，不作为当前 best。
 - `configs/stage1_personalized_advice_contract_v83_cached.json`：v81 代码线上的 personalized advice reader discipline；LongMemEval-S full 与 v80 持平，但触发子集 mixed，不作为新 best。
+- `configs/stage1_evidence_answer_detail_v88_cached.json`：v83 上的窄机械 finalizer；不改 build/retrieval/compiler/answer prompt，只用 answer JSON 已有 evidence_report 补 count detail、average、money difference 和 date endpoint duration，当前 LongMemEval-S 最好。
 
 方法摘要：
 
@@ -47,7 +48,7 @@
 
 当前结论：
 
-- LongMemEval-S full 当前最好为 v80：0.792 DeepSeek judge accuracy，396/500；距 0.80 baseline target 仍差 4 条。
+- LongMemEval-S full 当前最好为 v88：0.800 DeepSeek judge accuracy，400/500；首次达到 0.80 baseline target。
 - LoCoMo non-adversarial full 当前最高为 v35：valid-only 0.780377，invalid-as-wrong 1201/1540 = 0.779870；valid-only 已达到 0.78 baseline target，保守 invalid-as-wrong 还差 1 条。
 - v28/v29 token gate 均通过：v28 LME avg_build_tokens 80346.246、avg_query_tokens 5736.928；v29 LoCoMo avg_build_tokens 58386.008、avg_query_tokens 3932.560。
 - LoCoMo 诊断显示，很多 wrong case 已有 evidence 进入 context，主要问题是 answer 阶段混淆 mention date / event time、列表边界和隐含推理；下一步应改 build/query 两侧的 memory organization，而不是继续只堆 answer prompt。
@@ -72,6 +73,7 @@
 - v81 value-slot update/conflict guide 已完成 LongMemEval-S full：accuracy `0.790`，395/500；avg_build_tokens `80346.246`，avg_query_tokens `5903.352`，guide 触发 `44/500`。相比 v80，prediction changed subset 为 `WRONG->CORRECT 3`、`CORRECT->WRONG 1`，修复 v80 的 Lola 花费、评论数表述和家庭旅行地点回退；但未改 prediction 的 fresh judge 方差净 `-3`，所以不替代 v80 当前最好结论。
 - v82 fact-operation workpad 已完成 LongMemEval-S full：accuracy `0.786`，393/500；avg_build_tokens `80346.246`，avg_query_tokens `5928.91`，answer cache misses `52/500`。由于当前代码已包含 v81 value-slot guide，v82 实际是 v81 + fact_lookup operation workpad；相对 v81 prediction changed subset 为 `WRONG->CORRECT 1`、`CORRECT->WRONG 2`，结论是负向，顶层 config 删除。
 - v83 personalized advice contract 已完成 LongMemEval-S full：accuracy `0.792`，396/500；avg_build_tokens `80346.246`，avg_query_tokens `5912.794`，contract 触发 `29/500`。相对 v81 overall +1，但 prediction changed subset 为 `WRONG->CORRECT 2`、`CORRECT->WRONG 4`，净负，整体提升主要来自未改 prediction 的 judge variance；相对 v80 accuracy 持平。结论是 best-tie 候选，不是新 best，后续个性化建议应转向 build-side profile/event anchoring。
+- v88 evidence answer detail 已完成 LongMemEval-S full：accuracy `0.800`，400/500；avg_build_tokens `80346.246`，avg_query_tokens `5912.794`，answer/build cache 全命中，finalizer applied `45/500`。相对 v80/v83 fresh full judge 均为净 `+4`；主要稳定修复 money difference `$270`、GPA average `3.83` 和 date endpoint duration `9 days`，count detail 无 changed-subset 回退但存在 judge 方差。结论是 clean、零额外 LLM token、达到 LME baseline target 的当前最好主线；下一步必须跑 LoCoMo non-adversarial full 验证同一算法是否不伤害 LoCoMo。
 - v74 build 4K 输出上限消融已完成 LongMemEval-S full：accuracy `0.766`，383/500，低于 v73 `0.778`；avg_build_tokens 增至 `84656.5`，evidence recall 仍为 `1.0`。结论是负向 build-side 消融，顶层 config 删除，只保留 formal 快照。
 - v75 all-profile compact repair 已完成 LongMemEval-S full：accuracy `0.766`，383/500，低于 v73 `0.778`；avg_query_tokens `5985.758`，接近 6K。controlled changed subset 对 v73 为轻微正向，但 all-profile repair 会误伤已支持的个性化答案，顶层 config 删除，只保留 formal 快照。
 - v76 uncertain-only profile repair 已完成 LongMemEval-S full：accuracy `0.768`，384/500，低于 v73 `0.778`；avg_query_tokens `5880.232`，repair triggered/applied `6/4`。controlled changed subset 为 391/500，但 fresh full 不支撑主线。结论是 profile repair 只能作为低频拒答补救信号，不能继续作为通用重写器；顶层 config 删除，只保留 formal 快照。
