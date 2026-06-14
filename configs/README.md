@@ -21,7 +21,7 @@
 
 ## 当前候选
 
-- `stage1_dialogue_temporal_contract_v60_cached.json`：v42 上的 query-only 候选，不改 build/retrieval，不启用 v59 source-anchor；只通过 question-derived route override 加入相邻对话 slot resolution、assistant acknowledgement、current-state update 和 temporal order normalization 的通用 reader contract。若诊断负向，顶层配置删除，只在实验快照保留。
+暂无未验证候选配置。负向诊断只保留在对应 `experiments/diagnostic/<run_id>/config_snapshot.json` 中，不保留顶层 config。
 
 ## 新配置规则
 

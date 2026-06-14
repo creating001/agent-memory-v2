@@ -1,0 +1,363 @@
+{
+  "scope": "LongMemEval-S weak_route_87 diagnostic",
+  "v42_correct": 59,
+  "v60_correct": 58,
+  "n": 87,
+  "v42_accuracy": 0.6781609195402298,
+  "v60_accuracy": 0.6666666666666666,
+  "gain_count": 6,
+  "loss_count": 7,
+  "answer_changed_count": 29,
+  "same_answer_judge_disagreed_count": 1,
+  "by_information_need": {
+    "current_state": {
+      "n": 22,
+      "v60_correct": 13,
+      "v42_correct": 12,
+      "same_wrong": 8,
+      "answer_changed": 9,
+      "loss": 1,
+      "same_correct": 11,
+      "gain": 2,
+      "v42_accuracy": 0.5454545454545454,
+      "v60_accuracy": 0.5909090909090909
+    },
+    "list_count": {
+      "n": 20,
+      "v60_correct": 14,
+      "v42_correct": 15,
+      "same_correct": 13,
+      "answer_changed": 3,
+      "loss": 2,
+      "gain": 1,
+      "same_wrong": 4,
+      "v42_accuracy": 0.75,
+      "v60_accuracy": 0.7
+    },
+    "profile_preference": {
+      "n": 15,
+      "v60_correct": 9,
+      "v42_correct": 10,
+      "same_wrong": 5,
+      "answer_changed": 8,
+      "loss": 1,
+      "same_correct": 9,
+      "v42_accuracy": 0.6666666666666666,
+      "v60_accuracy": 0.6
+    },
+    "temporal_lookup": {
+      "n": 30,
+      "v60_correct": 22,
+      "v42_correct": 22,
+      "same_wrong": 5,
+      "answer_changed": 9,
+      "gain": 3,
+      "same_correct": 19,
+      "loss": 3,
+      "v42_accuracy": 0.7333333333333333,
+      "v60_accuracy": 0.7333333333333333
+    }
+  },
+  "changed_or_different_judge_rows": [
+    {
+      "record_key": "040a4510206229039b25c860",
+      "information_need": "temporal_lookup",
+      "v42_label": "WRONG",
+      "v60_label": "WRONG",
+      "status": "same_wrong",
+      "answer_changed": true,
+      "v42_answer": "Billie Eilish concert at Wells Fargo Center in Philly (2023-03-18), free outdoor concert series in the park (2023-03-25), jazz night at a local bar (2023-04-08), music festival in Brooklyn (2023-04-15)",
+      "v60_answer": "1. Billie Eilish concert at Wells Fargo Center in Philly (2023-03-18)\n2. Free outdoor concert series in the park (2023-03-25)\n3. Jazz night at a local bar (2023-04-08)"
+    },
+    {
+      "record_key": "08cccaf312a179d4f4b961d3",
+      "information_need": "profile_preference",
+      "v42_label": "WRONG",
+      "v60_label": "WRONG",
+      "status": "same_wrong",
+      "answer_changed": true,
+      "v42_answer": "Try adding turbinado sugar, a pinch of cinnamon, chopped nuts, or a touch of espresso powder to enhance the flavor and texture of your chocolate chip cookies.",
+      "v60_answer": "Try using turbinado sugar for a richer flavor, add sliced almonds for crunch, or substitute some flour with almond flour for a unique twist."
+    },
+    {
+      "record_key": "0a537c6dfde0742723049ca4",
+      "information_need": "current_state",
+      "v42_label": "WRONG",
+      "v60_label": "WRONG",
+      "status": "same_wrong",
+      "answer_changed": true,
+      "v42_answer": "Camera bags compatible with Sony cameras, protective cases for the Godox V1 flash, and external battery packs for the Sony A7R IV.",
+      "v60_answer": "Think Tank Photo, Lowepro, F-Stop Gear, Peak Design, MindShift Gear"
+    },
+    {
+      "record_key": "0ee8c25c59cfcb1bb56e1da5",
+      "information_need": "temporal_lookup",
+      "v42_label": "WRONG",
+      "v60_label": "CORRECT",
+      "status": "gain",
+      "answer_changed": true,
+      "v42_answer": "22",
+      "v60_answer": "23"
+    },
+    {
+      "record_key": "158692bc43ef28e0e43d991f",
+      "information_need": "profile_preference",
+      "v42_label": "WRONG",
+      "v60_label": "WRONG",
+      "status": "same_wrong",
+      "answer_changed": true,
+      "v42_answer": "The provided information is not enough to recommend recent publications or conferences.",
+      "v60_answer": "The provided information is not enough to recommend specific recent publications or conferences."
+    },
+    {
+      "record_key": "1d4fed4463c88e0a44c6281c",
+      "information_need": "profile_preference",
+      "v42_label": "WRONG",
+      "v60_label": "WRONG",
+      "status": "same_wrong",
+      "answer_changed": true,
+      "v42_answer": "Try a guided meditation like the 'Body Scan' on Insight Timer, read a book, or practice light stretching to wind down by 9:30 PM.",
+      "v60_answer": "Try a guided meditation like the 'Body Scan' on Insight Timer, read a book, practice light stretching, or enjoy a calming tea to wind down by 9:30 PM."
+    },
+    {
+      "record_key": "2a18e972b47c27c2c1f2fdb8",
+      "information_need": "current_state",
+      "v42_label": "CORRECT",
+      "v60_label": "WRONG",
+      "status": "loss",
+      "answer_changed": true,
+      "v42_answer": "4 years and 9 months",
+      "v60_answer": "The provided information is not enough to determine how long you have been working before starting your current job at NovaTech."
+    },
+    {
+      "record_key": "2baf3826b072fa512434bb50",
+      "information_need": "temporal_lookup",
+      "v42_label": "CORRECT",
+      "v60_label": "WRONG",
+      "status": "loss",
+      "answer_changed": true,
+      "v42_answer": "5 days",
+      "v60_answer": "20"
+    },
+    {
+      "record_key": "315bf5c6778d6f6615153e3d",
+      "information_need": "list_count",
+      "v42_label": "CORRECT",
+      "v60_label": "WRONG",
+      "status": "loss",
+      "answer_changed": true,
+      "v42_answer": "2",
+      "v60_answer": "3"
+    },
+    {
+      "record_key": "431c6d9ef160528ca54104f8",
+      "information_need": "profile_preference",
+      "v42_label": "WRONG",
+      "v60_label": "WRONG",
+      "status": "same_wrong",
+      "answer_changed": true,
+      "v42_answer": "The provided information is not enough to suggest a hotel for Miami.",
+      "v60_answer": "The provided information is not enough to recommend a hotel in Miami."
+    },
+    {
+      "record_key": "5110d0ed1a7cb0fefd131e4d",
+      "information_need": "profile_preference",
+      "v42_label": "CORRECT",
+      "v60_label": "WRONG",
+      "status": "loss",
+      "answer_changed": true,
+      "v42_answer": "The provided information is not enough to recommend specific cultural events happening this weekend.",
+      "v60_answer": "Check platforms like Eventbrite, Meetup, and local language schools for language festivals, international festivals, and cultural exchange events. Look for events celebrating heritage months or language diversity in your area."
+    },
+    {
+      "record_key": "5819961e927d864a6b8d3a21",
+      "information_need": "profile_preference",
+      "v42_label": "CORRECT",
+      "v60_label": "CORRECT",
+      "status": "same_correct",
+      "answer_changed": true,
+      "v42_answer": "Consider a phone wallet case from brands like Nomad, Fossil, Bellroy, or Spigen; a high-quality screen protector for your iPhone 13 Pro; and a wireless charging power bank for cable-free convenience. Brands like Mophie and UAG offer durable options with advanced features.",
+      "v60_answer": "Consider high-quality phone wallet cases from brands like Nomad, Fossil, Bellroy, Incipio, Speck, Case-Mate, Tech21, UAG, Mophie, Spigen, or OtterBox. Also, look into screen protectors for your iPhone 13 Pro and wireless charging power banks for convenient on-the-go charging."
+    },
+    {
+      "record_key": "740d3b0bc662060a816e231f",
+      "information_need": "current_state",
+      "v42_label": "WRONG",
+      "v60_label": "WRONG",
+      "status": "same_wrong",
+      "answer_changed": true,
+      "v42_answer": "Science Museum (2023-01-15), Museum of Contemporary Art (2023-01-15), Metropolitan Museum of Art (2023-02-10), Museum of History (2023-02-15), Modern Art Museum (2023-02-20), Modern Art Museum (2023-03-02)",
+      "v60_answer": "2023-01-15, 2023-02-10, 2023-02-15, 2023-02-20, 2023-03-02, 2023-03-04"
+    },
+    {
+      "record_key": "7933cff5854d25ce3c9e8901",
+      "information_need": "current_state",
+      "v42_label": "WRONG",
+      "v60_label": "CORRECT",
+      "status": "gain",
+      "answer_changed": true,
+      "v42_answer": "7 months",
+      "v60_answer": "The provided information is not enough because the user is living in Harajuku, not Shinjuku, as confirmed in the memory context."
+    },
+    {
+      "record_key": "8997d3cef1a1f658fe97f7c5",
+      "information_need": "list_count",
+      "v42_label": "WRONG",
+      "v60_label": "CORRECT",
+      "status": "gain",
+      "answer_changed": true,
+      "v42_answer": "1",
+      "v60_answer": "2"
+    },
+    {
+      "record_key": "8c6ec8aa7a13c8b4b8ec3d1a",
+      "information_need": "temporal_lookup",
+      "v42_label": "WRONG",
+      "v60_label": "CORRECT",
+      "status": "gain",
+      "answer_changed": true,
+      "v42_answer": "3",
+      "v60_answer": "5"
+    },
+    {
+      "record_key": "997f749ec7c829ed33f026b8",
+      "information_need": "list_count",
+      "v42_label": "CORRECT",
+      "v60_label": "WRONG",
+      "status": "loss",
+      "answer_changed": true,
+      "v42_answer": "5",
+      "v60_answer": "3"
+    },
+    {
+      "record_key": "9fd04c3718fe7091041034e7",
+      "information_need": "temporal_lookup",
+      "v42_label": "CORRECT",
+      "v60_label": "CORRECT",
+      "status": "same_correct",
+      "answer_changed": true,
+      "v42_answer": "12",
+      "v60_answer": "11"
+    },
+    {
+      "record_key": "a3e4c89a8fdf800fa3b2676f",
+      "information_need": "current_state",
+      "v42_label": "WRONG",
+      "v60_label": "WRONG",
+      "status": "same_wrong",
+      "answer_changed": true,
+      "v42_answer": "Sequoia National Park, Muir Woods National Monument, Big Sur and Monterey",
+      "v60_answer": "1. Road trip to Yosemite National Park (2023-02-20), 2. Day hike to Muir Woods National Monument (2023-03-10), 3. Road trip to Big Sur and Monterey (2023-04-20)"
+    },
+    {
+      "record_key": "af807a537c4950ead62c23aa",
+      "information_need": "current_state",
+      "v42_label": "CORRECT",
+      "v60_label": "CORRECT",
+      "status": "same_correct",
+      "answer_changed": true,
+      "v42_answer": "Previously, you played tennis with your friends at the local park weekly. Now, you play every other week.",
+      "v60_answer": "Previously, I played tennis with my friends at the local park weekly. Now, I play every other week."
+    },
+    {
+      "record_key": "b6d4bc26da6c5292c4a9645a",
+      "information_need": "temporal_lookup",
+      "v42_label": "CORRECT",
+      "v60_label": "WRONG",
+      "status": "loss",
+      "answer_changed": false,
+      "v42_answer": "The provided information is not enough.",
+      "v60_answer": "The provided information is not enough."
+    },
+    {
+      "record_key": "beb0a3bdb35a23a257132b5e",
+      "information_need": "current_state",
+      "v42_label": "WRONG",
+      "v60_label": "CORRECT",
+      "status": "gain",
+      "answer_changed": true,
+      "v42_answer": "Hawaii",
+      "v60_answer": "Paris"
+    },
+    {
+      "record_key": "cd06f284ad43094e95945ab4",
+      "information_need": "profile_preference",
+      "v42_label": "CORRECT",
+      "v60_label": "CORRECT",
+      "status": "same_correct",
+      "answer_changed": true,
+      "v42_answer": "Adobe Premiere Pro's official documentation and tutorials, YouTube channels like Premiere Bro, Video Copilot, and Adobe Creative Cloud, online courses on platforms like Udemy, LinkedIn Learning, and Skillshare, Premiere Pro communities and forums such as Reddit's r/premierepro and Adobe's Premiere Pro forum",
+      "v60_answer": "Adobe Premiere Pro's official documentation, YouTube channels like Premiere Bro, Video Copilot, and Adobe Creative Cloud, online courses on Udemy, LinkedIn Learning, and Skillshare, and communities such as Reddit's r/premierepro and Adobe's Premiere Pro forum."
+    },
+    {
+      "record_key": "d1194f5e15857de1239046fc",
+      "information_need": "temporal_lookup",
+      "v42_label": "CORRECT",
+      "v60_label": "WRONG",
+      "status": "loss",
+      "answer_changed": true,
+      "v42_answer": "The Nightingale by Kristin Hannah",
+      "v60_answer": "The Nightingale"
+    },
+    {
+      "record_key": "dadf0d7c77ff05ffc3f75b08",
+      "information_need": "profile_preference",
+      "v42_label": "CORRECT",
+      "v60_label": "CORRECT",
+      "status": "same_correct",
+      "answer_changed": true,
+      "v42_answer": "Listen to podcasts such as 'Hardcore History,' 'Lore,' and 'The Dollop'; create a playlist to organize your listening schedule and alternate between shows to stay engaged.",
+      "v60_answer": "Listening to podcasts, particularly history podcasts like 'Hardcore History', 'Lore', and 'The Dollop', is a recommended activity for your commute. You can organize your listening schedule to alternate between podcasts over the week to stay engaged."
+    },
+    {
+      "record_key": "dbfe13e18e9d7d354d881b9b",
+      "information_need": "temporal_lookup",
+      "v42_label": "WRONG",
+      "v60_label": "CORRECT",
+      "status": "gain",
+      "answer_changed": true,
+      "v42_answer": "The provided information is not enough.",
+      "v60_answer": "8 weeks"
+    },
+    {
+      "record_key": "e28802ffa33a7a23642ecf11",
+      "information_need": "temporal_lookup",
+      "v42_label": "CORRECT",
+      "v60_label": "CORRECT",
+      "status": "same_correct",
+      "answer_changed": true,
+      "v42_answer": "two weeks",
+      "v60_answer": "2 weeks"
+    },
+    {
+      "record_key": "e3b12960136041241dc62c39",
+      "information_need": "temporal_lookup",
+      "v42_label": "WRONG",
+      "v60_label": "WRONG",
+      "status": "same_wrong",
+      "answer_changed": true,
+      "v42_answer": "65",
+      "v60_answer": "$65"
+    },
+    {
+      "record_key": "f42847e71c4d486a8c6c7c0b",
+      "information_need": "current_state",
+      "v42_label": "WRONG",
+      "v60_label": "WRONG",
+      "status": "same_wrong",
+      "answer_changed": true,
+      "v42_answer": "American Airlines, JetBlue, Delta",
+      "v60_answer": "American Airlines (Jan 15), Spirit Airlines (Jan 28), United Airlines (Jan 28), American Airlines (Feb 10), JetBlue (Feb 14)"
+    },
+    {
+      "record_key": "f9ae007ab8a08057a78ba572",
+      "information_need": "current_state",
+      "v42_label": "WRONG",
+      "v60_label": "WRONG",
+      "status": "same_wrong",
+      "answer_changed": true,
+      "v42_answer": "Buy now. The available NAS options are well-documented and suitable for your needs, with strong security and setup support.",
+      "v60_answer": "Buy now"
+    }
+  ]
+}
