@@ -1,0 +1,50 @@
+{
+  "base_run": "stage1_update_conflict_value_slot_v81_lme_s_full_d6f0f93",
+  "candidate_run": "stage1_fact_operation_workpad_v82_lme_s_full_f2e042f",
+  "base_accuracy": 0.79,
+  "candidate_accuracy": 0.786,
+  "base_correct": 395,
+  "candidate_correct": 393,
+  "n": 500,
+  "all_transition": {
+    "CORRECT->CORRECT": 387,
+    "CORRECT->WRONG": 8,
+    "WRONG->CORRECT": 6,
+    "WRONG->WRONG": 99
+  },
+  "prediction_changed_count": 17,
+  "prediction_changed_transition": {
+    "CORRECT->CORRECT": 10,
+    "CORRECT->WRONG": 2,
+    "WRONG->CORRECT": 1,
+    "WRONG->WRONG": 4
+  },
+  "prediction_unchanged_count": 483,
+  "prediction_unchanged_transition": {
+    "CORRECT->CORRECT": 377,
+    "CORRECT->WRONG": 6,
+    "WRONG->CORRECT": 5,
+    "WRONG->WRONG": 95
+  },
+  "prediction_changed_net": -1,
+  "prediction_unchanged_net_judge_variance": -1,
+  "changed_by_route": {
+    "fact_lookup|CORRECT->CORRECT": 10,
+    "fact_lookup|CORRECT->WRONG": 2,
+    "fact_lookup|WRONG->CORRECT": 1,
+    "fact_lookup|WRONG->WRONG": 4
+  },
+  "changed_by_question_type": {
+    "knowledge-update|CORRECT->CORRECT": 1,
+    "knowledge-update|CORRECT->WRONG": 1,
+    "knowledge-update|WRONG->WRONG": 1,
+    "multi-session|CORRECT->CORRECT": 6,
+    "multi-session|WRONG->CORRECT": 1,
+    "multi-session|WRONG->WRONG": 2,
+    "single-session-assistant|CORRECT->CORRECT": 1,
+    "temporal-reasoning|CORRECT->CORRECT": 2,
+    "temporal-reasoning|CORRECT->WRONG": 1,
+    "temporal-reasoning|WRONG->WRONG": 1
+  },
+  "clean_note": "Comparison is offline-only. It uses judge labels and gold-bearing label files after prediction, and must not be consumed by prediction pipeline."
+}
