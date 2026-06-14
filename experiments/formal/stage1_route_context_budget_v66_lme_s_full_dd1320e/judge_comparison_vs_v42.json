@@ -1,0 +1,746 @@
+{
+  "baseline_run": "stage1_operation_workpad_v42_repro_fix_lme_s_full_d6c6e8e",
+  "candidate_run": "stage1_route_context_budget_v66_lme_s_full_dd1320e",
+  "baseline_accuracy": 0.772,
+  "candidate_accuracy": 0.754,
+  "baseline_correct": 386,
+  "candidate_correct": 377,
+  "accuracy_delta": -0.018000000000000016,
+  "correct_delta": -9,
+  "prediction_changed_count": 102,
+  "judge_label_changed_count": 45,
+  "judge_label_transitions": {
+    "CORRECT->CORRECT": 359,
+    "WRONG->WRONG": 96,
+    "WRONG->CORRECT": 18,
+    "CORRECT->WRONG": 27
+  },
+  "judge_label_transitions_by_question_type": {
+    "knowledge-update": {
+      "WRONG->WRONG": 14,
+      "CORRECT->CORRECT": 61,
+      "CORRECT->WRONG": 1,
+      "WRONG->CORRECT": 2
+    },
+    "multi-session": {
+      "WRONG->WRONG": 39,
+      "CORRECT->CORRECT": 77,
+      "CORRECT->WRONG": 10,
+      "WRONG->CORRECT": 7
+    },
+    "single-session-assistant": {
+      "CORRECT->WRONG": 2,
+      "CORRECT->CORRECT": 52,
+      "WRONG->WRONG": 2
+    },
+    "single-session-preference": {
+      "CORRECT->CORRECT": 7,
+      "CORRECT->WRONG": 5,
+      "WRONG->WRONG": 16,
+      "WRONG->CORRECT": 2
+    },
+    "single-session-user": {
+      "CORRECT->CORRECT": 64,
+      "WRONG->WRONG": 3,
+      "WRONG->CORRECT": 1,
+      "CORRECT->WRONG": 2
+    },
+    "temporal-reasoning": {
+      "CORRECT->CORRECT": 98,
+      "WRONG->WRONG": 22,
+      "WRONG->CORRECT": 6,
+      "CORRECT->WRONG": 7
+    }
+  },
+  "token_cost": {
+    "baseline": {
+      "avg_build_tokens": 80346.246,
+      "avg_query_tokens": 5864.706,
+      "total_build_tokens": 40173123,
+      "total_query_tokens": 2932353
+    },
+    "candidate": {
+      "avg_build_tokens": 80346.246,
+      "avg_query_tokens": 5235.538,
+      "total_build_tokens": 40173123,
+      "total_query_tokens": 2617769
+    },
+    "avg_query_token_delta": -629.1680000000006,
+    "total_query_token_delta": -314584
+  },
+  "prediction_changes_preview": [
+    {
+      "record_key": "d823172b5baf1eff81acb20c",
+      "question_type": "single-session-user",
+      "old_answer": "February 2023",
+      "new_answer": "February",
+      "old_label": "WRONG",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "d0d64a9b8426fda3ea1cd266",
+      "question_type": "single-session-user",
+      "old_answer": "a yellow dress and a pair of earrings to match",
+      "new_answer": "a yellow dress and a pair of earrings",
+      "old_label": "CORRECT",
+      "new_label": "CORRECT"
+    },
+    {
+      "record_key": "b83710230ccbc489477d4bb9",
+      "question_type": "single-session-user",
+      "old_answer": "Your sister",
+      "new_answer": "sister",
+      "old_label": "CORRECT",
+      "new_label": "CORRECT"
+    },
+    {
+      "record_key": "10396ccd71e93950af629a7d",
+      "question_type": "single-session-user",
+      "old_answer": "The provided information is not enough.",
+      "new_answer": "The provided information is not enough to determine the name of your hamster.",
+      "old_label": "WRONG",
+      "new_label": "CORRECT"
+    },
+    {
+      "record_key": "130329eb8ec5dc8ca92aa3f4",
+      "question_type": "single-session-user",
+      "old_answer": "The provided information is not enough to determine what the user's dad gave as a birthday gift.",
+      "new_answer": "The provided information is not enough to determine what your dad gave you as a birthday gift.",
+      "old_label": "CORRECT",
+      "new_label": "CORRECT"
+    },
+    {
+      "record_key": "5a37a93ab3c66f6b71a739ad",
+      "question_type": "multi-session",
+      "old_answer": "5 model kits: Revell F-15 Eagle, 1/72 scale B-29 bomber, 1/24 scale '69 Camaro, 1/16 scale German Tiger I tank, and Tamiya 1/48 scale Spitfire Mk.V",
+      "new_answer": "5",
+      "old_label": "CORRECT",
+      "new_label": "CORRECT"
+    },
+    {
+      "record_key": "6778983aaf41f9823f490730",
+      "question_type": "multi-session",
+      "old_answer": "2",
+      "new_answer": "1",
+      "old_label": "WRONG",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "0ae3182c3a2b012937a96b9d",
+      "question_type": "multi-session",
+      "old_answer": "140 hours",
+      "new_answer": "170 hours",
+      "old_label": "CORRECT",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "27a28d49af7d327bb9f25309",
+      "question_type": "multi-session",
+      "old_answer": "The provided information is not enough to determine the exact amount spent more per night in Hawaii compared to Tokyo.",
+      "new_answer": "The provided information is not enough to determine how much more was spent on accommodations per night in Hawaii compared to Tokyo.",
+      "old_label": "WRONG",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "1ee64dcf571ca60c0e4ef6c1",
+      "question_type": "multi-session",
+      "old_answer": "$5,850",
+      "new_answer": "5850",
+      "old_label": "CORRECT",
+      "new_label": "CORRECT"
+    },
+    {
+      "record_key": "e9095a025f6dbf39641ff990",
+      "question_type": "multi-session",
+      "old_answer": "3",
+      "new_answer": "4",
+      "old_label": "WRONG",
+      "new_label": "CORRECT"
+    },
+    {
+      "record_key": "cadcc65007e9932edef2d0de",
+      "question_type": "multi-session",
+      "old_answer": "2",
+      "new_answer": "1",
+      "old_label": "CORRECT",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "5662691a4bc7b9290f5727a8",
+      "question_type": "multi-session",
+      "old_answer": "720",
+      "new_answer": "$220",
+      "old_label": "CORRECT",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "d40dd68cc120ce5ad9515578",
+      "question_type": "multi-session",
+      "old_answer": "4",
+      "new_answer": "8",
+      "old_label": "WRONG",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "79579c32a1b250cf632b717b",
+      "question_type": "multi-session",
+      "old_answer": "4",
+      "new_answer": "The provided information is not enough.",
+      "old_label": "WRONG",
+      "new_label": "CORRECT"
+    },
+    {
+      "record_key": "0a537c6dfde0742723049ca4",
+      "question_type": "single-session-preference",
+      "old_answer": "Think Tank Photo, Lowepro, F-Stop Gear, Peak Design, MindShift Gear (camera bags), cases or pouches for the Godox V1 flash, and external battery packs for the Sony A7R IV.",
+      "new_answer": "Think Tank Photo, Lowepro, F-Stop Gear, Peak Design, MindShift Gear",
+      "old_label": "CORRECT",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "158692bc43ef28e0e43d991f",
+      "question_type": "single-session-preference",
+      "old_answer": "The provided information is not enough to recommend specific recent publications or conferences.",
+      "new_answer": "The provided information is not enough to recommend recent publications or conferences.",
+      "old_label": "WRONG",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "8b879add5b99d7c3de847de7",
+      "question_type": "single-session-preference",
+      "old_answer": "The provided information is not enough to recommend a specific show or movie.",
+      "new_answer": "The provided information is not enough to recommend a specific show or movie that matches all the requested criteria: politics, conservative ideology, and set around the 20th century.",
+      "old_label": "WRONG",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "1d4fed4463c88e0a44c6281c",
+      "question_type": "single-session-preference",
+      "old_answer": "Try a guided Body Scan meditation using Insight Timer, read a book, or practice light stretching to wind down before 9:30 pm.",
+      "new_answer": "Try a guided meditation such as the 'Body Scan' on Insight Timer, read a book, or practice light stretching to wind down before 9:30 pm.",
+      "old_label": "WRONG",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "ac5399ae37b4c99dcc33ba43",
+      "question_type": "single-session-preference",
+      "old_answer": "Purge and categorize utensils, assign a home for each group, use dividers, store frequently used items front and center, utilize vertical space, store small items in containers, hang utensils, label the holder, clean the holder regularly, store by task.",
+      "new_answer": "Purge and categorize utensils, assign a home, use dividers, store frequently used items front and center, utilize vertical space, store small items in containers, hang utensils, label the holder, clean holder regularly, store by task",
+      "old_label": "WRONG",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "3560e79cab2520e5c40eb980",
+      "question_type": "single-session-preference",
+      "old_answer": "Try recipes like Chili Con Carne, Pulled Pork, Beef Stew, Lentil Curry, Roasted Vegetable Stew, Black Bean Chili, Vegan Mac and Cheese, and Chickpea and Spinach Curry. For yogurt, experiment with flavorings like vanilla, fruit, cinnamon, or honey, and use sweeteners like maple syrup or stevia. Use a variety of vegetables, grains, and spices to enhance flavor and nutrition.",
+      "new_answer": "Try recipes like Chili Con Carne, Pulled Pork, Beef Stew, Lentil Curry, Roasted Vegetable Stew, Black Bean Chili, and Vegan Mac and Cheese. Use diverse vegetables, experiment with spices, rinse canned goods, and add vinegar or lemon juice for better flavor.",
+      "old_label": "CORRECT",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "9c4dfeccc8eedfdf0598998b",
+      "question_type": "single-session-preference",
+      "old_answer": "1. Virtual Coffee Breaks\n2. Online Team Activities\n3. Collaborative Projects\n4. Social Channels\n5. Recognition and Celebrations\n6. Interest-Based Groups",
+      "new_answer": "Virtual Coffee Breaks, Online Team Activities, Collaborative Projects, Social Channels, Recognition and Celebrations, Interest-Based Groups",
+      "old_label": "WRONG",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "73ce3d0bb5e45781a780269c",
+      "question_type": "single-session-preference",
+      "old_answer": "Grilled Chicken or Fish with Roasted Vegetables, Quinoa or Brown Rice Bowl Bar, Veggie-Packed Pasta Primavera, Stuffed Bell Peppers, Grilled Chicken and Berry Salad, Mediterranean Mash-Up, Roasted Veggie Delight, Tuna Salad Niçoise, Southwestern Fiesta, Autumn Harvest, Protein Power, Winter Wonder",
+      "new_answer": "Grilled Chicken or Fish with Roasted Vegetables, Quinoa or Brown Rice Bowl Bar, Veggie-Packed Pasta Primavera, Stuffed Bell Peppers",
+      "old_label": "WRONG",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "acd33e2950f233611481511a",
+      "question_type": "single-session-preference",
+      "old_answer": "Try joining a 30-day painting challenge and explore art on social media platforms like Instagram, especially themed content such as flower paintings, to spark new ideas.",
+      "new_answer": "Try joining a 30-day painting challenge and explore artwork on social media platforms like Instagram, especially themed content such as flower paintings, to spark new ideas.",
+      "old_label": "CORRECT",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "39f2adfa686f1fa663896c83",
+      "question_type": "single-session-preference",
+      "old_answer": "Pimm's Cup with a Twist",
+      "new_answer": "Summer cocktails with Hendrick's gin",
+      "old_label": "CORRECT",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "08cccaf312a179d4f4b961d3",
+      "question_type": "single-session-preference",
+      "old_answer": "Try adding turbinado sugar and chopped nuts (like almonds or pecans) for a richer flavor and extra crunch. You could also experiment with a pinch of cinnamon or a touch of espresso powder to deepen the taste.",
+      "new_answer": "Try adding turbinado sugar, sliced almonds, or a touch of espresso or cinnamon to enhance flavor and texture in your chocolate chip cookies.",
+      "old_label": "WRONG",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "4247325975aa83eade14f4aa",
+      "question_type": "single-session-preference",
+      "old_answer": "The provided information is not enough to give tips on rearranging bedroom furniture.",
+      "new_answer": "The provided information is not enough to give tips for rearranging bedroom furniture.",
+      "old_label": "WRONG",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "57a8eaff719175f661e99e7a",
+      "question_type": "single-session-preference",
+      "old_answer": "Use stevia, monk fruit, or yacon syrup instead of honey; use unsweetened almond milk or cashew/oat milk; add spices like cinnamon or nutmeg; include a pinch of salt; experiment with flavor extracts; add probiotics or collagen; use a reusable container",
+      "new_answer": "Try using almond milk, vanilla extract, and honey as a base, then enhance with stevia or monk fruit sweetener, cinnamon, nutmeg, or cardamom for flavor. Consider using cashew milk for creaminess and adding a pinch of sea salt or collagen peptides for extra nutrition.",
+      "old_label": "CORRECT",
+      "new_label": "CORRECT"
+    },
+    {
+      "record_key": "709447e6ba096ba2b432bcce",
+      "question_type": "single-session-preference",
+      "old_answer": "Yes, your sneezing might be related to your living room, especially due to dust and cat shedding, which can trigger allergies.",
+      "new_answer": "Yes, it might be your living room, especially if it has dust or pet dander from your cat.",
+      "old_label": "WRONG",
+      "new_label": "CORRECT"
+    },
+    {
+      "record_key": "676f08cb0b1213adf24077d5",
+      "question_type": "single-session-preference",
+      "old_answer": "Yes, attending your high school reunion could be a good idea, as you have positive memories and feelings of nostalgia tied to your high school years.",
+      "new_answer": "Yes, it would be a good idea to attend your high school reunion, as you have positive memories and feelings of nostalgia tied to your high school experience.",
+      "old_label": "WRONG",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "f9ae007ab8a08057a78ba572",
+      "question_type": "single-session-preference",
+      "old_answer": "You can buy a NAS device now, as options are available and well-documented. There is no indication to wait.",
+      "new_answer": "The provided information is not enough to determine whether to buy a NAS device now or wait.",
+      "old_label": "WRONG",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "c1aa11de095f137c23c26fae",
+      "question_type": "single-session-preference",
+      "old_answer": "Consider visiting Disneyland for Halloween Time (mid-September) and holiday festivities, Knott's Berry Farm for Knott's Scary Farm, Six Flags Magic Mountain for Fright Fest, and Universal Studios Hollywood for Halloween Horror Nights and Grinchmas. Each offers unique thrill rides, themed food, and nighttime shows.",
+      "new_answer": "Consider visiting Disneyland for Halloween Time and holiday festivities, Knott's Berry Farm for Knott's Scary Farm, Six Flags Magic Mountain for Fright Fest, and Universal Studios Hollywood for Halloween Horror Nights and Grinchmas. All offer themed rides, food, and special events.",
+      "old_label": "CORRECT",
+      "new_label": "CORRECT"
+    },
+    {
+      "record_key": "1a7ba85bff9b7cf5acd77b2c",
+      "question_type": "single-session-preference",
+      "old_answer": "Try exploring recipes on Allrecipes, Epicurious, Cooking Light, Food.com, The Kitchn, or MyFitnessPal. For specific ideas, consider Mexican-inspired dishes with chicken or veggies, or BBQ sauce and brisket recipes.",
+      "new_answer": "Try exploring recipes on Allrecipes, Epicurious, Cooking Light, Food.com, The Kitchn, or MyFitnessPal. Consider Mexican-inspired dishes with chicken or veggies, and pair them with homemade spicy mayo or chipotle ranch dressing.",
+      "old_label": "WRONG",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "589b37fd0ba97f533c07aa37",
+      "question_type": "single-session-preference",
+      "old_answer": "Visit Red Rocks Amphitheater and try nearby BBQ restaurants.",
+      "new_answer": "Check out Denver's music scene and attend concerts at Red Rocks Amphitheater. Also, try some good BBQ places near Red Rocks Amphitheater.",
+      "old_label": "WRONG",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "db9a99c7243b91a6edc16879",
+      "question_type": "single-session-preference",
+      "old_answer": "['Planet Earth', 'Blue Planet', 'Dynasties', 'Chasing Coral', 'The Last Lions', 'The Cave', 'The Jinx', 'Fyre: The Greatest Party That Never Happened']",
+      "new_answer": "Planet Earth, Blue Planet, Dynasties, Chasing Coral, The Last Lions, The Cave, The Jinx, Fyre: The Greatest Party That Never Happened",
+      "old_label": "CORRECT",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "5819961e927d864a6b8d3a21",
+      "question_type": "single-session-preference",
+      "old_answer": "Consider a phone wallet case from brands like Nomad, Fossil, or Bellroy; a high-quality screen protector for your iPhone 13 Pro; a portable power bank (like the one from Best Buy you already own); and a wireless charging power bank with features such as fast charging and safety certifications.",
+      "new_answer": "Consider a phone wallet case (brands: Nomad, Fossil, Bellroy, Incipio, Speck, Case-Mate, Tech21, UAG, Mophie, Spigen), a high-quality screen protector, a portable power bank (like the one from Best Buy), and a wireless charging power bank for cable-free convenience.",
+      "old_label": "WRONG",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "dadf0d7c77ff05ffc3f75b08",
+      "question_type": "single-session-preference",
+      "old_answer": "Listen to podcasts such as 'Hardcore History,' 'Lore,' and 'The Dollop'; create a playlist to alternate between them for variety and engagement during your commute.",
+      "new_answer": "Listen to podcasts such as 'Hardcore History,' 'Lore,' and 'The Dollop'; create a playlist to organize your listening schedule and alternate between shows to stay engaged.",
+      "old_label": "CORRECT",
+      "new_label": "CORRECT"
+    },
+    {
+      "record_key": "9627425ea30eebbcf4c03747",
+      "question_type": "single-session-preference",
+      "old_answer": "Use the JR Yamanote Line from Shinjuku to Shimbashi, then transfer to the Tokyo Metro Ginza Line to Tsukijishijo Station. Travel time is 30-40 minutes, fare is ¥420-450. Use your Suica card, wear comfortable shoes, and visit early to avoid crowds.",
+      "new_answer": "Use the JR Yamanote Line from Shinjuku to Shimbashi, then transfer to the Tokyo Metro Ginza Line to Tsukijishijo Station. Travel time is about 30-40 minutes, fare is ¥420-450. Touch your Suica card at gates, wear comfortable shoes, and consider visiting early morning to avoid crowds. Buy tickets online in advance to skip lines.",
+      "old_label": "CORRECT",
+      "new_label": "CORRECT"
+    },
+    {
+      "record_key": "fd25f68eeef013c491d86a1c",
+      "question_type": "multi-session",
+      "old_answer": "3",
+      "new_answer": "5",
+      "old_label": "WRONG",
+      "new_label": "CORRECT"
+    },
+    {
+      "record_key": "e3353ec1ec904aa2876b1a3e",
+      "question_type": "multi-session",
+      "old_answer": "5 tomato plants and 3 cucumber plants",
+      "new_answer": "The provided information is not enough.",
+      "old_label": "CORRECT",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "fda441172001a9a37348a9c9",
+      "question_type": "multi-session",
+      "old_answer": "12000",
+      "new_answer": "The provided information is not enough to determine the total number of people reached by both the Facebook ad campaign and the Instagram influencer collaboration.",
+      "old_label": "CORRECT",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "977328ab6b84d5f649283e49",
+      "question_type": "multi-session",
+      "old_answer": "11",
+      "new_answer": "32",
+      "old_label": "CORRECT",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "f685467110dd402bd9d31cc9",
+      "question_type": "multi-session",
+      "old_answer": "3000",
+      "new_answer": "The provided information is not enough to determine the total distance covered in the four road trips.",
+      "old_label": "CORRECT",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "cdde2a2cdd99eb2b49880db5",
+      "question_type": "multi-session",
+      "old_answer": "2",
+      "new_answer": "3",
+      "old_label": "WRONG",
+      "new_label": "CORRECT"
+    },
+    {
+      "record_key": "754c7fcd90f79025d3cf38eb",
+      "question_type": "multi-session",
+      "old_answer": "2,000",
+      "new_answer": "1998",
+      "old_label": "WRONG",
+      "new_label": "CORRECT"
+    },
+    {
+      "record_key": "1db38df3ec49cf8d8220ddc4",
+      "question_type": "multi-session",
+      "old_answer": "43",
+      "new_answer": "The provided information is not enough.",
+      "old_label": "CORRECT",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "7a09015c87580f2e98c3f5cd",
+      "question_type": "multi-session",
+      "old_answer": "12 comments on the recent Facebook Live session and 21 comments on the most popular YouTube video.",
+      "new_answer": "33",
+      "old_label": "CORRECT",
+      "new_label": "CORRECT"
+    },
+    {
+      "record_key": "cf838617945ef6dd5954945a",
+      "question_type": "multi-session",
+      "old_answer": "The provided information is not enough to determine the total cost, as the iPad's cost is not mentioned.",
+      "new_answer": "The provided information is not enough to determine the total cost, as the iPad's cost is not mentioned in any memory.",
+      "old_label": "CORRECT",
+      "new_label": "CORRECT"
+    },
+    {
+      "record_key": "8a5fdd7024be02ee912f7516",
+      "question_type": "multi-session",
+      "old_answer": "50",
+      "new_answer": "$50",
+      "old_label": "WRONG",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "935286d4a8172fdd1b206147",
+      "question_type": "temporal-reasoning",
+      "old_answer": "4",
+      "new_answer": "4 weeks",
+      "old_label": "CORRECT",
+      "new_label": "CORRECT"
+    }
+  ],
+  "label_changes_preview": [
+    {
+      "record_key": "10396ccd71e93950af629a7d",
+      "question_type": "single-session-user",
+      "old_label": "WRONG",
+      "new_label": "CORRECT"
+    },
+    {
+      "record_key": "201171d2c2ac14a0b41dd400",
+      "question_type": "single-session-user",
+      "old_label": "CORRECT",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "004224772b616dd627a96a35",
+      "question_type": "single-session-user",
+      "old_label": "CORRECT",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "8c9932c7f15a04659e83d505",
+      "question_type": "multi-session",
+      "old_label": "CORRECT",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "0ae3182c3a2b012937a96b9d",
+      "question_type": "multi-session",
+      "old_label": "CORRECT",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "e9095a025f6dbf39641ff990",
+      "question_type": "multi-session",
+      "old_label": "WRONG",
+      "new_label": "CORRECT"
+    },
+    {
+      "record_key": "cadcc65007e9932edef2d0de",
+      "question_type": "multi-session",
+      "old_label": "CORRECT",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "4be721ae00fda00fbb5ac16b",
+      "question_type": "multi-session",
+      "old_label": "WRONG",
+      "new_label": "CORRECT"
+    },
+    {
+      "record_key": "5662691a4bc7b9290f5727a8",
+      "question_type": "multi-session",
+      "old_label": "CORRECT",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "b6d4bc26da6c5292c4a9645a",
+      "question_type": "multi-session",
+      "old_label": "WRONG",
+      "new_label": "CORRECT"
+    },
+    {
+      "record_key": "79579c32a1b250cf632b717b",
+      "question_type": "multi-session",
+      "old_label": "WRONG",
+      "new_label": "CORRECT"
+    },
+    {
+      "record_key": "0a537c6dfde0742723049ca4",
+      "question_type": "single-session-preference",
+      "old_label": "CORRECT",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "3560e79cab2520e5c40eb980",
+      "question_type": "single-session-preference",
+      "old_label": "CORRECT",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "acd33e2950f233611481511a",
+      "question_type": "single-session-preference",
+      "old_label": "CORRECT",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "39f2adfa686f1fa663896c83",
+      "question_type": "single-session-preference",
+      "old_label": "CORRECT",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "dd0bbac643885d79aa0ac2a2",
+      "question_type": "single-session-preference",
+      "old_label": "WRONG",
+      "new_label": "CORRECT"
+    },
+    {
+      "record_key": "709447e6ba096ba2b432bcce",
+      "question_type": "single-session-preference",
+      "old_label": "WRONG",
+      "new_label": "CORRECT"
+    },
+    {
+      "record_key": "db9a99c7243b91a6edc16879",
+      "question_type": "single-session-preference",
+      "old_label": "CORRECT",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "fd25f68eeef013c491d86a1c",
+      "question_type": "multi-session",
+      "old_label": "WRONG",
+      "new_label": "CORRECT"
+    },
+    {
+      "record_key": "e3353ec1ec904aa2876b1a3e",
+      "question_type": "multi-session",
+      "old_label": "CORRECT",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "fda441172001a9a37348a9c9",
+      "question_type": "multi-session",
+      "old_label": "CORRECT",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "977328ab6b84d5f649283e49",
+      "question_type": "multi-session",
+      "old_label": "CORRECT",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "f685467110dd402bd9d31cc9",
+      "question_type": "multi-session",
+      "old_label": "CORRECT",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "cdde2a2cdd99eb2b49880db5",
+      "question_type": "multi-session",
+      "old_label": "WRONG",
+      "new_label": "CORRECT"
+    },
+    {
+      "record_key": "754c7fcd90f79025d3cf38eb",
+      "question_type": "multi-session",
+      "old_label": "WRONG",
+      "new_label": "CORRECT"
+    },
+    {
+      "record_key": "1db38df3ec49cf8d8220ddc4",
+      "question_type": "multi-session",
+      "old_label": "CORRECT",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "128a1895ab851f148bbea790",
+      "question_type": "multi-session",
+      "old_label": "CORRECT",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "dbfe13e18e9d7d354d881b9b",
+      "question_type": "temporal-reasoning",
+      "old_label": "WRONG",
+      "new_label": "CORRECT"
+    },
+    {
+      "record_key": "d1194f5e15857de1239046fc",
+      "question_type": "temporal-reasoning",
+      "old_label": "CORRECT",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "2152374e46762b936b18b5c5",
+      "question_type": "temporal-reasoning",
+      "old_label": "WRONG",
+      "new_label": "CORRECT"
+    },
+    {
+      "record_key": "325a0f2d711df68b798236a3",
+      "question_type": "temporal-reasoning",
+      "old_label": "WRONG",
+      "new_label": "CORRECT"
+    },
+    {
+      "record_key": "1cdde2342583344c28e9a6aa",
+      "question_type": "temporal-reasoning",
+      "old_label": "WRONG",
+      "new_label": "CORRECT"
+    },
+    {
+      "record_key": "2a18e972b47c27c2c1f2fdb8",
+      "question_type": "temporal-reasoning",
+      "old_label": "WRONG",
+      "new_label": "CORRECT"
+    },
+    {
+      "record_key": "065dd6c11fbd61bdd3272de3",
+      "question_type": "temporal-reasoning",
+      "old_label": "CORRECT",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "cc661732c389cb5e255e2572",
+      "question_type": "temporal-reasoning",
+      "old_label": "CORRECT",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "6d6f6607745c774b92aa396a",
+      "question_type": "temporal-reasoning",
+      "old_label": "WRONG",
+      "new_label": "CORRECT"
+    },
+    {
+      "record_key": "1f7723fca5c03dfc8ff0e0ca",
+      "question_type": "temporal-reasoning",
+      "old_label": "CORRECT",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "21d531ffd64bfdf571102b20",
+      "question_type": "temporal-reasoning",
+      "old_label": "CORRECT",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "71c309443747c6d8faf4a7d2",
+      "question_type": "temporal-reasoning",
+      "old_label": "CORRECT",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "29b6493e3be5226d857ed549",
+      "question_type": "temporal-reasoning",
+      "old_label": "CORRECT",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "997f749ec7c829ed33f026b8",
+      "question_type": "knowledge-update",
+      "old_label": "CORRECT",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "767dc4d1e636373a70a888ac",
+      "question_type": "knowledge-update",
+      "old_label": "WRONG",
+      "new_label": "CORRECT"
+    },
+    {
+      "record_key": "7933cff5854d25ce3c9e8901",
+      "question_type": "knowledge-update",
+      "old_label": "WRONG",
+      "new_label": "CORRECT"
+    },
+    {
+      "record_key": "5cd1177644ed9c8b6088d528",
+      "question_type": "single-session-assistant",
+      "old_label": "CORRECT",
+      "new_label": "WRONG"
+    },
+    {
+      "record_key": "c5cf52166fdc154cc1ce1893",
+      "question_type": "single-session-assistant",
+      "old_label": "CORRECT",
+      "new_label": "WRONG"
+    }
+  ],
+  "diagnosis": "Route-aware context budget reduced query tokens but hurt accuracy; truncation/noise control must be more selective than fixed row/char cuts."
+}
