@@ -21,9 +21,9 @@
 
 ## 当前候选
 
-- `stage1_route_snippet_compact_v70_cached.json`：v42 上的 route-scoped 低噪声 compiler 候选。只对 `list_count` 和 `current_state` 使用 `role_query_snippet` 压缩长行，temporal/fact/profile 保持 v42 full rows；build、retrieval、evidence_report、operation workpad 和模型协议不变。假设是减少高 token route 的上下文噪声，而不是删除 rows 或继续扩大 repair。
+暂无新的顶层候选配置。下一轮应从 `stage1_operation_workpad_v42_cached.json` 出发，做结构化 candidate organization，而不是继续做纯 snippet、纯压缩或 broad repair。
 
-v69 supported-uncertain repair 已完成 LongMemEval-S full：full judge `0.760`，低于 v42 修复控制 `0.772`；实际改动 6 条中 `WRONG->CORRECT 2`、`WRONG->WRONG 4`，但 full judge 重跑受 same-answer variance 影响明显。结论是局部小正向但不足以作为主线，顶层 config 删除，只保留 formal 快照。v67/v68 preliminary supported-uncertain repair 因 full avg query tokens 略超 6K，不作为主线配置保留。v66 route-aware context budget 已完成 LongMemEval-S full：query token 明显下降但 accuracy 低于 v42，顶层 config 删除，只保留 formal 快照。v65 unit/sum mechanical finalizer 已完成 LongMemEval-S full：accuracy 低于 v42，且不是纯 finalizer 正向消融；顶层 config 和源码分支删除，只保留 formal 快照。v64 list_count-only adjacent-turn window BM25 也已验证负向，只保留 diagnostic 快照。
+v70 route snippet compact 已完成 LongMemEval-S full：accuracy `0.758`，低于 v42 修复控制 `0.772`；seeded cache 控制后 prediction_changed `26/500`，changed subset `CORRECT->WRONG 13`、`WRONG->CORRECT 3`，主要损失来自 `list_count`。结论是纯 query snippet 压缩负向，顶层 config 删除，只保留 formal 快照。v69 supported-uncertain repair 已完成 LongMemEval-S full：full judge `0.760`，低于 v42 修复控制 `0.772`；实际改动 6 条中 `WRONG->CORRECT 2`、`WRONG->WRONG 4`，但 full judge 重跑受 same-answer variance 影响明显。结论是局部小正向但不足以作为主线，顶层 config 删除，只保留 formal 快照。v67/v68 preliminary supported-uncertain repair 因 full avg query tokens 略超 6K，不作为主线配置保留。v66 route-aware context budget 已完成 LongMemEval-S full：query token 明显下降但 accuracy 低于 v42，顶层 config 删除，只保留 formal 快照。v65 unit/sum mechanical finalizer 已完成 LongMemEval-S full：accuracy 低于 v42，且不是纯 finalizer 正向消融；顶层 config 和源码分支删除，只保留 formal 快照。v64 list_count-only adjacent-turn window BM25 也已验证负向，只保留 diagnostic 快照。
 
 负向诊断只保留在对应 `experiments/diagnostic/<run_id>/config_snapshot.json` 中，不保留顶层 config。
 
