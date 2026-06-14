@@ -1,0 +1,109 @@
+{
+  "answer_changed": 66,
+  "baseline_accuracy": 0.778,
+  "baseline_correct": 389,
+  "baseline_run": "stage1_finalizer_duration_fix_v73_lme_s_full_24396f9",
+  "by_information_need": {
+    "current_state": {
+      "CORRECT->CORRECT": 12,
+      "CORRECT->WRONG": 1,
+      "WRONG->WRONG": 9
+    },
+    "fact_lookup": {
+      "CORRECT->CORRECT": 148,
+      "CORRECT->WRONG": 2,
+      "WRONG->CORRECT": 2,
+      "WRONG->WRONG": 31
+    },
+    "list_count": {
+      "CORRECT->CORRECT": 89,
+      "CORRECT->WRONG": 7,
+      "WRONG->CORRECT": 2,
+      "WRONG->WRONG": 21
+    },
+    "profile_preference": {
+      "CORRECT->CORRECT": 8,
+      "CORRECT->WRONG": 2,
+      "WRONG->WRONG": 5
+    },
+    "temporal_lookup": {
+      "CORRECT->CORRECT": 110,
+      "CORRECT->WRONG": 10,
+      "WRONG->CORRECT": 8,
+      "WRONG->WRONG": 33
+    }
+  },
+  "by_question_type": {
+    "knowledge-update": {
+      "CORRECT->CORRECT": 63,
+      "CORRECT->WRONG": 1,
+      "WRONG->CORRECT": 1,
+      "WRONG->WRONG": 13
+    },
+    "multi-session": {
+      "CORRECT->CORRECT": 77,
+      "CORRECT->WRONG": 10,
+      "WRONG->CORRECT": 4,
+      "WRONG->WRONG": 42
+    },
+    "single-session-assistant": {
+      "CORRECT->CORRECT": 53,
+      "WRONG->CORRECT": 1,
+      "WRONG->WRONG": 2
+    },
+    "single-session-preference": {
+      "CORRECT->CORRECT": 11,
+      "CORRECT->WRONG": 4,
+      "WRONG->CORRECT": 2,
+      "WRONG->WRONG": 13
+    },
+    "single-session-user": {
+      "CORRECT->CORRECT": 64,
+      "CORRECT->WRONG": 2,
+      "WRONG->WRONG": 4
+    },
+    "temporal-reasoning": {
+      "CORRECT->CORRECT": 99,
+      "CORRECT->WRONG": 5,
+      "WRONG->CORRECT": 4,
+      "WRONG->WRONG": 25
+    }
+  },
+  "candidate_accuracy": 0.758,
+  "candidate_correct": 379,
+  "candidate_run": "stage1_structured_guide_row_features_v78_controlled_lme_s_full_dc4ec2e",
+  "changed_answer_by_information_need": {
+    "list_count": {
+      "CORRECT->CORRECT": 7,
+      "CORRECT->WRONG": 5,
+      "WRONG->CORRECT": 1,
+      "WRONG->WRONG": 4
+    },
+    "temporal_lookup": {
+      "CORRECT->CORRECT": 19,
+      "CORRECT->WRONG": 9,
+      "WRONG->CORRECT": 8,
+      "WRONG->WRONG": 13
+    }
+  },
+  "changed_answer_transitions": {
+    "CORRECT->CORRECT": 26,
+    "CORRECT->WRONG": 14,
+    "WRONG->CORRECT": 9,
+    "WRONG->WRONG": 17
+  },
+  "n_shared": 500,
+  "note": "Offline judge comparison after prediction; not used by prediction pipeline.",
+  "same_answer_transitions": {
+    "CORRECT->CORRECT": 341,
+    "CORRECT->WRONG": 8,
+    "WRONG->CORRECT": 3,
+    "WRONG->WRONG": 82
+  },
+  "transitions": {
+    "CORRECT->CORRECT": 367,
+    "CORRECT->WRONG": 22,
+    "WRONG->CORRECT": 12,
+    "WRONG->WRONG": 99
+  }
+}

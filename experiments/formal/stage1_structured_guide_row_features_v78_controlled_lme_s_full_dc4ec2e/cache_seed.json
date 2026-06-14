@@ -1,0 +1,10 @@
+{
+  "cache_path": "outputs/cache/qwen3_answer_v78_row_feature_guide.sqlite",
+  "clean_note": "Seeded only from prediction-time v73 traces. Cache keys include exact prompt text, so changed v78 prompts could not hit old answers. No labels, judge outputs, benchmark categories, sample ids, or test feedback were read.",
+  "namespace": "stage1_row_feature_guide_v78_qwen3_30b",
+  "prediction_cache_hits": 231,
+  "prediction_cache_misses": 269,
+  "seeded_rows": 500,
+  "source_rows": 500,
+  "source_traces": "outputs/formal/stage1_finalizer_duration_fix_v73_lme_s_full_24396f9/traces.jsonl"
+}

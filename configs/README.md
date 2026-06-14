@@ -22,7 +22,9 @@
 
 ## 当前候选
 
-`stage1_structured_guide_row_features_v78_cached.json`：当前待验证候选。基于 v73，不改 build/retrieval/raw evidence budget，不新增 LLM 调用，只在已有 `Structured Evidence Guide` 中为 `list_count` / `temporal_lookup` 增加 raw row 的数量和时间短特征。设计依据来自 v73-vs-GPT badcase、creating001 的 evidence-first query 组织、SimpleMem 的 structured context，以及 v40/v31/v48 负向结论：不再堆更长 evidence_report 规则或强 candidate map，而是提供低成本、source-preserving 的候选特征索引。LongMemEval-S 主线仍是 `stage1_finalizer_duration_fix_v73_cached.json`；LoCoMo 主线仍是 `stage1_answer_format_guard_v35_cached.json`。v78 只有 full benchmark accuracy 和 token 结果支撑后才能进入主线。
+当前没有新的顶层候选配置。LongMemEval-S 主线仍是 `stage1_finalizer_duration_fix_v73_cached.json`；LoCoMo 主线仍是 `stage1_answer_format_guard_v35_cached.json`。新方法进入顶层前必须先有 full benchmark accuracy 和 token 结果支撑。
+
+v78 structured guide row features 已完成 LongMemEval-S controlled full：DeepSeek judge accuracy `0.758`，低于 v73 `0.778`；avg query tokens `5891.06`，token 合格。changed-answer method surface 为 9 gain / 14 loss，说明浅层数量/时间 row feature 会提高候选显著性但不能稳定解决去重、scope 和 endpoint 选择。结论是负向；顶层 config 和源码开关已删除，只保留 formal `config_snapshot.json`。
 
 v77 已完成 LongMemEval-S full：fresh DeepSeek judge accuracy `0.772`，低于 v73 `0.778`；avg query tokens 与 v73 相同，finalizer applied `42/500`。changed subset 对 v73 为 4 gain / 4 loss，controlled accuracy 持平。结论是 missing reason enrichment 不进入主线；顶层配置和源码分支已删除，只保留 formal `config_snapshot.json`。
 
