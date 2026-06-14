@@ -31,7 +31,9 @@ LongMemEval-S 当前最好是 `stage1_evidence_answer_detail_v88_cached.json`；
 
 v83 personalized advice contract 已完成 LongMemEval-S full：DeepSeek judge accuracy `0.792`，与 v80 持平，高于 v81 `0.790`；avg_build_tokens `80346.246`，avg_query_tokens `5912.794`，contract 触发 `29/500`。相对 v81 的 prediction changed subset 为 `WRONG->CORRECT 2`、`CORRECT->WRONG 4`，净负；overall +1 主要来自未改 prediction 的 fresh judge variance。结论是 best-tie 候选，不是新 best；后续 personalized advice 应转向 build-side profile/event anchoring 或 retrieval anchoring，而不是继续加 reader prompt。
 
-v88 evidence answer detail 已完成 LongMemEval-S formal full：DeepSeek judge accuracy `0.800`，400/500；avg_build_tokens `80346.246`，avg_query_tokens `5912.794`，answer/build cache 全命中，finalizer applied `45/500`。相对 v80/v83 fresh full judge 均为净 `+4`。结论是 clean、零额外 LLM token，并首次达到 LME 0.80 baseline target；下一步需要用同一算法跑 LoCoMo non-adversarial full。
+v88 evidence answer detail 已完成 LongMemEval-S formal full：DeepSeek judge accuracy `0.800`，400/500；avg_build_tokens `80346.246`，avg_query_tokens `5912.794`，answer/build cache 全命中，finalizer applied `45/500`。相对 v80/v83 fresh full judge 均为净 `+4`。结论是 clean、零额外 LLM token，并首次达到 LME 0.80 baseline target。
+
+v88 同一 config 已完成 LoCoMo non-adversarial full：DeepSeek judge accuracy `0.755844`，低于 v35 valid-only `0.780377`；avg_build_tokens `58386.008`，avg_query_tokens `3938.612`，token 合格。结论是 v88 不能作为统一主线；下一步需要设计 v89，把 v35 的 LoCoMo retrieval/format 优势与 v88 的窄 finalizer 组合后双基准 full 验证。
 
 v82 fact-operation workpad 已完成 LongMemEval-S full：DeepSeek judge accuracy `0.786`，低于 v81 `0.790` 和 v80 `0.792`；avg_build_tokens `80346.246`，avg_query_tokens `5928.91`，token 合格。它只对 `fact_lookup` 中由问题文本触发的数值/集合操作增加 private operation workpad，但 changed subset 相对 v81 为 `WRONG->CORRECT 1`、`CORRECT->WRONG 2`。结论是负向；顶层配置删除，只保留 formal `config_snapshot.json`。
 
