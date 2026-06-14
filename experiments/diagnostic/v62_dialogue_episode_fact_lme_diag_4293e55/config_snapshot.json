@@ -1,0 +1,138 @@
+{
+  "answer": {
+    "base_url": "http://127.0.0.1:8000/v1",
+    "cache": {
+      "enabled": true,
+      "namespace": "stage1_dialogue_episode_fact_v62_qwen3_30b",
+      "path": "outputs/cache/qwen3_answer_v62_dialogue_episode.sqlite"
+    },
+    "finalizer": {
+      "enable_count_correction": false,
+      "enable_duration_rounding_correction": true,
+      "enable_money_sum_correction": false,
+      "enabled": true,
+      "mode": "structured_evidence_mechanical"
+    },
+    "max_input_tokens": 131072,
+    "max_output_tokens": 16384,
+    "max_tokens": 16384,
+    "mode": "openai_compatible",
+    "model": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "output_format": "json_answer",
+    "temperature": 0,
+    "timeout": 600
+  },
+  "build_memory": {
+    "base_url": "http://127.0.0.1:8000/v1",
+    "cache": {
+      "enabled": true,
+      "namespace": "stage1_agent_memory_v1_qwen3_30b_cold",
+      "path": "outputs/cache/qwen3_build_memory.sqlite"
+    },
+    "drop_query_stopwords": true,
+    "enabled": true,
+    "include_superseded": false,
+    "include_superseded_information_needs": [
+      "temporal_lookup",
+      "list_count"
+    ],
+    "max_chars_per_turn": 500,
+    "max_records_per_chunk": 20,
+    "max_sources_per_record": 4,
+    "max_tokens": 2048,
+    "max_turns_per_chunk": 80,
+    "mode": "openai_compatible",
+    "model": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "temperature": 0,
+    "timeout": 240,
+    "top_k": 20
+  },
+  "compiler": {
+    "answer_style": "concise",
+    "evidence_order": "retrieval",
+    "evidence_report_contract": true,
+    "evidence_report_information_needs": [
+      "current_state",
+      "fact_lookup",
+      "list_count",
+      "profile_preference",
+      "temporal_lookup"
+    ],
+    "evidence_report_max_items": 8,
+    "evidence_row_labels": false,
+    "final_answer_checklist": false,
+    "max_evidence_chars": 18000,
+    "max_evidence_items": 40,
+    "max_memory_records": 0,
+    "memory_layout": "flat",
+    "memory_order": "retrieval",
+    "operation_workpad": true,
+    "operation_workpad_information_needs": [
+      "list_count",
+      "temporal_lookup"
+    ],
+    "prompt_mode": "external_naive",
+    "route_guidance": false,
+    "route_overrides": {
+      "fact_lookup": {
+        "context_layout": "dialogue_episode",
+        "dialogue_inference_contract": true
+      }
+    },
+    "row_text_mode": "full",
+    "structured_answer_contract": false,
+    "structured_guide": true,
+    "structured_guide_disabled_signals": [
+      "personalized_recommendation"
+    ],
+    "structured_guide_include_memory": false,
+    "structured_guide_include_rows": true,
+    "structured_guide_max_rows": 12,
+    "temporal_grounding": false,
+    "temporal_hints": false,
+    "temporal_text_normalization": true,
+    "temporal_workpad": true,
+    "temporal_workpad_max_pairs": 12,
+    "temporal_workpad_max_rows": 12,
+    "temporal_workpad_scope": "route"
+  },
+  "description": "V62 candidate on top of v42: keep build memory, retrieval, evidence report, operation workpad, and answer model unchanged; for fact_lookup only, compile already-retrieved same-session adjacent rows as dialogue episodes and enable dialogue inference contract. This uses only question text, raw dialogue, and build-stage memory metadata; it does not use gold answers, judge output, benchmark labels, sample ids, row indices, test feedback, or sample-level rules.",
+  "name": "stage1_dialogue_episode_fact_v62_cached",
+  "retrieval": {
+    "dense": {
+      "base_url": "http://127.0.0.1:8001/v1",
+      "batch_size": 32,
+      "cache": {
+        "enabled": true,
+        "namespace": "Qwen/Qwen3-Embedding-0.6B",
+        "path": "outputs/cache/qwen3_embedding.sqlite"
+      },
+      "document_text_mode": "external_naive",
+      "enabled": true,
+      "lexical_protect_top_n": 0,
+      "model": "Qwen/Qwen3-Embedding-0.6B",
+      "protect_top_n": 32,
+      "query_text_mode": "external_naive",
+      "rrf_k": 60,
+      "timeout": 120,
+      "top_k": 40
+    },
+    "drop_query_stopwords": true,
+    "lexical": {
+      "enabled": true
+    },
+    "max_top_k": 40,
+    "neighbor_order": "hit_priority",
+    "neighbor_window": 0,
+    "score_threshold": 0,
+    "session_bm25": {
+      "enabled": false
+    },
+    "top_k": 40
+  },
+  "route": {
+    "enable_broad_list_patterns": false,
+    "enable_recommendation_profile_patterns": true,
+    "temporal_priority_over_recent": false
+  }
+}
