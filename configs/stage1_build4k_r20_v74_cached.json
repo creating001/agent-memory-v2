@@ -1,13 +1,13 @@
 {
-  "name": "stage1_lossless_build8k_r20_v74_cached",
-  "description": "V74 build-side capacity ablation on top of v73/v42: keep retrieval, compiler, answer, and finalizer logic unchanged, but replace compact build extraction with the existing lossless_atomic profile, raise build output max_tokens from 2048 to 8192, and allow up to 20 memory records per chunk. This tests whether a less restrictive but still bounded build-stage memory writer improves raw source activation without using gold, judge output, benchmark labels, sample ids, qids, row indices, test feedback, or sample-level rules. Answer max input/output remains 131072/16384.",
+  "name": "stage1_build4k_r20_v74_cached",
+  "description": "V74 minimal build-output cap ablation on top of v73/v42: keep the typed_compact build prompt, max_records_per_chunk=20, retrieval, compiler, answer, and finalizer logic unchanged, but raise build output max_tokens from 2048 to 4096. This cleanly tests whether the original build output cap is too tight without using gold, judge output, benchmark labels, sample ids, qids, row indices, test feedback, or sample-level rules. Answer max input/output remains 131072/16384.",
   "build_memory": {
     "enabled": true,
     "mode": "openai_compatible",
     "base_url": "http://127.0.0.1:8000/v1",
     "model": "Qwen/Qwen3-30B-A3B-Instruct-2507",
     "temperature": 0,
-    "max_tokens": 8192,
+    "max_tokens": 4096,
     "timeout": 240,
     "max_turns_per_chunk": 80,
     "max_chars_per_turn": 500,
@@ -22,11 +22,9 @@
     ],
     "cache": {
       "enabled": true,
-      "path": "outputs/cache/qwen3_build_memory_lossless8k_r20_v74.sqlite",
-      "namespace": "stage1_lossless_build8k_r20_v74_qwen3_30b"
-    },
-    "prompt_profile": "lossless_atomic",
-    "temporal_fields": true
+      "path": "outputs/cache/qwen3_build_memory_4k_r20_v74.sqlite",
+      "namespace": "stage1_build4k_r20_v74_qwen3_30b"
+    }
   },
   "retrieval": {
     "top_k": 40,
@@ -117,8 +115,8 @@
     "timeout": 600,
     "cache": {
       "enabled": true,
-      "path": "outputs/cache/qwen3_answer_lossless8k_r20_v74.sqlite",
-      "namespace": "stage1_lossless_build8k_r20_v74_qwen3_30b"
+      "path": "outputs/cache/qwen3_answer_4k_r20_v74.sqlite",
+      "namespace": "stage1_build4k_r20_v74_qwen3_30b"
     },
     "finalizer": {
       "enabled": true,

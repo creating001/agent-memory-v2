@@ -18,15 +18,11 @@
 - `stage1_answer_format_guard_v35_cached.json`：v34 上的 answer format guard；修复 JSON answer salvage 和小数 duration，当前 LoCoMo 最好。
 - `stage1_lme_token_safe_format_guard_v36_cached.json`：v28 top40/evidence budget + v35 answer guard；v42 前 LME 最好，也是当前强 baseline。
 - `stage1_operation_workpad_v42_cached.json`：v36 上的短 operation workpad；不新增 LLM 调用，不改 retrieval/build，只在 `list_count` / `temporal_lookup` 的 evidence_report prompt 中加入通用操作聚合纪律。v73 前 LongMemEval-S full 最好，但仅比 v36 净 +1，属于 close-margin 小幅正向。
-- `stage1_lossless_build8k_r20_v74_cached.json`：build-side 容量消融；基于 v73/v42，不改 retrieval/compiler/answer/finalizer，只把 build extraction 切到 `lossless_atomic`，build 输出上限放到 8K，record 容量保持 20。
-- `stage1_lossless_build8k_r40_v75_cached.json`：build-side 容量消融；在 v74 基础上把每 chunk record 容量从 20 放到 40，用于判断 record capacity 是否带来收益或噪声。
+- `stage1_build4k_r20_v74_cached.json`：build 输出上限消融；基于 v73/v42，不改 build prompt、retrieval、compiler、answer、finalizer，只把 build 输出上限从 2K 放到 4K，record 容量保持 20。
 
 ## 当前候选
 
-当前 build-side 候选按两步验证：
-
-1. `stage1_lossless_build8k_r20_v74_cached.json`：先只把 build 输出上限从 2048 放到 8192，并使用 `lossless_atomic` prompt，但 record 容量保持 20，验证是否主要受输出截断影响。
-2. `stage1_lossless_build8k_r40_v75_cached.json`：再把 record 容量放到 40，验证更多 atomic memory 是否提升 source activation，还是带来 retrieval/context 噪声。
+当前 build-side 候选是 `stage1_build4k_r20_v74_cached.json`。它只把 build 输出上限从 2048 放到 4096，build prompt 和 record 容量保持不变，验证原始 build 输出上限是否过紧。鉴于 v42/v73 的 LongMemEval evidence recall 已经是 `1.0`，暂不扩大 record 容量，避免增加 memory/retrieval 噪声。
 
 正式结果必须同时报告 build token、record 数、query token、accuracy 和 cache 命中。
 
