@@ -82,6 +82,7 @@ def finalize_structured_answer(
     enable_evidence_report_count_correction: bool = False,
     enable_money_sum_correction: bool = True,
     enable_duration_rounding_correction: bool = False,
+    enable_missing_detail: bool = False,
 ) -> AnswerFinalization:
     """Repair only narrow count/sum mismatches exposed by model evidence JSON.
 
@@ -105,6 +106,13 @@ def finalize_structured_answer(
     if not payload:
         return _noop(draft_answer, "no_structured_answer_json")
     if payload.get("sufficient") is False:
+        if enable_missing_detail:
+            detailed = _finalize_missing_detail(
+                draft_answer=draft_answer,
+                payload=payload,
+            )
+            if detailed is not None:
+                return detailed
         return _noop(draft_answer, "model_marked_insufficient")
 
     lowered_question = question.lower()
@@ -193,6 +201,38 @@ def _is_sum_question(lowered_question: str) -> bool:
 
 def _answer_is_insufficient(answer: str) -> bool:
     return bool(_INSUFFICIENT_ANSWER.search(answer))
+
+
+def _finalize_missing_detail(
+    *,
+    draft_answer: str,
+    payload: dict[str, Any],
+) -> AnswerFinalization | None:
+    if not _answer_is_insufficient(draft_answer):
+        return None
+    if len(draft_answer.split()) > 10:
+        return None
+    missing = _compact_missing_detail(
+        str(payload.get("missing") or payload.get("missing_info") or "")
+    )
+    if not missing:
+        return None
+    return AnswerFinalization(
+        answer=f"The provided information is not enough to answer the question: {missing}",
+        before=draft_answer,
+        applied=True,
+        reason="missing_detail_from_structured_answer",
+        expected_value=missing,
+    )
+
+
+def _compact_missing_detail(text: str) -> str:
+    detail = re.sub(r"\s+", " ", text).strip(" .")
+    if not detail:
+        return ""
+    if len(detail) > 220:
+        detail = detail[:217].rstrip() + "..."
+    return detail
 
 
 def _finalize_duration_rounding(

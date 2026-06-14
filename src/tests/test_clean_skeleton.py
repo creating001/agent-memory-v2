@@ -1153,6 +1153,46 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertFalse(finalization.applied)
         self.assertEqual(finalization.answer, "2")
 
+    def test_missing_detail_finalizer_is_disabled_by_default(self) -> None:
+        content = json.dumps(
+            {
+                "sufficient": False,
+                "missing": "no hamster name appears in the memory context",
+                "answer": "The provided information is not enough.",
+            }
+        )
+        raw_response = json.dumps({"content": content})
+
+        finalization = finalize_structured_answer(
+            question="What is my hamster's name?",
+            draft_answer="The provided information is not enough.",
+            raw_response=raw_response,
+        )
+
+        self.assertFalse(finalization.applied)
+        self.assertEqual(finalization.reason, "model_marked_insufficient")
+
+    def test_missing_detail_finalizer_expands_short_refusal_when_enabled(self) -> None:
+        content = json.dumps(
+            {
+                "sufficient": False,
+                "missing": "no hamster name appears in the memory context",
+                "answer": "The provided information is not enough.",
+            }
+        )
+        raw_response = json.dumps({"content": content})
+
+        finalization = finalize_structured_answer(
+            question="What is my hamster's name?",
+            draft_answer="The provided information is not enough.",
+            raw_response=raw_response,
+            enable_missing_detail=True,
+        )
+
+        self.assertTrue(finalization.applied)
+        self.assertEqual(finalization.reason, "missing_detail_from_structured_answer")
+        self.assertIn("no hamster name", finalization.answer)
+
     def test_answer_finalizer_rounds_decimal_week_duration_when_enabled(self) -> None:
         finalization = finalize_structured_answer(
             question="How many weeks passed between Maria adopting Coco and Shadow?",

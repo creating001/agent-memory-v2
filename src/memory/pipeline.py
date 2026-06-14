@@ -590,6 +590,9 @@ class Stage1Pipeline:
                 False,
             )
         )
+        self._answer_finalizer_enable_missing_detail = bool(
+            answer_finalizer_config.get("enable_missing_detail", False)
+        )
         self._answer_finalizer_trace_config = {
             "enabled": self._answer_finalizer_enabled,
             "mode": self._answer_finalizer_mode,
@@ -605,6 +608,7 @@ class Stage1Pipeline:
             "enable_duration_rounding_correction": (
                 self._answer_finalizer_enable_duration_rounding_correction
             ),
+            "enable_missing_detail": self._answer_finalizer_enable_missing_detail,
         }
         self._answer_repair_enabled = bool(answer_repair_config.get("enabled", False))
         self._answer_repair_information_needs = _tuple_config(
@@ -1387,6 +1391,7 @@ class Stage1Pipeline:
             enable_duration_rounding_correction=(
                 self._answer_finalizer_enable_duration_rounding_correction
             ),
+            enable_missing_detail=self._answer_finalizer_enable_missing_detail,
         )
 
 _SOURCE_ALIGNMENT_STOPWORDS = {

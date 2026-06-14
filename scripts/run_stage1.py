@@ -867,6 +867,9 @@ def _answer_metrics(config: dict[str, Any]) -> dict[str, Any]:
         "finalizer_enable_duration_rounding_correction": answer_config.get(
             "finalizer", {}
         ).get("enable_duration_rounding_correction", False),
+        "finalizer_enable_missing_detail": answer_config.get("finalizer", {}).get(
+            "enable_missing_detail", False
+        ),
         "repair_enabled": repair_config.get("enabled", False),
         "repair_mode": repair_config.get("mode", answer_config.get("mode")),
         "repair_model": repair_answer_config.get("model"),
@@ -1067,6 +1070,7 @@ def _write_summary(
         f"- answer_finalizer_enable_evidence_report_count_correction: {metrics['answer']['finalizer_enable_evidence_report_count_correction']}",
         f"- answer_finalizer_enable_money_sum_correction: {metrics['answer']['finalizer_enable_money_sum_correction']}",
         f"- answer_finalizer_enable_duration_rounding_correction: {metrics['answer']['finalizer_enable_duration_rounding_correction']}",
+        f"- answer_finalizer_enable_missing_detail: {metrics['answer']['finalizer_enable_missing_detail']}",
         f"- answer_finalizer_applied_count: {metrics['answer']['finalizer_applied_count']}",
         f"- answer_finalizer_applied_rate: {metrics['answer']['finalizer_applied_rate']}",
         f"- answer_repair_enabled: {metrics['answer']['repair_enabled']}",
@@ -1307,6 +1311,7 @@ def _write_diagnosis(
         f"- answer_finalizer_enable_evidence_report_count_correction: {metrics['answer']['finalizer_enable_evidence_report_count_correction']}",
         f"- answer_finalizer_enable_money_sum_correction: {metrics['answer']['finalizer_enable_money_sum_correction']}",
         f"- answer_finalizer_enable_duration_rounding_correction: {metrics['answer']['finalizer_enable_duration_rounding_correction']}",
+        f"- answer_finalizer_enable_missing_detail: {metrics['answer']['finalizer_enable_missing_detail']}",
         f"- answer_finalizer_applied_count: {metrics['answer']['finalizer_applied_count']}",
         f"- answer_finalizer_applied_rate: {metrics['answer']['finalizer_applied_rate']}",
         f"- answer_repair_enabled: {metrics['answer']['repair_enabled']}",
