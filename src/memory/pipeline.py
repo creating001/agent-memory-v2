@@ -327,6 +327,15 @@ class Stage1Pipeline:
             structured_guide_include_memory=bool(
                 compiler_config.get("structured_guide_include_memory", True)
             ),
+            structured_guide_include_row_features=bool(
+                compiler_config.get("structured_guide_include_row_features", False)
+            ),
+            structured_guide_row_feature_information_needs=_tuple_config(
+                compiler_config.get(
+                    "structured_guide_row_feature_information_needs",
+                    ("list_count", "temporal_lookup"),
+                )
+            ),
             structured_guide_disabled_signals=_tuple_config(
                 compiler_config.get("structured_guide_disabled_signals")
             ),
@@ -481,6 +490,15 @@ class Stage1Pipeline:
             ),
             "structured_guide_include_memory": bool(
                 compiler_config.get("structured_guide_include_memory", True)
+            ),
+            "structured_guide_include_row_features": bool(
+                compiler_config.get("structured_guide_include_row_features", False)
+            ),
+            "structured_guide_row_feature_information_needs": _tuple_config(
+                compiler_config.get(
+                    "structured_guide_row_feature_information_needs",
+                    ("list_count", "temporal_lookup"),
+                )
             ),
             "structured_guide_disabled_signals": _tuple_config(
                 compiler_config.get("structured_guide_disabled_signals")

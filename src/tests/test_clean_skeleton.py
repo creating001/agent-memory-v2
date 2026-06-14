@@ -1974,6 +1974,52 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertNotIn("Candidate Evidence Map:", fact_context.prompt)
         self.assertNotIn("question_type", list_context.prompt)
 
+    def test_structured_guide_row_features_are_route_scoped(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=2,
+            max_evidence_chars=3000,
+            prompt_mode="external_naive",
+            structured_guide=True,
+            structured_guide_max_rows=2,
+            structured_guide_include_row_features=True,
+            structured_guide_row_feature_information_needs=("list_count",),
+        )
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text="Alex bought 2 basil plants and one mint plant last week.",
+                timestamp="2024-01-08",
+            ),
+        )
+
+        list_context = compiler.compile(
+            question="How many plants did Alex buy?",
+            question_time=None,
+            route=RouteResult(
+                information_need="list_count",
+                signals=("list_or_count",),
+            ),
+            hits=(RetrievalHit("s1:t0", 1.0, 1, "lexical_bm25"),),
+            evidence_turns=turns,
+        )
+        fact_context = compiler.compile(
+            question="Which plant did Alex buy?",
+            question_time=None,
+            route=RouteResult(information_need="fact_lookup", signals=()),
+            hits=(RetrievalHit("s1:t0", 1.0, 1, "lexical_bm25"),),
+            evidence_turns=turns,
+        )
+
+        self.assertIn("Structured Evidence Guide:", list_context.prompt)
+        self.assertIn("quantities=2", list_context.prompt)
+        self.assertIn("time_phrases=last week", list_context.prompt)
+        self.assertNotIn("quantities=2", fact_context.prompt)
+        self.assertNotIn("time_phrases=last week", fact_context.prompt)
+        self.assertNotIn("question_type", list_context.prompt)
+
     def test_pipeline_traces_candidate_guide_config(self) -> None:
         config = {
             "retrieval": {"top_k": 1, "max_top_k": 1, "neighbor_window": 0},
@@ -2013,6 +2059,46 @@ class CleanSkeletonTest(unittest.TestCase):
             "Candidate Evidence Map:",
             result["trace"]["compiled_context"]["prompt"],
         )
+
+    def test_pipeline_traces_structured_guide_row_feature_config(self) -> None:
+        config = {
+            "retrieval": {"top_k": 1, "max_top_k": 1, "neighbor_window": 0},
+            "compiler": {
+                "max_evidence_items": 1,
+                "max_evidence_chars": 2000,
+                "prompt_mode": "external_naive",
+                "structured_guide": True,
+                "structured_guide_include_row_features": True,
+                "structured_guide_row_feature_information_needs": ["list_count"],
+            },
+            "answer": {"fallback_answer": "I do not know."},
+        }
+        request = PredictionRequest(
+            question="How many plants did Alex buy?",
+            turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Alex bought 2 basil plants and one mint plant.",
+                    timestamp="2024-01-08",
+                ),
+            ),
+        )
+
+        result = Stage1Pipeline(config).predict(request)
+
+        self.assertTrue(
+            result["trace"]["compiler"]["structured_guide_include_row_features"]
+        )
+        self.assertEqual(
+            result["trace"]["compiler"][
+                "structured_guide_row_feature_information_needs"
+            ],
+            ("list_count",),
+        )
+        self.assertIn("quantities=2", result["trace"]["compiled_context"]["prompt"])
 
     def test_temporal_event_contract_separates_mention_time_from_event_time(self) -> None:
         compiler = EvidenceCompiler(

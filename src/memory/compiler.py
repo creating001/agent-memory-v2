@@ -143,6 +143,10 @@ class EvidenceCompiler:
         structured_guide_max_rows: int = 12,
         structured_guide_include_rows: bool = True,
         structured_guide_include_memory: bool = True,
+        structured_guide_include_row_features: bool = False,
+        structured_guide_row_feature_information_needs: tuple[str, ...] = (
+            DEFAULT_STRUCTURED_ANSWER_CONTRACT_NEEDS
+        ),
         structured_guide_disabled_signals: tuple[str, ...] = (),
         structured_answer_contract: bool = False,
         structured_answer_contract_information_needs: tuple[str, ...] = (
@@ -209,6 +213,13 @@ class EvidenceCompiler:
         self._structured_guide_max_rows = max(1, structured_guide_max_rows)
         self._structured_guide_include_rows = structured_guide_include_rows
         self._structured_guide_include_memory = structured_guide_include_memory
+        self._structured_guide_include_row_features = (
+            structured_guide_include_row_features
+        )
+        self._structured_guide_row_feature_information_needs = _validate_information_needs(
+            structured_guide_row_feature_information_needs,
+            field_name="structured_guide_row_feature_information_needs",
+        )
         self._structured_guide_disabled_signals = tuple(
             str(signal) for signal in structured_guide_disabled_signals
         )
@@ -384,6 +395,11 @@ class EvidenceCompiler:
             structured_guide_include_memory=route_settings[
                 "structured_guide_include_memory"
             ],
+            structured_guide_include_row_features=(
+                self._structured_guide_include_row_features
+                and route.information_need
+                in self._structured_guide_row_feature_information_needs
+            ),
             structured_answer_contract=(
                 self._structured_answer_contract
                 and route.information_need
@@ -467,6 +483,12 @@ class EvidenceCompiler:
             "source_anchor_per_session": self._source_anchor_per_session,
             "source_anchor_session_rows": self._source_anchor_session_rows,
             "structured_guide_include_memory": self._structured_guide_include_memory,
+            "structured_guide_include_row_features": (
+                self._structured_guide_include_row_features
+            ),
+            "structured_guide_row_feature_information_needs": (
+                self._structured_guide_row_feature_information_needs
+            ),
             "structured_guide_include_rows": self._structured_guide_include_rows,
             "structured_guide_max_rows": self._structured_guide_max_rows,
             "temporal_order_contract": self._temporal_order_contract,
@@ -1063,6 +1085,7 @@ def _build_prompt(
     structured_guide_max_rows: int,
     structured_guide_include_rows: bool,
     structured_guide_include_memory: bool,
+    structured_guide_include_row_features: bool,
     structured_answer_contract: bool,
     structured_answer_contract_max_items: int,
     evidence_report_contract: bool,
@@ -1115,6 +1138,9 @@ def _build_prompt(
             structured_guide_max_rows=structured_guide_max_rows,
             structured_guide_include_rows=structured_guide_include_rows,
             structured_guide_include_memory=structured_guide_include_memory,
+            structured_guide_include_row_features=(
+                structured_guide_include_row_features
+            ),
             structured_answer_contract=structured_answer_contract,
             structured_answer_contract_max_items=structured_answer_contract_max_items,
             evidence_report_contract=evidence_report_contract,
@@ -1272,6 +1298,7 @@ def _build_external_naive_prompt(
     structured_guide_max_rows: int,
     structured_guide_include_rows: bool,
     structured_guide_include_memory: bool,
+    structured_guide_include_row_features: bool,
     structured_answer_contract: bool,
     structured_answer_contract_max_items: int,
     evidence_report_contract: bool,
@@ -1322,6 +1349,7 @@ def _build_external_naive_prompt(
             event_contract=use_temporal_event_contract,
             include_rows=structured_guide_include_rows,
             include_memory=structured_guide_include_memory,
+            include_row_features=structured_guide_include_row_features,
         )
         if guide_lines:
             structured_guide_block = "\n".join(
@@ -1667,6 +1695,7 @@ def _external_structured_guide_lines(
     event_contract: bool,
     include_rows: bool,
     include_memory: bool,
+    include_row_features: bool = False,
 ) -> list[str]:
     if (not include_rows and not include_memory) or (not rows and not memory_records):
         return []
@@ -1702,9 +1731,22 @@ def _external_structured_guide_lines(
                             f'"{phrase}"=>"{normalized}"'
                             for phrase, normalized in relative_times[:4]
                         )
+            feature_text = ""
+            if include_row_features:
+                feature_parts: list[str] = []
+                quantities = _candidate_quantity_mentions(row.text)
+                if quantities:
+                    feature_parts.append("quantities=" + "; ".join(quantities[:4]))
+                time_phrases = _candidate_time_mentions(row.text)
+                if time_phrases:
+                    feature_parts.append(
+                        "time_phrases=" + "; ".join(time_phrases[:4])
+                    )
+                if feature_parts:
+                    feature_text = " | " + " | ".join(feature_parts)
             lines.append(
                 f"  - Memory {index}: row_date={row_date_text} role={row.role} "
-                f"matched_terms={matched_text}{relative_text}"
+                f"matched_terms={matched_text}{relative_text}{feature_text}"
             )
 
     if include_memory:
