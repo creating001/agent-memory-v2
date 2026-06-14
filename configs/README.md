@@ -18,7 +18,7 @@
 - `stage1_answer_format_guard_v35_cached.json`：v34 上的 answer format guard；修复 JSON answer salvage 和小数 duration，当前 LoCoMo 最好。
 - `stage1_lme_token_safe_format_guard_v36_cached.json`：v28 top40/evidence budget + v35 answer guard；v42 前 LME 最好，也是当前强 baseline。
 - `stage1_operation_workpad_v42_cached.json`：v36 上的短 operation workpad；不新增 LLM 调用，不改 retrieval/build，只在 `list_count` / `temporal_lookup` 的 evidence_report prompt 中加入通用操作聚合纪律。v73 前 LongMemEval-S full 最好，但仅比 v36 净 +1，属于 close-margin 小幅正向。
-- `stage1_lossless_build16k_v74_cached.json`：build-side 容量消融；基于 v73/v42，不改 retrieval/compiler/answer/finalizer，只把 build extraction 切到 `lossless_atomic`，build 输出上限放到 16K，并把每 chunk record 容量放到 80。
+- `stage1_lossless_build16k_v74_cached.json`：build-side 容量消融；基于 v73/v42，不改 retrieval/compiler/answer/finalizer，只把 build extraction 切到 `lossless_atomic`，build 输出上限放到 16K，并把每 chunk record 容量放到 40。
 
 ## 当前候选
 
