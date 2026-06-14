@@ -65,7 +65,8 @@
 - v45 temporal session guide token-safe 收窄已完成 LongMemEval-S route-stratified 20 条 gate：DeepSeek judge `16/20`，比 v42 same20 净 `+1`、无新增错误；avg_build_tokens `81690.45`，avg_query_tokens `5744.5`，max `7352`，answer max input/output `131072/16384`。但按 v42 full route mix 估计 full avg query `6001.2865`，略超 6K 预算，不跑 full，顶层 config 不长期保留。规划和结论见 `experiments/v45_planning.md`。
 - v46 temporal session-thread-only 已完成 LongMemEval-S route-stratified 20 条 gate：DeepSeek judge `15/20`，与 v42 same20 持平；avg_build_tokens `81690.45`，avg_query_tokens `5722.5`，max `7274`，full route-mix 估计 `5965.8665` 通过 6K。changed-answer delta 为正，修复 exact-date case；raw loss 是同答案 judge variance。结论是不直接跑 full，继续做 temporal badcase 设计。规划和结论见 `experiments/v46_planning.md`。
 - v47 temporal aggregation contract 已完成 LongMemEval-S `temporal_aggregation_106` 诊断：DeepSeek judge `75/106 = 0.707547`，低于 v42 same-106 `81/106 = 0.764151`；gain/loss `5/11`，answer_changed `37`，finalizer_applied `11`，avg_query_tokens `7209.038`，estimated full avg query `5967.238`。结论是负向：schema 增 token，`count_increment` finalizer 导致重复计数，不跑 full，顶层 config 不长期保留。规划和结论见 `experiments/v47_planning.md`。
-- v48 Candidate Evidence Map 已完成 LongMemEval-S `weak_route_87` 诊断：DeepSeek judge `56/87 = 0.643678`，低于 v42 same-87 `59/87 = 0.678161`；gain/loss `6/9`，answer_changed `32`，estimated full avg query `6250.456` 超过 6K。结论是全弱路由开启负向且超预算；仅 current_state 有局部正向 `12/22 -> 14/22`，下一步只做 current-state-only/token-safe v49。规划和结论见 `experiments/v48_planning.md`。
+- v48 Candidate Evidence Map 已完成 LongMemEval-S `weak_route_87` 诊断：DeepSeek judge `56/87 = 0.643678`，低于 v42 same-87 `59/87 = 0.678161`；gain/loss `6/9`，answer_changed `32`，estimated full avg query `6250.456` 超过 6K。结论是全弱路由开启负向且超预算；仅 current_state 有局部正向，后续 v49 已验证 current-state-only 仍只是弱信号，不扩 full。规划和结论见 `experiments/v48_planning.md`。
+- v49 current-state-only Candidate Map 已完成 LongMemEval-S `current_state_22` 诊断：DeepSeek judge `13/22 = 0.590909`，高于 v42 same-22 `12/22 = 0.545455`，gain/loss `3/2`，answer_changed `12`，estimated full avg query `5884.492` 通过 6K。结论是干净但收益太弱且有 temporal/order regression，不扩 full，顶层 config 不长期保留。
 
 负向探索结论已压缩保留：
 
@@ -126,6 +127,7 @@ experiments/formal/<run_id>/
 | `v46_temporal_session_thread_lme_probe_eb90c24` | 20 条 LongMemEval-S route-stratified diagnostic | v46 session-thread-only same20 DeepSeek judge `15/20`，与 v42 持平；avg_build_tokens `81690.45`，avg_query_tokens `5722.5`，max `7274`，full route-mix 估计 `5965.8665`。changed-answer delta 正向但 strict judge 不净增，不跑 full。 |
 | `v47_temporal_aggregation_lme_diag_5487300` | 106 条 LongMemEval-S question-derived temporal aggregation diagnostic | v47 aggregation report + count_increment finalizer 失败；DeepSeek judge `75/106`，低于 v42 same-106 `81/106`，gain/loss `5/11`。重复计数 regression 明显，不跑 full，顶层 config 已删除。 |
 | `v48_candidate_map_lme_weakroute_265e07d` | 87 条 LongMemEval-S question-derived weak-route diagnostic | v48 Candidate Evidence Map 全弱路由失败；DeepSeek judge `56/87`，低于 v42 same-87 `59/87`，且 full query 估计 `6250.456` 超预算。仅 current_state 子集正向，转 v49 current-state-only。 |
+| `v49_current_state_candidate_map_lme_5993d30` | 22 条 LongMemEval-S question-derived current_state diagnostic | v49 current-state-only Candidate Evidence Map 弱正向但不够主线；DeepSeek judge `13/22`，高于 v42 same-22 `12/22`，gain/loss `3/2`，full query 估计 `5884.492`。有 temporal/order regression，不跑 full，顶层 config 已删除。 |
 
 ## 保留正式结果
 
