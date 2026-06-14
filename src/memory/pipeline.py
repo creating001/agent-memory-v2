@@ -55,6 +55,9 @@ class Stage1Pipeline:
             enable_recommendation_profile_patterns=bool(
                 route_config.get("enable_recommendation_profile_patterns", False)
             ),
+            enable_advice_profile_patterns=bool(
+                route_config.get("enable_advice_profile_patterns", False)
+            ),
             temporal_priority_over_recent=bool(
                 route_config.get("temporal_priority_over_recent", False)
             ),
@@ -65,6 +68,9 @@ class Stage1Pipeline:
             ),
             "enable_recommendation_profile_patterns": bool(
                 route_config.get("enable_recommendation_profile_patterns", False)
+            ),
+            "enable_advice_profile_patterns": bool(
+                route_config.get("enable_advice_profile_patterns", False)
             ),
             "temporal_priority_over_recent": bool(
                 route_config.get("temporal_priority_over_recent", False)

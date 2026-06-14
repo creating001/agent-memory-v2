@@ -71,6 +71,24 @@ class RouteTest(unittest.TestCase):
         self.assertIn("profile_or_preference", route.signals)
         self.assertIn("personalized_recommendation", route.signals)
 
+    def test_advice_profile_route_is_disabled_by_default(self) -> None:
+        route = QuestionRouter().route(
+            "My kitchen's becoming a bit of a mess again. Any tips for keeping it clean?"
+        )
+
+        self.assertEqual(route.information_need, "fact_lookup")
+        self.assertNotIn("advice_request", route.signals)
+
+    def test_advice_profile_route_can_be_enabled(self) -> None:
+        route = QuestionRouter(enable_advice_profile_patterns=True).route(
+            "My kitchen's becoming a bit of a mess again. Any tips for keeping it clean?"
+        )
+
+        self.assertEqual(route.information_need, "profile_preference")
+        self.assertIn("profile_or_preference", route.signals)
+        self.assertIn("personalized_recommendation", route.signals)
+        self.assertIn("advice_request", route.signals)
+
     def test_temporal_order_question_stays_temporal_when_recommendation_enabled(self) -> None:
         route = QuestionRouter(enable_recommendation_profile_patterns=True).route(
             "Which events happened in order from first to last by day?"

@@ -524,6 +524,9 @@ def main() -> int:
             "enable_recommendation_profile_patterns": config.get("route", {}).get(
                 "enable_recommendation_profile_patterns", False
             ),
+            "enable_advice_profile_patterns": config.get("route", {}).get(
+                "enable_advice_profile_patterns", False
+            ),
             "temporal_priority_over_recent": config.get("route", {}).get(
                 "temporal_priority_over_recent", False
             ),
@@ -944,6 +947,7 @@ def _write_summary(
         f"- route_overrides: {metrics['compiler']['route_overrides']}",
         f"- enable_broad_list_patterns: {metrics['route']['enable_broad_list_patterns']}",
         f"- enable_recommendation_profile_patterns: {metrics['route']['enable_recommendation_profile_patterns']}",
+        f"- enable_advice_profile_patterns: {metrics['route'].get('enable_advice_profile_patterns', False)}",
         f"- temporal_priority_over_recent: {metrics['route']['temporal_priority_over_recent']}",
         "",
         "## Outputs",
@@ -1052,6 +1056,7 @@ def _write_diagnosis(
         f"- candidate_guide_snippet_chars: {metrics['compiler']['candidate_guide_snippet_chars']}",
         f"- route_overrides: {metrics['compiler']['route_overrides']}",
         f"- enable_recommendation_profile_patterns: {metrics['route']['enable_recommendation_profile_patterns']}",
+        f"- enable_advice_profile_patterns: {metrics['route'].get('enable_advice_profile_patterns', False)}",
         f"- temporal_priority_over_recent: {metrics['route']['temporal_priority_over_recent']}",
         f"- answer_max_input_tokens: {metrics['answer']['max_input_tokens']}",
         f"- answer_max_output_tokens: {metrics['answer']['max_output_tokens']}",

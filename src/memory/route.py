@@ -64,17 +64,27 @@ class QuestionRouter:
         r"\b(?:recommendations?|suggestions?)\s+(?:for|to)\s+me\b",
         r"\bwhat\s+(?:should|would|could)\s+i\s+(?:watch|read|listen to|eat|cook|visit|try|buy|wear|do)\b",
     )
+    _ADVICE_PROFILE_PATTERNS = (
+        r"\b(?:any|some)\s+(?:tips|advice|ideas|suggestions)\b",
+        r"\b(?:tips|advice|ideas|suggestions)\s+(?:for|on|about)\b",
+        r"\bcan\s+you\s+(?:give|provide|offer|share)\s+.*\b(?:tips|advice|ideas|suggestions)\b",
+        r"\bwhat\s+do\s+you\s+think\b",
+        r"\bdo\s+you\s+think\s+(?:i|it|that)\b",
+        r"\bshould\s+i\b",
+    )
 
     def __init__(
         self,
         enable_broad_list_patterns: bool = False,
         enable_recommendation_profile_patterns: bool = False,
+        enable_advice_profile_patterns: bool = False,
         temporal_priority_over_recent: bool = False,
     ):
         self._enable_broad_list_patterns = enable_broad_list_patterns
         self._enable_recommendation_profile_patterns = (
             enable_recommendation_profile_patterns
         )
+        self._enable_advice_profile_patterns = enable_advice_profile_patterns
         self._temporal_priority_over_recent = temporal_priority_over_recent
 
     def route(self, question: str, question_time: str | None = None) -> RouteResult:
@@ -111,6 +121,18 @@ class QuestionRouter:
         ):
             signals.append("profile_or_preference")
             signals.append("personalized_recommendation")
+            return RouteResult(
+                information_need="profile_preference",
+                signals=tuple(signals),
+                retrieval_multiplier=2,
+            )
+        if (
+            self._enable_advice_profile_patterns
+            and _matches_any(normalized, self._ADVICE_PROFILE_PATTERNS)
+        ):
+            signals.append("profile_or_preference")
+            signals.append("personalized_recommendation")
+            signals.append("advice_request")
             return RouteResult(
                 information_need="profile_preference",
                 signals=tuple(signals),
