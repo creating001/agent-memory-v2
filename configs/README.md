@@ -21,7 +21,9 @@
 
 ## 当前候选
 
-暂无。v65 unit/sum mechanical finalizer 已完成 LongMemEval-S full：accuracy 低于 v42，且不是纯 finalizer 正向消融；顶层 config 和源码分支删除，只保留 formal 快照。v64 list_count-only adjacent-turn window BM25 也已验证负向，只保留 diagnostic 快照。
+- `stage1_route_context_budget_v66_cached.json`：v42 上的 query-side route-aware context budget。基于 v42 错题和 query-token 噪声诊断，只收窄 `temporal_lookup` / `list_count` / `current_state` 的 compiler evidence budget，不改 build/retrieval/answer model；用于验证“减少上下文噪声是否优于继续顶满 query tokens”。
+
+v65 unit/sum mechanical finalizer 已完成 LongMemEval-S full：accuracy 低于 v42，且不是纯 finalizer 正向消融；顶层 config 和源码分支删除，只保留 formal 快照。v64 list_count-only adjacent-turn window BM25 也已验证负向，只保留 diagnostic 快照。
 
 负向诊断只保留在对应 `experiments/diagnostic/<run_id>/config_snapshot.json` 中，不保留顶层 config。
 

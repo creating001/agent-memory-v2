@@ -1,0 +1,143 @@
+{
+  "name": "stage1_route_context_budget_v66_cached",
+  "description": "V66 query-side ablation on top of v42: route-aware compiler context budget for temporal_lookup/list_count/current_state to reduce context noise without changing build memory, retrieval, answer model, or clean inputs. Derived from v42 noise diagnostics and external strategy-aware context budgeting; uses no gold answers, judge outputs, benchmark labels, sample ids, test feedback, or sample-level rules.",
+  "build_memory": {
+    "enabled": true,
+    "mode": "openai_compatible",
+    "base_url": "http://127.0.0.1:8000/v1",
+    "model": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "temperature": 0,
+    "max_tokens": 2048,
+    "timeout": 240,
+    "max_turns_per_chunk": 80,
+    "max_chars_per_turn": 500,
+    "max_records_per_chunk": 20,
+    "top_k": 20,
+    "max_sources_per_record": 4,
+    "drop_query_stopwords": true,
+    "include_superseded": false,
+    "include_superseded_information_needs": [
+      "temporal_lookup",
+      "list_count"
+    ],
+    "cache": {
+      "enabled": true,
+      "path": "outputs/cache/qwen3_build_memory.sqlite",
+      "namespace": "stage1_agent_memory_v1_qwen3_30b_cold"
+    }
+  },
+  "retrieval": {
+    "top_k": 40,
+    "max_top_k": 40,
+    "neighbor_window": 0,
+    "neighbor_order": "hit_priority",
+    "drop_query_stopwords": true,
+    "score_threshold": 0,
+    "lexical": {
+      "enabled": true
+    },
+    "dense": {
+      "enabled": true,
+      "base_url": "http://127.0.0.1:8001/v1",
+      "model": "Qwen/Qwen3-Embedding-0.6B",
+      "top_k": 40,
+      "batch_size": 32,
+      "document_text_mode": "external_naive",
+      "query_text_mode": "external_naive",
+      "rrf_k": 60,
+      "lexical_protect_top_n": 0,
+      "protect_top_n": 32,
+      "timeout": 120,
+      "cache": {
+        "enabled": true,
+        "path": "outputs/cache/qwen3_embedding.sqlite",
+        "namespace": "Qwen/Qwen3-Embedding-0.6B"
+      }
+    }
+  },
+  "route": {
+    "enable_broad_list_patterns": false,
+    "enable_recommendation_profile_patterns": true,
+    "temporal_priority_over_recent": false
+  },
+  "compiler": {
+    "prompt_mode": "external_naive",
+    "max_evidence_items": 40,
+    "max_evidence_chars": 18000,
+    "max_memory_records": 0,
+    "answer_style": "concise",
+    "temporal_grounding": false,
+    "temporal_hints": false,
+    "temporal_workpad": true,
+    "temporal_workpad_scope": "route",
+    "temporal_workpad_max_rows": 12,
+    "temporal_workpad_max_pairs": 12,
+    "structured_guide": true,
+    "structured_guide_max_rows": 12,
+    "structured_guide_include_rows": true,
+    "structured_guide_include_memory": false,
+    "structured_guide_disabled_signals": [
+      "personalized_recommendation"
+    ],
+    "structured_answer_contract": false,
+    "evidence_report_contract": true,
+    "evidence_report_information_needs": [
+      "current_state",
+      "fact_lookup",
+      "list_count",
+      "profile_preference",
+      "temporal_lookup"
+    ],
+    "evidence_report_max_items": 8,
+    "operation_workpad": true,
+    "operation_workpad_information_needs": [
+      "list_count",
+      "temporal_lookup"
+    ],
+    "evidence_order": "retrieval",
+    "memory_order": "retrieval",
+    "memory_layout": "flat",
+    "row_text_mode": "full",
+    "route_guidance": false,
+    "evidence_row_labels": false,
+    "final_answer_checklist": false,
+    "temporal_text_normalization": true,
+    "route_overrides": {
+      "temporal_lookup": {
+        "max_evidence_items": 30,
+        "max_evidence_chars": 15500
+      },
+      "list_count": {
+        "max_evidence_items": 30,
+        "max_evidence_chars": 15500
+      },
+      "current_state": {
+        "max_evidence_items": 30,
+        "max_evidence_chars": 15500
+      }
+    }
+  },
+  "answer": {
+    "mode": "openai_compatible",
+    "base_url": "http://127.0.0.1:8000/v1",
+    "model": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "temperature": 0,
+    "max_input_tokens": 131072,
+    "max_output_tokens": 16384,
+    "max_tokens": 16384,
+    "output_format": "json_answer",
+    "timeout": 600,
+    "cache": {
+      "enabled": true,
+      "path": "outputs/cache/qwen3_answer_v66_route_context_budget.sqlite",
+      "namespace": "stage1_route_context_budget_v66_qwen3_30b"
+    },
+    "finalizer": {
+      "enabled": true,
+      "mode": "structured_evidence_mechanical",
+      "enable_count_correction": false,
+      "enable_money_sum_correction": false,
+      "enable_duration_rounding_correction": true
+    }
+  }
+}
