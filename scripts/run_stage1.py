@@ -56,6 +56,9 @@ def main() -> int:
     total_effective_dense_top_k = 0
     total_effective_dense_protect_top_n = 0
     total_session_bm25_applied = 0
+    total_turn_window_bm25_applied = 0
+    total_turn_window_hits = 0
+    total_turn_window_source_hits = 0
     total_embedding_cache_hits = 0
     total_embedding_cache_misses = 0
     total_embedding_cache_writes = 0
@@ -144,6 +147,12 @@ def main() -> int:
         )
         if retrieval_trace.get("session_bm25_applied"):
             total_session_bm25_applied += 1
+        if retrieval_trace.get("turn_window_bm25_applied"):
+            total_turn_window_bm25_applied += 1
+        total_turn_window_hits += len(retrieval_trace.get("turn_window_hits") or [])
+        total_turn_window_source_hits += len(
+            retrieval_trace.get("turn_window_source_hits") or []
+        )
         embedding_cache = retrieval_trace.get("embedding_cache") or {}
         total_embedding_cache_hits += int(embedding_cache.get("hits") or 0)
         total_embedding_cache_misses += int(embedding_cache.get("misses") or 0)
@@ -374,6 +383,43 @@ def main() -> int:
             "session_bm25_applied_count": total_session_bm25_applied,
             "session_bm25_applied_rate": _safe_average(
                 total_session_bm25_applied, sample_count
+            ),
+            "turn_window_bm25_enabled": config.get("retrieval", {})
+            .get("turn_window_bm25", {})
+            .get("enabled", False),
+            "turn_window_top_k": config.get("retrieval", {})
+            .get("turn_window_bm25", {})
+            .get("top_k"),
+            "turn_window_window_before": config.get("retrieval", {})
+            .get("turn_window_bm25", {})
+            .get("window_before"),
+            "turn_window_window_after": config.get("retrieval", {})
+            .get("turn_window_bm25", {})
+            .get("window_after"),
+            "turn_window_max_sources_per_window": config.get("retrieval", {})
+            .get("turn_window_bm25", {})
+            .get("max_sources_per_window"),
+            "turn_window_max_chars_per_turn": config.get("retrieval", {})
+            .get("turn_window_bm25", {})
+            .get("max_chars_per_turn"),
+            "turn_window_enabled_route_signals": config.get("retrieval", {})
+            .get("turn_window_bm25", {})
+            .get("enabled_route_signals"),
+            "turn_window_enabled_information_needs": config.get("retrieval", {})
+            .get("turn_window_bm25", {})
+            .get("enabled_information_needs"),
+            "turn_window_enabled_query_patterns": config.get("retrieval", {})
+            .get("turn_window_bm25", {})
+            .get("enabled_query_patterns"),
+            "turn_window_bm25_applied_count": total_turn_window_bm25_applied,
+            "turn_window_bm25_applied_rate": _safe_average(
+                total_turn_window_bm25_applied, sample_count
+            ),
+            "avg_turn_window_hits": _safe_average(
+                total_turn_window_hits, sample_count
+            ),
+            "avg_turn_window_source_hits": _safe_average(
+                total_turn_window_source_hits, sample_count
             ),
             "total_embedding_tokens": total_embedding_tokens,
             "avg_embedding_tokens": _safe_average(total_embedding_tokens, sample_count),
@@ -964,6 +1010,19 @@ def _write_summary(
         f"- session_enabled_query_patterns: {metrics['retrieval']['session_enabled_query_patterns']}",
         f"- session_bm25_applied_count: {metrics['retrieval']['session_bm25_applied_count']}",
         f"- session_bm25_applied_rate: {metrics['retrieval']['session_bm25_applied_rate']}",
+        f"- turn_window_bm25_enabled: {metrics['retrieval']['turn_window_bm25_enabled']}",
+        f"- turn_window_top_k: {metrics['retrieval']['turn_window_top_k']}",
+        f"- turn_window_window_before: {metrics['retrieval']['turn_window_window_before']}",
+        f"- turn_window_window_after: {metrics['retrieval']['turn_window_window_after']}",
+        f"- turn_window_max_sources_per_window: {metrics['retrieval']['turn_window_max_sources_per_window']}",
+        f"- turn_window_max_chars_per_turn: {metrics['retrieval']['turn_window_max_chars_per_turn']}",
+        f"- turn_window_enabled_route_signals: {metrics['retrieval']['turn_window_enabled_route_signals']}",
+        f"- turn_window_enabled_information_needs: {metrics['retrieval']['turn_window_enabled_information_needs']}",
+        f"- turn_window_enabled_query_patterns: {metrics['retrieval']['turn_window_enabled_query_patterns']}",
+        f"- turn_window_bm25_applied_count: {metrics['retrieval']['turn_window_bm25_applied_count']}",
+        f"- turn_window_bm25_applied_rate: {metrics['retrieval']['turn_window_bm25_applied_rate']}",
+        f"- avg_turn_window_hits: {metrics['retrieval']['avg_turn_window_hits']}",
+        f"- avg_turn_window_source_hits: {metrics['retrieval']['avg_turn_window_source_hits']}",
         f"- avg_embedding_tokens: {metrics['retrieval']['avg_embedding_tokens']}",
         f"- avg_context_chars: {metrics['retrieval']['avg_context_chars']}",
         f"- compiler_prompt_mode: {metrics['compiler']['prompt_mode']}",
@@ -1140,6 +1199,15 @@ def _write_diagnosis(
         f"- session_enabled_route_signals: {metrics['retrieval']['session_enabled_route_signals']}",
         f"- session_bm25_applied_count: {metrics['retrieval']['session_bm25_applied_count']}",
         f"- session_bm25_applied_rate: {metrics['retrieval']['session_bm25_applied_rate']}",
+        f"- turn_window_bm25_enabled: {metrics['retrieval']['turn_window_bm25_enabled']}",
+        f"- turn_window_top_k: {metrics['retrieval']['turn_window_top_k']}",
+        f"- turn_window_window_before: {metrics['retrieval']['turn_window_window_before']}",
+        f"- turn_window_window_after: {metrics['retrieval']['turn_window_window_after']}",
+        f"- turn_window_max_sources_per_window: {metrics['retrieval']['turn_window_max_sources_per_window']}",
+        f"- turn_window_bm25_applied_count: {metrics['retrieval']['turn_window_bm25_applied_count']}",
+        f"- turn_window_bm25_applied_rate: {metrics['retrieval']['turn_window_bm25_applied_rate']}",
+        f"- avg_turn_window_hits: {metrics['retrieval']['avg_turn_window_hits']}",
+        f"- avg_turn_window_source_hits: {metrics['retrieval']['avg_turn_window_source_hits']}",
         f"- embedding_cache_enabled: {metrics['retrieval']['embedding_cache_enabled']}",
         f"- embedding_cache_hits: {metrics['retrieval']['embedding_cache_hits']}",
         f"- embedding_cache_misses: {metrics['retrieval']['embedding_cache_misses']}",
