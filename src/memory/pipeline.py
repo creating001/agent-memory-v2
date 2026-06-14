@@ -631,6 +631,9 @@ class Stage1Pipeline:
         self._answer_repair_enable_profile_preference_trigger = bool(
             answer_repair_config.get("enable_profile_preference_trigger", False)
         )
+        self._answer_repair_uncertain_min_support_items = int(
+            answer_repair_config.get("uncertain_min_support_items", 0)
+        )
         self._answer_repair_max_context_chars = int(
             answer_repair_config.get("max_context_chars", 14000)
         )
@@ -651,6 +654,9 @@ class Stage1Pipeline:
             ),
             "enable_profile_preference_trigger": (
                 self._answer_repair_enable_profile_preference_trigger
+            ),
+            "uncertain_min_support_items": (
+                self._answer_repair_uncertain_min_support_items
             ),
             "max_context_chars": self._answer_repair_max_context_chars,
             "max_row_text_chars": self._answer_repair_max_row_text_chars,
@@ -976,6 +982,9 @@ class Stage1Pipeline:
             ),
             enable_profile_preference_trigger=(
                 self._answer_repair_enable_profile_preference_trigger
+            ),
+            uncertain_min_support_items=(
+                self._answer_repair_uncertain_min_support_items
             ),
             max_context_chars=self._answer_repair_max_context_chars,
             max_row_text_chars=self._answer_repair_max_row_text_chars,

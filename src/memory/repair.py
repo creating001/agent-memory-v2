@@ -72,6 +72,7 @@ def maybe_repair_answer(
     enable_short_list_trigger: bool,
     enable_temporal_conflict_trigger: bool,
     enable_profile_preference_trigger: bool,
+    uncertain_min_support_items: int,
     max_context_chars: int,
     max_row_text_chars: int,
 ) -> AnswerRepair:
@@ -93,6 +94,7 @@ def maybe_repair_answer(
         enable_short_list_trigger=enable_short_list_trigger,
         enable_temporal_conflict_trigger=enable_temporal_conflict_trigger,
         enable_profile_preference_trigger=enable_profile_preference_trigger,
+        uncertain_min_support_items=uncertain_min_support_items,
     )
     if not reasons:
         return _noop(draft, enabled=True, reason="no_trigger")
@@ -161,6 +163,7 @@ def repair_trigger_reasons(
     enable_short_list_trigger: bool,
     enable_temporal_conflict_trigger: bool,
     enable_profile_preference_trigger: bool = False,
+    uncertain_min_support_items: int = 0,
 ) -> tuple[str, ...]:
     payload = _draft_payload(raw_response)
     reasons: list[str] = []
@@ -174,11 +177,14 @@ def repair_trigger_reasons(
     if enable_uncertain_trigger:
         answer_type = str(payload.get("answer_type") or "").strip().lower()
         missing = str(payload.get("missing") or "").strip()
-        if (
+        has_uncertain_signal = (
             _INSUFFICIENT_ANSWER.search(draft_answer or "")
             or payload.get("sufficient") is False
             or answer_type == "unknown"
             or bool(missing)
+        )
+        if has_uncertain_signal and _support_item_count(payload) >= max(
+            0, int(uncertain_min_support_items)
         ):
             reasons.append("uncertain_or_missing")
 
@@ -356,6 +362,18 @@ def _support_values(payload: dict[str, Any]) -> set[str]:
         if value:
             values.add(value)
     return values
+
+
+def _support_item_count(payload: dict[str, Any]) -> int:
+    report = payload.get("evidence_report")
+    if not isinstance(report, list):
+        return 0
+    return sum(
+        1
+        for item in report
+        if isinstance(item, dict)
+        and str(item.get("status") or "").strip().lower() == "support"
+    )
 
 
 def _repair_memory_context(

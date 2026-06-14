@@ -776,6 +776,50 @@ class CleanSkeletonTest(unittest.TestCase):
 
         self.assertIn("uncertain_or_missing", reasons)
 
+        gated_reasons = repair_trigger_reasons(
+            question="What events has Alex attended?",
+            route_information_need="fact_lookup",
+            draft_answer="unknown",
+            raw_response=raw_response,
+            enable_uncertain_trigger=True,
+            enable_short_list_trigger=False,
+            enable_temporal_conflict_trigger=False,
+            uncertain_min_support_items=1,
+        )
+
+        supported_raw_response = json.dumps(
+            {
+                "content": json.dumps(
+                    {
+                        "sufficient": False,
+                        "answer_type": "unknown",
+                        "missing": "target value",
+                        "evidence_report": [
+                            {
+                                "memory": "Memory 1",
+                                "status": "support",
+                                "value": "conference",
+                            }
+                        ],
+                        "answer": "unknown",
+                    }
+                )
+            }
+        )
+        supported_reasons = repair_trigger_reasons(
+            question="What events has Alex attended?",
+            route_information_need="fact_lookup",
+            draft_answer="unknown",
+            raw_response=supported_raw_response,
+            enable_uncertain_trigger=True,
+            enable_short_list_trigger=False,
+            enable_temporal_conflict_trigger=False,
+            uncertain_min_support_items=1,
+        )
+
+        self.assertNotIn("uncertain_or_missing", gated_reasons)
+        self.assertIn("uncertain_or_missing", supported_reasons)
+
         short_reasons = repair_trigger_reasons(
             question="What events has Alex attended?",
             route_information_need="fact_lookup",
