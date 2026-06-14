@@ -1072,6 +1072,118 @@ class BuildMemoryTest(unittest.TestCase):
             ["s1:t0", "s1:t1"],
         )
 
+    def test_external_naive_context_can_group_dialogue_episodes(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=3,
+            max_evidence_chars=4000,
+            answer_style="concise",
+            prompt_mode="external_naive",
+            context_layout="dialogue_episode",
+        )
+        compiled = compiler.compile(
+            question="Where did Morgan redeem the coupon?",
+            question_time=None,
+            route=RouteResult(information_need="fact_lookup", signals=()),
+            hits=(
+                RetrievalHit("s1:t0", 1.0, 1, "test"),
+                RetrievalHit("s2:t0", 0.9, 2, "test"),
+                RetrievalHit("s1:t1", 0.8, 3, "test"),
+            ),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="I redeemed the coffee creamer coupon yesterday.",
+                    timestamp="2023-05-08",
+                ),
+                Turn(
+                    source_id="s2:t0",
+                    session_id="s2",
+                    turn_index=0,
+                    role="user",
+                    text="I planned a grocery trip.",
+                    timestamp="2023-05-09",
+                ),
+                Turn(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="assistant",
+                    text="Target was the store you mentioned.",
+                    timestamp="2023-05-08",
+                ),
+            ),
+        )
+
+        self.assertIn("### Dialogue Episode 1\nSession: s1", compiled.prompt)
+        self.assertIn("Turns: 0-1", compiled.prompt)
+        self.assertIn("[Memory 1 | Turn 0 | Retrieval rank 1] user:", compiled.prompt)
+        self.assertIn(
+            "[Memory 3 | Turn 1 | Retrieval rank 3] assistant:",
+            compiled.prompt,
+        )
+        self.assertIn("### Dialogue Episode 2\nSession: s2", compiled.prompt)
+        self.assertIn("read turns within an episode together", compiled.prompt)
+        self.assertEqual(
+            [row.source_id for row in compiled.evidence_rows],
+            ["s1:t0", "s2:t0", "s1:t1"],
+        )
+
+    def test_external_naive_route_override_can_select_dialogue_episode_layout(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=2,
+            max_evidence_chars=3000,
+            answer_style="concise",
+            prompt_mode="external_naive",
+            context_layout="flat",
+            evidence_report_contract=True,
+            route_overrides={
+                "fact_lookup": {
+                    "context_layout": "dialogue_episode",
+                    "dialogue_inference_contract": True,
+                }
+            },
+        )
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text="I redeemed a coupon.",
+                timestamp="2023-05-08",
+            ),
+            Turn(
+                source_id="s1:t1",
+                session_id="s1",
+                turn_index=1,
+                role="assistant",
+                text="That Target coupon was a useful one.",
+                timestamp="2023-05-08",
+            ),
+        )
+
+        fact_context = compiler.compile(
+            question="Where did Morgan redeem the coupon?",
+            question_time=None,
+            route=RouteResult(information_need="fact_lookup", signals=()),
+            hits=(RetrievalHit("s1:t0", 1.0, 1, "test"),),
+            evidence_turns=turns,
+        )
+        temporal_context = compiler.compile(
+            question="When did Morgan redeem the coupon?",
+            question_time=None,
+            route=RouteResult(information_need="temporal_lookup", signals=("temporal",)),
+            hits=(RetrievalHit("s1:t0", 1.0, 1, "test"),),
+            evidence_turns=turns,
+        )
+
+        self.assertIn("### Dialogue Episode 1", fact_context.prompt)
+        self.assertIn("An assistant row can support an answer", fact_context.prompt)
+        self.assertNotIn("### Dialogue Episode 1", temporal_context.prompt)
+
     def test_external_naive_structured_guide_can_be_disabled_by_signal(self) -> None:
         compiler = EvidenceCompiler(
             max_evidence_items=1,

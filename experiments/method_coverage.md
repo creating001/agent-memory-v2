@@ -37,6 +37,9 @@
 - `external/agentmemory/src/functions/search.ts`、`external/agentmemory/src/prompts/reflect.ts`：参考 BM25/vector 混合搜索、token budget truncation、project/agent scope 与多 memory reflection；不把反思结果作为唯一事实源。
 - `external/LongMemEval/src/generation/run_generation.py`、`retrieval/run_retrieval.py`：参考官方 generation prompt 和 turn->round expansion；其中 `has_answer`、`answer_session_ids`、`question_type` 只能用于评测/负面边界，不能进 prediction。
 - `external/LoCoMo/task_eval/rag_utils.py`、`gpt_utils.py`：参考 dialogue-level RAG prompt 中“从对话精确作答”的读者纪律；`category`、answer choices 和评测字段不能进 prediction。
+- `external/MemoryBank-SiliconFriend/utils/prompt_utils.py`、`memory_bank/memory_retrieval/local_doc_qa.py`、`utils/memory_utils.py`、`memory_bank/summarize_memory.py`：参考按日期保存历史、相关记忆+日期注入、相同 source/date 邻居扩展、history/personality 双摘要；风险是 summary/profile 可能压掉 raw evidence，因此只作为 profile/event 双通道和 source expansion 的参考，不让摘要成为唯一事实源。
+- `external/memU/src/memu/app/retrieve.py`、`prompts/memory_type/{profile,event,knowledge,behavior}.py`、`prompts/retrieve/{pre_retrieval_decision,query_rewriter,llm_category_ranker,llm_item_ranker,judger}.py`：重点参考 profile/event/knowledge/behavior 类型拆分、query rewrite、category/item staged retrieval、sufficiency check；可借鉴为通用 memory-type gating 和不足时追加检索，但不能引入 gold/judge/benchmark 标签。
+- `external/hindsight/hindsight-embed/hindsight_embed/profile_manager.py`、`external/hindsight/hindsight-api-slim/hindsight_api/_pg_search.py`：本次读到的主要是 profile/env/port 管理与 ParadeDB/BM25 工程配置，暂不作为核心 memory 方法依据。
 
 ## 51 项覆盖表
 
@@ -57,7 +60,7 @@
 | 13 | General Agentic Memory via Deep Research | `external/general-agentic-memory` | 已 clone，待读 | 可能参考 agentic retrieval 和 reflection，需要严格限制 feedback 泄漏。 |
 | 14 | Generative Agents | `external/generative_agents` | 已 clone，待读 | 参考 reflection/importance/recency 的经典结构；不直接适配 benchmark。 |
 | 15 | LD-Agent | `external/LD-Agent` | 已读 EventMemory/Personas | 参考 topic overlap、recency、session summary 和 persona/profile 抽取；profile 不覆盖 raw evidence。 |
-| 16 | Hindsight | `external/hindsight` | 已 clone，待读 | 可能参考 retain/recall/reflect，但需确认训练/feedback 边界。 |
+| 16 | Hindsight | `external/hindsight` | 已读部分工程代码 | 当前读到 profile/env 管理和 BM25 配置，暂未发现可直接作为核心 memory 方法依据；后续若参考 retain/recall/reflect 仍需继续读核心逻辑并确认 feedback 边界。 |
 | 17 | HippoRAG | `external/HippoRAG` | 已 clone，待读核心 | 可能参考 entity graph + retrieval fusion。 |
 | 18 | Honcho | `external/honcho` | 已 clone，待读 | 可能参考 production memory API / session state。 |
 | 19 | EM-LLM | `external/EM-LLM-model` | 已 clone，待读 | 可能参考 episodic/infinite-context memory。 |
@@ -82,9 +85,9 @@
 | 38 | Memori | `external/Memori` | 已 clone，待读 | 可能参考 production agent memory API。 |
 | 39 | MIA | `external/MIA` | 已读部分 memory serve / inference 入口 | 多数 correct/incorrect feedback 与 judge/gold 相关逻辑不 clean，只做负面边界；候选选择与最终生成分离的工程思想可参考。 |
 | 40 | MemoryOS | `external/MemoryOS` | 已读 pypi retriever/updater/prompts | 参考 short/mid/long-term 分层、双通道 knowledge 和 timestamp 检查；不作为短期重型依赖。 |
-| 41 | MemoryBank | `external/MemoryBank-SiliconFriend` | 已 clone，待读 | 可能参考 profile summarization，但不能丢 raw evidence。 |
+| 41 | MemoryBank | `external/MemoryBank-SiliconFriend` | 已读 retrieval/summarize 入口 | 参考按日期 history/profile 管理、相关记忆注入和 same-source/date 邻居扩展；不能让 summary/profile 替代 raw evidence。 |
 | 42 | MemOS | `external/MemOS` | 已 clone，待读 | 参考 memory OS / governance，不作为短期重型依赖。 |
-| 43 | MemU | `external/memU` | 已 clone，待读 | 可能参考 memory update/API。 |
+| 43 | MemU | `external/memU` | 已读 retrieve 与 memory-type prompts | 参考 profile/event/knowledge/behavior 类型拆分、query rewrite、category/item staged retrieval 和 sufficiency check；预测阶段只可使用问题、原始对话和 build memory。 |
 | 44 | MIRIX | `external/MIRIX` | 已读 episodic schema | 参考 episodic/semantic/core memory taxonomy 和 event schema。 |
 | 45 | Mnemis | `external/Mnemis` | 已读 global selector/prompts | 参考层级图 selection 和 selected node 回链 episode/relation。 |
 | 46 | Nemori | `external/nemori` | 已 clone，待读 | 可能参考 adaptive distillation；需防止过度摘要。 |
