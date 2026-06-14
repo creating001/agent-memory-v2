@@ -1542,6 +1542,105 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertNotIn("newer approximate or self-reported state", baseline.prompt)
         self.assertIn("newer approximate or self-reported state", contracted.prompt)
 
+    def test_dialogue_inference_contract_is_route_override_gated(self) -> None:
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text="I redeemed the notebook coupon this morning.",
+                timestamp="2024-01-01",
+            ),
+            Turn(
+                source_id="s1:t1",
+                session_id="s1",
+                turn_index=1,
+                role="assistant",
+                text="Good use of your Pine Market coupon.",
+                timestamp="2024-01-01",
+            ),
+        )
+        route = RouteResult(information_need="fact_lookup", signals=())
+        baseline = EvidenceCompiler(
+            max_evidence_items=2,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            evidence_report_contract=True,
+            evidence_report_information_needs=("fact_lookup",),
+        ).compile(
+            question="Where did I redeem the notebook coupon?",
+            question_time=None,
+            route=route,
+            hits=(),
+            evidence_turns=turns,
+        )
+        contracted = EvidenceCompiler(
+            max_evidence_items=2,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            evidence_report_contract=True,
+            evidence_report_information_needs=("fact_lookup",),
+            route_overrides={
+                "fact_lookup": {
+                    "dialogue_inference_contract": True,
+                }
+            },
+        ).compile(
+            question="Where did I redeem the notebook coupon?",
+            question_time=None,
+            route=route,
+            hits=(),
+            evidence_turns=turns,
+        )
+
+        self.assertNotIn("Same-session neighboring turns", baseline.prompt)
+        self.assertIn("Same-session neighboring turns", contracted.prompt)
+        self.assertIn("An assistant row can support an answer", contracted.prompt)
+        self.assertNotIn("question_type", contracted.prompt)
+
+    def test_temporal_order_contract_is_route_override_gated(self) -> None:
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text="I started Spanish classes three months ago.",
+                timestamp="2024-04-01",
+            ),
+        )
+        compiler = EvidenceCompiler(
+            max_evidence_items=1,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            evidence_report_contract=True,
+            evidence_report_information_needs=("temporal_lookup", "list_count"),
+            route_overrides={
+                "temporal_lookup": {
+                    "temporal_order_contract": True,
+                }
+            },
+        )
+        temporal_context = compiler.compile(
+            question="Which happened first, Spanish classes or the festival?",
+            question_time=None,
+            route=RouteResult(information_need="temporal_lookup", signals=()),
+            hits=(),
+            evidence_turns=turns,
+        )
+        list_context = compiler.compile(
+            question="How many classes did I mention?",
+            question_time=None,
+            route=RouteResult(information_need="list_count", signals=()),
+            hits=(),
+            evidence_turns=turns,
+        )
+
+        self.assertIn("earlier normalized event time", temporal_context.prompt)
+        self.assertIn("started N ago", temporal_context.prompt)
+        self.assertNotIn("earlier normalized event time", list_context.prompt)
+
     def test_external_naive_final_checklist_is_config_gated(self) -> None:
         turns = (
             Turn(

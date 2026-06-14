@@ -32,6 +32,11 @@
 - `external/LightMem/src/lightmem/memory_toolkits/memories/layers/naive_rag.py`、`memzero.py`：参考 memory layer search wrapper、metadata 和 used_content 格式；不引入外部 memory backend 依赖。
 - `external/Memary/src/memary/memory/entity_knowledge_store.py`：参考 entity/count/date 聚合的轻量 memory 管理思想；v39 不迁移固定 entity 规则。
 - `external/MIA/Memory-Serve/*.py`、`external/MIA/Inference/*`：确认其中大量 correct/incorrect feedback、judge/gold 相关逻辑只可作为负面边界，不可迁移到 prediction。
+- `external/LD-Agent/Module/EventMemory.py`、`Personas.py`：参考 topic/noun overlap、recency 和 session summary/profile 管理；profile 抽取不能替代 raw evidence。
+- `external/MemoryOS/memoryos-pypi/retriever.py`、`updater.py`、`mid_term.py`、`long_term.py`、`prompts.py`：参考 short/mid/long-term 分层、user/assistant knowledge 双通道、timestamp 检查和多路并行 retrieval；暂不引入重型 memory OS 依赖。
+- `external/agentmemory/src/functions/search.ts`、`external/agentmemory/src/prompts/reflect.ts`：参考 BM25/vector 混合搜索、token budget truncation、project/agent scope 与多 memory reflection；不把反思结果作为唯一事实源。
+- `external/LongMemEval/src/generation/run_generation.py`、`retrieval/run_retrieval.py`：参考官方 generation prompt 和 turn->round expansion；其中 `has_answer`、`answer_session_ids`、`question_type` 只能用于评测/负面边界，不能进 prediction。
+- `external/LoCoMo/task_eval/rag_utils.py`、`gpt_utils.py`：参考 dialogue-level RAG prompt 中“从对话精确作答”的读者纪律；`category`、answer choices 和评测字段不能进 prediction。
 
 ## 51 项覆盖表
 
@@ -40,18 +45,18 @@
 | 1 | A-MEM | `external/A-mem` | 已读部分代码 | 高层参考 memory neighborhood；发现 category/answer 进入 answer 的不 clean 逻辑，不能迁移。 |
 | 2 | ACON | `external/ACON` | 已读核心 context optimizer | 参考结构化 history compression / resume；不能让 summary 替代 raw evidence。 |
 | 3 | Acontext | `external/Acontext` | 已 clone，待读 | 可能参考 context/memory SDK 工程边界。 |
-| 4 | agentmemory | `external/agentmemory` | 已 clone，待读 | 可能参考轻量 agent memory API，不作为当前设计依据。 |
+| 4 | agentmemory | `external/agentmemory` | 已读 search/reflect 入口 | 参考轻量混合检索、scope、token budget 和 reflection；reflection 只能作通用组织思想，不能替代 raw evidence。 |
 | 5 | xMemory | `external/xMemory` | 已读 LoCoMo search framework | 参考 semantic/episodic 双通道、原始消息回链和 adaptive expansion。 |
 | 6 | Buffer of Thoughts | `external/buffer-of-thought-llm` | 已 clone，待读 | 只可能参考 procedural strategy，不写入样本事实。 |
 | 7 | ChatHaruhi | `external/Chat-Haruhi-Suzumiya` | 已 clone，待读 | 可能参考角色长期对话记忆组织。 |
-| 8 | LoCoMo | `external/LoCoMo` | 已 clone，使用为 benchmark 参考 | 只用于数据格式/评测理解，预测阶段不能使用标签/evidence。 |
+| 8 | LoCoMo | `external/LoCoMo` | 已读 RAG/eval prompt 入口 | 参考 dialogue-level RAG prompt；预测阶段不能使用 category、answer choices、gold 或评测字段。 |
 | 9 | EverOS | `external/EverOS` | 已读 memory models/search/strategies | 参考 episode、atomic fact、profile、cascade 管理和 hierarchy retrieval。 |
 | 10 | Everything is Context | `external/aigne-framework` | 已 clone，待读 | 可能参考 file/context abstraction，不作为当前设计依据。 |
 | 11 | From RAG to Memory / HippoRAG2 | `external/HippoRAG` | 已读核心 retrieval/rerank | 参考 fact/entity -> passage 回链、PPR/dense passage fusion；不迁移 gold_docs/gold_answers 评测入口和 DSPy demo filter。 |
 | 12 | gbrain | `external/gbrain` | 已 clone，待读 | 可能参考 personal graph memory。 |
 | 13 | General Agentic Memory via Deep Research | `external/general-agentic-memory` | 已 clone，待读 | 可能参考 agentic retrieval 和 reflection，需要严格限制 feedback 泄漏。 |
 | 14 | Generative Agents | `external/generative_agents` | 已 clone，待读 | 参考 reflection/importance/recency 的经典结构；不直接适配 benchmark。 |
-| 15 | LD-Agent | `external/LD-Agent` | 已 clone，待读 | 可能参考长期对话 personalization。 |
+| 15 | LD-Agent | `external/LD-Agent` | 已读 EventMemory/Personas | 参考 topic overlap、recency、session summary 和 persona/profile 抽取；profile 不覆盖 raw evidence。 |
 | 16 | Hindsight | `external/hindsight` | 已 clone，待读 | 可能参考 retain/recall/reflect，但需确认训练/feedback 边界。 |
 | 17 | HippoRAG | `external/HippoRAG` | 已 clone，待读核心 | 可能参考 entity graph + retrieval fusion。 |
 | 18 | Honcho | `external/honcho` | 已 clone，待读 | 可能参考 production memory API / session state。 |
@@ -61,7 +66,7 @@
 | 22 | LangMem | `external/langmem` | 已读 profile guide | 参考 profile schema、namespace、update-in-place；不让 profile 替代 raw evidence。 |
 | 23 | LCM | `external/lossless-claw` | 已 clone，待读 | 可能参考 lossless context management。 |
 | 24 | LightMem | `external/LightMem` | 已读 memory layer 检索入口 | 参考 NaiveRAG/MemZero wrapper、metadata 和 used_content 组织；不引入其外部 backend。 |
-| 25 | LongMemEval | `external/LongMemEval` | 已 clone，使用为 benchmark 参考 | 只用于评测协议/数据理解，预测阶段不能使用 question_type/answer。 |
+| 25 | LongMemEval | `external/LongMemEval` | 已读 retrieval/generation 入口 | 参考官方 generation prompt 和 round expansion；`has_answer`、`answer_session_ids`、`question_type` 等隐藏字段不能进 prediction。 |
 | 26 | MAGMA | `external/MAMGA` | 已读 memory builder/query/temporal | 参考 multi-graph/RRF/temporal parser；不迁移 session id/keyword 样本规则。 |
 | 27 | Mem0 | `external/mem0`、`external/TeleMem` | 已读 mem0 main，TeleMem 待读 | 参考 metadata scope、filter、memory lifecycle。 |
 | 28 | Mem9 | `external/mem9` | 已 clone，待读 | 可能参考 memory SDK/API。 |
@@ -76,7 +81,7 @@
 | 37 | Memobase | `external/memobase` | 已读 event docs | 参考 event + profile delta + created time 的双通道管理。 |
 | 38 | Memori | `external/Memori` | 已 clone，待读 | 可能参考 production agent memory API。 |
 | 39 | MIA | `external/MIA` | 已读部分 memory serve / inference 入口 | 多数 correct/incorrect feedback 与 judge/gold 相关逻辑不 clean，只做负面边界；候选选择与最终生成分离的工程思想可参考。 |
-| 40 | MemoryOS | `external/MemoryOS` | 已 clone，待读 | 参考 memory OS 分层治理，不作为短期主线。 |
+| 40 | MemoryOS | `external/MemoryOS` | 已读 pypi retriever/updater/prompts | 参考 short/mid/long-term 分层、双通道 knowledge 和 timestamp 检查；不作为短期重型依赖。 |
 | 41 | MemoryBank | `external/MemoryBank-SiliconFriend` | 已 clone，待读 | 可能参考 profile summarization，但不能丢 raw evidence。 |
 | 42 | MemOS | `external/MemOS` | 已 clone，待读 | 参考 memory OS / governance，不作为短期重型依赖。 |
 | 43 | MemU | `external/memU` | 已 clone，待读 | 可能参考 memory update/API。 |

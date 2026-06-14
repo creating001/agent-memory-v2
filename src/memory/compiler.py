@@ -49,6 +49,7 @@ ROUTE_OVERRIDE_KEYS = {
     "candidate_guide_snippet_chars",
     "context_layout",
     "current_state_update_contract",
+    "dialogue_inference_contract",
     "evidence_order",
     "evidence_report_detail",
     "evidence_row_labels",
@@ -65,6 +66,7 @@ ROUTE_OVERRIDE_KEYS = {
     "structured_guide_include_memory",
     "structured_guide_include_rows",
     "structured_guide_max_rows",
+    "temporal_order_contract",
 }
 SUPPORTED_PROMPT_MODES = {"default", "external_naive", "raw_context_only"}
 DEFAULT_STRUCTURED_ANSWER_CONTRACT_NEEDS = ("list_count", "temporal_lookup")
@@ -167,6 +169,8 @@ class EvidenceCompiler:
             DEFAULT_STRUCTURED_ANSWER_CONTRACT_NEEDS
         ),
         current_state_update_contract: bool = False,
+        dialogue_inference_contract: bool = False,
+        temporal_order_contract: bool = False,
         source_anchor_keep: int = 0,
         source_anchor_memory_rows: int = 0,
         source_anchor_per_session: int = 0,
@@ -241,6 +245,8 @@ class EvidenceCompiler:
             field_name="operation_workpad_information_needs",
         )
         self._current_state_update_contract = current_state_update_contract
+        self._dialogue_inference_contract = dialogue_inference_contract
+        self._temporal_order_contract = temporal_order_contract
         if context_layout not in {"flat", "session_thread"}:
             raise ValueError(f"Unsupported context_layout: {context_layout}")
         self._context_layout = context_layout
@@ -409,6 +415,8 @@ class EvidenceCompiler:
             current_state_update_contract=route_settings[
                 "current_state_update_contract"
             ],
+            dialogue_inference_contract=route_settings["dialogue_inference_contract"],
+            temporal_order_contract=route_settings["temporal_order_contract"],
             context_layout=route_settings["context_layout"],
             memory_layout=self._memory_layout,
             row_text_mode=route_settings["row_text_mode"],
@@ -436,6 +444,7 @@ class EvidenceCompiler:
             "evidence_row_labels": self._evidence_row_labels,
             "context_layout": self._context_layout,
             "current_state_update_contract": self._current_state_update_contract,
+            "dialogue_inference_contract": self._dialogue_inference_contract,
             "evidence_order": self._evidence_order,
             "evidence_report_detail": self._evidence_report_detail,
             "final_answer_checklist": self._final_answer_checklist,
@@ -451,6 +460,7 @@ class EvidenceCompiler:
             "structured_guide_include_memory": self._structured_guide_include_memory,
             "structured_guide_include_rows": self._structured_guide_include_rows,
             "structured_guide_max_rows": self._structured_guide_max_rows,
+            "temporal_order_contract": self._temporal_order_contract,
         }
         settings.update(self._route_overrides.get(route.information_need, {}))
         return settings
@@ -551,6 +561,14 @@ def _validate_route_overrides(
         if "current_state_update_contract" in raw_overrides:
             overrides["current_state_update_contract"] = bool(
                 raw_overrides["current_state_update_contract"]
+            )
+        if "dialogue_inference_contract" in raw_overrides:
+            overrides["dialogue_inference_contract"] = bool(
+                raw_overrides["dialogue_inference_contract"]
+            )
+        if "temporal_order_contract" in raw_overrides:
+            overrides["temporal_order_contract"] = bool(
+                raw_overrides["temporal_order_contract"]
             )
         if "final_answer_checklist" in raw_overrides:
             overrides["final_answer_checklist"] = bool(
@@ -1047,6 +1065,8 @@ def _build_prompt(
     evidence_report_detail: bool,
     operation_workpad: bool,
     current_state_update_contract: bool,
+    dialogue_inference_contract: bool,
+    temporal_order_contract: bool,
     context_layout: str,
     memory_layout: str,
     row_text_mode: str,
@@ -1097,6 +1117,8 @@ def _build_prompt(
             evidence_report_detail=evidence_report_detail,
             operation_workpad=operation_workpad,
             current_state_update_contract=current_state_update_contract,
+            dialogue_inference_contract=dialogue_inference_contract,
+            temporal_order_contract=temporal_order_contract,
             final_answer_checklist=final_answer_checklist,
             context_layout=context_layout,
         )
@@ -1252,6 +1274,8 @@ def _build_external_naive_prompt(
     evidence_report_detail: bool,
     operation_workpad: bool,
     current_state_update_contract: bool,
+    dialogue_inference_contract: bool,
+    temporal_order_contract: bool,
     final_answer_checklist: bool,
     context_layout: str,
 ) -> str:
@@ -1346,6 +1370,8 @@ def _build_external_naive_prompt(
                 temporal_event_contract=use_temporal_event_contract,
                 detailed=evidence_report_detail,
                 current_state_update_contract=current_state_update_contract,
+                dialogue_inference_contract=dialogue_inference_contract,
+                temporal_order_contract=temporal_order_contract,
             )
         )
     if use_aggregation_report_contract:
@@ -1475,6 +1501,8 @@ def _external_evidence_report_rules(
     temporal_event_contract: bool = False,
     detailed: bool = False,
     current_state_update_contract: bool = False,
+    dialogue_inference_contract: bool = False,
+    temporal_order_contract: bool = False,
 ) -> list[str]:
     """General visible evidence report instructions for clean reader discipline."""
 
@@ -1487,6 +1515,14 @@ def _external_evidence_report_rules(
     ]
     if detailed:
         rules.extend(_detailed_evidence_report_rules(question))
+    if dialogue_inference_contract:
+        rules.extend(
+            [
+                "Same-session neighboring turns may jointly resolve an omitted slot only when they are part of the same ongoing exchange and the later row explicitly names the missing entity, value, place, or constraint.",
+                "An assistant row can support an answer when it directly answers, acknowledges, repeats, or clarifies the user's stated event or request; do not treat assistant suggestions or examples as support unless the user confirms them or the question asks about suggestions.",
+                "Do not combine partial clues across different sessions or unrelated topics to invent a target event, object, place, or preference.",
+            ]
+        )
     if route.information_need == "list_count":
         rules.extend(
             [
@@ -1504,6 +1540,14 @@ def _external_evidence_report_rules(
                 "Resolve relative time phrases from the row Date and preserve explicit duration phrases when they directly answer.",
             ]
         )
+        if temporal_order_contract:
+            rules.extend(
+                [
+                    "For order/comparison questions, normalize each candidate event or state time before comparing; the earlier normalized event time happened first.",
+                    "Phrases such as for the past N days/weeks/months/years, since N ago, or started N ago indicate a start time N units before the row Date, not the row Date itself.",
+                    "If the reasoning dates imply the opposite of the drafted answer, correct the answer to match the normalized date comparison.",
+                ]
+            )
         if temporal_event_contract:
             rules.extend(
                 [

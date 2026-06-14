@@ -745,6 +745,12 @@ def main() -> int:
             "current_state_update_contract": config.get("compiler", {}).get(
                 "current_state_update_contract", False
             ),
+            "dialogue_inference_contract": config.get("compiler", {}).get(
+                "dialogue_inference_contract", False
+            ),
+            "temporal_order_contract": config.get("compiler", {}).get(
+                "temporal_order_contract", False
+            ),
             "source_anchor_keep": config.get("compiler", {}).get(
                 "source_anchor_keep", 0
             ),
@@ -1244,6 +1250,8 @@ def _write_summary(
         f"- candidate_guide_max_rows: {metrics['compiler']['candidate_guide_max_rows']}",
         f"- candidate_guide_snippet_chars: {metrics['compiler']['candidate_guide_snippet_chars']}",
         f"- current_state_update_contract: {metrics['compiler']['current_state_update_contract']}",
+        f"- dialogue_inference_contract: {metrics['compiler']['dialogue_inference_contract']}",
+        f"- temporal_order_contract: {metrics['compiler']['temporal_order_contract']}",
         f"- source_anchor_keep: {metrics['compiler']['source_anchor_keep']}",
         f"- source_anchor_memory_rows: {metrics['compiler']['source_anchor_memory_rows']}",
         f"- source_anchor_per_session: {metrics['compiler']['source_anchor_per_session']}",
@@ -1386,6 +1394,8 @@ def _write_diagnosis(
         f"- candidate_guide_max_rows: {metrics['compiler']['candidate_guide_max_rows']}",
         f"- candidate_guide_snippet_chars: {metrics['compiler']['candidate_guide_snippet_chars']}",
         f"- current_state_update_contract: {metrics['compiler']['current_state_update_contract']}",
+        f"- dialogue_inference_contract: {metrics['compiler']['dialogue_inference_contract']}",
+        f"- temporal_order_contract: {metrics['compiler']['temporal_order_contract']}",
         f"- source_anchor_keep: {metrics['compiler']['source_anchor_keep']}",
         f"- source_anchor_memory_rows: {metrics['compiler']['source_anchor_memory_rows']}",
         f"- source_anchor_per_session: {metrics['compiler']['source_anchor_per_session']}",

@@ -490,6 +490,12 @@ class Stage1Pipeline:
             current_state_update_contract=bool(
                 compiler_config.get("current_state_update_contract", False)
             ),
+            dialogue_inference_contract=bool(
+                compiler_config.get("dialogue_inference_contract", False)
+            ),
+            temporal_order_contract=bool(
+                compiler_config.get("temporal_order_contract", False)
+            ),
             source_anchor_keep=int(compiler_config.get("source_anchor_keep", 0)),
             source_anchor_memory_rows=int(
                 compiler_config.get("source_anchor_memory_rows", 0)
@@ -628,6 +634,12 @@ class Stage1Pipeline:
             ),
             "current_state_update_contract": bool(
                 compiler_config.get("current_state_update_contract", False)
+            ),
+            "dialogue_inference_contract": bool(
+                compiler_config.get("dialogue_inference_contract", False)
+            ),
+            "temporal_order_contract": bool(
+                compiler_config.get("temporal_order_contract", False)
             ),
             "source_anchor_keep": int(compiler_config.get("source_anchor_keep", 0)),
             "source_anchor_memory_rows": int(
