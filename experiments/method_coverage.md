@@ -11,7 +11,7 @@
 
 ## 已读代码摘要
 
-- `external/creating001-agent-memory/src/agent_memory/prompts/answer.py`、`answer_templates.py`、`baseline/context.py`、`prompts/retrieve.py`：重点参考 evidence-first query 组织、turn-pair/source-turn context、时间题区分 memory date 与 event date；不迁移不 clean guardrail。
+- `external/creating001-agent-memory/src/agent_memory/prompts/answer.py`、`answer_templates.py`、`baseline/context.py`、`baseline/retrieve.py`、`baseline/queries.py`、`baseline/routing.py`、`baseline/pipeline.py`、`baseline/evidence_finalizer.py`、`baseline/guardrails.py`、`prompts/retrieve.py`：重点参考 evidence-first query 组织、turn-pair/source-turn materialization、adjacent context window、两阶段 evidence extraction、窄机械 finalizer 和时间题区分 memory date / event date；不迁移不 clean guardrail、benchmark 对齐细节或样本级规则。
 - `external/xMemory/evaluation/locomo/xMemory_search_framework.py`：参考 semantic/episodic 双通道、信息增益式 episode expansion、原始消息回链。
 - `external/Mnemis/global_selection/global_selector.py`、`prompts.py`：参考层级图 top-down selection、selected node 到 one-hop episodes/relations 的回链。
 - `external/graphiti/graphiti_core/prompts/extract_edges.py`：参考 temporal/provenance schema，特别是 `valid_at`、`invalid_at`、`episode_indices`。
@@ -40,6 +40,8 @@
 - `external/MemoryBank-SiliconFriend/utils/prompt_utils.py`、`memory_bank/memory_retrieval/local_doc_qa.py`、`utils/memory_utils.py`、`memory_bank/summarize_memory.py`：参考按日期保存历史、相关记忆+日期注入、相同 source/date 邻居扩展、history/personality 双摘要；风险是 summary/profile 可能压掉 raw evidence，因此只作为 profile/event 双通道和 source expansion 的参考，不让摘要成为唯一事实源。
 - `external/memU/src/memu/app/retrieve.py`、`prompts/memory_type/{profile,event,knowledge,behavior}.py`、`prompts/retrieve/{pre_retrieval_decision,query_rewriter,llm_category_ranker,llm_item_ranker,judger}.py`：重点参考 profile/event/knowledge/behavior 类型拆分、query rewrite、category/item staged retrieval、sufficiency check；可借鉴为通用 memory-type gating 和不足时追加检索，但不能引入 gold/judge/benchmark 标签。
 - `external/hindsight/hindsight-embed/hindsight_embed/profile_manager.py`、`external/hindsight/hindsight-api-slim/hindsight_api/_pg_search.py`：本次读到的主要是 profile/env/port 管理与 ParadeDB/BM25 工程配置，暂不作为核心 memory 方法依据。
+- `external/general-agentic-memory/src/gam/core/tree.py`、`core/node.py`、`prompts/gam_prompts.py`：参考 memory tree / directory summary / batch memorize + organize 的层级组织思想；当前不引入文件系统式 memory OS，只借鉴“短 memory record + 层级摘要”的组织原则。
+- `external/nemori/nemori/core/memory_system.py`、`search/unified.py`、`domain/models.py`、`llm/generators/{episode,semantic,merger}.py`、`llm/prompts.py`、`evaluation/longmemeval/search.py`：参考 buffer -> episode -> semantic memory、episode/semantic 双通道 hybrid search、source_messages 回链、prediction-correction semantic delta 和 episode merge；评测脚本里的 gold/question_type 只作为负面边界，不能进入 prediction。
 
 ## 51 项覆盖表
 
@@ -57,7 +59,7 @@
 | 10 | Everything is Context | `external/aigne-framework` | 已 clone，待读 | 可能参考 file/context abstraction，不作为当前设计依据。 |
 | 11 | From RAG to Memory / HippoRAG2 | `external/HippoRAG` | 已读核心 retrieval/rerank | 参考 fact/entity -> passage 回链、PPR/dense passage fusion；不迁移 gold_docs/gold_answers 评测入口和 DSPy demo filter。 |
 | 12 | gbrain | `external/gbrain` | 已 clone，待读 | 可能参考 personal graph memory。 |
-| 13 | General Agentic Memory via Deep Research | `external/general-agentic-memory` | 已 clone，待读 | 可能参考 agentic retrieval 和 reflection，需要严格限制 feedback 泄漏。 |
+| 13 | General Agentic Memory via Deep Research | `external/general-agentic-memory` | 已读 GAM tree / node / prompts | 参考层级 memory 组织和 batch memorize/organize；文件系统式 memory OS 暂不迁移。 |
 | 14 | Generative Agents | `external/generative_agents` | 已 clone，待读 | 参考 reflection/importance/recency 的经典结构；不直接适配 benchmark。 |
 | 15 | LD-Agent | `external/LD-Agent` | 已读 EventMemory/Personas | 参考 topic overlap、recency、session summary 和 persona/profile 抽取；profile 不覆盖 raw evidence。 |
 | 16 | Hindsight | `external/hindsight` | 已读部分工程代码 | 当前读到 profile/env 管理和 BM25 配置，暂未发现可直接作为核心 memory 方法依据；后续若参考 retain/recall/reflect 仍需继续读核心逻辑并确认 feedback 边界。 |
@@ -90,7 +92,7 @@
 | 43 | MemU | `external/memU` | 已读 retrieve 与 memory-type prompts | 参考 profile/event/knowledge/behavior 类型拆分、query rewrite、category/item staged retrieval 和 sufficiency check；预测阶段只可使用问题、原始对话和 build memory。 |
 | 44 | MIRIX | `external/MIRIX` | 已读 episodic schema | 参考 episodic/semantic/core memory taxonomy 和 event schema。 |
 | 45 | Mnemis | `external/Mnemis` | 已读 global selector/prompts | 参考层级图 selection 和 selected node 回链 episode/relation。 |
-| 46 | Nemori | `external/nemori` | 已 clone，待读 | 可能参考 adaptive distillation；需防止过度摘要。 |
+| 46 | Nemori | `external/nemori` | 已读核心 memory/search/generator 与评测入口 | 参考 episode/semantic 双通道、source_messages 回链、hybrid search、semantic delta 和 episode merge；评测字段不能进 prediction。 |
 | 47 | OpenMemory | `external/openmemory` | 已 clone，待读 | 可能参考 local memory service/API。 |
 | 48 | Cognee | `external/cognee` | 已 clone，待读 | 可能参考 KG-LLM interface，但需 raw evidence 回链。 |
 | 49 | ReMe | `external/ReMe` | 已 clone，待读 | 只可参考通用 procedural reflection，不写入具体测试反馈。 |
@@ -110,4 +112,5 @@
 - v38 具体采用 route-scoped raw top60 + `role_query_snippet`：借鉴 creating001 的 source-turn materialization 和 ACON/LCM 的 query-focused context compression，但不引入 LLM reranker、summary 替代事实源或 benchmark-specific guardrail。
 - v39 采用 memory-aware evidence selector：借鉴 HippoRAG/EverOS 的 fact/entity/typed memory -> raw passage 回链，把 top60 候选压回 top40 raw evidence；typed memory 只做 source-linked selection signal，不进入 prompt fact view。
 - v43 采用 session-thread evidence layout + row-linked build memory guide：借鉴 xMemory/SimpleMem 的 episodic raw message 回链、Mnemis 的 selected node -> episode 回链和 Graphiti/Zep 的 temporal/provenance 思路；typed memory 只作为已召回 raw rows 的定位 guide，不作为独立事实源。
+- v64 采用 list_count-only adjacent-turn window BM25：借鉴 creating001 的 turn-pair/source-turn materialization，并结合 v54 在 `list_count` diagnostic 上 gain/loss `1/0` 的局部信号；只按 question-derived information need 触发，不使用 benchmark label 或样本级规则。若 119 条 list_count diagnostic 不正向，则删除顶层 config。
 - clean 侧：所有 route 和 compiler 只能来自 question text、question_time、原始对话和 memory metadata；不能使用 LoCoMo category、LongMemEval question_type、evidence label、gold 或 judge。
