@@ -17,6 +17,11 @@ from memory.question_analysis import (
     route_from_question_analysis,
 )
 from memory.repair import maybe_repair_answer
+from memory.rerank import (
+    OpenAICompatibleRerankClient,
+    format_rerank_turn_document,
+    rerank_hits_with_anchor_retention,
+)
 from memory.retrieval import (
     BuildMemoryBM25Retriever,
     DenseEmbeddingRetriever,
@@ -63,6 +68,7 @@ class Stage1Pipeline:
         dense_config = retrieval_config.get("dense", {})
         session_config = retrieval_config.get("session_bm25", {})
         turn_window_config = retrieval_config.get("turn_window_bm25", {})
+        rerank_config = retrieval_config.get("rerank", {})
         route_config = self._config.get("route", {})
         question_analysis_config = self._config.get("question_analysis", {})
         compiler_config = self._config.get("compiler", {})
@@ -268,6 +274,39 @@ class Stage1Pipeline:
         self._turn_window_bm25_enabled_query_patterns = _tuple_config(
             turn_window_config.get("enabled_query_patterns")
         )
+        self._rerank_enabled = bool(rerank_config.get("enabled", False))
+        self._rerank_model = rerank_config.get("model")
+        self._rerank_base_url = rerank_config.get("base_url")
+        self._rerank_pool_k = int(rerank_config.get("pool_k", self._base_top_k))
+        self._rerank_batch_size = int(rerank_config.get("batch_size", 0))
+        self._rerank_timeout = float(rerank_config.get("timeout", 120.0))
+        self._rerank_document_max_chars = int(
+            rerank_config.get("document_max_chars", 0)
+        )
+        self._rerank_anchor_keep = int(rerank_config.get("anchor_keep", 0))
+        self._rerank_anchor_after_top = int(
+            rerank_config.get("anchor_after_top", 0)
+        )
+        self._rerank_query_text_mode = str(
+            rerank_config.get("query_text_mode", "external_naive")
+        )
+        self._rerank_information_needs = _tuple_config(
+            rerank_config.get("information_needs")
+        )
+        self._rerank_client = None
+        if self._rerank_enabled:
+            if not self._rerank_model:
+                raise ValueError("retrieval.rerank.model is required when enabled")
+            if not self._rerank_base_url:
+                raise ValueError("retrieval.rerank.base_url is required when enabled")
+            self._rerank_client = OpenAICompatibleRerankClient(
+                base_url=str(self._rerank_base_url),
+                model=str(self._rerank_model),
+                timeout=self._rerank_timeout,
+                batch_size=self._rerank_batch_size,
+                api_key_env=rerank_config.get("api_key_env"),
+                api_key=rerank_config.get("api_key"),
+            )
         self._embedding_client = None
         self._memory_builder = NullMemoryBuilder()
         if self._build_memory_enabled:
@@ -818,6 +857,7 @@ class Stage1Pipeline:
         question_analysis_cache_after = _answer_cache_stats(self._question_analyzer)
         retrieval_settings = self._retrieval_settings_for_route(route)
         top_k = retrieval_settings["top_k"]
+        candidate_top_k = retrieval_settings["candidate_top_k"]
         dense_top_k = retrieval_settings["dense_top_k"]
         lexical_protect_top_n = retrieval_settings["lexical_protect_top_n"]
         dense_protect_top_n = retrieval_settings["dense_protect_top_n"]
@@ -829,7 +869,7 @@ class Stage1Pipeline:
         if self._lexical_enabled:
             lexical_hits = retriever.retrieve(
                 request.question,
-                top_k=top_k,
+                top_k=candidate_top_k,
                 score_threshold=self._score_threshold,
             )
         memory_hits = ()
@@ -913,18 +953,22 @@ class Stage1Pipeline:
                 hit_lists = (*hit_lists, memory_source_hits)
             if turn_window_source_hits:
                 hit_lists = (*hit_lists, turn_window_source_hits)
-            hits = _merge_hit_lists(hit_lists, top_k=top_k, rrf_k=self._fusion_rrf_k)
+            hits = _merge_hit_lists(
+                hit_lists,
+                top_k=candidate_top_k,
+                rrf_k=self._fusion_rrf_k,
+            )
             if lexical_protect_top_n > 0 and lexical_hits:
                 hits = prepend_protected_hits(
                     lexical_hits[:lexical_protect_top_n],
                     hits,
-                    top_k=top_k,
+                    top_k=candidate_top_k,
                 )
             if dense_protect_top_n > 0 and dense_hits:
                 hits = prepend_protected_hits(
                     dense_hits[:dense_protect_top_n],
                     hits,
-                    top_k=top_k,
+                    top_k=candidate_top_k,
                 )
         else:
             if memory_source_hits or turn_window_source_hits:
@@ -938,7 +982,7 @@ class Stage1Pipeline:
                         )
                         if hits
                     ),
-                    top_k=top_k,
+                    top_k=candidate_top_k,
                     rrf_k=self._fusion_rrf_k,
                 )
             else:
@@ -966,6 +1010,21 @@ class Stage1Pipeline:
                 turn_hits,
                 session_anchor_hits,
                 protect_turn_hits=self._session_bm25_protect_turn_hits,
+            )
+        pre_rerank_hits = hits
+        rerank_trace = _disabled_rerank_trace(
+            enabled=self._rerank_enabled,
+            information_needs=self._rerank_information_needs,
+        )
+        if self._rerank_client is not None and _rerank_applies(
+            route=route,
+            enabled_information_needs=self._rerank_information_needs,
+        ):
+            hits, rerank_trace = self._rerank_hits(
+                store=store,
+                request=request,
+                hits=hits,
+                top_k=top_k,
             )
         evidence_turns = store.expand_neighbors(
             (hit.source_id for hit in hits),
@@ -1087,8 +1146,10 @@ class Stage1Pipeline:
                         session_bm25_enabled=self._session_bm25_enabled,
                         turn_window_bm25_enabled=self._turn_window_bm25_enabled,
                         build_memory_enabled=self._build_memory_enabled,
+                        rerank_enabled=self._rerank_enabled,
                     ),
                     "top_k": top_k,
+                    "candidate_top_k": candidate_top_k,
                     "base_top_k": self._base_top_k,
                     "max_top_k": self._max_top_k,
                     "route_overrides": self._retrieval_route_overrides,
@@ -1230,6 +1291,37 @@ class Stage1Pipeline:
                     "session_anchor_hits": [
                         hit.to_dict() for hit in session_anchor_hits
                     ],
+                    "rerank_enabled": self._rerank_enabled,
+                    "rerank_applied": rerank_trace["applied"],
+                    "rerank_model": self._rerank_model
+                    if self._rerank_enabled
+                    else None,
+                    "rerank_base_url": self._rerank_base_url
+                    if self._rerank_enabled
+                    else None,
+                    "rerank_pool_k": self._rerank_pool_k
+                    if self._rerank_enabled
+                    else None,
+                    "rerank_query_text_mode": self._rerank_query_text_mode
+                    if self._rerank_enabled
+                    else None,
+                    "rerank_document_max_chars": self._rerank_document_max_chars
+                    if self._rerank_enabled
+                    else None,
+                    "rerank_anchor_keep": self._rerank_anchor_keep
+                    if self._rerank_enabled
+                    else None,
+                    "rerank_anchor_after_top": self._rerank_anchor_after_top
+                    if self._rerank_enabled
+                    else None,
+                    "rerank_information_needs": self._rerank_information_needs,
+                    "rerank_candidate_count": rerank_trace["candidate_count"],
+                    "rerank_returned_count": rerank_trace["returned_count"],
+                    "rerank_total_tokens": rerank_trace["total_tokens"],
+                    "rerank_response": rerank_trace["response"],
+                    "pre_rerank_hits": [
+                        hit.to_dict() for hit in pre_rerank_hits
+                    ],
                     "hits": [hit.to_dict() for hit in hits],
                 },
                 "compiled_context": compiled.to_dict(),
@@ -1345,11 +1437,77 @@ class Stage1Pipeline:
             settings["top_k"] * route.retrieval_multiplier,
             settings["max_top_k"],
         )
+        candidate_top_k = top_k
+        dense_top_k = settings["dense_top_k"]
+        if self._rerank_enabled and _rerank_applies(
+            route=route,
+            enabled_information_needs=self._rerank_information_needs,
+        ):
+            candidate_top_k = max(candidate_top_k, self._rerank_pool_k)
+            dense_top_k = max(dense_top_k, candidate_top_k)
         return {
             "top_k": top_k,
-            "dense_top_k": settings["dense_top_k"],
+            "candidate_top_k": candidate_top_k,
+            "dense_top_k": dense_top_k,
             "lexical_protect_top_n": settings["lexical_protect_top_n"],
             "dense_protect_top_n": settings["dense_protect_top_n"],
+        }
+
+    def _rerank_hits(
+        self,
+        *,
+        store: RawEvidenceStore,
+        request: PredictionRequest,
+        hits: tuple[RetrievalHit, ...],
+        top_k: int,
+    ) -> tuple[tuple[RetrievalHit, ...], dict[str, Any]]:
+        if self._rerank_client is None or not hits:
+            return hits[:top_k], _disabled_rerank_trace(
+                enabled=self._rerank_enabled,
+                information_needs=self._rerank_information_needs,
+            )
+
+        rerank_items = tuple(
+            (hit, turn)
+            for hit in hits
+            if (turn := store.get(hit.source_id)) is not None
+        )
+        if not rerank_items:
+            trace = _disabled_rerank_trace(
+                enabled=self._rerank_enabled,
+                information_needs=self._rerank_information_needs,
+            )
+            trace["response"] = {"skipped": "no_source_documents"}
+            return hits[:top_k], trace
+        rerank_hits = tuple(hit for hit, _turn in rerank_items)
+        documents = [
+            format_rerank_turn_document(
+                turn,
+                max_chars=self._rerank_document_max_chars,
+            )
+            for _hit, turn in rerank_items
+        ]
+        query = _dense_query_text(
+            request.question,
+            request.question_time,
+            mode=self._rerank_query_text_mode,
+        )
+        result = self._rerank_client.rerank(query=query, documents=documents)
+        reranked_hits = rerank_hits_with_anchor_retention(
+            hits=rerank_hits,
+            scores=result.scores,
+            top_k=top_k,
+            anchor_keep=self._rerank_anchor_keep,
+            anchor_after_top=self._rerank_anchor_after_top,
+        )
+        return reranked_hits, {
+            "enabled": self._rerank_enabled,
+            "applied": True,
+            "information_needs": self._rerank_information_needs,
+            "candidate_count": len(rerank_hits),
+            "returned_count": len(reranked_hits),
+            "total_tokens": result.total_tokens,
+            "response": result.response,
         }
 
     def _finalize_answer(
@@ -1593,6 +1751,32 @@ def _turn_window_bm25_applies(
         enabled_information_needs=enabled_information_needs,
         enabled_query_patterns=enabled_query_patterns,
     )
+
+
+def _rerank_applies(
+    *,
+    route: RouteResult,
+    enabled_information_needs: tuple[str, ...],
+) -> bool:
+    if not enabled_information_needs:
+        return True
+    return route.information_need in enabled_information_needs
+
+
+def _disabled_rerank_trace(
+    *,
+    enabled: bool,
+    information_needs: tuple[str, ...],
+) -> dict[str, Any]:
+    return {
+        "enabled": enabled,
+        "applied": False,
+        "information_needs": information_needs,
+        "candidate_count": 0,
+        "returned_count": 0,
+        "total_tokens": 0,
+        "response": None,
+    }
 
 
 def _embedding_cache_stats(client: object) -> dict[str, int] | None:
@@ -1873,6 +2057,7 @@ def _retriever_name(
     session_bm25_enabled: bool,
     turn_window_bm25_enabled: bool,
     build_memory_enabled: bool,
+    rerank_enabled: bool,
 ) -> str:
     names = []
     if lexical_enabled:
@@ -1885,6 +2070,8 @@ def _retriever_name(
         names.append("session_bm25")
     if turn_window_bm25_enabled:
         names.append("turn_window_bm25")
+    if rerank_enabled:
+        names.append("rerank")
     return "+".join(names) or "no_retriever"
 
 

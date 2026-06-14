@@ -59,6 +59,10 @@ def main() -> int:
     total_turn_window_bm25_applied = 0
     total_turn_window_hits = 0
     total_turn_window_source_hits = 0
+    total_rerank_applied = 0
+    total_rerank_candidate_count = 0
+    total_rerank_returned_count = 0
+    total_rerank_tokens = 0
     total_embedding_cache_hits = 0
     total_embedding_cache_misses = 0
     total_embedding_cache_writes = 0
@@ -153,6 +157,15 @@ def main() -> int:
         total_turn_window_source_hits += len(
             retrieval_trace.get("turn_window_source_hits") or []
         )
+        if retrieval_trace.get("rerank_applied"):
+            total_rerank_applied += 1
+        total_rerank_candidate_count += int(
+            retrieval_trace.get("rerank_candidate_count") or 0
+        )
+        total_rerank_returned_count += int(
+            retrieval_trace.get("rerank_returned_count") or 0
+        )
+        total_rerank_tokens += int(retrieval_trace.get("rerank_total_tokens") or 0)
         embedding_cache = retrieval_trace.get("embedding_cache") or {}
         total_embedding_cache_hits += int(embedding_cache.get("hits") or 0)
         total_embedding_cache_misses += int(embedding_cache.get("misses") or 0)
@@ -420,6 +433,44 @@ def main() -> int:
             ),
             "avg_turn_window_source_hits": _safe_average(
                 total_turn_window_source_hits, sample_count
+            ),
+            "rerank_enabled": config.get("retrieval", {})
+            .get("rerank", {})
+            .get("enabled", False),
+            "rerank_model": config.get("retrieval", {}).get("rerank", {}).get("model"),
+            "rerank_base_url": config.get("retrieval", {})
+            .get("rerank", {})
+            .get("base_url"),
+            "rerank_pool_k": config.get("retrieval", {}).get("rerank", {}).get("pool_k"),
+            "rerank_query_text_mode": config.get("retrieval", {})
+            .get("rerank", {})
+            .get("query_text_mode"),
+            "rerank_document_max_chars": config.get("retrieval", {})
+            .get("rerank", {})
+            .get("document_max_chars"),
+            "rerank_anchor_keep": config.get("retrieval", {})
+            .get("rerank", {})
+            .get("anchor_keep"),
+            "rerank_anchor_after_top": config.get("retrieval", {})
+            .get("rerank", {})
+            .get("anchor_after_top"),
+            "rerank_information_needs": config.get("retrieval", {})
+            .get("rerank", {})
+            .get("information_needs"),
+            "rerank_applied_count": total_rerank_applied,
+            "rerank_applied_rate": _safe_average(total_rerank_applied, sample_count),
+            "avg_rerank_candidate_count": _safe_average(
+                total_rerank_candidate_count,
+                total_rerank_applied,
+            ),
+            "avg_rerank_returned_count": _safe_average(
+                total_rerank_returned_count,
+                total_rerank_applied,
+            ),
+            "total_rerank_tokens": total_rerank_tokens,
+            "avg_rerank_tokens_when_applied": _safe_average(
+                total_rerank_tokens,
+                total_rerank_applied,
             ),
             "total_embedding_tokens": total_embedding_tokens,
             "avg_embedding_tokens": _safe_average(total_embedding_tokens, sample_count),
@@ -1031,6 +1082,17 @@ def _write_summary(
         f"- turn_window_bm25_applied_rate: {metrics['retrieval']['turn_window_bm25_applied_rate']}",
         f"- avg_turn_window_hits: {metrics['retrieval']['avg_turn_window_hits']}",
         f"- avg_turn_window_source_hits: {metrics['retrieval']['avg_turn_window_source_hits']}",
+        f"- rerank_enabled: {metrics['retrieval']['rerank_enabled']}",
+        f"- rerank_model: {metrics['retrieval']['rerank_model']}",
+        f"- rerank_pool_k: {metrics['retrieval']['rerank_pool_k']}",
+        f"- rerank_anchor_keep: {metrics['retrieval']['rerank_anchor_keep']}",
+        f"- rerank_anchor_after_top: {metrics['retrieval']['rerank_anchor_after_top']}",
+        f"- rerank_applied_count: {metrics['retrieval']['rerank_applied_count']}",
+        f"- rerank_applied_rate: {metrics['retrieval']['rerank_applied_rate']}",
+        f"- avg_rerank_candidate_count: {metrics['retrieval']['avg_rerank_candidate_count']}",
+        f"- avg_rerank_returned_count: {metrics['retrieval']['avg_rerank_returned_count']}",
+        f"- avg_rerank_tokens_when_applied: {metrics['retrieval']['avg_rerank_tokens_when_applied']}",
+        "- rerank_token_accounting: rerank model tokens are reported separately and are not included in build/query LLM token budgets.",
         f"- avg_embedding_tokens: {metrics['retrieval']['avg_embedding_tokens']}",
         f"- avg_context_chars: {metrics['retrieval']['avg_context_chars']}",
         f"- compiler_prompt_mode: {metrics['compiler']['prompt_mode']}",
@@ -1219,6 +1281,16 @@ def _write_diagnosis(
         f"- turn_window_bm25_applied_rate: {metrics['retrieval']['turn_window_bm25_applied_rate']}",
         f"- avg_turn_window_hits: {metrics['retrieval']['avg_turn_window_hits']}",
         f"- avg_turn_window_source_hits: {metrics['retrieval']['avg_turn_window_source_hits']}",
+        f"- rerank_enabled: {metrics['retrieval']['rerank_enabled']}",
+        f"- rerank_model: {metrics['retrieval']['rerank_model']}",
+        f"- rerank_pool_k: {metrics['retrieval']['rerank_pool_k']}",
+        f"- rerank_anchor_keep: {metrics['retrieval']['rerank_anchor_keep']}",
+        f"- rerank_anchor_after_top: {metrics['retrieval']['rerank_anchor_after_top']}",
+        f"- rerank_applied_count: {metrics['retrieval']['rerank_applied_count']}",
+        f"- rerank_applied_rate: {metrics['retrieval']['rerank_applied_rate']}",
+        f"- avg_rerank_candidate_count: {metrics['retrieval']['avg_rerank_candidate_count']}",
+        f"- avg_rerank_returned_count: {metrics['retrieval']['avg_rerank_returned_count']}",
+        f"- avg_rerank_tokens_when_applied: {metrics['retrieval']['avg_rerank_tokens_when_applied']}",
         f"- embedding_cache_enabled: {metrics['retrieval']['embedding_cache_enabled']}",
         f"- embedding_cache_hits: {metrics['retrieval']['embedding_cache_hits']}",
         f"- embedding_cache_misses: {metrics['retrieval']['embedding_cache_misses']}",

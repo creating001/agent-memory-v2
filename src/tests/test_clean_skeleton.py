@@ -5,6 +5,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SRC_ROOT = REPO_ROOT / "src"
@@ -18,6 +19,7 @@ from memory.compiler import EvidenceCompiler
 from memory.finalize import finalize_structured_answer, raw_response_content
 from memory.question_analysis import QuestionAnalysisResult
 from memory.repair import build_repair_prompt, repair_trigger_reasons
+from memory.rerank import RerankResult
 from memory.retrieval import (
     MemoryHit,
     TurnWindowBM25Retriever,
@@ -239,6 +241,57 @@ class CleanSkeletonTest(unittest.TestCase):
             ["s1:t0", "s1:t1"],
         )
         self.assertEqual(row_source_ids, ["s1:t0", "s1:t1"])
+
+    def test_pipeline_rerank_expands_candidate_pool_and_reorders_hits(self) -> None:
+        config = {
+            "retrieval": {
+                "top_k": 1,
+                "max_top_k": 1,
+                "neighbor_window": 0,
+                "drop_query_stopwords": True,
+                "rerank": {
+                    "enabled": True,
+                    "base_url": "http://127.0.0.1:8002/v1",
+                    "model": "fake-reranker",
+                    "pool_k": 2,
+                    "anchor_keep": 0,
+                    "anchor_after_top": 0,
+                },
+            },
+            "compiler": {"max_evidence_items": 1, "max_evidence_chars": 4000},
+            "answer": {"fallback_answer": "unknown"},
+        }
+        request = PredictionRequest(
+            question="Where did Alex redeem the coupon?",
+            turns=(
+                Turn(
+                    source_id="bad",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Where redeem coupon where redeem coupon.",
+                ),
+                Turn(
+                    source_id="good",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="Alex redeemed the coupon at Target.",
+                ),
+            ),
+        )
+
+        with patch("memory.pipeline.OpenAICompatibleRerankClient", _FakeReranker):
+            result = Stage1Pipeline(config).predict(request)
+
+        retrieval_trace = result["trace"]["retrieval"]
+        rows = result["trace"]["compiled_context"]["evidence_rows"]
+
+        self.assertEqual(retrieval_trace["candidate_top_k"], 2)
+        self.assertTrue(retrieval_trace["rerank_applied"])
+        self.assertEqual(retrieval_trace["rerank_total_tokens"], 7)
+        self.assertEqual(retrieval_trace["hits"][0]["source_id"], "good")
+        self.assertEqual(rows[0]["source_id"], "good")
         self.assertNotIn("question_type", result["trace"]["compiled_context"]["prompt"])
         self.assertEqual(result["trace"]["token_cost"]["query_tokens"], 0)
 
@@ -2621,6 +2674,25 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertTrue(retrieval["session_bm25_enabled"])
         self.assertFalse(retrieval["session_bm25_applied"])
         self.assertEqual(retrieval["session_hits"], [])
+
+
+class _FakeReranker:
+    def __init__(self, **kwargs: object) -> None:
+        del kwargs
+
+    def rerank(self, *, query: str, documents: list[str]) -> RerankResult:
+        del query
+        scores = tuple(10.0 if "Target" in document else 1.0 for document in documents)
+        return RerankResult(
+            scores=scores,
+            response={
+                "results": [
+                    {"index": index, "relevance_score": score}
+                    for index, score in enumerate(scores)
+                ]
+            },
+            total_tokens=7,
+        )
 
 
 class _CountingAnswerer:

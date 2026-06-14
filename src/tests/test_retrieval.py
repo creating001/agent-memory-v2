@@ -20,6 +20,10 @@ from memory.retrieval import (
     _DENSE_DOCUMENT_CACHE_LOCKS,
     prepend_protected_hits,
 )
+from memory.rerank import (
+    format_rerank_turn_document,
+    rerank_hits_with_anchor_retention,
+)
 from common.schemas import RetrievalHit
 from common.schemas import Turn
 
@@ -207,6 +211,43 @@ class RetrievalTest(unittest.TestCase):
         hits = prepend_protected_hits(protected, fused, top_k=3)
 
         self.assertEqual([hit.source_id for hit in hits], ["lexical-a", "lexical-b", "dense-a"])
+
+    def test_rerank_hits_retains_retrieval_anchors(self) -> None:
+        hits = (
+            RetrievalHit("anchor", 0.9, 1, "dense_embedding"),
+            RetrievalHit("winner", 0.3, 2, "lexical_bm25"),
+            RetrievalHit("other", 0.2, 3, "lexical_bm25"),
+        )
+
+        reranked = rerank_hits_with_anchor_retention(
+            hits=hits,
+            scores=(0.1, 0.9, 0.2),
+            top_k=3,
+            anchor_keep=1,
+            anchor_after_top=1,
+        )
+
+        self.assertEqual(
+            [hit.source_id for hit in reranked],
+            ["winner", "anchor", "other"],
+        )
+        self.assertTrue(reranked[0].retriever.endswith("+rerank"))
+
+    def test_format_rerank_turn_document_includes_date_role_and_truncates(self) -> None:
+        turn = Turn(
+            source_id="s1:t0",
+            session_id="s1",
+            turn_index=0,
+            role="user",
+            text="A" * 200,
+            timestamp="2024-01-01",
+        )
+
+        document = format_rerank_turn_document(turn, max_chars=80)
+
+        self.assertLessEqual(len(document), 80)
+        self.assertIn("Date: 2024-01-01", document)
+        self.assertIn("...", document)
 
 
 class _FakeEmbedder:

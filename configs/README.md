@@ -21,7 +21,7 @@
 
 ## 当前候选
 
-当前没有未验证候选配置。新方法先跑 diagnostic，并在通过 accuracy、clean scan 和 token gate 后再进入保留配置列表。
+- `stage1_rerank_v58_cached.json`：v42 底座上的 clean rerank 候选。扩大 BM25+dense+build-memory source 候选池到 80，用本地 `Qwen/Qwen3-Reranker-0.6B` 重排后仍只编译 top-40 raw evidence；rerank token 单独记录，不混入 build/query LLM token。先跑 `weak_route_87` diagnostic，若无 accuracy 净增或 token 超预算则删除顶层配置，仅保留实验快照。
 
 ## 新配置规则
 
