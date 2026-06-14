@@ -1,0 +1,107 @@
+{
+  "clean_note": "Offline repair-draft comparison only. Reads judge labels and gold answers after prediction; do not consume this file in prediction, retrieval, compiler, answer, verifier, or route logic.",
+  "n": 6,
+  "draft_wrong_final_correct": 3,
+  "draft_correct_final_wrong": 0,
+  "same_correct": 0,
+  "same_wrong": 3,
+  "net_repair_gain": 3,
+  "draft_correct": 0,
+  "final_correct": 3,
+  "draft_judge_usage": {
+    "completion_tokens": 1733,
+    "prompt_tokens": 1045,
+    "total_tokens": 2778
+  },
+  "final_judge_usage_for_full_v51": {
+    "completion_tokens": 5653,
+    "prompt_tokens": 6560,
+    "total_tokens": 12213
+  },
+  "items": [
+    {
+      "record_key": "158692bc43ef28e0e43d991f",
+      "question": "Can you recommend some recent publications or conferences that I might find interesting?",
+      "draft_label": "WRONG",
+      "final_label": "CORRECT",
+      "outcome": "draft_wrong_final_correct",
+      "draft_answer": "The provided information is not enough to recommend recent publications or conferences.",
+      "final_answer": "Based on your interest in deep learning for medical image analysis, explainable AI, and visualizing deep learning models, consider exploring recent conferences like MICCAI (Medical Image Computing and Computer Assisted Intervention) and NeurIPS workshops on explainable AI, as well as journals such as Medical Image Analysis and Nature Machine Intelligence.",
+      "repair_decision": "revise",
+      "repair_reasons": [
+        "profile_preference_review"
+      ],
+      "gold_answer_offline_only": "The user would prefer suggestions related to recent research papers, articles, or conferences that focus on artificial intelligence in healthcare, particularly those that involve deep learning for medical image analysis. They would not be interested in general AI topics or those unrelated to healthcare."
+    },
+    {
+      "record_key": "431c6d9ef160528ca54104f8",
+      "question": "Can you suggest a hotel for my upcoming trip to Miami?",
+      "draft_label": "WRONG",
+      "final_label": "CORRECT",
+      "outcome": "draft_wrong_final_correct",
+      "draft_answer": "The provided information is not enough to suggest a hotel for Miami.",
+      "final_answer": "Based on your preference for a hotel with a hot tub on the balcony and a scenic view, I recommend looking for a Miami hotel with similar features—such as a rooftop pool, ocean or city views, and romantic packages—though specific hotel names are not available in the current context.",
+      "repair_decision": "revise",
+      "repair_reasons": [
+        "profile_preference_review"
+      ],
+      "gold_answer_offline_only": "The user would prefer suggestions of hotels in Miami that offer great views, possibly of the ocean or the city skyline, and have unique features such as a rooftop pool or a hot tub on the balcony. They may not prefer suggestions of basic or budget hotels without these features."
+    },
+    {
+      "record_key": "5110d0ed1a7cb0fefd131e4d",
+      "question": "Can you recommend some interesting cultural events happening around me this weekend?",
+      "draft_label": "WRONG",
+      "final_label": "WRONG",
+      "outcome": "same_wrong",
+      "draft_answer": "The provided information is not enough to recommend specific cultural events happening this weekend.",
+      "final_answer": "You can explore language and cultural exchange events using platforms like Eventbrite and Meetup by searching for terms such as 'language festival,' 'cultural exchange,' or 'international festival.'",
+      "repair_decision": "revise",
+      "repair_reasons": [
+        "profile_preference_review"
+      ],
+      "gold_answer_offline_only": "The user would prefer responses that suggest cultural events where they can practice their language skills, particularly Spanish and French. They would also appreciate if the event has a focus on language learning resources. They would not prefer events that do not provide opportunities for language practice or cultural exchange."
+    },
+    {
+      "record_key": "8b879add5b99d7c3de847de7",
+      "question": "Can you recommend a show or movie for me to watch tonight?",
+      "draft_label": "WRONG",
+      "final_label": "WRONG",
+      "outcome": "same_wrong",
+      "draft_answer": "The provided information is not enough to recommend a specific show or movie.",
+      "final_answer": "Given your interest in politics, conservatism, and the 20th century, I recommend watching 'The Crown'—it explores British political history with a conservative perspective and spans much of the 20th century.",
+      "repair_decision": "revise",
+      "repair_reasons": [
+        "profile_preference_review"
+      ],
+      "gold_answer_offline_only": "The user would prefer recommendations for stand-up comedy specials on Netflix, especially those that are known for their storytelling. They may not prefer recommendations for other genres or platforms."
+    },
+    {
+      "record_key": "32f0df330fed5b12b138734e",
+      "question": "I've been having trouble with the battery life on my phone lately. Any tips?",
+      "draft_label": "WRONG",
+      "final_label": "CORRECT",
+      "outcome": "draft_wrong_final_correct",
+      "draft_answer": "The provided information is not enough to answer the question.",
+      "final_answer": "Consider using a portable power bank like the one you're already organizing for travel, and reduce battery drain by lowering screen brightness, turning off unnecessary background apps, and enabling battery-saving mode.",
+      "repair_decision": "revise",
+      "repair_reasons": [
+        "profile_preference_review"
+      ],
+      "gold_answer_offline_only": "The user would prefer responses that build upon their previous mention of purchasing a portable power bank, such as suggestions on how to optimize its use, like ensuring it's fully charged before use. They might also appreciate tips on utilizing battery-saving features on their phone. The user may not prefer responses that suggest alternative solutions or unrelated advice."
+    },
+    {
+      "record_key": "4247325975aa83eade14f4aa",
+      "question": "I was thinking about rearranging the furniture in my bedroom this weekend. Any tips?",
+      "draft_label": "WRONG",
+      "final_label": "WRONG",
+      "outcome": "same_wrong",
+      "draft_answer": "The provided information is not enough to give tips on rearranging bedroom furniture.",
+      "final_answer": "Consider arranging your bedroom furniture to highlight a mid-century modern aesthetic—place your dresser against a focal wall, ensure clear pathways for movement, and position your bed to maximize natural light and visual balance, especially if you're drawn to clean lines and functional design.",
+      "repair_decision": "revise",
+      "repair_reasons": [
+        "profile_preference_review"
+      ],
+      "gold_answer_offline_only": "The user would prefer responses that take into account their existing plans to replace the bedroom dresser and their interest in mid-century modern style, suggesting furniture layouts that accommodate the new dresser and incorporate elements of this design aesthetic. They might not prefer general furniture arrangement tips or suggestions that do not consider their specific design preferences."
+    }
+  ]
+}

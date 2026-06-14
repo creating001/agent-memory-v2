@@ -68,6 +68,7 @@
 - v48 Candidate Evidence Map 已完成 LongMemEval-S `weak_route_87` 诊断：DeepSeek judge `56/87 = 0.643678`，低于 v42 same-87 `59/87 = 0.678161`；gain/loss `6/9`，answer_changed `32`，estimated full avg query `6250.456` 超过 6K。结论是全弱路由开启负向且超预算；仅 current_state 有局部正向，后续 v49 已验证 current-state-only 仍只是弱信号，不扩 full。规划和结论见 `experiments/v48_planning.md`。
 - v49 current-state-only Candidate Map 已完成 LongMemEval-S `current_state_22` 诊断：DeepSeek judge `13/22 = 0.590909`，高于 v42 same-22 `12/22 = 0.545455`，gain/loss `3/2`，answer_changed `12`，estimated full avg query `5884.492` 通过 6K。结论是干净但收益太弱且有 temporal/order regression，不扩 full，顶层 config 不长期保留。
 - v50 profile/advice memory guide 已完成 LongMemEval-S `single-session-preference_30` 诊断：DeepSeek judge `12/30 = 0.400000`，低于 v42 same-30 `13/30 = 0.433333`；gain/loss `1/2`，answer_changed `25`，avg query delta `+461.833`。结论是负向：拓宽 advice route + source-linked build memory guide 没有稳定提升 personalized advice，不跑 full，顶层 config 不长期保留。
+- v51 profile/advice answer repair 已完成 LongMemEval-S `single-session-preference_30` 诊断：DeepSeek judge `16/30 = 0.533333`，高于 v42 same-30 `13/30 = 0.433333` 和 v50 same-30 `12/30 = 0.400000`；gain/loss `6/3`，repair applied `6/30`，applied draft `0/6` -> final `3/6`。但 avg_query_tokens `8382.667`，超过 8K diagnostic 边界；结论是 repair 思路有效但过贵，不跑 full，下一步做 token-safe profile-anchor repair，顶层 config 不长期保留。
 
 负向探索结论已压缩保留：
 
@@ -130,6 +131,7 @@ experiments/formal/<run_id>/
 | `v48_candidate_map_lme_weakroute_265e07d` | 87 条 LongMemEval-S question-derived weak-route diagnostic | v48 Candidate Evidence Map 全弱路由失败；DeepSeek judge `56/87`，低于 v42 same-87 `59/87`，且 full query 估计 `6250.456` 超预算。仅 current_state 子集正向，转 v49 current-state-only。 |
 | `v49_current_state_candidate_map_lme_5993d30` | 22 条 LongMemEval-S question-derived current_state diagnostic | v49 current-state-only Candidate Evidence Map 弱正向但不够主线；DeepSeek judge `13/22`，高于 v42 same-22 `12/22`，gain/loss `3/2`，full query 估计 `5884.492`。有 temporal/order regression，不跑 full，顶层 config 已删除。 |
 | `v50_profile_advice_memory_guide_lme_pref_81351ef` | 30 条 LongMemEval-S single-session-preference diagnostic | v50 advice/profile route + source-linked build memory guide 失败；DeepSeek judge `12/30`，低于 v42 same-30 `13/30`，gain/loss `1/2`。说明 personalized advice 需要更可靠的 build-side profile/event memory，而不是更多 reader guide。 |
+| `v51_profile_repair_lme_pref_79b1424` | 30 条 LongMemEval-S single-session-preference diagnostic | v51 profile/advice answer repair 有正向质量信号；DeepSeek judge `16/30`，高于 v42 same-30 `13/30`，repair applied draft `0/6` -> final `3/6`。但 avg_query_tokens `8382.667` 超预算，不跑 full；下一步收窄触发并压缩 repair context。 |
 
 ## 保留正式结果
 
