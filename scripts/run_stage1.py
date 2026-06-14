@@ -51,6 +51,7 @@ def main() -> int:
     total_evidence_items = 0
     total_compiler_memory_records = 0
     total_context_chars = 0
+    total_update_conflict_guide_applied = 0
     total_embedding_tokens = 0
     total_effective_top_k = 0
     total_effective_dense_top_k = 0
@@ -117,6 +118,8 @@ def main() -> int:
         total_evidence_items += len(compiled["evidence_rows"])
         total_compiler_memory_records += len(compiled.get("memory_records") or [])
         total_context_chars += int(compiled["context_chars"])
+        if "Update/Conflict Candidate Chain:" in str(compiled.get("prompt") or ""):
+            total_update_conflict_guide_applied += 1
         retrieval_trace = result["trace"]["retrieval"]
         total_embedding_tokens += int(retrieval_trace.get("embedding_tokens") or 0)
         total_effective_top_k += int(retrieval_trace.get("top_k") or 0)
@@ -650,6 +653,19 @@ def main() -> int:
             "candidate_guide_snippet_chars": config.get("compiler", {}).get(
                 "candidate_guide_snippet_chars", 160
             ),
+            "update_conflict_guide": config.get("compiler", {}).get(
+                "update_conflict_guide", False
+            ),
+            "update_conflict_guide_information_needs": config.get(
+                "compiler", {}
+            ).get("update_conflict_guide_information_needs"),
+            "update_conflict_guide_max_rows": config.get("compiler", {}).get(
+                "update_conflict_guide_max_rows", 6
+            ),
+            "update_conflict_guide_snippet_chars": config.get("compiler", {}).get(
+                "update_conflict_guide_snippet_chars", 180
+            ),
+            "update_conflict_guide_applied": total_update_conflict_guide_applied,
             "operation_workpad": config.get("compiler", {}).get(
                 "operation_workpad", False
             ),
@@ -1154,6 +1170,11 @@ def _write_summary(
         f"- candidate_guide_information_needs: {metrics['compiler']['candidate_guide_information_needs']}",
         f"- candidate_guide_max_rows: {metrics['compiler']['candidate_guide_max_rows']}",
         f"- candidate_guide_snippet_chars: {metrics['compiler']['candidate_guide_snippet_chars']}",
+        f"- update_conflict_guide: {metrics['compiler']['update_conflict_guide']}",
+        f"- update_conflict_guide_information_needs: {metrics['compiler']['update_conflict_guide_information_needs']}",
+        f"- update_conflict_guide_max_rows: {metrics['compiler']['update_conflict_guide_max_rows']}",
+        f"- update_conflict_guide_snippet_chars: {metrics['compiler']['update_conflict_guide_snippet_chars']}",
+        f"- update_conflict_guide_applied: {metrics['compiler']['update_conflict_guide_applied']}",
         f"- current_state_update_contract: {metrics['compiler']['current_state_update_contract']}",
         f"- dialogue_inference_contract: {metrics['compiler']['dialogue_inference_contract']}",
         f"- temporal_order_contract: {metrics['compiler']['temporal_order_contract']}",
@@ -1286,6 +1307,11 @@ def _write_diagnosis(
         f"- candidate_guide_information_needs: {metrics['compiler']['candidate_guide_information_needs']}",
         f"- candidate_guide_max_rows: {metrics['compiler']['candidate_guide_max_rows']}",
         f"- candidate_guide_snippet_chars: {metrics['compiler']['candidate_guide_snippet_chars']}",
+        f"- update_conflict_guide: {metrics['compiler']['update_conflict_guide']}",
+        f"- update_conflict_guide_information_needs: {metrics['compiler']['update_conflict_guide_information_needs']}",
+        f"- update_conflict_guide_max_rows: {metrics['compiler']['update_conflict_guide_max_rows']}",
+        f"- update_conflict_guide_snippet_chars: {metrics['compiler']['update_conflict_guide_snippet_chars']}",
+        f"- update_conflict_guide_applied: {metrics['compiler']['update_conflict_guide_applied']}",
         f"- current_state_update_contract: {metrics['compiler']['current_state_update_contract']}",
         f"- dialogue_inference_contract: {metrics['compiler']['dialogue_inference_contract']}",
         f"- temporal_order_contract: {metrics['compiler']['temporal_order_contract']}",

@@ -2054,6 +2054,146 @@ class CleanSkeletonTest(unittest.TestCase):
             result["trace"]["compiled_context"]["prompt"],
         )
 
+    def test_update_conflict_guide_is_narrow_and_source_preserving(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=3,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            update_conflict_guide=True,
+            update_conflict_guide_information_needs=("fact_lookup",),
+            update_conflict_guide_max_rows=3,
+            update_conflict_guide_snippet_chars=140,
+        )
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text="Alex said his 5K time was 27:12 at the charity race.",
+                timestamp="2024-05-23",
+            ),
+            Turn(
+                source_id="s2:t0",
+                session_id="s2",
+                turn_index=0,
+                role="user",
+                text="Alex is hoping to beat his personal best time of 25:50 next month.",
+                timestamp="2024-05-30",
+            ),
+            Turn(
+                source_id="s3:t0",
+                session_id="s3",
+                turn_index=0,
+                role="assistant",
+                text="General running advice.",
+                timestamp="2024-06-01",
+            ),
+        )
+
+        fact_context = compiler.compile(
+            question="What is Alex's personal best 5K time?",
+            question_time=None,
+            route=RouteResult(information_need="fact_lookup", signals=()),
+            hits=(
+                RetrievalHit("s1:t0", 1.0, 1, "lexical_bm25"),
+                RetrievalHit("s2:t0", 0.9, 2, "lexical_bm25"),
+            ),
+            evidence_turns=turns,
+        )
+        profile_context = compiler.compile(
+            question="What is Alex's personal best 5K time?",
+            question_time=None,
+            route=RouteResult(information_need="profile_preference", signals=()),
+            hits=(),
+            evidence_turns=turns,
+        )
+
+        self.assertIn("Update/Conflict Candidate Chain:", fact_context.prompt)
+        self.assertIn("Use Update/Conflict Candidate Chain only as a compact index", fact_context.prompt)
+        self.assertIn("Memory 1: date=2024-05-23 role=user", fact_context.prompt)
+        self.assertIn("values=27:12", fact_context.prompt)
+        self.assertIn("Memory 2: date=2024-05-30 role=user", fact_context.prompt)
+        self.assertIn("personal_best", fact_context.prompt)
+        self.assertIn("values=25:50", fact_context.prompt)
+        self.assertNotIn("Update/Conflict Candidate Chain:", profile_context.prompt)
+        self.assertNotIn("question_type", fact_context.prompt)
+
+    def test_update_conflict_guide_skips_single_value_rows(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=2,
+            max_evidence_chars=3000,
+            prompt_mode="external_naive",
+            update_conflict_guide=True,
+            update_conflict_guide_information_needs=("current_state",),
+        )
+        compiled = compiler.compile(
+            question="What is Alex's current follower count?",
+            question_time=None,
+            route=RouteResult(information_need="current_state", signals=()),
+            hits=(),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Alex is close to 1300 followers now.",
+                    timestamp="2024-05-30",
+                ),
+            ),
+        )
+
+        self.assertNotIn("Update/Conflict Candidate Chain:", compiled.prompt)
+
+    def test_pipeline_traces_update_conflict_guide_config(self) -> None:
+        config = {
+            "retrieval": {"top_k": 2, "max_top_k": 2, "neighbor_window": 0},
+            "compiler": {
+                "max_evidence_items": 2,
+                "max_evidence_chars": 3000,
+                "prompt_mode": "external_naive",
+                "update_conflict_guide": True,
+                "update_conflict_guide_information_needs": ["current_state"],
+                "update_conflict_guide_max_rows": 2,
+                "update_conflict_guide_snippet_chars": 120,
+            },
+            "answer": {"fallback_answer": "I do not know."},
+        }
+        request = PredictionRequest(
+            question="What is Alex's current follower count?",
+            turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Alex had 1250 followers earlier this month.",
+                    timestamp="2024-05-20",
+                ),
+                Turn(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="Alex is close to 1300 followers now.",
+                    timestamp="2024-05-30",
+                ),
+            ),
+        )
+
+        result = Stage1Pipeline(config).predict(request)
+
+        self.assertTrue(result["trace"]["compiler"]["update_conflict_guide"])
+        self.assertEqual(
+            result["trace"]["compiler"]["update_conflict_guide_information_needs"],
+            ("current_state",),
+        )
+        self.assertIn(
+            "Update/Conflict Candidate Chain:",
+            result["trace"]["compiled_context"]["prompt"],
+        )
+
     def test_temporal_event_contract_separates_mention_time_from_event_time(self) -> None:
         compiler = EvidenceCompiler(
             max_evidence_items=1,

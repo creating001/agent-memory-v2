@@ -68,6 +68,9 @@ ROUTE_OVERRIDE_KEYS = {
     "structured_guide_include_rows",
     "structured_guide_max_rows",
     "temporal_order_contract",
+    "update_conflict_guide",
+    "update_conflict_guide_max_rows",
+    "update_conflict_guide_snippet_chars",
 }
 SUPPORTED_PROMPT_MODES = {"default", "external_naive", "raw_context_only"}
 DEFAULT_STRUCTURED_ANSWER_CONTRACT_NEEDS = ("list_count", "temporal_lookup")
@@ -165,6 +168,15 @@ class EvidenceCompiler:
         ),
         candidate_guide_max_rows: int = 6,
         candidate_guide_snippet_chars: int = 160,
+        update_conflict_guide: bool = False,
+        update_conflict_guide_information_needs: tuple[str, ...] = (
+            "current_state",
+            "fact_lookup",
+            "list_count",
+            "temporal_lookup",
+        ),
+        update_conflict_guide_max_rows: int = 6,
+        update_conflict_guide_snippet_chars: int = 180,
         operation_workpad: bool = False,
         operation_workpad_information_needs: tuple[str, ...] = (
             DEFAULT_STRUCTURED_ANSWER_CONTRACT_NEEDS
@@ -240,6 +252,17 @@ class EvidenceCompiler:
         self._candidate_guide_max_rows = max(1, int(candidate_guide_max_rows))
         self._candidate_guide_snippet_chars = max(
             80, int(candidate_guide_snippet_chars)
+        )
+        self._update_conflict_guide = update_conflict_guide
+        self._update_conflict_guide_information_needs = _validate_information_needs(
+            update_conflict_guide_information_needs,
+            field_name="update_conflict_guide_information_needs",
+        )
+        self._update_conflict_guide_max_rows = max(
+            2, int(update_conflict_guide_max_rows)
+        )
+        self._update_conflict_guide_snippet_chars = max(
+            80, int(update_conflict_guide_snippet_chars)
         )
         self._operation_workpad = operation_workpad
         self._operation_workpad_information_needs = _validate_information_needs(
@@ -409,6 +432,17 @@ class EvidenceCompiler:
             candidate_guide_snippet_chars=route_settings[
                 "candidate_guide_snippet_chars"
             ],
+            update_conflict_guide=(
+                route_settings["update_conflict_guide"]
+                and route.information_need
+                in self._update_conflict_guide_information_needs
+            ),
+            update_conflict_guide_max_rows=route_settings[
+                "update_conflict_guide_max_rows"
+            ],
+            update_conflict_guide_snippet_chars=route_settings[
+                "update_conflict_guide_snippet_chars"
+            ],
             evidence_report_max_items=self._evidence_report_max_items,
             evidence_report_detail=route_settings["evidence_report_detail"],
             operation_workpad=(
@@ -449,6 +483,11 @@ class EvidenceCompiler:
             "candidate_guide": self._candidate_guide,
             "candidate_guide_max_rows": self._candidate_guide_max_rows,
             "candidate_guide_snippet_chars": self._candidate_guide_snippet_chars,
+            "update_conflict_guide": self._update_conflict_guide,
+            "update_conflict_guide_max_rows": self._update_conflict_guide_max_rows,
+            "update_conflict_guide_snippet_chars": (
+                self._update_conflict_guide_snippet_chars
+            ),
             "evidence_row_labels": self._evidence_row_labels,
             "context_layout": self._context_layout,
             "current_state_update_contract": self._current_state_update_contract,
@@ -557,6 +596,18 @@ def _validate_route_overrides(
         if "candidate_guide_snippet_chars" in raw_overrides:
             overrides["candidate_guide_snippet_chars"] = max(
                 80, int(raw_overrides["candidate_guide_snippet_chars"])
+            )
+        if "update_conflict_guide" in raw_overrides:
+            overrides["update_conflict_guide"] = bool(
+                raw_overrides["update_conflict_guide"]
+            )
+        if "update_conflict_guide_max_rows" in raw_overrides:
+            overrides["update_conflict_guide_max_rows"] = max(
+                2, int(raw_overrides["update_conflict_guide_max_rows"])
+            )
+        if "update_conflict_guide_snippet_chars" in raw_overrides:
+            overrides["update_conflict_guide_snippet_chars"] = max(
+                80, int(raw_overrides["update_conflict_guide_snippet_chars"])
             )
         if "evidence_row_labels" in raw_overrides:
             overrides["evidence_row_labels"] = bool(
@@ -1070,6 +1121,9 @@ def _build_prompt(
     candidate_guide: bool,
     candidate_guide_max_rows: int,
     candidate_guide_snippet_chars: int,
+    update_conflict_guide: bool,
+    update_conflict_guide_max_rows: int,
+    update_conflict_guide_snippet_chars: int,
     evidence_report_max_items: int,
     evidence_report_detail: bool,
     operation_workpad: bool,
@@ -1122,6 +1176,11 @@ def _build_prompt(
             candidate_guide=candidate_guide,
             candidate_guide_max_rows=candidate_guide_max_rows,
             candidate_guide_snippet_chars=candidate_guide_snippet_chars,
+            update_conflict_guide=update_conflict_guide,
+            update_conflict_guide_max_rows=update_conflict_guide_max_rows,
+            update_conflict_guide_snippet_chars=(
+                update_conflict_guide_snippet_chars
+            ),
             evidence_report_max_items=evidence_report_max_items,
             evidence_report_detail=evidence_report_detail,
             operation_workpad=operation_workpad,
@@ -1279,6 +1338,9 @@ def _build_external_naive_prompt(
     candidate_guide: bool,
     candidate_guide_max_rows: int,
     candidate_guide_snippet_chars: int,
+    update_conflict_guide: bool,
+    update_conflict_guide_max_rows: int,
+    update_conflict_guide_snippet_chars: int,
     evidence_report_max_items: int,
     evidence_report_detail: bool,
     operation_workpad: bool,
@@ -1340,6 +1402,19 @@ def _build_external_naive_prompt(
             candidate_guide_block = "\n".join(
                 ["", "Candidate Evidence Map:", *candidate_lines, ""]
             )
+    update_conflict_guide_block = ""
+    if update_conflict_guide:
+        update_conflict_lines = _external_update_conflict_guide_lines(
+            question=question,
+            route=route,
+            rows=rows,
+            max_rows=update_conflict_guide_max_rows,
+            snippet_chars=update_conflict_guide_snippet_chars,
+        )
+        if update_conflict_lines:
+            update_conflict_guide_block = "\n".join(
+                ["", "Update/Conflict Candidate Chain:", *update_conflict_lines, ""]
+            )
     rules = ["Use only the memory context."]
     if structured_guide_block:
         rules.append(
@@ -1348,6 +1423,10 @@ def _build_external_naive_prompt(
     if candidate_guide_block:
         rules.append(
             "Use Candidate Evidence Map only as a compact index into Memory Context; it is not independent evidence."
+        )
+    if update_conflict_guide_block:
+        rules.append(
+            "Use Update/Conflict Candidate Chain only as a compact index into Memory Context; it is not independent evidence."
         )
     if temporal_aid:
         rules.append(
@@ -1488,6 +1567,7 @@ def _build_external_naive_prompt(
         for block in (
             structured_guide_block,
             candidate_guide_block,
+            update_conflict_guide_block,
             operation_workpad_block,
             final_answer_checklist_block,
         )
@@ -1874,6 +1954,240 @@ def _candidate_guide_row_score(
     if route.information_need in {"profile_preference", "current_state"} and _has_profile_or_state_signal(row.text):
         score += 0.7
     return score
+
+
+def _external_update_conflict_guide_lines(
+    *,
+    question: str,
+    route: RouteResult,
+    rows: tuple[EvidenceRow, ...],
+    max_rows: int,
+    snippet_chars: int,
+) -> list[str]:
+    selected = _update_conflict_guide_rows(
+        question=question,
+        route=route,
+        rows=rows,
+        max_rows=max_rows,
+    )
+    if not selected:
+        return []
+
+    lines = [
+        "Use this compact chain to compare directly relevant raw rows that may describe an older state, newer state, correction, or scoped historical value; verify final facts in Memory Context.",
+        "- Match the question scope first: current/latest/now should use the newest direct update, while previous/original/first/before/in-period questions should use the matching historical scope.",
+        "- Explicit corrections, updates, added items, changed values, or approximate current values can override retrieval rank when the Memory Context supports them.",
+        "- rows:",
+    ]
+    for candidate in selected:
+        row = candidate["row"]
+        snippet = _single_line(
+            _query_snippet(row.text, question, snippet_chars)  # type: ignore[union-attr]
+        )
+        signals = ", ".join(candidate["signals"]) or "none"
+        values = "; ".join(candidate["values"])
+        lines.append(
+            f"  - Memory {candidate['memory_index']}: date={row.timestamp or 'unknown'} "
+            f"role={row.role} signals={signals} values={values} | text=\"{snippet}\""
+        )
+    return lines
+
+
+def _update_conflict_guide_rows(
+    *,
+    question: str,
+    route: RouteResult,
+    rows: tuple[EvidenceRow, ...],
+    max_rows: int,
+) -> tuple[dict[str, Any], ...]:
+    if len(rows) < 2:
+        return ()
+    if _asks_advice_or_recommendation(question):
+        return ()
+
+    question_terms = _update_conflict_question_terms(question)
+    question_scope = _has_update_conflict_question_scope(question)
+    candidates: list[dict[str, Any]] = []
+    distinct_values: set[str] = set()
+    value_rows = 0
+    signaled_rows = 0
+
+    for memory_index, row in enumerate(rows, start=1):
+        if row.role.lower() != "user":
+            continue
+        values = _update_conflict_values(row.text)
+        if not values:
+            continue
+        overlap = len(question_terms.intersection(_content_terms(row.text)))
+        signals = _update_conflict_signals(row.text)
+        if overlap < 1:
+            continue
+        if overlap == 1 and not (
+            route.information_need == "current_state"
+            and (signals or question_scope)
+        ):
+            continue
+        normalized_values = tuple(_normalize_update_value(value) for value in values)
+        distinct_values.update(normalized_values)
+        value_rows += 1
+        if signals:
+            signaled_rows += 1
+        score = (
+            overlap * 2.0
+            + len(values) * 0.25
+            + (2.0 if signals else 0.0)
+            + (1.0 if row.role.lower() == "user" else 0.0)
+        )
+        candidates.append(
+            {
+                "memory_index": memory_index,
+                "row": row,
+                "values": values,
+                "signals": signals,
+                "score": score,
+            }
+        )
+
+    if value_rows < 2 or len(distinct_values) < 2:
+        return ()
+    if not (
+        question_scope
+        or signaled_rows > 0
+        or route.information_need == "current_state"
+    ):
+        return ()
+
+    best = sorted(
+        candidates,
+        key=lambda item: (
+            -float(item["score"]),
+            str(item["row"].timestamp or ""),
+            int(item["memory_index"]),
+        ),
+    )[:max_rows]
+    return tuple(
+        sorted(
+            best,
+            key=lambda item: (
+                str(item["row"].timestamp or ""),
+                int(item["memory_index"]),
+            ),
+        )
+    )
+
+
+def _has_update_conflict_question_scope(question: str) -> bool:
+    lowered = question.lower()
+    return bool(
+        re.search(
+            r"\b(current|currently|latest|recent|recently|now|still|today|"
+            r"previous|previously|before|initial|initially|original|originally|"
+            r"first|last|new|added|updated|changed|total|in the past|so far)\b",
+            lowered,
+        )
+    )
+
+
+def _asks_advice_or_recommendation(question: str) -> bool:
+    return bool(
+        re.search(
+            r"\b(any tips|suggest|suggestions|recommend|recommendations|"
+            r"what do you think|ideas on|helpful tips|what should i|should i)\b",
+            question.lower(),
+        )
+    )
+
+
+def _update_conflict_question_terms(question: str) -> frozenset[str]:
+    weak_scope_terms = {
+        "after",
+        "before",
+        "current",
+        "currently",
+        "daily",
+        "day",
+        "days",
+        "first",
+        "last",
+        "latest",
+        "long",
+        "many",
+        "month",
+        "months",
+        "much",
+        "new",
+        "now",
+        "past",
+        "previous",
+        "recent",
+        "recently",
+        "still",
+        "time",
+        "times",
+        "today",
+        "total",
+        "week",
+        "weeks",
+        "work",
+        "year",
+        "years",
+    }
+    strong_terms = _content_terms(question).difference(weak_scope_terms)
+    return strong_terms or _content_terms(question)
+
+
+def _update_conflict_signals(text: str) -> tuple[str, ...]:
+    lowered = text.lower()
+    signal_patterns = (
+        ("correction", r"\b(actually|correction|corrected|instead)\b"),
+        ("current", r"\b(now|currently|current|still|as of|these days)\b"),
+        ("change", r"\b(changed|updated|switched|moved|became|no longer|used to)\b"),
+        ("addition", r"\b(added|another|bringing my|bringing the|total to)\b"),
+        ("reached", r"\b(reached|close to|nearing)\b"),
+        ("history", r"\b(previously|before|originally|initially|first)\b"),
+        ("memory", r"\b(remember when|last time)\b"),
+        ("personal_best", r"\b(personal best|beat my|beat the)\b"),
+    )
+    signals = [
+        label for label, pattern in signal_patterns if re.search(pattern, lowered)
+    ]
+    return tuple(dict.fromkeys(signals))
+
+
+def _update_conflict_values(text: str) -> tuple[str, ...]:
+    values: list[str] = []
+    spans: list[tuple[int, int]] = []
+    for pattern in (
+        r"\b\d{1,2}:\d{2}\b",
+        r"(?:\$\s*)?\b\d{1,3}(?:,\d{3})+(?:\.\d+)?\b",
+        r"(?:\$\s*)?\b\d+(?:\.\d+)?\s*k\b",
+        r"(?:\$\s*)?\b\d+(?:\.\d+)?\s*(?:stars?|followers?|pages?|miles?|minutes?|hours?|weeks?|months?|years?|gallons?|coins?|baseballs?|plants?|projects?|times?|dollars?|percent|%|lbs?|kg|km)\b",
+        r"\b(?:every other week|every week|weekly|monthly|yearly|once a week|twice a week|once a month|twice a month)\b",
+        r"(?:\$\s*)?\b\d+(?:\.\d+)?\b",
+    ):
+        for match in re.finditer(pattern, text, flags=re.IGNORECASE):
+            if any(match.start() < end and match.end() > start for start, end in spans):
+                continue
+            value = _single_line(match.group(0))
+            if _looks_like_standalone_year(value):
+                continue
+            spans.append((match.start(), match.end()))
+            values.append(value)
+            if len(values) >= 6:
+                return tuple(dict.fromkeys(values))
+    return tuple(dict.fromkeys(values))
+
+
+def _looks_like_standalone_year(value: str) -> bool:
+    normalized = value.strip().replace(",", "")
+    if not normalized.isdigit():
+        return False
+    year = int(normalized)
+    return 1900 <= year <= 2099
+
+
+def _normalize_update_value(value: str) -> str:
+    return re.sub(r"\s+", " ", value.lower().replace(",", "")).strip()
 
 
 def _has_profile_or_state_signal(text: str) -> bool:

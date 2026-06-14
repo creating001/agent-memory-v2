@@ -385,6 +385,21 @@ class Stage1Pipeline:
             candidate_guide_snippet_chars=int(
                 compiler_config.get("candidate_guide_snippet_chars", 160)
             ),
+            update_conflict_guide=bool(
+                compiler_config.get("update_conflict_guide", False)
+            ),
+            update_conflict_guide_information_needs=_tuple_config(
+                compiler_config.get(
+                    "update_conflict_guide_information_needs",
+                    ("current_state", "fact_lookup", "list_count", "temporal_lookup"),
+                )
+            ),
+            update_conflict_guide_max_rows=int(
+                compiler_config.get("update_conflict_guide_max_rows", 6)
+            ),
+            update_conflict_guide_snippet_chars=int(
+                compiler_config.get("update_conflict_guide_snippet_chars", 180)
+            ),
             operation_workpad=bool(compiler_config.get("operation_workpad", False)),
             operation_workpad_information_needs=_tuple_config(
                 compiler_config.get(
@@ -530,6 +545,21 @@ class Stage1Pipeline:
             ),
             "candidate_guide_snippet_chars": int(
                 compiler_config.get("candidate_guide_snippet_chars", 160)
+            ),
+            "update_conflict_guide": bool(
+                compiler_config.get("update_conflict_guide", False)
+            ),
+            "update_conflict_guide_information_needs": _tuple_config(
+                compiler_config.get(
+                    "update_conflict_guide_information_needs",
+                    ("current_state", "fact_lookup", "list_count", "temporal_lookup"),
+                )
+            ),
+            "update_conflict_guide_max_rows": int(
+                compiler_config.get("update_conflict_guide_max_rows", 6)
+            ),
+            "update_conflict_guide_snippet_chars": int(
+                compiler_config.get("update_conflict_guide_snippet_chars", 180)
             ),
             "operation_workpad": bool(
                 compiler_config.get("operation_workpad", False)
