@@ -1,0 +1,60 @@
+{
+  "all_transition": {
+    "CORRECT->CORRECT": 384,
+    "CORRECT->WRONG": 8,
+    "WRONG->CORRECT": 12,
+    "WRONG->WRONG": 96
+  },
+  "base_accuracy": 0.784,
+  "base_correct": 392,
+  "base_run": "stage1_missing_detail_finalizer_v79_lme_s_full_7b34339",
+  "candidate_accuracy": 0.792,
+  "candidate_correct": 396,
+  "candidate_run": "stage1_update_conflict_guide_v80_lme_s_full_152b0e5",
+  "changed_by_question_type": {
+    "knowledge-update|CORRECT->CORRECT": 1,
+    "knowledge-update|CORRECT->WRONG": 2,
+    "knowledge-update|WRONG->CORRECT": 5,
+    "multi-session|CORRECT->CORRECT": 5,
+    "multi-session|CORRECT->WRONG": 2,
+    "multi-session|WRONG->CORRECT": 1,
+    "multi-session|WRONG->WRONG": 1,
+    "temporal-reasoning|CORRECT->CORRECT": 2,
+    "temporal-reasoning|WRONG->CORRECT": 1,
+    "temporal-reasoning|WRONG->WRONG": 2
+  },
+  "changed_by_route": {
+    "current_state|CORRECT->CORRECT": 1,
+    "current_state|CORRECT->WRONG": 1,
+    "current_state|WRONG->CORRECT": 3,
+    "current_state|WRONG->WRONG": 2,
+    "fact_lookup|CORRECT->CORRECT": 7,
+    "fact_lookup|CORRECT->WRONG": 3,
+    "fact_lookup|WRONG->CORRECT": 4,
+    "fact_lookup|WRONG->WRONG": 1
+  },
+  "clean_note": "Comparison is offline-only. It uses judge labels and gold-bearing label files after prediction, and must not be consumed by prediction pipeline.",
+  "finalizer_reasons": {
+    "missing_detail_from_structured_answer": 29,
+    "model_marked_insufficient": 14,
+    "no_structured_evidence_items": 457
+  },
+  "n": 500,
+  "prediction_changed_count": 22,
+  "prediction_changed_net": 3,
+  "prediction_changed_transition": {
+    "CORRECT->CORRECT": 8,
+    "CORRECT->WRONG": 4,
+    "WRONG->CORRECT": 7,
+    "WRONG->WRONG": 3
+  },
+  "prediction_unchanged_count": 478,
+  "prediction_unchanged_net_judge_variance": 1,
+  "prediction_unchanged_transition": {
+    "CORRECT->CORRECT": 376,
+    "CORRECT->WRONG": 4,
+    "WRONG->CORRECT": 5,
+    "WRONG->WRONG": 93
+  },
+  "update_conflict_guide_applied": 60
+}
