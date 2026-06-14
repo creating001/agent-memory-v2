@@ -174,6 +174,21 @@ class Stage1Pipeline:
         self._build_memory_drop_query_stopwords = bool(
             build_memory_config.get("drop_query_stopwords", True)
         )
+        self._build_memory_trace_config = {
+            "enabled": self._build_memory_enabled,
+            "mode": build_memory_config.get("mode"),
+            "model": build_memory_config.get("model"),
+            "max_tokens": build_memory_config.get("max_tokens"),
+            "max_turns_per_chunk": build_memory_config.get("max_turns_per_chunk"),
+            "overlap_turns": int(build_memory_config.get("overlap_turns", 0)),
+            "max_chars_per_turn": build_memory_config.get("max_chars_per_turn"),
+            "max_records_per_chunk": build_memory_config.get("max_records_per_chunk"),
+            "temporal_fields": bool(build_memory_config.get("temporal_fields", False)),
+            "prompt_profile": str(
+                build_memory_config.get("prompt_profile", "typed_compact")
+            ),
+            "manage_facts": bool(build_memory_config.get("manage_facts", True)),
+        }
         self._dense_enabled = bool(dense_config.get("enabled", False))
         self._dense_top_k = int(dense_config.get("top_k", self._base_top_k))
         self._dense_batch_size = int(dense_config.get("batch_size", 32))
@@ -278,6 +293,7 @@ class Stage1Pipeline:
                 max_records_per_chunk=int(
                     build_memory_config.get("max_records_per_chunk", 16)
                 ),
+                overlap_turns=int(build_memory_config.get("overlap_turns", 0)),
                 cache_path=build_cache_path,
                 cache_namespace=str(
                     build_cache_config.get(
@@ -287,6 +303,10 @@ class Stage1Pipeline:
                 ),
                 api_key_env=build_memory_config.get("api_key_env"),
                 temporal_fields=bool(build_memory_config.get("temporal_fields", False)),
+                prompt_profile=str(
+                    build_memory_config.get("prompt_profile", "typed_compact")
+                ),
+                manage_facts=bool(build_memory_config.get("manage_facts", True)),
             )
         if self._dense_enabled:
             self._embedding_client = OpenAICompatibleEmbeddingClient(
@@ -1042,6 +1062,7 @@ class Stage1Pipeline:
             "trace": {
                 "store": store.manifest(),
                 "build_memory": built_memory.to_dict(),
+                "build_memory_config": self._build_memory_trace_config,
                 "route": route.to_dict(),
                 "heuristic_route": heuristic_route.to_dict(),
                 "route_config": self._route_trace_config,

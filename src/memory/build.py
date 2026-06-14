@@ -135,11 +135,16 @@ class OpenAICompatibleMemoryBuilder:
         max_turns_per_chunk: int,
         max_chars_per_turn: int,
         max_records_per_chunk: int,
+        overlap_turns: int = 0,
         cache_path: str | None = None,
         cache_namespace: str | None = None,
         api_key_env: str | None = None,
         temporal_fields: bool = False,
+        prompt_profile: str = "typed_compact",
+        manage_facts: bool = True,
     ):
+        if prompt_profile not in {"typed_compact", "lossless_atomic"}:
+            raise ValueError(f"Unsupported build_memory.prompt_profile: {prompt_profile}")
         self._base_url = base_url.rstrip("/")
         self._model = model
         self._temperature = temperature
@@ -148,10 +153,16 @@ class OpenAICompatibleMemoryBuilder:
         self._max_turns_per_chunk = max(1, max_turns_per_chunk)
         self._max_chars_per_turn = max(80, max_chars_per_turn)
         self._max_records_per_chunk = max(1, max_records_per_chunk)
+        self._overlap_turns = max(
+            0,
+            min(overlap_turns, self._max_turns_per_chunk - 1),
+        )
         self._cache_path = Path(cache_path).expanduser() if cache_path else None
         self._cache_namespace = cache_namespace or model
         self._api_key_env = api_key_env
         self._temporal_fields = temporal_fields
+        self._prompt_profile = prompt_profile
+        self._manage_facts = manage_facts
         self._connection: sqlite3.Connection | None = None
         self._cache_stats = BuildMemoryCacheStats()
 
@@ -169,7 +180,11 @@ class OpenAICompatibleMemoryBuilder:
 
         all_records: list[MemoryRecord] = []
         total_tokens = 0
-        chunks = _chunk_turns(turns, self._max_turns_per_chunk)
+        chunks = _chunk_turns(
+            turns,
+            self._max_turns_per_chunk,
+            overlap_turns=self._overlap_turns,
+        )
         valid_source_ids = {turn.source_id for turn in turns}
         timestamp_by_source_id = {turn.source_id: turn.timestamp for turn in turns}
 
@@ -216,7 +231,11 @@ class OpenAICompatibleMemoryBuilder:
             managed_memory_types=(
                 _STATEFUL_MEMORY_TYPES
                 if self._temporal_fields
-                else _DEFAULT_MANAGED_MEMORY_TYPES
+                else (
+                    _DEFAULT_MANAGED_MEMORY_TYPES
+                    if self._manage_facts
+                    else _STATEFUL_MEMORY_TYPES
+                )
             ),
         )
         return BuiltMemory(
@@ -229,6 +248,9 @@ class OpenAICompatibleMemoryBuilder:
         )
 
     def _build_prompt(self, turns: tuple[Turn, ...]) -> str:
+        if self._prompt_profile == "lossless_atomic":
+            return self._build_lossless_atomic_prompt(turns)
+
         lines = [
             "Build a compact typed memory view from the dialogue turns.",
             "Use only the provided turns. Do not invent facts.",
@@ -239,6 +261,40 @@ class OpenAICompatibleMemoryBuilder:
             "When a turn contains multiple independent memory-worthy facts, create separate atomic records instead of merging them into one broad summary.",
             "Put salient names, entities, values, times, and quantities in entities/value when present.",
             "Each record must include source_ids copied exactly from the turns that support it.",
+            *_temporal_field_prompt_lines(self._temporal_fields),
+            f"Return at most {self._max_records_per_chunk} records.",
+            "",
+            "Dialogue turns:",
+        ]
+        for turn in turns:
+            prefix = " | ".join(
+                part
+                for part in (
+                    f"source_id={turn.source_id}",
+                    f"session={turn.session_id}",
+                    f"time={turn.timestamp}" if turn.timestamp else "",
+                    f"role={turn.role}",
+                )
+                if part
+            )
+            text = _truncate(turn.text, self._max_chars_per_turn)
+            lines.append(f"- {prefix}: {text}")
+        return "\n".join(lines)
+
+    def _build_lossless_atomic_prompt(self, turns: tuple[Turn, ...]) -> str:
+        lines = [
+            "Build a lossless atomic typed memory index from the dialogue turns.",
+            "Use only the provided turns. Do not invent facts.",
+            "Do not use any question, gold answer, judge output, benchmark label, sample id, qid, or row index.",
+            "The output is an index for future retrieval, not a final answer.",
+            "Create enough self-contained atomic records to preserve all user-specific and assistant-provided information that a future agent may need.",
+            "Do not drop low-salience details: exact names, titles, brands, models, places, dates, durations, counts, quantities, prices, colors, relationship names, stores, organizations, and negations.",
+            "Each record must be understandable without surrounding turns: replace pronouns such as it, they, he, she, this, and that with the concrete entity when the turn makes it clear.",
+            "When a turn contains multiple independent facts, purchases, visits, tasks, preferences, options, list items, or numeric operands, split them into separate records.",
+            "Separate stable profile/preference/state memories from one-time events, ordinary facts, assistant suggestions, and future plans.",
+            "Keep assistant-provided factual answers or recommendations when they answer the user or establish a remembered item; mark them with the assistant turn source_id.",
+            "If a relative time phrase is resolvable from the turn timestamp, write the resolved date or date span in the record text, value, timestamp, or event_time fields while preserving the original phrase when useful.",
+            "Each record must include source_ids copied exactly from the turns that directly support it.",
             *_temporal_field_prompt_lines(self._temporal_fields),
             f"Return at most {self._max_records_per_chunk} records.",
             "",
@@ -333,10 +389,18 @@ class OpenAICompatibleMemoryBuilder:
         return self._connection
 
 
-def _chunk_turns(turns: tuple[Turn, ...], max_turns_per_chunk: int) -> tuple[tuple[Turn, ...], ...]:
+def _chunk_turns(
+    turns: tuple[Turn, ...],
+    max_turns_per_chunk: int,
+    *,
+    overlap_turns: int = 0,
+) -> tuple[tuple[Turn, ...], ...]:
     chunks = []
-    for start in range(0, len(turns), max_turns_per_chunk):
+    step = max(1, max_turns_per_chunk - max(0, overlap_turns))
+    for start in range(0, len(turns), step):
         chunks.append(turns[start : start + max_turns_per_chunk])
+        if start + max_turns_per_chunk >= len(turns):
+            break
     return tuple(chunks)
 
 

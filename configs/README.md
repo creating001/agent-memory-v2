@@ -21,7 +21,7 @@
 
 ## 当前候选
 
-当前没有未验证候选配置。新方法先跑 diagnostic，并在通过 accuracy、clean scan 和 token gate 后再进入保留配置列表。
+- `stage1_lossless_atomic_memory_v56_cached.json`：v42 底座上的 build-side lossless atomic memory 候选。只改 memory 构建与 fact 管理，不扩写 answer prompt；先跑 diagnostic，若负向则删除顶层配置，仅保留实验快照。
 
 ## 新配置规则
 

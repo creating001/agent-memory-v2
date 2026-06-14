@@ -15,6 +15,7 @@ from memory.build import (
     OpenAICompatibleMemoryBuilder,
     _bounded_records,
     _cache_key,
+    _chunk_turns,
     _manage_records,
     _records_from_payload,
 )
@@ -124,6 +125,59 @@ class BuildMemoryTest(unittest.TestCase):
         self.assertIn("mention_time", temporal_prompt)
         self.assertIn("event_time", temporal_prompt)
         self.assertIn("valid_from", temporal_prompt)
+
+    def test_lossless_atomic_prompt_is_opt_in_and_clean(self) -> None:
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text="I bought a Bellroy case and a Mophie battery last week.",
+                timestamp="2024-01-08",
+            ),
+        )
+        builder = OpenAICompatibleMemoryBuilder(
+            base_url="http://unused.local/v1",
+            model="fake-model",
+            temperature=0.0,
+            max_tokens=256,
+            timeout=1.0,
+            max_turns_per_chunk=10,
+            max_chars_per_turn=1000,
+            max_records_per_chunk=8,
+            prompt_profile="lossless_atomic",
+        )
+
+        prompt = builder._build_prompt(turns)
+
+        self.assertIn("lossless atomic typed memory index", prompt)
+        self.assertIn("split them into separate records", prompt)
+        self.assertIn("source_id=s1:t0", prompt)
+        self.assertIn("Do not use any question, gold answer", prompt)
+
+    def test_chunk_turns_supports_overlap(self) -> None:
+        turns = tuple(
+            Turn(
+                source_id=f"s1:t{index}",
+                session_id="s1",
+                turn_index=index,
+                role="user",
+                text=f"turn {index}",
+            )
+            for index in range(7)
+        )
+
+        chunks = _chunk_turns(turns, max_turns_per_chunk=3, overlap_turns=1)
+
+        self.assertEqual(
+            [[turn.source_id for turn in chunk] for chunk in chunks],
+            [
+                ["s1:t0", "s1:t1", "s1:t2"],
+                ["s1:t2", "s1:t3", "s1:t4"],
+                ["s1:t4", "s1:t5", "s1:t6"],
+            ],
+        )
 
     def test_temporal_build_fields_preserve_event_time_but_not_event_validity(self) -> None:
         class FakeBuilder(OpenAICompatibleMemoryBuilder):
@@ -454,6 +508,68 @@ class BuildMemoryTest(unittest.TestCase):
         self.assertEqual(by_id["old"].status, "active")
         self.assertIsNone(by_id["old"].valid_to)
         self.assertEqual(by_id["new"].status, "active")
+
+    def test_builder_can_keep_parallel_facts_active_without_temporal_fields(self) -> None:
+        class FakeBuilder(OpenAICompatibleMemoryBuilder):
+            def __init__(self) -> None:
+                super().__init__(
+                    base_url="http://unused.local/v1",
+                    model="fake-model",
+                    temperature=0.0,
+                    max_tokens=256,
+                    timeout=1.0,
+                    max_turns_per_chunk=10,
+                    max_chars_per_turn=1000,
+                    max_records_per_chunk=4,
+                    manage_facts=False,
+                )
+
+            def _chat_completion(self, prompt: str) -> dict:
+                del prompt
+                return {
+                    "choices": [
+                        {
+                            "message": {
+                                "content": (
+                                    '{"records":['
+                                    '{"type":"fact","text":"Alex bought black tea.",'
+                                    '"subject":"Alex","predicate":"bought",'
+                                    '"value":"black tea","source_ids":["s1:t0"],'
+                                    '"timestamp":"2023-01-01","confidence":0.9},'
+                                    '{"type":"fact","text":"Alex bought jasmine tea.",'
+                                    '"subject":"Alex","predicate":"bought",'
+                                    '"value":"jasmine tea","source_ids":["s1:t1"],'
+                                    '"timestamp":"2023-02-01","confidence":0.9}'
+                                    "]} "
+                                )
+                            }
+                        }
+                    ],
+                    "usage": {"total_tokens": 43},
+                }
+
+        built = FakeBuilder().build(
+            (
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Alex bought black tea.",
+                ),
+                Turn(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="Alex bought jasmine tea.",
+                ),
+            )
+        )
+
+        by_value = {record.value: record for record in built.records}
+        self.assertEqual(by_value["black tea"].status, "active")
+        self.assertEqual(by_value["jasmine tea"].status, "active")
 
     def test_compiler_includes_build_memory_view(self) -> None:
         compiler = EvidenceCompiler(

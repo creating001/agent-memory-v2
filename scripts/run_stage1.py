@@ -438,6 +438,7 @@ def main() -> int:
             "max_turns_per_chunk": config.get("build_memory", {}).get(
                 "max_turns_per_chunk"
             ),
+            "overlap_turns": config.get("build_memory", {}).get("overlap_turns", 0),
             "max_chars_per_turn": config.get("build_memory", {}).get(
                 "max_chars_per_turn"
             ),
@@ -447,6 +448,10 @@ def main() -> int:
             "temporal_fields": config.get("build_memory", {}).get(
                 "temporal_fields", False
             ),
+            "prompt_profile": config.get("build_memory", {}).get(
+                "prompt_profile", "typed_compact"
+            ),
+            "manage_facts": config.get("build_memory", {}).get("manage_facts", True),
             "include_superseded": config.get("build_memory", {}).get(
                 "include_superseded", False
             ),
@@ -976,6 +981,9 @@ def _write_summary(
         f"- build_memory_enabled: {metrics['build_memory']['enabled']}",
         f"- build_memory_model: {metrics['build_memory']['model']}",
         f"- build_memory_temporal_fields: {metrics['build_memory']['temporal_fields']}",
+        f"- build_memory_prompt_profile: {metrics['build_memory']['prompt_profile']}",
+        f"- build_memory_manage_facts: {metrics['build_memory']['manage_facts']}",
+        f"- build_memory_overlap_turns: {metrics['build_memory']['overlap_turns']}",
         f"- build_memory_cache_enabled: {metrics['build_memory']['cache_enabled']}",
         f"- build_memory_cache_path: {metrics['build_memory']['cache_path']}",
         f"- build_memory_cache_hits: {metrics['build_memory']['cache_hits']}",
@@ -1172,6 +1180,9 @@ def _write_diagnosis(
         f"- avg_build_memory_records: {metrics['build_memory']['avg_records']}",
         f"- avg_active_build_memory_records: {metrics['build_memory']['avg_active_records']}",
         f"- build_memory_temporal_fields: {metrics['build_memory']['temporal_fields']}",
+        f"- build_memory_prompt_profile: {metrics['build_memory']['prompt_profile']}",
+        f"- build_memory_manage_facts: {metrics['build_memory']['manage_facts']}",
+        f"- build_memory_overlap_turns: {metrics['build_memory']['overlap_turns']}",
         f"- build_memory_cache_hits: {metrics['build_memory']['cache_hits']}",
         f"- build_memory_cache_misses: {metrics['build_memory']['cache_misses']}",
         f"- build_memory_cache_writes: {metrics['build_memory']['cache_writes']}",
