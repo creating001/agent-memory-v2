@@ -1,0 +1,31 @@
+{
+  "benchmark": "LongMemEval-S",
+  "clean_assertions": [
+    "Prediction loader rejects gold/reference/target answers.",
+    "Prediction loader rejects judge outputs and benchmark labels.",
+    "Prediction loader rejects sample ids, qids, and row indices.",
+    "record_key is copied only by the runner and is not passed into pipeline modules.",
+    "Derived context rows always retain raw source_id back-links.",
+    "Build-stage typed memory is created only from raw dialogue turns and visible metadata."
+  ],
+  "config_path": "/data/home_new/wujinqi/agent-memory/configs/stage1_finalizer_duration_fix_v73_cached.json",
+  "created_at_utc": "2026-06-14T11:19:37+00:00",
+  "experiment_dir": "/data/home_new/wujinqi/agent-memory/experiments/formal/stage1_finalizer_duration_fix_v73_lme_s_full_24396f9",
+  "experiment_kind": "formal",
+  "git": {
+    "commit": "24396f94cd336f5c1edc020bda8d769465197622",
+    "dirty": false,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": ""
+  },
+  "input_path": "/data/home_new/wujinqi/agent-memory/outputs/prepare_longmemeval_s_cleaned/prediction_input.jsonl",
+  "output_path": "/data/home_new/wujinqi/agent-memory/outputs/formal/stage1_finalizer_duration_fix_v73_lme_s_full_24396f9/predictions.jsonl",
+  "outputs": {
+    "predictions": "/data/home_new/wujinqi/agent-memory/outputs/formal/stage1_finalizer_duration_fix_v73_lme_s_full_24396f9/predictions.jsonl",
+    "traces": "/data/home_new/wujinqi/agent-memory/outputs/formal/stage1_finalizer_duration_fix_v73_lme_s_full_24396f9/traces.jsonl"
+  },
+  "run_id": "stage1_finalizer_duration_fix_v73_lme_s_full_24396f9",
+  "subset": "full",
+  "trace_path": "/data/home_new/wujinqi/agent-memory/outputs/formal/stage1_finalizer_duration_fix_v73_lme_s_full_24396f9/traces.jsonl"
+}
