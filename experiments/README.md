@@ -75,6 +75,7 @@
 - v55 turn-window dense32 消融已完成 LongMemEval-S `weak_route_87` 诊断：DeepSeek judge `57/87 = 0.655172`，低于 v42/v54 same-87；gain/loss vs v42 `6/8`，avg_query_tokens `6000.310` 略超 6K。结论是当前 turn-window BM25 参数方向不稳定，停止继续微调，顶层 config 删除。
 - v56 lossless atomic build memory 已完成 LongMemEval-S `weak_route_87` 诊断：DeepSeek judge `57/87 = 0.655172`，低于 v42 same-87 `59/87 = 0.678161`；gain/loss `4/6`，answer_changed `22`，avg_build_tokens `107052.839`，比 v42 same87 多约 `26060.977`，avg_query_tokens `6007.575` 略超 6K。结论是 build 侧更细粒度 extraction 增加 records 和成本，但没有改善最终 evidence 使用；不跑 full，顶层 config 删除，仅保留实验快照。
 - v57 target-completeness checklist 已完成 LongMemEval-S `weak_route_87` 诊断：DeepSeek judge `59/87 = 0.678161`，与 v42 same87 持平；gain/loss `5/5`，answer_changed `28`，avg_build_tokens `80991.862`，avg_query_tokens `6270.575` 超过 6K。结论是 query/compiler 侧 checklist 会改变答案但不能净增正确率，而且增加 token；不跑 full，顶层 config 删除，仅保留实验快照。
+- v58 clean rerank retrieval 已完成 LongMemEval-S `weak_route_87` 诊断：DeepSeek judge `55/87 = 0.632184`，低于 v42 same87 `59/87 = 0.678161`；gain/loss `6/10`，answer_changed `35`，avg_build_tokens `80991.862`，avg_query_tokens `5898.540`。rerank 全量应用且 prediction token gate 通过，但 list_count 从 `15/20` 降到 `12/20`、profile_preference 从 `10/15` 降到 `8/15`，只有 temporal_lookup 小幅 `22/30 -> 23/30`。结论是单文档相关性 rerank 会破坏多证据覆盖和 profile 连续性；不跑 full，顶层 config 删除，仅保留实验快照。
 
 负向探索结论已压缩保留：
 
@@ -144,6 +145,7 @@ experiments/formal/<run_id>/
 | `v55_turn_window_dense32_lme_weakroute_be846f3` | 87 条 LongMemEval-S question-derived weak-route diagnostic | v55 恢复 dense `protect_top_n=32` 后失败；DeepSeek judge `57/87`，低于 v42/v54 same87，avg_query_tokens `6000.310` 略超预算。停止当前 turn-window 参数方向。 |
 | `v56_lossless_atomic_lme_weakroute_194dfa8` | 87 条 LongMemEval-S question-derived weak-route diagnostic | v56 build-side lossless atomic memory 失败；DeepSeek judge `57/87`，低于 v42 same87 `59/87`，gain/loss `4/6`，avg_build_tokens `107052.839`，avg_query_tokens `6007.575`。更多 atomic records 没转化为 accuracy，顶层 config 删除。 |
 | `v57_target_completeness_lme_weakroute_73ac1bd` | 87 条 LongMemEval-S question-derived weak-route diagnostic | v57 query-side target-completeness checklist 持平 v42 same87；DeepSeek judge `59/87`，gain/loss `5/5`，answer_changed `28`，avg_query_tokens `6270.575` 超 6K。说明继续加 answer checklist 不值得，顶层 config 删除。 |
+| `v58_rerank_lme_weakroute_da73814` | 87 条 LongMemEval-S question-derived weak-route diagnostic | v58 clean rerank retrieval 失败；DeepSeek judge `55/87`，低于 v42 same87 `59/87`，gain/loss `6/10`，avg_query_tokens `5898.540`。rerank 对 temporal 小正向，但损害 list_count 和 profile_preference 覆盖；不跑 full，顶层 config 删除。 |
 
 ## 保留正式结果
 
