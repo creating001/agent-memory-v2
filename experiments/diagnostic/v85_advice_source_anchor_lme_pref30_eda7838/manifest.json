@@ -1,0 +1,31 @@
+{
+  "benchmark": "LongMemEval-S",
+  "clean_assertions": [
+    "Prediction loader rejects gold/reference/target answers.",
+    "Prediction loader rejects judge outputs and benchmark labels.",
+    "Prediction loader rejects sample ids, qids, and row indices.",
+    "record_key is copied only by the runner and is not passed into pipeline modules.",
+    "Derived context rows always retain raw source_id back-links.",
+    "Build-stage typed memory is created only from raw dialogue turns and visible metadata."
+  ],
+  "config_path": "/data/home_new/wujinqi/agent-memory/configs/stage1_advice_source_anchor_v85_diag.json",
+  "created_at_utc": "2026-06-14T20:38:09+00:00",
+  "experiment_dir": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/v85_advice_source_anchor_lme_pref30_eda7838",
+  "experiment_kind": "diagnostic",
+  "git": {
+    "commit": "eda7838156c7ae1c8d560bc4e6c7fe351e7da844",
+    "dirty": false,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": ""
+  },
+  "input_path": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic_inputs/lme_single_session_preference_30.jsonl",
+  "output_path": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/v85_advice_source_anchor_lme_pref30_eda7838/predictions.jsonl",
+  "outputs": {
+    "predictions": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/v85_advice_source_anchor_lme_pref30_eda7838/predictions.jsonl",
+    "traces": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/v85_advice_source_anchor_lme_pref30_eda7838/traces.jsonl"
+  },
+  "run_id": "v85_advice_source_anchor_lme_pref30_eda7838",
+  "subset": "single-session-preference_30",
+  "trace_path": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/v85_advice_source_anchor_lme_pref30_eda7838/traces.jsonl"
+}

@@ -1,0 +1,26 @@
+{
+  "base_run": "v84_advice_turn_window_lme_pref30_61bccf2",
+  "candidate_run": "v85_advice_source_anchor_lme_pref30_eda7838",
+  "base_same30_accuracy": 0.4666666666666667,
+  "candidate_accuracy": 0.4666666666666667,
+  "n": 30,
+  "all_transition": {
+    "CORRECT->CORRECT": 11,
+    "CORRECT->WRONG": 3,
+    "WRONG->CORRECT": 3,
+    "WRONG->WRONG": 13
+  },
+  "prediction_changed_count": 28,
+  "prediction_changed_transition": {
+    "CORRECT->CORRECT": 11,
+    "CORRECT->WRONG": 3,
+    "WRONG->CORRECT": 3,
+    "WRONG->WRONG": 11
+  },
+  "prediction_unchanged_transition": {
+    "WRONG->WRONG": 2
+  },
+  "prediction_changed_net": 0,
+  "prediction_unchanged_net_judge_variance": 0,
+  "clean_note": "Offline-only diagnostic; labels and judge outputs must not enter prediction."
+}
