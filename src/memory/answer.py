@@ -80,12 +80,6 @@ class CachedAnswerer:
         token_usage = payload.get("token_usage") or {}
         raw_response = payload.get("raw_response")
         answer = str(payload.get("answer", ""))
-        reparsed = _parse_cached_raw_response(
-            raw_response,
-            output_format=self._output_format,
-        )
-        if reparsed is not None:
-            answer = reparsed
         return AnswerResult(
             answer=answer,
             model=str(payload.get("model", "cached_answerer")),

@@ -1460,12 +1460,16 @@ def _build_external_naive_prompt(
             '  "evidence_report": [',
             evidence_item_schema,
             "  ],",
-            '  "calculation": "count/sum/difference/duration/order calculation or empty",',
             '  "missing": "missing required target/operand/endpoint or empty",',
             '  "answer": "concise answer"',
             "}",
             f"Use at most {evidence_report_max_items} evidence_report items.",
         ]
+        if use_aggregation_report_contract:
+            output_json_lines.insert(
+                -4,
+                '  "calculation": "count/sum/difference/duration/order calculation or empty",',
+            )
     else:
         output_json_lines = [
             "{",
@@ -1473,16 +1477,24 @@ def _build_external_naive_prompt(
             '  "answer": "concise answer"',
             "}",
         ]
-    return "\n".join(
-        [
-            "Answer the user's question using only the provided memory context.",
-            "",
-            "User Question:",
-            user_question,
+    prompt_parts = [
+        "Answer the user's question using only the provided memory context.",
+        "",
+        "User Question:",
+        user_question,
+    ]
+    prompt_parts.extend(
+        block
+        for block in (
             structured_guide_block,
             candidate_guide_block,
             operation_workpad_block,
             final_answer_checklist_block,
+        )
+        if block
+    )
+    prompt_parts.extend(
+        [
             "",
             "Memory Context:",
             _external_naive_context(
@@ -1501,6 +1513,7 @@ def _build_external_naive_prompt(
             *output_json_lines,
         ]
     )
+    return "\n".join(prompt_parts)
 
 
 def _external_evidence_report_rules(

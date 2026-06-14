@@ -1168,7 +1168,7 @@ class CleanSkeletonTest(unittest.TestCase):
             {"hits": 1, "misses": 1, "writes": 1},
         )
 
-    def test_cached_answerer_reparses_cached_json_answer_raw_response(self) -> None:
+    def test_cached_answerer_preserves_cached_answer_on_hits(self) -> None:
         compiler = EvidenceCompiler(max_evidence_items=1, max_evidence_chars=1000)
         route = RouteResult(information_need="fact_lookup", signals=())
         context = compiler.compile(
@@ -1198,8 +1198,12 @@ class CleanSkeletonTest(unittest.TestCase):
             first = answerer.answer(context)
             second = answerer.answer(context)
 
-        self.assertEqual(first.answer, "jasmine tea")
-        self.assertEqual(second.answer, "jasmine tea")
+        expected_answer = (
+            '{"reasoning":"quoted text broke the JSON: "bad quote"",'
+            '"answer":"jasmine tea"}'
+        )
+        self.assertEqual(first.answer, expected_answer)
+        self.assertEqual(second.answer, first.answer)
         self.assertEqual(inner.calls, 1)
 
     def test_concise_answer_style_is_added_to_prompt(self) -> None:
@@ -1501,6 +1505,44 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertNotIn("question_type", fact_context.prompt)
         self.assertNotIn('"evidence_report"', list_context.prompt)
         self.assertIn('"answer": "concise answer"', fact_context.prompt)
+
+    def test_external_naive_disabled_blocks_do_not_drift_prompt(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=1,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            structured_guide=True,
+            evidence_report_contract=True,
+            evidence_report_information_needs=("fact_lookup",),
+            operation_workpad=False,
+            candidate_guide=False,
+            final_answer_checklist=False,
+            aggregation_report_contract=False,
+        )
+        context = compiler.compile(
+            question="Which music streaming service does Alex use?",
+            question_time=None,
+            route=RouteResult(information_need="fact_lookup", signals=()),
+            hits=(),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Alex uses Spotify for music streaming.",
+                    timestamp="2024-01-01",
+                ),
+            ),
+        )
+
+        self.assertIn("Structured Evidence Guide:", context.prompt)
+        self.assertIn('"evidence_report"', context.prompt)
+        self.assertNotIn("Candidate Evidence Map:", context.prompt)
+        self.assertNotIn("Private Operation Discipline:", context.prompt)
+        self.assertNotIn("Final Answer Checklist:", context.prompt)
+        self.assertNotIn('"calculation"', context.prompt)
+        self.assertNotIn("\n\n\n\nMemory Context:", context.prompt)
 
     def test_current_state_update_contract_is_config_gated(self) -> None:
         turns = (
