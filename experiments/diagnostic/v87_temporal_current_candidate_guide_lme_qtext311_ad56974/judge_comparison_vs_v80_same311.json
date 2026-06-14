@@ -1,0 +1,31 @@
+{
+  "new_run": "v87_temporal_current_candidate_guide_lme_qtext311_ad56974",
+  "reference_run": "stage1_update_conflict_guide_v80_lme_s_full_152b0e5",
+  "subset": "qtext_agg_time_current_311",
+  "n": 311,
+  "new_correct": 236,
+  "new_accuracy": 0.7588424437299035,
+  "reference_correct": 236,
+  "reference_accuracy": 0.7588424437299035,
+  "delta_correct": 0,
+  "prediction_changed_count": 84,
+  "prediction_changed_rate": 0.27009646302250806,
+  "all_transitions": {
+    "CORRECT->CORRECT": 218,
+    "CORRECT->WRONG": 18,
+    "WRONG->CORRECT": 18,
+    "WRONG->WRONG": 57
+  },
+  "changed_prediction_transitions": {
+    "CORRECT->CORRECT": 32,
+    "CORRECT->WRONG": 15,
+    "WRONG->CORRECT": 16,
+    "WRONG->WRONG": 21
+  },
+  "unchanged_prediction_transitions": {
+    "CORRECT->CORRECT": 186,
+    "CORRECT->WRONG": 3,
+    "WRONG->CORRECT": 2,
+    "WRONG->WRONG": 36
+  }
+}
