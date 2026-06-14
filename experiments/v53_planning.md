@@ -75,3 +75,32 @@ v53 的目标不是让派生 memory 替代原文，而是把 already-retrieved r
 - scoped evidence 的 token 成本在 summary/metrics/diagnosis 中单独记录。
 
 如果 v53 失败，删除顶层候选配置，只保留诊断目录里的 `config_snapshot.json` 和本 planning 结论。下一步转向 build-side typed temporal/entity/profile memory 的更强 management，而不是继续加长 answer prompt。
+
+## 诊断结果
+
+v53 已完成 LongMemEval-S `temporal_aggregation_106` 诊断，结论为失败，不进入 full。
+
+- v42 same-106 DeepSeek judge accuracy: `81/106 = 0.764151`
+- v47 same-106 DeepSeek judge accuracy: `75/106 = 0.707547`
+- v53 same-106 DeepSeek judge accuracy: `63/106 = 0.594340`
+- v53 vs v42 gain/loss: `5 / 23`
+- answer_changed vs v42: `68`
+- avg_build_tokens: `79953.094340`
+- avg_query_tokens: `5113.226415`
+- scoped extraction avg query tokens: `4025.603774`
+- scoped answer avg query tokens: `1087.622642`
+- prompt clean scan: `2` findings, both raw-dialogue `correct answer` false positives
+
+按离线 question_type：
+
+- temporal-reasoning: v42 `49/56` -> v53 `42/56`
+- multi-session: v42 `23/40` -> v53 `15/40`
+- knowledge-update: v42 `4/5` -> v53 `2/5`
+- single-session-user: v42 `5/5` -> v53 `4/5`
+
+决策：
+
+- 不跑 LongMemEval-S full。
+- 删除顶层候选配置 `configs/stage1_scoped_evidence_v53_cached.json`，只保留诊断目录里的 `config_snapshot.json`。
+- 保留 `scoped_evidence` 代码作为可消融工具，但不把 extracted JSON 作为唯一 answer input。
+- 下一步转向 build-side typed temporal/entity/state memory management，query 阶段用派生 memory 扩展和组织 raw evidence，而不是替代 raw evidence。

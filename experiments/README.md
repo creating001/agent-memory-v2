@@ -70,6 +70,7 @@
 - v50 profile/advice memory guide 已完成 LongMemEval-S `single-session-preference_30` 诊断：DeepSeek judge `12/30 = 0.400000`，低于 v42 same-30 `13/30 = 0.433333`；gain/loss `1/2`，answer_changed `25`，avg query delta `+461.833`。结论是负向：拓宽 advice route + source-linked build memory guide 没有稳定提升 personalized advice，不跑 full，顶层 config 不长期保留。
 - v51 profile/advice answer repair 已完成 LongMemEval-S `single-session-preference_30` 诊断：DeepSeek judge `16/30 = 0.533333`，高于 v42 same-30 `13/30 = 0.433333` 和 v50 same-30 `12/30 = 0.400000`；gain/loss `6/3`，repair applied `6/30`，applied draft `0/6` -> final `3/6`。但 avg_query_tokens `8382.667`，超过 8K diagnostic 边界；结论是 repair 思路有效但过贵，不跑 full，下一步做 token-safe profile-anchor repair，顶层 config 不长期保留。
 - v52 profile uncertain repair 先在 LongMemEval-S `single-session-preference_30` 诊断正向：DeepSeek judge `15/30 = 0.500000`，高于 v42 same-30 `13/30 = 0.433333`，avg_query_tokens `5954.533`。但 full 失败：`385/500 = 0.770000`，低于 v42 `387/500 = 0.774000`；vs v42 gain/loss `19/21`，answer_changed `106`。结论是 answer-side repair 局部有效但 full 不稳定，不跑 LoCoMo，顶层 config 删除。
+- v53 scoped evidence 两阶段回答已完成 LongMemEval-S `temporal_aggregation_106` 诊断：DeepSeek judge `63/106 = 0.594340`，低于 v42 same-106 `81/106 = 0.764151` 和 v47 `75/106 = 0.707547`；gain/loss `5/23`，answer_changed `68`，avg_query_tokens `5113.226`。结论是 clean 且 token 合格，但 extracted JSON 作为唯一事实输入会放大 extractor 边界错误，不跑 full，顶层 config 删除。规划和结论见 `experiments/v53_planning.md`。
 
 负向探索结论已压缩保留：
 
@@ -134,6 +135,7 @@ experiments/formal/<run_id>/
 | `v50_profile_advice_memory_guide_lme_pref_81351ef` | 30 条 LongMemEval-S single-session-preference diagnostic | v50 advice/profile route + source-linked build memory guide 失败；DeepSeek judge `12/30`，低于 v42 same-30 `13/30`，gain/loss `1/2`。说明 personalized advice 需要更可靠的 build-side profile/event memory，而不是更多 reader guide。 |
 | `v51_profile_repair_lme_pref_79b1424` | 30 条 LongMemEval-S single-session-preference diagnostic | v51 profile/advice answer repair 有正向质量信号；DeepSeek judge `16/30`，高于 v42 same-30 `13/30`，repair applied draft `0/6` -> final `3/6`。但 avg_query_tokens `8382.667` 超预算，不跑 full；下一步收窄触发并压缩 repair context。 |
 | `v52_profile_uncertain_repair_lme_pref_aa0f67c` | 30 条 LongMemEval-S single-session-preference diagnostic | v52 只在 profile/advice draft 拒答/unknown/missing 时 repair；DeepSeek judge `15/30`，高于 v42 same-30 `13/30`，avg_query_tokens `5954.533`，repair triggered `6/30`。后续 full 已证明整体负向。 |
+| `v53_scoped_evidence_lme_diag_4db0bde` | 106 条 LongMemEval-S question-derived temporal/list diagnostic | v53 scoped evidence 两阶段回答失败；DeepSeek judge `63/106`，低于 v42 same-106 `81/106`，gain/loss `5/23`。token gate 和 clean scan 通过，但 extracted JSON 替代 raw evidence 后边界错误被放大，不跑 full，顶层 config 已删除。 |
 
 ## 保留正式结果
 

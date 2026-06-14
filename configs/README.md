@@ -21,7 +21,7 @@
 
 ## 当前候选
 
-- `stage1_scoped_evidence_v53_cached.json`：v42 底座上的两阶段 scoped evidence 候选；仅在 `list_count` / `temporal_lookup` 上先抽取 included/excluded operands，再基于抽取 JSON 回答。先跑 LongMemEval-S 诊断；只有通过 accuracy、clean scan 和 token gate 后才进入保留配置列表。
+当前没有未验证候选配置。新方法先跑 diagnostic，并在通过 accuracy、clean scan 和 token gate 后再进入保留配置列表。
 
 ## 新配置规则
 
