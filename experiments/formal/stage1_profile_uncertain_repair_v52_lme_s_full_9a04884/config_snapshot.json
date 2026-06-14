@@ -23,8 +23,8 @@
       "base_url": "http://127.0.0.1:8000/v1",
       "cache": {
         "enabled": true,
-        "path": "outputs/cache/qwen3_profile_repair_v52.sqlite",
-        "namespace": "stage1_profile_uncertain_repair_v52_qwen3_30b"
+        "namespace": "stage1_profile_uncertain_repair_v52_qwen3_30b",
+        "path": "outputs/cache/qwen3_profile_repair_v52.sqlite"
       },
       "enable_profile_preference_trigger": false,
       "enable_short_list_trigger": false,

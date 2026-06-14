@@ -1,0 +1,43 @@
+{
+  "clean_note": "Offline prompt scan only. Findings require manual review because raw user text can contain benign words. Repair prompt templates are code-level static prompts and are covered by unit tests; only persisted prompt-like trace fields are scanned here.",
+  "n_prompts": 500,
+  "forbidden_terms": [
+    "question_type",
+    "sample_id",
+    "sample id",
+    "qid",
+    "row index",
+    "gold answer",
+    "judge output",
+    "reference answer",
+    "offline evaluator",
+    "correct answer",
+    "ground truth",
+    "source_question_id",
+    "answer_session_ids",
+    "benchmark label",
+    "category label",
+    "test feedback"
+  ],
+  "n_findings": 2,
+  "findings": [
+    {
+      "record_key": "7c39c84419e7ba687b6adad9",
+      "field": "compiled_context.prompt",
+      "term": "correct answer",
+      "snippet": ", I would need to know which movie you are referring to, so I could provide the correct answer.\n\n### Memory 11\nDate: 2023/04/20 (Thu) 12:10\nSession: de43030f_2\nuser: I'm real",
+      "manual_review": "benign raw conversation text in Memory Context"
+    },
+    {
+      "record_key": "0d41ac1d8d4cb9b1c912a494",
+      "field": "compiled_context.prompt",
+      "term": "correct answer",
+      "snippet": "and provide multiple-choice answers for each question. Make sure to include the correct answer for each question, as well as explanations for each answer\n\n### Memory 14\nDate:",
+      "manual_review": "benign raw conversation text in Memory Context"
+    }
+  ],
+  "manual_review": {
+    "status": "benign_raw_context_hits",
+    "note": "Both findings are literal raw conversation text inside Memory Context containing the phrase correct answer. They are not gold answers, judge outputs, benchmark labels, sample ids, row indices, or test feedback injected by the prediction pipeline."
+  }
+}
