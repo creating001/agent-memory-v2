@@ -21,7 +21,7 @@
 
 ## 当前候选
 
-- `stage1_source_anchor_v59_cached.json`：未验证候选。基于 v42，先做 build-memory source alignment 修复相邻 turn provenance，再用 typed memory 的 `source_ids` 做 coverage-aware raw evidence organization，并为 current-state 题加入最新近似/自述状态优先的通用 update contract；typed memory 文本不作为独立事实进入 prompt。先跑 LongMemEval-S `weak_route_87` diagnostic，必须高于 v42 same87 且 token 合格后才进入保留配置。
+暂无未验证候选配置。负向诊断只保留在对应 `experiments/diagnostic/<run_id>/config_snapshot.json` 中，不保留顶层 config。
 
 ## 新配置规则
 
