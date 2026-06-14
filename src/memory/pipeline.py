@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Mapping
+from dataclasses import replace
 from typing import Any
 
 from memory.answer import CachedAnswerer, NullAnswerer, OpenAICompatibleAnswerer
@@ -180,6 +181,25 @@ class Stage1Pipeline:
         self._build_memory_drop_query_stopwords = bool(
             build_memory_config.get("drop_query_stopwords", True)
         )
+        source_alignment_config = build_memory_config.get("source_alignment", {})
+        self._build_memory_source_alignment_enabled = bool(
+            source_alignment_config.get("enabled", False)
+        )
+        self._build_memory_source_alignment_window = int(
+            source_alignment_config.get("window", 1)
+        )
+        self._build_memory_source_alignment_max_sources = int(
+            source_alignment_config.get(
+                "max_sources_per_record",
+                self._build_memory_max_sources_per_record,
+            )
+        )
+        self._build_memory_source_alignment_min_score = float(
+            source_alignment_config.get("min_score", 2.0)
+        )
+        self._build_memory_source_alignment_min_delta = float(
+            source_alignment_config.get("min_delta", 1.5)
+        )
         self._build_memory_trace_config = {
             "enabled": self._build_memory_enabled,
             "mode": build_memory_config.get("mode"),
@@ -194,6 +214,15 @@ class Stage1Pipeline:
                 build_memory_config.get("prompt_profile", "typed_compact")
             ),
             "manage_facts": bool(build_memory_config.get("manage_facts", True)),
+            "source_alignment": {
+                "enabled": self._build_memory_source_alignment_enabled,
+                "window": self._build_memory_source_alignment_window,
+                "max_sources_per_record": (
+                    self._build_memory_source_alignment_max_sources
+                ),
+                "min_score": self._build_memory_source_alignment_min_score,
+                "min_delta": self._build_memory_source_alignment_min_delta,
+            },
         }
         self._dense_enabled = bool(dense_config.get("enabled", False))
         self._dense_top_k = int(dense_config.get("top_k", self._base_top_k))
@@ -458,6 +487,19 @@ class Stage1Pipeline:
                     ("list_count", "temporal_lookup"),
                 )
             ),
+            current_state_update_contract=bool(
+                compiler_config.get("current_state_update_contract", False)
+            ),
+            source_anchor_keep=int(compiler_config.get("source_anchor_keep", 0)),
+            source_anchor_memory_rows=int(
+                compiler_config.get("source_anchor_memory_rows", 0)
+            ),
+            source_anchor_per_session=int(
+                compiler_config.get("source_anchor_per_session", 0)
+            ),
+            source_anchor_session_rows=int(
+                compiler_config.get("source_anchor_session_rows", 0)
+            ),
             context_layout=str(compiler_config.get("context_layout", "flat")),
             evidence_order=str(compiler_config.get("evidence_order", "retrieval")),
             memory_order=str(compiler_config.get("memory_order", "retrieval")),
@@ -583,6 +625,19 @@ class Stage1Pipeline:
                     "operation_workpad_information_needs",
                     ("list_count", "temporal_lookup"),
                 )
+            ),
+            "current_state_update_contract": bool(
+                compiler_config.get("current_state_update_contract", False)
+            ),
+            "source_anchor_keep": int(compiler_config.get("source_anchor_keep", 0)),
+            "source_anchor_memory_rows": int(
+                compiler_config.get("source_anchor_memory_rows", 0)
+            ),
+            "source_anchor_per_session": int(
+                compiler_config.get("source_anchor_per_session", 0)
+            ),
+            "source_anchor_session_rows": int(
+                compiler_config.get("source_anchor_session_rows", 0)
             ),
             "context_layout": str(compiler_config.get("context_layout", "flat")),
             "max_memory_records": int(compiler_config.get("max_memory_records", 12)),
@@ -844,6 +899,19 @@ class Stage1Pipeline:
     def predict(self, request: PredictionRequest) -> dict[str, Any]:
         store = RawEvidenceStore(request.turns)
         built_memory = self._memory_builder.build(store.turns)
+        source_alignment = _disabled_source_alignment_trace(
+            enabled=self._build_memory_source_alignment_enabled
+        )
+        if self._build_memory_source_alignment_enabled:
+            aligned_records, source_alignment = _align_build_memory_sources(
+                built_memory.records,
+                store=store,
+                window=self._build_memory_source_alignment_window,
+                max_sources_per_record=self._build_memory_source_alignment_max_sources,
+                min_score=self._build_memory_source_alignment_min_score,
+                min_delta=self._build_memory_source_alignment_min_delta,
+            )
+            built_memory = replace(built_memory, records=aligned_records)
         heuristic_route = self._router.route(request.question, request.question_time)
         route = heuristic_route
         question_analysis = None
@@ -1122,6 +1190,7 @@ class Stage1Pipeline:
                 "store": store.manifest(),
                 "build_memory": built_memory.to_dict(),
                 "build_memory_config": self._build_memory_trace_config,
+                "build_memory_source_alignment": source_alignment,
                 "route": route.to_dict(),
                 "heuristic_route": heuristic_route.to_dict(),
                 "route_config": self._route_trace_config,
@@ -1619,6 +1688,214 @@ def _session_documents(store: RawEvidenceStore) -> tuple[SessionDocument, ...]:
             )
         )
     return tuple(documents)
+
+
+_SOURCE_ALIGNMENT_STOPWORDS = {
+    "a",
+    "an",
+    "and",
+    "are",
+    "as",
+    "at",
+    "be",
+    "been",
+    "by",
+    "for",
+    "from",
+    "has",
+    "have",
+    "i",
+    "in",
+    "is",
+    "it",
+    "my",
+    "of",
+    "on",
+    "or",
+    "that",
+    "the",
+    "their",
+    "they",
+    "this",
+    "to",
+    "user",
+    "was",
+    "with",
+}
+
+
+def _disabled_source_alignment_trace(*, enabled: bool) -> dict[str, Any]:
+    return {
+        "enabled": enabled,
+        "records_seen": 0,
+        "records_changed": 0,
+        "sources_added": 0,
+    }
+
+
+def _align_build_memory_sources(
+    records: tuple[Any, ...],
+    *,
+    store: RawEvidenceStore,
+    window: int,
+    max_sources_per_record: int,
+    min_score: float,
+    min_delta: float,
+) -> tuple[tuple[Any, ...], dict[str, Any]]:
+    """Repair near-miss build-memory provenance using local raw turns.
+
+    The LLM extractor sometimes assigns a memory to the user turn that asked for
+    an assistant answer, while the factual value appears in the adjacent
+    assistant turn. This pass is question-independent and uses only the built
+    memory text plus same-session raw turns, so it is clean provenance repair
+    rather than benchmark feedback.
+    """
+
+    trace = _disabled_source_alignment_trace(enabled=True)
+    if not records or max_sources_per_record <= 0:
+        return records, trace | {"records_seen": len(records)}
+
+    aligned_records = []
+    changed = 0
+    added = 0
+    safe_window = max(0, int(window))
+    safe_limit = max(1, int(max_sources_per_record))
+
+    for record in records:
+        source_ids = tuple(getattr(record, "source_ids", ()))
+        candidates = _source_alignment_candidates(
+            source_ids,
+            store=store,
+            window=safe_window,
+        )
+        aligned_source_ids = _rank_aligned_source_ids(
+            record,
+            candidates,
+            original_source_ids=source_ids,
+            min_score=min_score,
+            min_delta=min_delta,
+        )
+        if not aligned_source_ids:
+            aligned_records.append(record)
+            continue
+
+        merged_source_ids = tuple(
+            dict.fromkeys((*aligned_source_ids, *source_ids))
+        )[:safe_limit]
+        if merged_source_ids != source_ids:
+            changed += 1
+            added += len(set(merged_source_ids).difference(source_ids))
+            aligned_records.append(replace(record, source_ids=merged_source_ids))
+        else:
+            aligned_records.append(record)
+
+    trace.update(
+        {
+            "records_seen": len(records),
+            "records_changed": changed,
+            "sources_added": added,
+        }
+    )
+    return tuple(aligned_records), trace
+
+
+def _source_alignment_candidates(
+    source_ids: tuple[str, ...],
+    *,
+    store: RawEvidenceStore,
+    window: int,
+) -> tuple[Turn, ...]:
+    selected: dict[str, Turn] = {}
+    for source_id in source_ids:
+        source_turn = store.get(source_id)
+        if source_turn is None:
+            continue
+        session_turns = store.session_turns(source_turn.session_id)
+        if not session_turns:
+            continue
+        positions = {
+            turn.source_id: position for position, turn in enumerate(session_turns)
+        }
+        position = positions.get(source_turn.source_id)
+        if position is None:
+            continue
+        start = max(0, position - window)
+        end = min(len(session_turns), position + window + 1)
+        for turn in session_turns[start:end]:
+            selected[turn.source_id] = turn
+    return tuple(selected.values())
+
+
+def _rank_aligned_source_ids(
+    record: Any,
+    candidates: tuple[Turn, ...],
+    *,
+    original_source_ids: tuple[str, ...],
+    min_score: float,
+    min_delta: float,
+) -> tuple[str, ...]:
+    if not candidates:
+        return ()
+    record_text = _alignment_record_text(record)
+    record_terms = _alignment_terms(record_text)
+    record_numbers = set(re.findall(r"\b\d+(?:[.,]\d+)?\b", record_text.lower()))
+    record_phrases = _alignment_phrases(record)
+    scored = []
+    for index, turn in enumerate(candidates):
+        turn_text = turn.text.lower()
+        turn_terms = _alignment_terms(turn.text)
+        overlap = len(record_terms.intersection(turn_terms))
+        number_overlap = sum(1 for number in record_numbers if number in turn_text)
+        phrase_overlap = sum(1 for phrase in record_phrases if phrase in turn_text)
+        score = overlap + number_overlap * 2.0 + phrase_overlap * 1.5
+        if score < min_score:
+            continue
+        scored.append((score, index, turn.source_id))
+    if not scored:
+        return ()
+
+    original_set = set(original_source_ids)
+    best_original_score = max(
+        (score for score, _, source_id in scored if source_id in original_set),
+        default=0.0,
+    )
+    cutoff = max(min_score, best_original_score + max(0.0, min_delta))
+    return tuple(
+        source_id
+        for score, _, source_id in sorted(scored, key=lambda item: (-item[0], item[1]))
+        if source_id not in original_set and score >= cutoff
+    )
+
+
+def _alignment_record_text(record: Any) -> str:
+    parts = [
+        getattr(record, "text", ""),
+        getattr(record, "subject", ""),
+        getattr(record, "predicate", ""),
+        getattr(record, "value", ""),
+        " ".join(getattr(record, "entities", ()) or ()),
+    ]
+    return " ".join(part for part in parts if part)
+
+
+def _alignment_terms(text: str) -> frozenset[str]:
+    return frozenset(
+        term
+        for term in re.findall(r"[\w]+", text.lower())
+        if len(term) > 2 and term not in _SOURCE_ALIGNMENT_STOPWORDS
+    )
+
+
+def _alignment_phrases(record: Any) -> tuple[str, ...]:
+    phrases = []
+    for value in (
+        getattr(record, "value", ""),
+        *(getattr(record, "entities", ()) or ()),
+    ):
+        cleaned = str(value).strip().lower()
+        if len(cleaned) >= 4:
+            phrases.append(cleaned)
+    return tuple(dict.fromkeys(phrases))
 
 
 def _validate_memory_record_source(value: str) -> str:

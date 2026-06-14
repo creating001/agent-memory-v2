@@ -48,6 +48,7 @@ ROUTE_OVERRIDE_KEYS = {
     "candidate_guide_max_rows",
     "candidate_guide_snippet_chars",
     "context_layout",
+    "current_state_update_contract",
     "evidence_order",
     "evidence_report_detail",
     "evidence_row_labels",
@@ -57,6 +58,10 @@ ROUTE_OVERRIDE_KEYS = {
     "max_evidence_items",
     "max_row_text_chars",
     "row_text_mode",
+    "source_anchor_keep",
+    "source_anchor_memory_rows",
+    "source_anchor_per_session",
+    "source_anchor_session_rows",
     "structured_guide_include_memory",
     "structured_guide_include_rows",
     "structured_guide_max_rows",
@@ -161,6 +166,11 @@ class EvidenceCompiler:
         operation_workpad_information_needs: tuple[str, ...] = (
             DEFAULT_STRUCTURED_ANSWER_CONTRACT_NEEDS
         ),
+        current_state_update_contract: bool = False,
+        source_anchor_keep: int = 0,
+        source_anchor_memory_rows: int = 0,
+        source_anchor_per_session: int = 0,
+        source_anchor_session_rows: int = 0,
         context_layout: str = "flat",
         evidence_order: str = "retrieval",
         memory_order: str = "retrieval",
@@ -230,12 +240,22 @@ class EvidenceCompiler:
             operation_workpad_information_needs,
             field_name="operation_workpad_information_needs",
         )
+        self._current_state_update_contract = current_state_update_contract
         if context_layout not in {"flat", "session_thread"}:
             raise ValueError(f"Unsupported context_layout: {context_layout}")
         self._context_layout = context_layout
-        if evidence_order not in {"retrieval", "question_overlap", "memory_aware"}:
+        if evidence_order not in {
+            "retrieval",
+            "question_overlap",
+            "memory_aware",
+            "source_anchor_coverage",
+        }:
             raise ValueError(f"Unsupported evidence_order: {evidence_order}")
         self._evidence_order = evidence_order
+        self._source_anchor_keep = max(0, int(source_anchor_keep))
+        self._source_anchor_memory_rows = max(0, int(source_anchor_memory_rows))
+        self._source_anchor_per_session = max(0, int(source_anchor_per_session))
+        self._source_anchor_session_rows = max(0, int(source_anchor_session_rows))
         if memory_order not in {"retrieval", "question_overlap"}:
             raise ValueError(f"Unsupported memory_order: {memory_order}")
         self._memory_order = memory_order
@@ -289,6 +309,10 @@ class EvidenceCompiler:
             route=route,
             evidence_order=route_settings["evidence_order"],
             memory_records=tuple(memory_records),
+            source_anchor_keep=route_settings["source_anchor_keep"],
+            source_anchor_memory_rows=route_settings["source_anchor_memory_rows"],
+            source_anchor_per_session=route_settings["source_anchor_per_session"],
+            source_anchor_session_rows=route_settings["source_anchor_session_rows"],
         )
         rows: list[EvidenceRow] = []
         used_chars = 0
@@ -382,6 +406,9 @@ class EvidenceCompiler:
                 self._operation_workpad
                 and route.information_need in self._operation_workpad_information_needs
             ),
+            current_state_update_contract=route_settings[
+                "current_state_update_contract"
+            ],
             context_layout=route_settings["context_layout"],
             memory_layout=self._memory_layout,
             row_text_mode=route_settings["row_text_mode"],
@@ -408,6 +435,7 @@ class EvidenceCompiler:
             "candidate_guide_snippet_chars": self._candidate_guide_snippet_chars,
             "evidence_row_labels": self._evidence_row_labels,
             "context_layout": self._context_layout,
+            "current_state_update_contract": self._current_state_update_contract,
             "evidence_order": self._evidence_order,
             "evidence_report_detail": self._evidence_report_detail,
             "final_answer_checklist": self._final_answer_checklist,
@@ -416,6 +444,10 @@ class EvidenceCompiler:
             "max_memory_records": self._max_memory_records,
             "max_row_text_chars": self._max_row_text_chars,
             "row_text_mode": self._row_text_mode,
+            "source_anchor_keep": self._source_anchor_keep,
+            "source_anchor_memory_rows": self._source_anchor_memory_rows,
+            "source_anchor_per_session": self._source_anchor_per_session,
+            "source_anchor_session_rows": self._source_anchor_session_rows,
             "structured_guide_include_memory": self._structured_guide_include_memory,
             "structured_guide_include_rows": self._structured_guide_include_rows,
             "structured_guide_max_rows": self._structured_guide_max_rows,
@@ -477,9 +509,22 @@ def _validate_route_overrides(
             overrides["row_text_mode"] = row_text_mode
         if "evidence_order" in raw_overrides:
             evidence_order = str(raw_overrides["evidence_order"])
-            if evidence_order not in {"retrieval", "question_overlap", "memory_aware"}:
+            if evidence_order not in {
+                "retrieval",
+                "question_overlap",
+                "memory_aware",
+                "source_anchor_coverage",
+            }:
                 raise ValueError(f"Unsupported evidence_order: {evidence_order}")
             overrides["evidence_order"] = evidence_order
+        for key in (
+            "source_anchor_keep",
+            "source_anchor_memory_rows",
+            "source_anchor_per_session",
+            "source_anchor_session_rows",
+        ):
+            if key in raw_overrides:
+                overrides[key] = max(0, int(raw_overrides[key]))
         if "evidence_report_detail" in raw_overrides:
             overrides["evidence_report_detail"] = bool(
                 raw_overrides["evidence_report_detail"]
@@ -503,6 +548,10 @@ def _validate_route_overrides(
             if context_layout not in {"flat", "session_thread"}:
                 raise ValueError(f"Unsupported context_layout: {context_layout}")
             overrides["context_layout"] = context_layout
+        if "current_state_update_contract" in raw_overrides:
+            overrides["current_state_update_contract"] = bool(
+                raw_overrides["current_state_update_contract"]
+            )
         if "final_answer_checklist" in raw_overrides:
             overrides["final_answer_checklist"] = bool(
                 raw_overrides["final_answer_checklist"]
@@ -530,13 +579,32 @@ def _order_rows(
     route: RouteResult,
     evidence_order: str,
     memory_records: tuple[MemoryRecord, ...] = (),
+    source_anchor_keep: int = 0,
+    source_anchor_memory_rows: int = 0,
+    source_anchor_per_session: int = 0,
+    source_anchor_session_rows: int = 0,
 ) -> tuple[EvidenceRow, ...]:
     if evidence_order == "retrieval":
         return rows
-    if evidence_order not in {"question_overlap", "memory_aware"}:
+    if evidence_order not in {
+        "question_overlap",
+        "memory_aware",
+        "source_anchor_coverage",
+    }:
         raise ValueError(f"Unsupported evidence_order: {evidence_order}")
 
     question_terms = _content_terms(question)
+    if evidence_order == "source_anchor_coverage":
+        return _source_anchor_coverage_order(
+            rows,
+            question_terms=question_terms,
+            route=route,
+            memory_records=memory_records,
+            anchor_keep=source_anchor_keep,
+            memory_rows=source_anchor_memory_rows,
+            per_session=source_anchor_per_session,
+            session_rows=source_anchor_session_rows,
+        )
     if evidence_order == "memory_aware":
         memory_source_scores = _memory_source_scores(
             memory_records,
@@ -569,6 +637,133 @@ def _order_rows(
             ),
         )
     )
+
+
+def _source_anchor_coverage_order(
+    rows: tuple[EvidenceRow, ...],
+    *,
+    question_terms: frozenset[str],
+    route: RouteResult,
+    memory_records: tuple[MemoryRecord, ...],
+    anchor_keep: int,
+    memory_rows: int,
+    per_session: int,
+    session_rows: int,
+) -> tuple[EvidenceRow, ...]:
+    memory_source_scores = _memory_source_scores(
+        memory_records,
+        question_terms=question_terms,
+        route=route,
+    )
+    if not rows or not memory_source_scores:
+        return rows
+
+    selected: list[EvidenceRow] = []
+    seen: set[str] = set()
+    memory_anchor_sessions: list[str] = []
+    memory_session_counts: dict[str, int] = {}
+
+    def add(row: EvidenceRow, *, memory_anchor: bool = False) -> bool:
+        if row.source_id in seen:
+            return False
+        seen.add(row.source_id)
+        selected.append(row)
+        if memory_anchor and row.session_id not in memory_anchor_sessions:
+            memory_anchor_sessions.append(row.session_id)
+        return True
+
+    for row in rows[:anchor_keep]:
+        add(row)
+
+    added_memory_rows = 0
+    for row in sorted(
+        rows,
+        key=lambda item: _source_anchor_row_key(
+            item,
+            question_terms=question_terms,
+            route=route,
+            memory_source_scores=memory_source_scores,
+        ),
+    ):
+        if memory_source_scores.get(row.source_id, 0.0) <= 0:
+            continue
+        if (
+            per_session > 0
+            and memory_session_counts.get(row.session_id, 0) >= per_session
+        ):
+            continue
+        if add(row, memory_anchor=True):
+            memory_session_counts[row.session_id] = (
+                memory_session_counts.get(row.session_id, 0) + 1
+            )
+            added_memory_rows += 1
+            if memory_rows > 0 and added_memory_rows >= memory_rows:
+                break
+
+    if session_rows > 0:
+        session_counts: dict[str, int] = {}
+        for session_id in memory_anchor_sessions:
+            for row in rows:
+                if row.session_id != session_id:
+                    continue
+                if session_counts.get(session_id, 0) >= session_rows:
+                    break
+                if add(row):
+                    session_counts[session_id] = session_counts.get(session_id, 0) + 1
+
+    for row in rows:
+        add(row)
+    return tuple(selected)
+
+
+def _source_anchor_row_key(
+    row: EvidenceRow,
+    *,
+    question_terms: frozenset[str],
+    route: RouteResult,
+    memory_source_scores: dict[str, float],
+) -> tuple[float, float, float, int, int, str, str, int]:
+    row_terms = _content_terms(row.text)
+    memory_score = min(memory_source_scores.get(row.source_id, 0.0), 8.0)
+    overlap = len(question_terms.intersection(row_terms))
+    feature_bonus = _source_anchor_feature_bonus(row, route)
+    missing_rank = 1 if row.retrieval_rank is None else 0
+    rank = row.retrieval_rank if row.retrieval_rank is not None else 1_000_000
+    time_key = _source_anchor_timestamp_key(row.timestamp, route)
+    return (
+        -memory_score,
+        -overlap,
+        -feature_bonus,
+        missing_rank,
+        rank,
+        time_key,
+        row.session_id,
+        row.turn_index,
+    )
+
+
+def _source_anchor_feature_bonus(row: EvidenceRow, route: RouteResult) -> float:
+    score = 0.0
+    if route.information_need in {"list_count", "temporal_lookup"}:
+        if _has_quantity_expression(row.text):
+            score += 0.4
+        if row.timestamp or _has_time_expression(row.text):
+            score += 0.3
+    if route.information_need in {"profile_preference", "current_state"}:
+        if _has_profile_or_state_signal(row.text):
+            score += 0.5
+        if row.timestamp:
+            score += 0.2
+    if row.role.lower() == "user":
+        score += 0.1
+    return score
+
+
+def _source_anchor_timestamp_key(timestamp: str | None, route: RouteResult) -> str:
+    normalized = timestamp or ""
+    if route.information_need in {"current_state", "profile_preference"}:
+        return _invert_sortable_text(normalized)
+    return normalized
 
 
 def _layout_rows(
@@ -851,6 +1046,7 @@ def _build_prompt(
     evidence_report_max_items: int,
     evidence_report_detail: bool,
     operation_workpad: bool,
+    current_state_update_contract: bool,
     context_layout: str,
     memory_layout: str,
     row_text_mode: str,
@@ -900,6 +1096,7 @@ def _build_prompt(
             evidence_report_max_items=evidence_report_max_items,
             evidence_report_detail=evidence_report_detail,
             operation_workpad=operation_workpad,
+            current_state_update_contract=current_state_update_contract,
             final_answer_checklist=final_answer_checklist,
             context_layout=context_layout,
         )
@@ -1054,6 +1251,7 @@ def _build_external_naive_prompt(
     evidence_report_max_items: int,
     evidence_report_detail: bool,
     operation_workpad: bool,
+    current_state_update_contract: bool,
     final_answer_checklist: bool,
     context_layout: str,
 ) -> str:
@@ -1147,6 +1345,7 @@ def _build_external_naive_prompt(
                 route,
                 temporal_event_contract=use_temporal_event_contract,
                 detailed=evidence_report_detail,
+                current_state_update_contract=current_state_update_contract,
             )
         )
     if use_aggregation_report_contract:
@@ -1275,6 +1474,7 @@ def _external_evidence_report_rules(
     *,
     temporal_event_contract: bool = False,
     detailed: bool = False,
+    current_state_update_contract: bool = False,
 ) -> list[str]:
     """General visible evidence report instructions for clean reader discipline."""
 
@@ -1318,6 +1518,13 @@ def _external_evidence_report_rules(
                 "Do not let an old profile or old event override a newer directly relevant update.",
             ]
         )
+        if current_state_update_contract:
+            rules.extend(
+                [
+                    "A newer approximate or self-reported state is usable support when it directly matches the requested slot; keep qualifiers such as about, close to, almost, or nearing instead of reverting to an older exact value.",
+                    "An assistant row can support a current state when it directly acknowledges, repeats, or summarizes the user's stated value or state.",
+                ]
+            )
     elif route.information_need == "profile_preference":
         rules.extend(
             [

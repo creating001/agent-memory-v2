@@ -73,6 +73,8 @@ def main() -> int:
     total_build_memory_cache_hits = 0
     total_build_memory_cache_misses = 0
     total_build_memory_cache_writes = 0
+    total_build_memory_source_alignment_changed = 0
+    total_build_memory_source_alignment_added = 0
     total_memory_hits = 0
     total_memory_source_hits = 0
     total_answer_cache_hits = 0
@@ -186,6 +188,13 @@ def main() -> int:
         total_build_memory_cache_hits += int(build_memory_cache.get("hits") or 0)
         total_build_memory_cache_misses += int(build_memory_cache.get("misses") or 0)
         total_build_memory_cache_writes += int(build_memory_cache.get("writes") or 0)
+        source_alignment = result["trace"].get("build_memory_source_alignment") or {}
+        total_build_memory_source_alignment_changed += int(
+            source_alignment.get("records_changed") or 0
+        )
+        total_build_memory_source_alignment_added += int(
+            source_alignment.get("sources_added") or 0
+        )
         total_memory_hits += len(retrieval_trace.get("memory_hits") or [])
         total_memory_source_hits += len(
             retrieval_trace.get("memory_source_hits") or []
@@ -518,6 +527,23 @@ def main() -> int:
             "cache_hits": total_build_memory_cache_hits,
             "cache_misses": total_build_memory_cache_misses,
             "cache_writes": total_build_memory_cache_writes,
+            "source_alignment": config.get("build_memory", {}).get(
+                "source_alignment", {}
+            ),
+            "source_alignment_changed_records": (
+                total_build_memory_source_alignment_changed
+            ),
+            "source_alignment_added_sources": (
+                total_build_memory_source_alignment_added
+            ),
+            "avg_source_alignment_changed_records": _safe_average(
+                total_build_memory_source_alignment_changed,
+                sample_count,
+            ),
+            "avg_source_alignment_added_sources": _safe_average(
+                total_build_memory_source_alignment_added,
+                sample_count,
+            ),
             "total_chunks": total_build_memory_chunks,
             "avg_chunks": _safe_average(total_build_memory_chunks, sample_count),
             "total_records": total_build_memory_records,
@@ -715,6 +741,21 @@ def main() -> int:
             ),
             "operation_workpad_information_needs": config.get("compiler", {}).get(
                 "operation_workpad_information_needs"
+            ),
+            "current_state_update_contract": config.get("compiler", {}).get(
+                "current_state_update_contract", False
+            ),
+            "source_anchor_keep": config.get("compiler", {}).get(
+                "source_anchor_keep", 0
+            ),
+            "source_anchor_memory_rows": config.get("compiler", {}).get(
+                "source_anchor_memory_rows", 0
+            ),
+            "source_anchor_per_session": config.get("compiler", {}).get(
+                "source_anchor_per_session", 0
+            ),
+            "source_anchor_session_rows": config.get("compiler", {}).get(
+                "source_anchor_session_rows", 0
             ),
             "route_overrides": config.get("compiler", {}).get(
                 "route_overrides", {}
@@ -1040,6 +1081,11 @@ def _write_summary(
         f"- build_memory_cache_hits: {metrics['build_memory']['cache_hits']}",
         f"- build_memory_cache_misses: {metrics['build_memory']['cache_misses']}",
         f"- build_memory_cache_writes: {metrics['build_memory']['cache_writes']}",
+        f"- build_memory_source_alignment: {metrics['build_memory']['source_alignment']}",
+        f"- build_memory_source_alignment_changed_records: {metrics['build_memory']['source_alignment_changed_records']}",
+        f"- build_memory_source_alignment_added_sources: {metrics['build_memory']['source_alignment_added_sources']}",
+        f"- avg_build_memory_source_alignment_changed_records: {metrics['build_memory']['avg_source_alignment_changed_records']}",
+        f"- avg_build_memory_source_alignment_added_sources: {metrics['build_memory']['avg_source_alignment_added_sources']}",
         f"- avg_build_memory_records: {metrics['build_memory']['avg_records']}",
         f"- avg_active_build_memory_records: {metrics['build_memory']['avg_active_records']}",
         f"- avg_memory_hits: {metrics['retrieval']['avg_memory_hits']}",
@@ -1197,6 +1243,11 @@ def _write_summary(
         f"- candidate_guide_information_needs: {metrics['compiler']['candidate_guide_information_needs']}",
         f"- candidate_guide_max_rows: {metrics['compiler']['candidate_guide_max_rows']}",
         f"- candidate_guide_snippet_chars: {metrics['compiler']['candidate_guide_snippet_chars']}",
+        f"- current_state_update_contract: {metrics['compiler']['current_state_update_contract']}",
+        f"- source_anchor_keep: {metrics['compiler']['source_anchor_keep']}",
+        f"- source_anchor_memory_rows: {metrics['compiler']['source_anchor_memory_rows']}",
+        f"- source_anchor_per_session: {metrics['compiler']['source_anchor_per_session']}",
+        f"- source_anchor_session_rows: {metrics['compiler']['source_anchor_session_rows']}",
         f"- route_overrides: {metrics['compiler']['route_overrides']}",
         f"- enable_broad_list_patterns: {metrics['route']['enable_broad_list_patterns']}",
         f"- enable_recommendation_profile_patterns: {metrics['route']['enable_recommendation_profile_patterns']}",
@@ -1248,6 +1299,11 @@ def _write_diagnosis(
         f"- build_memory_cache_hits: {metrics['build_memory']['cache_hits']}",
         f"- build_memory_cache_misses: {metrics['build_memory']['cache_misses']}",
         f"- build_memory_cache_writes: {metrics['build_memory']['cache_writes']}",
+        f"- build_memory_source_alignment: {metrics['build_memory']['source_alignment']}",
+        f"- build_memory_source_alignment_changed_records: {metrics['build_memory']['source_alignment_changed_records']}",
+        f"- build_memory_source_alignment_added_sources: {metrics['build_memory']['source_alignment_added_sources']}",
+        f"- avg_build_memory_source_alignment_changed_records: {metrics['build_memory']['avg_source_alignment_changed_records']}",
+        f"- avg_build_memory_source_alignment_added_sources: {metrics['build_memory']['avg_source_alignment_added_sources']}",
         f"- avg_memory_hits: {metrics['retrieval']['avg_memory_hits']}",
         f"- avg_memory_source_hits: {metrics['retrieval']['avg_memory_source_hits']}",
         f"- build_memory_include_superseded: {metrics['retrieval']['build_memory_include_superseded']}",
@@ -1329,6 +1385,11 @@ def _write_diagnosis(
         f"- candidate_guide_information_needs: {metrics['compiler']['candidate_guide_information_needs']}",
         f"- candidate_guide_max_rows: {metrics['compiler']['candidate_guide_max_rows']}",
         f"- candidate_guide_snippet_chars: {metrics['compiler']['candidate_guide_snippet_chars']}",
+        f"- current_state_update_contract: {metrics['compiler']['current_state_update_contract']}",
+        f"- source_anchor_keep: {metrics['compiler']['source_anchor_keep']}",
+        f"- source_anchor_memory_rows: {metrics['compiler']['source_anchor_memory_rows']}",
+        f"- source_anchor_per_session: {metrics['compiler']['source_anchor_per_session']}",
+        f"- source_anchor_session_rows: {metrics['compiler']['source_anchor_session_rows']}",
         f"- route_overrides: {metrics['compiler']['route_overrides']}",
         f"- enable_recommendation_profile_patterns: {metrics['route']['enable_recommendation_profile_patterns']}",
         f"- enable_advice_profile_patterns: {metrics['route'].get('enable_advice_profile_patterns', False)}",

@@ -34,7 +34,12 @@ from memory.scoped_evidence import (
     should_apply_scoped_evidence,
 )
 from data.io import load_prediction_jsonl
-from memory.pipeline import Stage1Pipeline, _compiler_memory_records
+from memory.pipeline import (
+    Stage1Pipeline,
+    _align_build_memory_sources,
+    _compiler_memory_records,
+)
+from memory.store import RawEvidenceStore
 from common.schemas import (
     AnswerResult,
     CompiledContext,
@@ -508,6 +513,52 @@ class CleanSkeletonTest(unittest.TestCase):
             [record.memory_id for record in combined],
             ["mem-retrieval", "mem-row"],
         )
+
+    def test_build_memory_source_alignment_adds_adjacent_supporting_turn(self) -> None:
+        record = MemoryRecord(
+            memory_id="mem-followers",
+            memory_type="fact",
+            text="The user is nearing 1300 Instagram followers.",
+            source_ids=("s1:t0",),
+            subject="user",
+            predicate="is nearing",
+            value="1300 Instagram followers",
+        )
+        store = RawEvidenceStore(
+            (
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Can you help me write an Instagram caption?",
+                ),
+                Turn(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="assistant",
+                    text=(
+                        "Congratulations on nearing 1300 followers. "
+                        "Here is a caption draft."
+                    ),
+                ),
+            )
+        )
+
+        aligned, trace = _align_build_memory_sources(
+            (record,),
+            store=store,
+            window=1,
+            max_sources_per_record=3,
+            min_score=2.0,
+            min_delta=1.5,
+        )
+
+        self.assertEqual(aligned[0].source_ids, ("s1:t1", "s1:t0"))
+        self.assertEqual(trace["records_seen"], 1)
+        self.assertEqual(trace["records_changed"], 1)
+        self.assertEqual(trace["sources_added"], 1)
 
     def test_compiler_memory_record_source_rejects_unknown_value(self) -> None:
         config = {
@@ -1448,6 +1499,49 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertNotIn('"evidence_report"', list_context.prompt)
         self.assertIn('"answer": "concise answer"', fact_context.prompt)
 
+    def test_current_state_update_contract_is_config_gated(self) -> None:
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="assistant",
+                text="Congratulations on nearing 1300 followers.",
+                timestamp="2024-01-01",
+            ),
+        )
+        route = RouteResult(information_need="current_state", signals=())
+        baseline = EvidenceCompiler(
+            max_evidence_items=1,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            evidence_report_contract=True,
+            evidence_report_information_needs=("current_state",),
+        ).compile(
+            question="What is my current follower count?",
+            question_time=None,
+            route=route,
+            hits=(),
+            evidence_turns=turns,
+        )
+        contracted = EvidenceCompiler(
+            max_evidence_items=1,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            evidence_report_contract=True,
+            evidence_report_information_needs=("current_state",),
+            current_state_update_contract=True,
+        ).compile(
+            question="What is my current follower count?",
+            question_time=None,
+            route=route,
+            hits=(),
+            evidence_turns=turns,
+        )
+
+        self.assertNotIn("newer approximate or self-reported state", baseline.prompt)
+        self.assertIn("newer approximate or self-reported state", contracted.prompt)
+
     def test_external_naive_final_checklist_is_config_gated(self) -> None:
         turns = (
             Turn(
@@ -2022,6 +2116,112 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual(compiled.memory_records, ())
         self.assertIn("I bought a Korg B1 last year.", compiled.prompt)
         self.assertNotIn("The user owns a Korg B1 piano.", compiled.prompt)
+
+    def test_source_anchor_coverage_preserves_anchor_then_source_link(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=4,
+            max_evidence_chars=4000,
+            evidence_order="source_anchor_coverage",
+            source_anchor_keep=1,
+            source_anchor_memory_rows=2,
+            source_anchor_per_session=1,
+            max_memory_records=0,
+        )
+        route = RouteResult(information_need="profile_preference", signals=())
+        memory = MemoryRecord(
+            memory_id="m1",
+            memory_type="preference",
+            text="The user prefers turbinado sugar for richer flavor.",
+            source_ids=("s2:t0",),
+            subject="user",
+            predicate="prefers",
+            value="turbinado sugar",
+            entities=("turbinado sugar",),
+        )
+
+        compiled = compiler.compile(
+            question="What would improve my cookies?",
+            question_time=None,
+            route=route,
+            hits=(
+                RetrievalHit("s1:t0", 1.0, 1, "dense_embedding"),
+                RetrievalHit("s1:t1", 0.9, 2, "dense_embedding"),
+                RetrievalHit("s2:t0", 0.4, 3, "build_memory_bm25"),
+            ),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="I tried a cherry clafoutis recipe.",
+                ),
+                Turn(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="Almond flour worked well in a dessert.",
+                ),
+                Turn(
+                    source_id="s2:t0",
+                    session_id="s2",
+                    turn_index=0,
+                    role="user",
+                    text="I found turbinado sugar adds a richer flavor.",
+                ),
+            ),
+            memory_records=(memory,),
+        )
+
+        self.assertEqual(
+            [row.source_id for row in compiled.evidence_rows],
+            ["s1:t0", "s2:t0", "s1:t1"],
+        )
+        self.assertEqual(compiled.memory_records, ())
+        self.assertNotIn("The user prefers turbinado sugar", compiled.prompt)
+
+    def test_source_anchor_coverage_without_memory_preserves_order(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=2,
+            max_evidence_chars=4000,
+            evidence_order="source_anchor_coverage",
+            source_anchor_keep=1,
+            source_anchor_memory_rows=2,
+            max_memory_records=0,
+        )
+        route = RouteResult(information_need="fact_lookup", signals=())
+
+        compiled = compiler.compile(
+            question="Which instrument do I own?",
+            question_time=None,
+            route=route,
+            hits=(
+                RetrievalHit("s1:t0", 1.0, 1, "dense_embedding"),
+                RetrievalHit("s1:t1", 0.9, 2, "dense_embedding"),
+            ),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="I need advice about music lessons.",
+                ),
+                Turn(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="I bought a Korg B1 last year.",
+                ),
+            ),
+        )
+
+        self.assertEqual(
+            [row.source_id for row in compiled.evidence_rows],
+            ["s1:t0", "s1:t1"],
+        )
 
     def test_compiler_route_override_can_scope_evidence_order(self) -> None:
         compiler = EvidenceCompiler(

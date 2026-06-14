@@ -76,6 +76,7 @@
 - v56 lossless atomic build memory 已完成 LongMemEval-S `weak_route_87` 诊断：DeepSeek judge `57/87 = 0.655172`，低于 v42 same-87 `59/87 = 0.678161`；gain/loss `4/6`，answer_changed `22`，avg_build_tokens `107052.839`，比 v42 same87 多约 `26060.977`，avg_query_tokens `6007.575` 略超 6K。结论是 build 侧更细粒度 extraction 增加 records 和成本，但没有改善最终 evidence 使用；不跑 full，顶层 config 删除，仅保留实验快照。
 - v57 target-completeness checklist 已完成 LongMemEval-S `weak_route_87` 诊断：DeepSeek judge `59/87 = 0.678161`，与 v42 same87 持平；gain/loss `5/5`，answer_changed `28`，avg_build_tokens `80991.862`，avg_query_tokens `6270.575` 超过 6K。结论是 query/compiler 侧 checklist 会改变答案但不能净增正确率，而且增加 token；不跑 full，顶层 config 删除，仅保留实验快照。
 - v58 clean rerank retrieval 已完成 LongMemEval-S `weak_route_87` 诊断：DeepSeek judge `55/87 = 0.632184`，低于 v42 same87 `59/87 = 0.678161`；gain/loss `6/10`，answer_changed `35`，avg_build_tokens `80991.862`，avg_query_tokens `5898.540`。rerank 全量应用且 prediction token gate 通过，但 list_count 从 `15/20` 降到 `12/20`、profile_preference 从 `10/15` 降到 `8/15`，只有 temporal_lookup 小幅 `22/30 -> 23/30`。结论是单文档相关性 rerank 会破坏多证据覆盖和 profile 连续性；不跑 full，顶层 config 删除，仅保留实验快照。
+- v59 provenance alignment + source-anchor coverage 已完成设计，尚未跑正式诊断。它基于 v42，先修复 build memory source links 的相邻 turn provenance，再在 raw evidence rows 内做 coverage-aware organization，并为 current-state 题加入最新近似/自述状态优先的通用 update contract；typed memory 文本不作为独立事实进入 prompt。先跑 LongMemEval-S `weak_route_87`；规划见 `experiments/v59_planning.md`。
 
 负向探索结论已压缩保留：
 
