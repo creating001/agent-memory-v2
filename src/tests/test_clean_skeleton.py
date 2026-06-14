@@ -1275,6 +1275,107 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertIn("Do not put unrelated numeric facts", count_context.prompt)
         self.assertNotIn('"count_increment"', date_context.prompt)
 
+    def test_candidate_guide_is_route_scoped_and_source_preserving(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=3,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            candidate_guide=True,
+            candidate_guide_information_needs=("list_count",),
+            candidate_guide_max_rows=2,
+            candidate_guide_snippet_chars=120,
+        )
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text="Alex discussed the garden.",
+                timestamp="2024-01-01",
+            ),
+            Turn(
+                source_id="s1:t1",
+                session_id="s1",
+                turn_index=1,
+                role="user",
+                text="Alex bought 2 basil plants and one mint plant last week.",
+                timestamp="2024-01-08",
+            ),
+            Turn(
+                source_id="s1:t2",
+                session_id="s1",
+                turn_index=2,
+                role="assistant",
+                text="General plant care advice.",
+                timestamp="2024-01-08",
+            ),
+        )
+
+        list_context = compiler.compile(
+            question="How many plants did Alex buy?",
+            question_time=None,
+            route=RouteResult(information_need="list_count", signals=("list_or_count",)),
+            hits=(RetrievalHit("s1:t1", 1.0, 1, "lexical_bm25"),),
+            evidence_turns=turns,
+        )
+        fact_context = compiler.compile(
+            question="Which plant did Alex buy?",
+            question_time=None,
+            route=RouteResult(information_need="fact_lookup", signals=()),
+            hits=(RetrievalHit("s1:t1", 1.0, 1, "lexical_bm25"),),
+            evidence_turns=turns,
+        )
+
+        self.assertIn("Candidate Evidence Map:", list_context.prompt)
+        self.assertIn("Use Candidate Evidence Map only as a compact index", list_context.prompt)
+        self.assertIn("Memory 2: date=2024-01-08 role=user", list_context.prompt)
+        self.assertIn("quantities=2", list_context.prompt)
+        self.assertIn("last week", list_context.prompt)
+        self.assertIn("Alex bought 2 basil plants", list_context.prompt)
+        self.assertNotIn("Candidate Evidence Map:", fact_context.prompt)
+        self.assertNotIn("question_type", list_context.prompt)
+
+    def test_pipeline_traces_candidate_guide_config(self) -> None:
+        config = {
+            "retrieval": {"top_k": 1, "max_top_k": 1, "neighbor_window": 0},
+            "compiler": {
+                "max_evidence_items": 1,
+                "max_evidence_chars": 2000,
+                "prompt_mode": "external_naive",
+                "candidate_guide": True,
+                "candidate_guide_information_needs": ["list_count"],
+                "candidate_guide_max_rows": 2,
+                "candidate_guide_snippet_chars": 120,
+            },
+            "answer": {"fallback_answer": "I do not know."},
+        }
+        request = PredictionRequest(
+            question="How many plants did Alex buy?",
+            turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Alex bought 2 basil plants and one mint plant.",
+                    timestamp="2024-01-08",
+                ),
+            ),
+        )
+
+        result = Stage1Pipeline(config).predict(request)
+
+        self.assertTrue(result["trace"]["compiler"]["candidate_guide"])
+        self.assertEqual(
+            result["trace"]["compiler"]["candidate_guide_information_needs"],
+            ("list_count",),
+        )
+        self.assertIn(
+            "Candidate Evidence Map:",
+            result["trace"]["compiled_context"]["prompt"],
+        )
+
     def test_temporal_event_contract_separates_mention_time_from_event_time(self) -> None:
         compiler = EvidenceCompiler(
             max_evidence_items=1,

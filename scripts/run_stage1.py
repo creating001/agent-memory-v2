@@ -495,6 +495,18 @@ def main() -> int:
             "aggregation_report_information_needs": config.get("compiler", {}).get(
                 "aggregation_report_information_needs"
             ),
+            "candidate_guide": config.get("compiler", {}).get(
+                "candidate_guide", False
+            ),
+            "candidate_guide_information_needs": config.get("compiler", {}).get(
+                "candidate_guide_information_needs"
+            ),
+            "candidate_guide_max_rows": config.get("compiler", {}).get(
+                "candidate_guide_max_rows", 6
+            ),
+            "candidate_guide_snippet_chars": config.get("compiler", {}).get(
+                "candidate_guide_snippet_chars", 160
+            ),
             "operation_workpad": config.get("compiler", {}).get(
                 "operation_workpad", False
             ),
@@ -925,6 +937,10 @@ def _write_summary(
         f"- evidence_report_detail: {metrics['compiler']['evidence_report_detail']}",
         f"- aggregation_report_contract: {metrics['compiler']['aggregation_report_contract']}",
         f"- aggregation_report_information_needs: {metrics['compiler']['aggregation_report_information_needs']}",
+        f"- candidate_guide: {metrics['compiler']['candidate_guide']}",
+        f"- candidate_guide_information_needs: {metrics['compiler']['candidate_guide_information_needs']}",
+        f"- candidate_guide_max_rows: {metrics['compiler']['candidate_guide_max_rows']}",
+        f"- candidate_guide_snippet_chars: {metrics['compiler']['candidate_guide_snippet_chars']}",
         f"- route_overrides: {metrics['compiler']['route_overrides']}",
         f"- enable_broad_list_patterns: {metrics['route']['enable_broad_list_patterns']}",
         f"- enable_recommendation_profile_patterns: {metrics['route']['enable_recommendation_profile_patterns']}",
@@ -1030,6 +1046,10 @@ def _write_diagnosis(
         f"- evidence_report_detail: {metrics['compiler']['evidence_report_detail']}",
         f"- aggregation_report_contract: {metrics['compiler']['aggregation_report_contract']}",
         f"- aggregation_report_information_needs: {metrics['compiler']['aggregation_report_information_needs']}",
+        f"- candidate_guide: {metrics['compiler']['candidate_guide']}",
+        f"- candidate_guide_information_needs: {metrics['compiler']['candidate_guide_information_needs']}",
+        f"- candidate_guide_max_rows: {metrics['compiler']['candidate_guide_max_rows']}",
+        f"- candidate_guide_snippet_chars: {metrics['compiler']['candidate_guide_snippet_chars']}",
         f"- route_overrides: {metrics['compiler']['route_overrides']}",
         f"- enable_recommendation_profile_patterns: {metrics['route']['enable_recommendation_profile_patterns']}",
         f"- temporal_priority_over_recent: {metrics['route']['temporal_priority_over_recent']}",

@@ -322,6 +322,19 @@ class Stage1Pipeline:
                     ("list_count", "temporal_lookup"),
                 )
             ),
+            candidate_guide=bool(compiler_config.get("candidate_guide", False)),
+            candidate_guide_information_needs=_tuple_config(
+                compiler_config.get(
+                    "candidate_guide_information_needs",
+                    ("list_count", "temporal_lookup"),
+                )
+            ),
+            candidate_guide_max_rows=int(
+                compiler_config.get("candidate_guide_max_rows", 6)
+            ),
+            candidate_guide_snippet_chars=int(
+                compiler_config.get("candidate_guide_snippet_chars", 160)
+            ),
             operation_workpad=bool(compiler_config.get("operation_workpad", False)),
             operation_workpad_information_needs=_tuple_config(
                 compiler_config.get(
@@ -432,6 +445,19 @@ class Stage1Pipeline:
                     "aggregation_report_information_needs",
                     ("list_count", "temporal_lookup"),
                 )
+            ),
+            "candidate_guide": bool(compiler_config.get("candidate_guide", False)),
+            "candidate_guide_information_needs": _tuple_config(
+                compiler_config.get(
+                    "candidate_guide_information_needs",
+                    ("list_count", "temporal_lookup"),
+                )
+            ),
+            "candidate_guide_max_rows": int(
+                compiler_config.get("candidate_guide_max_rows", 6)
+            ),
+            "candidate_guide_snippet_chars": int(
+                compiler_config.get("candidate_guide_snippet_chars", 160)
             ),
             "operation_workpad": bool(
                 compiler_config.get("operation_workpad", False)

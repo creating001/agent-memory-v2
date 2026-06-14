@@ -44,6 +44,9 @@ SUPPORTED_INFORMATION_NEEDS = {
     "temporal_lookup",
 }
 ROUTE_OVERRIDE_KEYS = {
+    "candidate_guide",
+    "candidate_guide_max_rows",
+    "candidate_guide_snippet_chars",
     "context_layout",
     "evidence_order",
     "evidence_report_detail",
@@ -148,6 +151,12 @@ class EvidenceCompiler:
         aggregation_report_information_needs: tuple[str, ...] = (
             DEFAULT_STRUCTURED_ANSWER_CONTRACT_NEEDS
         ),
+        candidate_guide: bool = False,
+        candidate_guide_information_needs: tuple[str, ...] = (
+            DEFAULT_STRUCTURED_ANSWER_CONTRACT_NEEDS
+        ),
+        candidate_guide_max_rows: int = 6,
+        candidate_guide_snippet_chars: int = 160,
         operation_workpad: bool = False,
         operation_workpad_information_needs: tuple[str, ...] = (
             DEFAULT_STRUCTURED_ANSWER_CONTRACT_NEEDS
@@ -206,6 +215,15 @@ class EvidenceCompiler:
         self._aggregation_report_information_needs = _validate_information_needs(
             aggregation_report_information_needs,
             field_name="aggregation_report_information_needs",
+        )
+        self._candidate_guide = candidate_guide
+        self._candidate_guide_information_needs = _validate_information_needs(
+            candidate_guide_information_needs,
+            field_name="candidate_guide_information_needs",
+        )
+        self._candidate_guide_max_rows = max(1, int(candidate_guide_max_rows))
+        self._candidate_guide_snippet_chars = max(
+            80, int(candidate_guide_snippet_chars)
         )
         self._operation_workpad = operation_workpad
         self._operation_workpad_information_needs = _validate_information_needs(
@@ -350,6 +368,14 @@ class EvidenceCompiler:
                 and route.information_need in self._aggregation_report_information_needs
                 and _is_aggregation_question(question)
             ),
+            candidate_guide=(
+                route_settings["candidate_guide"]
+                and route.information_need in self._candidate_guide_information_needs
+            ),
+            candidate_guide_max_rows=route_settings["candidate_guide_max_rows"],
+            candidate_guide_snippet_chars=route_settings[
+                "candidate_guide_snippet_chars"
+            ],
             evidence_report_max_items=self._evidence_report_max_items,
             evidence_report_detail=route_settings["evidence_report_detail"],
             operation_workpad=(
@@ -377,6 +403,9 @@ class EvidenceCompiler:
 
     def _settings_for_route(self, route: RouteResult) -> dict[str, Any]:
         settings: dict[str, Any] = {
+            "candidate_guide": self._candidate_guide,
+            "candidate_guide_max_rows": self._candidate_guide_max_rows,
+            "candidate_guide_snippet_chars": self._candidate_guide_snippet_chars,
             "evidence_row_labels": self._evidence_row_labels,
             "context_layout": self._context_layout,
             "evidence_order": self._evidence_order,
@@ -454,6 +483,16 @@ def _validate_route_overrides(
         if "evidence_report_detail" in raw_overrides:
             overrides["evidence_report_detail"] = bool(
                 raw_overrides["evidence_report_detail"]
+            )
+        if "candidate_guide" in raw_overrides:
+            overrides["candidate_guide"] = bool(raw_overrides["candidate_guide"])
+        if "candidate_guide_max_rows" in raw_overrides:
+            overrides["candidate_guide_max_rows"] = max(
+                1, int(raw_overrides["candidate_guide_max_rows"])
+            )
+        if "candidate_guide_snippet_chars" in raw_overrides:
+            overrides["candidate_guide_snippet_chars"] = max(
+                80, int(raw_overrides["candidate_guide_snippet_chars"])
             )
         if "evidence_row_labels" in raw_overrides:
             overrides["evidence_row_labels"] = bool(
@@ -806,6 +845,9 @@ def _build_prompt(
     structured_answer_contract_max_items: int,
     evidence_report_contract: bool,
     aggregation_report_contract: bool,
+    candidate_guide: bool,
+    candidate_guide_max_rows: int,
+    candidate_guide_snippet_chars: int,
     evidence_report_max_items: int,
     evidence_report_detail: bool,
     operation_workpad: bool,
@@ -852,6 +894,9 @@ def _build_prompt(
             structured_answer_contract_max_items=structured_answer_contract_max_items,
             evidence_report_contract=evidence_report_contract,
             aggregation_report_contract=aggregation_report_contract,
+            candidate_guide=candidate_guide,
+            candidate_guide_max_rows=candidate_guide_max_rows,
+            candidate_guide_snippet_chars=candidate_guide_snippet_chars,
             evidence_report_max_items=evidence_report_max_items,
             evidence_report_detail=evidence_report_detail,
             operation_workpad=operation_workpad,
@@ -1002,6 +1047,9 @@ def _build_external_naive_prompt(
     structured_answer_contract_max_items: int,
     evidence_report_contract: bool,
     aggregation_report_contract: bool,
+    candidate_guide: bool,
+    candidate_guide_max_rows: int,
+    candidate_guide_snippet_chars: int,
     evidence_report_max_items: int,
     evidence_report_detail: bool,
     operation_workpad: bool,
@@ -1046,10 +1094,27 @@ def _build_external_naive_prompt(
             structured_guide_block = "\n".join(
                 ["", "Structured Evidence Guide:", *guide_lines, ""]
             )
+    candidate_guide_block = ""
+    if candidate_guide:
+        candidate_lines = _external_candidate_guide_lines(
+            question=question,
+            route=route,
+            rows=rows,
+            max_rows=candidate_guide_max_rows,
+            snippet_chars=candidate_guide_snippet_chars,
+        )
+        if candidate_lines:
+            candidate_guide_block = "\n".join(
+                ["", "Candidate Evidence Map:", *candidate_lines, ""]
+            )
     rules = ["Use only the memory context."]
     if structured_guide_block:
         rules.append(
             "Use Structured Evidence Guide only as an index into Memory Context; it is not independent evidence."
+        )
+    if candidate_guide_block:
+        rules.append(
+            "Use Candidate Evidence Map only as a compact index into Memory Context; it is not independent evidence."
         )
     if temporal_aid:
         rules.append(
@@ -1169,6 +1234,7 @@ def _build_external_naive_prompt(
             "User Question:",
             user_question,
             structured_guide_block,
+            candidate_guide_block,
             operation_workpad_block,
             "",
             "Memory Context:",
@@ -1407,6 +1473,162 @@ def _external_memory_guide_lines(
             fields.append(f"value={_truncate_text(_single_line(record.value), 120)}")
         lines.append(f"  - {' | '.join(fields)}: {text}")
     return lines
+
+
+def _external_candidate_guide_lines(
+    *,
+    question: str,
+    route: RouteResult,
+    rows: tuple[EvidenceRow, ...],
+    max_rows: int,
+    snippet_chars: int,
+) -> list[str]:
+    """Compact source-preserving row map for candidate-heavy questions."""
+
+    if not rows:
+        return []
+
+    selected = _candidate_guide_rows(
+        question=question,
+        route=route,
+        rows=rows,
+        max_rows=max_rows,
+    )
+    if not selected:
+        return []
+
+    lines = [
+        "Use this compact map to compare candidate raw rows; verify final facts in Memory Context."
+    ]
+    focus = _candidate_guide_focus_line(question, route)
+    if focus:
+        lines.append(focus)
+    lines.append("- candidates:")
+    for memory_index, row in selected:
+        matched_terms = sorted(_content_terms(question).intersection(_content_terms(row.text)))[:6]
+        matched_text = ", ".join(matched_terms) or "none"
+        quantities = _candidate_quantity_mentions(row.text)
+        quantity_text = f" | quantities={'; '.join(quantities)}" if quantities else ""
+        times = _candidate_time_mentions(row.text)
+        time_text = f" | time_phrases={'; '.join(times)}" if times else ""
+        snippet = _single_line(_query_snippet(row.text, question, snippet_chars))
+        lines.append(
+            f"  - Memory {memory_index}: date={row.timestamp or 'unknown'} "
+            f"role={row.role} matched_terms={matched_text}{quantity_text}"
+            f"{time_text} | text=\"{snippet}\""
+        )
+    return lines
+
+
+def _candidate_guide_focus_line(question: str, route: RouteResult) -> str:
+    lowered = question.lower()
+    if route.information_need == "profile_preference":
+        return (
+            "- focus: extract user-stated preferences, constraints, dislikes, owned setup, "
+            "and prior experiences; avoid generic advice unsupported by rows."
+        )
+    if route.information_need == "current_state":
+        return (
+            "- focus: compare newer and older directly relevant rows; answer the current "
+            "state only when a row supports it."
+        )
+    if route.information_need == "list_count" or _asks_collection_operation(lowered):
+        return (
+            "- focus: collect distinct in-scope items/events, merge repeated mentions, "
+            "and keep out-of-scope or hypothetical rows separate."
+        )
+    if route.information_need == "temporal_lookup":
+        return (
+            "- focus: identify the target event/action row before using row dates, "
+            "relative time phrases, quantities, or durations."
+        )
+    return ""
+
+
+def _candidate_guide_rows(
+    *,
+    question: str,
+    route: RouteResult,
+    rows: tuple[EvidenceRow, ...],
+    max_rows: int,
+) -> tuple[tuple[int, EvidenceRow], ...]:
+    question_terms = _content_terms(question)
+    scored: list[tuple[float, int, int, EvidenceRow]] = []
+    for index, row in enumerate(rows, start=1):
+        score = _candidate_guide_row_score(
+            row,
+            question_terms=question_terms,
+            route=route,
+        )
+        if row.retrieval_rank is not None:
+            score += 1.0 / (row.retrieval_rank + 4.0)
+        if row.role.lower() == "user":
+            score += 0.15
+        scored.append((score, -index, index, row))
+
+    scored.sort(reverse=True)
+    selected = sorted(scored[:max_rows], key=lambda item: item[2])
+    return tuple((index, row) for _, _, index, row in selected)
+
+
+def _candidate_guide_row_score(
+    row: EvidenceRow,
+    *,
+    question_terms: frozenset[str],
+    route: RouteResult,
+) -> float:
+    row_terms = _content_terms(row.text)
+    score = len(question_terms.intersection(row_terms)) * 2.0
+    if route.information_need in {"list_count", "temporal_lookup"} and _has_quantity_expression(row.text):
+        score += 0.8
+    if route.information_need in {"temporal_lookup", "current_state"} and (
+        row.timestamp or _has_time_expression(row.text)
+    ):
+        score += 0.6
+    if route.information_need in {"profile_preference", "current_state"} and _has_profile_or_state_signal(row.text):
+        score += 0.7
+    return score
+
+
+def _has_profile_or_state_signal(text: str) -> bool:
+    lowered = text.lower()
+    return bool(
+        re.search(
+            r"\b(prefer|preference|like|love|dislike|hate|need|want|looking for|"
+            r"interested in|currently|now|still|own|have|my setup|my current)\b",
+            lowered,
+        )
+    )
+
+
+def _candidate_quantity_mentions(text: str) -> tuple[str, ...]:
+    mentions: list[str] = []
+    for match in re.finditer(
+        r"(?:\$\s*)?\b\d+(?:[.,]\d+)?(?:\s*(?:days?|weeks?|months?|years?|hours?|minutes?|times?|items?|pieces?|videos?|films?|classes?))?",
+        text,
+        flags=re.IGNORECASE,
+    ):
+        mentions.append(_single_line(match.group(0)))
+        if len(mentions) >= 4:
+            break
+    return tuple(dict.fromkeys(mentions))
+
+
+def _candidate_time_mentions(text: str) -> tuple[str, ...]:
+    patterns = (
+        r"\b(?:yesterday|today|tomorrow)\b",
+        r"\b(?:last|next|this)\s+(?:day|week|month|year|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b",
+        r"\b\d+\s+(?:days?|weeks?|months?|years?)\s+ago\b",
+        r"\b20\d{2}[-/]\d{1,2}[-/]\d{1,2}\b",
+        r"\b(?:january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{1,2}(?:st|nd|rd|th)?(?:,\s*20\d{2})?\b",
+    )
+    mentions: list[str] = []
+    for pattern in patterns:
+        for match in re.finditer(pattern, text, flags=re.IGNORECASE):
+            mentions.append(_single_line(match.group(0)))
+            if len(mentions) >= 4:
+                return tuple(dict.fromkeys(mentions))
+    return tuple(dict.fromkeys(mentions))
 
 
 def _external_operation_workpad_lines(question: str, route: RouteResult) -> list[str]:
