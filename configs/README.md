@@ -24,7 +24,6 @@
 - `stage1_update_conflict_value_slot_v81_cached.json`：v80 的 value-slot 收窄诊断；changed subset 正向但 full judge 未超过 v80。
 - `stage1_personalized_advice_contract_v83_cached.json`：v81 代码线上的 personalized advice reader discipline；LongMemEval-S full 与 v80 accuracy 持平，但触发子集 mixed，是候选/诊断配置，不替代 v80。
 - `stage1_evidence_answer_detail_v88_cached.json`：当前 LongMemEval-S 最好；v83 上的窄机械 finalizer，不改 build/retrieval/compiler/answer prompt，只在 answer JSON 已有 operands/items 时补 count detail、average、money difference 和 date endpoint duration。
-- `stage1_route_budgeted_answer_detail_v89_cached.json`：v88 + v35/v34 route-budgeted top60 retrieval 的统一候选；用于验证能否恢复 LoCoMo，同时保留 v88 的 LME answer-detail 收益。
 
 ## 当前候选
 
