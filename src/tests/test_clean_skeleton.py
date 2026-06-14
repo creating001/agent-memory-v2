@@ -1420,6 +1420,53 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertNotIn('"evidence_items"', list_context.prompt)
         self.assertIn('"answer": "concise answer"', list_context.prompt)
 
+    def test_operation_workpad_question_gate_allows_fact_operations_only(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=1,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            operation_workpad=True,
+            operation_workpad_information_needs=("fact_lookup", "list_count"),
+            operation_workpad_question_gate=True,
+        )
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text="Alex spent $20 on tea and $15 on coffee.",
+                timestamp="2024-01-01",
+            ),
+        )
+
+        ordinary_fact = compiler.compile(
+            question="Where did Alex buy coffee?",
+            question_time=None,
+            route=RouteResult(information_need="fact_lookup", signals=()),
+            hits=(),
+            evidence_turns=turns,
+        )
+        operation_fact = compiler.compile(
+            question="What is the total amount Alex spent on tea and coffee?",
+            question_time=None,
+            route=RouteResult(information_need="fact_lookup", signals=()),
+            hits=(),
+            evidence_turns=turns,
+        )
+        list_context = compiler.compile(
+            question="How many drinks did Alex buy?",
+            question_time=None,
+            route=RouteResult(information_need="list_count", signals=("list_or_count",)),
+            hits=(),
+            evidence_turns=turns,
+        )
+
+        self.assertNotIn("Private Operation Discipline", ordinary_fact.prompt)
+        self.assertIn("Private Operation Discipline", operation_fact.prompt)
+        self.assertIn("Verify arithmetic", operation_fact.prompt)
+        self.assertIn("Private Operation Discipline", list_context.prompt)
+
     def test_operation_workpad_can_pair_with_evidence_report(self) -> None:
         compiler = EvidenceCompiler(
             max_evidence_items=1,

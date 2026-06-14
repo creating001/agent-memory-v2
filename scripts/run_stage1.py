@@ -742,6 +742,9 @@ def main() -> int:
             "operation_workpad_information_needs": config.get("compiler", {}).get(
                 "operation_workpad_information_needs"
             ),
+            "operation_workpad_question_gate": config.get("compiler", {}).get(
+                "operation_workpad_question_gate", False
+            ),
             "current_state_update_contract": config.get("compiler", {}).get(
                 "current_state_update_contract", False
             ),
@@ -1231,6 +1234,7 @@ def _write_summary(
         f"- temporal_workpad_scope: {metrics['compiler']['temporal_workpad_scope']}",
         f"- temporal_workpad_max_rows: {metrics['compiler']['temporal_workpad_max_rows']}",
         f"- temporal_workpad_max_pairs: {metrics['compiler']['temporal_workpad_max_pairs']}",
+        f"- operation_workpad_question_gate: {metrics['compiler']['operation_workpad_question_gate']}",
         f"- structured_guide: {metrics['compiler']['structured_guide']}",
         f"- structured_guide_max_rows: {metrics['compiler']['structured_guide_max_rows']}",
         f"- structured_guide_include_rows: {metrics['compiler']['structured_guide_include_rows']}",
@@ -1375,6 +1379,7 @@ def _write_diagnosis(
         f"- temporal_workpad_scope: {metrics['compiler']['temporal_workpad_scope']}",
         f"- temporal_workpad_max_rows: {metrics['compiler']['temporal_workpad_max_rows']}",
         f"- temporal_workpad_max_pairs: {metrics['compiler']['temporal_workpad_max_pairs']}",
+        f"- operation_workpad_question_gate: {metrics['compiler']['operation_workpad_question_gate']}",
         f"- structured_guide: {metrics['compiler']['structured_guide']}",
         f"- structured_guide_max_rows: {metrics['compiler']['structured_guide_max_rows']}",
         f"- structured_guide_include_rows: {metrics['compiler']['structured_guide_include_rows']}",

@@ -168,6 +168,7 @@ class EvidenceCompiler:
         operation_workpad_information_needs: tuple[str, ...] = (
             DEFAULT_STRUCTURED_ANSWER_CONTRACT_NEEDS
         ),
+        operation_workpad_question_gate: bool = False,
         current_state_update_contract: bool = False,
         dialogue_inference_contract: bool = False,
         temporal_order_contract: bool = False,
@@ -244,6 +245,7 @@ class EvidenceCompiler:
             operation_workpad_information_needs,
             field_name="operation_workpad_information_needs",
         )
+        self._operation_workpad_question_gate = operation_workpad_question_gate
         self._current_state_update_contract = current_state_update_contract
         self._dialogue_inference_contract = dialogue_inference_contract
         self._temporal_order_contract = temporal_order_contract
@@ -411,6 +413,11 @@ class EvidenceCompiler:
             operation_workpad=(
                 self._operation_workpad
                 and route.information_need in self._operation_workpad_information_needs
+                and _should_apply_operation_workpad(
+                    question,
+                    route,
+                    question_gate=self._operation_workpad_question_gate,
+                )
             ),
             current_state_update_contract=route_settings[
                 "current_state_update_contract"
@@ -452,6 +459,7 @@ class EvidenceCompiler:
             "max_evidence_items": self._max_evidence_items,
             "max_memory_records": self._max_memory_records,
             "max_row_text_chars": self._max_row_text_chars,
+            "operation_workpad_question_gate": self._operation_workpad_question_gate,
             "row_text_mode": self._row_text_mode,
             "source_anchor_keep": self._source_anchor_keep,
             "source_anchor_memory_rows": self._source_anchor_memory_rows,
@@ -1928,6 +1936,19 @@ def _external_operation_workpad_lines(question: str, route: RouteResult) -> list
             ]
         )
     return lines
+
+
+def _should_apply_operation_workpad(
+    question: str,
+    route: RouteResult,
+    *,
+    question_gate: bool,
+) -> bool:
+    if not question_gate:
+        return True
+    if route.information_need in {"list_count", "temporal_lookup"}:
+        return True
+    return _asks_collection_operation(question) or _asks_temporal_calculation(question)
 
 
 def _single_line(text: str) -> str:

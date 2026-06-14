@@ -21,7 +21,7 @@
 
 ## 当前候选
 
-暂无未验证候选配置。负向诊断只保留在对应 `experiments/diagnostic/<run_id>/config_snapshot.json` 中，不保留顶层 config。
+- `stage1_fact_operation_workpad_v61_cached.json`：v42 上的 query-only 候选，不改 build/retrieval/route；只让 question text 本身属于 total/sum/difference/comparison/how-many 等操作题的 `fact_lookup` 使用短 operation workpad。若诊断负向，顶层配置删除，只在实验快照保留。
 
 ## 新配置规则
 
