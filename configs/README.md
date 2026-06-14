@@ -22,10 +22,13 @@
 - `stage1_missing_detail_finalizer_v79_cached.json`：v80 前 LongMemEval-S 最好；从 v73 出发，只在 answer JSON `sufficient=false`、`missing` 非空且 final answer 是短拒答时，把 missing 细节透出到最终答案。
 - `stage1_update_conflict_guide_v80_cached.json`：当前 LongMemEval-S 最好；v79 上的 source-preserving update/conflict candidate chain，帮助 answer model 比较旧值、新值、更正和历史值。
 - `stage1_update_conflict_value_slot_v81_cached.json`：v80 的 value-slot 收窄诊断；changed subset 正向但 full judge 未超过 v80。
+- `stage1_personalized_advice_contract_v83_cached.json`：v81 代码线上的 personalized advice reader discipline；LongMemEval-S full 与 v80 accuracy 持平，但触发子集 mixed，是候选/诊断配置，不替代 v80。
 
 ## 当前候选
 
 LongMemEval-S 当前最好是 `stage1_update_conflict_guide_v80_cached.json`；LoCoMo 主线仍是 `stage1_answer_format_guard_v35_cached.json`。新方法进入顶层前必须先有 full benchmark accuracy 和 token 结果支撑。
+
+v83 personalized advice contract 已完成 LongMemEval-S full：DeepSeek judge accuracy `0.792`，与 v80 持平，高于 v81 `0.790`；avg_build_tokens `80346.246`，avg_query_tokens `5912.794`，contract 触发 `29/500`。相对 v81 的 prediction changed subset 为 `WRONG->CORRECT 2`、`CORRECT->WRONG 4`，净负；overall +1 主要来自未改 prediction 的 fresh judge variance。结论是 best-tie 候选，不是新 best；后续 personalized advice 应转向 build-side profile/event anchoring 或 retrieval anchoring，而不是继续加 reader prompt。
 
 v82 fact-operation workpad 已完成 LongMemEval-S full：DeepSeek judge accuracy `0.786`，低于 v81 `0.790` 和 v80 `0.792`；avg_build_tokens `80346.246`，avg_query_tokens `5928.91`，token 合格。它只对 `fact_lookup` 中由问题文本触发的数值/集合操作增加 private operation workpad，但 changed subset 相对 v81 为 `WRONG->CORRECT 1`、`CORRECT->WRONG 2`。结论是负向；顶层配置删除，只保留 formal `config_snapshot.json`。
 

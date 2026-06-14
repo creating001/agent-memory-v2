@@ -34,6 +34,7 @@
 - `configs/stage1_missing_detail_finalizer_v79_cached.json`：v73 上的 missing-detail finalizer；把 answer JSON 中的 `missing` 细节透出到短拒答。
 - `configs/stage1_update_conflict_guide_v80_cached.json`：v79 上的 update/conflict candidate chain；只在 `current_state` / `fact_lookup` 对有旧值、新值、更正、历史范围信号的 user raw rows 加 source-preserving 索引，当前 LongMemEval-S 最好。
 - `configs/stage1_update_conflict_value_slot_v81_cached.json`：v80 的 value-slot 收窄诊断；changed subset 正向，但 fresh full judge 未超过 v80，不作为当前 best。
+- `configs/stage1_personalized_advice_contract_v83_cached.json`：v81 代码线上的 personalized advice reader discipline；LongMemEval-S full 与 v80 持平，但触发子集 mixed，不作为新 best。
 
 方法摘要：
 
@@ -70,6 +71,7 @@
 - v80 update/conflict guide 已完成 LongMemEval-S full：accuracy `0.792`，396/500，比 v79 高 4 条；avg_build_tokens `80346.246`，avg_query_tokens `5913.516`，update_conflict_guide_applied `60/500`，answer cache misses `60`。prediction changed subset 为 `WRONG->CORRECT 7`、`CORRECT->WRONG 4`，修复 personal best、Wells Fargo pre-approval、tennis previous/current、Instagram followers 等旧值/新值错误；仍有 total-cost/surface-format 回退，下一步需要更稳的 aggregation / current-state scope gate。
 - v81 value-slot update/conflict guide 已完成 LongMemEval-S full：accuracy `0.790`，395/500；avg_build_tokens `80346.246`，avg_query_tokens `5903.352`，guide 触发 `44/500`。相比 v80，prediction changed subset 为 `WRONG->CORRECT 3`、`CORRECT->WRONG 1`，修复 v80 的 Lola 花费、评论数表述和家庭旅行地点回退；但未改 prediction 的 fresh judge 方差净 `-3`，所以不替代 v80 当前最好结论。
 - v82 fact-operation workpad 已完成 LongMemEval-S full：accuracy `0.786`，393/500；avg_build_tokens `80346.246`，avg_query_tokens `5928.91`，answer cache misses `52/500`。由于当前代码已包含 v81 value-slot guide，v82 实际是 v81 + fact_lookup operation workpad；相对 v81 prediction changed subset 为 `WRONG->CORRECT 1`、`CORRECT->WRONG 2`，结论是负向，顶层 config 删除。
+- v83 personalized advice contract 已完成 LongMemEval-S full：accuracy `0.792`，396/500；avg_build_tokens `80346.246`，avg_query_tokens `5912.794`，contract 触发 `29/500`。相对 v81 overall +1，但 prediction changed subset 为 `WRONG->CORRECT 2`、`CORRECT->WRONG 4`，净负，整体提升主要来自未改 prediction 的 judge variance；相对 v80 accuracy 持平。结论是 best-tie 候选，不是新 best，后续个性化建议应转向 build-side profile/event anchoring。
 - v74 build 4K 输出上限消融已完成 LongMemEval-S full：accuracy `0.766`，383/500，低于 v73 `0.778`；avg_build_tokens 增至 `84656.5`，evidence recall 仍为 `1.0`。结论是负向 build-side 消融，顶层 config 删除，只保留 formal 快照。
 - v75 all-profile compact repair 已完成 LongMemEval-S full：accuracy `0.766`，383/500，低于 v73 `0.778`；avg_query_tokens `5985.758`，接近 6K。controlled changed subset 对 v73 为轻微正向，但 all-profile repair 会误伤已支持的个性化答案，顶层 config 删除，只保留 formal 快照。
 - v76 uncertain-only profile repair 已完成 LongMemEval-S full：accuracy `0.768`，384/500，低于 v73 `0.778`；avg_query_tokens `5880.232`，repair triggered/applied `6/4`。controlled changed subset 为 391/500，但 fresh full 不支撑主线。结论是 profile repair 只能作为低频拒答补救信号，不能继续作为通用重写器；顶层 config 删除，只保留 formal 快照。
@@ -166,6 +168,7 @@ experiments/formal/<run_id>/
 | run | benchmark | subset | commit | accuracy | 主要结论 |
 |---|---|---|---|---:|---|
 | `stage1_update_conflict_guide_v80_lme_s_full_152b0e5` | LongMemEval-S | full | `152b0e5` | 0.792000 | 当前 LME 最好；v79 上的 source-preserving update/conflict chain，触发 60/500，changed subset `WRONG->CORRECT 7`、`CORRECT->WRONG 4`，avg query tokens 5913.516 仍在 6K 内。 |
+| `stage1_personalized_advice_contract_v83_lme_s_full_65eebda` | LongMemEval-S | full | `65eebda` | 0.792000 | v81 代码线 + personalized advice reader discipline；触发 29/500，accuracy 与 v80 持平，但 changed subset 相对 v81 净 -2，不作为新 best。 |
 | `stage1_update_conflict_value_slot_v81_lme_s_full_d6f0f93` | LongMemEval-S | full | `d6f0f93` | 0.790000 | v80 的 value-slot 收窄诊断；guide 触发 44/500，changed subset `WRONG->CORRECT 3`、`CORRECT->WRONG 1`，但 fresh full judge 低于 v80，不作为当前 best。 |
 | `stage1_fact_operation_workpad_v82_lme_s_full_f2e042f` | LongMemEval-S | full | `f2e042f` | 0.786000 | v81 + fact_lookup operation workpad；changed subset 相对 v81 为 `WRONG->CORRECT 1`、`CORRECT->WRONG 2`，低于 v80/v81，负向，顶层 config 删除。 |
 | `stage1_missing_detail_finalizer_v79_lme_s_full_7b34339` | LongMemEval-S | full | `7b34339` | 0.784000 | v80 前 LME 最好；v73 上的 missing-detail finalizer，prediction_changed 29/500，changed subset `WRONG->CORRECT 6`、`CORRECT->WRONG 0`，零额外 prediction LLM token。 |
