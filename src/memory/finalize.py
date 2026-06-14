@@ -82,6 +82,7 @@ def finalize_structured_answer(
     enable_evidence_report_count_correction: bool = False,
     enable_money_sum_correction: bool = True,
     enable_duration_rounding_correction: bool = False,
+    enable_missing_reason_enrichment: bool = False,
 ) -> AnswerFinalization:
     """Repair only narrow count/sum mismatches exposed by model evidence JSON.
 
@@ -104,6 +105,13 @@ def finalize_structured_answer(
     payload = extract_json_object(content)
     if not payload:
         return _noop(draft_answer, "no_structured_answer_json")
+    if enable_missing_reason_enrichment:
+        enriched = _finalize_missing_reason(
+            draft_answer=draft_answer,
+            payload=payload,
+        )
+        if enriched is not None:
+            return enriched
     if payload.get("sufficient") is False:
         return _noop(draft_answer, "model_marked_insufficient")
 
@@ -193,6 +201,40 @@ def _is_sum_question(lowered_question: str) -> bool:
 
 def _answer_is_insufficient(answer: str) -> bool:
     return bool(_INSUFFICIENT_ANSWER.search(answer))
+
+
+def _finalize_missing_reason(
+    *,
+    draft_answer: str,
+    payload: dict[str, Any],
+) -> AnswerFinalization | None:
+    if not _answer_is_insufficient(draft_answer):
+        return None
+    missing = _compact_missing_reason(str(payload.get("missing") or ""))
+    if not missing:
+        return None
+    if _clean_key(missing) and _clean_key(missing) in _clean_key(draft_answer):
+        return None
+    answer = f"The provided information is not enough: {missing}"
+    if not answer.endswith((".", "!", "?")):
+        answer += "."
+    return AnswerFinalization(
+        answer=answer,
+        before=draft_answer,
+        applied=answer != draft_answer,
+        reason="missing_reason_enrichment",
+        expected_value=missing,
+    )
+
+
+def _compact_missing_reason(value: str) -> str:
+    value = re.sub(r"\s+", " ", value).strip()
+    value = value.strip(" -:;,.")
+    if not value:
+        return ""
+    if len(value) <= 240:
+        return value
+    return value[:237].rstrip() + "..."
 
 
 def _finalize_duration_rounding(
