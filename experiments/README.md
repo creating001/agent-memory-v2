@@ -78,6 +78,7 @@
 - v58 clean rerank retrieval 已完成 LongMemEval-S `weak_route_87` 诊断：DeepSeek judge `55/87 = 0.632184`，低于 v42 same87 `59/87 = 0.678161`；gain/loss `6/10`，answer_changed `35`，avg_build_tokens `80991.862`，avg_query_tokens `5898.540`。rerank 全量应用且 prediction token gate 通过，但 list_count 从 `15/20` 降到 `12/20`、profile_preference 从 `10/15` 降到 `8/15`，只有 temporal_lookup 小幅 `22/30 -> 23/30`。结论是单文档相关性 rerank 会破坏多证据覆盖和 profile 连续性；不跑 full，顶层 config 删除，仅保留实验快照。
 - v59 provenance alignment + source-anchor coverage 已完成 LongMemEval-S `weak_route_87` 诊断：DeepSeek judge `55/87 = 0.632184`，低于 v42 same87 `59/87 = 0.678161`；gain/loss `4/8`，avg_query_tokens `6065.920` 超过 6K 软预算。`current_state` 小幅正向 `12/22 -> 13/22`，但 `list_count` 和 `profile_preference` 明显回退；结论是全路由 source-anchor 会破坏证据覆盖，不跑 full，顶层 config 删除，仅保留实验快照。
 - v60 dialogue + temporal reader contract 已完成 LongMemEval-S `weak_route_87` 诊断：DeepSeek judge `58/87 = 0.666667`，低于 v42 same87 `59/87 = 0.678161`；gain/loss `6/7`，answer_changed `29`，avg_build_tokens `80991.862`，avg_query_tokens `6202.195` 超过 6K。`current_state` 小幅正向 `12/22 -> 13/22`，但 `list_count` 回退 `15/20 -> 14/20`、`profile_preference` 回退 `10/15 -> 9/15`、`temporal_lookup` 持平。结论是继续加 reader prompt 不值得，不跑 full，顶层 config 删除，仅保留实验快照。
+- v61 fact operation workpad gate 已完成 LongMemEval-S `fact_operation_33` 诊断：DeepSeek judge `27/33 = 0.818182`，与 v42 same33 持平；gain/loss `2/2`，answer_changed `12`，avg_build_tokens `80906.667`，avg_query_tokens `5694.030`。修复少数 exact numeric/format case，但引入等量 over-count / insufficient-answer regression；结论是中性，不跑 full，顶层 config 删除，仅保留实验快照。
 
 负向探索结论已压缩保留：
 
@@ -150,6 +151,7 @@ experiments/formal/<run_id>/
 | `v58_rerank_lme_weakroute_da73814` | 87 条 LongMemEval-S question-derived weak-route diagnostic | v58 clean rerank retrieval 失败；DeepSeek judge `55/87`，低于 v42 same87 `59/87`，gain/loss `6/10`，avg_query_tokens `5898.540`。rerank 对 temporal 小正向，但损害 list_count 和 profile_preference 覆盖；不跑 full，顶层 config 删除。 |
 | `v59_source_anchor_lme_weakroute_b086fea` | 87 条 LongMemEval-S question-derived weak-route diagnostic | v59 provenance alignment + source-anchor coverage 失败；DeepSeek judge `55/87`，低于 v42 same87 `59/87`，gain/loss `4/8`，avg_query_tokens `6065.920` 超 6K。source alignment 修复局部 current-state，但全路由 source-anchor 损害 list/profile 覆盖；不跑 full，顶层 config 删除。 |
 | `v60_dialogue_temporal_lme_weakroute_fb0376b` | 87 条 LongMemEval-S question-derived weak-route diagnostic | v60 dialogue inference + temporal order reader contract 失败；DeepSeek judge `58/87`，低于 v42 same87 `59/87`，gain/loss `6/7`，avg_query_tokens `6202.195` 超 6K。current_state 小正向不足以抵消 list/profile 回退；不跑 full，顶层 config 删除。 |
+| `v61_fact_operation_lme_diag_2dcb668` | 33 条 LongMemEval-S question-derived fact operation diagnostic | v61 fact_lookup operation workpad gate 中性；DeepSeek judge `27/33`，与 v42 same33 持平，gain/loss `2/2`，avg_query_tokens `5694.030`。收益上限小且不稳定；不跑 full，顶层 config 删除。 |
 
 ## 保留正式结果
 

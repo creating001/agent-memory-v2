@@ -61,3 +61,35 @@ build 侧完全复用 v42 方法，`avg_build_tokens` 仍按新环境 cold build
 - Workpad 可能让原本正确的 simple total answer 变得过度保守。
 - 一些 operation words 出现在普通 fact question 中，可能让模型错误地聚合无关证据。
 - 这类子集最多 33 条，单独收益上限有限；如果只是小正向，也需要和更大的 build/query memory 方法组合。
+
+## 诊断结果
+
+run: `v61_fact_operation_lme_diag_2dcb668`
+
+- commit: `2dcb6685528e5106cf573d3e40e72a25968e1bcc`
+- dirty: true，仅用户修改的 `docs/architecture.md` 和 `docs/clean_protocol.md` 未提交；prediction 代码/config 已在 commit 中。
+- benchmark/subset: LongMemEval-S `fact_operation_33` diagnostic。
+- subset selection: v42 question-derived route 为 `fact_lookup`，且 question text 命中通用 operation regex；保留原始 sessions 结构以避免 build cache key 失效。
+- prediction: `33/33` 输出成功。
+- answer max input/output: `131072 / 16384`
+- avg_build_tokens: `80906.66666666667`
+- avg_query_tokens: `5694.030303030303`
+- build cache hits/misses/writes: `222 / 0 / 0`
+- answer cache hits/misses/writes: `0 / 33 / 33`
+- DeepSeek judge v61: `27/33 = 0.8181818181818182`
+- DeepSeek judge v42 same33: `27/33 = 0.8181818181818182`
+- gain/loss: `2 / 2`
+- answer_changed: `12/33`
+- same-answer judge disagreement: `0`
+
+结论：v61 未通过扩 full 门禁。它修复了两个格式/精算型 case（video views `1998`、road trip distance `3,000 miles`），但也引入两个 regression（charity total 过计数、insufficient-answer 表达被 judge 判错），整体与 v42 持平。顶层 config 删除，仅保留诊断快照。
+
+下一步不要继续微调 operation prompt；收益上限太小。应转向更大错误簇：profile/advice route 缺失、temporal/list 多证据覆盖，以及 build-side profile/event/state 管理。
+
+输出：
+
+- prediction: `outputs/diagnostic/v61_fact_operation_lme_diag_2dcb668/predictions.jsonl`
+- trace: `outputs/diagnostic/v61_fact_operation_lme_diag_2dcb668/traces.jsonl`
+- metrics: `experiments/diagnostic/v61_fact_operation_lme_diag_2dcb668/metrics.json`
+- judge: `experiments/diagnostic/v61_fact_operation_lme_diag_2dcb668/deepseek_judge.json`
+- comparison: `experiments/diagnostic/v61_fact_operation_lme_diag_2dcb668/judge_comparison_vs_v42_same33.json`
