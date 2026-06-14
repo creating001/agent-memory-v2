@@ -78,6 +78,18 @@ def main() -> int:
     total_answer_repair_cache_hits = 0
     total_answer_repair_cache_misses = 0
     total_answer_repair_cache_writes = 0
+    total_scoped_evidence_applied = 0
+    total_scoped_evidence_extraction_query_tokens = 0
+    total_scoped_evidence_answer_query_tokens = 0
+    total_scoped_evidence_extraction_prompt_chars = 0
+    total_scoped_evidence_answer_prompt_chars = 0
+    total_scoped_evidence_json_chars = 0
+    total_scoped_evidence_extraction_cache_hits = 0
+    total_scoped_evidence_extraction_cache_misses = 0
+    total_scoped_evidence_extraction_cache_writes = 0
+    total_scoped_evidence_answer_cache_hits = 0
+    total_scoped_evidence_answer_cache_misses = 0
+    total_scoped_evidence_answer_cache_writes = 0
     total_question_analysis_query_tokens = 0
     total_question_analysis_cache_hits = 0
     total_question_analysis_cache_misses = 0
@@ -160,6 +172,52 @@ def main() -> int:
         total_answer_cache_hits += int(answer_cache.get("hits") or 0)
         total_answer_cache_misses += int(answer_cache.get("misses") or 0)
         total_answer_cache_writes += int(answer_cache.get("writes") or 0)
+        scoped_evidence = result["trace"].get("scoped_evidence") or {}
+        if scoped_evidence.get("applied"):
+            total_scoped_evidence_applied += 1
+            total_scoped_evidence_extraction_prompt_chars += int(
+                scoped_evidence.get("extraction_prompt_chars") or 0
+            )
+            total_scoped_evidence_answer_prompt_chars += int(
+                scoped_evidence.get("answer_prompt_chars") or 0
+            )
+            total_scoped_evidence_json_chars += int(
+                scoped_evidence.get("evidence_json_chars") or 0
+            )
+        scoped_extraction = scoped_evidence.get("extraction") or {}
+        scoped_extraction_response = scoped_extraction.get("response") or {}
+        scoped_extraction_token_usage = (
+            scoped_extraction_response.get("token_usage") or {}
+        )
+        total_scoped_evidence_extraction_query_tokens += int(
+            scoped_extraction_token_usage.get("query_tokens") or 0
+        )
+        scoped_extraction_cache = scoped_evidence.get("extraction_cache") or {}
+        total_scoped_evidence_extraction_cache_hits += int(
+            scoped_extraction_cache.get("hits") or 0
+        )
+        total_scoped_evidence_extraction_cache_misses += int(
+            scoped_extraction_cache.get("misses") or 0
+        )
+        total_scoped_evidence_extraction_cache_writes += int(
+            scoped_extraction_cache.get("writes") or 0
+        )
+        scoped_answer_cache = scoped_evidence.get("answer_cache") or {}
+        total_scoped_evidence_answer_cache_hits += int(
+            scoped_answer_cache.get("hits") or 0
+        )
+        total_scoped_evidence_answer_cache_misses += int(
+            scoped_answer_cache.get("misses") or 0
+        )
+        total_scoped_evidence_answer_cache_writes += int(
+            scoped_answer_cache.get("writes") or 0
+        )
+        scoped_answer = scoped_evidence.get("answer") or {}
+        scoped_answer_response = scoped_answer.get("response") or {}
+        scoped_answer_token_usage = scoped_answer_response.get("token_usage") or {}
+        total_scoped_evidence_answer_query_tokens += int(
+            scoped_answer_token_usage.get("query_tokens") or 0
+        )
         answer_finalizer = result["trace"].get("answer_finalizer") or {}
         if answer_finalizer.get("applied"):
             total_answer_finalizer_applied += 1
@@ -396,6 +454,49 @@ def main() -> int:
             "repair_cache_hits": total_answer_repair_cache_hits,
             "repair_cache_misses": total_answer_repair_cache_misses,
             "repair_cache_writes": total_answer_repair_cache_writes,
+        },
+        "scoped_evidence": {
+            "enabled": config.get("scoped_evidence", {}).get("enabled", False),
+            "information_needs": config.get("scoped_evidence", {}).get(
+                "information_needs"
+            ),
+            "max_rows": config.get("scoped_evidence", {}).get("max_rows"),
+            "max_row_chars": config.get("scoped_evidence", {}).get("max_row_chars"),
+            "applied_count": total_scoped_evidence_applied,
+            "applied_rate": _safe_average(
+                total_scoped_evidence_applied,
+                sample_count,
+            ),
+            "total_extraction_query_tokens": (
+                total_scoped_evidence_extraction_query_tokens
+            ),
+            "avg_extraction_query_tokens_when_applied": _safe_average(
+                total_scoped_evidence_extraction_query_tokens,
+                total_scoped_evidence_applied,
+            ),
+            "total_answer_query_tokens": total_scoped_evidence_answer_query_tokens,
+            "avg_answer_query_tokens_when_applied": _safe_average(
+                total_scoped_evidence_answer_query_tokens,
+                total_scoped_evidence_applied,
+            ),
+            "avg_extraction_prompt_chars_when_applied": _safe_average(
+                total_scoped_evidence_extraction_prompt_chars,
+                total_scoped_evidence_applied,
+            ),
+            "avg_answer_prompt_chars_when_applied": _safe_average(
+                total_scoped_evidence_answer_prompt_chars,
+                total_scoped_evidence_applied,
+            ),
+            "avg_evidence_json_chars_when_applied": _safe_average(
+                total_scoped_evidence_json_chars,
+                total_scoped_evidence_applied,
+            ),
+            "extraction_cache_hits": total_scoped_evidence_extraction_cache_hits,
+            "extraction_cache_misses": total_scoped_evidence_extraction_cache_misses,
+            "extraction_cache_writes": total_scoped_evidence_extraction_cache_writes,
+            "answer_cache_hits": total_scoped_evidence_answer_cache_hits,
+            "answer_cache_misses": total_scoped_evidence_answer_cache_misses,
+            "answer_cache_writes": total_scoped_evidence_answer_cache_writes,
         },
         "compiler": {
             "prompt_mode": config.get("compiler", {}).get("prompt_mode", "default"),
@@ -912,6 +1013,25 @@ def _write_summary(
         f"- answer_repair_applied_rate: {metrics['answer']['repair_applied_rate']}",
         f"- answer_repair_total_query_tokens: {metrics['answer']['repair_total_query_tokens']}",
         f"- answer_repair_avg_query_tokens_when_triggered: {metrics['answer']['repair_avg_query_tokens_when_triggered']}",
+        f"- scoped_evidence_enabled: {metrics['scoped_evidence']['enabled']}",
+        f"- scoped_evidence_information_needs: {metrics['scoped_evidence']['information_needs']}",
+        f"- scoped_evidence_max_rows: {metrics['scoped_evidence']['max_rows']}",
+        f"- scoped_evidence_max_row_chars: {metrics['scoped_evidence']['max_row_chars']}",
+        f"- scoped_evidence_applied_count: {metrics['scoped_evidence']['applied_count']}",
+        f"- scoped_evidence_applied_rate: {metrics['scoped_evidence']['applied_rate']}",
+        f"- scoped_evidence_total_extraction_query_tokens: {metrics['scoped_evidence']['total_extraction_query_tokens']}",
+        f"- scoped_evidence_avg_extraction_query_tokens_when_applied: {metrics['scoped_evidence']['avg_extraction_query_tokens_when_applied']}",
+        f"- scoped_evidence_total_answer_query_tokens: {metrics['scoped_evidence']['total_answer_query_tokens']}",
+        f"- scoped_evidence_avg_answer_query_tokens_when_applied: {metrics['scoped_evidence']['avg_answer_query_tokens_when_applied']}",
+        f"- scoped_evidence_avg_extraction_prompt_chars_when_applied: {metrics['scoped_evidence']['avg_extraction_prompt_chars_when_applied']}",
+        f"- scoped_evidence_avg_answer_prompt_chars_when_applied: {metrics['scoped_evidence']['avg_answer_prompt_chars_when_applied']}",
+        f"- scoped_evidence_avg_evidence_json_chars_when_applied: {metrics['scoped_evidence']['avg_evidence_json_chars_when_applied']}",
+        f"- scoped_evidence_extraction_cache_hits: {metrics['scoped_evidence']['extraction_cache_hits']}",
+        f"- scoped_evidence_extraction_cache_misses: {metrics['scoped_evidence']['extraction_cache_misses']}",
+        f"- scoped_evidence_extraction_cache_writes: {metrics['scoped_evidence']['extraction_cache_writes']}",
+        f"- scoped_evidence_answer_cache_hits: {metrics['scoped_evidence']['answer_cache_hits']}",
+        f"- scoped_evidence_answer_cache_misses: {metrics['scoped_evidence']['answer_cache_misses']}",
+        f"- scoped_evidence_answer_cache_writes: {metrics['scoped_evidence']['answer_cache_writes']}",
         f"- answer_style: {metrics['compiler']['answer_style']}",
         f"- evidence_order: {metrics['compiler']['evidence_order']}",
         f"- memory_order: {metrics['compiler']['memory_order']}",
