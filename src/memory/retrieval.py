@@ -225,56 +225,6 @@ class LexicalBM25Retriever:
 
 
 @dataclass(frozen=True)
-class SessionDocument:
-    session_id: str
-    text: str
-    turn_count: int
-
-
-class SessionBM25Retriever:
-    """BM25 over raw session documents for clean coarse retrieval."""
-
-    def __init__(
-        self,
-        documents: tuple[SessionDocument, ...],
-        k1: float = 1.5,
-        b: float = 0.75,
-        drop_query_stopwords: bool = False,
-    ):
-        self._documents = documents
-        self._index = _BM25Index(
-            texts=tuple(document.text for document in documents),
-            sort_keys=tuple((document.session_id,) for document in documents),
-            k1=k1,
-            b=b,
-            drop_query_stopwords=drop_query_stopwords,
-        )
-
-    def retrieve(
-        self,
-        question: str,
-        top_k: int,
-        score_threshold: float = 0.0,
-    ) -> tuple[RetrievalHit, ...]:
-        hits = []
-        for rank, scored in enumerate(
-            self._index.retrieve(question, top_k=top_k, score_threshold=score_threshold),
-            start=1,
-        ):
-            document = self._documents[scored.index]
-            hits.append(
-                RetrievalHit(
-                    source_id=document.session_id,
-                    score=scored.score,
-                    rank=rank,
-                    retriever="session_bm25",
-                    matched_terms=scored.matched_terms,
-                )
-            )
-        return tuple(hits)
-
-
-@dataclass(frozen=True)
 class TurnWindowDocument:
     """Adjacent raw-turn window used only as a retrieval document."""
 

@@ -1,27 +1,19 @@
 # 输出目录
 
-`outputs/` 只保留当前仍有用的运行产物和本地缓存。预测文件、trace、日志和中间产物不能替代 `experiments/` 下的人类可读记录。
+`outputs/` 是本地运行产物目录，默认不纳入 git。人工查看实验结论时先看 `experiments/`；这里只保留可复查预测、trace、clean 数据输入和必要缓存。
 
-## 当前保留
+## 目录职责
 
-- `prepare_longmemeval_s_cleaned/`：LongMemEval-S clean prediction input 和离线 labels。
-- `prepare_locomo_non_adversarial/`：LoCoMo non-adversarial prediction input 和离线 labels。
-- `formal/`：只保留 `experiments/README.md` 中列出的 key full runs 的 `predictions.jsonl` 和 `traces.jsonl`。
-- `cache/qwen3_embedding.sqlite`：embedding cache，保留以减少全量实验重复成本。
-- `cache/qwen3_build_memory.sqlite`：build-stage memory cache，保留；正式 token 统计仍按冷启动逻辑成本记录。
-- `cache/qwen3_answer_v28.sqlite`：v28 answer cache，保留用于复查强对照。
-- `cache/qwen3_answer_v29.sqlite`：v29 answer cache，保留用于复查 temporal event contract 结果。
-- `cache/qwen3_answer_v30.sqlite`：v30 diagnostic answer cache，保留用于 typed temporal/event build memory 后续 full run 复查。
-- `cache/qwen3_answer_v31.sqlite`：v31 detailed evidence_report answer cache，保留用于 full run 复查。
-- `diagnostic/v30_route_stratified_probe/`：v30 字段门禁抽样输入，来自 prediction input + question router，无 labels/gold/judge/category/sample id。
-- `diagnostic/v30_stateful_validity_probe_3525934/`：当前有效 v30 字段门禁 outputs；人类记录在 `experiments/diagnostic/v30_stateful_validity_probe_3525934/`。
-- `diagnostic/v31_evidence_report_detail_probe_b913567/`：v31 no-label gate outputs；人类记录在 `experiments/diagnostic/v31_evidence_report_detail_probe_b913567/`。
-- `formal/stage1_evidence_report_detail_v31_locomo_nonadv_full_894c7ee/`：v31 LoCoMo full prediction/traces；DeepSeek judge、metrics、diagnosis 在 `experiments/formal/stage1_evidence_report_detail_v31_locomo_nonadv_full_894c7ee/`。
-- `formal/stage1_typed_event_memory_v30_locomo_nonadv_full_91c2e1c/`：v30 LoCoMo full prediction/traces；DeepSeek judge、metrics、diagnosis 在 `experiments/formal/stage1_typed_event_memory_v30_locomo_nonadv_full_91c2e1c/`。
-- `services/`：本地 vLLM 服务日志/状态。
+- `prepare_longmemeval_s_cleaned/`：LongMemEval-S 的 clean prediction input 和离线 labels。
+- `prepare_locomo_non_adversarial/`：LoCoMo non-adversarial 的 clean prediction input 和离线 labels。
+- `formal/`：正式 full run 的 `predictions.jsonl` 和 `traces.jsonl`，目录名与 `experiments/formal/<run_id>/` 对齐。
+- `diagnostic/`：仍有诊断价值的 run 输出，目录名与 `experiments/diagnostic/<run_id>/` 对齐。
+- `cache/`：embedding、build memory、answer/repair/scoped evidence 等本地缓存。cache 命中只减少重复 API 调用；实验 token 成本仍按逻辑冷启动记录。
+- `services/`：本地 vLLM 服务日志和状态文件。
 
 ## 清理规则
 
-- 旧 smoke、小样本、负向 ablation 输出及时删除。
-- 旧 partial judge、过期 answer cache、query planner cache 不长期保留。
-- 如果某个 ignored 输出对正式结果有价值，必须把 summary、metrics、diagnosis、config snapshot 和输出路径写入 `experiments/`，不能只依赖 `outputs/`。
+- 只生成子集输入、没有对应 `experiments/diagnostic/<run_id>/` 的临时目录不长期保留。
+- partial judge、临时下载、失败候选的过期 answer cache 可以删除。
+- 删除 cache 前先确认不会导致近期 full run 重复构建成本过高。
+- 正式汇报不能只依赖 `outputs/`，必须在 `experiments/` 留下 summary、metrics、diagnosis、config snapshot、git 状态、token 成本和 outputs 路径。

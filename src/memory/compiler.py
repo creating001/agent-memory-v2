@@ -43,7 +43,7 @@ SUPPORTED_INFORMATION_NEEDS = {
     "profile_preference",
     "temporal_lookup",
 }
-SUPPORTED_CONTEXT_LAYOUTS = {"flat", "session_thread", "dialogue_episode"}
+SUPPORTED_CONTEXT_LAYOUTS = {"flat", "session_thread"}
 ROUTE_OVERRIDE_KEYS = {
     "candidate_guide",
     "candidate_guide_max_rows",
@@ -798,7 +798,7 @@ def _layout_rows(
     *,
     context_layout: str,
 ) -> tuple[EvidenceRow, ...]:
-    if context_layout in {"flat", "dialogue_episode"}:
+    if context_layout == "flat":
         return rows
     if context_layout != "session_thread":
         raise ValueError(f"Unsupported context_layout: {context_layout}")
@@ -1356,10 +1356,6 @@ def _build_external_naive_prompt(
     if context_layout == "session_thread":
         rules.append(
             "Memory Context is grouped by session in chronological turn order within each session; use nearby turns in the same session to resolve implicit references, but do not merge unrelated sessions."
-        )
-    if context_layout == "dialogue_episode":
-        rules.append(
-            "Memory Context groups same-session adjacent retrieved turns into dialogue episodes; read turns within an episode together to resolve implicit references, but do not merge unrelated episodes."
         )
     if structured_answer_contract:
         rules.extend(
@@ -2116,13 +2112,6 @@ def _external_naive_context(
             row_text_mode=row_text_mode,
             max_row_text_chars=max_row_text_chars,
         )
-    if context_layout == "dialogue_episode":
-        return _external_dialogue_episode_context(
-            rows,
-            question=question,
-            row_text_mode=row_text_mode,
-            max_row_text_chars=max_row_text_chars,
-        )
     if context_layout != "flat":
         raise ValueError(f"Unsupported context_layout: {context_layout}")
     blocks = []
@@ -2173,99 +2162,6 @@ def _external_session_thread_context(
         )
         blocks.append(f"{header}\n{row.role}: {text}")
     return "\n\n".join(blocks)
-
-
-def _external_dialogue_episode_context(
-    rows: tuple[EvidenceRow, ...],
-    *,
-    question: str,
-    row_text_mode: str,
-    max_row_text_chars: int,
-) -> str:
-    groups = _dialogue_episode_groups(rows)
-    blocks: list[str] = []
-    episode_index = 0
-    memory_index_by_source = {
-        row.source_id: index for index, row in enumerate(rows, start=1)
-    }
-    for group in groups:
-        episode_index += 1
-        first = group[0]
-        turn_span = (
-            str(first.turn_index)
-            if first.turn_index == group[-1].turn_index
-            else f"{first.turn_index}-{group[-1].turn_index}"
-        )
-        memory_labels = ", ".join(
-            f"Memory {memory_index_by_source[row.source_id]}" for row in group
-        )
-        header = (
-            f"### Dialogue Episode {episode_index}\n"
-            f"Session: {first.session_id}\n"
-            f"Turns: {turn_span}\n"
-            f"Rows: {memory_labels}"
-        )
-        if first.timestamp:
-            header += f"\nDate: {first.timestamp}"
-        lines = [header]
-        for row in group:
-            memory_index = memory_index_by_source[row.source_id]
-            turn_header = f"[Memory {memory_index} | Turn {row.turn_index}"
-            if row.retrieval_rank is not None:
-                turn_header += f" | Retrieval rank {row.retrieval_rank}"
-            turn_header += "]"
-            text = _row_prompt_text(
-                row.text,
-                question=question,
-                role=row.role,
-                row_text_mode=row_text_mode,
-                max_row_text_chars=max_row_text_chars,
-            )
-            lines.append(f"{turn_header} {row.role}: {text}")
-        blocks.append("\n".join(lines))
-    return "\n\n".join(blocks)
-
-
-def _dialogue_episode_groups(
-    rows: tuple[EvidenceRow, ...],
-) -> tuple[tuple[EvidenceRow, ...], ...]:
-    if not rows:
-        return ()
-    indexed = list(enumerate(rows))
-    grouped: dict[str, list[tuple[int, EvidenceRow]]] = {}
-    for original_index, row in indexed:
-        grouped.setdefault(row.session_id, []).append((original_index, row))
-
-    episodes: list[tuple[int, tuple[EvidenceRow, ...]]] = []
-    for session_rows in grouped.values():
-        session_rows.sort(key=lambda item: (item[1].turn_index, item[0]))
-        current: list[tuple[int, EvidenceRow]] = []
-        for item in session_rows:
-            if not current:
-                current = [item]
-                continue
-            previous = current[-1][1]
-            row = item[1]
-            if row.turn_index <= previous.turn_index + 1:
-                current.append(item)
-            else:
-                episodes.append(
-                    (
-                        min(original_index for original_index, _ in current),
-                        tuple(row for _, row in current),
-                    )
-                )
-                current = [item]
-        if current:
-            episodes.append(
-                (
-                    min(original_index for original_index, _ in current),
-                    tuple(row for _, row in current),
-                )
-            )
-
-    episodes.sort(key=lambda item: item[0])
-    return tuple(group for _, group in episodes)
 
 
 def _format_memory_records(

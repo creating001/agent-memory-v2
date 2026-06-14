@@ -13,8 +13,6 @@ from memory.embeddings import EmbeddingBatch
 from memory.retrieval import (
     DenseEmbeddingRetriever,
     LexicalBM25Retriever,
-    SessionBM25Retriever,
-    SessionDocument,
     _DENSE_DOCUMENT_CACHE,
     _DENSE_DOCUMENT_CACHE_LOCK,
     _DENSE_DOCUMENT_CACHE_LOCKS,
@@ -61,30 +59,6 @@ class RetrievalTest(unittest.TestCase):
 
         self.assertEqual(raw_hits[0].source_id, "generic")
         self.assertEqual(filtered_hits[0].source_id, "specific")
-
-    def test_session_bm25_retrieves_coarse_session(self) -> None:
-        documents = (
-            SessionDocument(
-                session_id="session_1",
-                text="when did in when did in",
-                turn_count=1,
-            ),
-            SessionDocument(
-                session_id="session_2",
-                text="Melanie mentioned camping in July.",
-                turn_count=1,
-            ),
-        )
-
-        hits = SessionBM25Retriever(
-            documents,
-            drop_query_stopwords=True,
-        ).retrieve(
-            "When did Melanie go camping in July?",
-            top_k=1,
-        )
-
-        self.assertEqual(hits[0].source_id, "session_2")
 
     def test_query_stopwords_drop_pronouns_and_prepositions(self) -> None:
         turns = (

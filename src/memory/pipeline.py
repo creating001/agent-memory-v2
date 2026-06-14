@@ -12,11 +12,6 @@ from memory.build import NullMemoryBuilder, OpenAICompatibleMemoryBuilder
 from memory.compiler import EvidenceCompiler, SUPPORTED_INFORMATION_NEEDS
 from memory.embeddings import CachedEmbeddingClient, OpenAICompatibleEmbeddingClient
 from memory.finalize import AnswerFinalization, finalize_structured_answer
-from memory.question_analysis import (
-    CachedQuestionAnalyzer,
-    OpenAICompatibleQuestionAnalyzer,
-    route_from_question_analysis,
-)
 from memory.repair import maybe_repair_answer
 from memory.rerank import (
     OpenAICompatibleRerankClient,
@@ -27,8 +22,6 @@ from memory.retrieval import (
     BuildMemoryBM25Retriever,
     DenseEmbeddingRetriever,
     LexicalBM25Retriever,
-    SessionBM25Retriever,
-    SessionDocument,
     TurnWindowBM25Retriever,
     build_turn_window_documents,
     memory_hits_to_source_hits,
@@ -67,11 +60,11 @@ class Stage1Pipeline:
         build_memory_config = self._config.get("build_memory", {})
         lexical_config = retrieval_config.get("lexical", {})
         dense_config = retrieval_config.get("dense", {})
-        session_config = retrieval_config.get("session_bm25", {})
         turn_window_config = retrieval_config.get("turn_window_bm25", {})
         rerank_config = retrieval_config.get("rerank", {})
         route_config = self._config.get("route", {})
-        question_analysis_config = self._config.get("question_analysis", {})
+        if self._config.get("question_analysis", {}).get("enabled", False):
+            raise ValueError("question_analysis is retired; use heuristic route")
         compiler_config = self._config.get("compiler", {})
         answer_config = self._config.get("answer", {})
         scoped_evidence_config = self._config.get("scoped_evidence", {})
@@ -105,58 +98,6 @@ class Stage1Pipeline:
                 route_config.get("temporal_priority_over_recent", False)
             ),
         }
-        self._question_analysis_enabled = bool(
-            question_analysis_config.get("enabled", False)
-        )
-        self._question_analyzer = None
-        self._question_analysis_trace_config = {
-            "enabled": self._question_analysis_enabled,
-            "mode": question_analysis_config.get("mode"),
-            "model": question_analysis_config.get("model"),
-            "base_url": question_analysis_config.get("base_url"),
-            "temperature": question_analysis_config.get("temperature"),
-            "max_tokens": question_analysis_config.get("max_tokens"),
-            "cache_enabled": bool(
-                question_analysis_config.get("cache", {}).get("enabled", False)
-            ),
-            "cache_path": question_analysis_config.get("cache", {}).get("path"),
-            "cache_namespace": question_analysis_config.get("cache", {}).get(
-                "namespace"
-            ),
-        }
-        if self._question_analysis_enabled:
-            analysis_mode = str(
-                question_analysis_config.get("mode", "openai_compatible")
-            )
-            if analysis_mode != "openai_compatible":
-                raise ValueError(
-                    f"Unsupported question_analysis.mode: {analysis_mode}"
-                )
-            self._question_analyzer = OpenAICompatibleQuestionAnalyzer(
-                base_url=str(
-                    question_analysis_config.get(
-                        "base_url",
-                        "http://127.0.0.1:8000/v1",
-                    )
-                ),
-                model=str(question_analysis_config["model"]),
-                temperature=float(question_analysis_config.get("temperature", 0.0)),
-                max_tokens=int(question_analysis_config.get("max_tokens", 512)),
-                timeout=float(question_analysis_config.get("timeout", 120.0)),
-                api_key_env=question_analysis_config.get("api_key_env"),
-            )
-            analysis_cache_config = question_analysis_config.get("cache", {})
-            if bool(analysis_cache_config.get("enabled", False)):
-                self._question_analyzer = CachedQuestionAnalyzer(
-                    self._question_analyzer,
-                    cache_path=str(analysis_cache_config["path"]),
-                    namespace=str(
-                        analysis_cache_config.get(
-                            "namespace",
-                            question_analysis_config.get("model", "unknown"),
-                        )
-                    ),
-                )
         self._base_top_k = int(retrieval_config.get("top_k", 8))
         self._max_top_k = int(retrieval_config.get("max_top_k", self._base_top_k))
         self._retrieval_route_overrides = _validate_retrieval_route_overrides(
@@ -237,42 +178,6 @@ class Stage1Pipeline:
         self._embedding_cache_path = cache_config.get("path")
         self._embedding_cache_namespace = str(
             cache_config.get("namespace", dense_config.get("model", "unknown"))
-        )
-        self._session_bm25_enabled = bool(session_config.get("enabled", False))
-        self._session_bm25_top_k = int(session_config.get("top_k", 0))
-        self._session_bm25_anchor_top_k = int(session_config.get("anchor_top_k", 1))
-        self._session_bm25_max_anchor_hits = int(
-            session_config.get(
-                "max_anchor_hits",
-                self._session_bm25_top_k * self._session_bm25_anchor_top_k,
-            )
-        )
-        self._session_bm25_protect_turn_hits = int(
-            session_config.get("protect_turn_hits", self._lexical_protect_top_n)
-        )
-        self._session_bm25_drop_query_stopwords = bool(
-            session_config.get("drop_query_stopwords", self._drop_query_stopwords)
-        )
-        self._session_bm25_anchor_drop_query_stopwords = bool(
-            session_config.get(
-                "anchor_drop_query_stopwords",
-                self._session_bm25_drop_query_stopwords,
-            )
-        )
-        self._session_bm25_score_threshold = float(
-            session_config.get("score_threshold", 0.0)
-        )
-        self._session_bm25_anchor_score_threshold = float(
-            session_config.get("anchor_score_threshold", 0.0)
-        )
-        self._session_bm25_enabled_signals = _tuple_config(
-            session_config.get("enabled_route_signals")
-        )
-        self._session_bm25_enabled_information_needs = _tuple_config(
-            session_config.get("enabled_information_needs")
-        )
-        self._session_bm25_enabled_query_patterns = _tuple_config(
-            session_config.get("enabled_query_patterns")
         )
         self._turn_window_bm25_enabled = bool(turn_window_config.get("enabled", False))
         self._turn_window_bm25_top_k = int(turn_window_config.get("top_k", 0))
@@ -766,35 +671,11 @@ class Stage1Pipeline:
             answer_config,
             answer_mode,
         )
-        if answer_mode == "openai_compatible":
-            self._answerer = OpenAICompatibleAnswerer(
-                base_url=str(answer_config.get("base_url", "http://127.0.0.1:8000/v1")),
-                model=str(answer_config["model"]),
-                temperature=float(answer_config.get("temperature", 0.0)),
-                max_tokens=_answer_max_output_tokens(answer_config),
-                timeout=float(answer_config.get("timeout", 120.0)),
-                max_input_tokens=_optional_int(answer_config.get("max_input_tokens")),
-                api_key_env=answer_config.get("api_key_env"),
-                output_format=str(answer_config.get("output_format", "text")),
-            )
-        else:
-            self._answerer = NullAnswerer(
-                fallback_answer=str(
-                    answer_config.get(
-                        "fallback_answer",
-                        "I do not know based on the available evidence.",
-                    )
-                )
-            )
-        if self._answer_cache_enabled:
-            if self._answer_cache_path is None:
-                raise ValueError("answer.cache.path is required when cache is enabled")
-            self._answerer = CachedAnswerer(
-                self._answerer,
-                cache_path=str(self._answer_cache_path),
-                namespace=self._answer_cache_namespace,
-                output_format=str(answer_config.get("output_format", "text")),
-            )
+        self._answerer = _configured_answerer(
+            answer_config,
+            answer_mode=answer_mode,
+            cache_error_prefix="answer",
+        )
         if self._answer_repair_enabled:
             repair_answer_config = _repair_answer_config(
                 answer_config,
@@ -804,51 +685,11 @@ class Stage1Pipeline:
                 repair_answer_config,
                 self._answer_repair_mode,
             )
-            if self._answer_repair_mode == "openai_compatible":
-                self._answer_repairer = OpenAICompatibleAnswerer(
-                    base_url=str(
-                        repair_answer_config.get(
-                            "base_url", "http://127.0.0.1:8000/v1"
-                        )
-                    ),
-                    model=str(repair_answer_config["model"]),
-                    temperature=float(repair_answer_config.get("temperature", 0.0)),
-                    max_tokens=_answer_max_output_tokens(repair_answer_config),
-                    timeout=float(repair_answer_config.get("timeout", 120.0)),
-                    max_input_tokens=_optional_int(
-                        repair_answer_config.get("max_input_tokens")
-                    ),
-                    api_key_env=repair_answer_config.get("api_key_env"),
-                    output_format=str(
-                        repair_answer_config.get("output_format", "json_answer")
-                    ),
-                )
-            elif self._answer_repair_mode == "null_answerer":
-                self._answer_repairer = NullAnswerer(
-                    fallback_answer=str(
-                        repair_answer_config.get(
-                            "fallback_answer",
-                            "I do not know based on the available evidence.",
-                        )
-                    )
-                )
-            else:
-                raise ValueError(
-                    f"Unsupported answer.repair.mode: {self._answer_repair_mode}"
-                )
-            if self._answer_repair_cache_enabled:
-                if self._answer_repair_cache_path is None:
-                    raise ValueError(
-                        "answer.repair.cache.path is required when cache is enabled"
-                    )
-                self._answer_repairer = CachedAnswerer(
-                    self._answer_repairer,
-                    cache_path=str(self._answer_repair_cache_path),
-                    namespace=self._answer_repair_cache_namespace,
-                    output_format=str(
-                        repair_answer_config.get("output_format", "json_answer")
-                    ),
-                )
+            self._answer_repairer = _configured_answerer(
+                repair_answer_config,
+                answer_mode=self._answer_repair_mode,
+                cache_error_prefix="answer.repair",
+            )
             self._answer_repair_trace_config = {
                 **self._answer_repair_trace_config,
                 "model": repair_answer_config.get("model"),
@@ -932,15 +773,6 @@ class Stage1Pipeline:
             built_memory = replace(built_memory, records=aligned_records)
         heuristic_route = self._router.route(request.question, request.question_time)
         route = heuristic_route
-        question_analysis = None
-        question_analysis_cache_before = _answer_cache_stats(self._question_analyzer)
-        if self._question_analyzer is not None:
-            question_analysis = self._question_analyzer.analyze(
-                question=request.question,
-                question_time=request.question_time,
-            )
-            route = route_from_question_analysis(question_analysis, heuristic_route)
-        question_analysis_cache_after = _answer_cache_stats(self._question_analyzer)
         retrieval_settings = self._retrieval_settings_for_route(route)
         top_k = retrieval_settings["top_k"]
         candidate_top_k = retrieval_settings["candidate_top_k"]
@@ -1075,28 +907,6 @@ class Stage1Pipeline:
                 hits = lexical_hits
         embedding_cache_after = _embedding_cache_stats(self._embedding_client)
         turn_hits = hits
-        session_hits = ()
-        session_anchor_hits = ()
-        session_bm25_applied = False
-        if self._session_bm25_enabled and _session_bm25_applies(
-            route=route,
-            question=request.question,
-            enabled_signals=self._session_bm25_enabled_signals,
-            enabled_information_needs=self._session_bm25_enabled_information_needs,
-            enabled_query_patterns=self._session_bm25_enabled_query_patterns,
-        ):
-            session_bm25_applied = True
-            session_hits = self._retrieve_session_hits(store, request.question)
-            session_anchor_hits = self._retrieve_session_anchor_hits(
-                store,
-                session_hits,
-                request.question,
-            )
-            hits = _merge_turn_and_session_anchor_hits(
-                turn_hits,
-                session_anchor_hits,
-                protect_turn_hits=self._session_bm25_protect_turn_hits,
-            )
         pre_rerank_hits = hits
         rerank_trace = _disabled_rerank_trace(
             enabled=self._rerank_enabled,
@@ -1187,20 +997,8 @@ class Stage1Pipeline:
             build_tokens=(
                 built_memory.token_usage.build_tokens
                 + answer.token_usage.build_tokens
-                + (
-                    question_analysis.token_usage.build_tokens
-                    if question_analysis is not None
-                    else 0
-                )
             ),
-            query_tokens=(
-                answer.token_usage.query_tokens
-                + (
-                    question_analysis.token_usage.query_tokens
-                    if question_analysis is not None
-                    else 0
-                )
-            ),
+            query_tokens=answer.token_usage.query_tokens,
         )
         return {
             "answer": answer.answer,
@@ -1212,25 +1010,10 @@ class Stage1Pipeline:
                 "route": route.to_dict(),
                 "heuristic_route": heuristic_route.to_dict(),
                 "route_config": self._route_trace_config,
-                "question_analysis": {
-                    **self._question_analysis_trace_config,
-                    "result": (
-                        question_analysis.to_dict()
-                        if question_analysis is not None
-                        else None
-                    ),
-                    "route_changed": route.information_need
-                    != heuristic_route.information_need,
-                    "cache": _answer_cache_delta(
-                        question_analysis_cache_before,
-                        question_analysis_cache_after,
-                    ),
-                },
                 "retrieval": {
                     "retriever": _retriever_name(
                         lexical_enabled=self._lexical_enabled,
                         dense_enabled=self._dense_enabled,
-                        session_bm25_enabled=self._session_bm25_enabled,
                         turn_window_bm25_enabled=self._turn_window_bm25_enabled,
                         build_memory_enabled=self._build_memory_enabled,
                         rerank_enabled=self._rerank_enabled,
@@ -1287,35 +1070,6 @@ class Stage1Pipeline:
                     "embedding_cache": _embedding_cache_delta(
                         embedding_cache_before,
                         embedding_cache_after,
-                    ),
-                    "session_bm25_enabled": self._session_bm25_enabled,
-                    "session_bm25_applied": session_bm25_applied,
-                    "session_bm25_top_k": self._session_bm25_top_k
-                    if session_bm25_applied
-                    else None,
-                    "session_anchor_top_k": self._session_bm25_anchor_top_k
-                    if session_bm25_applied
-                    else None,
-                    "session_max_anchor_hits": self._session_bm25_max_anchor_hits
-                    if session_bm25_applied
-                    else None,
-                    "session_protect_turn_hits": self._session_bm25_protect_turn_hits
-                    if session_bm25_applied
-                    else None,
-                    "session_drop_query_stopwords": self._session_bm25_drop_query_stopwords
-                    if session_bm25_applied
-                    else None,
-                    "session_anchor_drop_query_stopwords": (
-                        self._session_bm25_anchor_drop_query_stopwords
-                        if session_bm25_applied
-                        else None
-                    ),
-                    "session_enabled_route_signals": self._session_bm25_enabled_signals,
-                    "session_enabled_information_needs": (
-                        self._session_bm25_enabled_information_needs
-                    ),
-                    "session_enabled_query_patterns": (
-                        self._session_bm25_enabled_query_patterns
                     ),
                     "turn_window_bm25_enabled": self._turn_window_bm25_enabled,
                     "turn_window_bm25_applied": turn_window_bm25_applied,
@@ -1374,10 +1128,6 @@ class Stage1Pipeline:
                         hit.to_dict() for hit in turn_window_source_hits
                     ],
                     "turn_hits": [hit.to_dict() for hit in turn_hits],
-                    "session_hits": [hit.to_dict() for hit in session_hits],
-                    "session_anchor_hits": [
-                        hit.to_dict() for hit in session_anchor_hits
-                    ],
                     "rerank_enabled": self._rerank_enabled,
                     "rerank_applied": rerank_trace["applied"],
                     "rerank_model": self._rerank_model
@@ -1629,84 +1379,6 @@ class Stage1Pipeline:
                 self._answer_finalizer_enable_duration_rounding_correction
             ),
         )
-
-    def _retrieve_session_hits(
-        self,
-        store: RawEvidenceStore,
-        question: str,
-    ) -> tuple[RetrievalHit, ...]:
-        if self._session_bm25_top_k <= 0:
-            return ()
-        documents = _session_documents(store)
-        if not documents:
-            return ()
-        return SessionBM25Retriever(
-            documents,
-            drop_query_stopwords=self._session_bm25_drop_query_stopwords,
-        ).retrieve(
-            question,
-            top_k=self._session_bm25_top_k,
-            score_threshold=self._session_bm25_score_threshold,
-        )
-
-    def _retrieve_session_anchor_hits(
-        self,
-        store: RawEvidenceStore,
-        session_hits: tuple[RetrievalHit, ...],
-        question: str,
-    ) -> tuple[RetrievalHit, ...]:
-        if (
-            self._session_bm25_anchor_top_k <= 0
-            or self._session_bm25_max_anchor_hits <= 0
-        ):
-            return ()
-
-        anchors: list[RetrievalHit] = []
-        seen_source_ids: set[str] = set()
-        for session_hit in session_hits:
-            session_turns = store.session_turns(session_hit.source_id)
-            local_hits = LexicalBM25Retriever(
-                session_turns,
-                drop_query_stopwords=self._session_bm25_anchor_drop_query_stopwords,
-            ).retrieve(
-                question,
-                top_k=self._session_bm25_anchor_top_k,
-                score_threshold=self._session_bm25_anchor_score_threshold,
-            )
-            for local_hit in local_hits:
-                if local_hit.source_id in seen_source_ids:
-                    continue
-                seen_source_ids.add(local_hit.source_id)
-                anchors.append(
-                    _session_anchor_hit(
-                        session_hit=session_hit,
-                        local_hit=local_hit,
-                        rank=len(anchors) + 1,
-                    )
-                )
-                if len(anchors) >= self._session_bm25_max_anchor_hits:
-                    return tuple(anchors)
-        return tuple(anchors)
-
-
-def _session_documents(store: RawEvidenceStore) -> tuple[SessionDocument, ...]:
-    documents = []
-    for session_id, turns in store.sessions():
-        lines = []
-        for turn in turns:
-            prefix = " ".join(
-                part for part in (turn.timestamp, turn.role) if part is not None
-            )
-            lines.append(f"{prefix}: {turn.text}" if prefix else turn.text)
-        documents.append(
-            SessionDocument(
-                session_id=session_id,
-                text="\n".join(lines),
-                turn_count=len(turns),
-            )
-        )
-    return tuple(documents)
-
 
 _SOURCE_ALIGNMENT_STOPWORDS = {
     "a",
@@ -1964,58 +1636,7 @@ def _dedupe_memory_records(records: tuple[Any, ...]) -> tuple[Any, ...]:
     return tuple(result)
 
 
-def _session_anchor_hit(
-    session_hit: RetrievalHit,
-    local_hit: RetrievalHit,
-    rank: int,
-) -> RetrievalHit:
-    matched_terms = tuple(
-        dict.fromkeys((*session_hit.matched_terms, *local_hit.matched_terms))
-    )
-    return RetrievalHit(
-        source_id=local_hit.source_id,
-        score=session_hit.score + local_hit.score,
-        rank=rank,
-        retriever="session_bm25+anchor_bm25",
-        matched_terms=matched_terms,
-    )
-
-
-def _merge_turn_and_session_anchor_hits(
-    turn_hits: tuple[RetrievalHit, ...],
-    session_anchor_hits: tuple[RetrievalHit, ...],
-    protect_turn_hits: int,
-) -> tuple[RetrievalHit, ...]:
-    selected: list[RetrievalHit] = []
-    seen_source_ids: set[str] = set()
-
-    def append(hit: RetrievalHit) -> None:
-        if hit.source_id in seen_source_ids:
-            return
-        seen_source_ids.add(hit.source_id)
-        selected.append(hit)
-
-    protected_count = max(0, protect_turn_hits)
-    for hit in turn_hits[:protected_count]:
-        append(hit)
-    for hit in session_anchor_hits:
-        append(hit)
-    for hit in turn_hits[protected_count:]:
-        append(hit)
-
-    return tuple(
-        RetrievalHit(
-            source_id=hit.source_id,
-            score=hit.score,
-            rank=rank,
-            retriever=hit.retriever,
-            matched_terms=hit.matched_terms,
-        )
-        for rank, hit in enumerate(selected, start=1)
-    )
-
-
-def _session_bm25_applies(
+def _route_feature_applies(
     route: RouteResult,
     question: str,
     enabled_signals: tuple[str, ...],
@@ -2039,7 +1660,7 @@ def _turn_window_bm25_applies(
     enabled_information_needs: tuple[str, ...],
     enabled_query_patterns: tuple[str, ...],
 ) -> bool:
-    return _session_bm25_applies(
+    return _route_feature_applies(
         route=route,
         question=question,
         enabled_signals=enabled_signals,
@@ -2275,6 +1896,7 @@ def _configured_answerer(
     answer_config: Mapping[str, Any],
     *,
     answer_mode: str,
+    cache_error_prefix: str = "",
 ) -> Any:
     if answer_mode == "openai_compatible":
         answerer: Any = OpenAICompatibleAnswerer(
@@ -2303,7 +1925,8 @@ def _configured_answerer(
     if bool(cache_config.get("enabled", False)):
         cache_path = cache_config.get("path")
         if cache_path is None:
-            raise ValueError("cache.path is required when cache is enabled")
+            prefix = f"{cache_error_prefix}." if cache_error_prefix else ""
+            raise ValueError(f"{prefix}cache.path is required when cache is enabled")
         answerer = CachedAnswerer(
             answerer,
             cache_path=str(cache_path),
@@ -2349,7 +1972,6 @@ def _dense_query_text(question: str, question_time: str | None, *, mode: str) ->
 def _retriever_name(
     lexical_enabled: bool,
     dense_enabled: bool,
-    session_bm25_enabled: bool,
     turn_window_bm25_enabled: bool,
     build_memory_enabled: bool,
     rerank_enabled: bool,
@@ -2361,8 +1983,6 @@ def _retriever_name(
         names.append("dense_embedding" if not lexical_enabled else "dense_hybrid_rrf")
     if build_memory_enabled:
         names.append("build_memory_bm25")
-    if session_bm25_enabled:
-        names.append("session_bm25")
     if turn_window_bm25_enabled:
         names.append("turn_window_bm25")
     if rerank_enabled:

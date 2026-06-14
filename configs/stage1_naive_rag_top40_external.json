@@ -30,9 +30,6 @@
         "path": "outputs/cache/qwen3_embedding.sqlite",
         "namespace": "Qwen/Qwen3-Embedding-0.6B"
       }
-    },
-    "session_bm25": {
-      "enabled": false
     }
   },
   "route": {
