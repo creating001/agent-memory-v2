@@ -19,10 +19,13 @@
 - `stage1_lme_token_safe_format_guard_v36_cached.json`：v28 top40/evidence budget + v35 answer guard；v42 前 LME 最好，也是当前强 baseline。
 - `stage1_operation_workpad_v42_cached.json`：v36 上的短 operation workpad；不新增 LLM 调用，不改 retrieval/build，只在 `list_count` / `temporal_lookup` 的 evidence_report prompt 中加入通用操作聚合纪律。v73 前 LongMemEval-S full 最好，但仅比 v36 净 +1，属于 close-margin 小幅正向。
 - `stage1_build4k_r20_v74_cached.json`：build 输出上限消融；基于 v73/v42，不改 build prompt、retrieval、compiler、answer、finalizer，只把 build 输出上限从 2K 放到 4K，record 容量保持 20。
+- `stage1_profile_compact_repair_v75_cached.json`：当前 LME query-side 候选；基于 v73，只把 generic advice/suggestion/should-I 路由到 `profile_preference`，并对 profile_preference 做压缩二阶段 repair。非目标样本可用 v73 prediction trace seed answer cache 做受控消融。
 
 ## 当前候选
 
-当前 build-side 候选是 `stage1_build4k_r20_v74_cached.json`。它只把 build 输出上限从 2048 放到 4096，build prompt 和 record 容量保持不变，验证原始 build 输出上限是否过紧。鉴于 v42/v73 的 LongMemEval evidence recall 已经是 `1.0`，暂不扩大 record 容量，避免增加 memory/retrieval 噪声。
+当前 query-side 候选是 `stage1_profile_compact_repair_v75_cached.json`。它来自 v51/v52 的 profile repair 诊断：profile/advice repair 在 single-session-preference 上有正向信号，但原 v51 token 过高、v52 full 受大范围重跑波动影响。v75 只对 `profile_preference` 触发压缩 repair，并通过 seed cache 隔离非目标样本。
+
+`stage1_build4k_r20_v74_cached.json` 已完成 LongMemEval-S full：DeepSeek judge accuracy `0.766`，低于 v73 `0.778`；avg_build_tokens 从 `80346.246` 增至 `84656.5`，evidence recall 仍为 `1.0`。结论是负向 build-side 消融，不进入主线。
 
 正式结果必须同时报告 build token、record 数、query token、accuracy 和 cache 命中。
 
