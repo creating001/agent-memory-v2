@@ -60,6 +60,7 @@
 - v40 route-scoped evidence detail 已完成 LongMemEval-S full：accuracy `0.742`，371/500，低于 v36 `0.772`。它相对 v39 恢复了部分 list/temporal，但相对 v36 仍净 `-15`；结论是单纯 reader-side detailed evidence rules 不够，不跑 LoCoMo full，顶层 config 不长期保留。
 - v41 question-only LLM operation router 已完成 LongMemEval-S route-stratified 20 条 gate：avg_query_tokens `5837.55`，question_analysis_avg_query_tokens `331.05`，route_changed `6/20`，同子集 DeepSeek judge 与 v36 都是 `14/20`，无净收益且增加 token；不跑 full，顶层 config 不长期保留。
 - v42 operation workpad 已完成 LongMemEval-S full：accuracy `0.774`，387/500，比 v36 净 `+1`；avg_build_tokens `80346.246`，avg_query_tokens `5865.644`，answer max input/output `131072/16384`。结论是当前 LME 最好但只是 close-margin 小幅正向；继续加长 reader prompt 不划算，下一步应转向 build-to-query memory organization。
+- v63 uncertain-only answer repair 已完成 LongMemEval-S full：accuracy `0.766`，383/500，低于 v42 `0.774`；vs v42 gained/lost `18/22`，net `-4`，repair triggered `47/500`、applied `10/500`，avg_query_tokens `6349.876` 超过 6K 主线预算。结论是负向且超预算，顶层 config 删除，仅保留 formal 快照；不继续把 broad answer repair 作为主线。
 - v43 session-thread memory guide 已完成 LongMemEval-S route-stratified 20 条 gate：DeepSeek judge `15/20`，与 v42 same20 持平；avg_query_tokens `6023.95`、max `8003`，未过 token gate。结论是负向/中性 diagnostic，不跑 full，顶层 config 不长期保留。
 - v44 temporal-only session guide 已完成 LongMemEval-S route-stratified 20 条 gate：DeepSeek judge `16/20`，比 v42 same20 净 `+1`；avg_query_tokens `5783.75`、max `7631`。但按 v42 full route mix 估计 full avg query `6064.479`，暂不跑 full，先做 v45 token-safe 收窄。
 - v45 temporal session guide token-safe 收窄已完成 LongMemEval-S route-stratified 20 条 gate：DeepSeek judge `16/20`，比 v42 same20 净 `+1`、无新增错误；avg_build_tokens `81690.45`，avg_query_tokens `5744.5`，max `7352`，answer max input/output `131072/16384`。但按 v42 full route mix 估计 full avg query `6001.2865`，略超 6K 预算，不跑 full，顶层 config 不长期保留。
@@ -143,6 +144,7 @@ experiments/formal/<run_id>/
 | run | benchmark | subset | commit | accuracy | 主要结论 |
 |---|---|---|---|---:|---|
 | `stage1_operation_workpad_v42_lme_s_full_f7eb076` | LongMemEval-S | full | `f7eb076` | 0.774000 | 当前 LME 最好；v36 上的短 operation workpad，vs v36 净 +1，仍未达 0.80。收益很小，不能视为突破。 |
+| `stage1_uncertain_repair_v63_lme_s_full_9ebc02c` | LongMemEval-S | full | `9ebc02c` | 0.766000 | v42 上的 uncertain-only answer repair；vs v42 gained/lost 18/22，net -4，avg_query_tokens 6349.876 超 6K。负向且超预算，顶层 config 删除。 |
 | `stage1_lme_token_safe_format_guard_v36_lme_s_full_4af3244` | LongMemEval-S | full | `4af3244` | 0.772000 | v42 前 LME 最好和当前强 baseline；v28 top40/evidence budget + v35 answer guard，vs v28 净 +3；仍未达 0.80。 |
 | `stage1_profile_uncertain_repair_v52_lme_s_full_9a04884` | LongMemEval-S | full | `9a04884` | 0.770000 | v42 上的 token-safe profile/advice repair；same30 正向但 full 负向，vs v42 净 -2，answer_changed 106。删除顶层 config，不跑 LoCoMo。 |
 | `stage1_route_snippet_top60_v38_lme_s_full_daf98e7` | LongMemEval-S | full | `daf98e7` | 0.752000 | v36 上的 route-scoped top60 + snippet；vs v36 净 -10，list/temporal 噪声损失大于 coverage 收益，负向 ablation。 |

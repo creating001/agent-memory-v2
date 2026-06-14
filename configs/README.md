@@ -21,7 +21,7 @@
 
 ## 当前候选
 
-- `stage1_uncertain_repair_v63_cached.json`：v42 上的 narrow verifier/repair 候选，只在 draft answer 自身出现 insufficient / unknown / missing 这类 prediction-time 不确定信号时触发二次 clean 读证据；关闭 short-list 和 temporal-conflict 大范围触发。目标是修复 LongMemEval-S over-abstain，同时控制 query token 和已正确拒答样本的回退。
+暂无。v63 uncertain-only repair 已完成 LongMemEval-S full：accuracy 低于 v42，且 avg query tokens 超过 6K 主线预算；顶层 config 删除，只保留 formal 实验快照。
 
 负向诊断只保留在对应 `experiments/diagnostic/<run_id>/config_snapshot.json` 中，不保留顶层 config。
 
