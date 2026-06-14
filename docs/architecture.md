@@ -4,11 +4,11 @@
 
 ## 1. 核心目标
 
-本项目的真实目标是构建一个优秀的 Agent Memory 系统，并在 LongMemEval 和 LoCoMo 上用正确率体现它相对普通 RAG、简单摘要或弱 memory baseline 的优势。框架、模块和具体方法都服务于这个目标，不应反过来限制方法探索。
+本项目的真实目标是构建一个优秀的 Agent Memory 系统，并在 LongMemEval 和 LoCoMo 上用正确率体现它的优势。框架、模块和具体方法都服务于这个目标，不应反过来限制方法探索。
 
 核心要求：
 - **clean**：不能使用 gold answer、judge output、benchmark 标签、sample id、test feedback 或样本级规则。
-- **有效**：主要看 judge accuracy；F1、BLEU、exact 只能作为辅助诊断。
+- **有效**：主要看 judge accuracy；F1、BLEU 只能作为辅助诊断。
 - **通用**：不能只为某个 benchmark 写专门捷径，要能解释为真实 agent memory 系统中的合理机制。
 - **可消融**：每个新增模块都应能关闭，方便判断收益来自哪里。
 - **可追溯**：正式实验必须记录 commit、dirty 状态、配置、token 成本、输出路径和诊断。
