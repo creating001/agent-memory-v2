@@ -1,0 +1,25 @@
+{
+  "clean_note": "Literal prompt scan for forbidden benchmark/gold/judge metadata. Hits from raw dialogue may be false positives and must be inspected. Absence of hits is not a full proof.",
+  "run": "v48_candidate_map_lme_weakroute_265e07d",
+  "n_prompts": 87,
+  "forbidden_terms": [
+    "question_type",
+    "sample_id",
+    "sample id",
+    "qid",
+    "row index",
+    "gold answer",
+    "judge output",
+    "reference answer",
+    "offline evaluator",
+    "correct answer",
+    "ground truth",
+    "source_question_id",
+    "answer_session_ids",
+    "benchmark label",
+    "category label",
+    "test feedback"
+  ],
+  "n_findings": 0,
+  "findings": []
+}

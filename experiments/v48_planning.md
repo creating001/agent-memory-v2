@@ -88,3 +88,29 @@ Candidate Evidence Map 只从 prediction-time 可见信息生成：
 - prompt clean scan 无真实 forbidden metadata 泄漏。
 
 如果 v48 失败，回退该 config，不跑 full；下一步转向 build-side event/profile/state typed view 的 source-linked retrieval，而不是继续加 reader prompt。
+
+## 诊断结果
+
+v48 已完成 LongMemEval-S `weak_route_87` 诊断，结论为失败，不进入 full。
+
+- v42 same-87 DeepSeek judge accuracy: `59/87 = 0.678161`
+- v48 same-87 DeepSeek judge accuracy: `56/87 = 0.643678`
+- gain/loss: `6 / 9`
+- answer_changed: `32`
+- avg_build_tokens: `80991.862069`
+- avg_query_tokens: `6618.068966`
+- estimated full avg query tokens: `6250.456`
+
+按 information_need：
+
+- current_state: v42 `12/22` -> v48 `14/22`
+- list_count: v42 `15/20` -> v48 `14/20`
+- profile_preference: v42 `10/15` -> v48 `8/15`
+- temporal_lookup: v42 `22/30` -> v48 `20/30`
+
+决策：
+
+- 不跑 LongMemEval-S full。
+- 删除顶层候选配置 `configs/stage1_candidate_evidence_map_v48_cached.json`，只保留诊断目录里的 `config_snapshot.json`。
+- Candidate Evidence Map 模块保留为可消融能力，但不在全部 weak routes 上开启。
+- 下一步只尝试 current_state-only、token-safe 的 v49，验证局部正向是否稳定。
