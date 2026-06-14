@@ -934,6 +934,7 @@ class CleanSkeletonTest(unittest.TestCase):
         )
 
         self.assertIn("extract user-specific anchors", prompt)
+        self.assertIn("no-new-names rule", prompt)
         self.assertIn("Alex wants a lightweight laptop for travel.", prompt)
 
     def test_raw_response_content_extracts_answerer_content(self) -> None:

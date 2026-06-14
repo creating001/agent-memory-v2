@@ -21,9 +21,9 @@
 
 ## 当前候选
 
-- `stage1_supported_uncertain_repair_v67_cached.json`：v42 上的 supported-uncertain verifier/repair。只在 draft 自己显示 insufficient/unknown/missing，且 draft evidence_report 至少有 1 个 support item 时触发二次 clean repair；目标是修复证据已在 context 中但 answer 过早拒答的样本，同时避免 v63 broad repair 的过度触发。
+- `stage1_supported_uncertain_repair_v68_cached.json`：v42 上的 token-safe supported-uncertain verifier/repair。只在 draft 自己显示 insufficient/unknown/missing，且 draft evidence_report 至少有 1 个 support item 时触发二次 clean repair；相对 v67 收窄 repair context，并强化 profile repair 不得使用外部知识生成具体新名字。
 
-v66 route-aware context budget 已完成 LongMemEval-S full：query token 明显下降但 accuracy 低于 v42，顶层 config 删除，只保留 formal 快照。v65 unit/sum mechanical finalizer 已完成 LongMemEval-S full：accuracy 低于 v42，且不是纯 finalizer 正向消融；顶层 config 和源码分支删除，只保留 formal 快照。v64 list_count-only adjacent-turn window BM25 也已验证负向，只保留 diagnostic 快照。
+v67 preliminary supported-uncertain repair 因 full avg query tokens 略超 6K，不作为主线配置保留；v68 是 token-safe replacement。v66 route-aware context budget 已完成 LongMemEval-S full：query token 明显下降但 accuracy 低于 v42，顶层 config 删除，只保留 formal 快照。v65 unit/sum mechanical finalizer 已完成 LongMemEval-S full：accuracy 低于 v42，且不是纯 finalizer 正向消融；顶层 config 和源码分支删除，只保留 formal 快照。v64 list_count-only adjacent-turn window BM25 也已验证负向，只保留 diagnostic 快照。
 
 负向诊断只保留在对应 `experiments/diagnostic/<run_id>/config_snapshot.json` 中，不保留顶层 config。
 
