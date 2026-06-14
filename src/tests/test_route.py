@@ -92,33 +92,6 @@ class RouteTest(unittest.TestCase):
         self.assertEqual(route.information_need, "temporal_lookup")
         self.assertIn("temporal", route.signals)
 
-    def test_which_first_routes_to_temporal_order(self) -> None:
-        route = QuestionRouter().route(
-            "Which project did I start first, the Ferrari model or the Porsche model?"
-        )
-
-        self.assertEqual(route.information_need, "temporal_lookup")
-        self.assertIn("temporal_order", route.signals)
-        self.assertNotIn("list_or_count", route.signals)
-
-    def test_which_state_before_after_does_not_route_to_temporal_order(self) -> None:
-        route = QuestionRouter().route(
-            "Which state requires monitoring before drilling and after drilling?"
-        )
-
-        self.assertEqual(route.information_need, "list_count")
-        self.assertIn("list_or_count", route.signals)
-        self.assertNotIn("temporal_order", route.signals)
-
-    def test_latest_order_range_routes_to_temporal_before_recent(self) -> None:
-        route = QuestionRouter().route(
-            "What is the order of the museums I visited from earliest to latest?"
-        )
-
-        self.assertEqual(route.information_need, "temporal_lookup")
-        self.assertIn("temporal_order", route.signals)
-        self.assertNotIn("recent_or_current", route.signals)
-
     def test_explicit_duration_overrides_latest_entity_description(self) -> None:
         route = QuestionRouter(temporal_priority_over_recent=True).route(
             "How many days had passed since I finished the novel when I attended "

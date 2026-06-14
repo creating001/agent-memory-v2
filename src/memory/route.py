@@ -23,15 +23,6 @@ class QuestionRouter:
         r"多久",
         r"多长时间",
     )
-    _TEMPORAL_ORDER_PATTERNS = (
-        r"\bfrom\s+(?:first|earliest)\s+to\s+(?:last|latest)\b",
-        r"\b(?:first|earliest)\s+to\s+(?:last|latest)\b",
-        r"\border\b.*\b(?:first|earliest|last|latest)\b",
-        r"\bwhich\b.*\bfirst\b",
-        r"\bwho\b.*\bfirst\b",
-        r"\bwhich\b.*\b(?:earlier|earliest|later)\b",
-        r"\bwhat\s+(?:was\s+)?(?:the\s+)?date\b.*\bfirst\b",
-    )
     _RECENT_PATTERNS = (
         r"\bcurrent\b",
         r"\blatest\b",
@@ -105,14 +96,6 @@ class QuestionRouter:
             normalized, self._TEMPORAL_PATTERNS
         ):
             signals.append("temporal")
-            return RouteResult(
-                information_need="temporal_lookup",
-                signals=tuple(signals),
-                retrieval_multiplier=2,
-            )
-        if _matches_any(normalized, self._TEMPORAL_ORDER_PATTERNS):
-            signals.append("temporal")
-            signals.append("temporal_order")
             return RouteResult(
                 information_need="temporal_lookup",
                 signals=tuple(signals),
