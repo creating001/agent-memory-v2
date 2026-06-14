@@ -1969,6 +1969,12 @@ def _candidate_guide_focus_line(question: str, route: RouteResult) -> str:
             "- focus: identify the target event/action row before using row dates, "
             "relative time phrases, quantities, or durations."
         )
+    if route.information_need == "fact_lookup":
+        return (
+            "- focus: match the requested answer slot exactly, compare close "
+            "candidates, and avoid substituting related-topic rows for the asked "
+            "person, object, place, action, or event."
+        )
     return ""
 
 
@@ -1994,8 +2000,63 @@ def _candidate_guide_rows(
         scored.append((score, -index, index, row))
 
     scored.sort(reverse=True)
-    selected = sorted(scored[:max_rows], key=lambda item: item[2])
+    selected = sorted(
+        _diverse_candidate_rows(scored, max_rows=max_rows),
+        key=lambda item: item[2],
+    )
     return tuple((index, row) for _, _, index, row in selected)
+
+
+def _diverse_candidate_rows(
+    scored: list[tuple[float, int, int, EvidenceRow]],
+    *,
+    max_rows: int,
+) -> list[tuple[float, int, int, EvidenceRow]]:
+    """Keep high-scoring candidate rows while reducing near-duplicate guide lines."""
+
+    selected: list[tuple[float, int, int, EvidenceRow]] = []
+    selected_signatures: list[frozenset[str]] = []
+    selected_sessions: set[str] = set()
+
+    def add(item: tuple[float, int, int, EvidenceRow]) -> None:
+        selected.append(item)
+        selected_signatures.append(_content_signature(item[3].text))
+        selected_sessions.add(item[3].session_id)
+
+    for item in scored:
+        if len(selected) >= max_rows:
+            break
+        signature = _content_signature(item[3].text)
+        same_session = item[3].session_id in selected_sessions
+        near_duplicate = any(
+            _signature_overlap(signature, existing) >= 0.7
+            for existing in selected_signatures
+        )
+        if selected and same_session and near_duplicate:
+            continue
+        add(item)
+
+    if len(selected) >= max_rows:
+        return selected
+
+    selected_ids = {item[3].source_id for item in selected}
+    for item in scored:
+        if len(selected) >= max_rows:
+            break
+        if item[3].source_id not in selected_ids:
+            add(item)
+            selected_ids.add(item[3].source_id)
+    return selected
+
+
+def _content_signature(text: str) -> frozenset[str]:
+    return frozenset(term for term in _content_terms(text) if len(term) >= 4)
+
+
+def _signature_overlap(left: frozenset[str], right: frozenset[str]) -> float:
+    if not left or not right:
+        return 0.0
+    return len(left.intersection(right)) / len(left.union(right))
 
 
 def _candidate_guide_row_score(

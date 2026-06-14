@@ -2313,6 +2313,72 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertNotIn("Candidate Evidence Map:", fact_context.prompt)
         self.assertNotIn("question_type", list_context.prompt)
 
+    def test_candidate_guide_fact_lookup_focus_and_diversity(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=4,
+            max_evidence_chars=5000,
+            prompt_mode="external_naive",
+            candidate_guide=True,
+            candidate_guide_information_needs=("fact_lookup",),
+            candidate_guide_max_rows=2,
+            candidate_guide_snippet_chars=120,
+        )
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text="Alex bought blue shoes in Paris.",
+                timestamp="2024-01-01",
+            ),
+            Turn(
+                source_id="s1:t1",
+                session_id="s1",
+                turn_index=1,
+                role="user",
+                text="Alex bought the blue shoes in Paris again.",
+                timestamp="2024-01-02",
+            ),
+            Turn(
+                source_id="s2:t0",
+                session_id="s2",
+                turn_index=0,
+                role="user",
+                text="Alex bought ceramic figurines at the market.",
+                timestamp="2024-02-01",
+            ),
+            Turn(
+                source_id="s3:t0",
+                session_id="s3",
+                turn_index=0,
+                role="assistant",
+                text="General shopping advice.",
+                timestamp="2024-02-02",
+            ),
+        )
+
+        context = compiler.compile(
+            question="What items did Alex buy?",
+            question_time=None,
+            route=RouteResult(information_need="fact_lookup", signals=()),
+            hits=(
+                RetrievalHit("s1:t0", 1.0, 1, "lexical_bm25"),
+                RetrievalHit("s1:t1", 0.9, 2, "lexical_bm25"),
+                RetrievalHit("s2:t0", 0.8, 3, "lexical_bm25"),
+            ),
+            evidence_turns=turns,
+        )
+
+        self.assertIn("Candidate Evidence Map:", context.prompt)
+        self.assertIn("match the requested answer slot exactly", context.prompt)
+        self.assertIn("Memory 1: date=2024-01-01 role=user", context.prompt)
+        self.assertIn("Memory 3: date=2024-02-01 role=user", context.prompt)
+        self.assertNotIn("Memory 2: date=2024-01-02 role=user", context.prompt)
+        self.assertNotIn("gold answer", context.prompt)
+        self.assertNotIn("judge output", context.prompt)
+        self.assertNotIn("sample id", context.prompt)
+
     def test_pipeline_traces_candidate_guide_config(self) -> None:
         config = {
             "retrieval": {"top_k": 1, "max_top_k": 1, "neighbor_window": 0},
