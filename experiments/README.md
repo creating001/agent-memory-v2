@@ -33,6 +33,7 @@
 - `configs/stage1_finalizer_duration_fix_v73_cached.json`：v79 前 LongMemEval-S 最好主线；从 v42 出发只关闭有害的机械 duration decimal rounding finalizer。
 - `configs/stage1_missing_detail_finalizer_v79_cached.json`：v73 上的 missing-detail finalizer；把 answer JSON 中的 `missing` 细节透出到短拒答。
 - `configs/stage1_update_conflict_guide_v80_cached.json`：v79 上的 update/conflict candidate chain；只在 `current_state` / `fact_lookup` 对有旧值、新值、更正、历史范围信号的 user raw rows 加 source-preserving 索引，当前 LongMemEval-S 最好。
+- `configs/stage1_update_conflict_value_slot_v81_cached.json`：v80 的 value-slot 收窄诊断；changed subset 正向，但 fresh full judge 未超过 v80，不作为当前 best。
 
 方法摘要：
 
@@ -67,6 +68,7 @@
 - v73 duration finalizer fix 已完成 LongMemEval-S full：accuracy `0.778`，389/500，比 v42 修复控制 `0.772` 高 3 条；avg_build_tokens `80346.246`，avg_query_tokens `5864.706`。结论是当前 LME 最好主线；它只关闭一个明确有害的 duration rounding finalizer，不改变 retrieval/build/prompt。
 - v79 missing-detail finalizer 已完成 LongMemEval-S full：accuracy `0.784`，392/500，比 v73 高 3 条；avg_build_tokens `80346.246`，avg_query_tokens `5864.706`，finalizer applied `29/500`，answer/build cache 全命中。prediction changed subset 为 `WRONG->CORRECT 6`、`CORRECT->WRONG 0`，未改 prediction 的同答案 judge 方差净 `-3`。结论是 clean、零额外 prediction LLM token 的小正向，当前 LME 最好，但仍未达到 0.80。
 - v80 update/conflict guide 已完成 LongMemEval-S full：accuracy `0.792`，396/500，比 v79 高 4 条；avg_build_tokens `80346.246`，avg_query_tokens `5913.516`，update_conflict_guide_applied `60/500`，answer cache misses `60`。prediction changed subset 为 `WRONG->CORRECT 7`、`CORRECT->WRONG 4`，修复 personal best、Wells Fargo pre-approval、tennis previous/current、Instagram followers 等旧值/新值错误；仍有 total-cost/surface-format 回退，下一步需要更稳的 aggregation / current-state scope gate。
+- v81 value-slot update/conflict guide 已完成 LongMemEval-S full：accuracy `0.790`，395/500；avg_build_tokens `80346.246`，avg_query_tokens `5903.352`，guide 触发 `44/500`。相比 v80，prediction changed subset 为 `WRONG->CORRECT 3`、`CORRECT->WRONG 1`，修复 v80 的 Lola 花费、评论数表述和家庭旅行地点回退；但未改 prediction 的 fresh judge 方差净 `-3`，所以不替代 v80 当前最好结论。
 - v74 build 4K 输出上限消融已完成 LongMemEval-S full：accuracy `0.766`，383/500，低于 v73 `0.778`；avg_build_tokens 增至 `84656.5`，evidence recall 仍为 `1.0`。结论是负向 build-side 消融，顶层 config 删除，只保留 formal 快照。
 - v75 all-profile compact repair 已完成 LongMemEval-S full：accuracy `0.766`，383/500，低于 v73 `0.778`；avg_query_tokens `5985.758`，接近 6K。controlled changed subset 对 v73 为轻微正向，但 all-profile repair 会误伤已支持的个性化答案，顶层 config 删除，只保留 formal 快照。
 - v76 uncertain-only profile repair 已完成 LongMemEval-S full：accuracy `0.768`，384/500，低于 v73 `0.778`；avg_query_tokens `5880.232`，repair triggered/applied `6/4`。controlled changed subset 为 391/500，但 fresh full 不支撑主线。结论是 profile repair 只能作为低频拒答补救信号，不能继续作为通用重写器；顶层 config 删除，只保留 formal 快照。
@@ -163,6 +165,7 @@ experiments/formal/<run_id>/
 | run | benchmark | subset | commit | accuracy | 主要结论 |
 |---|---|---|---|---:|---|
 | `stage1_update_conflict_guide_v80_lme_s_full_152b0e5` | LongMemEval-S | full | `152b0e5` | 0.792000 | 当前 LME 最好；v79 上的 source-preserving update/conflict chain，触发 60/500，changed subset `WRONG->CORRECT 7`、`CORRECT->WRONG 4`，avg query tokens 5913.516 仍在 6K 内。 |
+| `stage1_update_conflict_value_slot_v81_lme_s_full_d6f0f93` | LongMemEval-S | full | `d6f0f93` | 0.790000 | v80 的 value-slot 收窄诊断；guide 触发 44/500，changed subset `WRONG->CORRECT 3`、`CORRECT->WRONG 1`，但 fresh full judge 低于 v80，不作为当前 best。 |
 | `stage1_missing_detail_finalizer_v79_lme_s_full_7b34339` | LongMemEval-S | full | `7b34339` | 0.784000 | v80 前 LME 最好；v73 上的 missing-detail finalizer，prediction_changed 29/500，changed subset `WRONG->CORRECT 6`、`CORRECT->WRONG 0`，零额外 prediction LLM token。 |
 | `stage1_finalizer_duration_fix_v73_lme_s_full_24396f9` | LongMemEval-S | full | `24396f9` | 0.778000 | v79 前 LME 最好和关键对照；只关闭 v42 中有害的机械 duration rounding finalizer，prediction_changed 1/500，token 不增加。 |
 | `stage1_missing_reason_enrichment_v77_lme_s_full_f669b91` | LongMemEval-S | full | `f669b91` | 0.772000 | v73 上的 missing reason enrichment；零额外 token 但 changed subset 4 gain / 4 loss，fresh full 低于 v73，源码/config 删除。 |
