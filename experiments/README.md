@@ -73,6 +73,7 @@
 - v53 scoped evidence 两阶段回答已完成 LongMemEval-S `temporal_aggregation_106` 诊断：DeepSeek judge `63/106 = 0.594340`，低于 v42 same-106 `81/106 = 0.764151` 和 v47 `75/106 = 0.707547`；gain/loss `5/23`，answer_changed `68`，avg_query_tokens `5113.226`。结论是 clean 且 token 合格，但 extracted JSON 作为唯一事实输入会放大 extractor 边界错误，不跑 full，顶层 config 删除。规划和结论见 `experiments/v53_planning.md`。
 - v54 turn-window retrieval 已完成 LongMemEval-S `weak_route_87` 诊断：DeepSeek judge `59/87 = 0.678161`，与 v42 same-87 持平；gain/loss `7/7`，answer_changed `25`，avg_query_tokens `5959.874`。`list_count` 小正向被 profile/current/temporal 回退抵消，不跑 full，顶层 config 删除。
 - v55 turn-window dense32 消融已完成 LongMemEval-S `weak_route_87` 诊断：DeepSeek judge `57/87 = 0.655172`，低于 v42/v54 same-87；gain/loss vs v42 `6/8`，avg_query_tokens `6000.310` 略超 6K。结论是当前 turn-window BM25 参数方向不稳定，停止继续微调，顶层 config 删除。
+- v56 lossless atomic build memory 已完成 LongMemEval-S `weak_route_87` 诊断：DeepSeek judge `57/87 = 0.655172`，低于 v42 same-87 `59/87 = 0.678161`；gain/loss `4/6`，answer_changed `22`，avg_build_tokens `107052.839`，比 v42 same87 多约 `26060.977`，avg_query_tokens `6007.575` 略超 6K。结论是 build 侧更细粒度 extraction 增加 records 和成本，但没有改善最终 evidence 使用；不跑 full，顶层 config 删除，仅保留实验快照。
 
 负向探索结论已压缩保留：
 
@@ -140,6 +141,7 @@ experiments/formal/<run_id>/
 | `v53_scoped_evidence_lme_diag_4db0bde` | 106 条 LongMemEval-S question-derived temporal/list diagnostic | v53 scoped evidence 两阶段回答失败；DeepSeek judge `63/106`，低于 v42 same-106 `81/106`，gain/loss `5/23`。token gate 和 clean scan 通过，但 extracted JSON 替代 raw evidence 后边界错误被放大，不跑 full，顶层 config 已删除。 |
 | `v54_turn_window_lme_weakroute_fc48b22` | 87 条 LongMemEval-S question-derived weak-route diagnostic | v54 adjacent-turn window BM25 retrieval 持平 v42 same87；DeepSeek judge `59/87`，gain/loss `7/7`，avg_query_tokens `5959.874`。有局部 list/count 正向，但不稳定，不跑 full。 |
 | `v55_turn_window_dense32_lme_weakroute_be846f3` | 87 条 LongMemEval-S question-derived weak-route diagnostic | v55 恢复 dense `protect_top_n=32` 后失败；DeepSeek judge `57/87`，低于 v42/v54 same87，avg_query_tokens `6000.310` 略超预算。停止当前 turn-window 参数方向。 |
+| `v56_lossless_atomic_lme_weakroute_194dfa8` | 87 条 LongMemEval-S question-derived weak-route diagnostic | v56 build-side lossless atomic memory 失败；DeepSeek judge `57/87`，低于 v42 same87 `59/87`，gain/loss `4/6`，avg_build_tokens `107052.839`，avg_query_tokens `6007.575`。更多 atomic records 没转化为 accuracy，顶层 config 删除。 |
 
 ## 保留正式结果
 

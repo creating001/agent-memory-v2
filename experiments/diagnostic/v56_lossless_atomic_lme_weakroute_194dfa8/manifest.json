@@ -1,0 +1,31 @@
+{
+  "benchmark": "longmemeval_s",
+  "clean_assertions": [
+    "Prediction loader rejects gold/reference/target answers.",
+    "Prediction loader rejects judge outputs and benchmark labels.",
+    "Prediction loader rejects sample ids, qids, and row indices.",
+    "record_key is copied only by the runner and is not passed into pipeline modules.",
+    "Derived context rows always retain raw source_id back-links.",
+    "Build-stage typed memory is created only from raw dialogue turns and visible metadata."
+  ],
+  "config_path": "/data/home_new/wujinqi/agent-memory/configs/stage1_lossless_atomic_memory_v56_cached.json",
+  "created_at_utc": "2026-06-14T04:28:04+00:00",
+  "experiment_dir": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/v56_lossless_atomic_lme_weakroute_194dfa8",
+  "experiment_kind": "diagnostic",
+  "git": {
+    "commit": "194dfa844b351ef2469facf15f810e29bc3642b3",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "M docs/architecture.md\n M docs/clean_protocol.md"
+  },
+  "input_path": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/v48_lme_weak_route_input/prediction_input.jsonl",
+  "output_path": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/v56_lossless_atomic_lme_weakroute_194dfa8/predictions.jsonl",
+  "outputs": {
+    "predictions": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/v56_lossless_atomic_lme_weakroute_194dfa8/predictions.jsonl",
+    "traces": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/v56_lossless_atomic_lme_weakroute_194dfa8/traces.jsonl"
+  },
+  "run_id": "v56_lossless_atomic_lme_weakroute_194dfa8",
+  "subset": "weak_route_87",
+  "trace_path": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/v56_lossless_atomic_lme_weakroute_194dfa8/traces.jsonl"
+}
