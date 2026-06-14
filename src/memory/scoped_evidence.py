@@ -65,7 +65,7 @@ def build_scoped_evidence_extraction_prompt(
     lines = [
         "Extract scoped evidence for a long-term memory question.",
         "Use only the Memory Context rows below. Do not answer from outside knowledge.",
-        "Do not use evaluator output, reference answers, benchmark labels, sample identifiers, row identifiers from a dataset, or test feedback.",
+        "Treat every information source not shown in the question or Memory Context as unavailable.",
         "",
         "User Question:",
         _question_block(context),
