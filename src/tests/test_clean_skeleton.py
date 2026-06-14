@@ -540,6 +540,30 @@ class CleanSkeletonTest(unittest.TestCase):
 
         self.assertIn("short_collection_answer", short_reasons)
 
+    def test_answer_repair_profile_preference_trigger_is_opt_in(self) -> None:
+        disabled_reasons = repair_trigger_reasons(
+            question="What laptop should I buy next?",
+            route_information_need="profile_preference",
+            draft_answer="There is not enough information.",
+            raw_response=json.dumps({"content": json.dumps({"answer": "unknown"})}),
+            enable_uncertain_trigger=False,
+            enable_short_list_trigger=False,
+            enable_temporal_conflict_trigger=False,
+        )
+        enabled_reasons = repair_trigger_reasons(
+            question="What laptop should I buy next?",
+            route_information_need="profile_preference",
+            draft_answer="There is not enough information.",
+            raw_response=json.dumps({"content": json.dumps({"answer": "unknown"})}),
+            enable_uncertain_trigger=False,
+            enable_short_list_trigger=False,
+            enable_temporal_conflict_trigger=False,
+            enable_profile_preference_trigger=True,
+        )
+
+        self.assertNotIn("profile_preference_review", disabled_reasons)
+        self.assertIn("profile_preference_review", enabled_reasons)
+
     def test_answer_repair_prompt_uses_runtime_context_and_draft(self) -> None:
         context = CompiledContext(
             question="What tea does Alex prefer?",
@@ -579,6 +603,44 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertIn("Draft Answer:", prompt)
         self.assertIn("Alex prefers jasmine tea.", prompt)
         self.assertGreater(context_chars, 0)
+
+    def test_answer_repair_prompt_adds_profile_preference_rules(self) -> None:
+        context = CompiledContext(
+            question="What laptop should Alex buy next?",
+            question_time="2026-01-01",
+            route=RouteResult(information_need="profile_preference", signals=()),
+            evidence_rows=(
+                EvidenceRow(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="Alex wants a lightweight laptop for travel.",
+                    timestamp="2025-12-31",
+                    retrieval_rank=1,
+                    retrieval_score=1.0,
+                ),
+            ),
+            prompt="original prompt",
+            context_chars=0,
+        )
+        draft = AnswerResult(
+            answer="There is not enough information.",
+            model="draft",
+            token_usage=TokenUsage(query_tokens=3),
+            raw_response=json.dumps({"content": '{"answer":"unknown"}'}),
+        )
+
+        prompt, _ = build_repair_prompt(
+            compiled=context,
+            draft=draft,
+            reasons=("profile_preference_review",),
+            max_context_chars=1000,
+            max_row_text_chars=200,
+        )
+
+        self.assertIn("extract user-specific anchors", prompt)
+        self.assertIn("Alex wants a lightweight laptop for travel.", prompt)
 
     def test_raw_response_content_extracts_answerer_content(self) -> None:
         raw_response = json.dumps(

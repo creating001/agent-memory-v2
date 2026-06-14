@@ -718,6 +718,9 @@ def _answer_metrics(config: dict[str, Any]) -> dict[str, Any]:
         "repair_enable_temporal_conflict_trigger": repair_config.get(
             "enable_temporal_conflict_trigger", True
         ),
+        "repair_enable_profile_preference_trigger": repair_config.get(
+            "enable_profile_preference_trigger", False
+        ),
         "repair_max_context_chars": repair_config.get("max_context_chars", 14000),
         "repair_max_row_text_chars": repair_config.get("max_row_text_chars", 700),
         "repair_cache_enabled": repair_cache_config.get("enabled", False),
@@ -894,6 +897,7 @@ def _write_summary(
         f"- answer_repair_enable_uncertain_trigger: {metrics['answer']['repair_enable_uncertain_trigger']}",
         f"- answer_repair_enable_short_list_trigger: {metrics['answer']['repair_enable_short_list_trigger']}",
         f"- answer_repair_enable_temporal_conflict_trigger: {metrics['answer']['repair_enable_temporal_conflict_trigger']}",
+        f"- answer_repair_enable_profile_preference_trigger: {metrics['answer'].get('repair_enable_profile_preference_trigger', False)}",
         f"- answer_repair_max_context_chars: {metrics['answer']['repair_max_context_chars']}",
         f"- answer_repair_max_row_text_chars: {metrics['answer']['repair_max_row_text_chars']}",
         f"- answer_repair_cache_enabled: {metrics['answer']['repair_cache_enabled']}",
@@ -1080,6 +1084,7 @@ def _write_diagnosis(
         f"- answer_repair_max_input_tokens: {metrics['answer']['repair_max_input_tokens']}",
         f"- answer_repair_max_output_tokens: {metrics['answer']['repair_max_output_tokens']}",
         f"- answer_repair_information_needs: {metrics['answer']['repair_information_needs']}",
+        f"- answer_repair_enable_profile_preference_trigger: {metrics['answer'].get('repair_enable_profile_preference_trigger', False)}",
         f"- answer_repair_triggered_count: {metrics['answer']['repair_triggered_count']}",
         f"- answer_repair_triggered_rate: {metrics['answer']['repair_triggered_rate']}",
         f"- answer_repair_applied_count: {metrics['answer']['repair_applied_count']}",

@@ -540,6 +540,9 @@ class Stage1Pipeline:
         self._answer_repair_enable_temporal_conflict_trigger = bool(
             answer_repair_config.get("enable_temporal_conflict_trigger", True)
         )
+        self._answer_repair_enable_profile_preference_trigger = bool(
+            answer_repair_config.get("enable_profile_preference_trigger", False)
+        )
         self._answer_repair_max_context_chars = int(
             answer_repair_config.get("max_context_chars", 14000)
         )
@@ -557,6 +560,9 @@ class Stage1Pipeline:
             ),
             "enable_temporal_conflict_trigger": (
                 self._answer_repair_enable_temporal_conflict_trigger
+            ),
+            "enable_profile_preference_trigger": (
+                self._answer_repair_enable_profile_preference_trigger
             ),
             "max_context_chars": self._answer_repair_max_context_chars,
             "max_row_text_chars": self._answer_repair_max_row_text_chars,
@@ -829,6 +835,9 @@ class Stage1Pipeline:
             enable_short_list_trigger=self._answer_repair_enable_short_list_trigger,
             enable_temporal_conflict_trigger=(
                 self._answer_repair_enable_temporal_conflict_trigger
+            ),
+            enable_profile_preference_trigger=(
+                self._answer_repair_enable_profile_preference_trigger
             ),
             max_context_chars=self._answer_repair_max_context_chars,
             max_row_text_chars=self._answer_repair_max_row_text_chars,

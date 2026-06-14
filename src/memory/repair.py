@@ -71,6 +71,7 @@ def maybe_repair_answer(
     enable_uncertain_trigger: bool,
     enable_short_list_trigger: bool,
     enable_temporal_conflict_trigger: bool,
+    enable_profile_preference_trigger: bool,
     max_context_chars: int,
     max_row_text_chars: int,
 ) -> AnswerRepair:
@@ -91,6 +92,7 @@ def maybe_repair_answer(
         enable_uncertain_trigger=enable_uncertain_trigger,
         enable_short_list_trigger=enable_short_list_trigger,
         enable_temporal_conflict_trigger=enable_temporal_conflict_trigger,
+        enable_profile_preference_trigger=enable_profile_preference_trigger,
     )
     if not reasons:
         return _noop(draft, enabled=True, reason="no_trigger")
@@ -158,9 +160,16 @@ def repair_trigger_reasons(
     enable_uncertain_trigger: bool,
     enable_short_list_trigger: bool,
     enable_temporal_conflict_trigger: bool,
+    enable_profile_preference_trigger: bool = False,
 ) -> tuple[str, ...]:
     payload = _draft_payload(raw_response)
     reasons: list[str] = []
+
+    if (
+        enable_profile_preference_trigger
+        and route_information_need == "profile_preference"
+    ):
+        reasons.append("profile_preference_review")
 
     if enable_uncertain_trigger:
         answer_type = str(payload.get("answer_type") or "").strip().lower()
@@ -243,7 +252,8 @@ def build_repair_prompt(
             "5. For temporal questions, separate Memory Date from event time; answer the event/state time requested by the question.",
             "6. For current/latest questions, compare older and newer directly relevant evidence before revising.",
             "7. If evidence remains insufficient, keep or revise to a concise insufficient-information answer.",
-            "8. Return only valid JSON.",
+            *_profile_preference_repair_rules(compiled),
+            "Return only valid JSON.",
             "",
             "Output JSON:",
             "{",
@@ -254,6 +264,17 @@ def build_repair_prompt(
         ]
     )
     return prompt, context_chars
+
+
+def _profile_preference_repair_rules(compiled: CompiledContext) -> list[str]:
+    if compiled.route.information_need != "profile_preference":
+        return []
+    return [
+        "8. For preference, advice, or recommendation questions, extract user-specific anchors from Memory Context: preferences, dislikes, constraints, owned tools/resources, current setup, prior successful experiences, current problems, and stated goals.",
+        "9. If the draft refused but Memory Context has relevant anchors, revise to a tailored answer using those anchors instead of generic advice.",
+        "10. If the exact requested named option is not in Memory Context, answer with the type, criteria, or constraints the user would likely prefer; do not invent unsupported specific names.",
+        "11. Include the key personalized constraint or reason in the final answer when needed for the answer to satisfy the request.",
+    ]
 
 
 def _noop(draft: AnswerResult, *, enabled: bool, reason: str) -> AnswerRepair:
