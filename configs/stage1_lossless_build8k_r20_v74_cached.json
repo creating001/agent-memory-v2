@@ -1,17 +1,17 @@
 {
-  "name": "stage1_lossless_build16k_v74_cached",
-  "description": "V74 build-side memory capacity ablation on top of v73/v42: keep retrieval, compiler, answer, and finalizer logic unchanged, but replace compact build extraction with the existing lossless_atomic profile, raise build output max_tokens from 2048 to 16384, and allow up to 40 memory records per chunk. This tests whether less restrictive build-stage memory writing improves raw source activation without using gold, judge output, benchmark labels, sample ids, qids, row indices, test feedback, or sample-level rules. Answer max input/output remains 131072/16384.",
+  "name": "stage1_lossless_build8k_r20_v74_cached",
+  "description": "V74 build-side capacity ablation on top of v73/v42: keep retrieval, compiler, answer, and finalizer logic unchanged, but replace compact build extraction with the existing lossless_atomic profile, raise build output max_tokens from 2048 to 8192, and allow up to 20 memory records per chunk. This tests whether a less restrictive but still bounded build-stage memory writer improves raw source activation without using gold, judge output, benchmark labels, sample ids, qids, row indices, test feedback, or sample-level rules. Answer max input/output remains 131072/16384.",
   "build_memory": {
     "enabled": true,
     "mode": "openai_compatible",
     "base_url": "http://127.0.0.1:8000/v1",
     "model": "Qwen/Qwen3-30B-A3B-Instruct-2507",
     "temperature": 0,
-    "max_tokens": 16384,
+    "max_tokens": 8192,
     "timeout": 240,
     "max_turns_per_chunk": 80,
     "max_chars_per_turn": 500,
-    "max_records_per_chunk": 40,
+    "max_records_per_chunk": 20,
     "top_k": 20,
     "max_sources_per_record": 4,
     "drop_query_stopwords": true,
@@ -22,8 +22,8 @@
     ],
     "cache": {
       "enabled": true,
-      "path": "outputs/cache/qwen3_build_memory_lossless16k_r40_v74.sqlite",
-      "namespace": "stage1_lossless_build16k_r40_v74_qwen3_30b"
+      "path": "outputs/cache/qwen3_build_memory_lossless8k_r20_v74.sqlite",
+      "namespace": "stage1_lossless_build8k_r20_v74_qwen3_30b"
     },
     "prompt_profile": "lossless_atomic",
     "temporal_fields": true
@@ -117,8 +117,8 @@
     "timeout": 600,
     "cache": {
       "enabled": true,
-      "path": "outputs/cache/qwen3_answer_lossless16k_r40_v74.sqlite",
-      "namespace": "stage1_lossless_build16k_r40_v74_qwen3_30b"
+      "path": "outputs/cache/qwen3_answer_lossless8k_r20_v74.sqlite",
+      "namespace": "stage1_lossless_build8k_r20_v74_qwen3_30b"
     },
     "finalizer": {
       "enabled": true,
