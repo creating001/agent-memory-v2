@@ -410,6 +410,9 @@ class Stage1Pipeline:
             operation_workpad_question_gate=bool(
                 compiler_config.get("operation_workpad_question_gate", False)
             ),
+            personalized_advice_contract=bool(
+                compiler_config.get("personalized_advice_contract", False)
+            ),
             current_state_update_contract=bool(
                 compiler_config.get("current_state_update_contract", False)
             ),
@@ -572,6 +575,9 @@ class Stage1Pipeline:
             ),
             "operation_workpad_question_gate": bool(
                 compiler_config.get("operation_workpad_question_gate", False)
+            ),
+            "personalized_advice_contract": bool(
+                compiler_config.get("personalized_advice_contract", False)
             ),
             "current_state_update_contract": bool(
                 compiler_config.get("current_state_update_contract", False)

@@ -1730,6 +1730,77 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertIn("An assistant row can support an answer", contracted.prompt)
         self.assertNotIn("question_type", contracted.prompt)
 
+    def test_personalized_advice_contract_is_question_derived(self) -> None:
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text="I prefer hotels with water views and a quiet rooftop lounge.",
+                timestamp="2024-01-01",
+            ),
+        )
+        compiler = EvidenceCompiler(
+            max_evidence_items=1,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            evidence_report_contract=True,
+            evidence_report_information_needs=("profile_preference", "fact_lookup"),
+            personalized_advice_contract=True,
+        )
+
+        advice_context = compiler.compile(
+            question="Can you suggest a hotel style for my Miami trip?",
+            question_time=None,
+            route=RouteResult(information_need="profile_preference", signals=()),
+            hits=(),
+            evidence_turns=turns,
+        )
+        fact_context = compiler.compile(
+            question="Which hotel did I book for my Miami trip?",
+            question_time=None,
+            route=RouteResult(information_need="fact_lookup", signals=()),
+            hits=(),
+            evidence_turns=turns,
+        )
+
+        self.assertIn("Personalized Advice Discipline:", advice_context.prompt)
+        self.assertIn("owned resources, and prior successes", advice_context.prompt)
+        self.assertNotIn("question_type", advice_context.prompt)
+        self.assertNotIn("sample id", advice_context.prompt.lower())
+        self.assertNotIn("Personalized Advice Discipline:", fact_context.prompt)
+
+    def test_personalized_advice_contract_skips_assistant_recall(self) -> None:
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="assistant",
+                text="I suggested the harbor-view hotel last time.",
+                timestamp="2024-01-01",
+            ),
+        )
+        compiler = EvidenceCompiler(
+            max_evidence_items=1,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            evidence_report_contract=True,
+            evidence_report_information_needs=("fact_lookup",),
+            personalized_advice_contract=True,
+        )
+
+        context = compiler.compile(
+            question="Can you remind me what hotel you suggested earlier?",
+            question_time=None,
+            route=RouteResult(information_need="fact_lookup", signals=()),
+            hits=(),
+            evidence_turns=turns,
+        )
+
+        self.assertNotIn("Personalized Advice Discipline:", context.prompt)
+
     def test_temporal_order_contract_is_route_override_gated(self) -> None:
         turns = (
             Turn(

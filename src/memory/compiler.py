@@ -36,6 +36,23 @@ MAX_RELATIVE_TIME_SPANS = {
     "year": 100,
 }
 TOKEN_PATTERN = re.compile(r"[\w]+", re.UNICODE)
+PERSONALIZED_ADVICE_PATTERN = re.compile(
+    r"\b("
+    r"recommend(?:ation|ations|ed|ing)?|suggest(?:ion|ions|ed|ing)?|"
+    r"advice|advise|tips?|ideas?|should\s+i|should\s+we|"
+    r"what\s+should\s+i|what\s+do\s+you\s+think|do\s+you\s+think|"
+    r"help\s+me\s+choose|best\s+way"
+    r")\b",
+    re.IGNORECASE,
+)
+ASSISTANT_RECALL_PATTERN = re.compile(
+    r"\b("
+    r"remind\s+me|remember|earlier|previously|last\s+time|"
+    r"you\s+(?:told|recommended|suggested|said|mentioned)|"
+    r"what\s+did\s+you|what\s+was\s+the"
+    r")\b",
+    re.IGNORECASE,
+)
 SUPPORTED_INFORMATION_NEEDS = {
     "current_state",
     "fact_lookup",
@@ -182,6 +199,7 @@ class EvidenceCompiler:
             DEFAULT_STRUCTURED_ANSWER_CONTRACT_NEEDS
         ),
         operation_workpad_question_gate: bool = False,
+        personalized_advice_contract: bool = False,
         current_state_update_contract: bool = False,
         dialogue_inference_contract: bool = False,
         temporal_order_contract: bool = False,
@@ -270,6 +288,7 @@ class EvidenceCompiler:
             field_name="operation_workpad_information_needs",
         )
         self._operation_workpad_question_gate = operation_workpad_question_gate
+        self._personalized_advice_contract = personalized_advice_contract
         self._current_state_update_contract = current_state_update_contract
         self._dialogue_inference_contract = dialogue_inference_contract
         self._temporal_order_contract = temporal_order_contract
@@ -453,6 +472,10 @@ class EvidenceCompiler:
                     route,
                     question_gate=self._operation_workpad_question_gate,
                 )
+            ),
+            personalized_advice_contract=(
+                self._personalized_advice_contract
+                and _is_personalized_advice_question(question)
             ),
             current_state_update_contract=route_settings[
                 "current_state_update_contract"
@@ -1127,6 +1150,7 @@ def _build_prompt(
     evidence_report_max_items: int,
     evidence_report_detail: bool,
     operation_workpad: bool,
+    personalized_advice_contract: bool,
     current_state_update_contract: bool,
     dialogue_inference_contract: bool,
     temporal_order_contract: bool,
@@ -1184,6 +1208,7 @@ def _build_prompt(
             evidence_report_max_items=evidence_report_max_items,
             evidence_report_detail=evidence_report_detail,
             operation_workpad=operation_workpad,
+            personalized_advice_contract=personalized_advice_contract,
             current_state_update_contract=current_state_update_contract,
             dialogue_inference_contract=dialogue_inference_contract,
             temporal_order_contract=temporal_order_contract,
@@ -1344,6 +1369,7 @@ def _build_external_naive_prompt(
     evidence_report_max_items: int,
     evidence_report_detail: bool,
     operation_workpad: bool,
+    personalized_advice_contract: bool,
     current_state_update_contract: bool,
     dialogue_inference_contract: bool,
     temporal_order_contract: bool,
@@ -1431,6 +1457,14 @@ def _build_external_naive_prompt(
     if temporal_aid:
         rules.append(
             "Use Temporal Aid only to interpret row dates and relative time phrases in the memory context; it is not independent evidence."
+        )
+    personalized_advice_block = ""
+    if personalized_advice_contract:
+        personalized_advice_block = "\n".join(
+            ["", "Personalized Advice Discipline:", *_personalized_advice_lines(), ""]
+        )
+        rules.append(
+            "Use Personalized Advice Discipline only to interpret relevant Memory Context rows; it is not independent evidence."
         )
     if context_layout == "session_thread":
         rules.append(
@@ -1569,6 +1603,7 @@ def _build_external_naive_prompt(
             candidate_guide_block,
             update_conflict_guide_block,
             operation_workpad_block,
+            personalized_advice_block,
             final_answer_checklist_block,
         )
         if block
@@ -2305,6 +2340,24 @@ def _should_apply_operation_workpad(
     if route.information_need in {"list_count", "temporal_lookup"}:
         return True
     return _asks_collection_operation(question) or _asks_temporal_calculation(question)
+
+
+def _is_personalized_advice_question(question: str) -> bool:
+    text = question.strip().lower()
+    if not text:
+        return False
+    return bool(PERSONALIZED_ADVICE_PATTERN.search(text)) and not bool(
+        ASSISTANT_RECALL_PATTERN.search(text)
+    )
+
+
+def _personalized_advice_lines() -> list[str]:
+    return [
+        "- Treat remembered preferences, dislikes, goals, constraints, owned resources, and prior successes as usable personalization evidence.",
+        "- If the context gives personalization anchors but no exact named option, answer with suitable option types, criteria, or next-step choices instead of refusing.",
+        "- Do not introduce a specific named place, product, show, person, brand, or event unless that name appears in Memory Context.",
+        "- Include one or two brief personalization anchors from Memory Context; if no anchor exists, say the information is not enough.",
+    ]
 
 
 def _single_line(text: str) -> str:
