@@ -18,8 +18,11 @@
 - `stage1_answer_format_guard_v35_cached.json`：v34 上的 answer format guard；修复 JSON answer salvage 和小数 duration，当前 LoCoMo 最好。
 - `stage1_lme_token_safe_format_guard_v36_cached.json`：v28 top40/evidence budget + v35 answer guard；v42 前 LME 最好，也是当前强 baseline。
 - `stage1_operation_workpad_v42_cached.json`：v36 上的短 operation workpad；不新增 LLM 调用，不改 retrieval/build，只在 `list_count` / `temporal_lookup` 的 evidence_report prompt 中加入通用操作聚合纪律。v73 前 LongMemEval-S full 最好，但仅比 v36 净 +1，属于 close-margin 小幅正向。
+- `stage1_lossless_build16k_v74_cached.json`：build-side 容量消融；基于 v73/v42，不改 retrieval/compiler/answer/finalizer，只把 build extraction 切到 `lossless_atomic`，build 输出上限放到 16K，并把每 chunk record 容量放到 80。
 
 ## 当前候选
+
+`stage1_lossless_build16k_v74_cached.json`：当前 build-side 候选。目标是验证“build 阶段不应被 2048 输出 token 和 20 records/chunk 过度限制”的假设：让 build LLM 写入更细的 source-grounded atomic memory，再通过现有 raw source expansion 激活原始证据。正式结果必须同时报告 build token、record 数、query token、accuracy 和 cache 命中。
 
 `stage1_finalizer_duration_fix_v73_cached.json`：从 v42 出发，只关闭机械 duration decimal rounding finalizer。badcase 显示该 finalizer 在 LongMemEval-S full 中唯一一次触发时，把 answer model 正确草稿 `3.5 weeks` 改成 `4 weeks`。v73 不改 retrieval/build/prompt，使用 v42 answer cache 做 query/finalizer 侧消融；LongMemEval-S full DeepSeek judge `0.778`，当前 LME 最好，但还未达到 `0.80` baseline target。
 
