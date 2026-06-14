@@ -80,3 +80,25 @@ finalizer 极窄触发：
 ## 预期决策
 
 如果 temporal aggregation diagnostic 正向，再考虑 v48：把 v46 的 session ordering 与 v47 的 aggregation contract 组合，并先做 token gate。若 v47 对 aggregation 无收益或 finalizer 误修，则回退，转向 build-side event/temporal schema 或 retrieval-side coverage，而不是扩大 finalizer。
+
+## 诊断结果
+
+v47 已完成 LongMemEval-S `temporal_aggregation_106` 诊断，结论为失败，不进入 full。
+
+- v42 same-106 DeepSeek judge accuracy: `81/106 = 0.764151`
+- v47 same-106 DeepSeek judge accuracy: `75/106 = 0.707547`
+- gain/loss: `5 / 11`
+- answer_changed: `37`
+- finalizer_applied: `11`
+- avg_build_tokens: `79953.094340`
+- avg_query_tokens: `7209.037736`
+- estimated full avg query tokens: `5967.238`
+
+失败原因不是 clean 泄漏，而是方法质量：aggregation schema 增加 query token，`count_increment` finalizer 对 answer model 自报字段过度信任，导致重复计数和聚合行二次计数。典型 regression 包括 fitness classes、jewelry、cuisines、graduation ceremonies 等 count/list 问题。
+
+决策：
+
+- 不跑 LongMemEval-S full。
+- 不组合 v46 + v47。
+- 删除顶层候选配置 `configs/stage1_temporal_aggregation_contract_v47_cached.json`，只保留诊断目录里的 `config_snapshot.json`。
+- 下一步转向更 general 的 source-preserving candidate item 管理和去重，而不是继续扩大 answer-stage mechanical finalizer。
