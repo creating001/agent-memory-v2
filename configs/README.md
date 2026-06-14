@@ -18,11 +18,14 @@
 - `stage1_answer_format_guard_v35_cached.json`：v34 上的 answer format guard；修复 JSON answer salvage 和小数 duration，当前 LoCoMo 最好。
 - `stage1_lme_token_safe_format_guard_v36_cached.json`：v28 top40/evidence budget + v35 answer guard；v42 前 LME 最好，也是当前强 baseline。
 - `stage1_operation_workpad_v42_cached.json`：v36 上的短 operation workpad；不新增 LLM 调用，不改 retrieval/build，只在 `list_count` / `temporal_lookup` 的 evidence_report prompt 中加入通用操作聚合纪律。v73 前 LongMemEval-S full 最好，但仅比 v36 净 +1，属于 close-margin 小幅正向。
-- `stage1_finalizer_duration_fix_v73_cached.json`：当前 LongMemEval-S 最好主线；从 v42 出发只关闭有害的机械 duration decimal rounding finalizer。
+- `stage1_finalizer_duration_fix_v73_cached.json`：v79 前 LongMemEval-S 最好和关键对照；从 v42 出发只关闭有害的机械 duration decimal rounding finalizer。
+- `stage1_missing_detail_finalizer_v79_cached.json`：当前 LongMemEval-S 最好候选；从 v73 出发，只在 answer JSON `sufficient=false`、`missing` 非空且 final answer 是短拒答时，把 missing 细节透出到最终答案。
 
 ## 当前候选
 
-当前没有新的顶层候选配置。LongMemEval-S 主线仍是 `stage1_finalizer_duration_fix_v73_cached.json`；LoCoMo 主线仍是 `stage1_answer_format_guard_v35_cached.json`。新方法进入顶层前必须先有 full benchmark accuracy 和 token 结果支撑。
+LongMemEval-S 当前候选是 `stage1_missing_detail_finalizer_v79_cached.json`；LoCoMo 主线仍是 `stage1_answer_format_guard_v35_cached.json`。新方法进入顶层前必须先有 full benchmark accuracy 和 token 结果支撑。
+
+v79 已完成 LongMemEval-S full：DeepSeek judge accuracy `0.784`，高于 v73 `0.778`；avg_build_tokens `80346.246`，avg_query_tokens `5864.706`，finalizer applied `29/500`。prediction changed subset 为 `WRONG->CORRECT 6`、`CORRECT->WRONG 0`，未改 prediction 的同答案 judge 方差净 `-3`。结论是 clean、零额外 prediction LLM token 的小正向，保留为当前 LME 候选，但还未达到 0.80 baseline target。
 
 v78 structured guide row features 已完成 LongMemEval-S controlled full：DeepSeek judge accuracy `0.758`，低于 v73 `0.778`；avg query tokens `5891.06`，token 合格。changed-answer method surface 为 9 gain / 14 loss，说明浅层数量/时间 row feature 会提高候选显著性但不能稳定解决去重、scope 和 endpoint 选择。结论是负向；顶层 config 和源码开关已删除，只保留 formal `config_snapshot.json`。
 
