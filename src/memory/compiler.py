@@ -1975,10 +1975,22 @@ def _external_update_conflict_guide_lines(
 
     lines = [
         "Use this compact chain to compare directly relevant raw rows that may describe an older state, newer state, correction, or scoped historical value; verify final facts in Memory Context.",
-        "- Match the question scope first: current/latest/now should use the newest direct update, while previous/original/first/before/in-period questions should use the matching historical scope.",
-        "- Explicit corrections, updates, added items, changed values, or approximate current values can override retrieval rank when the Memory Context supports them.",
-        "- rows:",
     ]
+    if _is_aggregation_question(question):
+        lines.append(
+            "- For total, sum, difference, cost, or combined-value questions, collect each requested operand from matching rows; an older operand is still valid unless a newer row explicitly replaces the same operand."
+        )
+    else:
+        lines.append(
+            "- Match the question scope first: current/latest/now should use the newest direct update, while previous/original/first/before/in-period questions should use the matching historical scope."
+        )
+    lines.extend(
+        [
+            "- Explicit corrections, updates, added items, changed values, or approximate current values can override retrieval rank when the Memory Context supports them.",
+            "- Preserve unit and answer-slot wording attached to a selected value, such as dollars, stars, followers, minutes, years, level, or count.",
+            "- rows:",
+        ]
+    )
     for candidate in selected:
         row = candidate["row"]
         snippet = _single_line(
@@ -2003,6 +2015,8 @@ def _update_conflict_guide_rows(
     if len(rows) < 2:
         return ()
     if _asks_advice_or_recommendation(question):
+        return ()
+    if not _asks_update_conflict_value_slot(question):
         return ()
 
     question_terms = _update_conflict_question_terms(question)
@@ -2094,6 +2108,20 @@ def _asks_advice_or_recommendation(question: str) -> bool:
             r"\b(any tips|suggest|suggestions|recommend|recommendations|"
             r"what do you think|ideas on|helpful tips|what should i|should i)\b",
             question.lower(),
+        )
+    )
+
+
+def _asks_update_conflict_value_slot(question: str) -> bool:
+    lowered = question.lower()
+    return bool(
+        re.search(
+            r"\b(how many|how much|how long|how often|total|sum|combined|"
+            r"difference|cost|price|amount|number|count|percentage|discount|"
+            r"followers?|views?|comments?|stars?|level|score|goal|time|duration|"
+            r"distance|miles?|minutes?|hours?|days?|weeks?|months?|years?|"
+            r"pre-approved|spent|spend|save|saved|raise|raised)\b",
+            lowered,
         )
     )
 

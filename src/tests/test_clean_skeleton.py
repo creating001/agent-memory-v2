@@ -2146,6 +2146,78 @@ class CleanSkeletonTest(unittest.TestCase):
 
         self.assertNotIn("Update/Conflict Candidate Chain:", compiled.prompt)
 
+    def test_update_conflict_guide_skips_non_value_slots(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=3,
+            max_evidence_chars=3000,
+            prompt_mode="external_naive",
+            update_conflict_guide=True,
+            update_conflict_guide_information_needs=("current_state",),
+        )
+        compiled = compiler.compile(
+            question="Where did Alex go on his most recent family trip?",
+            question_time=None,
+            route=RouteResult(information_need="current_state", signals=()),
+            hits=(),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Alex took a 10-day family trip to Hawaii.",
+                    timestamp="2024-05-20",
+                ),
+                Turn(
+                    source_id="s2:t0",
+                    session_id="s2",
+                    turn_index=0,
+                    role="user",
+                    text="Alex recently went to Paris with family last month.",
+                    timestamp="2024-05-30",
+                ),
+            ),
+        )
+
+        self.assertNotIn("Update/Conflict Candidate Chain:", compiled.prompt)
+
+    def test_update_conflict_guide_adds_aggregation_operand_rule(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=3,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            update_conflict_guide=True,
+            update_conflict_guide_information_needs=("fact_lookup",),
+        )
+        compiled = compiler.compile(
+            question="What is the total cost of Lola's vet visit and flea medication?",
+            question_time=None,
+            route=RouteResult(information_need="fact_lookup", signals=()),
+            hits=(),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="I remember when I took Lola to the vet last week, the consultation fee was $50.",
+                    timestamp="2024-05-25",
+                ),
+                Turn(
+                    source_id="s2:t0",
+                    session_id="s2",
+                    turn_index=0,
+                    role="user",
+                    text="I got Lola flea medication for $25 today.",
+                    timestamp="2024-05-30",
+                ),
+            ),
+        )
+
+        self.assertIn("Update/Conflict Candidate Chain:", compiled.prompt)
+        self.assertIn("collect each requested operand", compiled.prompt)
+        self.assertIn("older operand is still valid", compiled.prompt)
+
     def test_pipeline_traces_update_conflict_guide_config(self) -> None:
         config = {
             "retrieval": {"top_k": 2, "max_top_k": 2, "neighbor_window": 0},
