@@ -54,7 +54,6 @@ ROUTE_OVERRIDE_KEYS = {
     "evidence_order",
     "evidence_report_detail",
     "evidence_row_labels",
-    "endpoint_validation_contract",
     "final_answer_checklist",
     "max_memory_records",
     "max_evidence_chars",
@@ -174,11 +173,6 @@ class EvidenceCompiler:
         current_state_update_contract: bool = False,
         dialogue_inference_contract: bool = False,
         temporal_order_contract: bool = False,
-        endpoint_validation_contract: bool = False,
-        endpoint_validation_information_needs: tuple[str, ...] = (
-            DEFAULT_STRUCTURED_ANSWER_CONTRACT_NEEDS
-        ),
-        endpoint_validation_question_gate: bool = True,
         source_anchor_keep: int = 0,
         source_anchor_memory_rows: int = 0,
         source_anchor_per_session: int = 0,
@@ -256,12 +250,6 @@ class EvidenceCompiler:
         self._current_state_update_contract = current_state_update_contract
         self._dialogue_inference_contract = dialogue_inference_contract
         self._temporal_order_contract = temporal_order_contract
-        self._endpoint_validation_contract = endpoint_validation_contract
-        self._endpoint_validation_information_needs = _validate_information_needs(
-            endpoint_validation_information_needs,
-            field_name="endpoint_validation_information_needs",
-        )
-        self._endpoint_validation_question_gate = endpoint_validation_question_gate
         if context_layout not in SUPPORTED_CONTEXT_LAYOUTS:
             raise ValueError(f"Unsupported context_layout: {context_layout}")
         self._context_layout = context_layout
@@ -437,14 +425,6 @@ class EvidenceCompiler:
             ],
             dialogue_inference_contract=route_settings["dialogue_inference_contract"],
             temporal_order_contract=route_settings["temporal_order_contract"],
-            endpoint_validation_contract=(
-                route_settings["endpoint_validation_contract"]
-                and route.information_need in self._endpoint_validation_information_needs
-                and _should_apply_endpoint_validation(
-                    question,
-                    question_gate=self._endpoint_validation_question_gate,
-                )
-            ),
             context_layout=route_settings["context_layout"],
             memory_layout=self._memory_layout,
             row_text_mode=route_settings["row_text_mode"],
@@ -475,7 +455,6 @@ class EvidenceCompiler:
             "dialogue_inference_contract": self._dialogue_inference_contract,
             "evidence_order": self._evidence_order,
             "evidence_report_detail": self._evidence_report_detail,
-            "endpoint_validation_contract": self._endpoint_validation_contract,
             "final_answer_checklist": self._final_answer_checklist,
             "max_evidence_chars": self._max_evidence_chars,
             "max_evidence_items": self._max_evidence_items,
@@ -568,10 +547,6 @@ def _validate_route_overrides(
         if "evidence_report_detail" in raw_overrides:
             overrides["evidence_report_detail"] = bool(
                 raw_overrides["evidence_report_detail"]
-            )
-        if "endpoint_validation_contract" in raw_overrides:
-            overrides["endpoint_validation_contract"] = bool(
-                raw_overrides["endpoint_validation_contract"]
             )
         if "candidate_guide" in raw_overrides:
             overrides["candidate_guide"] = bool(raw_overrides["candidate_guide"])
@@ -1101,7 +1076,6 @@ def _build_prompt(
     current_state_update_contract: bool,
     dialogue_inference_contract: bool,
     temporal_order_contract: bool,
-    endpoint_validation_contract: bool,
     context_layout: str,
     memory_layout: str,
     row_text_mode: str,
@@ -1154,7 +1128,6 @@ def _build_prompt(
             current_state_update_contract=current_state_update_contract,
             dialogue_inference_contract=dialogue_inference_contract,
             temporal_order_contract=temporal_order_contract,
-            endpoint_validation_contract=endpoint_validation_contract,
             final_answer_checklist=final_answer_checklist,
             context_layout=context_layout,
         )
@@ -1312,7 +1285,6 @@ def _build_external_naive_prompt(
     current_state_update_contract: bool,
     dialogue_inference_contract: bool,
     temporal_order_contract: bool,
-    endpoint_validation_contract: bool,
     final_answer_checklist: bool,
     context_layout: str,
 ) -> str:
@@ -1411,8 +1383,6 @@ def _build_external_naive_prompt(
                 temporal_order_contract=temporal_order_contract,
             )
         )
-    if endpoint_validation_contract and not structured_answer_contract:
-        rules.extend(_external_endpoint_validation_rules())
     if use_aggregation_report_contract:
         rules.extend(_external_aggregation_report_rules())
     operation_workpad_block = ""
@@ -1945,33 +1915,6 @@ def _candidate_time_mentions(text: str) -> tuple[str, ...]:
             if len(mentions) >= 4:
                 return tuple(dict.fromkeys(mentions))
     return tuple(dict.fromkeys(mentions))
-
-
-def _external_endpoint_validation_rules() -> list[str]:
-    """Reader discipline for comparison/order questions with explicit endpoints."""
-
-    return [
-        "For order or comparison questions, first identify each named candidate endpoint requested by the question.",
-        "A candidate endpoint is usable only when a Memory Context row supports that exact candidate and the target event, action, state, or value.",
-        "Do not substitute a related but unasked entity, object, person, event, or topic for a missing endpoint.",
-        "If any requested endpoint is absent or only a related different endpoint is supported, set sufficient=false, write the missing endpoint, and answer that the provided information is not enough.",
-        "When all endpoints are supported, compare only their supported values or event times; keep close-but-wrong endpoints as exclude items when they could confuse the answer.",
-    ]
-
-
-def _should_apply_endpoint_validation(question: str, *, question_gate: bool) -> bool:
-    if not question_gate:
-        return True
-    lowered = question.lower()
-    order_terms = (
-        r"first|earliest|latest|last|earlier|later|before|after|"
-        r"older|newer|most recent|least recent|chronological|order"
-    )
-    comparison_terms = r"more|less|higher|lower|longer|shorter|greater|smaller"
-    return bool(
-        re.search(rf"\b(?:{order_terms})\b", lowered)
-        or re.search(rf"\bbetween\b.+\band\b.+\b(?:{comparison_terms})\b", lowered)
-    )
 
 
 def _external_operation_workpad_lines(question: str, route: RouteResult) -> list[str]:
