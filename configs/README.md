@@ -31,3 +31,4 @@
 - 关键开关显式写入配置，便于 ablation。
 - 如果只是一次负向诊断，不长期保留配置文件；结论写入 `experiments/README.md` 或对应实验记录即可。
 - 正式实验必须把实际运行配置保存到 `experiments/formal/<run_id>/config_snapshot.json`。
+- 任何会影响 prompt、answer parsing、finalizer 或 repair 的改动，都不能默认复用旧 answer cache 来证明等价；需要更换 cache namespace，或显式做 prediction-level 复现对比并记录结论。

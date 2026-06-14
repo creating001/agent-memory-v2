@@ -60,6 +60,7 @@
 - v40 route-scoped evidence detail 已完成 LongMemEval-S full：accuracy `0.742`，371/500，低于 v36 `0.772`。它相对 v39 恢复了部分 list/temporal，但相对 v36 仍净 `-15`；结论是单纯 reader-side detailed evidence rules 不够，不跑 LoCoMo full，顶层 config 不长期保留。
 - v41 question-only LLM operation router 已完成 LongMemEval-S route-stratified 20 条 gate：avg_query_tokens `5837.55`，question_analysis_avg_query_tokens `331.05`，route_changed `6/20`，同子集 DeepSeek judge 与 v36 都是 `14/20`，无净收益且增加 token；不跑 full，顶层 config 不长期保留。
 - v42 operation workpad 已完成 LongMemEval-S full：accuracy `0.774`，387/500，比 v36 净 `+1`；avg_build_tokens `80346.246`，avg_query_tokens `5865.644`，answer max input/output `131072/16384`。结论是当前 LME 最好但只是 close-margin 小幅正向；继续加长 reader prompt 不划算，下一步应转向 build-to-query memory organization。
+- v42 复现修复控制已完成：commit `d6c6e8e` 修复 answer cache 命中二次解析和 `external_naive` disabled-block prompt drift；新控制 run 与原 v42 prediction `500/500` 完全一致。DeepSeek judge 重跑为 `0.772`，原 v42 为 `0.774`；差异来自同答案 judge variance，不是方法变化。后续方法比较必须基于修复后的代码。
 - v63 uncertain-only answer repair 已完成 LongMemEval-S full：accuracy `0.766`，383/500，低于 v42 `0.774`；vs v42 gained/lost `18/22`，net `-4`，repair triggered `47/500`、applied `10/500`，avg_query_tokens `6349.876` 超过 6K 主线预算。结论是负向且超预算，顶层 config 删除，仅保留 formal 快照；不继续把 broad answer repair 作为主线。
 - v43 session-thread memory guide 已完成 LongMemEval-S route-stratified 20 条 gate：DeepSeek judge `15/20`，与 v42 same20 持平；avg_query_tokens `6023.95`、max `8003`，未过 token gate。结论是负向/中性 diagnostic，不跑 full，顶层 config 不长期保留。
 - v44 temporal-only session guide 已完成 LongMemEval-S route-stratified 20 条 gate：DeepSeek judge `16/20`，比 v42 same20 净 `+1`；avg_query_tokens `5783.75`、max `7631`。但按 v42 full route mix 估计 full avg query `6064.479`，暂不跑 full，先做 v45 token-safe 收窄。
@@ -146,6 +147,7 @@ experiments/formal/<run_id>/
 
 | run | benchmark | subset | commit | accuracy | 主要结论 |
 |---|---|---|---|---:|---|
+| `stage1_operation_workpad_v42_repro_fix_lme_s_full_d6c6e8e` | LongMemEval-S | full | `d6c6e8e` | 0.772000 | v42 复现修复控制，不是新方法；prediction 与原 v42 500/500 相同。judge 重跑比原 v42 少 1 条正确，属于同答案 judge variance。 |
 | `stage1_operation_workpad_v42_lme_s_full_f7eb076` | LongMemEval-S | full | `f7eb076` | 0.774000 | 当前 LME 最好；v36 上的短 operation workpad，vs v36 净 +1，仍未达 0.80。收益很小，不能视为突破。 |
 | `stage1_unit_sum_finalizer_v65_lme_s_full_45851fd` | LongMemEval-S | full | `45851fd` | 0.758000 | v42 上的 unit/sum mechanical finalizer 候选；低于 v42，gain/loss 20/28，answer_changed 120。负向且不是纯 finalizer 正向消融，源码/config 删除。 |
 | `stage1_uncertain_repair_v63_lme_s_full_9ebc02c` | LongMemEval-S | full | `9ebc02c` | 0.766000 | v42 上的 uncertain-only answer repair；vs v42 gained/lost 18/22，net -4，avg_query_tokens 6349.876 超 6K。负向且超预算，顶层 config 删除。 |
