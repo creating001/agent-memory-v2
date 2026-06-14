@@ -60,7 +60,7 @@ SUPPORTED_INFORMATION_NEEDS = {
     "profile_preference",
     "temporal_lookup",
 }
-SUPPORTED_CONTEXT_LAYOUTS = {"flat", "session_thread"}
+SUPPORTED_CONTEXT_LAYOUTS = {"flat", "session_thread", "chronological_session_thread"}
 ROUTE_OVERRIDE_KEYS = {
     "candidate_guide",
     "candidate_guide_max_rows",
@@ -874,7 +874,7 @@ def _layout_rows(
 ) -> tuple[EvidenceRow, ...]:
     if context_layout == "flat":
         return rows
-    if context_layout != "session_thread":
+    if context_layout not in {"session_thread", "chronological_session_thread"}:
         raise ValueError(f"Unsupported context_layout: {context_layout}")
 
     grouped: dict[str, list[EvidenceRow]] = {}
@@ -886,6 +886,12 @@ def _layout_rows(
         grouped[row.session_id].append(row)
 
     laid_out: list[EvidenceRow] = []
+    if context_layout == "chronological_session_thread":
+        session_order = sorted(
+            session_order,
+            key=lambda session_id: _session_chronology_key(grouped[session_id]),
+        )
+
     for session_id in session_order:
         laid_out.extend(
             sorted(
@@ -898,6 +904,21 @@ def _layout_rows(
             )
         )
     return tuple(laid_out)
+
+
+def _session_chronology_key(rows: list[EvidenceRow]) -> tuple[int, str, int, str]:
+    timestamps = [row.timestamp for row in rows if row.timestamp]
+    earliest = min(timestamps) if timestamps else ""
+    first_rank = min(
+        (
+            row.retrieval_rank
+            for row in rows
+            if row.retrieval_rank is not None
+        ),
+        default=1_000_000,
+    )
+    session_id = rows[0].session_id if rows else ""
+    return (0 if earliest else 1, earliest, first_rank, session_id)
 
 
 def _question_overlap_key(
@@ -1466,10 +1487,15 @@ def _build_external_naive_prompt(
         rules.append(
             "Use Personalized Advice Discipline only to interpret relevant Memory Context rows; it is not independent evidence."
         )
-    if context_layout == "session_thread":
-        rules.append(
-            "Memory Context is grouped by session in chronological turn order within each session; use nearby turns in the same session to resolve implicit references, but do not merge unrelated sessions."
-        )
+    if context_layout in {"session_thread", "chronological_session_thread"}:
+        if context_layout == "chronological_session_thread":
+            rules.append(
+                "Memory Context is grouped by session; sessions and turns are shown in chronological order. Use nearby turns in the same session to resolve implicit references, but do not merge unrelated sessions."
+            )
+        else:
+            rules.append(
+                "Memory Context is grouped by session in chronological turn order within each session; use nearby turns in the same session to resolve implicit references, but do not merge unrelated sessions."
+            )
     if structured_answer_contract:
         rules.extend(
             [
@@ -2513,7 +2539,7 @@ def _external_naive_context(
 ) -> str:
     if not rows:
         return "None"
-    if context_layout == "session_thread":
+    if context_layout in {"session_thread", "chronological_session_thread"}:
         return _external_session_thread_context(
             rows,
             question=question,

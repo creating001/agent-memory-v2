@@ -711,6 +711,59 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual(result["trace"]["compiler"]["context_layout"], "session_thread")
         self.assertIn("### Episode 1", result["trace"]["compiled_context"]["prompt"])
 
+    def test_chronological_session_thread_layout_orders_sessions_and_turns(
+        self,
+    ) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=3,
+            max_evidence_chars=4000,
+            context_layout="chronological_session_thread",
+            prompt_mode="external_naive",
+        )
+        route = RouteResult(information_need="temporal_lookup", signals=())
+        compiled = compiler.compile(
+            question="What is the order of Alex's visits?",
+            question_time=None,
+            route=route,
+            hits=(
+                RetrievalHit("new:t1", 1.0, 1, "dense"),
+                RetrievalHit("old:t0", 0.9, 2, "dense"),
+                RetrievalHit("new:t0", 0.8, 3, "dense"),
+            ),
+            evidence_turns=(
+                Turn(
+                    source_id="new:t1",
+                    session_id="new",
+                    turn_index=1,
+                    role="user",
+                    text="Alex visited the library later.",
+                    timestamp="2024-03-01",
+                ),
+                Turn(
+                    source_id="old:t0",
+                    session_id="old",
+                    turn_index=0,
+                    role="user",
+                    text="Alex visited the museum first.",
+                    timestamp="2024-01-01",
+                ),
+                Turn(
+                    source_id="new:t0",
+                    session_id="new",
+                    turn_index=0,
+                    role="user",
+                    text="Alex visited the park before the library.",
+                    timestamp="2024-03-01",
+                ),
+            ),
+        )
+
+        self.assertEqual(
+            [row.source_id for row in compiled.evidence_rows],
+            ["old:t0", "new:t0", "new:t1"],
+        )
+        self.assertIn("sessions and turns are shown in chronological order", compiled.prompt)
+
     def test_pipeline_rejects_inconsistent_answer_output_token_config(self) -> None:
         config = {
             "retrieval": {"top_k": 1, "max_top_k": 1, "neighbor_window": 0},
@@ -2776,6 +2829,58 @@ class CleanSkeletonTest(unittest.TestCase):
 
         self.assertEqual(fact_context.evidence_rows[0].source_id, "s1:t0")
         self.assertEqual(list_context.evidence_rows[0].source_id, "s1:t1")
+
+    def test_compiler_route_override_can_scope_context_layout(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=2,
+            max_evidence_chars=4000,
+            context_layout="flat",
+            route_overrides={
+                "list_count": {"context_layout": "chronological_session_thread"}
+            },
+        )
+        turns = (
+            Turn(
+                source_id="new:t0",
+                session_id="new",
+                turn_index=0,
+                role="user",
+                text="Alex bought a second notebook.",
+                timestamp="2024-03-01",
+            ),
+            Turn(
+                source_id="old:t0",
+                session_id="old",
+                turn_index=0,
+                role="user",
+                text="Alex bought the first notebook.",
+                timestamp="2024-01-01",
+            ),
+        )
+
+        fact_context = compiler.compile(
+            question="Which notebook did Alex buy?",
+            question_time=None,
+            route=RouteResult(information_need="fact_lookup", signals=()),
+            hits=(),
+            evidence_turns=turns,
+        )
+        list_context = compiler.compile(
+            question="How many notebooks did Alex buy?",
+            question_time=None,
+            route=RouteResult(information_need="list_count", signals=("list_or_count",)),
+            hits=(),
+            evidence_turns=turns,
+        )
+
+        self.assertEqual(
+            [row.source_id for row in fact_context.evidence_rows],
+            ["new:t0", "old:t0"],
+        )
+        self.assertEqual(
+            [row.source_id for row in list_context.evidence_rows],
+            ["old:t0", "new:t0"],
+        )
 
     def test_compiler_route_overrides_only_apply_to_matching_information_need(self) -> None:
         compiler = EvidenceCompiler(
