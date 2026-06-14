@@ -66,6 +66,7 @@
 - v74 build 4K 输出上限消融已完成 LongMemEval-S full：accuracy `0.766`，383/500，低于 v73 `0.778`；avg_build_tokens 增至 `84656.5`，evidence recall 仍为 `1.0`。结论是负向 build-side 消融，顶层 config 删除，只保留 formal 快照。
 - v75 all-profile compact repair 已完成 LongMemEval-S full：accuracy `0.766`，383/500，低于 v73 `0.778`；avg_query_tokens `5985.758`，接近 6K。controlled changed subset 对 v73 为轻微正向，但 all-profile repair 会误伤已支持的个性化答案，顶层 config 删除，只保留 formal 快照。
 - v76 uncertain-only profile repair 已完成 LongMemEval-S full：accuracy `0.768`，384/500，低于 v73 `0.778`；avg_query_tokens `5880.232`，repair triggered/applied `6/4`。controlled changed subset 为 391/500，但 fresh full 不支撑主线。结论是 profile repair 只能作为低频拒答补救信号，不能继续作为通用重写器；顶层 config 删除，只保留 formal 快照。
+- v77 missing reason enrichment 已完成 LongMemEval-S full：accuracy `0.772`，386/500，低于 v73 `0.778`；avg_query_tokens 与 v73 相同，finalizer applied `42/500`。changed subset 4 gain / 4 loss，controlled accuracy 与 v73 持平。结论是拒答措辞微调不稳定；顶层 config 和源码分支删除，只保留 formal 快照。
 - v66 route-aware context budget 已完成 LongMemEval-S full：accuracy `0.754`，377/500，低于 v42 修复控制 `0.772`；avg_query_tokens 从 `5864.706` 降到 `5235.538`，但 CORRECT->WRONG 27、WRONG->CORRECT 18，净 -9。结论是固定 route row/char 截断负向；query token 不是越多越好，但不能机械压缩上下文。
 - v70 route snippet compact 已完成 LongMemEval-S full：accuracy `0.758`，379/500，低于 v42 修复控制 `0.772`；seeded cache 控制后 answer cache hits/misses `359/141`，prediction_changed `26/500`，changed subset `CORRECT->WRONG 13`、`WRONG->CORRECT 3`，主要损失来自 `list_count`。结论是纯 snippet 压缩负向；list/count 需要完整候选细节，不能靠 query snippet 换分。
 - v71 temporal-order router 已完成 LongMemEval-S full：accuracy `0.770`，385/500，低于 v42 修复控制 `0.772`；seeded cache 控制后 answer cache hits/misses `462/38`，prediction_changed `11/500`，changed subset `WRONG->CORRECT 1`、`CORRECT->WRONG 1`。结论是 route-only 修正中性，不保留顶层 config 或 src route 改动；顺序题仍需要 endpoint/candidate validation。
@@ -157,6 +158,7 @@ experiments/formal/<run_id>/
 | run | benchmark | subset | commit | accuracy | 主要结论 |
 |---|---|---|---|---:|---|
 | `stage1_finalizer_duration_fix_v73_lme_s_full_24396f9` | LongMemEval-S | full | `24396f9` | 0.778000 | 当前 LME 最好主线；只关闭 v42 中有害的机械 duration rounding finalizer，prediction_changed 1/500，token 不增加。 |
+| `stage1_missing_reason_enrichment_v77_lme_s_full_f669b91` | LongMemEval-S | full | `f669b91` | 0.772000 | v73 上的 missing reason enrichment；零额外 token 但 changed subset 4 gain / 4 loss，fresh full 低于 v73，源码/config 删除。 |
 | `stage1_profile_uncertain_compact_repair_v76_lme_s_full_5e1d4eb` | LongMemEval-S | full | `5e1d4eb` | 0.768000 | v75 的 uncertain-only profile repair；token 合格、controlled changed subset 轻微正向，但 fresh full 低于 v73，不进主线。 |
 | `stage1_profile_compact_repair_v75_lme_s_full_f21f16b` | LongMemEval-S | full | `f21f16b` | 0.766000 | all-profile compact repair；changed subset 有信号，但会误伤已支持的个性化答案，avg query tokens 接近 6K，不进主线。 |
 | `stage1_build4k_r20_v74_lme_s_full_8e4c88e` | LongMemEval-S | full | `8e4c88e` | 0.766000 | build 输出 2K->4K 消融；build tokens 增加但 accuracy 下降，evidence recall 不变，不进主线。 |

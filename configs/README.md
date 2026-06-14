@@ -19,11 +19,12 @@
 - `stage1_lme_token_safe_format_guard_v36_cached.json`：v28 top40/evidence budget + v35 answer guard；v42 前 LME 最好，也是当前强 baseline。
 - `stage1_operation_workpad_v42_cached.json`：v36 上的短 operation workpad；不新增 LLM 调用，不改 retrieval/build，只在 `list_count` / `temporal_lookup` 的 evidence_report prompt 中加入通用操作聚合纪律。v73 前 LongMemEval-S full 最好，但仅比 v36 净 +1，属于 close-margin 小幅正向。
 - `stage1_finalizer_duration_fix_v73_cached.json`：当前 LongMemEval-S 最好主线；从 v42 出发只关闭有害的机械 duration decimal rounding finalizer。
-- `stage1_missing_reason_enrichment_v77_cached.json`：当前待验证 query-side 候选；基于 v73，只在 generic insufficient answer 且 draft JSON 有 `missing` 字段时补充缺失原因，不新增 LLM 调用。
 
 ## 当前候选
 
-当前候选是 `stage1_missing_reason_enrichment_v77_cached.json`。它来自 v73 badcase：部分拒答被判错是因为 final answer 只说信息不足，而 draft JSON 的 `missing` 字段已经说明缺少什么。v77 不重算答案、不增加 query token，只把 prediction-time missing reason 拼进拒答，验证更具体的 abstention 是否能提升 judge accuracy。
+当前没有新的顶层候选配置。LongMemEval-S 主线仍是 `stage1_finalizer_duration_fix_v73_cached.json`；LoCoMo 主线仍是 `stage1_answer_format_guard_v35_cached.json`。新方法进入顶层前必须先有 full benchmark accuracy 和 token 结果支撑。
+
+v77 已完成 LongMemEval-S full：fresh DeepSeek judge accuracy `0.772`，低于 v73 `0.778`；avg query tokens 与 v73 相同，finalizer applied `42/500`。changed subset 对 v73 为 4 gain / 4 loss，controlled accuracy 持平。结论是 missing reason enrichment 不进入主线；顶层配置和源码分支已删除，只保留 formal `config_snapshot.json`。
 
 v76 已完成 LongMemEval-S full：fresh DeepSeek judge accuracy `0.768`，低于 v73 `0.778`；avg query tokens `5880.232`，token 合格。controlled changed-prediction subset 对 v73 为轻微正向，但 fresh full 不支撑主线。v75/v76 结论是 profile repair 可作为低频拒答补救信号，但不能作为通用答案重写器；顶层配置已删除，只保留 formal `config_snapshot.json`。
 
