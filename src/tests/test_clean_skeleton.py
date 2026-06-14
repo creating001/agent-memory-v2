@@ -1395,6 +1395,55 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertNotIn('"evidence_report"', list_context.prompt)
         self.assertIn('"answer": "concise answer"', fact_context.prompt)
 
+    def test_external_naive_final_checklist_is_config_gated(self) -> None:
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text="Alex fixed the fence yesterday.",
+                timestamp="2024-01-08",
+            ),
+        )
+        route = RouteResult(information_need="temporal_lookup", signals=("temporal",))
+        default_compiler = EvidenceCompiler(
+            max_evidence_items=1,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            evidence_report_contract=True,
+        )
+        checklist_compiler = EvidenceCompiler(
+            max_evidence_items=1,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            evidence_report_contract=True,
+            final_answer_checklist=True,
+        )
+
+        default_context = default_compiler.compile(
+            question="Which happened first, Alex fixing the fence or buying cows?",
+            question_time=None,
+            route=route,
+            hits=(),
+            evidence_turns=turns,
+        )
+        checklist_context = checklist_compiler.compile(
+            question="Which happened first, Alex fixing the fence or buying cows?",
+            question_time=None,
+            route=route,
+            hits=(),
+            evidence_turns=turns,
+        )
+
+        self.assertNotIn("Final Answer Checklist", default_context.prompt)
+        self.assertIn("Final Answer Checklist", checklist_context.prompt)
+        self.assertIn("multiple compared alternatives", checklist_context.prompt)
+        self.assertIn("partial support is not enough", checklist_context.prompt)
+        self.assertNotIn("gold answer", checklist_context.prompt)
+        self.assertNotIn("judge output", checklist_context.prompt)
+        self.assertNotIn("sample id", checklist_context.prompt)
+
     def test_detailed_evidence_report_rules_are_config_gated(self) -> None:
         turns = (
             Turn(

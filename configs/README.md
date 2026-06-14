@@ -21,7 +21,7 @@
 
 ## 当前候选
 
-当前没有未验证候选配置。新方法先跑 diagnostic，并在通过 accuracy、clean scan 和 token gate 后再进入保留配置列表。
+- `stage1_target_completeness_v57_cached.json`：v42 底座上的 query/compiler-side target-completeness checklist 候选。只启用 `external_naive` prompt 的通用 final answer checklist，不改 build/retrieval/answer model；先跑 diagnostic，若负向则删除顶层配置，仅保留实验快照。
 
 ## 新配置规则
 

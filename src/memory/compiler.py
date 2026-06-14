@@ -900,6 +900,7 @@ def _build_prompt(
             evidence_report_max_items=evidence_report_max_items,
             evidence_report_detail=evidence_report_detail,
             operation_workpad=operation_workpad,
+            final_answer_checklist=final_answer_checklist,
             context_layout=context_layout,
         )
 
@@ -1053,6 +1054,7 @@ def _build_external_naive_prompt(
     evidence_report_max_items: int,
     evidence_report_detail: bool,
     operation_workpad: bool,
+    final_answer_checklist: bool,
     context_layout: str,
 ) -> str:
     use_temporal_event_contract = (
@@ -1159,6 +1161,16 @@ def _build_external_naive_prompt(
             rules.append(
                 "Use Private Operation Discipline as an internal checklist only; do not add checklist fields to the output JSON."
             )
+    final_answer_checklist_block = ""
+    if final_answer_checklist:
+        checklist_lines = _final_answer_checklist_lines(route)
+        if checklist_lines:
+            final_answer_checklist_block = "\n".join(
+                ["", "Final Answer Checklist:", *checklist_lines, ""]
+            )
+            rules.append(
+                "Use Final Answer Checklist as an internal validation step only; do not add checklist fields to the output JSON."
+            )
     rules.extend(
         [
             "If the context is insufficient, say the provided information is not enough.",
@@ -1236,6 +1248,7 @@ def _build_external_naive_prompt(
             structured_guide_block,
             candidate_guide_block,
             operation_workpad_block,
+            final_answer_checklist_block,
             "",
             "Memory Context:",
             _external_naive_context(
@@ -2062,9 +2075,12 @@ def _route_guidance_lines(route: RouteResult) -> list[str]:
 
 def _final_answer_checklist_lines(route: RouteResult) -> list[str]:
     lines = [
-        "- Privately identify the raw evidence row ids that directly support the final answer.",
+        "- Privately identify the Memory Context rows that directly support the final answer.",
         "- If no raw row supports the exact asked entity, object, relation, or time constraint, answer that the information is not available.",
         "- Do not answer from a related but different entity, object, activity, person, or collection.",
+        "- If the question mentions multiple compared alternatives, required target actions, or scoped entities, each required part must be directly supported; partial support is not enough.",
+        "- Do not infer that an alternative happened, was purchased, attended, completed, or preferred merely because another alternative is supported.",
+        "- Preserve full names, titles, locations, dates, item names, and qualifiers from supporting rows when they are part of the requested answer.",
         "- If build-stage memory conflicts with raw rows, trust the raw rows.",
     ]
     if route.information_need == "current_state":
