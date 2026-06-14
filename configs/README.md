@@ -19,11 +19,14 @@
 - `stage1_lme_token_safe_format_guard_v36_cached.json`：v28 top40/evidence budget + v35 answer guard；v42 前 LME 最好，也是当前强 baseline。
 - `stage1_operation_workpad_v42_cached.json`：v36 上的短 operation workpad；不新增 LLM 调用，不改 retrieval/build，只在 `list_count` / `temporal_lookup` 的 evidence_report prompt 中加入通用操作聚合纪律。v73 前 LongMemEval-S full 最好，但仅比 v36 净 +1，属于 close-margin 小幅正向。
 - `stage1_build4k_r20_v74_cached.json`：build 输出上限消融；基于 v73/v42，不改 build prompt、retrieval、compiler、answer、finalizer，只把 build 输出上限从 2K 放到 4K，record 容量保持 20。
-- `stage1_profile_compact_repair_v75_cached.json`：当前 LME query-side 候选；基于 v73，只把 generic advice/suggestion/should-I 路由到 `profile_preference`，并对 profile_preference 做压缩二阶段 repair。非目标样本可用 v73 prediction trace seed answer cache 做受控消融。
+- `stage1_profile_compact_repair_v75_cached.json`：profile compact repair 对照；基于 v73，把 generic advice/suggestion/should-I 路由到 `profile_preference`，并对所有 profile_preference 做压缩二阶段 repair。LongMemEval-S full fresh judge 负向，但 controlled changed-prediction subset 有轻微信号。
+- `stage1_profile_uncertain_compact_repair_v76_cached.json`：当前 LME query-side 候选；基于 v75/v73，不改 build、retrieval、compiler、repair prompt，只把二阶段 repair 从 all-profile 收窄为 draft unknown/insufficient/missing 时触发，用来验证 profile repair 是否只应作为拒答/不确定补救。
 
 ## 当前候选
 
-当前 query-side 候选是 `stage1_profile_compact_repair_v75_cached.json`。它来自 v51/v52 的 profile repair 诊断：profile/advice repair 在 single-session-preference 上有正向信号，但原 v51 token 过高、v52 full 受大范围重跑波动影响。v75 只对 `profile_preference` 触发压缩 repair，并通过 seed cache 隔离非目标样本。
+当前 query-side 候选是 `stage1_profile_uncertain_compact_repair_v76_cached.json`。它来自 v75 badcase：profile/advice repair 能修复拒答和证据不足回答，但 all-profile repair 会重写已经足够个性化的正确答案，并把 avg query tokens 推近 6K。v76 只验证一个变量：保留 v75 的 compact repair prompt 和 profile/advice route，但只在 draft answer 或 draft JSON 显示 unknown/insufficient/missing 时触发 repair。
+
+v75 已完成 LongMemEval-S full：fresh DeepSeek judge accuracy `0.766`，低于 v73 `0.778`；avg query tokens `5985.758`，接近 6K 预算。controlled changed-prediction subset 对 v73 为轻微正向，但不足以作为主线。结论是 profile repair 的方向有价值，但触发策略必须更窄。
 
 `stage1_build4k_r20_v74_cached.json` 已完成 LongMemEval-S full：DeepSeek judge accuracy `0.766`，低于 v73 `0.778`；avg_build_tokens 从 `80346.246` 增至 `84656.5`，evidence recall 仍为 `1.0`。结论是负向 build-side 消融，不进入主线。
 
