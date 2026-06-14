@@ -629,6 +629,21 @@ class Stage1Pipeline:
         self._answer_finalizer_enable_missing_detail = bool(
             answer_finalizer_config.get("enable_missing_detail", False)
         )
+        self._answer_finalizer_enable_count_answer_detail = bool(
+            answer_finalizer_config.get("enable_count_answer_detail", False)
+        )
+        self._answer_finalizer_enable_average_calculation = bool(
+            answer_finalizer_config.get("enable_average_calculation", False)
+        )
+        self._answer_finalizer_enable_money_difference_calculation = bool(
+            answer_finalizer_config.get("enable_money_difference_calculation", False)
+        )
+        self._answer_finalizer_enable_date_endpoint_duration_calculation = bool(
+            answer_finalizer_config.get(
+                "enable_date_endpoint_duration_calculation",
+                False,
+            )
+        )
         self._answer_finalizer_trace_config = {
             "enabled": self._answer_finalizer_enabled,
             "mode": self._answer_finalizer_mode,
@@ -645,6 +660,18 @@ class Stage1Pipeline:
                 self._answer_finalizer_enable_duration_rounding_correction
             ),
             "enable_missing_detail": self._answer_finalizer_enable_missing_detail,
+            "enable_count_answer_detail": (
+                self._answer_finalizer_enable_count_answer_detail
+            ),
+            "enable_average_calculation": (
+                self._answer_finalizer_enable_average_calculation
+            ),
+            "enable_money_difference_calculation": (
+                self._answer_finalizer_enable_money_difference_calculation
+            ),
+            "enable_date_endpoint_duration_calculation": (
+                self._answer_finalizer_enable_date_endpoint_duration_calculation
+            ),
         }
         self._answer_repair_enabled = bool(answer_repair_config.get("enabled", False))
         self._answer_repair_information_needs = _tuple_config(
@@ -1428,6 +1455,18 @@ class Stage1Pipeline:
                 self._answer_finalizer_enable_duration_rounding_correction
             ),
             enable_missing_detail=self._answer_finalizer_enable_missing_detail,
+            enable_count_answer_detail=(
+                self._answer_finalizer_enable_count_answer_detail
+            ),
+            enable_average_calculation=(
+                self._answer_finalizer_enable_average_calculation
+            ),
+            enable_money_difference_calculation=(
+                self._answer_finalizer_enable_money_difference_calculation
+            ),
+            enable_date_endpoint_duration_calculation=(
+                self._answer_finalizer_enable_date_endpoint_duration_calculation
+            ),
         )
 
 _SOURCE_ALIGNMENT_STOPWORDS = {

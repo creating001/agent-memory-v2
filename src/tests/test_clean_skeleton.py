@@ -1157,6 +1157,181 @@ class CleanSkeletonTest(unittest.TestCase):
 
         self.assertFalse(finalization.applied)
 
+    def test_count_answer_detail_finalizer_expands_bare_count(self) -> None:
+        content = json.dumps(
+            {
+                "sufficient": True,
+                "answer_type": "count",
+                "evidence_report": [
+                    {"status": "support", "value": "Dr. Lee"},
+                    {"status": "support", "value": "Dr. Patel"},
+                    {"status": "support", "value": "Dr. Smith"},
+                ],
+                "answer": "3",
+            }
+        )
+        raw_response = json.dumps({"content": content})
+
+        finalization = finalize_structured_answer(
+            question="How many different doctors did Alex visit?",
+            draft_answer="3",
+            raw_response=raw_response,
+            enable_count_answer_detail=True,
+        )
+
+        self.assertTrue(finalization.applied)
+        self.assertEqual(finalization.reason, "evidence_report_count_answer_detail")
+        self.assertIn("3 different doctors:", finalization.answer)
+        self.assertIn("Dr. Lee", finalization.answer)
+
+    def test_count_answer_detail_finalizer_ignores_scalar_values(self) -> None:
+        content = json.dumps(
+            {
+                "sufficient": True,
+                "answer_type": "count",
+                "evidence_report": [
+                    {"status": "support", "value": "125"},
+                    {"status": "support", "value": "125"},
+                ],
+                "answer": "125",
+            }
+        )
+        raw_response = json.dumps({"content": content})
+
+        finalization = finalize_structured_answer(
+            question="How many stars does Alex need?",
+            draft_answer="125",
+            raw_response=raw_response,
+            enable_count_answer_detail=True,
+        )
+
+        self.assertFalse(finalization.applied)
+
+    def test_average_calculation_finalizer_uses_evidence_report_values(self) -> None:
+        content = json.dumps(
+            {
+                "sufficient": True,
+                "answer_type": "fact",
+                "evidence_report": [
+                    {"status": "support", "slot": "undergraduate GPA", "value": "3.86"},
+                    {"status": "support", "slot": "graduate GPA", "value": "3.8"},
+                ],
+                "answer": "The undergraduate GPA is 3.86 and graduate GPA is 3.8.",
+            }
+        )
+        raw_response = json.dumps({"content": content})
+
+        finalization = finalize_structured_answer(
+            question="What is the average GPA of my undergraduate and graduate studies?",
+            draft_answer="The undergraduate GPA is 3.86 and graduate GPA is 3.8.",
+            raw_response=raw_response,
+            enable_average_calculation=True,
+        )
+
+        self.assertTrue(finalization.applied)
+        self.assertEqual(finalization.reason, "evidence_report_average_calculation")
+        self.assertEqual(finalization.expected_value, "3.83")
+        self.assertIn("3.83 average", finalization.answer)
+
+    def test_average_calculation_finalizer_skips_average_comparison(self) -> None:
+        content = json.dumps(
+            {
+                "sufficient": True,
+                "answer_type": "fact",
+                "evidence_report": [
+                    {"status": "support", "value": "29.5"},
+                    {"status": "support", "value": "32"},
+                ],
+                "answer": "2.5 years",
+            }
+        )
+        raw_response = json.dumps({"content": content})
+
+        finalization = finalize_structured_answer(
+            question="How much older am I than the average age of employees?",
+            draft_answer="2.5 years",
+            raw_response=raw_response,
+            enable_average_calculation=True,
+        )
+
+        self.assertFalse(finalization.applied)
+
+    def test_money_difference_finalizer_uses_two_supported_amounts(self) -> None:
+        content = json.dumps(
+            {
+                "sufficient": False,
+                "answer_type": "fact",
+                "evidence_report": [
+                    {"status": "support", "value": "$30 per night"},
+                    {"status": "support", "value": "over $300 per night"},
+                ],
+                "answer": "The provided information is not enough.",
+            }
+        )
+        raw_response = json.dumps({"content": content})
+
+        finalization = finalize_structured_answer(
+            question="How much more did Alex spend in Hawaii compared to Tokyo?",
+            draft_answer="The provided information is not enough.",
+            raw_response=raw_response,
+            enable_money_difference_calculation=True,
+        )
+
+        self.assertTrue(finalization.applied)
+        self.assertEqual(finalization.reason, "evidence_report_money_difference")
+        self.assertEqual(finalization.answer, "$270")
+
+    def test_date_endpoint_duration_finalizer_uses_two_supported_dates(self) -> None:
+        content = json.dumps(
+            {
+                "sufficient": True,
+                "answer_type": "duration",
+                "evidence_report": [
+                    {"status": "support", "value": "2023-05-05"},
+                    {"status": "support", "value": "2023-04-26"},
+                ],
+                "answer": "19 days",
+            }
+        )
+        raw_response = json.dumps({"content": content})
+
+        finalization = finalize_structured_answer(
+            question="How long had Alex been using the rug when he rearranged the room?",
+            draft_answer="19 days",
+            raw_response=raw_response,
+            enable_date_endpoint_duration_calculation=True,
+        )
+
+        self.assertTrue(finalization.applied)
+        self.assertEqual(
+            finalization.reason,
+            "evidence_report_date_endpoint_duration",
+        )
+        self.assertEqual(finalization.answer, "9 days")
+
+    def test_date_endpoint_duration_finalizer_skips_refusal(self) -> None:
+        content = json.dumps(
+            {
+                "sufficient": True,
+                "answer_type": "duration",
+                "evidence_report": [
+                    {"status": "support", "value": "2023-05-05"},
+                    {"status": "support", "value": "2023-04-26"},
+                ],
+                "answer": "The provided information is not enough.",
+            }
+        )
+        raw_response = json.dumps({"content": content})
+
+        finalization = finalize_structured_answer(
+            question="How many days before buying the iPad did Alex attend the market?",
+            draft_answer="The provided information is not enough.",
+            raw_response=raw_response,
+            enable_date_endpoint_duration_calculation=True,
+        )
+
+        self.assertFalse(finalization.applied)
+
     def test_structured_answer_finalizer_repairs_money_sum_mismatch(self) -> None:
         content = json.dumps(
             {

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import asdict, dataclass
+from datetime import date
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from typing import Any
 
@@ -28,6 +29,12 @@ _COUNT_QUESTION = re.compile(
     r"\b(how many|number of|count of|count|total number of)\b",
     re.IGNORECASE,
 )
+_HOW_MANY_TARGET = re.compile(
+    r"\bhow many\s+(.+?)(?:\s+"
+    r"(?:do|does|did|have|has|had|am|is|are|was|were|will|would|"
+    r"could|should|can|that)\b|\?)",
+    re.IGNORECASE,
+)
 _DURATION_COUNT_QUESTION = re.compile(
     r"\bhow many\s+(?:days?|weeks?|months?|years?|hours?|minutes?)\b|\bhow long\b",
     re.IGNORECASE,
@@ -45,9 +52,26 @@ _SUM_QUESTION = re.compile(
     r"\b(total|sum|combined|altogether|in all|how much)\b",
     re.IGNORECASE,
 )
+_AVERAGE_QUESTION = re.compile(
+    r"\b(?:what(?:\s+is|'s)?\s+the\s+average|average\s+[^?]*\bof\b|"
+    r"mean\s+[^?]*\bof\b)\b",
+    re.IGNORECASE,
+)
+_AVERAGE_COMPARISON = re.compile(
+    r"\b(older|younger|more|less|than|difference|above|below)\b",
+    re.IGNORECASE,
+)
 _MONEY_QUESTION = re.compile(
     r"(\$|\bdollars?\b|\bcost\b|\bcosts\b|\bspend\b|\bspent\b|\bpaid\b|"
     r"\bprice\b|\bprices\b|\bexpense\b|\bexpenses\b|\bcharge\b|\bcharges\b)",
+    re.IGNORECASE,
+)
+_MONEY_DIFFERENCE_QUESTION = re.compile(
+    r"\b(how much more|how much less|difference|compared to|compare|versus|vs\.?)\b",
+    re.IGNORECASE,
+)
+_DATE_ENDPOINT_DURATION_QUESTION = re.compile(
+    r"\bhow many\s+days?\b|\bhow long\b",
     re.IGNORECASE,
 )
 _INSUFFICIENT_ANSWER = re.compile(
@@ -66,6 +90,7 @@ _DATE_LIKE = re.compile(
     r"\b(?:19|20)\d{2}\b|"
     r"\b\d{1,2}[-/]\d{1,2}[-/]\d{2,4}\b"
 )
+_ISO_DATE = re.compile(r"\b((?:19|20)\d{2})-(\d{1,2})-(\d{1,2})\b")
 _FILTER_REASON = re.compile(
     r"\b(duplicate|out[-_ ]of[-_ ]scope|irrelevant|wrong[_ -]?time|"
     r"not[_ -]?confirmed|assistant[_ -]?suggestion|hypothetical|planned)\b",
@@ -83,6 +108,10 @@ def finalize_structured_answer(
     enable_money_sum_correction: bool = True,
     enable_duration_rounding_correction: bool = False,
     enable_missing_detail: bool = False,
+    enable_count_answer_detail: bool = False,
+    enable_average_calculation: bool = False,
+    enable_money_difference_calculation: bool = False,
+    enable_date_endpoint_duration_calculation: bool = False,
 ) -> AnswerFinalization:
     """Repair only narrow count/sum mismatches exposed by model evidence JSON.
 
@@ -106,6 +135,14 @@ def finalize_structured_answer(
     if not payload:
         return _noop(draft_answer, "no_structured_answer_json")
     if payload.get("sufficient") is False:
+        if enable_money_difference_calculation:
+            money_difference = _finalize_money_difference(
+                question=question,
+                draft_answer=draft_answer,
+                payload=payload,
+            )
+            if money_difference is not None:
+                return money_difference
         if enable_missing_detail:
             detailed = _finalize_missing_detail(
                 draft_answer=draft_answer,
@@ -125,6 +162,42 @@ def finalize_structured_answer(
         )
         if report_counted is not None:
             return report_counted
+
+    if enable_count_answer_detail and _is_count_question(lowered_question):
+        detailed_count = _finalize_evidence_report_count_detail(
+            question=question,
+            lowered_question=lowered_question,
+            draft_answer=draft_answer,
+            payload=payload,
+        )
+        if detailed_count is not None:
+            return detailed_count
+
+    if enable_average_calculation and _is_average_question(question):
+        averaged = _finalize_average_calculation(
+            draft_answer=draft_answer,
+            payload=payload,
+        )
+        if averaged is not None:
+            return averaged
+
+    if enable_money_difference_calculation:
+        money_difference = _finalize_money_difference(
+            question=question,
+            draft_answer=draft_answer,
+            payload=payload,
+        )
+        if money_difference is not None:
+            return money_difference
+
+    if enable_date_endpoint_duration_calculation:
+        date_duration = _finalize_date_endpoint_duration(
+            question=question,
+            draft_answer=draft_answer,
+            payload=payload,
+        )
+        if date_duration is not None:
+            return date_duration
 
     items = _extract_items(payload)
     if not items:
@@ -196,6 +269,12 @@ def _is_count_question(lowered_question: str) -> bool:
 def _is_sum_question(lowered_question: str) -> bool:
     return bool(_SUM_QUESTION.search(lowered_question)) and bool(
         _MONEY_QUESTION.search(lowered_question)
+    )
+
+
+def _is_average_question(question: str) -> bool:
+    return bool(_AVERAGE_QUESTION.search(question)) and not bool(
+        _AVERAGE_COMPARISON.search(question)
     )
 
 
@@ -338,6 +417,252 @@ def _finalize_evidence_report_count_increment(
         evidence_item_count=len(increments),
         expected_value=str(int(total)),
     )
+
+
+def _finalize_evidence_report_count_detail(
+    *,
+    question: str,
+    lowered_question: str,
+    draft_answer: str,
+    payload: dict[str, Any],
+) -> AnswerFinalization | None:
+    if _answer_is_insufficient(draft_answer):
+        return None
+    if _DURATION_COUNT_QUESTION.search(lowered_question):
+        return None
+    if len(draft_answer.split()) > 4:
+        return None
+    if str(payload.get("answer_type") or "").lower() not in {"count", "list"}:
+        return None
+    report = payload.get("evidence_report")
+    if not isinstance(report, list):
+        return None
+    labels = _evidence_report_support_labels(report)
+    if len(labels) < 2:
+        return None
+    expected = Decimal(len(labels))
+    if not _numeric_answer_contains(draft_answer, expected):
+        return None
+    answer_terms = set(_clean_key(draft_answer).split())
+    for label in labels:
+        label_terms = _clean_key(label).split()
+        if label_terms and label_terms[0] in answer_terms:
+            return None
+    return AnswerFinalization(
+        answer=_format_count_detail_answer(int(expected), labels, question),
+        before=draft_answer,
+        applied=True,
+        reason="evidence_report_count_answer_detail",
+        evidence_item_count=len(labels),
+        expected_value=str(int(expected)),
+    )
+
+
+def _evidence_report_support_labels(report: list[Any]) -> list[str]:
+    labels = []
+    seen: set[str] = set()
+    for item in report:
+        if not isinstance(item, dict):
+            continue
+        if str(item.get("status") or "").strip().lower() != "support":
+            continue
+        label = _evidence_report_label(item)
+        key = _clean_key(label)
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        labels.append(label)
+    return labels
+
+
+def _evidence_report_label(item: dict[str, Any]) -> str:
+    label = _compact_label(
+        str(
+            item.get("canonical_item")
+            or item.get("value")
+            or item.get("slot")
+            or item.get("reason")
+            or ""
+        )
+    )
+    if not label:
+        return ""
+    terms = _clean_key(label).split()
+    if _extract_plain_value(label) is not None and len(terms) <= 3:
+        return ""
+    return label
+
+
+def _format_count_detail_answer(count: int, labels: list[str], question: str) -> str:
+    target = _count_target_phrase(question)
+    prefix = f"{count} {target}" if target else str(count)
+    return f"{prefix}: {', '.join(labels[:8])}"
+
+
+def _count_target_phrase(question: str) -> str:
+    match = _HOW_MANY_TARGET.search(question)
+    if not match:
+        return ""
+    phrase = re.sub(r"\s+", " ", match.group(1)).strip(" ?:;,.")
+    if not phrase:
+        return ""
+    if len(phrase) > 70:
+        phrase = phrase[:67].rstrip() + "..."
+    return phrase
+
+
+def _finalize_average_calculation(
+    *,
+    draft_answer: str,
+    payload: dict[str, Any],
+) -> AnswerFinalization | None:
+    if _answer_is_insufficient(draft_answer):
+        return None
+    report = payload.get("evidence_report")
+    if not isinstance(report, list):
+        return None
+    values = _evidence_report_numeric_support_values(report)
+    if not 2 <= len(values) <= 6:
+        return None
+    average = (sum(values) / Decimal(len(values))).quantize(Decimal("0.01"))
+    if _numeric_answer_contains(draft_answer, average):
+        return None
+    if not any(_numeric_answer_contains(draft_answer, value) for value in values):
+        return None
+    operands = " + ".join(_format_decimal(value) for value in values[:6])
+    answer = f"{_format_decimal(average)} average (({operands}) / {len(values)})"
+    return AnswerFinalization(
+        answer=answer,
+        before=draft_answer,
+        applied=True,
+        reason="evidence_report_average_calculation",
+        evidence_item_count=len(values),
+        expected_value=_format_decimal(average),
+    )
+
+
+def _evidence_report_numeric_support_values(report: list[Any]) -> list[Decimal]:
+    values = []
+    for item in report:
+        if not isinstance(item, dict):
+            continue
+        if str(item.get("status") or "").strip().lower() != "support":
+            continue
+        raw_value = str(item.get("value") or "").strip()
+        if not raw_value or _DATE_LIKE.search(raw_value):
+            continue
+        value = _extract_plain_value(raw_value)
+        if value is None:
+            continue
+        values.append(value)
+    return values
+
+
+def _finalize_money_difference(
+    *,
+    question: str,
+    draft_answer: str,
+    payload: dict[str, Any],
+) -> AnswerFinalization | None:
+    if not _MONEY_DIFFERENCE_QUESTION.search(question):
+        return None
+    report = payload.get("evidence_report")
+    if not isinstance(report, list):
+        return None
+    values = _evidence_report_money_support_values(report)
+    if len(values) != 2:
+        return None
+    difference = abs(values[0][1] - values[1][1])
+    if difference <= 0:
+        return None
+    if _numeric_answer_contains(draft_answer, difference):
+        return None
+    return AnswerFinalization(
+        answer=f"${_format_decimal(difference)}",
+        before=draft_answer,
+        applied=True,
+        reason="evidence_report_money_difference",
+        evidence_item_count=len(values),
+        expected_value=_format_decimal(difference),
+    )
+
+
+def _evidence_report_money_support_values(
+    report: list[Any],
+) -> list[tuple[str, Decimal]]:
+    values = []
+    seen: set[Decimal] = set()
+    for item in report:
+        if not isinstance(item, dict):
+            continue
+        if str(item.get("status") or "").strip().lower() != "support":
+            continue
+        raw_value = str(item.get("value") or "").strip()
+        value = _extract_money_value(raw_value)
+        if value is None or value in seen:
+            continue
+        seen.add(value)
+        values.append((raw_value, value))
+    return values
+
+
+def _finalize_date_endpoint_duration(
+    *,
+    question: str,
+    draft_answer: str,
+    payload: dict[str, Any],
+) -> AnswerFinalization | None:
+    if _answer_is_insufficient(draft_answer):
+        return None
+    if not _DATE_ENDPOINT_DURATION_QUESTION.search(question):
+        return None
+    if re.search(r"\bhow many\s+(?:weeks?|months?|years?)\b", question, re.IGNORECASE):
+        return None
+    report = payload.get("evidence_report")
+    if not isinstance(report, list):
+        return None
+    dates = _evidence_report_support_dates(report)
+    if len(dates) != 2:
+        return None
+    days = abs((dates[0] - dates[1]).days)
+    if days <= 0 or days > 90:
+        return None
+    expected = Decimal(days)
+    if _numeric_answer_contains(draft_answer, expected):
+        return None
+    return AnswerFinalization(
+        answer=f"{days} days",
+        before=draft_answer,
+        applied=True,
+        reason="evidence_report_date_endpoint_duration",
+        evidence_item_count=len(dates),
+        expected_value=str(days),
+    )
+
+
+def _evidence_report_support_dates(report: list[Any]) -> list[date]:
+    dates = []
+    seen: set[date] = set()
+    for item in report:
+        if not isinstance(item, dict):
+            continue
+        if str(item.get("status") or "").strip().lower() != "support":
+            continue
+        raw_value = str(item.get("value") or "")
+        for match in _ISO_DATE.finditer(raw_value):
+            parsed = _parse_iso_date(match)
+            if parsed is None or parsed in seen:
+                continue
+            seen.add(parsed)
+            dates.append(parsed)
+    return dates
+
+
+def _parse_iso_date(match: re.Match[str]) -> date | None:
+    try:
+        return date(int(match.group(1)), int(match.group(2)), int(match.group(3)))
+    except ValueError:
+        return None
 
 
 def _item_included(item: dict[str, Any]) -> bool:
@@ -528,6 +853,10 @@ def _numeric_answer_disagrees(answer: str, expected: Decimal) -> bool:
     if not numbers:
         return True
     return all(value != expected for value in numbers)
+
+
+def _numeric_answer_contains(answer: str, expected: Decimal) -> bool:
+    return not _numeric_answer_disagrees(answer, expected)
 
 
 def _format_count_answer(items: list[dict[str, str]]) -> str:
