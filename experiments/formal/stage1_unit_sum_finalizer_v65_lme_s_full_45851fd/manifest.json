@@ -1,0 +1,31 @@
+{
+  "benchmark": "longmemeval_s",
+  "clean_assertions": [
+    "Prediction loader rejects gold/reference/target answers.",
+    "Prediction loader rejects judge outputs and benchmark labels.",
+    "Prediction loader rejects sample ids, qids, and row indices.",
+    "record_key is copied only by the runner and is not passed into pipeline modules.",
+    "Derived context rows always retain raw source_id back-links.",
+    "Build-stage typed memory is created only from raw dialogue turns and visible metadata."
+  ],
+  "config_path": "/data/home_new/wujinqi/agent-memory/configs/stage1_unit_sum_finalizer_v65_cached.json",
+  "created_at_utc": "2026-06-14T08:31:33+00:00",
+  "experiment_dir": "/data/home_new/wujinqi/agent-memory/experiments/formal/stage1_unit_sum_finalizer_v65_lme_s_full_45851fd",
+  "experiment_kind": "formal",
+  "git": {
+    "commit": "45851fda371d58eff3d68eec5da1fed933793f2a",
+    "dirty": false,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": ""
+  },
+  "input_path": "/data/home_new/wujinqi/agent-memory/outputs/prepare_longmemeval_s_cleaned/prediction_input.jsonl",
+  "output_path": "/data/home_new/wujinqi/agent-memory/outputs/formal/stage1_unit_sum_finalizer_v65_lme_s_full_45851fd/predictions.jsonl",
+  "outputs": {
+    "predictions": "/data/home_new/wujinqi/agent-memory/outputs/formal/stage1_unit_sum_finalizer_v65_lme_s_full_45851fd/predictions.jsonl",
+    "traces": "/data/home_new/wujinqi/agent-memory/outputs/formal/stage1_unit_sum_finalizer_v65_lme_s_full_45851fd/traces.jsonl"
+  },
+  "run_id": "stage1_unit_sum_finalizer_v65_lme_s_full_45851fd",
+  "subset": "full",
+  "trace_path": "/data/home_new/wujinqi/agent-memory/outputs/formal/stage1_unit_sum_finalizer_v65_lme_s_full_45851fd/traces.jsonl"
+}

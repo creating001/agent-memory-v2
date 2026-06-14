@@ -80,8 +80,6 @@ def finalize_structured_answer(
     raw_response: str | None,
     enable_count_correction: bool = False,
     enable_evidence_report_count_correction: bool = False,
-    enable_additive_quantity_correction: bool = False,
-    enable_unit_completion: bool = False,
     enable_money_sum_correction: bool = True,
     enable_duration_rounding_correction: bool = False,
 ) -> AnswerFinalization:
@@ -119,24 +117,6 @@ def finalize_structured_answer(
         )
         if report_counted is not None:
             return report_counted
-
-    if enable_additive_quantity_correction:
-        quantity_sum = _finalize_additive_quantity_sum(
-            lowered_question=lowered_question,
-            draft_answer=draft_answer,
-            payload=payload,
-        )
-        if quantity_sum is not None:
-            return quantity_sum
-
-    if enable_unit_completion:
-        completed_unit = _finalize_unit_completion(
-            lowered_question=lowered_question,
-            draft_answer=draft_answer,
-            payload=payload,
-        )
-        if completed_unit is not None:
-            return completed_unit
 
     items = _extract_items(payload)
     if not items:
@@ -320,82 +300,6 @@ def _finalize_evidence_report_count_increment(
     )
 
 
-def _finalize_additive_quantity_sum(
-    *,
-    lowered_question: str,
-    draft_answer: str,
-    payload: dict[str, Any],
-) -> AnswerFinalization | None:
-    if _answer_is_insufficient(draft_answer):
-        return None
-    if not _is_additive_quantity_question(lowered_question):
-        return None
-    report = payload.get("evidence_report")
-    if not isinstance(report, list):
-        return None
-    values: list[tuple[str, Decimal, str]] = []
-    for item in report:
-        if not isinstance(item, dict):
-            continue
-        if str(item.get("status") or "").strip().lower() != "support":
-            continue
-        parsed = _evidence_report_quantity(item)
-        if parsed is not None:
-            values.append(parsed)
-    if not (2 <= len(values) <= 8):
-        return None
-    units = {unit for _, _, unit in values if unit}
-    if len(units) > 1:
-        return None
-    total = sum(value for _, value, _ in values)
-    if total in {value for _, value, _ in values}:
-        return None
-    if not _numeric_answer_disagrees(draft_answer, total):
-        return None
-    unit = next(iter(units), "")
-    answer = _format_quantity_answer(total, unit)
-    return AnswerFinalization(
-        answer=answer,
-        before=draft_answer,
-        applied=True,
-        reason="evidence_report_additive_quantity_consistency",
-        evidence_item_count=len(values),
-        expected_value=_format_decimal(total),
-    )
-
-
-def _finalize_unit_completion(
-    *,
-    lowered_question: str,
-    draft_answer: str,
-    payload: dict[str, Any],
-) -> AnswerFinalization | None:
-    if _answer_is_insufficient(draft_answer):
-        return None
-    value = _single_number_answer(draft_answer)
-    if value is None:
-        return None
-    unit = _question_answer_unit(lowered_question)
-    if not unit:
-        return None
-    if unit not in {"$", "hours", "minutes", "pages"}:
-        evidence_unit = _dominant_evidence_unit(payload)
-        if evidence_unit:
-            unit = evidence_unit
-        else:
-            return None
-    answer = _format_quantity_answer(value, unit)
-    if answer == draft_answer:
-        return None
-    return AnswerFinalization(
-        answer=answer,
-        before=draft_answer,
-        applied=True,
-        reason="numeric_unit_completion",
-        expected_value=f"{_format_decimal(value)} {unit}".strip(),
-    )
-
-
 def _item_included(item: dict[str, Any]) -> bool:
     include = item.get("include")
     if include is not None:
@@ -566,128 +470,6 @@ def _extract_plain_value(text: str) -> Decimal | None:
     return _decimal(matches[0].group(1))
 
 
-def _single_number_answer(answer: str) -> Decimal | None:
-    if not re.fullmatch(r"\s*[0-9][0-9,]*(?:\.[0-9]+)?\s*", answer):
-        return None
-    return _decimal(answer.strip())
-
-
-def _is_additive_quantity_question(lowered_question: str) -> bool:
-    if not re.search(
-        r"\b(total|combined|altogether|in total|in all|sum|total number|"
-        r"total amount|total distance|total weight|total money)\b",
-        lowered_question,
-    ):
-        return False
-    return not bool(
-        re.search(
-            r"\b(left|remaining|including|more than|less than|compared|difference|"
-            r"exceed|exceeded|older|younger|how long|how many days|how many weeks|"
-            r"how many months|how many years|average|percent|percentage)\b",
-            lowered_question,
-        )
-    )
-
-
-def _evidence_report_quantity(item: dict[str, Any]) -> tuple[str, Decimal, str] | None:
-    text = " ".join(
-        str(item.get(key) or "")
-        for key in ("operand_value", "value", "reason")
-    )
-    if not text or _DATE_LIKE.search(text):
-        return None
-    values = [
-        value
-        for value in (_decimal(match.group(1)) for match in _NUMBER.finditer(text))
-        if value is not None
-    ]
-    if len(values) != 1:
-        return None
-    label = str(
-        item.get("canonical_item")
-        or item.get("slot")
-        or item.get("value")
-        or item.get("reason")
-        or "item"
-    ).strip()
-    return (label, values[0], _quantity_unit(text))
-
-
-def _question_answer_unit(lowered_question: str) -> str:
-    if "miles per gallon" in lowered_question:
-        return ""
-    explicit_unit_patterns = (
-        (r"\bhours?\b", "hours"),
-        (r"\bminutes?\b", "minutes"),
-        (r"\bpages?\b", "pages"),
-    )
-    for pattern, unit in explicit_unit_patterns:
-        if re.search(pattern, lowered_question):
-            return unit
-    if re.search(
-        r"\b(total amount|money|cost|costs|expense|expenses|"
-        r"paid|price|prices|raise|raised|earned|dollars?)\b",
-        lowered_question,
-    ):
-        return "$"
-    evidence_backed_patterns = (
-        (r"\b(?:distance|miles?)\b", "miles"),
-        (r"\b(?:weight|feed|pounds?|lbs?)\b", "pounds"),
-    )
-    for pattern, unit in evidence_backed_patterns:
-        if re.search(pattern, lowered_question):
-            return unit
-    return ""
-
-
-def _dominant_evidence_unit(payload: dict[str, Any]) -> str:
-    units: dict[str, int] = {}
-    report = payload.get("evidence_report")
-    if not isinstance(report, list):
-        return ""
-    for item in report:
-        if not isinstance(item, dict):
-            continue
-        text = " ".join(str(item.get(key) or "") for key in ("value", "reason"))
-        unit = _quantity_unit(text)
-        if unit:
-            units[unit] = units.get(unit, 0) + 1
-    if not units:
-        return ""
-    return sorted(units.items(), key=lambda item: (-item[1], item[0]))[0][0]
-
-
-def _quantity_unit(text: str) -> str:
-    if "$" in text or re.search(r"\b(?:dollars?|usd)\b", text, re.IGNORECASE):
-        return "$"
-    match = re.search(
-        r"\b(?:miles?|pounds?|lbs?|kilograms?|kg|hours?|minutes?|pages?|"
-        r"views?|comments?)\b",
-        text,
-        re.IGNORECASE,
-    )
-    if not match:
-        return ""
-    unit = match.group(0).lower()
-    if unit in {"mile", "miles"}:
-        return "miles"
-    if unit in {"pound", "pounds", "lb", "lbs"}:
-        return "pounds"
-    if unit in {"kilogram", "kilograms", "kg"}:
-        return "kg"
-    if unit in {"hour", "hours"}:
-        return "hours"
-    if unit in {"minute", "minutes"}:
-        return "minutes"
-    if unit in {"page", "pages"}:
-        return "pages"
-    if unit in {"view", "views"}:
-        return "views"
-    if unit in {"comment", "comments"}:
-        return "comments"
-    return unit
-
-
 def _decimal(value: str | None) -> Decimal | None:
     if value is None:
         return None
@@ -727,15 +509,6 @@ def _format_sum_answer(total: Decimal, items: list[tuple[str, Decimal]]) -> str:
     if operands:
         return f"${_format_decimal(total)} total ({operands})"
     return f"${_format_decimal(total)} total"
-
-
-def _format_quantity_answer(value: Decimal, unit: str) -> str:
-    amount = _format_decimal(value)
-    if unit == "$":
-        return f"${amount}"
-    if unit:
-        return f"{amount} {unit}"
-    return amount
 
 
 def _format_decimal(value: Decimal) -> str:

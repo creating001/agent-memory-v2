@@ -581,12 +581,6 @@ class Stage1Pipeline:
                 "enable_evidence_report_count_correction", False
             )
         )
-        self._answer_finalizer_enable_additive_quantity_correction = bool(
-            answer_finalizer_config.get("enable_additive_quantity_correction", False)
-        )
-        self._answer_finalizer_enable_unit_completion = bool(
-            answer_finalizer_config.get("enable_unit_completion", False)
-        )
         self._answer_finalizer_enable_money_sum_correction = bool(
             answer_finalizer_config.get("enable_money_sum_correction", True)
         )
@@ -605,10 +599,6 @@ class Stage1Pipeline:
             "enable_evidence_report_count_correction": (
                 self._answer_finalizer_enable_evidence_report_count_correction
             ),
-            "enable_additive_quantity_correction": (
-                self._answer_finalizer_enable_additive_quantity_correction
-            ),
-            "enable_unit_completion": self._answer_finalizer_enable_unit_completion,
             "enable_money_sum_correction": (
                 self._answer_finalizer_enable_money_sum_correction
             ),
@@ -1382,10 +1372,6 @@ class Stage1Pipeline:
             enable_evidence_report_count_correction=(
                 self._answer_finalizer_enable_evidence_report_count_correction
             ),
-            enable_additive_quantity_correction=(
-                self._answer_finalizer_enable_additive_quantity_correction
-            ),
-            enable_unit_completion=self._answer_finalizer_enable_unit_completion,
             enable_money_sum_correction=(
                 self._answer_finalizer_enable_money_sum_correction
             ),

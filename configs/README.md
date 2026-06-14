@@ -21,7 +21,7 @@
 
 ## 当前候选
 
-- `stage1_unit_sum_finalizer_v65_cached.json`：v42 上的窄机械 finalizer 候选。build/retrieval/compiler/answer prompt 全部不变，只开启 prediction-time numeric unit completion 和 evidence_report additive quantity consistency；先跑 LongMemEval-S full，因为 answer/build cache 可复用且逻辑 token 成本仍按 v42 冷启动统计。
+暂无。v65 unit/sum mechanical finalizer 已完成 LongMemEval-S full：accuracy 低于 v42，且不是纯 finalizer 正向消融；顶层 config 和源码分支删除，只保留 formal 快照。v64 list_count-only adjacent-turn window BM25 也已验证负向，只保留 diagnostic 快照。
 
 负向诊断只保留在对应 `experiments/diagnostic/<run_id>/config_snapshot.json` 中，不保留顶层 config。
 

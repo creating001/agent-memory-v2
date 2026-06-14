@@ -82,6 +82,7 @@
 - v61 fact operation workpad gate 已完成 LongMemEval-S `fact_operation_33` 诊断：DeepSeek judge `27/33 = 0.818182`，与 v42 same33 持平；gain/loss `2/2`，answer_changed `12`，avg_build_tokens `80906.667`，avg_query_tokens `5694.030`。修复少数 exact numeric/format case，但引入等量 over-count / insufficient-answer regression；结论是中性，不跑 full，顶层 config 删除，仅保留实验快照。
 - v62 dialogue episode layout 已完成 LongMemEval-S `fact_lookup_183` 诊断：DeepSeek judge `141/183 = 0.770492`，低于 v42 same183 `150/183 = 0.819672`；gain/loss `8/17`，answer_changed `54`，avg_build_tokens `80561.590`，avg_query_tokens `6220.005` 超过 6K。结论是负向且超预算，删除顶层 config 和对应源码分支，仅保留实验快照。
 - v64 list_count-only adjacent-turn window BM25 已完成 LongMemEval-S `list_count_119` 诊断：DeepSeek judge `93/119 = 0.781513`，低于 v42 same119 `95/119 = 0.798319`；gain/loss `5/7`，answer_changed `17`，avg_query_tokens `5648.555`。结论是 clean 且 token 合格但负向，不跑 full，顶层 config 删除，仅保留实验快照。
+- v65 unit/sum mechanical finalizer 已完成 LongMemEval-S full：DeepSeek judge `379/500 = 0.758000`，低于 v42 `387/500 = 0.774000`；vs v42 gain/loss `20/28`、answer_changed `120`，avg_build_tokens `80346.246`，avg_query_tokens `5924.318`，evidence recall `1.0`。结论是负向，且受 current code drift 影响，不是纯 finalizer 正向消融；顶层 config 和源码分支删除，只保留 formal 快照。
 
 负向探索结论已压缩保留：
 
@@ -146,6 +147,7 @@ experiments/formal/<run_id>/
 | run | benchmark | subset | commit | accuracy | 主要结论 |
 |---|---|---|---|---:|---|
 | `stage1_operation_workpad_v42_lme_s_full_f7eb076` | LongMemEval-S | full | `f7eb076` | 0.774000 | 当前 LME 最好；v36 上的短 operation workpad，vs v36 净 +1，仍未达 0.80。收益很小，不能视为突破。 |
+| `stage1_unit_sum_finalizer_v65_lme_s_full_45851fd` | LongMemEval-S | full | `45851fd` | 0.758000 | v42 上的 unit/sum mechanical finalizer 候选；低于 v42，gain/loss 20/28，answer_changed 120。负向且不是纯 finalizer 正向消融，源码/config 删除。 |
 | `stage1_uncertain_repair_v63_lme_s_full_9ebc02c` | LongMemEval-S | full | `9ebc02c` | 0.766000 | v42 上的 uncertain-only answer repair；vs v42 gained/lost 18/22，net -4，avg_query_tokens 6349.876 超 6K。负向且超预算，顶层 config 删除。 |
 | `stage1_lme_token_safe_format_guard_v36_lme_s_full_4af3244` | LongMemEval-S | full | `4af3244` | 0.772000 | v42 前 LME 最好和当前强 baseline；v28 top40/evidence budget + v35 answer guard，vs v28 净 +3；仍未达 0.80。 |
 | `stage1_profile_uncertain_repair_v52_lme_s_full_9a04884` | LongMemEval-S | full | `9a04884` | 0.770000 | v42 上的 token-safe profile/advice repair；same30 正向但 full 负向，vs v42 净 -2，answer_changed 106。删除顶层 config，不跑 LoCoMo。 |
