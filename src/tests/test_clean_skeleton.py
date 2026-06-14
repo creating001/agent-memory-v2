@@ -1732,6 +1732,57 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertIn("started N ago", temporal_context.prompt)
         self.assertNotIn("earlier normalized event time", list_context.prompt)
 
+    def test_endpoint_validation_contract_is_question_gated(self) -> None:
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text="Alex started the Apollo project in January.",
+                timestamp="2024-01-15",
+            ),
+            Turn(
+                source_id="s1:t1",
+                session_id="s1",
+                turn_index=1,
+                role="user",
+                text="Alex discussed a related hardware prototype.",
+                timestamp="2024-02-01",
+            ),
+        )
+        compiler = EvidenceCompiler(
+            max_evidence_items=2,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            evidence_report_contract=True,
+            evidence_report_information_needs=("list_count", "temporal_lookup"),
+            endpoint_validation_contract=True,
+            endpoint_validation_information_needs=("list_count", "temporal_lookup"),
+        )
+        ordinary_context = compiler.compile(
+            question="How many projects did Alex start?",
+            question_time=None,
+            route=RouteResult(information_need="list_count", signals=("list_or_count",)),
+            hits=(),
+            evidence_turns=turns,
+        )
+        order_context = compiler.compile(
+            question="Which project did Alex start first, Apollo or Zephyr?",
+            question_time=None,
+            route=RouteResult(information_need="list_count", signals=("list_or_count",)),
+            hits=(),
+            evidence_turns=turns,
+        )
+
+        self.assertNotIn("named candidate endpoint", ordinary_context.prompt)
+        self.assertIn("named candidate endpoint", order_context.prompt)
+        self.assertIn("Do not substitute a related but unasked", order_context.prompt)
+        self.assertIn("set sufficient=false", order_context.prompt)
+        self.assertIn("Memory Context:", order_context.prompt)
+        self.assertIn("Alex started the Apollo project", order_context.prompt)
+        self.assertNotIn("question_type", order_context.prompt)
+
     def test_external_naive_final_checklist_is_config_gated(self) -> None:
         turns = (
             Turn(
@@ -2011,6 +2062,49 @@ class CleanSkeletonTest(unittest.TestCase):
         )
         self.assertIn(
             "Candidate Evidence Map:",
+            result["trace"]["compiled_context"]["prompt"],
+        )
+
+    def test_pipeline_traces_endpoint_validation_config(self) -> None:
+        config = {
+            "retrieval": {"top_k": 1, "max_top_k": 1, "neighbor_window": 0},
+            "compiler": {
+                "max_evidence_items": 1,
+                "max_evidence_chars": 2000,
+                "prompt_mode": "external_naive",
+                "evidence_report_contract": True,
+                "endpoint_validation_contract": True,
+                "endpoint_validation_information_needs": [
+                    "list_count",
+                    "temporal_lookup",
+                ],
+                "endpoint_validation_question_gate": True,
+            },
+            "answer": {"fallback_answer": "I do not know."},
+        }
+        request = PredictionRequest(
+            question="Which project did Alex start first, Apollo or Zephyr?",
+            turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Alex started the Apollo project in January.",
+                    timestamp="2024-01-15",
+                ),
+            ),
+        )
+
+        result = Stage1Pipeline(config).predict(request)
+
+        self.assertTrue(result["trace"]["compiler"]["endpoint_validation_contract"])
+        self.assertEqual(
+            result["trace"]["compiler"]["endpoint_validation_information_needs"],
+            ("list_count", "temporal_lookup"),
+        )
+        self.assertIn(
+            "named candidate endpoint",
             result["trace"]["compiled_context"]["prompt"],
         )
 

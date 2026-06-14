@@ -404,6 +404,18 @@ class Stage1Pipeline:
             temporal_order_contract=bool(
                 compiler_config.get("temporal_order_contract", False)
             ),
+            endpoint_validation_contract=bool(
+                compiler_config.get("endpoint_validation_contract", False)
+            ),
+            endpoint_validation_information_needs=_tuple_config(
+                compiler_config.get(
+                    "endpoint_validation_information_needs",
+                    ("list_count", "temporal_lookup"),
+                )
+            ),
+            endpoint_validation_question_gate=bool(
+                compiler_config.get("endpoint_validation_question_gate", True)
+            ),
             source_anchor_keep=int(compiler_config.get("source_anchor_keep", 0)),
             source_anchor_memory_rows=int(
                 compiler_config.get("source_anchor_memory_rows", 0)
@@ -551,6 +563,18 @@ class Stage1Pipeline:
             ),
             "temporal_order_contract": bool(
                 compiler_config.get("temporal_order_contract", False)
+            ),
+            "endpoint_validation_contract": bool(
+                compiler_config.get("endpoint_validation_contract", False)
+            ),
+            "endpoint_validation_information_needs": _tuple_config(
+                compiler_config.get(
+                    "endpoint_validation_information_needs",
+                    ("list_count", "temporal_lookup"),
+                )
+            ),
+            "endpoint_validation_question_gate": bool(
+                compiler_config.get("endpoint_validation_question_gate", True)
             ),
             "source_anchor_keep": int(compiler_config.get("source_anchor_keep", 0)),
             "source_anchor_memory_rows": int(
