@@ -1,0 +1,58 @@
+{
+  "baseline_run": "stage1_granularity_adaptive_v98_locomo_nonadv_full_252a24b",
+  "by_route": {
+    "current_state": {
+      "delta": 0,
+      "n": 4,
+      "v98_correct": 4,
+      "v99_correct": 4
+    },
+    "fact_lookup": {
+      "delta": -4,
+      "n": 50,
+      "v98_correct": 41,
+      "v99_correct": 37
+    },
+    "list_count": {
+      "delta": -2,
+      "n": 50,
+      "v98_correct": 35,
+      "v99_correct": 33
+    },
+    "profile_preference": {
+      "delta": -4,
+      "n": 46,
+      "v98_correct": 43,
+      "v99_correct": 39
+    },
+    "temporal_lookup": {
+      "delta": 0,
+      "n": 50,
+      "v98_correct": 42,
+      "v99_correct": 42
+    }
+  },
+  "candidate_run": "stage1_granularity_adaptive_v99_locomo_route_stratified_200_6c5bdf4",
+  "changed_prediction_transitions_vs_v98": {
+    "CORRECT->CORRECT": 61,
+    "CORRECT->WRONG": 12,
+    "WRONG->CORRECT": 2,
+    "WRONG->WRONG": 20
+  },
+  "clean_note": "Diagnostic comparison uses offline judge/labels only after prediction; do not use it in prediction logic.",
+  "delta_vs_v98": -10,
+  "n": 200,
+  "prediction_changed_vs_v98": 95,
+  "transitions_vs_v98": {
+    "CORRECT->CORRECT": 153,
+    "CORRECT->WRONG": 12,
+    "WRONG->CORRECT": 2,
+    "WRONG->WRONG": 33
+  },
+  "v96_accuracy": 0.83,
+  "v96_correct": 166,
+  "v98_accuracy": 0.825,
+  "v98_correct": 165,
+  "v99_accuracy": 0.775,
+  "v99_correct": 155
+}

@@ -454,9 +454,6 @@ class Stage1Pipeline:
             personalized_advice_contract=bool(
                 compiler_config.get("personalized_advice_contract", False)
             ),
-            short_answer_contract=bool(
-                compiler_config.get("short_answer_contract", False)
-            ),
             current_state_update_contract=bool(
                 compiler_config.get("current_state_update_contract", False)
             ),
@@ -2127,9 +2124,6 @@ def _compiler_trace_config(
         "personalized_advice_contract": bool(
             compiler_config.get("personalized_advice_contract", False)
         ),
-        "short_answer_contract": bool(
-            compiler_config.get("short_answer_contract", False)
-        ),
         "current_state_update_contract": bool(
             compiler_config.get("current_state_update_contract", False)
         ),
@@ -2274,9 +2268,6 @@ def _configured_compiler(compiler_config: Mapping[str, Any]) -> EvidenceCompiler
         ),
         personalized_advice_contract=bool(
             compiler_config.get("personalized_advice_contract", False)
-        ),
-        short_answer_contract=bool(
-            compiler_config.get("short_answer_contract", False)
         ),
         current_state_update_contract=bool(
             compiler_config.get("current_state_update_contract", False)

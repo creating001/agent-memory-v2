@@ -53,7 +53,6 @@ def main() -> int:
     total_context_chars = 0
     total_update_conflict_guide_applied = 0
     total_personalized_advice_contract_applied = 0
-    total_short_answer_contract_applied = 0
     total_embedding_tokens = 0
     total_effective_top_k = 0
     total_effective_dense_top_k = 0
@@ -127,8 +126,6 @@ def main() -> int:
             total_update_conflict_guide_applied += 1
         if "Personalized Advice Discipline:" in prompt_text:
             total_personalized_advice_contract_applied += 1
-        if "Short Answer Boundary:" in prompt_text:
-            total_short_answer_contract_applied += 1
         retrieval_trace = result["trace"]["retrieval"]
         total_embedding_tokens += int(retrieval_trace.get("embedding_tokens") or 0)
         total_effective_top_k += int(retrieval_trace.get("top_k") or 0)
@@ -724,10 +721,6 @@ def main() -> int:
             "personalized_advice_contract_applied": (
                 total_personalized_advice_contract_applied
             ),
-            "short_answer_contract": config.get("compiler", {}).get(
-                "short_answer_contract", False
-            ),
-            "short_answer_contract_applied": total_short_answer_contract_applied,
             "current_state_update_contract": config.get("compiler", {}).get(
                 "current_state_update_contract", False
             ),
@@ -1221,8 +1214,6 @@ def _write_summary(
         f"- operation_workpad_question_gate: {metrics['compiler']['operation_workpad_question_gate']}",
         f"- personalized_advice_contract: {metrics['compiler']['personalized_advice_contract']}",
         f"- personalized_advice_contract_applied: {metrics['compiler']['personalized_advice_contract_applied']}",
-        f"- short_answer_contract: {metrics['compiler']['short_answer_contract']}",
-        f"- short_answer_contract_applied: {metrics['compiler']['short_answer_contract_applied']}",
         f"- structured_guide: {metrics['compiler']['structured_guide']}",
         f"- structured_guide_max_rows: {metrics['compiler']['structured_guide_max_rows']}",
         f"- structured_guide_include_rows: {metrics['compiler']['structured_guide_include_rows']}",
@@ -1366,8 +1357,6 @@ def _write_diagnosis(
         f"- operation_workpad_question_gate: {metrics['compiler']['operation_workpad_question_gate']}",
         f"- personalized_advice_contract: {metrics['compiler']['personalized_advice_contract']}",
         f"- personalized_advice_contract_applied: {metrics['compiler']['personalized_advice_contract_applied']}",
-        f"- short_answer_contract: {metrics['compiler']['short_answer_contract']}",
-        f"- short_answer_contract_applied: {metrics['compiler']['short_answer_contract_applied']}",
         f"- structured_guide: {metrics['compiler']['structured_guide']}",
         f"- structured_guide_max_rows: {metrics['compiler']['structured_guide_max_rows']}",
         f"- structured_guide_include_rows: {metrics['compiler']['structured_guide_include_rows']}",
