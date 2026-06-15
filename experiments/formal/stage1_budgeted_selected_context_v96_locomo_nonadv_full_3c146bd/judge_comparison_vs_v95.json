@@ -1,0 +1,1153 @@
+{
+  "current_run": "stage1_budgeted_selected_context_v96_locomo_nonadv_full_3c146bd",
+  "baseline_run": "stage1_selected_context_v95_locomo_nonadv_full_43ee885",
+  "current_correct": 1232,
+  "baseline_correct": 1211,
+  "current_accuracy": 0.8,
+  "baseline_accuracy": 0.7863636363636364,
+  "n_common": 1540,
+  "prediction_changed": 640,
+  "prediction_unchanged": 900,
+  "transitions": {
+    "WRONG->WRONG": 265,
+    "CORRECT->CORRECT": 1168,
+    "WRONG->CORRECT": 64,
+    "CORRECT->WRONG": 43
+  },
+  "changed_prediction_transitions": {
+    "WRONG->WRONG": 125,
+    "CORRECT->CORRECT": 426,
+    "WRONG->CORRECT": 53,
+    "CORRECT->WRONG": 36
+  },
+  "changed_prediction_net_correct": 17,
+  "unchanged_prediction_judge_change_count": 18,
+  "by_current_route_transition": {
+    "current_state": {
+      "CORRECT->CORRECT": 3,
+      "WRONG->WRONG": 1
+    },
+    "fact_lookup": {
+      "WRONG->WRONG": 122,
+      "CORRECT->CORRECT": 694,
+      "WRONG->CORRECT": 37,
+      "CORRECT->WRONG": 29
+    },
+    "list_count": {
+      "CORRECT->CORRECT": 182,
+      "WRONG->WRONG": 62,
+      "CORRECT->WRONG": 9,
+      "WRONG->CORRECT": 17
+    },
+    "profile_preference": {
+      "CORRECT->CORRECT": 38,
+      "WRONG->WRONG": 6,
+      "CORRECT->WRONG": 1,
+      "WRONG->CORRECT": 1
+    },
+    "temporal_lookup": {
+      "WRONG->WRONG": 74,
+      "CORRECT->CORRECT": 251,
+      "CORRECT->WRONG": 4,
+      "WRONG->CORRECT": 9
+    }
+  },
+  "by_selected_context_transition": {
+    "applied": {
+      "WRONG->WRONG": 190,
+      "CORRECT->CORRECT": 914,
+      "WRONG->CORRECT": 55,
+      "CORRECT->WRONG": 39
+    },
+    "not_applied": {
+      "WRONG->WRONG": 75,
+      "CORRECT->CORRECT": 254,
+      "CORRECT->WRONG": 4,
+      "WRONG->CORRECT": 9
+    }
+  },
+  "examples_changed_gain_loss": [
+    {
+      "record_key": "036dd1354b09be7deddafe06",
+      "question": "Why did Jolene have to reschedule their meeting with Deborah on September 8, 2023?",
+      "base_answer": "A storm forced the cancellation of their yoga getaway, requiring the meeting to be rescheduled.",
+      "current_answer": "A storm forced the cancellation of their yoga getaway, which required rescheduling the meeting.",
+      "transition": "WRONG->CORRECT",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 6,
+        "materialized_source_ids": [
+          "D9:15",
+          "D10:1",
+          "D9:17",
+          "D25:10",
+          "D25:6",
+          "D24:1"
+        ],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "03d5acfac9acadea67e10c5b",
+      "question": "Which pet did Jolene adopt more recently - Susie or Seraphim?",
+      "base_answer": "Seraphim",
+      "current_answer": "Susie",
+      "transition": "CORRECT->WRONG",
+      "route": {
+        "information_need": "list_count",
+        "retrieval_multiplier": 3,
+        "signals": [
+          "list_or_count"
+        ]
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 6,
+        "materialized_source_ids": [
+          "D2:20",
+          "D15:17",
+          "D2:22",
+          "D14:4",
+          "D8:8",
+          "D28:26"
+        ],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "0968f8b1c60a55755c7aeccc",
+      "question": "How many times has Joanna's scripts been rejected?",
+      "base_answer": "The provided information is not enough to determine the exact number of times Joanna's scripts have been rejected.",
+      "current_answer": "2",
+      "transition": "WRONG->CORRECT",
+      "route": {
+        "information_need": "list_count",
+        "retrieval_multiplier": 3,
+        "signals": [
+          "list_or_count"
+        ]
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 6,
+        "materialized_source_ids": [
+          "D24:12",
+          "D27:12",
+          "D14:1",
+          "D24:13",
+          "D14:5",
+          "D14:2"
+        ],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "09b4428074e002035973b90c",
+      "question": "What are the classes that Audrey took for her dogs to?",
+      "base_answer": "dog grooming course, dog training course, agility classes",
+      "current_answer": "dog grooming course, dog training course, positive reinforcement training class, agility classes, bonding workshop",
+      "transition": "WRONG->CORRECT",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 6,
+        "materialized_source_ids": [
+          "D10:1",
+          "D6:8",
+          "D15:3",
+          "D6:4",
+          "D14:2",
+          "D9:7"
+        ],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "0d798f45f3b37893b6adb96f",
+      "question": "When did Nate get his first two turtles?",
+      "base_answer": "2019-01-23",
+      "current_answer": "The provided information is not enough to determine when Nate got his first two turtles.",
+      "transition": "CORRECT->WRONG",
+      "route": {
+        "information_need": "temporal_lookup",
+        "retrieval_multiplier": 2,
+        "signals": [
+          "temporal"
+        ]
+      },
+      "selected_context": {
+        "applied": false,
+        "eligible": false,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 0,
+        "materialized_source_ids": [],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "0d7ae1d4468d1f5d668b2978",
+      "question": "What activity did John and Max enjoy together last summer?",
+      "base_answer": "camping, hiking, and swimming",
+      "current_answer": "hiking, swimming, and making great memories",
+      "transition": "CORRECT->WRONG",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 6,
+        "materialized_source_ids": [
+          "D30:6",
+          "D18:1",
+          "D30:4",
+          "D2:16",
+          "D8:10",
+          "D17:4"
+        ],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "0df391e1f684eeb22e522c4f",
+      "question": "What is Melanie's hand-painted bowl a reminder of?",
+      "base_answer": "art and self-expression",
+      "current_answer": "The provided information is not enough.",
+      "transition": "CORRECT->WRONG",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 6,
+        "materialized_source_ids": [
+          "D4:5",
+          "D11:9",
+          "D1:13",
+          "D5:8",
+          "D9:9",
+          "D5:6"
+        ],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "13fc31c4da9f316b40c10d39",
+      "question": "Where did Caroline move from 4 years ago?",
+      "base_answer": "home country",
+      "current_answer": "her home country",
+      "transition": "WRONG->CORRECT",
+      "route": {
+        "information_need": "temporal_lookup",
+        "retrieval_multiplier": 2,
+        "signals": [
+          "temporal"
+        ]
+      },
+      "selected_context": {
+        "applied": false,
+        "eligible": false,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 0,
+        "materialized_source_ids": [],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "157f0dada26acf0d3e7952bd",
+      "question": "What might John's degree be in?",
+      "base_answer": "public policy or political science",
+      "current_answer": "public policy or urban planning",
+      "transition": "CORRECT->WRONG",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 6,
+        "materialized_source_ids": [
+          "D9:3",
+          "D13:23",
+          "D12:17",
+          "D25:19",
+          "D1:9",
+          "D9:6"
+        ],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "1ba1789ca790bb6323a5ac22",
+      "question": "What could John do after his basketball career?",
+      "base_answer": "start a foundation, do charity work, support youth sports, organize basketball camps, hold benefit games, and promote fair access for underserved communities",
+      "current_answer": "John could build his brand, pursue endorsements, organize youth basketball camps, and support underserved communities through sports initiatives.",
+      "transition": "WRONG->CORRECT",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 6,
+        "materialized_source_ids": [
+          "D11:17",
+          "D6:13",
+          "D6:15",
+          "D27:14",
+          "D21:8",
+          "D11:18"
+        ],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "230f74ceefa905e34b5735d5",
+      "question": "Is Deborah married?",
+      "base_answer": "No",
+      "current_answer": "Yes, Deborah is married.",
+      "transition": "WRONG->CORRECT",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 6,
+        "materialized_source_ids": [
+          "D7:6",
+          "D13:4",
+          "D28:25",
+          "D24:13",
+          "D14:9",
+          "D21:5"
+        ],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "24a96651fe29face5a3d3218",
+      "question": "Which book was John reading during his recovery from an ankle injury?",
+      "base_answer": "The Alchemist",
+      "current_answer": "Dune by Frank Herbert",
+      "transition": "CORRECT->WRONG",
+      "route": {
+        "information_need": "list_count",
+        "retrieval_multiplier": 3,
+        "signals": [
+          "list_or_count"
+        ]
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 6,
+        "materialized_source_ids": [
+          "D5:12",
+          "D19:6",
+          "D5:14",
+          "D22:10",
+          "D19:22",
+          "D24:10"
+        ],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "25e1ef67eda31fba45e26f9e",
+      "question": "What type of seminars is John conducting?",
+      "base_answer": "sports and marketing",
+      "current_answer": "aspiring professors",
+      "transition": "CORRECT->WRONG",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 6,
+        "materialized_source_ids": [
+          "D26:3",
+          "D26:1",
+          "D1:17",
+          "D3:17",
+          "D11:21",
+          "D2:12"
+        ],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "2820a8c4ff5b13678c770061",
+      "question": "What was one of Jolene's favorite games to play with her mom on the nintendo wii game system?",
+      "base_answer": "Monster Hunter: World",
+      "current_answer": "The provided information is not enough to determine one of Jolene's favorite games to play with her mom on the Nintendo Wii.",
+      "transition": "CORRECT->WRONG",
+      "route": {
+        "information_need": "profile_preference",
+        "retrieval_multiplier": 2,
+        "signals": [
+          "profile_or_preference"
+        ]
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 6,
+        "materialized_source_ids": [
+          "D19:12",
+          "D2:26",
+          "D24:6",
+          "D19:6",
+          "D19:8",
+          "D19:2"
+        ],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "29810bc865f064d647127d7e",
+      "question": "In light of the health and dietary changes discussed, what would be an appropriate gift for both Evan and Sam to encourage their healthy lifestyles?",
+      "base_answer": "The provided information is not enough to determine an appropriate gift for both Evan and Sam to encourage their healthy lifestyles.",
+      "current_answer": "A fitness tracker or a healthy recipe book would be an appropriate gift to encourage Evan and Sam's healthy lifestyles.",
+      "transition": "WRONG->CORRECT",
+      "route": {
+        "information_need": "list_count",
+        "retrieval_multiplier": 3,
+        "signals": [
+          "list_or_count"
+        ]
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 6,
+        "materialized_source_ids": [
+          "D4:5",
+          "D4:6",
+          "D24:11",
+          "D3:7",
+          "D2:7",
+          "D24:15"
+        ],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "2b1d0889d0514a9b279d4c28",
+      "question": "What does Joanna recommend to make a living room comfy like hers?",
+      "base_answer": "Joanna recommends getting a large, fluffy couch that can seat multiple people, a weighted blanket, and dimmable lights to make a living room comfy.",
+      "current_answer": "a couch that can sit multiple people and is fluffy, a weighted blanket, and dimmable lights",
+      "transition": "WRONG->CORRECT",
+      "route": {
+        "information_need": "profile_preference",
+        "retrieval_multiplier": 2,
+        "signals": [
+          "profile_or_preference"
+        ]
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 6,
+        "materialized_source_ids": [
+          "D23:25",
+          "D23:26",
+          "D23:24",
+          "D16:9",
+          "D27:20",
+          "D12:13"
+        ],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "2df39c75a9697b0dabbba61c",
+      "question": "Where was Dave in the last two weeks of August 2023?",
+      "base_answer": "The provided information is not enough to determine where Dave was in the last two weeks of August 2023.",
+      "current_answer": "San Francisco",
+      "transition": "WRONG->CORRECT",
+      "route": {
+        "information_need": "temporal_lookup",
+        "retrieval_multiplier": 2,
+        "signals": [
+          "temporal"
+        ]
+      },
+      "selected_context": {
+        "applied": false,
+        "eligible": false,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 0,
+        "materialized_source_ids": [],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "2f8ce2af74b9f264f4c1b7db",
+      "question": "Who did Maria have dinner with on May 3, 2023?",
+      "base_answer": "her mom",
+      "current_answer": "The provided information is not enough",
+      "transition": "CORRECT->WRONG",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 6,
+        "materialized_source_ids": [
+          "D23:14",
+          "D13:16",
+          "D11:16",
+          "D2:21",
+          "D24:6",
+          "D8:19"
+        ],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "300d240845eb78dbd95dd418",
+      "question": "What state did Joanna visit in summer 2021?",
+      "base_answer": "The provided information is not enough.",
+      "current_answer": "Indiana",
+      "transition": "WRONG->CORRECT",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 6,
+        "materialized_source_ids": [
+          "D17:3",
+          "D24:10",
+          "D28:22",
+          "D8:4",
+          "D17:4",
+          "D14:19"
+        ],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "32433fe2fa2d616091d6a129",
+      "question": "Have Deborah and Jolene been to Rio de Janeiro?",
+      "base_answer": "Yes, both Deborah and Jolene have been to Rio de Janeiro. Jolene recently visited with her partner, and Deborah visited three years ago.",
+      "current_answer": "Jolene has been to Rio de Janeiro; Deborah has not been confirmed to have been there recently.",
+      "transition": "CORRECT->WRONG",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 6,
+        "materialized_source_ids": [
+          "D23:1",
+          "D23:15",
+          "D26:11",
+          "D23:18",
+          "D14:1",
+          "D24:1"
+        ],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "32773dcd3d43128d4c9100cb",
+      "question": "Which superhero toy figure does Nate share a photo of?",
+      "base_answer": "The provided information is not enough to determine which superhero toy figure Nate shares a photo of.",
+      "current_answer": "Iron Man",
+      "transition": "WRONG->CORRECT",
+      "route": {
+        "information_need": "list_count",
+        "retrieval_multiplier": 3,
+        "signals": [
+          "list_or_count"
+        ]
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 6,
+        "materialized_source_ids": [
+          "D15:5",
+          "D15:2",
+          "D25:11",
+          "D15:4",
+          "D17:15",
+          "D15:8"
+        ],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "32e0140f4aeaf8f53b62f055",
+      "question": "What attributes describe John?",
+      "base_answer": "John is passionate about improving education and infrastructure, involved in community meetings, considering policymaking, empathetic and supportive toward others, values family, and engages in exercise and personal growth.",
+      "current_answer": "John is described as community-oriented, passionate about improving education and infrastructure, active in fitness (yoga, kickboxing, circuit training, rock climbing, taekwondo), deeply connected to his family, empathetic, resilient, and motivated by personal values and support from loved ones.",
+      "transition": "CORRECT->WRONG",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 6,
+        "materialized_source_ids": [
+          "D13:23",
+          "D12:17",
+          "D21:4",
+          "D5:12",
+          "D25:19",
+          "D1:7"
+        ],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "33414213f13f63fffa1bb2de",
+      "question": "Which of Joanna's screenplay were rejected from production companies?",
+      "base_answer": "The specific screenplays rejected are not named; only that multiple screenplays were rejected by production companies.",
+      "current_answer": "The screenplay submitted to a film contest (Memory 2) and the screenplay submitted to a production company (Memory 1) were rejected.",
+      "transition": "WRONG->CORRECT",
+      "route": {
+        "information_need": "list_count",
+        "retrieval_multiplier": 3,
+        "signals": [
+          "list_or_count"
+        ]
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 6,
+        "materialized_source_ids": [
+          "D24:12",
+          "D14:1",
+          "D24:13",
+          "D28:8",
+          "D3:1",
+          "D16:1"
+        ],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "3565c12243c9d887b338b3a4",
+      "question": "What activity does Dave find fulfilling, similar to Calvin's passion for music festivals?",
+      "base_answer": "attending music festivals",
+      "current_answer": "repairing and customizing cars",
+      "transition": "WRONG->CORRECT",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 6,
+        "materialized_source_ids": [
+          "D23:6",
+          "D7:17",
+          "D5:7",
+          "D28:31",
+          "D30:19",
+          "D30:6"
+        ],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    }
+  ],
+  "examples_unchanged_judge_changes": [
+    {
+      "record_key": "19e8f0e8ba0a43ea5fe3d7aa",
+      "question": "What advice does Gina give to Jon about running a successful business?",
+      "answer": "Don't be scared to reach out to people in your field for help and contacts. Networking was a lifesaver for me and opened me up to amazing products that I might not have found otherwise.",
+      "transition": "WRONG->CORRECT",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      }
+    },
+    {
+      "record_key": "1be5ba985c4f3d06e23458aa",
+      "question": "Where was the forest picture shared by John on December 1,2023 taken?",
+      "answer": "near my hometown",
+      "transition": "CORRECT->WRONG",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      }
+    },
+    {
+      "record_key": "2527ce4bd3ac4170381daee2",
+      "question": "What kind of tricks do James's pets know?",
+      "answer": "sit, stay, paw, and rollover",
+      "transition": "CORRECT->WRONG",
+      "route": {
+        "information_need": "list_count",
+        "retrieval_multiplier": 3,
+        "signals": [
+          "list_or_count"
+        ]
+      }
+    },
+    {
+      "record_key": "397d2d3efa00f8a0bc3919d5",
+      "question": "What authors has Tim read books from?",
+      "answer": "J.K. Rowling, George R.R. Martin, Patrick Rothfuss",
+      "transition": "WRONG->CORRECT",
+      "route": {
+        "information_need": "list_count",
+        "retrieval_multiplier": 3,
+        "signals": [
+          "list_or_count"
+        ]
+      }
+    },
+    {
+      "record_key": "429d84997da3711b0cc66e89",
+      "question": "What is something Nate gave to Joanna that brings her a lot of joy?",
+      "answer": "a new pup",
+      "transition": "WRONG->CORRECT",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      }
+    },
+    {
+      "record_key": "4bf3e660f1a003a651600a61",
+      "question": "How long has it been since Andrew adopted his first pet, as of November 2023?",
+      "answer": "116 days",
+      "transition": "WRONG->CORRECT",
+      "route": {
+        "information_need": "temporal_lookup",
+        "retrieval_multiplier": 2,
+        "signals": [
+          "temporal"
+        ]
+      }
+    },
+    {
+      "record_key": "56c64968e86c6415e6894dd8",
+      "question": "What do Deborah and Jolene plan to try when they meet in a new cafe?",
+      "answer": "fresh pastries",
+      "transition": "CORRECT->WRONG",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      }
+    },
+    {
+      "record_key": "59c5f9e9e850819a4f999d1e",
+      "question": "What type of landscapes does Evan love painting the most?",
+      "answer": "landscapes",
+      "transition": "CORRECT->WRONG",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      }
+    },
+    {
+      "record_key": "5bf0deb1a330d0a5e24d167b",
+      "question": "When did Jolene buy her pet snake?",
+      "answer": "2022-01-27",
+      "transition": "CORRECT->WRONG",
+      "route": {
+        "information_need": "temporal_lookup",
+        "retrieval_multiplier": 2,
+        "signals": [
+          "temporal"
+        ]
+      }
+    },
+    {
+      "record_key": "5ed1ac9f4136341ce2219345",
+      "question": "What video games does Nate play?",
+      "answer": "['CS:GO', 'Street Fighter', 'Xeonoblade Chronicles', 'Cyberpunk 2077', 'Catan']",
+      "transition": "WRONG->CORRECT",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      }
+    },
+    {
+      "record_key": "6676a8da790d8c4c7396d61a",
+      "question": "What did Evan start painting years ago due to being inspired by a friend's gift?",
+      "answer": "Evan started painting landscapes years ago due to being inspired by a friend's gift.",
+      "transition": "WRONG->CORRECT",
+      "route": {
+        "information_need": "temporal_lookup",
+        "retrieval_multiplier": 2,
+        "signals": [
+          "temporal"
+        ]
+      }
+    },
+    {
+      "record_key": "8e66ca5b47113f244287bf52",
+      "question": "What kind of classes has James joined?",
+      "answer": "cooking class",
+      "transition": "WRONG->CORRECT",
+      "route": {
+        "information_need": "list_count",
+        "retrieval_multiplier": 3,
+        "signals": [
+          "list_or_count"
+        ]
+      }
+    },
+    {
+      "record_key": "9bd0fdc4808c73fd6c454660",
+      "question": "When did Deborah go to a community meetup?",
+      "answer": "2023-09-01",
+      "transition": "CORRECT->WRONG",
+      "route": {
+        "information_need": "temporal_lookup",
+        "retrieval_multiplier": 2,
+        "signals": [
+          "temporal"
+        ]
+      }
+    },
+    {
+      "record_key": "b53f8d14c149ca0c8b6d5953",
+      "question": "What did John receive for achieving second place in the tournament?",
+      "answer": "some money",
+      "transition": "WRONG->CORRECT",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      }
+    },
+    {
+      "record_key": "b7e70a824f29a92e7eaf1dda",
+      "question": "What instruments does Melanie play?",
+      "answer": "clarinet",
+      "transition": "WRONG->CORRECT",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      }
+    },
+    {
+      "record_key": "c4cf0bf130766141584ce923",
+      "question": "In what country was Jolene during summer 2022?",
+      "answer": "Bogota",
+      "transition": "WRONG->CORRECT",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      }
+    },
+    {
+      "record_key": "dfe54cce06c49d7874e8c1ae",
+      "question": "What items des John mention having as a child?",
+      "answer": "a little doll",
+      "transition": "WRONG->CORRECT",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      }
+    },
+    {
+      "record_key": "edd7189021af79a474896fe4",
+      "question": "What board games has Nate played?",
+      "answer": "Catan",
+      "transition": "CORRECT->WRONG",
+      "route": {
+        "information_need": "list_count",
+        "retrieval_multiplier": 3,
+        "signals": [
+          "list_or_count"
+        ]
+      }
+    }
+  ],
+  "clean_note": "Offline comparison only. It uses completed predictions, judge outputs, traces, and labels for analysis; it must not feed prediction logic."
+}
