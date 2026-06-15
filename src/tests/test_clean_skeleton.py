@@ -2317,6 +2317,53 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertIn("\n\n\nMemory Context:", context.prompt)
         self.assertNotIn("\n\n\n\nMemory Context:", context.prompt)
 
+    def test_external_naive_short_answer_contract_is_config_gated(self) -> None:
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text="Alex moved from Sweden and now lives in Boston.",
+                timestamp="2024-01-01",
+            ),
+        )
+        route = RouteResult(information_need="fact_lookup", signals=())
+        baseline = EvidenceCompiler(
+            max_evidence_items=1,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            evidence_report_contract=True,
+            evidence_report_information_needs=("fact_lookup",),
+        ).compile(
+            question="Where did Alex move from?",
+            question_time=None,
+            route=route,
+            hits=(),
+            evidence_turns=turns,
+        )
+        contracted = EvidenceCompiler(
+            max_evidence_items=1,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            evidence_report_contract=True,
+            evidence_report_information_needs=("fact_lookup",),
+            short_answer_contract=True,
+        ).compile(
+            question="Where did Alex move from?",
+            question_time=None,
+            route=route,
+            hits=(),
+            evidence_turns=turns,
+        )
+
+        self.assertNotIn("Short Answer Boundary:", baseline.prompt)
+        self.assertIn("Short Answer Boundary:", contracted.prompt)
+        self.assertIn("Prefer exact words, names, places", contracted.prompt)
+        self.assertIn("where needs a place", contracted.prompt)
+        self.assertNotIn("question_type", contracted.prompt)
+        self.assertNotIn("sample_id", contracted.prompt)
+
     def test_current_state_update_contract_is_config_gated(self) -> None:
         turns = (
             Turn(

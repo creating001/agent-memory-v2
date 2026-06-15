@@ -200,6 +200,7 @@ class EvidenceCompiler:
         ),
         operation_workpad_question_gate: bool = False,
         personalized_advice_contract: bool = False,
+        short_answer_contract: bool = False,
         current_state_update_contract: bool = False,
         dialogue_inference_contract: bool = False,
         temporal_order_contract: bool = False,
@@ -289,6 +290,7 @@ class EvidenceCompiler:
         )
         self._operation_workpad_question_gate = operation_workpad_question_gate
         self._personalized_advice_contract = personalized_advice_contract
+        self._short_answer_contract = short_answer_contract
         self._current_state_update_contract = current_state_update_contract
         self._dialogue_inference_contract = dialogue_inference_contract
         self._temporal_order_contract = temporal_order_contract
@@ -477,6 +479,7 @@ class EvidenceCompiler:
                 self._personalized_advice_contract
                 and _is_personalized_advice_question(question)
             ),
+            short_answer_contract=self._short_answer_contract,
             current_state_update_contract=route_settings[
                 "current_state_update_contract"
             ],
@@ -1172,6 +1175,7 @@ def _build_prompt(
     evidence_report_detail: bool,
     operation_workpad: bool,
     personalized_advice_contract: bool,
+    short_answer_contract: bool,
     current_state_update_contract: bool,
     dialogue_inference_contract: bool,
     temporal_order_contract: bool,
@@ -1230,6 +1234,7 @@ def _build_prompt(
             evidence_report_detail=evidence_report_detail,
             operation_workpad=operation_workpad,
             personalized_advice_contract=personalized_advice_contract,
+            short_answer_contract=short_answer_contract,
             current_state_update_contract=current_state_update_contract,
             dialogue_inference_contract=dialogue_inference_contract,
             temporal_order_contract=temporal_order_contract,
@@ -1391,6 +1396,7 @@ def _build_external_naive_prompt(
     evidence_report_detail: bool,
     operation_workpad: bool,
     personalized_advice_contract: bool,
+    short_answer_contract: bool,
     current_state_update_contract: bool,
     dialogue_inference_contract: bool,
     temporal_order_contract: bool,
@@ -1486,6 +1492,14 @@ def _build_external_naive_prompt(
         )
         rules.append(
             "Use Personalized Advice Discipline only to interpret relevant Memory Context rows; it is not independent evidence."
+        )
+    short_answer_block = ""
+    if short_answer_contract:
+        short_answer_block = "\n".join(
+            ["", "Short Answer Boundary:", *_short_answer_boundary_lines(), ""]
+        )
+        rules.append(
+            "Use Short Answer Boundary to keep the answer field exact and compact; do not add these checklist items to the output JSON."
         )
     if context_layout in {"session_thread", "chronological_session_thread"}:
         if context_layout == "chronological_session_thread":
@@ -1630,6 +1644,7 @@ def _build_external_naive_prompt(
             update_conflict_guide_block,
             operation_workpad_block,
             personalized_advice_block,
+            short_answer_block,
             final_answer_checklist_block,
         )
         if block
@@ -2446,6 +2461,16 @@ def _personalized_advice_lines() -> list[str]:
         "- If the context gives personalization anchors but no exact named option, answer with suitable option types, criteria, or next-step choices instead of refusing.",
         "- Do not introduce a specific named place, product, show, person, brand, or event unless that name appears in Memory Context.",
         "- Include one or two brief personalization anchors from Memory Context; if no anchor exists, say the information is not enough.",
+    ]
+
+
+def _short_answer_boundary_lines() -> list[str]:
+    return [
+        "- In the answer field, use the shortest phrase or sentence that fully answers the requested slot; do not add background narrative.",
+        "- Prefer exact words, names, places, item labels, and dates from Memory Context whenever they directly answer the question.",
+        "- Match the question word and slot: where needs a place, who needs a person, when needs a time, why needs a reason, how many needs a count, and what/which needs the requested object, event, type, or list.",
+        "- Preserve all required in-scope items for list/type/state/hobby questions; do not replace concrete items with a broader category.",
+        "- If support is only for a related but different slot, entity, action, or time scope, mark the answer insufficient instead of answering the related fact.",
     ]
 
 
