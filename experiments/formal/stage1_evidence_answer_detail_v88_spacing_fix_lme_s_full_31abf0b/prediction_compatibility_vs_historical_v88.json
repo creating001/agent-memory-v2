@@ -1,0 +1,18 @@
+{
+  "baseline_run": "stage1_evidence_answer_detail_v88_lme_s_full_55b8177",
+  "candidate_run": "stage1_evidence_answer_detail_v88_spacing_fix_lme_s_full_31abf0b",
+  "baseline_predictions": "/data/home_new/wujinqi/agent-memory/outputs/formal/stage1_evidence_answer_detail_v88_lme_s_full_55b8177/predictions.jsonl",
+  "candidate_predictions": "/data/home_new/wujinqi/agent-memory/outputs/formal/stage1_evidence_answer_detail_v88_spacing_fix_lme_s_full_31abf0b/predictions.jsonl",
+  "common_records": 500,
+  "missing_from_candidate": 0,
+  "extra_in_candidate": 0,
+  "answer_changed": 0,
+  "raw_prediction_object_changed": 0,
+  "inherited_judge_result": {
+    "judge_path": "/data/home_new/wujinqi/agent-memory/experiments/formal/stage1_evidence_answer_detail_v88_lme_s_full_55b8177/deepseek_judge.json",
+    "correct": 400,
+    "total": 500,
+    "accuracy": 0.8
+  },
+  "note": "Predictions are byte-level JSON-object identical after parsing by record_key, so the historical offline DeepSeek judge result applies without rerunning judge."
+}
