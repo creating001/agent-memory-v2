@@ -1,0 +1,23 @@
+{
+  "baseline_run": "stage1_evidence_answer_detail_v88_spacing_fix_lme_s_full_31abf0b",
+  "candidate_run": "stage1_granularity_adaptive_v98_lme_s_full_7b0aab9",
+  "baseline_predictions": "/data/home_new/wujinqi/agent-memory/outputs/formal/stage1_evidence_answer_detail_v88_spacing_fix_lme_s_full_31abf0b/predictions.jsonl",
+  "candidate_predictions": "/data/home_new/wujinqi/agent-memory/outputs/formal/stage1_granularity_adaptive_v98_lme_s_full_7b0aab9/predictions.jsonl",
+  "common_records": 500,
+  "missing_from_candidate": 0,
+  "extra_in_candidate": 0,
+  "answer_changed": 0,
+  "raw_prediction_object_changed": 0,
+  "cache_seed": {
+    "source_trace": "/data/home_new/wujinqi/agent-memory/outputs/formal/stage1_evidence_answer_detail_v88_spacing_fix_lme_s_full_31abf0b/traces.jsonl",
+    "source_field": "answer_draft",
+    "clean_note": "Seeded from prediction-time draft answers only; no labels, judge outputs, benchmark categories, sample ids, row indices, or test feedback were read."
+  },
+  "inherited_judge_result": {
+    "judge_path": "/data/home_new/wujinqi/agent-memory/experiments/formal/stage1_evidence_answer_detail_v88_lme_s_full_55b8177/deepseek_judge.json",
+    "correct": 400,
+    "total": 500,
+    "accuracy": 0.8
+  },
+  "note": "The v98 long-turn profile compiled prompts that hit the seeded draft-answer cache, then applied the same v88 finalizer path. Parsed predictions are identical to v88 spacing-fix for all 500 records, so the historical offline DeepSeek judge result applies."
+}
