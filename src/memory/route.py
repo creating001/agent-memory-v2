@@ -44,9 +44,11 @@ class QuestionRouter:
         r"列出",
     )
     _BROAD_LIST_PATTERNS = (
+        r"^\s*what\s+(?:[a-z][a-z/-]*\s+){0,4}(?:[a-z][a-z/-]*s|people)\s+(?:has|have|had)\b",
         r"^\s*what\s+(?:activities|events|types|kinds?|symbols|songs?|artists?|bands?)\b",
         r"^\s*where\s+has\b",
         r"\bboth\b",
+        r"\bin common\b",
         r"\bdone\s+with\b",
     )
     _PROFILE_PATTERNS = (

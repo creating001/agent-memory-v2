@@ -41,9 +41,25 @@ class RouteTest(unittest.TestCase):
         self.assertEqual(route.information_need, "list_count")
         self.assertIn("list_or_count", route.signals)
 
+    def test_broad_plural_collection_question_can_route_to_list_count(self) -> None:
+        route = QuestionRouter(enable_broad_list_patterns=True).route(
+            "What books has Melanie read?"
+        )
+
+        self.assertEqual(route.information_need, "list_count")
+        self.assertIn("list_or_count", route.signals)
+
     def test_where_has_question_can_route_to_list_count(self) -> None:
         route = QuestionRouter(enable_broad_list_patterns=True).route(
             "Where has Melanie camped?"
+        )
+
+        self.assertEqual(route.information_need, "list_count")
+        self.assertIn("list_or_count", route.signals)
+
+    def test_in_common_question_can_route_to_list_count(self) -> None:
+        route = QuestionRouter(enable_broad_list_patterns=True).route(
+            "What do Jon and Gina have in common?"
         )
 
         self.assertEqual(route.information_need, "list_count")

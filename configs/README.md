@@ -17,6 +17,7 @@
 - `stage1_route_budgeted_retrieval_v34_cached.json`：v33 的 route-budgeted 版本；非 temporal 保留 top60，temporal_lookup 回到 top40，v35 前 LoCoMo 最好。
 - `stage1_answer_format_guard_v35_cached.json`：v34 上的 answer format guard；修复 JSON answer salvage 和小数 duration，LoCoMo 强 baseline。
 - `stage1_relative_time_finalizer_v94_cached.json`：v35 上的 conservative relative-time finalizer；prompt-compatible full run 是当前 LoCoMo 最好。
+- `stage1_selected_context_v95_cached.json`：v94/v35 底座上的当前候选；启用 question-text-only broad collection routing，并把已入选 raw turn 的同 session 相邻 turn 作为局部上下文物化，用于补全 `this/that/it/recently/last` 等承接信息。待 full 验证。
 - `stage1_lme_token_safe_format_guard_v36_cached.json`：v28 top40/evidence budget + v35 answer guard；v42 前 LME 最好，也是当前强 baseline。
 - `stage1_operation_workpad_v42_cached.json`：v36 上的短 operation workpad；不新增 LLM 调用，不改 retrieval/build，只在 `list_count` / `temporal_lookup` 的 evidence_report prompt 中加入通用操作聚合纪律。v73 前 LongMemEval-S full 最好，但仅比 v36 净 +1，属于 close-margin 小幅正向。
 - `stage1_finalizer_duration_fix_v73_cached.json`：v79 前 LongMemEval-S 最好和关键对照；从 v42 出发只关闭有害的机械 duration decimal rounding finalizer。
@@ -29,6 +30,8 @@
 ## 当前候选
 
 LongMemEval-S 当前最好是 `stage1_evidence_answer_detail_v88_cached.json`；LoCoMo 当前最好是 `stage1_relative_time_finalizer_v94_cached.json`。新方法进入顶层前必须先有 full benchmark accuracy 和 token 结果支撑。
+
+v95 selected context 是当前待验证候选：参考 creating001 的 turn-pair/source-turn materialization、SimpleMem 的 structured raw context 和 MemU 的按信息需求检索组织，但只使用 question text、route、已检索 raw turns 及其同 session 邻接 turns，不使用 gold、judge、benchmark 标签、sample id 或样本级规则。预期解决 v94 LoCoMo badcase 中“证据行命中但代词/this book/last event 需要相邻 turn 才可读”的问题，同时用 `require_anaphora`、`max_rows` 和 `max_neighbor_chars` 控制 query token。
 
 v94 prompt-compatible relative-time finalizer 已完成 LoCoMo full：fresh full judge `0.783117`，1206/1540；controlled comparison vs v35 为 `0.781818`，1204/1540。avg_build_tokens `58386.008`，avg_query_tokens `4920.573`，只改变 6 条 prediction，changed subset 净 +3。结论是当前 LoCoMo best，但方法收益按 controlled +3 记录，fresh full 中另有 +2 来自 judge variance。
 

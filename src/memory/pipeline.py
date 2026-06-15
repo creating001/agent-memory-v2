@@ -61,6 +61,7 @@ class Stage1Pipeline:
         lexical_config = retrieval_config.get("lexical", {})
         dense_config = retrieval_config.get("dense", {})
         turn_window_config = retrieval_config.get("turn_window_bm25", {})
+        selected_context_config = retrieval_config.get("selected_context", {})
         rerank_config = retrieval_config.get("rerank", {})
         route_config = self._config.get("route", {})
         if self._config.get("question_analysis", {}).get("enabled", False):
@@ -208,6 +209,36 @@ class Stage1Pipeline:
         self._turn_window_bm25_enabled_query_patterns = _tuple_config(
             turn_window_config.get("enabled_query_patterns")
         )
+        self._selected_context_enabled = bool(
+            selected_context_config.get("enabled", False)
+        )
+        self._selected_context_window_before = int(
+            selected_context_config.get("window_before", 1)
+        )
+        self._selected_context_window_after = int(
+            selected_context_config.get("window_after", 1)
+        )
+        self._selected_context_max_rows = int(
+            selected_context_config.get("max_rows", 0)
+        )
+        self._selected_context_max_neighbor_chars = int(
+            selected_context_config.get("max_neighbor_chars", 180)
+        )
+        self._selected_context_require_anaphora = bool(
+            selected_context_config.get("require_anaphora", True)
+        )
+        self._selected_context_information_needs = _tuple_config(
+            selected_context_config.get("information_needs")
+        )
+        self._selected_context_trace_config = {
+            "enabled": self._selected_context_enabled,
+            "window_before": self._selected_context_window_before,
+            "window_after": self._selected_context_window_after,
+            "max_rows": self._selected_context_max_rows,
+            "max_neighbor_chars": self._selected_context_max_neighbor_chars,
+            "require_anaphora": self._selected_context_require_anaphora,
+            "information_needs": self._selected_context_information_needs,
+        }
         self._rerank_enabled = bool(rerank_config.get("enabled", False))
         self._rerank_model = rerank_config.get("model")
         self._rerank_base_url = rerank_config.get("base_url")
@@ -1006,6 +1037,18 @@ class Stage1Pipeline:
             window=self._neighbor_window,
             order=self._neighbor_order,
         )
+        evidence_turns, selected_context = _materialize_selected_context(
+            store=store,
+            turns=evidence_turns,
+            route=route,
+            enabled=self._selected_context_enabled,
+            information_needs=self._selected_context_information_needs,
+            window_before=self._selected_context_window_before,
+            window_after=self._selected_context_window_after,
+            max_rows=self._selected_context_max_rows,
+            max_neighbor_chars=self._selected_context_max_neighbor_chars,
+            require_anaphora=self._selected_context_require_anaphora,
+        )
         compiler_memory_records = _compiler_memory_records(
             source=self._compiler_memory_record_source,
             memory_hits=memory_hits,
@@ -1209,6 +1252,7 @@ class Stage1Pipeline:
                     "turn_window_source_hits": [
                         hit.to_dict() for hit in turn_window_source_hits
                     ],
+                    "selected_context": selected_context,
                     "turn_hits": [hit.to_dict() for hit in turn_hits],
                     "rerank_enabled": self._rerank_enabled,
                     "rerank_applied": rerank_trace["applied"],
@@ -1829,6 +1873,120 @@ def _answer_cache_delta(
         key: int(after.get(key, 0)) - int(before.get(key, 0))
         for key in sorted(after)
     }
+
+
+SELECTED_CONTEXT_ANAPHORA_PATTERN = re.compile(
+    r"\b("
+    r"this|that|these|those|it|they|them|there|here|same|such|"
+    r"recently|previously|earlier|later|then|also|too|"
+    r"last|next|before|after"
+    r")\b",
+    re.IGNORECASE,
+)
+
+
+def _materialize_selected_context(
+    *,
+    store: RawEvidenceStore,
+    turns: tuple[Turn, ...],
+    route: RouteResult,
+    enabled: bool,
+    information_needs: tuple[str, ...],
+    window_before: int,
+    window_after: int,
+    max_rows: int,
+    max_neighbor_chars: int,
+    require_anaphora: bool,
+) -> tuple[tuple[Turn, ...], dict[str, Any]]:
+    trace: dict[str, Any] = {
+        "enabled": enabled,
+        "applied": False,
+        "information_needs": information_needs,
+        "window_before": window_before,
+        "window_after": window_after,
+        "max_rows": max_rows,
+        "max_neighbor_chars": max_neighbor_chars,
+        "require_anaphora": require_anaphora,
+        "eligible": False,
+        "materialized_count": 0,
+        "materialized_source_ids": [],
+    }
+    if not enabled or not turns:
+        return turns, trace
+    if information_needs and route.information_need not in information_needs:
+        return turns, trace
+
+    trace["eligible"] = True
+    row_limit = max_rows if max_rows > 0 else len(turns)
+    before = max(0, window_before)
+    after = max(0, window_after)
+    neighbor_chars = max(40, max_neighbor_chars)
+    materialized_ids: list[str] = []
+    materialized_turns: list[Turn] = []
+
+    for turn in turns:
+        if len(materialized_ids) >= row_limit or (
+            require_anaphora
+            and not SELECTED_CONTEXT_ANAPHORA_PATTERN.search(turn.text)
+        ):
+            materialized_turns.append(turn)
+            continue
+        context_text = _selected_context_text(
+            store=store,
+            turn=turn,
+            window_before=before,
+            window_after=after,
+            max_neighbor_chars=neighbor_chars,
+        )
+        if context_text == turn.text:
+            materialized_turns.append(turn)
+            continue
+        materialized_ids.append(turn.source_id)
+        materialized_turns.append(replace(turn, text=context_text))
+
+    trace["materialized_count"] = len(materialized_ids)
+    trace["materialized_source_ids"] = materialized_ids
+    trace["applied"] = bool(materialized_ids)
+    return tuple(materialized_turns), trace
+
+
+def _selected_context_text(
+    *,
+    store: RawEvidenceStore,
+    turn: Turn,
+    window_before: int,
+    window_after: int,
+    max_neighbor_chars: int,
+) -> str:
+    session_turns = store.session_turns(turn.session_id)
+    positions = {
+        candidate.source_id: index for index, candidate in enumerate(session_turns)
+    }
+    position = positions.get(turn.source_id)
+    if position is None:
+        return turn.text
+    start = max(0, position - window_before)
+    end = min(len(session_turns), position + window_after + 1)
+    neighbors = session_turns[start:end]
+    if len(neighbors) <= 1:
+        return turn.text
+
+    lines = ["Local dialogue context from the same session:"]
+    for neighbor in neighbors:
+        label = "selected turn" if neighbor.source_id == turn.source_id else "nearby turn"
+        text = neighbor.text
+        if neighbor.source_id != turn.source_id:
+            text = _truncate_text(text, max_neighbor_chars)
+        timestamp = f" ({neighbor.timestamp})" if neighbor.timestamp else ""
+        lines.append(f"- {label}{timestamp} | {neighbor.role}: {text}")
+    return "\n".join(lines)
+
+
+def _truncate_text(text: str, max_chars: int) -> str:
+    normalized = " ".join(text.split())
+    if len(normalized) <= max_chars:
+        return normalized
+    return normalized[: max(0, max_chars - 3)].rstrip() + "..."
 
 
 def _tuple_config(value: object) -> tuple[str, ...]:

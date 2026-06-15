@@ -60,6 +60,8 @@ def main() -> int:
     total_turn_window_bm25_applied = 0
     total_turn_window_hits = 0
     total_turn_window_source_hits = 0
+    total_selected_context_applied = 0
+    total_selected_context_materialized = 0
     total_rerank_applied = 0
     total_rerank_candidate_count = 0
     total_rerank_returned_count = 0
@@ -136,6 +138,12 @@ def main() -> int:
         total_turn_window_hits += len(retrieval_trace.get("turn_window_hits") or [])
         total_turn_window_source_hits += len(
             retrieval_trace.get("turn_window_source_hits") or []
+        )
+        selected_context = retrieval_trace.get("selected_context") or {}
+        if selected_context.get("applied"):
+            total_selected_context_applied += 1
+        total_selected_context_materialized += int(
+            selected_context.get("materialized_count") or 0
         )
         if retrieval_trace.get("rerank_applied"):
             total_rerank_applied += 1
@@ -363,6 +371,34 @@ def main() -> int:
             ),
             "avg_turn_window_source_hits": _safe_average(
                 total_turn_window_source_hits, sample_count
+            ),
+            "selected_context_enabled": config.get("retrieval", {})
+            .get("selected_context", {})
+            .get("enabled", False),
+            "selected_context_window_before": config.get("retrieval", {})
+            .get("selected_context", {})
+            .get("window_before"),
+            "selected_context_window_after": config.get("retrieval", {})
+            .get("selected_context", {})
+            .get("window_after"),
+            "selected_context_max_rows": config.get("retrieval", {})
+            .get("selected_context", {})
+            .get("max_rows"),
+            "selected_context_max_neighbor_chars": config.get("retrieval", {})
+            .get("selected_context", {})
+            .get("max_neighbor_chars"),
+            "selected_context_information_needs": config.get("retrieval", {})
+            .get("selected_context", {})
+            .get("information_needs"),
+            "selected_context_require_anaphora": config.get("retrieval", {})
+            .get("selected_context", {})
+            .get("require_anaphora"),
+            "selected_context_applied_count": total_selected_context_applied,
+            "selected_context_applied_rate": _safe_average(
+                total_selected_context_applied, sample_count
+            ),
+            "avg_selected_context_materialized_rows": _safe_average(
+                total_selected_context_materialized, sample_count
             ),
             "rerank_enabled": config.get("retrieval", {})
             .get("rerank", {})
@@ -1066,6 +1102,16 @@ def _write_summary(
         f"- turn_window_bm25_applied_rate: {metrics['retrieval']['turn_window_bm25_applied_rate']}",
         f"- avg_turn_window_hits: {metrics['retrieval']['avg_turn_window_hits']}",
         f"- avg_turn_window_source_hits: {metrics['retrieval']['avg_turn_window_source_hits']}",
+        f"- selected_context_enabled: {metrics['retrieval']['selected_context_enabled']}",
+        f"- selected_context_window_before: {metrics['retrieval']['selected_context_window_before']}",
+        f"- selected_context_window_after: {metrics['retrieval']['selected_context_window_after']}",
+        f"- selected_context_max_rows: {metrics['retrieval']['selected_context_max_rows']}",
+        f"- selected_context_max_neighbor_chars: {metrics['retrieval']['selected_context_max_neighbor_chars']}",
+        f"- selected_context_information_needs: {metrics['retrieval']['selected_context_information_needs']}",
+        f"- selected_context_require_anaphora: {metrics['retrieval']['selected_context_require_anaphora']}",
+        f"- selected_context_applied_count: {metrics['retrieval']['selected_context_applied_count']}",
+        f"- selected_context_applied_rate: {metrics['retrieval']['selected_context_applied_rate']}",
+        f"- avg_selected_context_materialized_rows: {metrics['retrieval']['avg_selected_context_materialized_rows']}",
         f"- rerank_enabled: {metrics['retrieval']['rerank_enabled']}",
         f"- rerank_model: {metrics['retrieval']['rerank_model']}",
         f"- rerank_pool_k: {metrics['retrieval']['rerank_pool_k']}",
@@ -1274,6 +1320,10 @@ def _write_diagnosis(
         f"- turn_window_bm25_applied_rate: {metrics['retrieval']['turn_window_bm25_applied_rate']}",
         f"- avg_turn_window_hits: {metrics['retrieval']['avg_turn_window_hits']}",
         f"- avg_turn_window_source_hits: {metrics['retrieval']['avg_turn_window_source_hits']}",
+        f"- selected_context_enabled: {metrics['retrieval']['selected_context_enabled']}",
+        f"- selected_context_applied_count: {metrics['retrieval']['selected_context_applied_count']}",
+        f"- selected_context_applied_rate: {metrics['retrieval']['selected_context_applied_rate']}",
+        f"- avg_selected_context_materialized_rows: {metrics['retrieval']['avg_selected_context_materialized_rows']}",
         f"- rerank_enabled: {metrics['retrieval']['rerank_enabled']}",
         f"- rerank_model: {metrics['retrieval']['rerank_model']}",
         f"- rerank_pool_k: {metrics['retrieval']['rerank_pool_k']}",
