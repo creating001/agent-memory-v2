@@ -1637,6 +1637,7 @@ def _build_external_naive_prompt(
     prompt_parts.extend(
         [
             "",
+            "",
             "Memory Context:",
             _external_naive_context(
                 rows,

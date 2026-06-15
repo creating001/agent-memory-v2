@@ -2017,7 +2017,7 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertNotIn('"evidence_report"', list_context.prompt)
         self.assertIn('"answer": "concise answer"', fact_context.prompt)
 
-    def test_external_naive_disabled_blocks_do_not_drift_prompt(self) -> None:
+    def test_external_naive_structured_guide_keeps_cache_layout(self) -> None:
         compiler = EvidenceCompiler(
             max_evidence_items=1,
             max_evidence_chars=4000,
@@ -2053,7 +2053,8 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertNotIn("Private Operation Discipline:", context.prompt)
         self.assertNotIn("Final Answer Checklist:", context.prompt)
         self.assertNotIn('"calculation"', context.prompt)
-        self.assertNotIn("\n\n\n\nMemory Context:", context.prompt)
+        self.assertIn("\n\n\n\nMemory Context:", context.prompt)
+        self.assertNotIn("\n\n\n\n\nMemory Context:", context.prompt)
 
     def test_current_state_update_contract_is_config_gated(self) -> None:
         turns = (
