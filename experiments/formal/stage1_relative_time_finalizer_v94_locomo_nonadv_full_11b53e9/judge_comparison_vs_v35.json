@@ -1,0 +1,464 @@
+{
+  "summary": {
+    "v35_correct": 1201,
+    "v94_correct": 1188,
+    "v35_total": 1540,
+    "v94_total": 1540,
+    "applied_count": 44,
+    "applied_flips": {
+      "CORRECT->CORRECT": 35,
+      "CORRECT->WRONG": 1,
+      "WRONG->CORRECT": 6,
+      "WRONG->WRONG": 2
+    },
+    "all_flips": {
+      "CORRECT->CORRECT": 1142,
+      "CORRECT->WRONG": 59,
+      "INVALID->CORRECT": 1,
+      "WRONG->CORRECT": 45,
+      "WRONG->WRONG": 293
+    }
+  },
+  "applied_rows": [
+    {
+      "record_key": "2726a17928daef593183a90f",
+      "question": "When did Caroline give a speech at a school?",
+      "gold_answer": "The week before 9 June 2023",
+      "v35_answer": "2023-06-02 to 2023-06-08",
+      "v94_answer": "The week before 9 June 2023",
+      "v35_label": "CORRECT",
+      "v94_label": "CORRECT",
+      "reason": "evidence_report_relative_time_calculation"
+    },
+    {
+      "record_key": "05a2fa4682ace156a523b92c",
+      "question": "When did Caroline meet up with her friends, family, and mentors?",
+      "gold_answer": "The week before 9 June 2023",
+      "v35_answer": "2023-06-02 to 2023-06-08",
+      "v94_answer": "The week before 9 June 2023",
+      "v35_label": "CORRECT",
+      "v94_label": "CORRECT",
+      "reason": "evidence_report_relative_time_calculation"
+    },
+    {
+      "record_key": "7a46c72efd3f51977889864f",
+      "question": "When did Caroline have a picnic?",
+      "gold_answer": "The week before 6 July 2023",
+      "v35_answer": "2023-06-29 to 2023-07-05",
+      "v94_answer": "The week before 6 July 2023",
+      "v35_label": "CORRECT",
+      "v94_label": "CORRECT",
+      "reason": "evidence_report_relative_time_calculation"
+    },
+    {
+      "record_key": "04a4ca37a584ea4afde09c96",
+      "question": "When did Melanie go camping in June?",
+      "gold_answer": "The week before 27 June 2023",
+      "v35_answer": "2023-06-20 to 2023-06-26",
+      "v94_answer": "The week before 27 June 2023",
+      "v35_label": "CORRECT",
+      "v94_label": "CORRECT",
+      "reason": "evidence_report_relative_time_calculation"
+    },
+    {
+      "record_key": "e99622339c0a77d3f4af64fd",
+      "question": "When did Caroline join a mentorship program?",
+      "gold_answer": "The weekend before 17 July 2023",
+      "v35_answer": "2023-07-15 to 2023-07-16",
+      "v94_answer": "The weekend before 17 July 2023",
+      "v35_label": "CORRECT",
+      "v94_label": "CORRECT",
+      "reason": "evidence_report_relative_time_calculation"
+    },
+    {
+      "record_key": "9748405e4eeefe3cc1d5339c",
+      "question": "When is Melanie's daughter's birthday?",
+      "gold_answer": "13 August",
+      "v35_answer": "2023-08-14",
+      "v94_answer": "2023-08-13",
+      "v35_label": "WRONG",
+      "v94_label": "CORRECT",
+      "reason": "evidence_report_relative_time_calculation"
+    },
+    {
+      "record_key": "48ee78dba3d2e536dfabf68e",
+      "question": "When did Caroline draw a self-portrait?",
+      "gold_answer": "The week before 23 August 2023",
+      "v35_answer": "2023-08-16 to 2023-08-22",
+      "v94_answer": "The week before 23 August 2023",
+      "v35_label": "CORRECT",
+      "v94_label": "CORRECT",
+      "reason": "evidence_report_relative_time_calculation"
+    },
+    {
+      "record_key": "87543d72182d6fa818c255ee",
+      "question": "When did Caroline encounter people on a hike and have a negative experience?",
+      "gold_answer": "The week before 25 August 2023",
+      "v35_answer": "2023-08-18 to 2023-08-24",
+      "v94_answer": "The week before 25 August 2023",
+      "v35_label": "CORRECT",
+      "v94_label": "CORRECT",
+      "reason": "evidence_report_relative_time_calculation"
+    },
+    {
+      "record_key": "90166a1fb128ed22a1654faa",
+      "question": "When did Caroline go biking with friends?",
+      "gold_answer": "The weekend before 13 September 2023",
+      "v35_answer": "2023-09-09 to 2023-09-10",
+      "v94_answer": "The weekend before 13 September 2023",
+      "v35_label": "CORRECT",
+      "v94_label": "CORRECT",
+      "reason": "evidence_report_relative_time_calculation"
+    },
+    {
+      "record_key": "1dc2f1aecd93efccd3921bf7",
+      "question": "When did Jon start to go to the gym?",
+      "gold_answer": "March, 2023",
+      "v35_answer": "2023-03-09 to 2023-03-15",
+      "v94_answer": "The week before 16 March 2023",
+      "v35_label": "CORRECT",
+      "v94_label": "CORRECT",
+      "reason": "evidence_report_relative_time_calculation"
+    },
+    {
+      "record_key": "3d88ee203e38e595c9f8da22",
+      "question": "When was Jon in Rome?",
+      "gold_answer": "June 2023",
+      "v35_answer": "2023-06-12 to 2023-06-18",
+      "v94_answer": "The week before 19 June 2023",
+      "v35_label": "CORRECT",
+      "v94_label": "CORRECT",
+      "reason": "evidence_report_relative_time_calculation"
+    },
+    {
+      "record_key": "9865d981c5f6c2ad320eab57",
+      "question": "When did Gina design a limited collection of hoodies?",
+      "gold_answer": "June 2023",
+      "v35_answer": "2023-06-14 to 2023-06-20",
+      "v94_answer": "The week before 21 June 2023",
+      "v35_label": "CORRECT",
+      "v94_label": "CORRECT",
+      "reason": "evidence_report_relative_time_calculation"
+    },
+    {
+      "record_key": "036d1c42efe355bbef56df4a",
+      "question": "When did Jon visit networking events for his store?",
+      "gold_answer": "20 June, 2023",
+      "v35_answer": "2023-07-21",
+      "v94_answer": "2023-06-20",
+      "v35_label": "WRONG",
+      "v94_label": "CORRECT",
+      "reason": "evidence_report_relative_time_calculation"
+    },
+    {
+      "record_key": "94f28aa885a637eda8161eff",
+      "question": "When did Gina start being recognized by fashion editors?",
+      "gold_answer": "July 2023",
+      "v35_answer": "2023-07-02 to 2023-07-08",
+      "v94_answer": "The week before 9 July 2023",
+      "v35_label": "CORRECT",
+      "v94_label": "CORRECT",
+      "reason": "evidence_report_relative_time_calculation"
+    },
+    {
+      "record_key": "2c130a8e1d7d329ea5a6a10c",
+      "question": "When did John join the online support group?",
+      "gold_answer": "The week before 1 January 2023",
+      "v35_answer": "2022-12-25 to 2022-12-31",
+      "v94_answer": "The week before 1 January 2023",
+      "v35_label": "CORRECT",
+      "v94_label": "CORRECT",
+      "reason": "evidence_report_relative_time_calculation"
+    },
+    {
+      "record_key": "e4898b5b6c7e43afef5a2d81",
+      "question": "When did Maria meet Jean?",
+      "gold_answer": "February 24, 2023",
+      "v35_answer": "2023-02-24",
+      "v94_answer": "2023-02-24",
+      "v35_label": "CORRECT",
+      "v94_label": "CORRECT",
+      "reason": "evidence_report_relative_time_calculation"
+    },
+    {
+      "record_key": "41afc46b7b67dc2d25a4e17c",
+      "question": "When did Maria's grandmother pass away?",
+      "gold_answer": "The week before 6 March 2023",
+      "v35_answer": "2023-02-27 to 2023-03-05",
+      "v94_answer": "The week before 6 March 2023",
+      "v35_label": "CORRECT",
+      "v94_label": "CORRECT",
+      "reason": "evidence_report_relative_time_calculation"
+    },
+    {
+      "record_key": "959fd1aea9d4cb5ea2aa1888",
+      "question": "When did John get his degree?",
+      "gold_answer": "The week before 2 April 2023",
+      "v35_answer": "2023-03-26 to 2023-04-01",
+      "v94_answer": "The week before 2 April 2023",
+      "v35_label": "CORRECT",
+      "v94_label": "CORRECT",
+      "reason": "evidence_report_relative_time_calculation"
+    },
+    {
+      "record_key": "de49850323fff9e30e3f85a6",
+      "question": "When did John have a party with veterans?",
+      "gold_answer": "The Friday before 20 May 2023",
+      "v35_answer": "2023-05-20",
+      "v94_answer": "2023-05-19",
+      "v35_label": "WRONG",
+      "v94_label": "CORRECT",
+      "reason": "evidence_report_relative_time_calculation"
+    },
+    {
+      "record_key": "5104dee78fc3520362494400",
+      "question": "When was John's old area hit with a flood?",
+      "gold_answer": "The week before 7 July 2023",
+      "v35_answer": "2023-06-30 to 2023-07-06",
+      "v94_answer": "The week before 7 July 2023",
+      "v35_label": "CORRECT",
+      "v94_label": "CORRECT",
+      "reason": "evidence_report_relative_time_calculation"
+    },
+    {
+      "record_key": "56025af9d3155fdbdbe3970c",
+      "question": "When did Maria go hiking with her church friends?",
+      "gold_answer": "The weekend before 22 July 2023",
+      "v35_answer": "2023-07-15 to 2023-07-16",
+      "v94_answer": "The weekend before 22 July 2023",
+      "v35_label": "CORRECT",
+      "v94_label": "CORRECT",
+      "reason": "evidence_report_relative_time_calculation"
+    },
+    {
+      "record_key": "3c4d02ee3890e9ccd78e90a6",
+      "question": "When did Maria receive a medal from the homeless shelter?",
+      "gold_answer": "The week before 9 August 2023",
+      "v35_answer": "2023-08-02 to 2023-08-08",
+      "v94_answer": "The week before 9 August 2023",
+      "v35_label": "CORRECT",
+      "v94_label": "CORRECT",
+      "reason": "evidence_report_relative_time_calculation"
+    },
+    {
+      "record_key": "3b44153bfc1143bc0f8403d6",
+      "question": "When did Maria adopt Shadow?",
+      "gold_answer": "The week before 13 August 2023",
+      "v35_answer": "2023-08-06 to 2023-08-12",
+      "v94_answer": "The week before 13 August 2023",
+      "v35_label": "CORRECT",
+      "v94_label": "CORRECT",
+      "reason": "evidence_report_relative_time_calculation"
+    },
+    {
+      "record_key": "6553ec28484e4a9f2d6d3cd6",
+      "question": "When did Nate get purple hair?",
+      "gold_answer": "The week before 15April, 2022.",
+      "v35_answer": "2022-04-08 to 2022-04-14",
+      "v94_answer": "The week before 15 April 2022",
+      "v35_label": "CORRECT",
+      "v94_label": "CORRECT",
+      "reason": "evidence_report_relative_time_calculation"
+    },
+    {
+      "record_key": "24c07a556f9dec26cea98f6e",
+      "question": "When did someone write Joanna a touching letter?",
+      "gold_answer": "The week before 14August, 2022.",
+      "v35_answer": "2022-08-07 to 2022-08-13",
+      "v94_answer": "The week before 14 August 2022",
+      "v35_label": "CORRECT",
+      "v94_label": "CORRECT",
+      "reason": "evidence_report_relative_time_calculation"
+    },
+    {
+      "record_key": "d43e47707f69f9fa8ff2f48e",
+      "question": "When did Joanna share her book with her writers group?",
+      "gold_answer": "The week before 22August, 2022.",
+      "v35_answer": "2022-08-15 to 2022-08-21",
+      "v94_answer": "The week before 22 August 2022",
+      "v35_label": "CORRECT",
+      "v94_label": "CORRECT",
+      "reason": "evidence_report_relative_time_calculation"
+    },
+    {
+      "record_key": "b88c77b366ca2bb9bd116c1d",
+      "question": "When did Joanna's laptop crash?",
+      "gold_answer": "The week before 14September, 2022",
+      "v35_answer": "2022-09-07 to 2022-09-13",
+      "v94_answer": "The week before 14 September 2022",
+      "v35_label": "CORRECT",
+      "v94_label": "CORRECT",
+      "reason": "evidence_report_relative_time_calculation"
+    },
+    {
+      "record_key": "24203406fb6753de476196c5",
+      "question": "When did Nate win a lot of money in a video game tournament?",
+      "gold_answer": "September 2022",
+      "v35_answer": "2022-10-05",
+      "v94_answer": "The week before 6 October 2022",
+      "v35_label": "WRONG",
+      "v94_label": "CORRECT",
+      "reason": "evidence_report_relative_time_calculation"
+    },
+    {
+      "record_key": "1e7b13b0f1cc58614c2927eb",
+      "question": "When did Andrew start his new job as a financial analyst?",
+      "gold_answer": "The week before March 27, 2023",
+      "v35_answer": "2023-03-20 to 2023-03-26",
+      "v94_answer": "The week before 27 March 2023",
+      "v35_label": "CORRECT",
+      "v94_label": "CORRECT",
+      "reason": "evidence_report_relative_time_calculation"
+    },
+    {
+      "record_key": "70925b7db53780ee823952b3",
+      "question": "When did Audrey make muffins for herself?",
+      "gold_answer": "The week of April 3rd to 9th",
+      "v35_answer": "2023-04-09 to 2023-04-15",
+      "v94_answer": "The week before 16 April 2023",
+      "v35_label": "WRONG",
+      "v94_label": "WRONG",
+      "reason": "evidence_report_relative_time_calculation"
+    },
+    {
+      "record_key": "91843786d215dab297af77a0",
+      "question": "When did Audrey see a hummingbird?",
+      "gold_answer": "first week of May 2023",
+      "v35_answer": "2023-04-26 to 2023-05-02",
+      "v94_answer": "The week before 3 May 2023",
+      "v35_label": "WRONG",
+      "v94_label": "WRONG",
+      "reason": "evidence_report_relative_time_calculation"
+    },
+    {
+      "record_key": "7afefdee536a8dd6407019f9",
+      "question": "When did Andrew and his girlfriend go fishing?",
+      "gold_answer": "weekend before August 24, 2023",
+      "v35_answer": "2023-08-19 to 2023-08-20",
+      "v94_answer": "The weekend before 24 August 2023",
+      "v35_label": "CORRECT",
+      "v94_label": "CORRECT",
+      "reason": "evidence_report_relative_time_calculation"
+    },
+    {
+      "record_key": "5c7b12bfda618558601ec310",
+      "question": "When did Audrey get into an accident in the park?",
+      "gold_answer": "between October 19 and 24, 2023",
+      "v35_answer": "2023-10-17 to 2023-10-23",
+      "v94_answer": "The week before 24 October 2023",
+      "v35_label": "WRONG",
+      "v94_label": "CORRECT",
+      "reason": "evidence_report_relative_time_calculation"
+    },
+    {
+      "record_key": "34703c569a8523e15a700f1d",
+      "question": "When did Andrew and his girlfriend go on a wine tasting trip?",
+      "gold_answer": "the weekend before October 24, 2023",
+      "v35_answer": "2023-10-21 to 2023-10-22",
+      "v94_answer": "The weekend before 24 October 2023",
+      "v35_label": "CORRECT",
+      "v94_label": "CORRECT",
+      "reason": "evidence_report_relative_time_calculation"
+    },
+    {
+      "record_key": "c9388e5156962075c83fe185",
+      "question": "When did John and James meet at McGee's bar?",
+      "gold_answer": "August 27, 2022",
+      "v35_answer": "2022-09-04",
+      "v94_answer": "2022-08-27",
+      "v35_label": "WRONG",
+      "v94_label": "CORRECT",
+      "reason": "evidence_report_relative_time_calculation"
+    },
+    {
+      "record_key": "5a0b7712f6042551e6f32a2c",
+      "question": "When did John and his programming friends host an online programming competition?",
+      "gold_answer": "Last week before 13 October 2022.",
+      "v35_answer": "2022-10-06 to 2022-10-12",
+      "v94_answer": "The week before 13 October 2022",
+      "v35_label": "CORRECT",
+      "v94_label": "CORRECT",
+      "reason": "evidence_report_relative_time_calculation"
+    },
+    {
+      "record_key": "f8d03370353c87cc32194726",
+      "question": "When did Jolene lose a lot of progress in her work?",
+      "gold_answer": "last week of July 2023",
+      "v35_answer": "2023-07-25 to 2023-07-31",
+      "v94_answer": "The week before 1 August 2023",
+      "v35_label": "CORRECT",
+      "v94_label": "CORRECT",
+      "reason": "evidence_report_relative_time_calculation"
+    },
+    {
+      "record_key": "3a479b20a8c6599fbafe092f",
+      "question": "When did Deborah go to a yoga retreat near her mom's place?",
+      "gold_answer": "a week before 24 August,2023",
+      "v35_answer": "2023-08-17 to 2023-08-23",
+      "v94_answer": "The week before 24 August 2023",
+      "v35_label": "CORRECT",
+      "v94_label": "CORRECT",
+      "reason": "evidence_report_relative_time_calculation"
+    },
+    {
+      "record_key": "8d10ca2dfd431a728667d6d0",
+      "question": "When did Evan go to Jasper with his family?",
+      "gold_answer": "weekend before May 24, 2023",
+      "v35_answer": "2023-05-20 to 2023-05-21",
+      "v94_answer": "The weekend before 24 May 2023",
+      "v35_label": "CORRECT",
+      "v94_label": "CORRECT",
+      "reason": "evidence_report_relative_time_calculation"
+    },
+    {
+      "record_key": "9430723540cb6a08eb8ed24d",
+      "question": "When did Evan have his sudden heart palpitation incident that really shocked him up?",
+      "gold_answer": "first week of June 2023",
+      "v35_answer": "2023-05-30 to 2023-06-05",
+      "v94_answer": "The week before 6 June 2023",
+      "v35_label": "CORRECT",
+      "v94_label": "WRONG",
+      "reason": "evidence_report_relative_time_calculation"
+    },
+    {
+      "record_key": "7e8b9a617575f31a6ea43c67",
+      "question": "When was Sam in the ER?",
+      "gold_answer": "weekend before 17 October, 2023.",
+      "v35_answer": "2023-10-14 to 2023-10-15",
+      "v94_answer": "The weekend before 17 October 2023",
+      "v35_label": "CORRECT",
+      "v94_label": "CORRECT",
+      "reason": "evidence_report_relative_time_calculation"
+    },
+    {
+      "record_key": "eefd59ef839c3a5986322c24",
+      "question": "When did a mishap occur with Calvin's musical gear and favorite mic?",
+      "gold_answer": "On a week before 16 May, 2023",
+      "v35_answer": "2023-05-09 to 2023-05-15",
+      "v94_answer": "The week before 16 May 2023",
+      "v35_label": "CORRECT",
+      "v94_label": "CORRECT",
+      "reason": "evidence_report_relative_time_calculation"
+    },
+    {
+      "record_key": "5b452c9cd7d8c871f64d56b8",
+      "question": "When did Dave return from San Francisco?",
+      "gold_answer": "September 1, 2023",
+      "v35_answer": "2023-09-01",
+      "v94_answer": "2023-09-01",
+      "v35_label": "CORRECT",
+      "v94_label": "CORRECT",
+      "reason": "evidence_report_relative_time_calculation"
+    },
+    {
+      "record_key": "a7c747c2077ccc9164566cff",
+      "question": "When did Calvin book flight tickets to Boston?",
+      "gold_answer": "last week of August 2023",
+      "v35_answer": "2023-08-26 to 2023-09-01",
+      "v94_answer": "The week before 2 September 2023",
+      "v35_label": "CORRECT",
+      "v94_label": "CORRECT",
+      "reason": "evidence_report_relative_time_calculation"
+    }
+  ]
+}

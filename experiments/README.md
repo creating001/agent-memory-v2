@@ -28,6 +28,7 @@
 - `configs/stage1_retrieval_top60_v33_cached.json`：v29 底座上的 clean top-60 retrieval expansion；v34 前 LoCoMo 最好结果，但 temporal_lookup 回退。
 - `configs/stage1_route_budgeted_retrieval_v34_cached.json`：v33 的 route-budgeted 版本；非 temporal 保留 top60，temporal_lookup 回到 top40，v35 前 LoCoMo 最好。
 - `configs/stage1_answer_format_guard_v35_cached.json`：v34 上的 answer format guard；修复 JSON answer salvage 和小数 duration，当前 LoCoMo 最好。
+- `configs/stage1_relative_time_finalizer_v94_cached.json`：v35 上的 conservative relative-time finalizer；当前代码下相对 v35 replay 小幅正向，但低于历史 v35 best，不作为当前最好。
 - `configs/stage1_lme_token_safe_format_guard_v36_cached.json`：v28 top40/evidence budget + v35 answer guard；v42 前 LME 最好，也是当前强 baseline。
 - `configs/stage1_operation_workpad_v42_cached.json`：v36 上的短 operation workpad；v73 前 LME 最好，但只是 close-margin 小幅正向。
 - `configs/stage1_finalizer_duration_fix_v73_cached.json`：v79 前 LongMemEval-S 最好主线；从 v42 出发只关闭有害的机械 duration decimal rounding finalizer。
@@ -59,6 +60,7 @@
 - v33 top-60 retrieval expansion 已完成 LoCoMo full：valid-only accuracy `0.771930`，invalid-as-wrong `0.771429`，比 v29/v32 净 +15；evidence recall 从 top-40 的 `0.891276` 提到 `0.917969`，但 temporal_lookup 净 -9。
 - v34 route-budgeted retrieval 已完成 LoCoMo full：valid-only accuracy `0.779727`，invalid-as-wrong `0.779221`，比 v33 净 +12、比 v29 净 +27；temporal_lookup 相对 v33 净 +7，说明 temporal top40 / non-temporal top60 的 budget 控制有效。
 - v35 answer format guard 已完成 LoCoMo full：valid-only accuracy `0.780377`，invalid-as-wrong `0.779870`，比 v34 净 +1；只改 6 条 prediction，finalizer applied 2 条。结论是 close-margin 正向，valid-only 达标，但必须同时报告 invalid-as-wrong 仍差 1 条和 same-answer judge variance。
+- v94 relative-time finalizer 已完成 LoCoMo full：accuracy `0.771429`，1188/1540，低于历史 v35 invalid-as-wrong `0.779870`；相对当前代码 v35 replay `0.769481` 为弱正向 +3，但 answer_changed 仅 44 条且接近 judge variance。结论是有用诊断，不作为 LoCoMo best，不跑 LME。
 - v36 LME token-safe format guard 已完成 LongMemEval-S full：accuracy `0.772`，386/500，比 v28 净 +3；avg query tokens `5715.468`，token 合格。结论是当前 LME 最好但仍是小幅正向，same-answer judge variance 可见，距 0.80 还差 14 条。
 - v37 row-linked memory bundle 已完成 LongMemEval-S full：accuracy `0.744`，372/500，低于 v36 `0.772`。它通过 token gate 且 evidence recall 仍为 `1.0`，但 typed memory 直接进入 answer prompt 后让 temporal/list/current_state 明显回退；结论是负向 ablation，不跑 LoCoMo full，顶层 config 不长期保留。
 - v38 route-scoped top60 + role_query_snippet 已完成 LongMemEval-S full：accuracy `0.752`，低于 v36 `0.772`。它相对 v37 恢复了部分 typed-memory-prompt 回退，但相对 v36 在 `list_count` 和 `temporal_lookup` 损失更大；结论是负向 ablation，不跑 LoCoMo full，顶层 config 不长期保留。
@@ -150,6 +152,7 @@ experiments/formal/<run_id>/
 
 | run | scope | 主要结论 |
 |---|---|---|
+| `stage1_answer_format_guard_v35_current_replay_locomo_nonadv_full_11b53e9` | LoCoMo non-adversarial full current-code replay | 当前 commit 下重放 v35 配置，用于隔离 v94 效果；DeepSeek judge `1185/1540 = 0.769481`，低于历史 v35 `1201/1540`，说明后续比较需注意 code/cache parsing drift。 |
 | `v47_temporal_aggregation_lme_diag_5487300` | 106 条 LongMemEval-S question-derived temporal aggregation diagnostic | v47 aggregation report + count_increment finalizer 失败；DeepSeek judge `75/106`，低于 v42 same-106 `81/106`，gain/loss `5/11`。重复计数 regression 明显，不跑 full，顶层 config 已删除。 |
 | `v48_candidate_map_lme_weakroute_265e07d` | 87 条 LongMemEval-S question-derived weak-route diagnostic | v48 Candidate Evidence Map 全弱路由失败；DeepSeek judge `56/87`，低于 v42 same-87 `59/87`，且 full query 估计 `6250.456` 超预算。仅 current_state 子集正向，转 v49 current-state-only。 |
 | `v49_current_state_candidate_map_lme_5993d30` | 22 条 LongMemEval-S question-derived current_state diagnostic | v49 current-state-only Candidate Evidence Map 弱正向但不够主线；DeepSeek judge `13/22`，高于 v42 same-22 `12/22`，gain/loss `3/2`，full query 估计 `5884.492`。有 temporal/order regression，不跑 full，顶层 config 已删除。 |
@@ -202,6 +205,7 @@ experiments/formal/<run_id>/
 | `stage1_memory_aware_selector_v39_lme_s_full_800421f` | LongMemEval-S | full | `800421f` | 0.724000 | v36 上的 memory-aware source selector；vs v36 净 -24，list/temporal final row order 噪声明显，负向 ablation，不跑 LoCoMo。 |
 | `stage1_evidence_report_contract_v28_lme_s_full_9917c22` | LongMemEval-S | full | `9917c22` | 0.766000 | v36 前 LME 最好；vs v18 净 +17，vs v26 净 +10；仍未达 0.80。 |
 | `stage1_answer_format_guard_v35_locomo_nonadv_full_80158a9` | LoCoMo | non-adversarial full | `80158a9` | 0.780377 | 当前 LoCoMo 最好；valid-only 达 0.78，invalid-as-wrong 1201/1540 仍差 1 条，close-margin。 |
+| `stage1_relative_time_finalizer_v94_locomo_nonadv_full_11b53e9` | LoCoMo | non-adversarial full | `11b53e9` | 0.771429 | v35 上的 conservative relative-time finalizer；相对 current-v35 replay 弱正向 +3，但低于历史 v35 best，不跑 LME。 |
 | `stage1_route_budgeted_retrieval_v34_locomo_nonadv_full_fb6c703` | LoCoMo | non-adversarial full | `fb6c703` | 0.779727 | v35 前 LoCoMo 最好；非 temporal top60、temporal top40，vs v33 净 +12，距离 0.78 还差 2 条。 |
 | `stage1_retrieval_top60_v33_locomo_nonadv_full_f016f9a` | LoCoMo | non-adversarial full | `f016f9a` | 0.771930 | v34 前 LoCoMo 最好；top-60 retrieval 带来 +15 correct，但 temporal_lookup 净 -9。 |
 | `stage1_temporal_event_contract_v29_lme_s_full_23e8b78` | LongMemEval-S | full | `23e8b78` | 0.762000 | v28 上的 temporal event contract query-side ablation；temporal_lookup 净 +2，但 current_state/list_count 回退，整体低于 v28。 |
