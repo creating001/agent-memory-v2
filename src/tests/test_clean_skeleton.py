@@ -333,7 +333,12 @@ class CleanSkeletonTest(unittest.TestCase):
                             "dense_protect_top_n": 0,
                         },
                         "selected_context": {"enabled": False},
-                        "compiler": {"operation_workpad": True},
+                        "compiler": {
+                            "temporal_event_contract": False,
+                            "operation_workpad": True,
+                            "personalized_advice_contract": True,
+                            "update_conflict_guide": True,
+                        },
                         "answer_finalizer": {
                             "enabled": True,
                             "mode": "structured_evidence_mechanical",
@@ -350,6 +355,10 @@ class CleanSkeletonTest(unittest.TestCase):
                 "max_evidence_chars": 4000,
                 "evidence_report_contract": True,
                 "evidence_report_information_needs": ["list_count"],
+                "temporal_event_contract": True,
+                "operation_workpad": False,
+                "personalized_advice_contract": False,
+                "update_conflict_guide": False,
             },
             "answer": {
                 "fallback_answer": "unknown",
@@ -394,6 +403,19 @@ class CleanSkeletonTest(unittest.TestCase):
         )
         self.assertFalse(long_retrieval["selected_context"]["enabled"])
         self.assertEqual(long_retrieval["compiler_profile"], "long_turn_precision")
+        long_compiler = long_result["trace"]["compiler"]
+        self.assertFalse(long_compiler["temporal_event_contract"])
+        self.assertTrue(long_compiler["operation_workpad"])
+        self.assertTrue(long_compiler["personalized_advice_contract"])
+        self.assertTrue(long_compiler["update_conflict_guide"])
+        self.assertIn(
+            "Private Operation Discipline",
+            long_result["trace"]["compiled_context"]["prompt"],
+        )
+        self.assertNotIn(
+            "event_time_candidates",
+            long_result["trace"]["compiled_context"]["prompt"],
+        )
         self.assertTrue(long_finalizer["enable_count_answer_detail"])
         self.assertFalse(long_finalizer["enable_relative_time_calculation"])
 

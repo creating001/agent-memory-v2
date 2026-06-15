@@ -493,159 +493,21 @@ class Stage1Pipeline:
         self._compiler_memory_record_source = _validate_memory_record_source(
             str(compiler_config.get("memory_record_source", "retrieval"))
         )
-        self._compiler_trace_config = {
-            "prompt_mode": str(compiler_config.get("prompt_mode", "default")),
-            "memory_record_source": self._compiler_memory_record_source,
-            "evidence_order": str(compiler_config.get("evidence_order", "retrieval")),
-            "memory_order": str(compiler_config.get("memory_order", "retrieval")),
-            "memory_layout": str(compiler_config.get("memory_layout", "flat")),
-            "row_text_mode": str(compiler_config.get("row_text_mode", "full")),
-            "max_row_text_chars": int(compiler_config.get("max_row_text_chars", 0)),
-            "evidence_row_labels": bool(
-                compiler_config.get("evidence_row_labels", False)
-            ),
-            "final_answer_checklist": bool(
-                compiler_config.get("final_answer_checklist", False)
-            ),
-            "route_guidance": bool(compiler_config.get("route_guidance", False)),
-            "answer_style": str(compiler_config.get("answer_style", "grounded")),
-            "temporal_grounding": bool(
-                compiler_config.get("temporal_grounding", False)
-            ),
-            "temporal_hints": bool(compiler_config.get("temporal_hints", False)),
-            "temporal_workpad": bool(
-                compiler_config.get("temporal_workpad", False)
-            ),
-            "temporal_text_normalization": bool(
-                compiler_config.get("temporal_text_normalization", False)
-            ),
-            "temporal_event_contract": bool(
-                compiler_config.get("temporal_event_contract", False)
-            ),
-            "temporal_workpad_scope": str(
-                compiler_config.get("temporal_workpad_scope", "route")
-            ),
-            "temporal_workpad_max_rows": int(
-                compiler_config.get("temporal_workpad_max_rows", 10)
-            ),
-            "temporal_workpad_max_pairs": int(
-                compiler_config.get("temporal_workpad_max_pairs", 12)
-            ),
-            "structured_guide": bool(compiler_config.get("structured_guide", False)),
-            "structured_guide_max_rows": int(
-                compiler_config.get("structured_guide_max_rows", 12)
-            ),
-            "structured_guide_include_rows": bool(
-                compiler_config.get("structured_guide_include_rows", True)
-            ),
-            "structured_guide_include_memory": bool(
-                compiler_config.get("structured_guide_include_memory", True)
-            ),
-            "structured_guide_disabled_signals": _tuple_config(
-                compiler_config.get("structured_guide_disabled_signals")
-            ),
-            "structured_answer_contract": bool(
-                compiler_config.get("structured_answer_contract", False)
-            ),
-            "structured_answer_contract_information_needs": _tuple_config(
-                compiler_config.get(
-                    "structured_answer_contract_information_needs",
-                    ("list_count", "temporal_lookup"),
-                )
-            ),
-            "structured_answer_contract_max_items": int(
-                compiler_config.get("structured_answer_contract_max_items", 10)
-            ),
-            "evidence_report_contract": bool(
-                compiler_config.get("evidence_report_contract", False)
-            ),
-            "evidence_report_information_needs": _tuple_config(
-                compiler_config.get("evidence_report_information_needs")
-            ),
-            "evidence_report_max_items": int(
-                compiler_config.get("evidence_report_max_items", 8)
-            ),
-            "evidence_report_detail": bool(
-                compiler_config.get("evidence_report_detail", False)
-            ),
-            "aggregation_report_contract": bool(
-                compiler_config.get("aggregation_report_contract", False)
-            ),
-            "aggregation_report_information_needs": _tuple_config(
-                compiler_config.get(
-                    "aggregation_report_information_needs",
-                    ("list_count", "temporal_lookup"),
-                )
-            ),
-            "candidate_guide": bool(compiler_config.get("candidate_guide", False)),
-            "candidate_guide_information_needs": _tuple_config(
-                compiler_config.get(
-                    "candidate_guide_information_needs",
-                    ("list_count", "temporal_lookup"),
-                )
-            ),
-            "candidate_guide_max_rows": int(
-                compiler_config.get("candidate_guide_max_rows", 6)
-            ),
-            "candidate_guide_snippet_chars": int(
-                compiler_config.get("candidate_guide_snippet_chars", 160)
-            ),
-            "update_conflict_guide": bool(
-                compiler_config.get("update_conflict_guide", False)
-            ),
-            "update_conflict_guide_information_needs": _tuple_config(
-                compiler_config.get(
-                    "update_conflict_guide_information_needs",
-                    ("current_state", "fact_lookup", "list_count", "temporal_lookup"),
-                )
-            ),
-            "update_conflict_guide_max_rows": int(
-                compiler_config.get("update_conflict_guide_max_rows", 6)
-            ),
-            "update_conflict_guide_snippet_chars": int(
-                compiler_config.get("update_conflict_guide_snippet_chars", 180)
-            ),
-            "operation_workpad": bool(
-                compiler_config.get("operation_workpad", False)
-            ),
-            "operation_workpad_information_needs": _tuple_config(
-                compiler_config.get(
-                    "operation_workpad_information_needs",
-                    ("list_count", "temporal_lookup"),
-                )
-            ),
-            "operation_workpad_question_gate": bool(
-                compiler_config.get("operation_workpad_question_gate", False)
-            ),
-            "personalized_advice_contract": bool(
-                compiler_config.get("personalized_advice_contract", False)
-            ),
-            "current_state_update_contract": bool(
-                compiler_config.get("current_state_update_contract", False)
-            ),
-            "dialogue_inference_contract": bool(
-                compiler_config.get("dialogue_inference_contract", False)
-            ),
-            "temporal_order_contract": bool(
-                compiler_config.get("temporal_order_contract", False)
-            ),
-            "source_anchor_keep": int(compiler_config.get("source_anchor_keep", 0)),
-            "source_anchor_memory_rows": int(
-                compiler_config.get("source_anchor_memory_rows", 0)
-            ),
-            "source_anchor_per_session": int(
-                compiler_config.get("source_anchor_per_session", 0)
-            ),
-            "source_anchor_session_rows": int(
-                compiler_config.get("source_anchor_session_rows", 0)
-            ),
-            "context_layout": str(compiler_config.get("context_layout", "flat")),
-            "max_memory_records": int(compiler_config.get("max_memory_records", 12)),
-            "route_overrides": compiler_config.get("route_overrides") or {},
-        }
+        self._compiler_trace_config = _compiler_trace_config(
+            compiler_config,
+            memory_record_source=self._compiler_memory_record_source,
+        )
         self._granularity_compilers = {
             profile["name"]: _configured_compiler(
                 _merged_config(compiler_config, profile["compiler"])
+            )
+            for profile in self._granularity_profiles
+            if profile.get("compiler")
+        }
+        self._granularity_compiler_trace_configs = {
+            profile["name"]: _compiler_trace_config(
+                _merged_config(compiler_config, profile["compiler"]),
+                memory_record_source=self._compiler_memory_record_source,
             )
             for profile in self._granularity_profiles
             if profile.get("compiler")
@@ -1161,6 +1023,10 @@ class Stage1Pipeline:
                 token_usage=answer.token_usage,
                 raw_response=answer.raw_response,
             )
+        compiler_trace_config = self._granularity_compiler_trace_configs.get(
+            str(profile_name),
+            self._compiler_trace_config,
+        )
         token_usage = TokenUsage(
             build_tokens=(
                 built_memory.token_usage.build_tokens
@@ -1335,7 +1201,7 @@ class Stage1Pipeline:
                     "hits": [hit.to_dict() for hit in hits],
                 },
                 "compiled_context": compiled.to_dict(),
-                "compiler": self._compiler_trace_config,
+                "compiler": compiler_trace_config,
                 "answer_cache": _answer_cache_delta(
                     answer_cache_before,
                     answer_cache_after,
@@ -2132,6 +1998,155 @@ def _configured_router(route_config: Mapping[str, Any]) -> QuestionRouter:
             route_config.get("temporal_priority_over_recent", False)
         ),
     )
+
+
+def _compiler_trace_config(
+    compiler_config: Mapping[str, Any],
+    *,
+    memory_record_source: str,
+) -> dict[str, Any]:
+    return {
+        "prompt_mode": str(compiler_config.get("prompt_mode", "default")),
+        "memory_record_source": memory_record_source,
+        "evidence_order": str(compiler_config.get("evidence_order", "retrieval")),
+        "memory_order": str(compiler_config.get("memory_order", "retrieval")),
+        "memory_layout": str(compiler_config.get("memory_layout", "flat")),
+        "row_text_mode": str(compiler_config.get("row_text_mode", "full")),
+        "max_row_text_chars": int(compiler_config.get("max_row_text_chars", 0)),
+        "evidence_row_labels": bool(compiler_config.get("evidence_row_labels", False)),
+        "final_answer_checklist": bool(
+            compiler_config.get("final_answer_checklist", False)
+        ),
+        "route_guidance": bool(compiler_config.get("route_guidance", False)),
+        "answer_style": str(compiler_config.get("answer_style", "grounded")),
+        "temporal_grounding": bool(compiler_config.get("temporal_grounding", False)),
+        "temporal_hints": bool(compiler_config.get("temporal_hints", False)),
+        "temporal_workpad": bool(compiler_config.get("temporal_workpad", False)),
+        "temporal_text_normalization": bool(
+            compiler_config.get("temporal_text_normalization", False)
+        ),
+        "temporal_event_contract": bool(
+            compiler_config.get("temporal_event_contract", False)
+        ),
+        "temporal_workpad_scope": str(
+            compiler_config.get("temporal_workpad_scope", "route")
+        ),
+        "temporal_workpad_max_rows": int(
+            compiler_config.get("temporal_workpad_max_rows", 10)
+        ),
+        "temporal_workpad_max_pairs": int(
+            compiler_config.get("temporal_workpad_max_pairs", 12)
+        ),
+        "structured_guide": bool(compiler_config.get("structured_guide", False)),
+        "structured_guide_max_rows": int(
+            compiler_config.get("structured_guide_max_rows", 12)
+        ),
+        "structured_guide_include_rows": bool(
+            compiler_config.get("structured_guide_include_rows", True)
+        ),
+        "structured_guide_include_memory": bool(
+            compiler_config.get("structured_guide_include_memory", True)
+        ),
+        "structured_guide_disabled_signals": _tuple_config(
+            compiler_config.get("structured_guide_disabled_signals")
+        ),
+        "structured_answer_contract": bool(
+            compiler_config.get("structured_answer_contract", False)
+        ),
+        "structured_answer_contract_information_needs": _tuple_config(
+            compiler_config.get(
+                "structured_answer_contract_information_needs",
+                ("list_count", "temporal_lookup"),
+            )
+        ),
+        "structured_answer_contract_max_items": int(
+            compiler_config.get("structured_answer_contract_max_items", 10)
+        ),
+        "evidence_report_contract": bool(
+            compiler_config.get("evidence_report_contract", False)
+        ),
+        "evidence_report_information_needs": _tuple_config(
+            compiler_config.get("evidence_report_information_needs")
+        ),
+        "evidence_report_max_items": int(
+            compiler_config.get("evidence_report_max_items", 8)
+        ),
+        "evidence_report_detail": bool(
+            compiler_config.get("evidence_report_detail", False)
+        ),
+        "aggregation_report_contract": bool(
+            compiler_config.get("aggregation_report_contract", False)
+        ),
+        "aggregation_report_information_needs": _tuple_config(
+            compiler_config.get(
+                "aggregation_report_information_needs",
+                ("list_count", "temporal_lookup"),
+            )
+        ),
+        "candidate_guide": bool(compiler_config.get("candidate_guide", False)),
+        "candidate_guide_information_needs": _tuple_config(
+            compiler_config.get(
+                "candidate_guide_information_needs",
+                ("list_count", "temporal_lookup"),
+            )
+        ),
+        "candidate_guide_max_rows": int(
+            compiler_config.get("candidate_guide_max_rows", 6)
+        ),
+        "candidate_guide_snippet_chars": int(
+            compiler_config.get("candidate_guide_snippet_chars", 160)
+        ),
+        "update_conflict_guide": bool(
+            compiler_config.get("update_conflict_guide", False)
+        ),
+        "update_conflict_guide_information_needs": _tuple_config(
+            compiler_config.get(
+                "update_conflict_guide_information_needs",
+                ("current_state", "fact_lookup", "list_count", "temporal_lookup"),
+            )
+        ),
+        "update_conflict_guide_max_rows": int(
+            compiler_config.get("update_conflict_guide_max_rows", 6)
+        ),
+        "update_conflict_guide_snippet_chars": int(
+            compiler_config.get("update_conflict_guide_snippet_chars", 180)
+        ),
+        "operation_workpad": bool(compiler_config.get("operation_workpad", False)),
+        "operation_workpad_information_needs": _tuple_config(
+            compiler_config.get(
+                "operation_workpad_information_needs",
+                ("list_count", "temporal_lookup"),
+            )
+        ),
+        "operation_workpad_question_gate": bool(
+            compiler_config.get("operation_workpad_question_gate", False)
+        ),
+        "personalized_advice_contract": bool(
+            compiler_config.get("personalized_advice_contract", False)
+        ),
+        "current_state_update_contract": bool(
+            compiler_config.get("current_state_update_contract", False)
+        ),
+        "dialogue_inference_contract": bool(
+            compiler_config.get("dialogue_inference_contract", False)
+        ),
+        "temporal_order_contract": bool(
+            compiler_config.get("temporal_order_contract", False)
+        ),
+        "source_anchor_keep": int(compiler_config.get("source_anchor_keep", 0)),
+        "source_anchor_memory_rows": int(
+            compiler_config.get("source_anchor_memory_rows", 0)
+        ),
+        "source_anchor_per_session": int(
+            compiler_config.get("source_anchor_per_session", 0)
+        ),
+        "source_anchor_session_rows": int(
+            compiler_config.get("source_anchor_session_rows", 0)
+        ),
+        "context_layout": str(compiler_config.get("context_layout", "flat")),
+        "max_memory_records": int(compiler_config.get("max_memory_records", 12)),
+        "route_overrides": compiler_config.get("route_overrides") or {},
+    }
 
 
 def _configured_compiler(compiler_config: Mapping[str, Any]) -> EvidenceCompiler:
