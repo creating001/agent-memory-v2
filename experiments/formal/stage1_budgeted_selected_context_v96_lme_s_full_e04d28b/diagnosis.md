@@ -1,0 +1,173 @@
+# Diagnosis for stage1_budgeted_selected_context_v96_lme_s_full_e04d28b
+
+## Summary
+
+This run tests whether the same v96 budgeted selected-context algorithm can become a unified LoCoMo + LongMemEval-S mainline. It fails that test: DeepSeek judge accuracy is 380/500 = 0.760000, below v88's 400/500 = 0.800000, and avg query tokens are 6126.760, slightly above the 6K target.
+
+## Observations
+
+- samples_processed: 500
+- avg_compiled_evidence_items: 36.158
+- avg_build_tokens: 80346.246
+- build_token_accounting: logical cold-build LLM tokens; cached build chunks count from stored usage, while cache hits only avoid repeated local API calls.
+- avg_build_memory_records: 129.662
+- avg_active_build_memory_records: 116.456
+- build_memory_temporal_fields: False
+- build_memory_prompt_profile: typed_compact
+- build_memory_manage_facts: True
+- build_memory_overlap_turns: 0
+- build_memory_cache_hits: 3341
+- build_memory_cache_misses: 0
+- build_memory_cache_writes: 0
+- build_memory_source_alignment: {}
+- build_memory_source_alignment_changed_records: 0
+- build_memory_source_alignment_added_sources: 0
+- avg_build_memory_source_alignment_changed_records: 0.0
+- avg_build_memory_source_alignment_added_sources: 0.0
+- avg_memory_hits: 8.236
+- avg_memory_source_hits: 7.924
+- build_memory_include_superseded: False
+- build_memory_include_superseded_information_needs: ['temporal_lookup', 'list_count']
+- avg_context_chars: 19443.124
+- avg_query_tokens: 6126.76
+- retrieval_route_overrides: {'temporal_lookup': {'top_k': 40, 'max_top_k': 40, 'dense_top_k': 40, 'lexical_protect_top_n': 0, 'dense_protect_top_n': 32}}
+- avg_effective_top_k: 53.56
+- avg_effective_dense_top_k: 53.56
+- avg_effective_dense_protect_top_n: 42.848
+- dense_protect_top_n: 48
+- turn_window_bm25_enabled: False
+- turn_window_top_k: None
+- turn_window_window_before: None
+- turn_window_window_after: None
+- turn_window_max_sources_per_window: None
+- turn_window_bm25_applied_count: 0
+- turn_window_bm25_applied_rate: 0.0
+- avg_turn_window_hits: 0.0
+- avg_turn_window_source_hits: 0.0
+- selected_context_enabled: True
+- selected_context_applied_count: 317
+- selected_context_applied_rate: 0.634
+- avg_selected_context_materialized_rows: 3.804
+- rerank_enabled: False
+- rerank_model: None
+- rerank_pool_k: None
+- rerank_anchor_keep: None
+- rerank_anchor_after_top: None
+- rerank_applied_count: 0
+- rerank_applied_rate: 0.0
+- avg_rerank_candidate_count: None
+- avg_rerank_returned_count: None
+- avg_rerank_tokens_when_applied: None
+- embedding_cache_enabled: True
+- embedding_cache_hits: 247238
+- embedding_cache_misses: 0
+- evidence_order: retrieval
+- memory_record_source: retrieval
+- avg_compiled_memory_records: 0.0
+- memory_order: retrieval
+- memory_layout: flat
+- row_text_mode: full
+- max_row_text_chars: 0
+- evidence_row_labels: False
+- final_answer_checklist: False
+- max_memory_records: 0
+- route_guidance: False
+- temporal_workpad: True
+- temporal_text_normalization: True
+- temporal_event_contract: True
+- temporal_workpad_scope: route
+- temporal_workpad_max_rows: 12
+- temporal_workpad_max_pairs: 12
+- operation_workpad_question_gate: False
+- personalized_advice_contract: False
+- personalized_advice_contract_applied: 0
+- structured_guide: True
+- structured_guide_max_rows: 12
+- structured_guide_include_rows: True
+- structured_guide_include_memory: False
+- structured_guide_disabled_signals: ['personalized_recommendation']
+- structured_answer_contract: False
+- structured_answer_contract_information_needs: None
+- structured_answer_contract_max_items: 10
+- evidence_report_contract: True
+- evidence_report_information_needs: ['current_state', 'fact_lookup', 'list_count', 'profile_preference', 'temporal_lookup']
+- evidence_report_max_items: 8
+- evidence_report_detail: False
+- aggregation_report_contract: False
+- aggregation_report_information_needs: None
+- candidate_guide: False
+- candidate_guide_information_needs: None
+- candidate_guide_max_rows: 6
+- candidate_guide_snippet_chars: 160
+- update_conflict_guide: False
+- update_conflict_guide_information_needs: None
+- update_conflict_guide_max_rows: 6
+- update_conflict_guide_snippet_chars: 180
+- update_conflict_guide_applied: 0
+- current_state_update_contract: False
+- dialogue_inference_contract: False
+- temporal_order_contract: False
+- source_anchor_keep: 0
+- source_anchor_memory_rows: 0
+- source_anchor_per_session: 0
+- source_anchor_session_rows: 0
+- route_overrides: {'temporal_lookup': {'max_evidence_items': 40, 'max_evidence_chars': 18000}}
+- enable_recommendation_profile_patterns: True
+- enable_advice_profile_patterns: False
+- temporal_priority_over_recent: False
+- answer_max_input_tokens: 131072
+- answer_max_output_tokens: 16384
+- answer_cache_enabled: True
+- answer_cache_path: outputs/cache/qwen3_answer_v96_budgeted_selected_context.sqlite
+- answer_cache_namespace: stage1_budgeted_selected_context_v96_qwen3_30b
+- answer_cache_hits: 0
+- answer_cache_misses: 500
+- answer_cache_writes: 500
+- answer_finalizer_enabled: True
+- answer_finalizer_mode: structured_evidence_mechanical
+- answer_finalizer_enable_count_correction: False
+- answer_finalizer_enable_evidence_report_count_correction: False
+- answer_finalizer_enable_money_sum_correction: False
+- answer_finalizer_enable_duration_rounding_correction: True
+- answer_finalizer_enable_missing_detail: False
+- answer_finalizer_enable_relative_time_calculation: True
+- answer_finalizer_applied_count: 2
+- answer_finalizer_applied_rate: 0.004
+- answer_repair_enabled: False
+- answer_repair_mode: openai_compatible
+- answer_repair_model: Qwen/Qwen3-30B-A3B-Instruct-2507
+- answer_repair_max_input_tokens: 131072
+- answer_repair_max_output_tokens: 16384
+- answer_repair_information_needs: None
+- answer_repair_enable_profile_preference_trigger: False
+- answer_repair_triggered_count: 0
+- answer_repair_triggered_rate: 0.0
+- answer_repair_applied_count: 0
+- answer_repair_applied_rate: 0.0
+- answer_repair_total_query_tokens: 0
+- answer_repair_avg_query_tokens_when_triggered: None
+- answer_repair_cache_hits: 0
+- answer_repair_cache_misses: 0
+- answer_repair_cache_writes: 0
+- answer: OpenAI-compatible answerer using Qwen/Qwen3-30B-A3B-Instruct-2507 at http://127.0.0.1:8000/v1 with temperature 0, max_input_tokens 131072, and max_output_tokens 16384.
+
+## Offline Judge And Recall
+
+- DeepSeek judge: 380/500 = 0.760000, invalid 0.
+- Judge token usage: 94411 prompt tokens, 40327 completion tokens, 134738 total tokens.
+- Evidence recall: 1.000000 over 500 examples with evidence labels.
+
+## Comparison Diagnosis
+
+- Against v88, v96 loses -20 correct overall. The overall transitions are WRONG->CORRECT 21, CORRECT->WRONG 41, CORRECT->CORRECT 359, WRONG->WRONG 79.
+- Against v88, 192/500 predictions changed and the changed-prediction subset is net -21, so the regression is real method surface rather than only same-answer judge variance.
+- The largest v88-relative losses are in multi-session (-6 net), knowledge-update (-7 net), and single-session-preference (-2 net). Temporal-reasoning is also negative but less severe (-3 net).
+- Against v95, v96 still loses -6 correct overall, so simply narrowing selected_context fixes LoCoMo but does not solve LME.
+- Evidence recall remains perfect. The failure mode is reader/context precision and prompt behavior: v96's LoCoMo-oriented top60/selected_context/relative-time stack adds distractors or removes LME-specific answer-detail behavior compared with v88's top40 + operation workpad + evidence-answer-detail finalizer.
+- Clean status remains acceptable: the prediction path used no gold answer, judge output, benchmark label, sample id, row index, test feedback, or sample-level rule. The negative conclusion comes from offline judge/label analysis only.
+
+## Next Steps
+
+- Do not promote v96 to unified mainline.
+- Keep v96 as the current LoCoMo branch and v88 as the current LongMemEval-S branch until a single clean algorithm can match both.
+- Next candidate should be a benchmark-agnostic dynamic context gate: preserve v88-style LME behavior when evidence recall is already saturated or prompt pressure is high, and apply selected-row local context only when it improves likely anaphora/source continuity without excessive token/noise.

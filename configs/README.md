@@ -18,7 +18,7 @@
 - `stage1_answer_format_guard_v35_cached.json`：v34 上的 answer format guard；修复 JSON answer salvage 和小数 duration，LoCoMo 强 baseline。
 - `stage1_relative_time_finalizer_v94_cached.json`：v35 上的 conservative relative-time finalizer；v95 前 LoCoMo 最好。
 - `stage1_selected_context_v95_cached.json`：LoCoMo 正向但 LME 负向的 selected-context 对照；启用 question-text-only broad collection routing，并把已入选 raw turn 的同 session 相邻 turn 作为局部上下文物化，用于补全 `this/that/it/recently/last` 等承接信息。
-- `stage1_budgeted_selected_context_v96_cached.json`：当前 LoCoMo 最好和统一候选；保留 selected-row local context，但把 evidence char budget 收到 18K、selected_context 收到最多 6 行/邻接 120 字符。LoCoMo full 已达 `1232/1540 = 0.800000`，avg query tokens `5496.281`；LongMemEval-S full 待验证。
+- `stage1_budgeted_selected_context_v96_cached.json`：当前 LoCoMo 最好，但不是统一主线；保留 selected-row local context，把 evidence char budget 收到 18K、selected_context 收到最多 6 行/邻接 120 字符。LoCoMo full 已达 `1232/1540 = 0.800000`，avg query tokens `5496.281`；LongMemEval-S full 只有 `380/500 = 0.760000` 且 avg query tokens `6126.760`，低于 v88 并略超 6K。
 - `stage1_lme_token_safe_format_guard_v36_cached.json`：v28 top40/evidence budget + v35 answer guard；v42 前 LME 最好，也是当前强 baseline。
 - `stage1_operation_workpad_v42_cached.json`：v36 上的短 operation workpad；不新增 LLM 调用，不改 retrieval/build，只在 `list_count` / `temporal_lookup` 的 evidence_report prompt 中加入通用操作聚合纪律。v73 前 LongMemEval-S full 最好，但仅比 v36 净 +1，属于 close-margin 小幅正向。
 - `stage1_finalizer_duration_fix_v73_cached.json`：v79 前 LongMemEval-S 最好和关键对照；从 v42 出发只关闭有害的机械 duration decimal rounding finalizer。
@@ -34,7 +34,7 @@ LongMemEval-S 当前最好是 `stage1_evidence_answer_detail_v88_cached.json`；
 
 v95 selected context 已完成双基准验证：LoCoMo full 为 `1211/1540 = 0.786364`，高于 v94 `1206/1540`；LongMemEval-S full 为 `386/500 = 0.772`，低于 v88 `400/500 = 0.800`，且 avg_query_tokens `7441.176` 超过 6K 主线预算。它参考 creating001 的 turn-pair/source-turn materialization、SimpleMem 的 structured raw context 和 MemU 的按信息需求检索组织，但只使用 question text、route、已检索 raw turns 及其同 session 邻接 turns，不使用 gold、judge、benchmark 标签、sample id 或样本级规则。结论是 LoCoMo 正向但 LME 负向/过预算；下一步必须做 v96 token-safe 收窄。
 
-v96 budgeted selected context 已完成 LoCoMo full：DeepSeek judge `1232/1540 = 0.800000`，高于 v95 `1211/1540` 和 v94 `1206/1540`；avg_build_tokens `58386.008`，avg_query_tokens `5496.281`。相对 v95，changed-prediction subset 为 `WRONG->CORRECT 53`、`CORRECT->WRONG 36`，净 +17；相对 v94 changed subset 净 +28。它说明 v95 的额外局部上下文确实有噪声，收窄到最多 6 行/邻接 120 字符后更稳。LongMemEval-S full 仍待验证；如果 LME 不能恢复 token/accuracy，应把 v96 作为 LoCoMo 分支，而不是统一主线。
+v96 budgeted selected context 已完成双基准验证：LoCoMo full `1232/1540 = 0.800000`，高于 v95 `1211/1540` 和 v94 `1206/1540`；avg_build_tokens `58386.008`，avg_query_tokens `5496.281`。相对 v95，changed-prediction subset 为 `WRONG->CORRECT 53`、`CORRECT->WRONG 36`，净 +17；相对 v94 changed subset 净 +28。它说明 v95 的额外局部上下文确实有噪声，收窄到最多 6 行/邻接 120 字符后更稳。但同 config 在 LongMemEval-S full 只有 `380/500 = 0.760000`，低于 v88 `400/500 = 0.800000`，且 avg_query_tokens `6126.760` 略超 6K。结论：v96 是 LoCoMo 当前最好分支，不是统一主线；下一步需要 benchmark-agnostic dynamic context gate，而不是继续扩大 selected_context。
 
 v94 prompt-compatible relative-time finalizer 已完成 LoCoMo full：fresh full judge `0.783117`，1206/1540；controlled comparison vs v35 为 `0.781818`，1204/1540。avg_build_tokens `58386.008`，avg_query_tokens `4920.573`，只改变 6 条 prediction，changed subset 净 +3。结论是当前 LoCoMo best，但方法收益按 controlled +3 记录，fresh full 中另有 +2 来自 judge variance。
 

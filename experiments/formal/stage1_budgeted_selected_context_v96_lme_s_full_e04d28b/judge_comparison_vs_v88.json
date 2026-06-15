@@ -1,0 +1,1176 @@
+{
+  "current_run": "stage1_budgeted_selected_context_v96_lme_s_full_e04d28b",
+  "baseline_run": "stage1_evidence_answer_detail_v88_lme_s_full_55b8177",
+  "current_correct": 380,
+  "baseline_correct": 400,
+  "current_accuracy": 0.76,
+  "baseline_accuracy": 0.8,
+  "n_common": 500,
+  "prediction_changed": 192,
+  "prediction_unchanged": 308,
+  "transitions": {
+    "CORRECT->CORRECT": 359,
+    "CORRECT->WRONG": 41,
+    "WRONG->WRONG": 79,
+    "WRONG->CORRECT": 21
+  },
+  "changed_prediction_transitions": {
+    "CORRECT->CORRECT": 81,
+    "CORRECT->WRONG": 41,
+    "WRONG->WRONG": 50,
+    "WRONG->CORRECT": 20
+  },
+  "changed_prediction_net_correct": -21,
+  "unchanged_prediction_judge_change_count": 1,
+  "by_current_route_transition": {
+    "current_state": {
+      "CORRECT->WRONG": 3,
+      "CORRECT->CORRECT": 12,
+      "WRONG->WRONG": 6,
+      "WRONG->CORRECT": 1
+    },
+    "fact_lookup": {
+      "CORRECT->CORRECT": 137,
+      "WRONG->WRONG": 21,
+      "WRONG->CORRECT": 8,
+      "CORRECT->WRONG": 17
+    },
+    "list_count": {
+      "CORRECT->CORRECT": 91,
+      "WRONG->WRONG": 19,
+      "CORRECT->WRONG": 6,
+      "WRONG->CORRECT": 3
+    },
+    "profile_preference": {
+      "WRONG->CORRECT": 1,
+      "WRONG->WRONG": 5,
+      "CORRECT->WRONG": 3,
+      "CORRECT->CORRECT": 6
+    },
+    "temporal_lookup": {
+      "CORRECT->CORRECT": 113,
+      "WRONG->WRONG": 28,
+      "CORRECT->WRONG": 12,
+      "WRONG->CORRECT": 8
+    }
+  },
+  "by_question_type_transition": {
+    "knowledge-update": {
+      "CORRECT->WRONG": 9,
+      "CORRECT->CORRECT": 60,
+      "WRONG->WRONG": 7,
+      "WRONG->CORRECT": 2
+    },
+    "multi-session": {
+      "CORRECT->CORRECT": 78,
+      "CORRECT->WRONG": 14,
+      "WRONG->CORRECT": 8,
+      "WRONG->WRONG": 33
+    },
+    "single-session-assistant": {
+      "CORRECT->CORRECT": 50,
+      "WRONG->CORRECT": 2,
+      "WRONG->WRONG": 2,
+      "CORRECT->WRONG": 2
+    },
+    "single-session-preference": {
+      "WRONG->CORRECT": 4,
+      "CORRECT->CORRECT": 7,
+      "WRONG->WRONG": 13,
+      "CORRECT->WRONG": 6
+    },
+    "single-session-user": {
+      "CORRECT->CORRECT": 64,
+      "WRONG->WRONG": 2,
+      "CORRECT->WRONG": 3,
+      "WRONG->CORRECT": 1
+    },
+    "temporal-reasoning": {
+      "WRONG->WRONG": 22,
+      "CORRECT->CORRECT": 100,
+      "WRONG->CORRECT": 4,
+      "CORRECT->WRONG": 7
+    }
+  },
+  "by_selected_context_transition": {
+    "applied": {
+      "CORRECT->CORRECT": 234,
+      "WRONG->WRONG": 45,
+      "WRONG->CORRECT": 12,
+      "CORRECT->WRONG": 26
+    },
+    "not_applied": {
+      "CORRECT->CORRECT": 125,
+      "CORRECT->WRONG": 15,
+      "WRONG->WRONG": 34,
+      "WRONG->CORRECT": 9
+    }
+  },
+  "examples_changed_gain_loss": [
+    {
+      "record_key": "02e16bd2f4719927af0b2006",
+      "question": "How many followers do I have on Instagram now?",
+      "question_type": "knowledge-update",
+      "base_answer": "1300",
+      "current_answer": "1250",
+      "transition": "CORRECT->WRONG",
+      "route": {
+        "information_need": "current_state",
+        "retrieval_multiplier": 2,
+        "signals": [
+          "recent_or_current"
+        ]
+      },
+      "selected_context": {
+        "applied": false,
+        "eligible": false,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 0,
+        "materialized_source_ids": [],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "04fbc2bee20a490a0e937558",
+      "question": "What time do I usually go to the gym?",
+      "question_type": "knowledge-update",
+      "base_answer": "6:00 pm",
+      "current_answer": "7:00 pm",
+      "transition": "CORRECT->WRONG",
+      "route": {
+        "information_need": "temporal_lookup",
+        "retrieval_multiplier": 2,
+        "signals": [
+          "temporal"
+        ]
+      },
+      "selected_context": {
+        "applied": false,
+        "eligible": false,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 0,
+        "materialized_source_ids": [],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "08cccaf312a179d4f4b961d3",
+      "question": "I've been feeling like my chocolate chip cookies need something extra. Any advice?",
+      "question_type": "single-session-preference",
+      "base_answer": "Try adding turbinado sugar for a richer flavor or toasted sliced almonds for extra crunch and texture—both have worked well in your previous baking experiments.",
+      "current_answer": "Try adding brown sugar, turbinado sugar, sliced almonds, or almond flour to your chocolate chip cookies for a richer flavor and extra texture.",
+      "transition": "WRONG->CORRECT",
+      "route": {
+        "information_need": "profile_preference",
+        "retrieval_multiplier": 2,
+        "signals": [
+          "profile_or_preference"
+        ]
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 6,
+        "materialized_source_ids": [
+          "87aaee77:turn_0010",
+          "87aaee77:turn_0006",
+          "87aaee77:turn_0002",
+          "87aaee77:turn_0004",
+          "answer_772472c8:turn_0000",
+          "answer_772472c8:turn_0014"
+        ],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "0ae3182c3a2b012937a96b9d",
+      "question": "How many hours have I spent playing games in total?",
+      "question_type": "multi-session",
+      "base_answer": "140 hours",
+      "current_answer": "70 hours (30 + 25 + 10 + 5)",
+      "transition": "CORRECT->WRONG",
+      "route": {
+        "information_need": "list_count",
+        "retrieval_multiplier": 3,
+        "signals": [
+          "list_or_count"
+        ]
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 6,
+        "materialized_source_ids": [
+          "answer_8d015d9d_2:turn_0000",
+          "cbd18c72:turn_0006",
+          "answer_8d015d9d_2:turn_0006",
+          "answer_8d015d9d_3:turn_0008",
+          "answer_8d015d9d_1:turn_0000",
+          "answer_8d015d9d_5:turn_0006"
+        ],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "0bf314d56525b110034655c0",
+      "question": "Which social media platform did I gain the most followers on over the past month?",
+      "question_type": "multi-session",
+      "base_answer": "TikTok",
+      "current_answer": "Twitter",
+      "transition": "CORRECT->WRONG",
+      "route": {
+        "information_need": "temporal_lookup",
+        "retrieval_multiplier": 2,
+        "signals": [
+          "temporal"
+        ]
+      },
+      "selected_context": {
+        "applied": false,
+        "eligible": false,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 0,
+        "materialized_source_ids": [],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "0e3b85f1ae5dddca4b328a0f",
+      "question": "How many fitness classes do I attend in a typical week?",
+      "question_type": "multi-session",
+      "base_answer": "5",
+      "current_answer": "4",
+      "transition": "CORRECT->WRONG",
+      "route": {
+        "information_need": "temporal_lookup",
+        "retrieval_multiplier": 2,
+        "signals": [
+          "temporal"
+        ]
+      },
+      "selected_context": {
+        "applied": false,
+        "eligible": false,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 0,
+        "materialized_source_ids": [],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "0ee8c25c59cfcb1bb56e1da5",
+      "question": "How many total pieces of writing have I completed since I started writing again three weeks ago, including short stories, poems, and pieces for the writing challenge?",
+      "question_type": "multi-session",
+      "base_answer": "22",
+      "current_answer": "23",
+      "transition": "WRONG->CORRECT",
+      "route": {
+        "information_need": "temporal_lookup",
+        "retrieval_multiplier": 2,
+        "signals": [
+          "temporal"
+        ]
+      },
+      "selected_context": {
+        "applied": false,
+        "eligible": false,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 0,
+        "materialized_source_ids": [],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "128a1895ab851f148bbea790",
+      "question": "How many plants did I initially plant for tomatoes and chili peppers?",
+      "question_type": "multi-session",
+      "base_answer": "The provided information is not enough to answer the question: initial plants for chili peppers",
+      "current_answer": "5 tomato plants; no information on chili peppers",
+      "transition": "WRONG->CORRECT",
+      "route": {
+        "information_need": "list_count",
+        "retrieval_multiplier": 3,
+        "signals": [
+          "list_or_count"
+        ]
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 6,
+        "materialized_source_ids": [
+          "answer_743f03a1_abs_1:turn_0010",
+          "answer_743f03a1_abs_1:turn_0000",
+          "answer_743f03a1_abs_1:turn_0002",
+          "answer_743f03a1_abs_1:turn_0006",
+          "answer_743f03a1_abs_2:turn_0000",
+          "answer_743f03a1_abs_1:turn_0008"
+        ],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "17228110851e8010d1ac4774",
+      "question": "Who did I go with to the music event last Saturday?",
+      "question_type": "temporal-reasoning",
+      "base_answer": "The provided information is not enough to determine who the user went with to the music event last Saturday.",
+      "current_answer": "parents",
+      "transition": "WRONG->CORRECT",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 6,
+        "materialized_source_ids": [
+          "answer_f999b05c_4:turn_0008",
+          "answer_f999b05c_4:turn_0000",
+          "answer_f999b05c_4:turn_0002",
+          "answer_f999b05c_5:turn_0000",
+          "answer_f999b05c_4:turn_0004",
+          "answer_f999b05c_3:turn_0002"
+        ],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "2152374e46762b936b18b5c5",
+      "question": "What gardening-related activity did I do two weeks ago?",
+      "question_type": "temporal-reasoning",
+      "base_answer": "Using a gardening app to track weather and soil moisture levels",
+      "current_answer": "Planted 12 new tomato saplings",
+      "transition": "WRONG->CORRECT",
+      "route": {
+        "information_need": "temporal_lookup",
+        "retrieval_multiplier": 2,
+        "signals": [
+          "temporal"
+        ]
+      },
+      "selected_context": {
+        "applied": false,
+        "eligible": false,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 0,
+        "materialized_source_ids": [],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "26c00eb2d2a565814caf44d9",
+      "question": "How long had I been using the new area rug when I rearranged my living room furniture?",
+      "question_type": "temporal-reasoning",
+      "base_answer": "9 days",
+      "current_answer": "three weeks",
+      "transition": "CORRECT->WRONG",
+      "route": {
+        "information_need": "temporal_lookup",
+        "retrieval_multiplier": 2,
+        "signals": [
+          "temporal"
+        ]
+      },
+      "selected_context": {
+        "applied": false,
+        "eligible": false,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 0,
+        "materialized_source_ids": [],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "27a28d49af7d327bb9f25309",
+      "question": "How much more did I spend on accommodations per night in Hawaii compared to Tokyo?",
+      "question_type": "multi-session",
+      "base_answer": "$270",
+      "current_answer": "The provided information is not enough to determine how much more was spent on accommodations per night in Hawaii compared to Tokyo.",
+      "transition": "CORRECT->WRONG",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 6,
+        "materialized_source_ids": [
+          "answer_eaa8e3ef_2:turn_0002",
+          "answer_eaa8e3ef_2:turn_0000",
+          "answer_eaa8e3ef_1:turn_0000",
+          "answer_eaa8e3ef_1:turn_0008",
+          "answer_eaa8e3ef_2:turn_0001",
+          "answer_eaa8e3ef_2:turn_0006"
+        ],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "2a18e972b47c27c2c1f2fdb8",
+      "question": "How long have I been working before I started my current job at NovaTech?",
+      "question_type": "temporal-reasoning",
+      "base_answer": "4 years and 9 months",
+      "current_answer": "The provided information is not enough to determine how long the user had been working before starting at NovaTech.",
+      "transition": "CORRECT->WRONG",
+      "route": {
+        "information_need": "current_state",
+        "retrieval_multiplier": 2,
+        "signals": [
+          "recent_or_current"
+        ]
+      },
+      "selected_context": {
+        "applied": false,
+        "eligible": false,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 0,
+        "materialized_source_ids": [],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "3327f6bb9f2b962d1187cd6b",
+      "question": "How many times did I bake something in the past two weeks?",
+      "question_type": "multi-session",
+      "base_answer": "4",
+      "current_answer": "5",
+      "transition": "CORRECT->WRONG",
+      "route": {
+        "information_need": "temporal_lookup",
+        "retrieval_multiplier": 2,
+        "signals": [
+          "temporal"
+        ]
+      },
+      "selected_context": {
+        "applied": false,
+        "eligible": false,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 0,
+        "materialized_source_ids": [],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "3e1b497a50eb3120dc176277",
+      "question": "How many weeks passed between the time I sold homemade baked goods at the Farmers' Market for the last time and the time I participated in the Spring Fling Market?",
+      "question_type": "temporal-reasoning",
+      "base_answer": "3",
+      "current_answer": "3.14",
+      "transition": "CORRECT->WRONG",
+      "route": {
+        "information_need": "temporal_lookup",
+        "retrieval_multiplier": 2,
+        "signals": [
+          "temporal"
+        ]
+      },
+      "selected_context": {
+        "applied": false,
+        "eligible": false,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 0,
+        "materialized_source_ids": [],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "453f3e55b4b3725c16004ac9",
+      "question": "What was the the life event of one of my relatives that I participated in a week ago?",
+      "question_type": "temporal-reasoning",
+      "base_answer": "The life event was attending my cousin's wedding as a bridesmaid.",
+      "current_answer": "The provided information is not enough to determine a life event of a relative that the user participated in a week ago.",
+      "transition": "CORRECT->WRONG",
+      "route": {
+        "information_need": "temporal_lookup",
+        "retrieval_multiplier": 2,
+        "signals": [
+          "temporal"
+        ]
+      },
+      "selected_context": {
+        "applied": false,
+        "eligible": false,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 0,
+        "materialized_source_ids": [],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "4b2d65beb209dbf5f2059c19",
+      "question": "I was going through our previous conversation about making a classic French omelette, and I wanted to confirm - how many eggs did you say we need for the recipe?",
+      "question_type": "single-session-assistant",
+      "base_answer": "3",
+      "current_answer": "2-3 eggs",
+      "transition": "WRONG->CORRECT",
+      "route": {
+        "information_need": "list_count",
+        "retrieval_multiplier": 3,
+        "signals": [
+          "list_or_count"
+        ]
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 6,
+        "materialized_source_ids": [
+          "answer_ultrachat_13075:turn_0002",
+          "answer_ultrachat_13075:turn_0005",
+          "sharegpt_ha8kUEr_0:turn_0003",
+          "answer_ultrachat_13075:turn_0001",
+          "answer_ultrachat_13075:turn_0003",
+          "89aed484_2:turn_0000"
+        ],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "4be721ae00fda00fbb5ac16b",
+      "question": "How many kitchen items did I replace or fix?",
+      "question_type": "multi-session",
+      "base_answer": "5",
+      "current_answer": "4",
+      "transition": "CORRECT->WRONG",
+      "route": {
+        "information_need": "list_count",
+        "retrieval_multiplier": 3,
+        "signals": [
+          "list_or_count"
+        ]
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 6,
+        "materialized_source_ids": [
+          "answer_728deb4d_5:turn_0000",
+          "answer_728deb4d_2:turn_0000",
+          "answer_728deb4d_2:turn_0006",
+          "answer_728deb4d_4:turn_0010",
+          "answer_728deb4d_2:turn_0004",
+          "answer_728deb4d_1:turn_0000"
+        ],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "4bf2ae911b43d202c626a73d",
+      "question": "Who graduated first, second and third among Emma, Rachel and Alex?",
+      "question_type": "temporal-reasoning",
+      "base_answer": "First: Emma, Second: Rachel, Third: Alex",
+      "current_answer": "First: Emma, Second: Alex, Third: Rachel",
+      "transition": "CORRECT->WRONG",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 6,
+        "materialized_source_ids": [
+          "answer_cf021b36_1:turn_0004",
+          "answer_cf021b36_1:turn_0006",
+          "answer_cf021b36_3:turn_0000",
+          "answer_cf021b36_1:turn_0002",
+          "answer_cf021b36_1:turn_0010",
+          "604de0a3_2:turn_0011"
+        ],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "5662691a4bc7b9290f5727a8",
+      "question": "How much total money did I spend on attending workshops in the last four months?",
+      "question_type": "multi-session",
+      "base_answer": "720",
+      "current_answer": "500",
+      "transition": "CORRECT->WRONG",
+      "route": {
+        "information_need": "temporal_lookup",
+        "retrieval_multiplier": 2,
+        "signals": [
+          "temporal"
+        ]
+      },
+      "selected_context": {
+        "applied": false,
+        "eligible": false,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 0,
+        "materialized_source_ids": [],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "5819961e927d864a6b8d3a21",
+      "question": "Can you suggest some useful accessories for my phone?",
+      "question_type": "single-session-preference",
+      "base_answer": "Based on your interests, consider a phone wallet case (e.g., OtterBox or Mophie), a high-quality screen protector for your iPhone 13 Pro, and a wireless charging power bank for convenient on-the-go charging.",
+      "current_answer": "Consider a high-quality phone wallet case from brands like Nomad, Fossil, Bellroy, Incipio, Speck, Case-Mate, Tech21, UAG, Mophie, or Spigen; a portable power bank, especially a wireless charging model; and a high-quality screen protector for your phone.",
+      "transition": "CORRECT->WRONG",
+      "route": {
+        "information_need": "profile_preference",
+        "retrieval_multiplier": 2,
+        "signals": [
+          "profile_or_preference",
+          "personalized_recommendation"
+        ]
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 6,
+        "materialized_source_ids": [
+          "answer_d03098f9:turn_0002",
+          "answer_d03098f9:turn_0006",
+          "39358a85_2:turn_0008",
+          "answer_d03098f9:turn_0000",
+          "answer_d03098f9:turn_0008",
+          "0ac1a6f9_2:turn_0008"
+        ],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "589b37fd0ba97f533c07aa37",
+      "question": "I'm planning a trip to Denver soon. Any suggestions on what to do there?",
+      "question_type": "single-session-preference",
+      "base_answer": "Consider visiting Red Rocks Amphitheater for live music, especially if you're a fan of The Killers or similar acts. Explore nearby BBQ places for dining after concerts. Also, keep an eye on new music releases and local concerts in Denver to stay updated on the city's vibrant music scene.",
+      "current_answer": "Attend concerts at Red Rocks Amphitheater, explore music venues and festivals in Denver, and try local BBQ places near the amphitheater.",
+      "transition": "CORRECT->WRONG",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 6,
+        "materialized_source_ids": [
+          "answer_8f15ac24:turn_0004",
+          "answer_8f15ac24:turn_0006",
+          "39a056ae:turn_0002",
+          "1b133cc2:turn_0004",
+          "99f2f5b1_1:turn_0006",
+          "dc9bf721_2:turn_0002"
+        ],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "5a37a93ab3c66f6b71a739ad",
+      "question": "How many model kits have I worked on or bought?",
+      "question_type": "multi-session",
+      "base_answer": "5 model kits: Revell F-15 Eagle, 1/72 scale B-29 bomber, 1/24 scale '69 Camaro, 1/16 scale German Tiger I tank, and Tamiya 1/48 scale Spitfire Mk.V",
+      "current_answer": "5 model kits: Revell F-15 Eagle (1/48 scale), 1/72 scale B-29 bomber, 1/24 scale '69 Camaro, 1/16 scale German Tiger I tank, and Tamiya 1/48 scale Spitfire Mk.V.",
+      "transition": "CORRECT->WRONG",
+      "route": {
+        "information_need": "list_count",
+        "retrieval_multiplier": 3,
+        "signals": [
+          "list_or_count"
+        ]
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 6,
+        "materialized_source_ids": [
+          "answer_593bdffd_1:turn_0000",
+          "answer_593bdffd_4:turn_0000",
+          "answer_593bdffd_3:turn_0000",
+          "answer_593bdffd_2:turn_0000",
+          "answer_593bdffd_4:turn_0006",
+          "answer_593bdffd_1:turn_0006"
+        ],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "6d6f6607745c774b92aa396a",
+      "question": "Who did I meet first, Mark and Sarah or Tom?",
+      "question_type": "temporal-reasoning",
+      "base_answer": "Mark and Sarah",
+      "current_answer": "Tom",
+      "transition": "WRONG->CORRECT",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 6,
+        "materialized_source_ids": [
+          "answer_e60a93ff_1:turn_0004",
+          "answer_e60a93ff_1:turn_0002",
+          "answer_e60a93ff_1:turn_0008",
+          "answer_e60a93ff_1:turn_0010",
+          "answer_e60a93ff_2:turn_0000",
+          "answer_e60a93ff_1:turn_0001"
+        ],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "6eb23a13d4004c3cfd395d74",
+      "question": "Where did Rachel move to after her recent relocation?",
+      "question_type": "knowledge-update",
+      "base_answer": "the suburbs",
+      "current_answer": "Chicago",
+      "transition": "CORRECT->WRONG",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 6,
+        "materialized_source_ids": [
+          "answer_0b1a0942_1:turn_0008",
+          "answer_0b1a0942_1:turn_0002",
+          "answer_0b1a0942_1:turn_0003",
+          "answer_0b1a0942_2:turn_0002",
+          "answer_0b1a0942_1:turn_0009",
+          "answer_0b1a0942_1:turn_0000"
+        ],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "709447e6ba096ba2b432bcce",
+      "question": "I've been sneezing quite a bit lately. Do you think it might be my living room?",
+      "question_type": "single-session-preference",
+      "base_answer": "Yes, it might be your living room.",
+      "current_answer": "Yes, it might be the dust in your living room, especially with a cat that sheds.",
+      "transition": "WRONG->CORRECT",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 6,
+        "materialized_source_ids": [
+          "answer_8ee04a2e:turn_0002",
+          "adb1f904:turn_0006",
+          "ultrachat_32122:turn_0010",
+          "42165950_4:turn_0002",
+          "8ba845f4:turn_0006",
+          "8ba845f4:turn_0007"
+        ],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "71c309443747c6d8faf4a7d2",
+      "question": "How many days before I bought my iPad did I attend the Holiday Market?",
+      "question_type": "temporal-reasoning",
+      "base_answer": "The provided information is not enough to answer the question: The date of the iPad purchase is not provided in the context, making it impossible to calculate the number of days between the Holiday Market and the iPad purchase",
+      "current_answer": "7",
+      "transition": "CORRECT->WRONG",
+      "route": {
+        "information_need": "temporal_lookup",
+        "retrieval_multiplier": 2,
+        "signals": [
+          "temporal"
+        ]
+      },
+      "selected_context": {
+        "applied": false,
+        "eligible": false,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 0,
+        "materialized_source_ids": [],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "767dc4d1e636373a70a888ac",
+      "question": "How many autographed baseballs have I added to my collection in the first three months of collection?",
+      "question_type": "knowledge-update",
+      "base_answer": "20",
+      "current_answer": "15",
+      "transition": "WRONG->CORRECT",
+      "route": {
+        "information_need": "temporal_lookup",
+        "retrieval_multiplier": 2,
+        "signals": [
+          "temporal"
+        ]
+      },
+      "selected_context": {
+        "applied": false,
+        "eligible": false,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 0,
+        "materialized_source_ids": [],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "7933cff5854d25ce3c9e8901",
+      "question": "How long have I been living in my current apartment in Shinjuku?",
+      "question_type": "knowledge-update",
+      "base_answer": "7 months",
+      "current_answer": "The provided information is not enough because you are living in Harajuku, not Shinjuku.",
+      "transition": "WRONG->CORRECT",
+      "route": {
+        "information_need": "current_state",
+        "retrieval_multiplier": 2,
+        "signals": [
+          "recent_or_current"
+        ]
+      },
+      "selected_context": {
+        "applied": false,
+        "eligible": false,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 0,
+        "materialized_source_ids": [],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    },
+    {
+      "record_key": "7a09015c87580f2e98c3f5cd",
+      "question": "What is the total number of comments on my recent Facebook Live session and my most popular YouTube video?",
+      "question_type": "multi-session",
+      "base_answer": "The total number of comments on your recent Facebook Live session is 12, and your most popular YouTube video has 21 comments.",
+      "current_answer": "12 comments on the recent Facebook Live session and 21 comments on the most popular YouTube video.",
+      "transition": "WRONG->CORRECT",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 6,
+        "materialized_source_ids": [
+          "answer_fa08bf49_2:turn_0004",
+          "answer_fa08bf49_1:turn_0008",
+          "sharegpt_TzwvePR_0:turn_0015",
+          "answer_fa08bf49_2:turn_0006",
+          "answer_fa08bf49_2:turn_0002",
+          "sharegpt_TzwvePR_0:turn_0013"
+        ],
+        "max_neighbor_chars": 120,
+        "max_rows": 6,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      }
+    }
+  ],
+  "examples_unchanged_judge_changes": [
+    {
+      "record_key": "6add1c5dafed557c669ab382",
+      "question": "Can you remind me what was the average improvement in framerate when using the Hardware-Aware Modular Training (HAMT) agent in the 'To Adapt or Not to Adapt? Real-Time Adaptation for Semantic Segmentation' submission?",
+      "question_type": "single-session-assistant",
+      "answer": "20%",
+      "transition": "WRONG->CORRECT",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      }
+    }
+  ],
+  "clean_note": "Offline comparison only. It uses completed predictions, judge outputs, traces, and labels for analysis; it must not feed prediction logic."
+}
