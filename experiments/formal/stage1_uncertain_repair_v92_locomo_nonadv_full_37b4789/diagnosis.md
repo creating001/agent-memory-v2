@@ -1,0 +1,163 @@
+# Diagnosis for stage1_uncertain_repair_v92_locomo_nonadv_full_37b4789
+
+## Summary
+
+The run validates pipeline shape, clean traceability, and answerer integration under the configured experiment kind.
+
+## Observations
+
+- samples_processed: 1540
+- avg_compiled_evidence_items: 55.61038961038961
+- avg_build_tokens: 58386.00779220779
+- build_token_accounting: logical cold-build LLM tokens; cached build chunks count from stored usage, while cache hits only avoid repeated local API calls.
+- avg_build_memory_records: 136.65974025974026
+- avg_active_build_memory_records: 125.11233766233767
+- build_memory_temporal_fields: False
+- build_memory_prompt_profile: typed_compact
+- build_memory_manage_facts: True
+- build_memory_overlap_turns: 0
+- build_memory_cache_hits: 12411
+- build_memory_cache_misses: 0
+- build_memory_cache_writes: 0
+- build_memory_source_alignment: {}
+- build_memory_source_alignment_changed_records: 0
+- build_memory_source_alignment_added_sources: 0
+- avg_build_memory_source_alignment_changed_records: 0.0
+- avg_build_memory_source_alignment_added_sources: 0.0
+- avg_memory_hits: 19.84155844155844
+- avg_memory_source_hits: 22.37922077922078
+- build_memory_include_superseded: False
+- build_memory_include_superseded_information_needs: ['temporal_lookup', 'list_count']
+- avg_context_chars: 14477.938311688311
+- avg_query_tokens: 5109.921428571429
+- retrieval_route_overrides: {'temporal_lookup': {'top_k': 40, 'max_top_k': 40, 'dense_top_k': 40, 'lexical_protect_top_n': 0, 'dense_protect_top_n': 32}}
+- avg_effective_top_k: 55.61038961038961
+- avg_effective_dense_top_k: 55.61038961038961
+- avg_effective_dense_protect_top_n: 44.48831168831169
+- dense_protect_top_n: 48
+- turn_window_bm25_enabled: False
+- turn_window_top_k: None
+- turn_window_window_before: None
+- turn_window_window_after: None
+- turn_window_max_sources_per_window: None
+- turn_window_bm25_applied_count: 0
+- turn_window_bm25_applied_rate: 0.0
+- avg_turn_window_hits: 0.0
+- avg_turn_window_source_hits: 0.0
+- rerank_enabled: False
+- rerank_model: None
+- rerank_pool_k: None
+- rerank_anchor_keep: None
+- rerank_anchor_after_top: None
+- rerank_applied_count: 0
+- rerank_applied_rate: 0.0
+- avg_rerank_candidate_count: None
+- avg_rerank_returned_count: None
+- avg_rerank_tokens_when_applied: None
+- embedding_cache_enabled: True
+- embedding_cache_hits: 7422
+- embedding_cache_misses: 0
+- evidence_order: retrieval
+- memory_record_source: retrieval
+- avg_compiled_memory_records: 0.0
+- memory_order: retrieval
+- memory_layout: flat
+- row_text_mode: full
+- max_row_text_chars: 0
+- evidence_row_labels: False
+- final_answer_checklist: False
+- max_memory_records: 0
+- route_guidance: False
+- temporal_workpad: True
+- temporal_text_normalization: True
+- temporal_event_contract: True
+- temporal_workpad_scope: route
+- temporal_workpad_max_rows: 12
+- temporal_workpad_max_pairs: 12
+- operation_workpad_question_gate: False
+- personalized_advice_contract: False
+- personalized_advice_contract_applied: 0
+- structured_guide: True
+- structured_guide_max_rows: 12
+- structured_guide_include_rows: True
+- structured_guide_include_memory: False
+- structured_guide_disabled_signals: ['personalized_recommendation']
+- structured_answer_contract: False
+- structured_answer_contract_information_needs: None
+- structured_answer_contract_max_items: 10
+- evidence_report_contract: True
+- evidence_report_information_needs: ['current_state', 'fact_lookup', 'list_count', 'profile_preference', 'temporal_lookup']
+- evidence_report_max_items: 8
+- evidence_report_detail: False
+- aggregation_report_contract: False
+- aggregation_report_information_needs: None
+- candidate_guide: False
+- candidate_guide_information_needs: None
+- candidate_guide_max_rows: 6
+- candidate_guide_snippet_chars: 160
+- update_conflict_guide: False
+- update_conflict_guide_information_needs: None
+- update_conflict_guide_max_rows: 6
+- update_conflict_guide_snippet_chars: 180
+- update_conflict_guide_applied: 0
+- current_state_update_contract: False
+- dialogue_inference_contract: False
+- temporal_order_contract: False
+- source_anchor_keep: 0
+- source_anchor_memory_rows: 0
+- source_anchor_per_session: 0
+- source_anchor_session_rows: 0
+- route_overrides: {'temporal_lookup': {'max_evidence_items': 40, 'max_evidence_chars': 18000}}
+- enable_recommendation_profile_patterns: True
+- enable_advice_profile_patterns: False
+- temporal_priority_over_recent: False
+- answer_max_input_tokens: 131072
+- answer_max_output_tokens: 16384
+- answer_cache_enabled: True
+- answer_cache_path: outputs/cache/qwen3_answer_v35_format_guard.sqlite
+- answer_cache_namespace: stage1_answer_format_guard_v35_qwen3_30b
+- answer_cache_hits: 1540
+- answer_cache_misses: 0
+- answer_cache_writes: 0
+- answer_finalizer_enabled: True
+- answer_finalizer_mode: structured_evidence_mechanical
+- answer_finalizer_enable_count_correction: False
+- answer_finalizer_enable_evidence_report_count_correction: False
+- answer_finalizer_enable_money_sum_correction: False
+- answer_finalizer_enable_duration_rounding_correction: True
+- answer_finalizer_enable_missing_detail: False
+- answer_finalizer_applied_count: 0
+- answer_finalizer_applied_rate: 0.0
+- answer_repair_enabled: True
+- answer_repair_mode: openai_compatible
+- answer_repair_model: Qwen/Qwen3-30B-A3B-Instruct-2507
+- answer_repair_max_input_tokens: 131072
+- answer_repair_max_output_tokens: 16384
+- answer_repair_information_needs: None
+- answer_repair_enable_profile_preference_trigger: False
+- answer_repair_triggered_count: 76
+- answer_repair_triggered_rate: 0.04935064935064935
+- answer_repair_applied_count: 4
+- answer_repair_applied_rate: 0.0025974025974025974
+- answer_repair_total_query_tokens: 301664
+- answer_repair_avg_query_tokens_when_triggered: 3969.2631578947367
+- answer_repair_cache_hits: 0
+- answer_repair_cache_misses: 76
+- answer_repair_cache_writes: 76
+- answer: OpenAI-compatible answerer using Qwen/Qwen3-30B-A3B-Instruct-2507 at http://127.0.0.1:8000/v1 with temperature 0, max_input_tokens 131072, and max_output_tokens 16384.
+
+## Next Steps
+
+- DeepSeek judge is complete: 1192 / 1540, accuracy 0.7740259740259741, invalid 0.
+- This does not beat the current LoCoMo best v35 result: 1201 / 1539 valid, accuracy 0.7803768680961664.
+- v92 repair was narrow and clean: it used only the draft answer, question, route, and retrieved Memory Context; no gold, judge output, hidden label, sample id, row index, or test feedback entered prediction.
+- answer_repair_triggered_count: 76; answer_repair_applied_count: 4.
+- The 4 applied repairs have post-judge labels 3 CORRECT and 1 WRONG, so repair can fix some over-abstention but can also revise into unsupported inference.
+- Do not promote v92. Future repair should require stronger evidence support or a verifier-style support check before revising unknown answers.
+- Because this run reused cached v35 raw answer generations under current parser/finalizer code, text-level diffs against the historical v35 predictions are not a controlled repair-only delta. Use the full-run judge result as the formal conclusion.
+
+## Offline Outputs
+
+- deepseek_judge: /data/home_new/wujinqi/agent-memory/experiments/formal/stage1_uncertain_repair_v92_locomo_nonadv_full_37b4789/deepseek_judge.json
+- predictions: /data/home_new/wujinqi/agent-memory/outputs/formal/stage1_uncertain_repair_v92_locomo_nonadv_full_37b4789/predictions.jsonl
+- traces: /data/home_new/wujinqi/agent-memory/outputs/formal/stage1_uncertain_repair_v92_locomo_nonadv_full_37b4789/traces.jsonl
