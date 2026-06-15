@@ -50,7 +50,7 @@
 当前结论：
 
 - LongMemEval-S full 当前最好为 v88：0.800 DeepSeek judge accuracy，400/500；首次达到 0.80 baseline target。
-- LoCoMo non-adversarial full 当前最高为 v94 prompt-compatible：fresh full judge 1206/1540 = 0.783117；controlled comparison vs v35 为 1204/1540 = 0.781818。v35 是强 baseline：valid-only 0.780377，invalid-as-wrong 1201/1540 = 0.779870。
+- LoCoMo non-adversarial full 当前最高为 v95 selected context：fresh full judge 1211/1540 = 0.786364。v95 相对 v94 fresh full 净 +5；prediction_changed 子集 `WRONG->CORRECT 70`、`CORRECT->WRONG 60`，方法表面净 +10，未改 prediction 的 judge variance 净 -5。avg_query_tokens 5974.314，接近 6K 预算，需要 LME full 和收窄消融继续验证。v94 是前一 best：1206/1540 = 0.783117；v35 是强 baseline：valid-only 0.780377。
 - v28/v29 token gate 均通过：v28 LME avg_build_tokens 80346.246、avg_query_tokens 5736.928；v29 LoCoMo avg_build_tokens 58386.008、avg_query_tokens 3932.560。
 - LoCoMo 诊断显示，很多 wrong case 已有 evidence 进入 context，主要问题是 answer 阶段混淆 mention date / event time、列表边界和隐含推理；下一步应改 build/query 两侧的 memory organization，而不是继续只堆 answer prompt。
 - v29 temporal event contract 已完成双基准验证：LME `0.762`，低于 v28 `0.766`；LoCoMo `0.761688`，显著高于 v28 `0.737662` 但仍未达 `0.78` target。结论是 event-time 组织对 LoCoMo 有价值，但需要前移到 build-side typed memory，不能只靠 query prompt。
@@ -205,7 +205,8 @@ experiments/formal/<run_id>/
 | `stage1_row_memory_bundle_v37_lme_s_full_7f1fea6` | LongMemEval-S | full | `7f1fea6` | 0.744000 | v36 上的 row-linked build memory bundle；typed memory prompt 化导致 temporal/list/current_state 回退，负向 ablation，不跑 LoCoMo。 |
 | `stage1_memory_aware_selector_v39_lme_s_full_800421f` | LongMemEval-S | full | `800421f` | 0.724000 | v36 上的 memory-aware source selector；vs v36 净 -24，list/temporal final row order 噪声明显，负向 ablation，不跑 LoCoMo。 |
 | `stage1_evidence_report_contract_v28_lme_s_full_9917c22` | LongMemEval-S | full | `9917c22` | 0.766000 | v36 前 LME 最好；vs v18 净 +17，vs v26 净 +10；仍未达 0.80。 |
-| `stage1_relative_time_finalizer_v94_prompt_compat_locomo_nonadv_full_4299ac8` | LoCoMo | non-adversarial full | `4299ac8` | 0.783117 | 当前 LoCoMo 最好；v35 + conservative relative-time finalizer。fresh full `1206/1540`，controlled vs v35 `1204/1540`，changed subset 净 +3，avg query tokens 4920.573。 |
+| `stage1_selected_context_v95_locomo_nonadv_full_43ee885` | LoCoMo | non-adversarial full | `43ee885` | 0.786364 | 当前 LoCoMo 最好；v94/v35 底座 + broad collection routing + selected-row local dialogue context。相对 v94 fresh full +5，changed-prediction subset 净 +10；avg_query_tokens 5974.314，接近预算，需 LME full 验证。 |
+| `stage1_relative_time_finalizer_v94_prompt_compat_locomo_nonadv_full_4299ac8` | LoCoMo | non-adversarial full | `4299ac8` | 0.783117 | v95 前 LoCoMo 最好；v35 + conservative relative-time finalizer。fresh full `1206/1540`，controlled vs v35 `1204/1540`，changed subset 净 +3，avg query tokens 4920.573。 |
 | `stage1_answer_format_guard_v35_locomo_nonadv_full_80158a9` | LoCoMo | non-adversarial full | `80158a9` | 0.780377 | LoCoMo 强 baseline；valid-only 达 0.78，invalid-as-wrong 1201/1540 = 0.779870，close-margin。 |
 | `stage1_relative_time_finalizer_v94_locomo_nonadv_full_11b53e9` | LoCoMo | non-adversarial full | `11b53e9` | 0.771429 | prompt/cache 漂移修复前的 v94 诊断；相对当时 current-v35 replay 弱正向 +3，但不作为当前结论。 |
 | `stage1_route_budgeted_retrieval_v34_locomo_nonadv_full_fb6c703` | LoCoMo | non-adversarial full | `fb6c703` | 0.779727 | v35 前 LoCoMo 最好；非 temporal top60、temporal top40，vs v33 净 +12，距离 0.78 还差 2 条。 |

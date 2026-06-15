@@ -1,0 +1,3219 @@
+{
+  "baseline_correct": 1206,
+  "baseline_run": "stage1_relative_time_finalizer_v94_prompt_compat_locomo_nonadv_full_4299ac8",
+  "current_correct": 1211,
+  "current_run": "stage1_selected_context_v95_locomo_nonadv_full_43ee885",
+  "examples_changed_gain_loss": [
+    {
+      "base_answer": "counseling and mental health",
+      "current_answer": "counseling or working in mental health",
+      "question": "What career path has Caroline decided to persue?",
+      "record_key": "f5e68c54090a60fac1b80246",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D1:10",
+          "D7:4",
+          "D15:10",
+          "D7:5",
+          "D4:11",
+          "D4:18",
+          "D4:14",
+          "D6:3",
+          "D7:6",
+          "D9:3"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "WRONG->CORRECT"
+    },
+    {
+      "base_answer": "running, reading, playing violin, playing clarinet, pottery, hiking, camping, participating in a charity race",
+      "current_answer": "running, reading, playing violin, playing clarinet, hiking, camping, pottery, painting, spending time with family",
+      "question": "What activities does Melanie partake in?",
+      "record_key": "050de4d029518a005ce9e39a",
+      "route": {
+        "information_need": "list_count",
+        "retrieval_multiplier": 3,
+        "signals": [
+          "list_or_count"
+        ]
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D2:5",
+          "D15:25",
+          "D8:34",
+          "D15:8",
+          "D1:10",
+          "D15:26",
+          "D15:10",
+          "D10:6",
+          "D5:5",
+          "D9:3"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "WRONG->CORRECT"
+    },
+    {
+      "base_answer": "2023-06-26 to 2023-07-02",
+      "current_answer": "2023-07-15",
+      "question": "When did Caroline go to a pride parade during the summer?",
+      "record_key": "ab43e3d44c74bef52cd14f1a",
+      "route": {
+        "information_need": "temporal_lookup",
+        "retrieval_multiplier": 2,
+        "signals": [
+          "temporal"
+        ]
+      },
+      "selected_context": {
+        "applied": false,
+        "eligible": false,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 0,
+        "materialized_source_ids": [],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "CORRECT->WRONG"
+    },
+    {
+      "base_answer": "landscapes and still life",
+      "current_answer": "a sunset-inspired painting with calming colors",
+      "question": "What did Melanie paint recently?",
+      "record_key": "f07b4728d028a1bce5489f14",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D14:30",
+          "D8:6",
+          "D1:13",
+          "D11:9",
+          "D1:6",
+          "D17:12",
+          "D1:14",
+          "D16:8",
+          "D13:12",
+          "D12:6"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "WRONG->CORRECT"
+    },
+    {
+      "base_answer": "1",
+      "current_answer": "2",
+      "question": "How many times has Melanie gone to the beach in 2023?",
+      "record_key": "d3a8d12b5be57abcc6ef6dc6",
+      "route": {
+        "information_need": "list_count",
+        "retrieval_multiplier": 3,
+        "signals": [
+          "list_or_count"
+        ]
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D10:10",
+          "D10:8",
+          "D17:18",
+          "D2:7",
+          "D12:4",
+          "D8:29",
+          "D15:8",
+          "D3:12",
+          "D8:24",
+          "D12:16"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "WRONG->CORRECT"
+    },
+    {
+      "base_answer": "Caroline makes paintings, including self-portraits, abstract works, and pieces focused on LGBTQ+ identity and self-expression.",
+      "current_answer": "Caroline makes paintings.",
+      "question": "What kind of art does Caroline make?",
+      "record_key": "9e2a3c32e8878884b9b87ac4",
+      "route": {
+        "information_need": "list_count",
+        "retrieval_multiplier": 3,
+        "signals": [
+          "list_or_count"
+        ]
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D8:5",
+          "D17:11",
+          "D14:29",
+          "D16:6",
+          "D13:14",
+          "D16:11",
+          "D13:11",
+          "D9:13",
+          "D16:7",
+          "D11:11"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "CORRECT->WRONG"
+    },
+    {
+      "base_answer": "2022",
+      "current_answer": "The provided information is not enough to determine when Caroline and Melanie went to a Pride festival together.",
+      "question": "When did Caroline and Melanie go to a pride fesetival together?",
+      "record_key": "675b67dbe55a172fbf9b7416",
+      "route": {
+        "information_need": "temporal_lookup",
+        "retrieval_multiplier": 2,
+        "signals": [
+          "temporal"
+        ]
+      },
+      "selected_context": {
+        "applied": false,
+        "eligible": false,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 0,
+        "materialized_source_ids": [],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "CORRECT->WRONG"
+    },
+    {
+      "base_answer": "['Luna', 'Oliver', 'Bailey']",
+      "current_answer": "Luna and Oliver",
+      "question": "What are Melanie's pets' names?",
+      "record_key": "156fa7e82ab529cf6f326310",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D7:16",
+          "D13:9",
+          "D13:4",
+          "D13:2",
+          "D1:8",
+          "D7:18",
+          "D7:15",
+          "D15:25",
+          "D1:10",
+          "D11:9"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "CORRECT->WRONG"
+    },
+    {
+      "base_answer": "rainbow flag mural, eagle symbol",
+      "current_answer": "necklace, hand-painted bowl, rainbow flag mural, eagle, blue, artwork symbolizing freedom and authenticity",
+      "question": "What symbols are important to Caroline?",
+      "record_key": "0bb99b11d4e9e2211195173a",
+      "route": {
+        "information_need": "list_count",
+        "retrieval_multiplier": 3,
+        "signals": [
+          "list_or_count"
+        ]
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D4:4",
+          "D4:2",
+          "D17:22",
+          "D16:17",
+          "D1:10",
+          "D14:21",
+          "D8:10",
+          "D14:15",
+          "D7:4",
+          "D2:17"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "WRONG->CORRECT"
+    },
+    {
+      "base_answer": "clarinet, violin",
+      "current_answer": "clarinet",
+      "question": "What instruments does Melanie play?",
+      "record_key": "b7e70a824f29a92e7eaf1dda",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D15:25",
+          "D15:20",
+          "D15:26",
+          "D15:22",
+          "D5:5",
+          "D11:9",
+          "D15:12",
+          "D15:16",
+          "D1:13",
+          "D7:12"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "CORRECT->WRONG"
+    },
+    {
+      "base_answer": "['caring heart', 'courage', 'drive to help', 'dedication', 'passion', 'inspiring', 'determination']",
+      "current_answer": "caring, courageous, dedicated, passionate, inspiring",
+      "question": "What personality traits might Melanie say Caroline has?",
+      "record_key": "9e9bea9cd97f9ffff20d29e5",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D1:10",
+          "D2:17",
+          "D15:25",
+          "D3:10",
+          "D18:11",
+          "D7:4",
+          "D4:14",
+          "D4:16",
+          "D8:10",
+          "D18:12"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "CORRECT->WRONG"
+    },
+    {
+      "base_answer": "Caroline plans to organize a family outing or a special activity with Melanie to catch up and explore nature during the summer.",
+      "current_answer": "Caroline's plans for the summer include researching adoption agencies, attending a council meeting for adoption, mentoring LGBTQ youth, and volunteering at a youth center to organize a talent show for kids.",
+      "question": "What are Caroline's plans for the summer?",
+      "record_key": "e393d2f67ea31b901e30172b",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D2:7",
+          "D10:11",
+          "D12:17",
+          "D7:4",
+          "D9:1",
+          "D10:9",
+          "D1:10",
+          "D9:3",
+          "D15:10",
+          "D8:10"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "WRONG->CORRECT"
+    },
+    {
+      "base_answer": "Caroline is excited about passing the adoption agency interviews.",
+      "current_answer": "Caroline is excited about making a family for kids who need one and providing them with a safe, loving home.",
+      "question": "What is Caroline excited about in the adoption process?",
+      "record_key": "ccbf5539242b9c26791bdd76",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D2:13",
+          "D13:16",
+          "D17:3",
+          "D2:10",
+          "D19:1",
+          "D13:1",
+          "D19:2",
+          "D17:7",
+          "D17:1",
+          "D2:8"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "WRONG->CORRECT"
+    },
+    {
+      "base_answer": "The purpose of the new shoes Melanie got is not specified in the provided context.",
+      "current_answer": "walking or running",
+      "question": "What are the new shoes that Melanie got used for?",
+      "record_key": "9a7f9458c61ff497bbc8ff1d",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D7:18",
+          "D3:16",
+          "D1:8",
+          "D5:5",
+          "D1:10",
+          "D15:25",
+          "D2:11",
+          "D7:12",
+          "D17:9",
+          "D15:20"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "WRONG->CORRECT"
+    },
+    {
+      "base_answer": "a painting",
+      "current_answer": "a stained glass window",
+      "question": "What did Caroline make for a local church?",
+      "record_key": "4e2cdd3b52043fd06b2acbdb",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D14:19",
+          "D7:4",
+          "D14:18",
+          "D9:3",
+          "D15:10",
+          "D4:14",
+          "D4:18",
+          "D17:11",
+          "D9:1",
+          "D2:1"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "WRONG->CORRECT"
+    },
+    {
+      "base_answer": "Melanie got hurt and had to take a break from pottery.",
+      "current_answer": "Melanie got hurt in September 2023, which forced her to take a break from pottery.",
+      "question": "What setback did Melanie face in October 2023?",
+      "record_key": "b79bd643671108319bfce3ec",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D17:9",
+          "D18:14",
+          "D15:8",
+          "D12:4",
+          "D7:27",
+          "D18:9",
+          "D17:8",
+          "D17:10",
+          "D4:1",
+          "D12:2"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "CORRECT->WRONG"
+    },
+    {
+      "base_answer": "abstract",
+      "current_answer": "A painting symbolizing freedom and authenticity, representing Caroline's womanhood",
+      "question": "What kind of painting did Caroline share with Melanie on October 13, 2023?",
+      "record_key": "5535cefb3250570b78be549b",
+      "route": {
+        "information_need": "list_count",
+        "retrieval_multiplier": 3,
+        "signals": [
+          "list_or_count"
+        ]
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D1:13",
+          "D13:12",
+          "D9:13",
+          "D17:22",
+          "D9:15",
+          "D16:12",
+          "D17:11",
+          "D6:5",
+          "D16:6",
+          "D7:27"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "CORRECT->WRONG"
+    },
+    {
+      "base_answer": "Spent time with her kids",
+      "current_answer": "Spent time in nature with her family, specifically camping.",
+      "question": "What did Melanie do after the road trip to relax?",
+      "record_key": "3a9f758d0442d55e478995a5",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D18:17",
+          "D17:9",
+          "D9:1",
+          "D7:12",
+          "D18:19",
+          "D18:1",
+          "D8:32",
+          "D8:29",
+          "D8:20",
+          "D17:10"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "WRONG->CORRECT"
+    },
+    {
+      "base_answer": "2023-04-03",
+      "current_answer": "May 2023",
+      "question": "When did Jon start expanding his studio's social media presence?",
+      "record_key": "8fd747f0c1272452a98d5170",
+      "route": {
+        "information_need": "temporal_lookup",
+        "retrieval_multiplier": 2,
+        "signals": [
+          "temporal"
+        ]
+      },
+      "selected_context": {
+        "applied": false,
+        "eligible": false,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 0,
+        "materialized_source_ids": [],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "CORRECT->WRONG"
+    },
+    {
+      "base_answer": "fair, networking events, event in July 2023",
+      "current_answer": "fair, networking events, dance competition",
+      "question": "Which events has Jon participated in to promote his business venture?",
+      "record_key": "5999440645da0241d1e8429b",
+      "route": {
+        "information_need": "list_count",
+        "retrieval_multiplier": 3,
+        "signals": [
+          "list_or_count"
+        ]
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D18:4",
+          "D14:3",
+          "D18:10",
+          "D8:15",
+          "D4:3",
+          "D10:1",
+          "D2:1",
+          "D16:7",
+          "D18:8",
+          "D9:1"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "WRONG->CORRECT"
+    },
+    {
+      "base_answer": "Only Gina participated in dance competitions.",
+      "current_answer": "Yes, both Jon and Gina participated in dance competitions.",
+      "question": "Did Jon and Gina both participate in dance competitions?",
+      "record_key": "1d67a87a17c4422a25326bd1",
+      "route": {
+        "information_need": "list_count",
+        "retrieval_multiplier": 3,
+        "signals": [
+          "list_or_count"
+        ]
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D1:16",
+          "D8:17",
+          "D19:1",
+          "D14:20",
+          "D9:1",
+          "D17:1",
+          "D4:10",
+          "D5:18",
+          "D18:20",
+          "D5:2"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "WRONG->CORRECT"
+    },
+    {
+      "base_answer": "Gina says she's proud of the progress made and that it's fantastic the studio is expanding to give dancers an outlet.",
+      "current_answer": "Gina says the dancers in the photo are graceful.",
+      "question": "What does Gina say about the dancers in the photo?",
+      "record_key": "876fa8ee5953126d1ae3e555",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D14:16",
+          "D1:23",
+          "D2:3",
+          "D14:20",
+          "D8:14",
+          "D11:18",
+          "D1:25",
+          "D17:1",
+          "D11:8",
+          "D8:6"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "WRONG->CORRECT"
+    },
+    {
+      "base_answer": "Jon plans to make everything just right and create awesome memories at the grand opening of his dance studio.",
+      "current_answer": "Jon plans to host and participate in the grand opening of his dance studio, making sure everything is perfect and celebrating the event with excitement.",
+      "question": "What does Jon plan to do at the grand opening of his dance studio?",
+      "record_key": "4d3b88d67b44c6a1ccaeabaa",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D1:4",
+          "D1:6",
+          "D3:1",
+          "D9:1",
+          "D1:20",
+          "D9:2",
+          "D8:17",
+          "D11:12",
+          "D4:13",
+          "D8:13"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "CORRECT->WRONG"
+    },
+    {
+      "base_answer": "Gina says she can't wait for tomorrow's grand opening and is excited to make great memories.",
+      "current_answer": "Gina says she can't wait for tomorrow's grand opening.",
+      "question": "What does Gina say to Jon about the grand opening?",
+      "record_key": "37ff05eec4b1cf6d31fdd018",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D4:1",
+          "D4:2",
+          "D16:9",
+          "D7:1",
+          "D16:2",
+          "D7:3",
+          "D1:5",
+          "D18:1",
+          "D13:10",
+          "D14:18"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "CORRECT->WRONG"
+    },
+    {
+      "base_answer": "The provided information is not enough.",
+      "current_answer": "her mom",
+      "question": "Who did Maria have dinner with on May 3, 2023?",
+      "record_key": "2f8ce2af74b9f264f4c1b7db",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D23:14",
+          "D13:16",
+          "D11:16",
+          "D2:21",
+          "D24:6",
+          "D8:19",
+          "D13:1",
+          "D7:6",
+          "D18:21",
+          "D6:15"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "WRONG->CORRECT"
+    },
+    {
+      "base_answer": "The provided information is not enough to determine a shared type of volunteering between John and Maria.",
+      "current_answer": "homeless shelter",
+      "question": "What type of volunteering have John and Maria both done?",
+      "record_key": "36e0ab9cd568e5088574aae6",
+      "route": {
+        "information_need": "list_count",
+        "retrieval_multiplier": 3,
+        "signals": [
+          "list_or_count"
+        ]
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D27:2",
+          "D7:3",
+          "D29:9",
+          "D26:13",
+          "D29:1",
+          "D16:1",
+          "D9:17",
+          "D12:19",
+          "D15:1",
+          "D4:1"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "WRONG->CORRECT"
+    },
+    {
+      "base_answer": "a man, Jean, Laura, a person who laughed after playing with kids, shelter residents, and a family on the streets",
+      "current_answer": "Jean, Laura, a man, someone special",
+      "question": "What people has Maria met and helped while volunteering?",
+      "record_key": "b70696c900fd8410819acabc",
+      "route": {
+        "information_need": "list_count",
+        "retrieval_multiplier": 3,
+        "signals": [
+          "list_or_count"
+        ]
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D21:11",
+          "D6:8",
+          "D27:4",
+          "D5:8",
+          "D29:1",
+          "D12:18",
+          "D26:13",
+          "D25:8",
+          "D8:21",
+          "D4:1"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "CORRECT->WRONG"
+    },
+    {
+      "base_answer": "England, Spain",
+      "current_answer": "Spain",
+      "question": "What European countries has Maria been to?",
+      "record_key": "c0d93b5c24067d5dc35bf125",
+      "route": {
+        "information_need": "list_count",
+        "retrieval_multiplier": 3,
+        "signals": [
+          "list_or_count"
+        ]
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D11:4",
+          "D13:27",
+          "D21:11",
+          "D18:21",
+          "D29:9",
+          "D9:9",
+          "D25:8",
+          "D18:11",
+          "D24:10",
+          "D4:11"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "CORRECT->WRONG"
+    },
+    {
+      "base_answer": "['homeless shelter']",
+      "current_answer": "homeless shelter, dog shelter",
+      "question": "What shelters does Maria volunteer at?",
+      "record_key": "bdbae12e48fe07583e50b3ad",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D25:8",
+          "D12:18",
+          "D27:4",
+          "D21:11",
+          "D16:2",
+          "D1:3",
+          "D17:12",
+          "D5:6",
+          "D27:2",
+          "D32:14"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "WRONG->CORRECT"
+    },
+    {
+      "base_answer": "West County",
+      "current_answer": "old area",
+      "question": "What area was hit by a flood?",
+      "record_key": "c40fde5951f1c6935056ed96",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D23:1",
+          "D23:2",
+          "D21:4",
+          "D21:5",
+          "D9:9",
+          "D12:17",
+          "D24:10",
+          "D1:7",
+          "D8:16",
+          "D32:8"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "CORRECT->WRONG"
+    },
+    {
+      "base_answer": "Yes, John would likely be open to moving to another country.",
+      "current_answer": "No, John would not be open to moving to another country.",
+      "question": "Would John be open to moving to another country?",
+      "record_key": "602de10b093d00818e438f6b",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D12:17",
+          "D1:14",
+          "D28:3",
+          "D25:19",
+          "D30:18",
+          "D8:18",
+          "D1:6",
+          "D14:21",
+          "D23:3",
+          "D30:20"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "WRONG->CORRECT"
+    },
+    {
+      "base_answer": "support for military veterans, community development, education, and infrastructure",
+      "current_answer": "victims of domestic abuse, veterans' rights",
+      "question": "What causes has John done events for?",
+      "record_key": "a3dcdc94dae552eda121b33a",
+      "route": {
+        "information_need": "list_count",
+        "retrieval_multiplier": 3,
+        "signals": [
+          "list_or_count"
+        ]
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D29:9",
+          "D21:4",
+          "D6:4",
+          "D12:17",
+          "D13:23",
+          "D30:14",
+          "D21:23",
+          "D25:19",
+          "D1:9",
+          "D5:7"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "WRONG->CORRECT"
+    },
+    {
+      "base_answer": "aerial yoga",
+      "current_answer": "The provided information is not enough.",
+      "question": "What type of workout class did Maria start doing in December 2023?",
+      "record_key": "ea94428d5d1e66dfdc595028",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D1:3",
+          "D25:14",
+          "D25:12",
+          "D25:8",
+          "D19:5",
+          "D10:4",
+          "D19:4",
+          "D13:6",
+          "D23:14",
+          "D10:8"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "CORRECT->WRONG"
+    },
+    {
+      "base_answer": "a promotion to assistant manager",
+      "current_answer": "graduating with his degree",
+      "question": "What did John receive a certificate for?",
+      "record_key": "df3dd885decd4a22e9ae4509",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D4:8",
+          "D19:9",
+          "D9:4",
+          "D9:3",
+          "D19:6",
+          "D25:19",
+          "D13:23",
+          "D21:4",
+          "D19:10",
+          "D31:9"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "WRONG->CORRECT"
+    },
+    {
+      "base_answer": "The provided information is not enough to determine what John attended with his colleagues in March 2023.",
+      "current_answer": "a convention",
+      "question": "What did John attend with his colleagues in March 2023?",
+      "record_key": "15aff1e8412a6f24885c7cc6",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D13:9",
+          "D26:3",
+          "D13:3",
+          "D26:5",
+          "D27:15",
+          "D21:25",
+          "D12:16",
+          "D13:15",
+          "D16:1",
+          "D13:14"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "WRONG->CORRECT"
+    },
+    {
+      "base_answer": "By making progress in the coming weeks to honor the memories and sharing a cherished picture of his pet.",
+      "current_answer": "John plans to honor the memories of his beloved pet by cherishing good memories, sharing photos, and adopting a rescue dog to continue the legacy of love and compassion.",
+      "question": "How does John plan to honor the memories of his beloved pet?",
+      "record_key": "f56da16bdc08865a5c195d92",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D17:5",
+          "D17:10",
+          "D17:2",
+          "D31:5",
+          "D31:8",
+          "D30:4",
+          "D17:12",
+          "D17:7",
+          "D15:3",
+          "D18:1"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "WRONG->CORRECT"
+    },
+    {
+      "base_answer": "Maria needed to help her cousin find a new place to live because her cousin had a tough time recently and had to leave and find a new place in a hurry.",
+      "current_answer": "Her cousin had a tough time recently.",
+      "question": "Why did Maria need to help her cousin find a new place to live?",
+      "record_key": "94313039b3ccd1cad5743145",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D21:5",
+          "D21:11",
+          "D6:7",
+          "D6:8",
+          "D6:9",
+          "D23:2",
+          "D16:2",
+          "D25:8",
+          "D7:6",
+          "D6:14"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "CORRECT->WRONG"
+    },
+    {
+      "base_answer": "Maria's support and their shared commitment to improving their community",
+      "current_answer": "The flood that damaged John's area the previous week motivated Maria and John to discuss potential solutions for their community.",
+      "question": "What motivated Maria and John to discuss potential solutions for their community on 7 July, 2023?",
+      "record_key": "91f361d0243bb6913211dc85",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D23:3",
+          "D4:14",
+          "D4:18",
+          "D23:2",
+          "D23:13",
+          "D10:17",
+          "D21:23",
+          "D23:4",
+          "D5:1",
+          "D23:6"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "WRONG->CORRECT"
+    },
+    {
+      "base_answer": "John appreciates the resilience, stories, and sacrifices of veterans, which made him value what they've given and reinforced his desire to give back.",
+      "current_answer": "John appreciates what we have and the need to give back, and he is reminded of why he wanted to join the military.",
+      "question": "What does John appreciate about the veteran's hospital visit?",
+      "record_key": "d88c4ebaaa8ea369f9371641",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D24:1",
+          "D24:2",
+          "D24:3",
+          "D15:11",
+          "D15:15",
+          "D15:9",
+          "D21:10",
+          "D6:6",
+          "D4:8",
+          "D27:2"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "CORRECT->WRONG"
+    },
+    {
+      "base_answer": "reading, watching movies, exploring nature",
+      "current_answer": "writing, reading, watching movies, exploring nature",
+      "question": "What are Joanna's hobbies?",
+      "record_key": "b040a7da91f43cd6ae3360c2",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D1:10",
+          "D28:28",
+          "D23:16",
+          "D28:30",
+          "D14:7",
+          "D23:8",
+          "D1:2",
+          "D2:15",
+          "D24:10",
+          "D9:7"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "WRONG->CORRECT"
+    },
+    {
+      "base_answer": "reptiles, animals with fur, cockroaches",
+      "current_answer": "most reptiles, animals with fur, and cockroaches",
+      "question": "What is Joanna allergic to?",
+      "record_key": "73f6460dba649905345c51ca",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D28:28",
+          "D2:23",
+          "D5:11",
+          "D12:8",
+          "D2:15",
+          "D24:6",
+          "D2:17",
+          "D2:22",
+          "D16:9",
+          "D25:20"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "CORRECT->WRONG"
+    },
+    {
+      "base_answer": "2022-06-04 to 2022-06-05",
+      "current_answer": "2022-06-03",
+      "question": "When did Joanna hike with her buddies?",
+      "record_key": "bb235fc1c3bcc6f7a9cbb987",
+      "route": {
+        "information_need": "temporal_lookup",
+        "retrieval_multiplier": 2,
+        "signals": [
+          "temporal"
+        ]
+      },
+      "selected_context": {
+        "applied": false,
+        "eligible": false,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 0,
+        "materialized_source_ids": [],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "CORRECT->WRONG"
+    },
+    {
+      "base_answer": "on a road trip",
+      "current_answer": "Woodhaven, a small town in the Midwest",
+      "question": "Where did Joanna travel to in July 2022?",
+      "record_key": "38e2976f6363615df5ee68a2",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D17:3",
+          "D3:25",
+          "D14:7",
+          "D24:10",
+          "D8:6",
+          "D11:17",
+          "D14:11",
+          "D25:28",
+          "D24:1",
+          "D8:1"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "WRONG->CORRECT"
+    },
+    {
+      "base_answer": "2022-10-05",
+      "current_answer": "2022-09-29 to 2022-10-05",
+      "question": "When did Nate win a lot of money in a video game tournament?",
+      "record_key": "24203406fb6753de476196c5",
+      "route": {
+        "information_need": "temporal_lookup",
+        "retrieval_multiplier": 2,
+        "signals": [
+          "temporal"
+        ]
+      },
+      "selected_context": {
+        "applied": false,
+        "eligible": false,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 0,
+        "materialized_source_ids": [],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "WRONG->CORRECT"
+    },
+    {
+      "base_answer": "['Catan']",
+      "current_answer": "Catan",
+      "question": "What board games has Nate played?",
+      "record_key": "edd7189021af79a474896fe4",
+      "route": {
+        "information_need": "list_count",
+        "retrieval_multiplier": 3,
+        "signals": [
+          "list_or_count"
+        ]
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D27:17",
+          "D23:5",
+          "D23:7",
+          "D24:11",
+          "D10:3",
+          "D23:11",
+          "D10:4",
+          "D10:6",
+          "D6:7",
+          "D26:12"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "WRONG->CORRECT"
+    },
+    {
+      "base_answer": "2",
+      "current_answer": "The provided information is not enough to determine the exact number of times Joanna's scripts have been rejected.",
+      "question": "How many times has Joanna's scripts been rejected?",
+      "record_key": "0968f8b1c60a55755c7aeccc",
+      "route": {
+        "information_need": "list_count",
+        "retrieval_multiplier": 3,
+        "signals": [
+          "list_or_count"
+        ]
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D24:12",
+          "D27:12",
+          "D14:1",
+          "D24:13",
+          "D14:5",
+          "D14:2",
+          "D16:1",
+          "D29:2",
+          "D17:10",
+          "D27:6"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "CORRECT->WRONG"
+    },
+    {
+      "base_answer": "a Nintendo game",
+      "current_answer": "dairy-free chocolate raspberry tart recipe, watching other people's videos to understand audience preferences",
+      "question": "What things has Nate reccomended to Joanna?",
+      "record_key": "7856051197554a990b01055d",
+      "route": {
+        "information_need": "list_count",
+        "retrieval_multiplier": 3,
+        "signals": [
+          "list_or_count"
+        ]
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D28:7",
+          "D21:16",
+          "D12:13",
+          "D21:12",
+          "D22:15",
+          "D4:17",
+          "D28:17",
+          "D8:21",
+          "D1:22",
+          "D21:19"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "CORRECT->WRONG"
+    },
+    {
+      "base_answer": "CS:GO, Xeonoblade Chronicles, Cyberpunk 2077, and Nintendo games",
+      "current_answer": "['CS:GO', 'Street Fighter', 'Xeonoblade Chronicles', 'Cyberpunk 2077', 'Catan']",
+      "question": "What video games does Nate play?",
+      "record_key": "5ed1ac9f4136341ce2219345",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D24:11",
+          "D28:16",
+          "D28:13",
+          "D9:10",
+          "D27:17",
+          "D10:3",
+          "D6:7",
+          "D14:8",
+          "D10:4",
+          "D1:3"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "CORRECT->WRONG"
+    },
+    {
+      "base_answer": "Indiana",
+      "current_answer": "The provided information is not enough.",
+      "question": "What state did Joanna visit in summer 2021?",
+      "record_key": "300d240845eb78dbd95dd418",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D17:3",
+          "D24:10",
+          "D28:22",
+          "D8:4",
+          "D17:4",
+          "D14:19",
+          "D24:1",
+          "D14:7",
+          "D11:13",
+          "D14:11"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "CORRECT->WRONG"
+    },
+    {
+      "base_answer": "a romantic drama about memory and relationships",
+      "current_answer": "romantic drama about memory and relationships",
+      "question": "What is one of Joanna's favorite movies?",
+      "record_key": "ddf916b77c5bce5ec5e24d3e",
+      "route": {
+        "information_need": "profile_preference",
+        "retrieval_multiplier": 2,
+        "signals": [
+          "profile_or_preference"
+        ]
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D23:16",
+          "D1:20",
+          "D9:11",
+          "D23:20",
+          "D1:10",
+          "D23:18",
+          "D27:22",
+          "D9:9",
+          "D1:18",
+          "D22:7"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "CORRECT->WRONG"
+    },
+    {
+      "base_answer": "Street Fighter",
+      "current_answer": "The provided information is not enough to determine the game of Nate's second tournament.",
+      "question": "What game was the second tournament that Nate won based on?",
+      "record_key": "bff55468ec541c6ec503e72b",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D10:4",
+          "D1:4",
+          "D14:8",
+          "D14:12",
+          "D6:7",
+          "D14:9",
+          "D1:3",
+          "D24:11",
+          "D17:1",
+          "D19:2"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "CORRECT->WRONG"
+    },
+    {
+      "base_answer": "a suspenseful thriller set in a small Midwestern town",
+      "current_answer": "loss, identity, and connection",
+      "question": "What is Joanna's third screenplay about?",
+      "record_key": "5891678b242f4c3ae8b34629",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D12:13",
+          "D27:6",
+          "D17:10",
+          "D29:2",
+          "D5:1",
+          "D16:1",
+          "D3:1",
+          "D2:3",
+          "D15:1",
+          "D4:18"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "WRONG->CORRECT"
+    },
+    {
+      "base_answer": "action, sci-fi, and fantasy",
+      "current_answer": "sci-fi and fantasy",
+      "question": "What type of movies does Nate enjoy watching the most?",
+      "record_key": "a73fba3d9ad6297a3ef3097b",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D27:27",
+          "D1:17",
+          "D1:19",
+          "D9:10",
+          "D1:9",
+          "D20:5",
+          "D17:15",
+          "D25:23",
+          "D25:5",
+          "D3:16"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "CORRECT->WRONG"
+    },
+    {
+      "base_answer": "watching fantasy and sci-fi movies",
+      "current_answer": "playing video games",
+      "question": "Which activity helps Nate escape and stimulates his imagination?",
+      "record_key": "1915b951ad3af93f95b839e8",
+      "route": {
+        "information_need": "list_count",
+        "retrieval_multiplier": 3,
+        "signals": [
+          "list_or_count"
+        ]
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D9:10",
+          "D23:21",
+          "D20:5",
+          "D19:9",
+          "D9:8",
+          "D18:2",
+          "D11:14",
+          "D8:7",
+          "D27:19",
+          "D27:17"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "CORRECT->WRONG"
+    },
+    {
+      "base_answer": "Nate gave Joanna a new pup.",
+      "current_answer": "Nate gave Joanna a stuffed animal (pup) as a gift.",
+      "question": "What did Nate do for Joanna on 25 May, 2022?",
+      "record_key": "a07d69656b5d36a975c79772",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D13:21",
+          "D25:29",
+          "D11:19",
+          "D15:16",
+          "D14:27",
+          "D14:13",
+          "D8:21",
+          "D25:1",
+          "D13:10",
+          "D20:18"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "WRONG->CORRECT"
+    },
+    {
+      "base_answer": "Iron Man",
+      "current_answer": "The provided information is not enough to determine which superhero toy figure Nate shares a photo of.",
+      "question": "Which superhero toy figure does Nate share a photo of?",
+      "record_key": "32773dcd3d43128d4c9100cb",
+      "route": {
+        "information_need": "list_count",
+        "retrieval_multiplier": 3,
+        "signals": [
+          "list_or_count"
+        ]
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D15:5",
+          "D15:2",
+          "D25:11",
+          "D15:4",
+          "D17:15",
+          "D15:8",
+          "D15:10",
+          "D19:3",
+          "D5:12",
+          "D15:3"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "CORRECT->WRONG"
+    },
+    {
+      "base_answer": "a recipe using coconut milk",
+      "current_answer": "coconut milk ice cream",
+      "question": "What recipe Nate offer to share with Joanna?",
+      "record_key": "c02978deb504982b7844c1af",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D8:22",
+          "D21:12",
+          "D18:12",
+          "D21:16",
+          "D24:2",
+          "D21:7",
+          "D4:2",
+          "D18:14",
+          "D20:11",
+          "D21:19"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "WRONG->CORRECT"
+    },
+    {
+      "base_answer": "Nate celebrated by expressing intense joy and pride, calling the win 'wild' and saying he's loving that his passion has become a career.",
+      "current_answer": "Nate celebrated by expressing excitement and pride, sharing the win with Joanna, and mentioning his turtles getting a new tank.",
+      "question": "How did Nate celebrate winning the international tournament?",
+      "record_key": "f819c5b9f7524fd83216f74f",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D19:1",
+          "D22:3",
+          "D19:2",
+          "D26:12",
+          "D14:9",
+          "D10:4",
+          "D14:12",
+          "D27:1",
+          "D1:4",
+          "D2:16"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "WRONG->CORRECT"
+    },
+    {
+      "base_answer": "She waits to hear back about how the first screenplay did.",
+      "current_answer": "Joanna expresses her feelings, creates imaginative stories, reflects on past work, finds emotional healing, and writes with a stuffed animal named Tilly by her side.",
+      "question": "What does Joanna do while she writes?",
+      "record_key": "9d122ea15c98c6edb086e855",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D18:1",
+          "D18:2",
+          "D1:10",
+          "D2:27",
+          "D27:7",
+          "D9:7",
+          "D23:14",
+          "D20:4",
+          "D2:25",
+          "D6:8"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "WRONG->CORRECT"
+    },
+    {
+      "base_answer": "The provided information is not enough to determine what Joanna does after receiving the rejection from the production company.",
+      "current_answer": "Joanna keeps grinding and moving ahead.",
+      "question": "What does Joanna do after receiving a rejection from a production company?",
+      "record_key": "374164522daa2214664baa0e",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D24:12",
+          "D24:13",
+          "D14:2",
+          "D14:1",
+          "D2:7",
+          "D14:5",
+          "D5:2",
+          "D29:2",
+          "D28:8",
+          "D27:12"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "WRONG->CORRECT"
+    },
+    {
+      "base_answer": "Make videos and connect with people about gaming—she believes Nate will do great.",
+      "current_answer": "Make sure you watch other people's videos first so you get a handle on what your audience likes! That way your videos don't flop when you post them.",
+      "question": "What advice does Joanna give to Nate about making YouTube videos?",
+      "record_key": "eba2f029e51e92a62051e6fa",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D28:16",
+          "D20:3",
+          "D17:21",
+          "D28:17",
+          "D4:17",
+          "D18:6",
+          "D22:12",
+          "D8:21",
+          "D6:11",
+          "D21:16"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "WRONG->CORRECT"
+    },
+    {
+      "base_answer": "A Harry Potter-themed bookstore in New York City",
+      "current_answer": "A fantasy-themed bookstore or magical experience shop in New York City",
+      "question": "Based on Tim's collections, what is a shop that he would enjoy visiting in New York city?",
+      "record_key": "62b3c2167dba8f16ad375798",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D9:6",
+          "D9:9",
+          "D29:11",
+          "D11:8",
+          "D1:20",
+          "D9:7",
+          "D10:9",
+          "D19:15",
+          "D1:18",
+          "D20:19"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "CORRECT->WRONG"
+    },
+    {
+      "base_answer": "3 weeks",
+      "current_answer": "8 weeks",
+      "question": "After how many weeks did Tim reconnect with the fellow Harry Potter fan from California?",
+      "record_key": "6a4b3513a2918f903e26cbd8",
+      "route": {
+        "information_need": "temporal_lookup",
+        "retrieval_multiplier": 2,
+        "signals": [
+          "temporal"
+        ]
+      },
+      "selected_context": {
+        "applied": false,
+        "eligible": false,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 0,
+        "materialized_source_ids": [],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "CORRECT->WRONG"
+    },
+    {
+      "base_answer": "building his brand, pursuing endorsements, supporting youth sports, organizing basketball camps",
+      "current_answer": "start a foundation, do charity work, support youth sports, organize basketball camps, hold benefit games, and promote fair access for underserved communities",
+      "question": "What could John do after his basketball career?",
+      "record_key": "1ba1789ca790bb6323a5ac22",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D11:17",
+          "D6:13",
+          "D6:15",
+          "D27:14",
+          "D21:8",
+          "D11:18",
+          "D11:13",
+          "D2:4",
+          "D28:14",
+          "D11:15"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "CORRECT->WRONG"
+    },
+    {
+      "base_answer": "strength training",
+      "current_answer": "He uses a mobile app to practice.",
+      "question": "What does John do to supplement his basketball training?",
+      "record_key": "6f25e45b35f04aaeba249b27",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D27:14",
+          "D6:15",
+          "D2:18",
+          "D11:17",
+          "D15:18",
+          "D21:8",
+          "D1:9",
+          "D8:7",
+          "D28:10",
+          "D11:13"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "CORRECT->WRONG"
+    },
+    {
+      "base_answer": "characters, spells, and magical creatures",
+      "current_answer": "unknown",
+      "question": "What aspects of the Harry Potter universe will be discussed in John's fan project collaborations?",
+      "record_key": "edff1d6db725ba16a0e89d24",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D1:15",
+          "D1:16",
+          "D26:27",
+          "D26:33",
+          "D22:2",
+          "D27:20",
+          "D1:14",
+          "D13:1",
+          "D20:22",
+          "D5:1"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "CORRECT->WRONG"
+    },
+    {
+      "base_answer": "John wants to build his brand and pursue endorsements after his basketball career.",
+      "current_answer": "John wants to use his platform to make a positive difference, start a foundation, and do charity work after his basketball career.",
+      "question": "What does John want to do after his basketball career?",
+      "record_key": "1d93ac7c0fe6b7f003be7be9",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D11:17",
+          "D6:15",
+          "D27:14",
+          "D6:13",
+          "D21:8",
+          "D11:13",
+          "D3:17",
+          "D13:14",
+          "D1:9",
+          "D11:18"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "WRONG->CORRECT"
+    },
+    {
+      "base_answer": "The provided information is not enough to determine which basketball team Tim supports.",
+      "current_answer": "Minnesota Timberwolves",
+      "question": "Which basketball team does Tim support?",
+      "record_key": "d00d4269d51d439ee2fd6671",
+      "route": {
+        "information_need": "list_count",
+        "retrieval_multiplier": 3,
+        "signals": [
+          "list_or_count"
+        ]
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D11:14",
+          "D21:5",
+          "D15:21",
+          "D8:8",
+          "D1:12",
+          "D15:19",
+          "D5:7",
+          "D3:8",
+          "D11:4",
+          "D7:8"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "WRONG->CORRECT"
+    },
+    {
+      "base_answer": "The provided information is not enough to determine what type of meal John often cooks using a slow cooker.",
+      "current_answer": "honey garlic chicken with roasted veg",
+      "question": "What type of meal does John often cook using a slow cooker?",
+      "record_key": "93c3c2c983cf6109df1b2b5f",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D15:30",
+          "D15:32",
+          "D15:31",
+          "D10:4",
+          "D15:33",
+          "D8:25",
+          "D10:6",
+          "D8:21",
+          "D20:18",
+          "D3:23"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "WRONG->CORRECT"
+    },
+    {
+      "base_answer": "rock climbing, kayaking, bungee jumping",
+      "current_answer": "rock climbing",
+      "question": "What outdoor activities has Andrew done other than hiking in nature?",
+      "record_key": "d1133399f3ea0198ec61a1f7",
+      "route": {
+        "information_need": "list_count",
+        "retrieval_multiplier": 3,
+        "signals": [
+          "list_or_count"
+        ]
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D8:7",
+          "D10:12",
+          "D24:10",
+          "D16:13",
+          "D8:1",
+          "D23:23",
+          "D1:18",
+          "D14:11",
+          "D22:8",
+          "D20:7"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "WRONG->CORRECT"
+    },
+    {
+      "base_answer": "Jack Russell mixes, Chihuahua mixes",
+      "current_answer": "Pepper and Panda are Lab mixes, and Precious and Pixie are Chihuahua mixes.",
+      "question": "What are the breeds of Audrey's dogs?",
+      "record_key": "da534498a9e5a853926e464e",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D19:12",
+          "D10:7",
+          "D26:13",
+          "D14:18",
+          "D15:3",
+          "D23:12",
+          "D11:4",
+          "D6:8",
+          "D27:8",
+          "D6:14"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "WRONG->CORRECT"
+    },
+    {
+      "base_answer": "2",
+      "current_answer": "3",
+      "question": "How many pets will Andrew have, as of December 2023?",
+      "record_key": "b76c11da822d968ded84fda7",
+      "route": {
+        "information_need": "list_count",
+        "retrieval_multiplier": 3,
+        "signals": [
+          "list_or_count"
+        ]
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D27:5",
+          "D15:14",
+          "D27:3",
+          "D1:8",
+          "D26:12",
+          "D19:25",
+          "D24:4",
+          "D9:2",
+          "D15:2",
+          "D5:13"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "WRONG->CORRECT"
+    },
+    {
+      "base_answer": "Chicken Pot Pie",
+      "current_answer": "Roasted Chicken",
+      "question": "What dish is one of Audrey's favorite dishes that includes garlic and is shared with Andrew on 3 July, 2023?",
+      "record_key": "4558bc087bb2ab304b6c8fa1",
+      "route": {
+        "information_need": "profile_preference",
+        "retrieval_multiplier": 2,
+        "signals": [
+          "profile_or_preference"
+        ]
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D10:22",
+          "D10:21",
+          "D10:15",
+          "D10:27",
+          "D10:13",
+          "D10:14",
+          "D3:18",
+          "D10:25",
+          "D10:20",
+          "D3:19"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "WRONG->CORRECT"
+    },
+    {
+      "base_answer": "John's favorite game is CS:GO, and James' favorite game is Apex Legends.",
+      "current_answer": "John's favorite games are AC Valhalla, a new RPG, and CS:GO. James' favorite games are The Witcher 3, Super Mario, The Legend of Zelda, and he enjoys RPGs, strategy games, and 2D adventures like The Legend of Zelda.",
+      "question": "What are John and James' favorite games?",
+      "record_key": "acb046df4203ccbe1c58823c",
+      "route": {
+        "information_need": "profile_preference",
+        "retrieval_multiplier": 2,
+        "signals": [
+          "profile_or_preference"
+        ]
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D1:3",
+          "D28:26",
+          "D8:19",
+          "D26:9",
+          "D3:19",
+          "D28:22",
+          "D8:38",
+          "D26:2",
+          "D19:4",
+          "D5:3"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "CORRECT->WRONG"
+    },
+    {
+      "base_answer": "The game with different colored cards that John was talking about with James is a card game involving multi-colored cards with numbers, where players place cards with matching colors or numbers on their opponent's card.",
+      "current_answer": "The game is not named in the provided context, but it involves multi-colored cards with numbers where players match by color or number, trade cards, draw from a deck, or skip turns.",
+      "question": "What is the game with different colored cards that was John talking about with James?",
+      "record_key": "a6232b28d8dbeb86397ea071",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D8:34",
+          "D24:1",
+          "D29:2",
+          "D24:2",
+          "D8:38",
+          "D3:19",
+          "D28:22",
+          "D26:9",
+          "D28:26",
+          "D10:3"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "CORRECT->WRONG"
+    },
+    {
+      "base_answer": "The provided information is not enough to determine the name of the board game.",
+      "current_answer": "a game to figure out who the impostors are",
+      "question": "What is the board game where you have to find the imposter that John mentions to James?",
+      "record_key": "b94347fa323a0c056f1f5463",
+      "route": {
+        "information_need": "fact_lookup",
+        "retrieval_multiplier": 1,
+        "signals": []
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D8:36",
+          "D24:2",
+          "D24:1",
+          "D28:22",
+          "D25:11",
+          "D8:34",
+          "D10:3",
+          "D2:14",
+          "D8:25",
+          "D8:38"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "WRONG->CORRECT"
+    },
+    {
+      "base_answer": "the book that helped me create the puzzles for this game",
+      "current_answer": "The Stormlight Archive, Kingkiller Chronicle, The Expanse, The Name of the Wind",
+      "question": "Which books has John recommended to James?",
+      "record_key": "e366fa8f6d3cf90d34ad35c0",
+      "route": {
+        "information_need": "list_count",
+        "retrieval_multiplier": 3,
+        "signals": [
+          "list_or_count"
+        ]
+      },
+      "selected_context": {
+        "applied": true,
+        "eligible": true,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 10,
+        "materialized_source_ids": [
+          "D14:11",
+          "D14:9",
+          "D24:4",
+          "D25:11",
+          "D8:15",
+          "D26:12",
+          "D28:18",
+          "D25:12",
+          "D14:1",
+          "D3:7"
+        ],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "WRONG->CORRECT"
+    },
+    {
+      "base_answer": "mother, sister",
+      "current_answer": "mother",
+      "question": "Which of James's family members have visited him in the last year?",
+      "record_key": "146487c67925ca15d9b78d68",
+      "route": {
+        "information_need": "temporal_lookup",
+        "retrieval_multiplier": 2,
+        "signals": [
+          "temporal"
+        ]
+      },
+      "selected_context": {
+        "applied": false,
+        "eligible": false,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 0,
+        "materialized_source_ids": [],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "CORRECT->WRONG"
+    },
+    {
+      "base_answer": "2022-10-30",
+      "current_answer": "2022-05-08",
+      "question": "When did John and his gaming friends organize the charity tournament?",
+      "record_key": "e6c4e6d5cd1c8c08fd427371",
+      "route": {
+        "information_need": "temporal_lookup",
+        "retrieval_multiplier": 2,
+        "signals": [
+          "temporal"
+        ]
+      },
+      "selected_context": {
+        "applied": false,
+        "eligible": false,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 0,
+        "materialized_source_ids": [],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "CORRECT->WRONG"
+    },
+    {
+      "base_answer": "58 days",
+      "current_answer": "89 days",
+      "question": "How long did James and Samantha date for before deciding to move in together?",
+      "record_key": "a34933caa17660fa4c47d00a",
+      "route": {
+        "information_need": "temporal_lookup",
+        "retrieval_multiplier": 2,
+        "signals": [
+          "temporal"
+        ]
+      },
+      "selected_context": {
+        "applied": false,
+        "eligible": false,
+        "enabled": true,
+        "information_needs": [
+          "fact_lookup",
+          "list_count",
+          "profile_preference"
+        ],
+        "materialized_count": 0,
+        "materialized_source_ids": [],
+        "max_neighbor_chars": 160,
+        "max_rows": 10,
+        "require_anaphora": true,
+        "window_after": 1,
+        "window_before": 1
+      },
+      "transition": "WRONG->CORRECT"
+    }
+  ],
+  "fresh_delta_correct": 5,
+  "n_shared": 1540,
+  "prediction_changed": 735,
+  "prediction_unchanged": 805,
+  "selected_context_transitions": {
+    "CORRECT->CORRECT": 885,
+    "CORRECT->WRONG": 60,
+    "WRONG->CORRECT": 68,
+    "WRONG->WRONG": 185
+  },
+  "transitions": {
+    "CORRECT->CORRECT": 1135,
+    "CORRECT->WRONG": 71,
+    "WRONG->CORRECT": 76,
+    "WRONG->WRONG": 258
+  },
+  "transitions_by_information_need": {
+    "('current_state', 'CORRECT->CORRECT')": 3,
+    "('current_state', 'CORRECT->WRONG')": 1,
+    "('fact_lookup', 'CORRECT->CORRECT')": 680,
+    "('fact_lookup', 'CORRECT->WRONG')": 41,
+    "('fact_lookup', 'WRONG->CORRECT')": 43,
+    "('fact_lookup', 'WRONG->WRONG')": 118,
+    "('list_count', 'CORRECT->CORRECT')": 171,
+    "('list_count', 'CORRECT->WRONG')": 16,
+    "('list_count', 'WRONG->CORRECT')": 20,
+    "('list_count', 'WRONG->WRONG')": 63,
+    "('profile_preference', 'CORRECT->CORRECT')": 34,
+    "('profile_preference', 'CORRECT->WRONG')": 3,
+    "('profile_preference', 'WRONG->CORRECT')": 5,
+    "('profile_preference', 'WRONG->WRONG')": 4,
+    "('temporal_lookup', 'CORRECT->CORRECT')": 247,
+    "('temporal_lookup', 'CORRECT->WRONG')": 10,
+    "('temporal_lookup', 'WRONG->CORRECT')": 8,
+    "('temporal_lookup', 'WRONG->WRONG')": 73
+  },
+  "transitions_by_prediction_changed": {
+    "(False, 'CORRECT->CORRECT')": 675,
+    "(False, 'CORRECT->WRONG')": 11,
+    "(False, 'WRONG->CORRECT')": 6,
+    "(False, 'WRONG->WRONG')": 113,
+    "(True, 'CORRECT->CORRECT')": 460,
+    "(True, 'CORRECT->WRONG')": 60,
+    "(True, 'WRONG->CORRECT')": 70,
+    "(True, 'WRONG->WRONG')": 145
+  }
+}
