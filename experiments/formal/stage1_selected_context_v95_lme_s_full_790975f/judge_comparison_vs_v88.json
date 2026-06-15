@@ -1,0 +1,51 @@
+{
+  "baseline_correct": 400,
+  "baseline_run": "stage1_evidence_answer_detail_v88_lme_s_full_55b8177",
+  "current_correct": 386,
+  "current_run": "stage1_selected_context_v95_lme_s_full_790975f",
+  "fresh_delta_correct": -14,
+  "n_shared": 500,
+  "prediction_changed": 184,
+  "prediction_unchanged": 316,
+  "selected_context_transitions": {
+    "CORRECT->CORRECT": 238,
+    "CORRECT->WRONG": 22,
+    "WRONG->CORRECT": 11,
+    "WRONG->WRONG": 46
+  },
+  "transitions": {
+    "CORRECT->CORRECT": 366,
+    "CORRECT->WRONG": 34,
+    "WRONG->CORRECT": 20,
+    "WRONG->WRONG": 80
+  },
+  "transitions_by_information_need": {
+    "('current_state', 'CORRECT->CORRECT')": 13,
+    "('current_state', 'CORRECT->WRONG')": 2,
+    "('current_state', 'WRONG->CORRECT')": 3,
+    "('current_state', 'WRONG->WRONG')": 4,
+    "('fact_lookup', 'CORRECT->CORRECT')": 141,
+    "('fact_lookup', 'CORRECT->WRONG')": 13,
+    "('fact_lookup', 'WRONG->CORRECT')": 5,
+    "('fact_lookup', 'WRONG->WRONG')": 24,
+    "('list_count', 'CORRECT->CORRECT')": 88,
+    "('list_count', 'CORRECT->WRONG')": 9,
+    "('list_count', 'WRONG->CORRECT')": 6,
+    "('list_count', 'WRONG->WRONG')": 16,
+    "('profile_preference', 'CORRECT->CORRECT')": 9,
+    "('profile_preference', 'WRONG->WRONG')": 6,
+    "('temporal_lookup', 'CORRECT->CORRECT')": 115,
+    "('temporal_lookup', 'CORRECT->WRONG')": 10,
+    "('temporal_lookup', 'WRONG->CORRECT')": 6,
+    "('temporal_lookup', 'WRONG->WRONG')": 30
+  },
+  "transitions_by_prediction_changed": {
+    "(False, 'CORRECT->CORRECT')": 283,
+    "(False, 'WRONG->CORRECT')": 2,
+    "(False, 'WRONG->WRONG')": 31,
+    "(True, 'CORRECT->CORRECT')": 83,
+    "(True, 'CORRECT->WRONG')": 34,
+    "(True, 'WRONG->CORRECT')": 18,
+    "(True, 'WRONG->WRONG')": 49
+  }
+}
