@@ -1,0 +1,60 @@
+{
+  "baseline_run": "stage1_answer_format_guard_v35_locomo_nonadv_full_80158a9",
+  "candidate_run": "stage1_relative_time_finalizer_v94_prompt_compat_locomo_nonadv_full_4299ac8",
+  "n": 1540,
+  "changed_predictions": 6,
+  "baseline_correct": 1201,
+  "controlled_correct": 1204,
+  "controlled_accuracy_invalid_as_wrong": 0.7818181818181819,
+  "controlled_invalid": 1,
+  "changed_label_transitions": {
+    "WRONG->CORRECT": 4,
+    "CORRECT->CORRECT": 1,
+    "CORRECT->WRONG": 1
+  },
+  "changed_cases": [
+    {
+      "record_key": "d835f3a10ee771baac82e589",
+      "old_label": "WRONG",
+      "new_label": "CORRECT",
+      "old_answer": "2023-07-15",
+      "new_answer": "2023-07-14"
+    },
+    {
+      "record_key": "9748405e4eeefe3cc1d5339c",
+      "old_label": "WRONG",
+      "new_label": "CORRECT",
+      "old_answer": "2023-08-14",
+      "new_answer": "2023-08-13"
+    },
+    {
+      "record_key": "036d1c42efe355bbef56df4a",
+      "old_label": "WRONG",
+      "new_label": "CORRECT",
+      "old_answer": "2023-07-21",
+      "new_answer": "2023-06-20"
+    },
+    {
+      "record_key": "de49850323fff9e30e3f85a6",
+      "old_label": "WRONG",
+      "new_label": "CORRECT",
+      "old_answer": "2023-05-20",
+      "new_answer": "2023-05-19"
+    },
+    {
+      "record_key": "e6c4e6d5cd1c8c08fd427371",
+      "old_label": "CORRECT",
+      "new_label": "CORRECT",
+      "old_answer": "2022-10-31",
+      "new_answer": "2022-10-30"
+    },
+    {
+      "record_key": "b9bfc86a5dc55edfa9fd58b2",
+      "old_label": "CORRECT",
+      "new_label": "WRONG",
+      "old_answer": "2022-07-20",
+      "new_answer": "2022-07-11"
+    }
+  ],
+  "note": "Controlled metric reuses historical v35 labels for unchanged predictions and judges only changed predictions offline."
+}
