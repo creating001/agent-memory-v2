@@ -644,6 +644,9 @@ class Stage1Pipeline:
                 False,
             )
         )
+        self._answer_finalizer_enable_relative_time_calculation = bool(
+            answer_finalizer_config.get("enable_relative_time_calculation", False)
+        )
         self._answer_finalizer_trace_config = {
             "enabled": self._answer_finalizer_enabled,
             "mode": self._answer_finalizer_mode,
@@ -671,6 +674,9 @@ class Stage1Pipeline:
             ),
             "enable_date_endpoint_duration_calculation": (
                 self._answer_finalizer_enable_date_endpoint_duration_calculation
+            ),
+            "enable_relative_time_calculation": (
+                self._answer_finalizer_enable_relative_time_calculation
             ),
         }
         self._answer_repair_enabled = bool(answer_repair_config.get("enabled", False))
@@ -1466,6 +1472,9 @@ class Stage1Pipeline:
             ),
             enable_date_endpoint_duration_calculation=(
                 self._answer_finalizer_enable_date_endpoint_duration_calculation
+            ),
+            enable_relative_time_calculation=(
+                self._answer_finalizer_enable_relative_time_calculation
             ),
         )
 

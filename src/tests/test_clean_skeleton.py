@@ -1332,6 +1332,149 @@ class CleanSkeletonTest(unittest.TestCase):
 
         self.assertFalse(finalization.applied)
 
+    def test_relative_time_finalizer_is_disabled_by_default(self) -> None:
+        content = json.dumps(
+            {
+                "sufficient": True,
+                "answer_type": "date",
+                "evidence_report": [
+                    {
+                        "status": "support",
+                        "mention_time": "2023-07-15",
+                        "time_phrase": "Last Fri",
+                    }
+                ],
+                "answer": "2023-07-15",
+            }
+        )
+        raw_response = json.dumps({"content": content})
+
+        finalization = finalize_structured_answer(
+            question="When did Melanie go to the pottery workshop?",
+            draft_answer="2023-07-15",
+            raw_response=raw_response,
+        )
+
+        self.assertFalse(finalization.applied)
+        self.assertEqual(finalization.answer, "2023-07-15")
+
+    def test_relative_time_finalizer_resolves_last_weekday(self) -> None:
+        content = json.dumps(
+            {
+                "sufficient": True,
+                "answer_type": "date",
+                "evidence_report": [
+                    {
+                        "status": "support",
+                        "mention_time": "2023-07-15",
+                        "time_phrase": "Last Fri",
+                    }
+                ],
+                "answer": "2023-07-15",
+            }
+        )
+        raw_response = json.dumps({"content": content})
+
+        finalization = finalize_structured_answer(
+            question="When did Melanie go to the pottery workshop?",
+            draft_answer="2023-07-15",
+            raw_response=raw_response,
+            enable_relative_time_calculation=True,
+        )
+
+        self.assertTrue(finalization.applied)
+        self.assertEqual(
+            finalization.reason,
+            "evidence_report_relative_time_calculation",
+        )
+        self.assertEqual(finalization.answer, "2023-07-14")
+
+    def test_relative_time_finalizer_resolves_yesterday(self) -> None:
+        content = json.dumps(
+            {
+                "sufficient": True,
+                "answer_type": "date",
+                "evidence_report": [
+                    {
+                        "status": "support",
+                        "mention_time": "2023-06-21",
+                        "time_phrase": "yesterday",
+                    }
+                ],
+                "answer": "2023-06-21",
+            }
+        )
+        raw_response = json.dumps({"content": content})
+
+        finalization = finalize_structured_answer(
+            question="What date did Alex visit the florist?",
+            draft_answer="2023-06-21",
+            raw_response=raw_response,
+            enable_relative_time_calculation=True,
+        )
+
+        self.assertTrue(finalization.applied)
+        self.assertEqual(finalization.answer, "2023-06-20")
+
+    def test_relative_time_finalizer_skips_conflicting_candidates(self) -> None:
+        content = json.dumps(
+            {
+                "sufficient": True,
+                "answer_type": "date",
+                "evidence_report": [
+                    {
+                        "status": "support",
+                        "mention_time": "2023-10-20",
+                        "time_phrase": "yesterday",
+                    },
+                    {
+                        "status": "support",
+                        "mention_time": "2023-10-20",
+                        "time_phrase": "this past weekend",
+                    },
+                ],
+                "answer": "2023-10-20",
+            }
+        )
+        raw_response = json.dumps({"content": content})
+
+        finalization = finalize_structured_answer(
+            question="When did Priya take the trip?",
+            draft_answer="2023-10-20",
+            raw_response=raw_response,
+            enable_relative_time_calculation=True,
+        )
+
+        self.assertFalse(finalization.applied)
+        self.assertEqual(finalization.answer, "2023-10-20")
+
+    def test_relative_time_finalizer_skips_duration_question(self) -> None:
+        content = json.dumps(
+            {
+                "sufficient": True,
+                "answer_type": "date",
+                "evidence_report": [
+                    {
+                        "status": "support",
+                        "mention_time": "2023-06-21",
+                        "time_phrase": "yesterday",
+                    }
+                ],
+                "answer": "2023-06-21",
+            }
+        )
+        raw_response = json.dumps({"content": content})
+
+        finalization = finalize_structured_answer(
+            question="How long after the florist visit did Alex buy the vase?",
+            draft_answer="2023-06-21",
+            raw_response=raw_response,
+            enable_relative_time_calculation=True,
+        )
+
+        self.assertFalse(finalization.applied)
+        self.assertEqual(finalization.answer, "2023-06-21")
+
     def test_structured_answer_finalizer_repairs_money_sum_mismatch(self) -> None:
         content = json.dumps(
             {

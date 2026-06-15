@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import asdict, dataclass
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from typing import Any
 
@@ -74,6 +74,10 @@ _DATE_ENDPOINT_DURATION_QUESTION = re.compile(
     r"\bhow many\s+days?\b|\bhow long\b",
     re.IGNORECASE,
 )
+_RELATIVE_DATE_QUESTION = re.compile(
+    r"^\s*when\b|\bwhat\s+(?:date|day|time)\b",
+    re.IGNORECASE,
+)
 _INSUFFICIENT_ANSWER = re.compile(
     r"\b(not enough|insufficient|cannot determine|can't determine|not available|"
     r"unknown|do not know|don't know)\b",
@@ -91,11 +95,31 @@ _DATE_LIKE = re.compile(
     r"\b\d{1,2}[-/]\d{1,2}[-/]\d{2,4}\b"
 )
 _ISO_DATE = re.compile(r"\b((?:19|20)\d{2})-(\d{1,2})-(\d{1,2})\b")
+_SLASH_DATE = re.compile(r"\b((?:19|20)\d{2})/(\d{1,2})/(\d{1,2})\b")
 _FILTER_REASON = re.compile(
     r"\b(duplicate|out[-_ ]of[-_ ]scope|irrelevant|wrong[_ -]?time|"
     r"not[_ -]?confirmed|assistant[_ -]?suggestion|hypothetical|planned)\b",
     re.IGNORECASE,
 )
+_WEEKDAY_INDEX = {
+    "mon": 0,
+    "monday": 0,
+    "tue": 1,
+    "tues": 1,
+    "tuesday": 1,
+    "wed": 2,
+    "wednesday": 2,
+    "thu": 3,
+    "thur": 3,
+    "thurs": 3,
+    "thursday": 3,
+    "fri": 4,
+    "friday": 4,
+    "sat": 5,
+    "saturday": 5,
+    "sun": 6,
+    "sunday": 6,
+}
 
 
 def finalize_structured_answer(
@@ -112,6 +136,7 @@ def finalize_structured_answer(
     enable_average_calculation: bool = False,
     enable_money_difference_calculation: bool = False,
     enable_date_endpoint_duration_calculation: bool = False,
+    enable_relative_time_calculation: bool = False,
 ) -> AnswerFinalization:
     """Repair only narrow count/sum mismatches exposed by model evidence JSON.
 
@@ -153,6 +178,16 @@ def finalize_structured_answer(
         return _noop(draft_answer, "model_marked_insufficient")
 
     lowered_question = question.lower()
+    if enable_relative_time_calculation:
+        relative_time = _finalize_relative_time_calculation(
+            question=question,
+            lowered_question=lowered_question,
+            draft_answer=draft_answer,
+            payload=payload,
+        )
+        if relative_time is not None:
+            return relative_time
+
     if enable_evidence_report_count_correction and _is_count_question(
         lowered_question
     ):
@@ -663,6 +698,141 @@ def _parse_iso_date(match: re.Match[str]) -> date | None:
         return date(int(match.group(1)), int(match.group(2)), int(match.group(3)))
     except ValueError:
         return None
+
+
+def _finalize_relative_time_calculation(
+    *,
+    question: str,
+    lowered_question: str,
+    draft_answer: str,
+    payload: dict[str, Any],
+) -> AnswerFinalization | None:
+    if _answer_is_insufficient(draft_answer):
+        return None
+    if _DURATION_COUNT_QUESTION.search(lowered_question):
+        return None
+    if not _RELATIVE_DATE_QUESTION.search(question):
+        return None
+    answer_type = str(payload.get("answer_type") or "").strip().lower()
+    if answer_type and answer_type not in {"date", "time"}:
+        return None
+    report = payload.get("evidence_report")
+    if not isinstance(report, list):
+        return None
+
+    candidates: list[tuple[int, str]] = []
+    for item in report:
+        if not isinstance(item, dict):
+            continue
+        if str(item.get("status") or "").strip().lower() != "support":
+            continue
+        phrase = str(item.get("time_phrase") or "").strip()
+        if not phrase or phrase.lower() in {"none", "n/a", "na", "empty"}:
+            continue
+        anchor = _parse_date_text(
+            str(
+                item.get("mention_time")
+                or item.get("mention_date")
+                or item.get("date")
+                or ""
+            )
+        )
+        if anchor is None:
+            continue
+        resolved = _resolve_relative_time_phrase(phrase, anchor)
+        if resolved is None:
+            continue
+        specificity, answer = resolved
+        candidates.append((specificity, answer))
+
+    if not candidates:
+        return None
+    candidate_answers = {_normalize_answer_date_text(answer) for _, answer in candidates}
+    if len(candidate_answers) != 1:
+        return None
+    max_specificity = max(score for score, _answer in candidates)
+    best_answers = {
+        _normalize_answer_date_text(answer)
+        for score, answer in candidates
+        if score == max_specificity
+    }
+    if len(best_answers) != 1:
+        return None
+    answer = next(iter(best_answers))
+    if _normalize_answer_date_text(draft_answer) == answer:
+        return None
+    return AnswerFinalization(
+        answer=answer,
+        before=draft_answer,
+        applied=True,
+        reason="evidence_report_relative_time_calculation",
+        expected_value=answer,
+    )
+
+
+def _parse_date_text(text: str) -> date | None:
+    for pattern in (_ISO_DATE, _SLASH_DATE):
+        match = pattern.search(text)
+        if not match:
+            continue
+        try:
+            return date(int(match.group(1)), int(match.group(2)), int(match.group(3)))
+        except ValueError:
+            return None
+    return None
+
+
+def _resolve_relative_time_phrase(
+    phrase: str,
+    anchor: date,
+) -> tuple[int, str] | None:
+    lowered = phrase.lower()
+    if re.search(r"\blast night\b|\byesterday\b", lowered):
+        return 4, _iso_date(anchor - timedelta(days=1))
+    if re.search(r"\btomorrow\b", lowered):
+        return 4, _iso_date(anchor + timedelta(days=1))
+
+    weekday_match = re.search(
+        r"\blast\s+"
+        r"(mon(?:day)?|tue(?:s|sday)?|wed(?:nesday)?|thu(?:r|rs|rsday|rday)?|"
+        r"fri(?:day)?|sat(?:urday)?|sun(?:day)?)\b",
+        lowered,
+    )
+    if weekday_match:
+        weekday = _WEEKDAY_INDEX.get(weekday_match.group(1))
+        if weekday is None:
+            return None
+        days_back = (anchor.weekday() - weekday) % 7
+        if days_back == 0:
+            days_back = 7
+        return 3, _iso_date(anchor - timedelta(days=days_back))
+
+    if re.search(r"\b(two weekends ago|two weekends before)\b", lowered):
+        return 2, f"two weekends before {_display_date(anchor)}"
+    if re.search(r"\b(last weekend|this past weekend|past weekend)\b", lowered):
+        return 2, f"The weekend before {_display_date(anchor)}"
+    if re.search(r"\b(two weekends later|two weekends after)\b", lowered):
+        return 2, f"two weekends after {_display_date(anchor)}"
+    if re.search(r"\b(next weekend|coming weekend|weekend after)\b", lowered):
+        return 2, f"The weekend after {_display_date(anchor)}"
+
+    if re.search(r"\b(last week|the week before)\b", lowered):
+        return 1, f"The week before {_display_date(anchor)}"
+    if re.search(r"\b(next week|the following week|week after)\b", lowered):
+        return 1, f"The week after {_display_date(anchor)}"
+    return None
+
+
+def _iso_date(value: date) -> str:
+    return value.isoformat()
+
+
+def _display_date(value: date) -> str:
+    return f"{value.day} {value.strftime('%B %Y')}"
+
+
+def _normalize_answer_date_text(text: str) -> str:
+    return re.sub(r"\s+", " ", text).strip(" .")
 
 
 def _item_included(item: dict[str, Any]) -> bool:
