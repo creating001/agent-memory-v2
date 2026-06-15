@@ -152,6 +152,7 @@ experiments/formal/<run_id>/
 
 | run | scope | 主要结论 |
 |---|---|---|
+| `stage1_answer_format_guard_v35_prompt_compat_locomo_nonadv_full_555b618` | LoCoMo non-adversarial full prompt/cache compatibility control | 当前代码已恢复历史 v35 prediction：`1540/1540` answer 与 `stage1_answer_format_guard_v35_locomo_nonadv_full_80158a9` 完全一致，answer/build cache 全命中；历史 judge `1201/1540 = 0.779870` 可作为 baseline 继续引用。 |
 | `stage1_answer_format_guard_v35_current_replay_locomo_nonadv_full_11b53e9` | LoCoMo non-adversarial full current-code replay | 当前 commit 下重放 v35 配置，用于隔离 v94 效果；DeepSeek judge `1185/1540 = 0.769481`，低于历史 v35 `1201/1540`，说明后续比较需注意 code/cache parsing drift。 |
 | `v47_temporal_aggregation_lme_diag_5487300` | 106 条 LongMemEval-S question-derived temporal aggregation diagnostic | v47 aggregation report + count_increment finalizer 失败；DeepSeek judge `75/106`，低于 v42 same-106 `81/106`，gain/loss `5/11`。重复计数 regression 明显，不跑 full，顶层 config 已删除。 |
 | `v48_candidate_map_lme_weakroute_265e07d` | 87 条 LongMemEval-S question-derived weak-route diagnostic | v48 Candidate Evidence Map 全弱路由失败；DeepSeek judge `56/87`，低于 v42 same-87 `59/87`，且 full query 估计 `6250.456` 超预算。仅 current_state 子集正向，转 v49 current-state-only。 |

@@ -1,0 +1,10 @@
+{
+  "baseline_run": "stage1_answer_format_guard_v35_locomo_nonadv_full_80158a9",
+  "replay_run": "stage1_answer_format_guard_v35_prompt_compat_locomo_nonadv_full_555b618",
+  "n_predictions": 1540,
+  "same_record_keys": true,
+  "answer_diff_count": 0,
+  "expected_historical_judge_accuracy": 0.7798701298701298,
+  "expected_historical_judge_correct": "1201/1540",
+  "note": "Prediction answers are identical to the historical v35 formal run; no fresh judge is needed for this diagnostic replay."
+}
