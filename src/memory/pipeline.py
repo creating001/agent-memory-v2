@@ -104,6 +104,16 @@ class Stage1Pipeline:
         self._retrieval_route_overrides = _validate_retrieval_route_overrides(
             retrieval_config.get("route_overrides") or {}
         )
+        self._granularity_profiles = _validate_granularity_profiles(
+            retrieval_config.get("granularity_profiles") or ()
+        )
+        self._granularity_routers = {
+            profile["name"]: _configured_router(
+                _merged_config(route_config, profile["route"])
+            )
+            for profile in self._granularity_profiles
+            if profile.get("route")
+        }
         self._neighbor_window = int(retrieval_config.get("neighbor_window", 1))
         self._neighbor_order = str(retrieval_config.get("neighbor_order", "hit_priority"))
         self._lexical_enabled = bool(lexical_config.get("enabled", True))
@@ -633,6 +643,13 @@ class Stage1Pipeline:
             "max_memory_records": int(compiler_config.get("max_memory_records", 12)),
             "route_overrides": compiler_config.get("route_overrides") or {},
         }
+        self._granularity_compilers = {
+            profile["name"]: _configured_compiler(
+                _merged_config(compiler_config, profile["compiler"])
+            )
+            for profile in self._granularity_profiles
+            if profile.get("compiler")
+        }
         answer_mode = str(answer_config.get("mode", "null_answerer"))
         self._answer_finalizer_enabled = bool(
             answer_finalizer_config.get("enabled", False)
@@ -709,6 +726,13 @@ class Stage1Pipeline:
             "enable_relative_time_calculation": (
                 self._answer_finalizer_enable_relative_time_calculation
             ),
+        }
+        self._answer_finalizer_profile_settings = {
+            profile["name"]: _answer_finalizer_settings_from_config(
+                _merged_config(answer_finalizer_config, profile["answer_finalizer"])
+            )
+            for profile in self._granularity_profiles
+            if profile.get("answer_finalizer")
         }
         self._answer_repair_enabled = bool(answer_repair_config.get("enabled", False))
         self._answer_repair_information_needs = _tuple_config(
@@ -867,6 +891,10 @@ class Stage1Pipeline:
 
     def predict(self, request: PredictionRequest) -> dict[str, Any]:
         store = RawEvidenceStore(request.turns)
+        granularity_profile = _select_granularity_profile(
+            self._granularity_profiles,
+            avg_turn_chars=store.average_turn_chars,
+        )
         built_memory = self._memory_builder.build(store.turns)
         source_alignment = _disabled_source_alignment_trace(
             enabled=self._build_memory_source_alignment_enabled
@@ -881,9 +909,14 @@ class Stage1Pipeline:
                 min_delta=self._build_memory_source_alignment_min_delta,
             )
             built_memory = replace(built_memory, records=aligned_records)
-        heuristic_route = self._router.route(request.question, request.question_time)
+        profile_name = granularity_profile.get("name") if granularity_profile else None
+        router = self._granularity_routers.get(str(profile_name), self._router)
+        heuristic_route = router.route(request.question, request.question_time)
         route = heuristic_route
-        retrieval_settings = self._retrieval_settings_for_route(route)
+        retrieval_settings = self._retrieval_settings_for_route(
+            route,
+            granularity_profile=granularity_profile,
+        )
         top_k = retrieval_settings["top_k"]
         candidate_top_k = retrieval_settings["candidate_top_k"]
         dense_top_k = retrieval_settings["dense_top_k"]
@@ -1037,25 +1070,33 @@ class Stage1Pipeline:
             window=self._neighbor_window,
             order=self._neighbor_order,
         )
+        selected_context_settings = self._selected_context_settings(
+            granularity_profile
+        )
         evidence_turns, selected_context = _materialize_selected_context(
             store=store,
             turns=evidence_turns,
             route=route,
-            enabled=self._selected_context_enabled,
-            information_needs=self._selected_context_information_needs,
-            window_before=self._selected_context_window_before,
-            window_after=self._selected_context_window_after,
-            max_rows=self._selected_context_max_rows,
-            max_neighbor_chars=self._selected_context_max_neighbor_chars,
-            require_anaphora=self._selected_context_require_anaphora,
+            enabled=selected_context_settings["enabled"],
+            information_needs=selected_context_settings["information_needs"],
+            window_before=selected_context_settings["window_before"],
+            window_after=selected_context_settings["window_after"],
+            max_rows=selected_context_settings["max_rows"],
+            max_neighbor_chars=selected_context_settings["max_neighbor_chars"],
+            require_anaphora=selected_context_settings["require_anaphora"],
         )
+        selected_context["granularity_profile"] = granularity_profile
         compiler_memory_records = _compiler_memory_records(
             source=self._compiler_memory_record_source,
             memory_hits=memory_hits,
             built_memory_records=built_memory.records,
             evidence_turns=evidence_turns,
         )
-        compiled = self._compiler.compile(
+        compiler = self._granularity_compilers.get(
+            str(profile_name),
+            self._compiler,
+        )
+        compiled = compiler.compile(
             question=request.question,
             question_time=request.question_time,
             route=route,
@@ -1107,9 +1148,11 @@ class Stage1Pipeline:
         )
         repair_cache_after = _answer_cache_stats(self._answer_repairer)
         answer = answer_repair.answer
+        finalizer_settings = self._finalizer_settings(granularity_profile)
         answer_finalization = self._finalize_answer(
             question=request.question,
             answer=answer,
+            settings=finalizer_settings,
         )
         if answer_finalization.applied:
             answer = AnswerResult(
@@ -1151,6 +1194,7 @@ class Stage1Pipeline:
                     "route_override": self._retrieval_route_overrides.get(
                         route.information_need, {}
                     ),
+                    "granularity_profile": granularity_profile,
                     "neighbor_window": self._neighbor_window,
                     "neighbor_order": self._neighbor_order,
                     "drop_query_stopwords": self._drop_query_stopwords,
@@ -1239,6 +1283,9 @@ class Stage1Pipeline:
                     "lexical_hits": [hit.to_dict() for hit in lexical_hits],
                     "memory_hits": [hit.to_dict() for hit in memory_hits],
                     "compiler_memory_record_source": self._compiler_memory_record_source,
+                    "compiler_profile": profile_name
+                    if str(profile_name) in self._granularity_compilers
+                    else None,
                     "compiler_memory_records": [
                         record.to_dict() for record in compiler_memory_records
                     ],
@@ -1307,7 +1354,8 @@ class Stage1Pipeline:
                     ),
                 },
                 "answer_finalizer": {
-                    **self._answer_finalizer_trace_config,
+                    **finalizer_settings,
+                    "granularity_profile": granularity_profile,
                     **answer_finalization.to_dict(),
                 },
                 "answer": answer.to_dict(),
@@ -1387,7 +1435,12 @@ class Stage1Pipeline:
         )
         return answer, trace
 
-    def _retrieval_settings_for_route(self, route: RouteResult) -> dict[str, int]:
+    def _retrieval_settings_for_route(
+        self,
+        route: RouteResult,
+        *,
+        granularity_profile: Mapping[str, Any] | None = None,
+    ) -> dict[str, int]:
         settings = {
             "top_k": self._base_top_k,
             "max_top_k": self._max_top_k,
@@ -1395,6 +1448,8 @@ class Stage1Pipeline:
             "lexical_protect_top_n": self._lexical_protect_top_n,
             "dense_protect_top_n": self._dense_protect_top_n,
         }
+        if granularity_profile:
+            settings.update(granularity_profile.get("retrieval", {}))
         settings.update(self._retrieval_route_overrides.get(route.information_need, {}))
         top_k = min(
             settings["top_k"] * route.retrieval_multiplier,
@@ -1415,6 +1470,37 @@ class Stage1Pipeline:
             "lexical_protect_top_n": settings["lexical_protect_top_n"],
             "dense_protect_top_n": settings["dense_protect_top_n"],
         }
+
+    def _selected_context_settings(
+        self,
+        granularity_profile: Mapping[str, Any] | None,
+    ) -> dict[str, Any]:
+        settings: dict[str, Any] = {
+            "enabled": self._selected_context_enabled,
+            "window_before": self._selected_context_window_before,
+            "window_after": self._selected_context_window_after,
+            "max_rows": self._selected_context_max_rows,
+            "max_neighbor_chars": self._selected_context_max_neighbor_chars,
+            "require_anaphora": self._selected_context_require_anaphora,
+            "information_needs": self._selected_context_information_needs,
+        }
+        if granularity_profile:
+            settings.update(granularity_profile.get("selected_context", {}))
+            settings["information_needs"] = _tuple_config(
+                settings.get("information_needs")
+            )
+        return settings
+
+    def _finalizer_settings(
+        self,
+        granularity_profile: Mapping[str, Any] | None,
+    ) -> dict[str, Any]:
+        if granularity_profile:
+            profile_name = str(granularity_profile.get("name"))
+            settings = self._answer_finalizer_profile_settings.get(profile_name)
+            if settings is not None:
+                return settings
+        return dict(self._answer_finalizer_trace_config)
 
     def _rerank_hits(
         self,
@@ -1478,47 +1564,54 @@ class Stage1Pipeline:
         *,
         question: str,
         answer: AnswerResult,
+        settings: Mapping[str, Any],
     ) -> AnswerFinalization:
-        if not self._answer_finalizer_enabled:
+        if not bool(settings.get("enabled", False)):
             return AnswerFinalization(
                 answer=answer.answer,
                 before=answer.answer,
                 applied=False,
                 reason="disabled",
             )
-        if self._answer_finalizer_mode != "structured_evidence_mechanical":
+        mode = str(settings.get("mode", "structured_evidence_mechanical"))
+        if mode != "structured_evidence_mechanical":
             raise ValueError(
-                f"Unsupported answer.finalizer.mode: {self._answer_finalizer_mode}"
+                f"Unsupported answer.finalizer.mode: {mode}"
             )
         return finalize_structured_answer(
             question=question,
             draft_answer=answer.answer,
             raw_response=answer.raw_response,
-            enable_count_correction=self._answer_finalizer_enable_count_correction,
+            enable_count_correction=bool(settings.get("enable_count_correction", False)),
             enable_evidence_report_count_correction=(
-                self._answer_finalizer_enable_evidence_report_count_correction
+                bool(settings.get("enable_evidence_report_count_correction", False))
             ),
             enable_money_sum_correction=(
-                self._answer_finalizer_enable_money_sum_correction
+                bool(settings.get("enable_money_sum_correction", True))
             ),
             enable_duration_rounding_correction=(
-                self._answer_finalizer_enable_duration_rounding_correction
+                bool(settings.get("enable_duration_rounding_correction", False))
             ),
-            enable_missing_detail=self._answer_finalizer_enable_missing_detail,
+            enable_missing_detail=bool(settings.get("enable_missing_detail", False)),
             enable_count_answer_detail=(
-                self._answer_finalizer_enable_count_answer_detail
+                bool(settings.get("enable_count_answer_detail", False))
             ),
             enable_average_calculation=(
-                self._answer_finalizer_enable_average_calculation
+                bool(settings.get("enable_average_calculation", False))
             ),
             enable_money_difference_calculation=(
-                self._answer_finalizer_enable_money_difference_calculation
+                bool(settings.get("enable_money_difference_calculation", False))
             ),
             enable_date_endpoint_duration_calculation=(
-                self._answer_finalizer_enable_date_endpoint_duration_calculation
+                bool(
+                    settings.get(
+                        "enable_date_endpoint_duration_calculation",
+                        False,
+                    )
+                )
             ),
             enable_relative_time_calculation=(
-                self._answer_finalizer_enable_relative_time_calculation
+                bool(settings.get("enable_relative_time_calculation", False))
             ),
         )
 
@@ -2008,6 +2101,229 @@ RETRIEVAL_ROUTE_OVERRIDE_KEYS = {
 }
 
 
+def _merged_config(
+    base: Mapping[str, Any],
+    override: Mapping[str, Any],
+) -> dict[str, Any]:
+    merged = dict(base)
+    for key, value in override.items():
+        if (
+            isinstance(value, Mapping)
+            and isinstance(merged.get(key), Mapping)
+        ):
+            merged[key] = {**dict(merged[key]), **dict(value)}
+        else:
+            merged[key] = value
+    return merged
+
+
+def _configured_router(route_config: Mapping[str, Any]) -> QuestionRouter:
+    return QuestionRouter(
+        enable_broad_list_patterns=bool(
+            route_config.get("enable_broad_list_patterns", False)
+        ),
+        enable_recommendation_profile_patterns=bool(
+            route_config.get("enable_recommendation_profile_patterns", False)
+        ),
+        enable_advice_profile_patterns=bool(
+            route_config.get("enable_advice_profile_patterns", False)
+        ),
+        temporal_priority_over_recent=bool(
+            route_config.get("temporal_priority_over_recent", False)
+        ),
+    )
+
+
+def _configured_compiler(compiler_config: Mapping[str, Any]) -> EvidenceCompiler:
+    return EvidenceCompiler(
+        answer_style=str(compiler_config.get("answer_style", "grounded")),
+        max_evidence_items=int(compiler_config.get("max_evidence_items", 12)),
+        max_evidence_chars=int(compiler_config.get("max_evidence_chars", 12000)),
+        max_memory_records=int(compiler_config.get("max_memory_records", 12)),
+        temporal_grounding=bool(compiler_config.get("temporal_grounding", False)),
+        temporal_hints=bool(compiler_config.get("temporal_hints", False)),
+        temporal_workpad=bool(compiler_config.get("temporal_workpad", False)),
+        temporal_text_normalization=bool(
+            compiler_config.get("temporal_text_normalization", False)
+        ),
+        temporal_event_contract=bool(
+            compiler_config.get("temporal_event_contract", False)
+        ),
+        temporal_workpad_scope=str(
+            compiler_config.get("temporal_workpad_scope", "route")
+        ),
+        temporal_workpad_max_rows=int(
+            compiler_config.get("temporal_workpad_max_rows", 10)
+        ),
+        temporal_workpad_max_pairs=int(
+            compiler_config.get("temporal_workpad_max_pairs", 12)
+        ),
+        structured_guide=bool(compiler_config.get("structured_guide", False)),
+        structured_guide_max_rows=int(
+            compiler_config.get("structured_guide_max_rows", 12)
+        ),
+        structured_guide_include_rows=bool(
+            compiler_config.get("structured_guide_include_rows", True)
+        ),
+        structured_guide_include_memory=bool(
+            compiler_config.get("structured_guide_include_memory", True)
+        ),
+        structured_guide_disabled_signals=_tuple_config(
+            compiler_config.get("structured_guide_disabled_signals")
+        ),
+        structured_answer_contract=bool(
+            compiler_config.get("structured_answer_contract", False)
+        ),
+        structured_answer_contract_information_needs=_tuple_config(
+            compiler_config.get(
+                "structured_answer_contract_information_needs",
+                ("list_count", "temporal_lookup"),
+            )
+        ),
+        structured_answer_contract_max_items=int(
+            compiler_config.get("structured_answer_contract_max_items", 10)
+        ),
+        evidence_report_contract=bool(
+            compiler_config.get("evidence_report_contract", False)
+        ),
+        evidence_report_information_needs=_tuple_config(
+            compiler_config.get(
+                "evidence_report_information_needs",
+                (
+                    "current_state",
+                    "fact_lookup",
+                    "list_count",
+                    "profile_preference",
+                    "temporal_lookup",
+                ),
+            )
+        ),
+        evidence_report_max_items=int(
+            compiler_config.get("evidence_report_max_items", 8)
+        ),
+        evidence_report_detail=bool(
+            compiler_config.get("evidence_report_detail", False)
+        ),
+        aggregation_report_contract=bool(
+            compiler_config.get("aggregation_report_contract", False)
+        ),
+        aggregation_report_information_needs=_tuple_config(
+            compiler_config.get(
+                "aggregation_report_information_needs",
+                ("list_count", "temporal_lookup"),
+            )
+        ),
+        candidate_guide=bool(compiler_config.get("candidate_guide", False)),
+        candidate_guide_information_needs=_tuple_config(
+            compiler_config.get(
+                "candidate_guide_information_needs",
+                ("list_count", "temporal_lookup"),
+            )
+        ),
+        candidate_guide_max_rows=int(
+            compiler_config.get("candidate_guide_max_rows", 6)
+        ),
+        candidate_guide_snippet_chars=int(
+            compiler_config.get("candidate_guide_snippet_chars", 160)
+        ),
+        update_conflict_guide=bool(
+            compiler_config.get("update_conflict_guide", False)
+        ),
+        update_conflict_guide_information_needs=_tuple_config(
+            compiler_config.get(
+                "update_conflict_guide_information_needs",
+                ("current_state", "fact_lookup", "list_count", "temporal_lookup"),
+            )
+        ),
+        update_conflict_guide_max_rows=int(
+            compiler_config.get("update_conflict_guide_max_rows", 6)
+        ),
+        update_conflict_guide_snippet_chars=int(
+            compiler_config.get("update_conflict_guide_snippet_chars", 180)
+        ),
+        operation_workpad=bool(compiler_config.get("operation_workpad", False)),
+        operation_workpad_information_needs=_tuple_config(
+            compiler_config.get(
+                "operation_workpad_information_needs",
+                ("list_count", "temporal_lookup"),
+            )
+        ),
+        operation_workpad_question_gate=bool(
+            compiler_config.get("operation_workpad_question_gate", False)
+        ),
+        personalized_advice_contract=bool(
+            compiler_config.get("personalized_advice_contract", False)
+        ),
+        current_state_update_contract=bool(
+            compiler_config.get("current_state_update_contract", False)
+        ),
+        dialogue_inference_contract=bool(
+            compiler_config.get("dialogue_inference_contract", False)
+        ),
+        temporal_order_contract=bool(
+            compiler_config.get("temporal_order_contract", False)
+        ),
+        source_anchor_keep=int(compiler_config.get("source_anchor_keep", 0)),
+        source_anchor_memory_rows=int(
+            compiler_config.get("source_anchor_memory_rows", 0)
+        ),
+        source_anchor_per_session=int(
+            compiler_config.get("source_anchor_per_session", 0)
+        ),
+        source_anchor_session_rows=int(
+            compiler_config.get("source_anchor_session_rows", 0)
+        ),
+        context_layout=str(compiler_config.get("context_layout", "flat")),
+        evidence_order=str(compiler_config.get("evidence_order", "retrieval")),
+        memory_order=str(compiler_config.get("memory_order", "retrieval")),
+        memory_layout=str(compiler_config.get("memory_layout", "flat")),
+        row_text_mode=str(compiler_config.get("row_text_mode", "full")),
+        max_row_text_chars=int(compiler_config.get("max_row_text_chars", 0)),
+        route_guidance=bool(compiler_config.get("route_guidance", False)),
+        evidence_row_labels=bool(compiler_config.get("evidence_row_labels", False)),
+        final_answer_checklist=bool(
+            compiler_config.get("final_answer_checklist", False)
+        ),
+        prompt_mode=str(compiler_config.get("prompt_mode", "default")),
+        route_overrides=compiler_config.get("route_overrides") or {},
+    )
+
+
+def _answer_finalizer_settings_from_config(
+    config: Mapping[str, Any],
+) -> dict[str, Any]:
+    return {
+        "enabled": bool(config.get("enabled", False)),
+        "mode": str(config.get("mode", "structured_evidence_mechanical")),
+        "enable_count_correction": bool(config.get("enable_count_correction", False)),
+        "enable_evidence_report_count_correction": bool(
+            config.get("enable_evidence_report_count_correction", False)
+        ),
+        "enable_money_sum_correction": bool(
+            config.get("enable_money_sum_correction", True)
+        ),
+        "enable_duration_rounding_correction": bool(
+            config.get("enable_duration_rounding_correction", False)
+        ),
+        "enable_missing_detail": bool(config.get("enable_missing_detail", False)),
+        "enable_count_answer_detail": bool(
+            config.get("enable_count_answer_detail", False)
+        ),
+        "enable_average_calculation": bool(
+            config.get("enable_average_calculation", False)
+        ),
+        "enable_money_difference_calculation": bool(
+            config.get("enable_money_difference_calculation", False)
+        ),
+        "enable_date_endpoint_duration_calculation": bool(
+            config.get("enable_date_endpoint_duration_calculation", False)
+        ),
+        "enable_relative_time_calculation": bool(
+            config.get("enable_relative_time_calculation", False)
+        ),
+    }
+
+
 def _validate_retrieval_route_overrides(
     route_overrides: Mapping[str, Mapping[str, Any]],
 ) -> dict[str, dict[str, int]]:
@@ -2033,6 +2349,126 @@ def _validate_retrieval_route_overrides(
                 overrides[key] = max(0, int(raw_overrides[key]))
         normalized[information_need] = overrides
     return normalized
+
+
+def _validate_granularity_profiles(value: object) -> tuple[dict[str, Any], ...]:
+    if not value:
+        return ()
+    if not isinstance(value, (list, tuple)):
+        raise ValueError("retrieval.granularity_profiles must be a list")
+    profiles: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for index, raw_profile in enumerate(value):
+        if not isinstance(raw_profile, Mapping):
+            raise ValueError("retrieval.granularity_profiles entries must be objects")
+        name = str(raw_profile.get("name") or f"profile_{index}")
+        if name in seen:
+            raise ValueError(f"Duplicate granularity profile name: {name}")
+        seen.add(name)
+        min_avg_turn_chars = raw_profile.get("min_avg_turn_chars")
+        max_avg_turn_chars = raw_profile.get("max_avg_turn_chars")
+        retrieval = raw_profile.get("retrieval") or {}
+        route = raw_profile.get("route") or {}
+        selected_context = raw_profile.get("selected_context") or {}
+        compiler = raw_profile.get("compiler") or {}
+        answer_finalizer = raw_profile.get("answer_finalizer") or {}
+        if not isinstance(retrieval, Mapping):
+            raise ValueError(f"granularity profile {name}.retrieval must be an object")
+        if not isinstance(route, Mapping):
+            raise ValueError(f"granularity profile {name}.route must be an object")
+        if not isinstance(selected_context, Mapping):
+            raise ValueError(
+                f"granularity profile {name}.selected_context must be an object"
+            )
+        if not isinstance(compiler, Mapping):
+            raise ValueError(f"granularity profile {name}.compiler must be an object")
+        if not isinstance(answer_finalizer, Mapping):
+            raise ValueError(
+                f"granularity profile {name}.answer_finalizer must be an object"
+            )
+        unknown_retrieval = set(retrieval).difference(RETRIEVAL_ROUTE_OVERRIDE_KEYS)
+        if unknown_retrieval:
+            keys = ", ".join(sorted(unknown_retrieval))
+            raise ValueError(f"Unsupported granularity retrieval keys: {keys}")
+        allowed_selected = {
+            "enabled",
+            "window_before",
+            "window_after",
+            "max_rows",
+            "max_neighbor_chars",
+            "require_anaphora",
+            "information_needs",
+        }
+        unknown_selected = set(selected_context).difference(allowed_selected)
+        if unknown_selected:
+            keys = ", ".join(sorted(unknown_selected))
+            raise ValueError(f"Unsupported granularity selected_context keys: {keys}")
+        allowed_route = {
+            "enable_broad_list_patterns",
+            "enable_recommendation_profile_patterns",
+            "enable_advice_profile_patterns",
+            "temporal_priority_over_recent",
+        }
+        unknown_route = set(route).difference(allowed_route)
+        if unknown_route:
+            keys = ", ".join(sorted(unknown_route))
+            raise ValueError(f"Unsupported granularity route keys: {keys}")
+        profiles.append(
+            {
+                "name": name,
+                "min_avg_turn_chars": (
+                    float(min_avg_turn_chars)
+                    if min_avg_turn_chars is not None
+                    else None
+                ),
+                "max_avg_turn_chars": (
+                    float(max_avg_turn_chars)
+                    if max_avg_turn_chars is not None
+                    else None
+                ),
+                "retrieval": {
+                    key: max(0, int(value))
+                    for key, value in retrieval.items()
+                },
+                "route": {key: bool(value) for key, value in route.items()},
+                "selected_context": _normalized_selected_context_override(
+                    selected_context
+                ),
+                "compiler": dict(compiler),
+                "answer_finalizer": dict(answer_finalizer),
+            }
+        )
+    return tuple(profiles)
+
+
+def _normalized_selected_context_override(
+    raw: Mapping[str, Any],
+) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in raw.items():
+        if key in {"enabled", "require_anaphora"}:
+            result[key] = bool(value)
+        elif key in {"window_before", "window_after", "max_rows", "max_neighbor_chars"}:
+            result[key] = int(value)
+        elif key == "information_needs":
+            result[key] = _tuple_config(value)
+    return result
+
+
+def _select_granularity_profile(
+    profiles: tuple[dict[str, Any], ...],
+    *,
+    avg_turn_chars: float,
+) -> dict[str, Any] | None:
+    for profile in profiles:
+        min_chars = profile.get("min_avg_turn_chars")
+        max_chars = profile.get("max_avg_turn_chars")
+        if min_chars is not None and avg_turn_chars < float(min_chars):
+            continue
+        if max_chars is not None and avg_turn_chars > float(max_chars):
+            continue
+        return profile
+    return None
 
 
 def _answer_max_output_tokens(answer_config: Mapping[str, Any]) -> int:

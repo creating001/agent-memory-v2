@@ -30,6 +30,12 @@ class RawEvidenceStore:
     def turns(self) -> tuple[Turn, ...]:
         return self._turns
 
+    @property
+    def average_turn_chars(self) -> float:
+        if not self._turns:
+            return 0.0
+        return sum(len(turn.text) for turn in self._turns) / len(self._turns)
+
     def sessions(self) -> tuple[tuple[str, tuple[Turn, ...]], ...]:
         return tuple(self._session_turns.items())
 
@@ -93,8 +99,9 @@ class RawEvidenceStore:
             )
         )
 
-    def manifest(self) -> dict[str, int]:
+    def manifest(self) -> dict[str, int | float]:
         return {
             "raw_turns": len(self._turns),
             "sessions": len(self._session_turns),
+            "avg_turn_chars": self.average_turn_chars,
         }

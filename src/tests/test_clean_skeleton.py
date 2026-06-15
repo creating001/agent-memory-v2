@@ -306,6 +306,97 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertIn("Nothing is Impossible", prompt)
         self.assertNotIn("question_type", prompt)
 
+    def test_granularity_profile_switches_context_strategy(self) -> None:
+        config = {
+            "retrieval": {
+                "top_k": 4,
+                "max_top_k": 4,
+                "neighbor_window": 0,
+                "selected_context": {
+                    "enabled": True,
+                    "window_before": 1,
+                    "window_after": 0,
+                    "max_rows": 2,
+                    "max_neighbor_chars": 80,
+                    "require_anaphora": True,
+                    "information_needs": ["list_count"],
+                },
+                "granularity_profiles": [
+                    {
+                        "name": "long_turn_precision",
+                        "min_avg_turn_chars": 100,
+                        "route": {"enable_broad_list_patterns": False},
+                        "retrieval": {
+                            "top_k": 1,
+                            "max_top_k": 1,
+                            "dense_top_k": 1,
+                            "dense_protect_top_n": 0,
+                        },
+                        "selected_context": {"enabled": False},
+                        "compiler": {"operation_workpad": True},
+                        "answer_finalizer": {
+                            "enabled": True,
+                            "mode": "structured_evidence_mechanical",
+                            "enable_count_answer_detail": True,
+                            "enable_relative_time_calculation": False,
+                        },
+                    }
+                ],
+            },
+            "route": {"enable_broad_list_patterns": True},
+            "compiler": {
+                "prompt_mode": "external_naive",
+                "max_evidence_items": 4,
+                "max_evidence_chars": 4000,
+                "evidence_report_contract": True,
+                "evidence_report_information_needs": ["list_count"],
+            },
+            "answer": {
+                "fallback_answer": "unknown",
+                "finalizer": {
+                    "enabled": True,
+                    "mode": "structured_evidence_mechanical",
+                    "enable_relative_time_calculation": True,
+                },
+            },
+        }
+        short_request = PredictionRequest(
+            question="How many books has Alex read?",
+            turns=(
+                Turn("s:t0", "s", 0, "user", "Alex read Dune."),
+                Turn("s:t1", "s", 1, "assistant", "This book was excellent."),
+            ),
+        )
+        long_text = " ".join(["Alex read Dune."] * 20)
+        long_request = PredictionRequest(
+            question="How many books has Alex read?",
+            turns=(
+                Turn("s:t0", "s", 0, "user", long_text),
+                Turn("s:t1", "s", 1, "assistant", " ".join(["This book was excellent."] * 20)),
+            ),
+        )
+
+        short_result = Stage1Pipeline(config).predict(short_request)
+        long_result = Stage1Pipeline(config).predict(long_request)
+
+        self.assertIsNone(short_result["trace"]["retrieval"]["granularity_profile"])
+        self.assertEqual(short_result["trace"]["retrieval"]["top_k"], 4)
+        self.assertTrue(
+            short_result["trace"]["retrieval"]["selected_context"]["enabled"]
+        )
+
+        long_retrieval = long_result["trace"]["retrieval"]
+        long_finalizer = long_result["trace"]["answer_finalizer"]
+        self.assertEqual(long_retrieval["top_k"], 1)
+        self.assertEqual(
+            long_retrieval["granularity_profile"]["name"],
+            "long_turn_precision",
+        )
+        self.assertFalse(long_retrieval["selected_context"]["enabled"])
+        self.assertEqual(long_retrieval["compiler_profile"], "long_turn_precision")
+        self.assertTrue(long_finalizer["enable_count_answer_detail"])
+        self.assertFalse(long_finalizer["enable_relative_time_calculation"])
+
     def test_pipeline_rerank_expands_candidate_pool_and_reorders_hits(self) -> None:
         config = {
             "retrieval": {
