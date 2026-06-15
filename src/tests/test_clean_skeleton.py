@@ -1717,6 +1717,40 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual(second.answer, first.answer)
         self.assertEqual(inner.calls, 1)
 
+    def test_cached_answerer_repairs_structured_json_answer_residue(self) -> None:
+        compiler = EvidenceCompiler(max_evidence_items=1, max_evidence_chars=1000)
+        route = RouteResult(information_need="fact_lookup", signals=())
+        context = compiler.compile(
+            question="What tea does Alex prefer?",
+            question_time=None,
+            route=route,
+            hits=(RetrievalHit("s1:t0", 1.0, 1, "lexical_bm25"),),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Alex prefers jasmine tea.",
+                ),
+            ),
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            inner = _StructuredJsonResidueAnswerer()
+            answerer = CachedAnswerer(
+                inner,
+                cache_path=str(Path(tmpdir) / "answer.sqlite"),
+                namespace="test",
+                output_format="json_answer",
+            )
+
+            first = answerer.answer(context)
+            second = answerer.answer(context)
+
+        self.assertEqual(first.answer, "jasmine tea")
+        self.assertEqual(second.answer, "jasmine tea")
+        self.assertEqual(inner.calls, 1)
+
     def test_concise_answer_style_is_added_to_prompt(self) -> None:
         config = {
             "retrieval": {"top_k": 1, "max_top_k": 1, "neighbor_window": 0},
@@ -3892,6 +3926,30 @@ class _MalformedJsonAnswerer:
         raw_content = (
             '{"reasoning":"quoted text broke the JSON: "bad quote"",'
             '"answer":"jasmine tea"}'
+        )
+        return AnswerResult(
+            answer=raw_content,
+            model="fake",
+            token_usage=TokenUsage(query_tokens=7),
+            raw_response=json.dumps(
+                {
+                    "content": raw_content,
+                    "usage": {"total_tokens": 7},
+                }
+            ),
+        )
+
+
+class _StructuredJsonResidueAnswerer:
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def answer(self, context: object) -> AnswerResult:
+        del context
+        self.calls += 1
+        raw_content = (
+            '{"reasoning":"ok","sufficient":true,"answer_type":"fact",'
+            '"evidence_report":[{"status":"support"}],"answer":"jasmine tea"}'
         )
         return AnswerResult(
             answer=raw_content,

@@ -80,6 +80,13 @@ class CachedAnswerer:
         token_usage = payload.get("token_usage") or {}
         raw_response = payload.get("raw_response")
         answer = str(payload.get("answer", ""))
+        if _looks_like_structured_answer_json(answer):
+            reparsed = _parse_cached_raw_response(
+                raw_response,
+                output_format=self._output_format,
+            )
+            if reparsed is not None and not _looks_like_structured_answer_json(reparsed):
+                answer = reparsed
         return AnswerResult(
             answer=answer,
             model=str(payload.get("model", "cached_answerer")),
@@ -300,6 +307,21 @@ def _parse_cached_raw_response(
     if not isinstance(payload, dict) or payload.get("content") is None:
         return None
     return _parse_answer_content(str(payload["content"]), output_format=output_format)
+
+
+def _looks_like_structured_answer_json(answer: str) -> bool:
+    text = answer.lstrip()
+    if not text.startswith("{") or '"answer"' not in text:
+        return False
+    return any(
+        marker in text
+        for marker in (
+            '"answer_type"',
+            '"evidence_report"',
+            '"sufficient"',
+            '"missing"',
+        )
+    )
 
 
 def _answer_cache_key(*, namespace: str, prompt: str) -> str:
