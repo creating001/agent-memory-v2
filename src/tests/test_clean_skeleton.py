@@ -2292,8 +2292,8 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertNotIn("Private Operation Discipline:", context.prompt)
         self.assertNotIn("Final Answer Checklist:", context.prompt)
         self.assertNotIn('"calculation"', context.prompt)
-        self.assertIn("\n\n\n\nMemory Context:", context.prompt)
-        self.assertNotIn("\n\n\n\n\nMemory Context:", context.prompt)
+        self.assertIn("\n\n\nMemory Context:", context.prompt)
+        self.assertNotIn("\n\n\n\nMemory Context:", context.prompt)
 
     def test_current_state_update_contract_is_config_gated(self) -> None:
         turns = (

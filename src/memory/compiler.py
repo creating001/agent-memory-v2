@@ -1622,7 +1622,7 @@ def _build_external_naive_prompt(
         "User Question:",
         user_question,
     ]
-    prompt_parts.extend(
+    prompt_blocks = [
         block
         for block in (
             structured_guide_block,
@@ -1633,11 +1633,12 @@ def _build_external_naive_prompt(
             final_answer_checklist_block,
         )
         if block
-    )
+    ]
+    prompt_parts.extend(prompt_blocks)
+    memory_context_separator = [""] if prompt_blocks else ["", ""]
     prompt_parts.extend(
         [
-            "",
-            "",
+            *memory_context_separator,
             "Memory Context:",
             _external_naive_context(
                 rows,
