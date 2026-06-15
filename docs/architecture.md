@@ -1,6 +1,6 @@
 # Agent-Memory Architecture
 
-本文件定义 Agent-Memory 项目的探索框架。它不是固定实现方案，而是给后续方法设计提供方向。`docs/method.md` 提供外部方法参考；本文件描述当前推荐的系统原则、模块边界和探索空间。方法和框架都不是死的；只要遵守 clean setting、成本约束和可追溯要求，可以持续替换、扩展或重组模块。
+本文件定义 Agent-Memory 项目的探索框架。它不是固定实现方案，而是给后续方法设计提供方向。`docs/method.md` 提供外部方法参考；本文件描述当前推荐的系统原则、模块边界和探索空间。方法和框架都是灵活的，只要遵守 clean setting、成本约束和可追溯要求，可以持续替换、扩展或重组模块。
 
 ## 1. 核心目标
 
@@ -11,8 +11,8 @@
 - **有效**：主要看 judge accuracy；F1、BLEU 只能作为辅助诊断。
 - **通用**：不能只为某个 benchmark 写专门捷径，要能解释为真实 agent memory 系统中的合理机制。
 - **可消融**：每个新增模块都应能关闭，方便判断收益来自哪里。
-- **可追溯**：正式实验必须记录 commit、dirty 状态、配置、token 成本、输出路径和诊断。
-- **可持续迭代**：允许从简单系统逐步演进到 typed memory、temporal memory、profile/event memory、graph memory、verifier 或 agentic retrieval。
+- **可追溯**：正式实验必须记录 commit、配置、token 成本、输出路径和诊断。
+- **可持续迭代**：允许从简单系统逐步演进到 typed memory、temporal memory、profile/event memory、graph memory、verifier 或 agentic retrieval 等。
 
 因此，本项目不是要证明某个固定 skeleton 永远正确，而是要围绕“长期记忆管理能力”持续提升：写入阶段如何沉淀有用 memory，查询阶段如何激活相关 memory，回答阶段如何稳定使用 memory，评测阶段如何定位错误并迭代。
 
@@ -189,24 +189,10 @@ Answer 模块生成最终答案；verifier 检查答案是否被证据支持。
 
 外部方法只能作为设计参考和 baseline 来源，不能直接变成 benchmark 专门规则，也不能绕过 `docs/clean_protocol.md` 和 `docs/constraints.md`。
 
-## 6. 当前推荐落地形态
-
-当前阶段推荐优先实现一个轻量但真正包含 build-stage LLM 的 Agent Memory 系统：
-
-- Build：LLM 从 raw dialogue 中抽取 typed memory records，覆盖 event、fact、preference、profile、state、relationship、plan。
-- Manage：对 memory 做 source/provenance 记录、去重、轻量 supersede、active/superseded 状态管理和 cache。
-- Retrieve：query 阶段同时检索 raw turns、sessions 和 typed memory，并把 typed memory 命中的 source turns 或相关上下文激活。
-- Compile：把 typed memory view 和 raw evidence/context 一起组织给 answer model，而不是只做 flat top-k 拼接。
-- Evaluate：正式实验主要看 DeepSeek judge accuracy，同时记录 token 成本、build cache、memory 记录数量、命中记录和输出路径。
-
-这个形态借鉴了 LangMem 的 collection/profile、Memobase 的 profile/event timeline、MIRIX 的多类型 memory taxonomy、MemMachine 的 raw episode + profile 辅助、Graphiti/Zep 的 temporal/provenance 思路；但暂不引入重型图数据库、多 agent memory OS 或训练型 memory optimizer。
-
-## 7. 实验可追溯
+## 6. 实验可追溯
 
 实验可追溯以本地 git 为准。正式实验应记录：
-
 - git commit hash
-- 工作区是否 dirty
 - 关键配置和运行命令
 - 输出目录和结果文件
 - 本次改动对应的模块和预期作用
