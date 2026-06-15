@@ -94,6 +94,11 @@ _DATE_LIKE = re.compile(
     r"\b(?:19|20)\d{2}\b|"
     r"\b\d{1,2}[-/]\d{1,2}[-/]\d{2,4}\b"
 )
+_DATE_RANGE_ANSWER = re.compile(
+    r"\b(?:19|20)\d{2}[-/]\d{1,2}[-/]\d{1,2}\s+to\s+"
+    r"(?:19|20)\d{2}[-/]\d{1,2}[-/]\d{1,2}\b",
+    re.IGNORECASE,
+)
 _ISO_DATE = re.compile(r"\b((?:19|20)\d{2})-(\d{1,2})-(\d{1,2})\b")
 _SLASH_DATE = re.compile(r"\b((?:19|20)\d{2})/(\d{1,2})/(\d{1,2})\b")
 _FILTER_REASON = re.compile(
@@ -743,6 +748,10 @@ def _finalize_relative_time_calculation(
         if resolved is None:
             continue
         specificity, answer = resolved
+        if not _is_iso_date_answer(answer) and not _DATE_RANGE_ANSWER.search(
+            draft_answer
+        ):
+            continue
         candidates.append((specificity, answer))
 
     if not candidates:
@@ -789,6 +798,8 @@ def _resolve_relative_time_phrase(
     lowered = phrase.lower()
     if re.search(r"\blast night\b|\byesterday\b", lowered):
         return 4, _iso_date(anchor - timedelta(days=1))
+    if re.search(r"\bday after tomorrow\b", lowered):
+        return 4, _iso_date(anchor + timedelta(days=2))
     if re.search(r"\btomorrow\b", lowered):
         return 4, _iso_date(anchor + timedelta(days=1))
 
@@ -825,6 +836,10 @@ def _resolve_relative_time_phrase(
 
 def _iso_date(value: date) -> str:
     return value.isoformat()
+
+
+def _is_iso_date_answer(value: str) -> bool:
+    return bool(_ISO_DATE.fullmatch(value.strip()))
 
 
 def _display_date(value: date) -> str:
