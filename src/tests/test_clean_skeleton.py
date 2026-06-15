@@ -1502,6 +1502,60 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertFalse(finalization.applied)
         self.assertEqual(finalization.answer, "2023-05-01")
 
+    def test_relative_time_finalizer_resolves_week_before_to_iso_range(self) -> None:
+        content = json.dumps(
+            {
+                "sufficient": True,
+                "answer_type": "date",
+                "evidence_report": [
+                    {
+                        "status": "support",
+                        "mention_time": "2023-06-09",
+                        "time_phrase": "the week before",
+                    }
+                ],
+                "answer": "The week before 9 June 2023",
+            }
+        )
+        raw_response = json.dumps({"content": content})
+
+        finalization = finalize_structured_answer(
+            question="When did Alex go hiking?",
+            draft_answer="The week before 9 June 2023",
+            raw_response=raw_response,
+            enable_relative_time_calculation=True,
+        )
+
+        self.assertTrue(finalization.applied)
+        self.assertEqual(finalization.answer, "2023-06-02 to 2023-06-08")
+
+    def test_relative_time_finalizer_keeps_equivalent_iso_range(self) -> None:
+        content = json.dumps(
+            {
+                "sufficient": True,
+                "answer_type": "date",
+                "evidence_report": [
+                    {
+                        "status": "support",
+                        "mention_time": "2023-06-09",
+                        "time_phrase": "the week before",
+                    }
+                ],
+                "answer": "2023-06-02 to 2023-06-08",
+            }
+        )
+        raw_response = json.dumps({"content": content})
+
+        finalization = finalize_structured_answer(
+            question="When did Alex go hiking?",
+            draft_answer="2023-06-02 to 2023-06-08",
+            raw_response=raw_response,
+            enable_relative_time_calculation=True,
+        )
+
+        self.assertFalse(finalization.applied)
+        self.assertEqual(finalization.answer, "2023-06-02 to 2023-06-08")
+
     def test_relative_time_finalizer_skips_duration_question(self) -> None:
         content = json.dumps(
             {

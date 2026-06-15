@@ -748,9 +748,10 @@ def _finalize_relative_time_calculation(
         if resolved is None:
             continue
         specificity, answer = resolved
-        if not _is_iso_date_answer(answer) and not _DATE_RANGE_ANSWER.search(
-            draft_answer
-        ):
+        answer_is_range = _is_iso_date_range_answer(answer)
+        if not _is_iso_date_answer(answer) and not answer_is_range:
+            continue
+        if answer_is_range and _is_iso_date_answer(draft_answer):
             continue
         candidates.append((specificity, answer))
 
@@ -819,18 +820,26 @@ def _resolve_relative_time_phrase(
         return 3, _iso_date(anchor - timedelta(days=days_back))
 
     if re.search(r"\b(two weekends ago|two weekends before)\b", lowered):
-        return 2, f"two weekends before {_display_date(anchor)}"
+        start, end = _weekend_before(anchor)
+        start -= timedelta(days=7)
+        end -= timedelta(days=7)
+        return 2, _iso_date_range(start, end)
     if re.search(r"\b(last weekend|this past weekend|past weekend)\b", lowered):
-        return 2, f"The weekend before {_display_date(anchor)}"
+        start, end = _weekend_before(anchor)
+        return 2, _iso_date_range(start, end)
     if re.search(r"\b(two weekends later|two weekends after)\b", lowered):
-        return 2, f"two weekends after {_display_date(anchor)}"
+        start, end = _weekend_after(anchor)
+        start += timedelta(days=7)
+        end += timedelta(days=7)
+        return 2, _iso_date_range(start, end)
     if re.search(r"\b(next weekend|coming weekend|weekend after)\b", lowered):
-        return 2, f"The weekend after {_display_date(anchor)}"
+        start, end = _weekend_after(anchor)
+        return 2, _iso_date_range(start, end)
 
     if re.search(r"\b(last week|the week before)\b", lowered):
-        return 1, f"The week before {_display_date(anchor)}"
+        return 1, _iso_date_range(anchor - timedelta(days=7), anchor - timedelta(days=1))
     if re.search(r"\b(next week|the following week|week after)\b", lowered):
-        return 1, f"The week after {_display_date(anchor)}"
+        return 1, _iso_date_range(anchor + timedelta(days=1), anchor + timedelta(days=7))
     return None
 
 
@@ -838,12 +847,36 @@ def _iso_date(value: date) -> str:
     return value.isoformat()
 
 
+def _iso_date_range(start: date, end: date) -> str:
+    return f"{_iso_date(start)} to {_iso_date(end)}"
+
+
+def _weekend_before(anchor: date) -> tuple[date, date]:
+    days_since_saturday = (anchor.weekday() - 5) % 7
+    if days_since_saturday == 0:
+        days_since_saturday = 7
+    saturday = anchor - timedelta(days=days_since_saturday)
+    sunday = saturday + timedelta(days=1)
+    if sunday >= anchor:
+        saturday -= timedelta(days=7)
+        sunday -= timedelta(days=7)
+    return saturday, sunday
+
+
+def _weekend_after(anchor: date) -> tuple[date, date]:
+    days_until_saturday = (5 - anchor.weekday()) % 7
+    if days_until_saturday == 0:
+        days_until_saturday = 7
+    saturday = anchor + timedelta(days=days_until_saturday)
+    return saturday, saturday + timedelta(days=1)
+
+
 def _is_iso_date_answer(value: str) -> bool:
     return bool(_ISO_DATE.fullmatch(value.strip()))
 
 
-def _display_date(value: date) -> str:
-    return f"{value.day} {value.strftime('%B %Y')}"
+def _is_iso_date_range_answer(value: str) -> bool:
+    return bool(_DATE_RANGE_ANSWER.fullmatch(value.strip()))
 
 
 def _normalize_answer_date_text(text: str) -> str:
