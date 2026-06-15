@@ -1,0 +1,157 @@
+{
+  "name": "stage1_uncertain_repair_v92_cached",
+  "description": "V92 candidate on top of v35: keep the v35 build memory, route-budgeted retrieval, compiler, answer prompt, answer cache, temporal event contract, and narrow duration finalizer unchanged, then enable a selective second-pass repair only for draft answers that themselves indicate unknown/insufficient/missing evidence. Short-list and temporal-conflict repair triggers stay disabled because offline diagnosis showed they touch many already-correct v35 answers. The repair uses only prediction-time question, route, draft JSON/answer, and retrieved Memory Context; it does not use gold answers, judge output, benchmark labels, category, question_type, sample ids, row indices, test feedback, or sample-level rules.",
+  "build_memory": {
+    "enabled": true,
+    "mode": "openai_compatible",
+    "base_url": "http://127.0.0.1:8000/v1",
+    "model": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "temperature": 0,
+    "max_tokens": 2048,
+    "timeout": 240,
+    "max_turns_per_chunk": 80,
+    "max_chars_per_turn": 500,
+    "max_records_per_chunk": 20,
+    "top_k": 20,
+    "max_sources_per_record": 4,
+    "drop_query_stopwords": true,
+    "include_superseded": false,
+    "include_superseded_information_needs": [
+      "temporal_lookup",
+      "list_count"
+    ],
+    "cache": {
+      "enabled": true,
+      "path": "outputs/cache/qwen3_build_memory.sqlite",
+      "namespace": "stage1_agent_memory_v1_qwen3_30b_cold"
+    }
+  },
+  "retrieval": {
+    "top_k": 60,
+    "max_top_k": 60,
+    "route_overrides": {
+      "temporal_lookup": {
+        "top_k": 40,
+        "max_top_k": 40,
+        "dense_top_k": 40,
+        "lexical_protect_top_n": 0,
+        "dense_protect_top_n": 32
+      }
+    },
+    "neighbor_window": 0,
+    "neighbor_order": "hit_priority",
+    "drop_query_stopwords": true,
+    "score_threshold": 0,
+    "lexical": {
+      "enabled": true
+    },
+    "dense": {
+      "enabled": true,
+      "base_url": "http://127.0.0.1:8001/v1",
+      "model": "Qwen/Qwen3-Embedding-0.6B",
+      "top_k": 60,
+      "batch_size": 32,
+      "document_text_mode": "external_naive",
+      "query_text_mode": "external_naive",
+      "rrf_k": 60,
+      "lexical_protect_top_n": 0,
+      "protect_top_n": 48,
+      "timeout": 120,
+      "cache": {
+        "enabled": true,
+        "path": "outputs/cache/qwen3_embedding.sqlite",
+        "namespace": "Qwen/Qwen3-Embedding-0.6B"
+      }
+    }
+  },
+  "route": {
+    "enable_broad_list_patterns": false,
+    "enable_recommendation_profile_patterns": true,
+    "temporal_priority_over_recent": false
+  },
+  "compiler": {
+    "prompt_mode": "external_naive",
+    "max_evidence_items": 60,
+    "max_evidence_chars": 26000,
+    "route_overrides": {
+      "temporal_lookup": {
+        "max_evidence_items": 40,
+        "max_evidence_chars": 18000
+      }
+    },
+    "max_memory_records": 0,
+    "answer_style": "concise",
+    "temporal_grounding": false,
+    "temporal_hints": false,
+    "temporal_workpad": true,
+    "temporal_workpad_scope": "route",
+    "temporal_workpad_max_rows": 12,
+    "temporal_workpad_max_pairs": 12,
+    "structured_guide": true,
+    "structured_guide_max_rows": 12,
+    "structured_guide_include_rows": true,
+    "structured_guide_include_memory": false,
+    "structured_guide_disabled_signals": [
+      "personalized_recommendation"
+    ],
+    "structured_answer_contract": false,
+    "evidence_report_contract": true,
+    "evidence_report_information_needs": [
+      "current_state",
+      "fact_lookup",
+      "list_count",
+      "profile_preference",
+      "temporal_lookup"
+    ],
+    "evidence_report_max_items": 8,
+    "operation_workpad": false,
+    "evidence_order": "retrieval",
+    "memory_order": "retrieval",
+    "memory_layout": "flat",
+    "row_text_mode": "full",
+    "route_guidance": false,
+    "evidence_row_labels": false,
+    "final_answer_checklist": false,
+    "temporal_text_normalization": true,
+    "temporal_event_contract": true
+  },
+  "answer": {
+    "mode": "openai_compatible",
+    "base_url": "http://127.0.0.1:8000/v1",
+    "model": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "temperature": 0,
+    "max_input_tokens": 131072,
+    "max_output_tokens": 16384,
+    "max_tokens": 16384,
+    "output_format": "json_answer",
+    "timeout": 600,
+    "cache": {
+      "enabled": true,
+      "path": "outputs/cache/qwen3_answer_v35_format_guard.sqlite",
+      "namespace": "stage1_answer_format_guard_v35_qwen3_30b"
+    },
+    "repair": {
+      "enabled": true,
+      "mode": "openai_compatible",
+      "enable_uncertain_trigger": true,
+      "enable_short_list_trigger": false,
+      "enable_temporal_conflict_trigger": false,
+      "enable_profile_preference_trigger": false,
+      "uncertain_min_support_items": 0,
+      "max_context_chars": 14000,
+      "max_row_text_chars": 700,
+      "cache": {
+        "enabled": true,
+        "path": "outputs/cache/qwen3_answer_repair_v92_uncertain.sqlite",
+        "namespace": "stage1_uncertain_repair_v92_qwen3_30b"
+      }
+    },
+    "finalizer": {
+      "enabled": true,
+      "mode": "structured_evidence_mechanical",
+      "enable_count_correction": false,
+      "enable_money_sum_correction": false,
+      "enable_duration_rounding_correction": true
+    }
+  }
+}
