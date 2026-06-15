@@ -1,0 +1,30 @@
+{
+  "baseline_accuracy": 0.8,
+  "baseline_correct": 1232,
+  "baseline_run": "stage1_budgeted_selected_context_v96_locomo_nonadv_full_3c146bd",
+  "candidate_accuracy": 0.7941558441558442,
+  "candidate_correct": 1223,
+  "candidate_run": "stage1_granularity_adaptive_v98_locomo_nonadv_full_252a24b",
+  "changed_prediction_transitions": {
+    "CORRECT->CORRECT": 346,
+    "CORRECT->WRONG": 46,
+    "WRONG->CORRECT": 38,
+    "WRONG->WRONG": 104
+  },
+  "common_records": 1540,
+  "delta_correct": -9,
+  "overall_transitions": {
+    "CORRECT->CORRECT": 1172,
+    "CORRECT->WRONG": 60,
+    "WRONG->CORRECT": 51,
+    "WRONG->WRONG": 257
+  },
+  "prediction_changed": 534,
+  "prediction_unchanged": 1006,
+  "unchanged_prediction_transitions": {
+    "CORRECT->CORRECT": 826,
+    "CORRECT->WRONG": 14,
+    "WRONG->CORRECT": 13,
+    "WRONG->WRONG": 153
+  }
+}
