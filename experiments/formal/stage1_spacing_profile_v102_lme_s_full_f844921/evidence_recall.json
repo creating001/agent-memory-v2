@@ -1,0 +1,44 @@
+{
+  "clean_note": "This is offline-only evidence analysis. Its output must not be read by prediction, route, retrieval, compiler, answer, or verifier modules.",
+  "created_at_utc": "2026-06-16T01:09:48+00:00",
+  "git": {
+    "commit": "f8449216758d427b18a9bd7cc43f99ebf31c1f68",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "M src/memory/compiler.py\n M src/memory/pipeline.py\n M src/tests/test_clean_skeleton.py\n?? configs/stage1_prompt_discipline_v100_cached.json\n?? configs/stage1_short_turn_candidate_anchor_v101_cached.json\n?? configs/stage1_spacing_profile_v102_cached.json\n?? experiments/diagnostic/stage1_prompt_discipline_v100_lme_stratified_120_f844921/\n?? experiments/diagnostic/stage1_short_turn_candidate_anchor_v101_locomo_stratified_200_f844921/\n?? experiments/formal/stage1_spacing_profile_v102_lme_s_full_f844921/\n?? experiments/formal/stage1_spacing_profile_v102_locomo_nonadv_full_f844921/"
+  },
+  "labels": "/data/home_new/wujinqi/agent-memory/outputs/prepare_longmemeval_s_cleaned/labels.jsonl",
+  "metrics": {
+    "by_type": {
+      "knowledge-update": {
+        "evidence_recall": 1.0,
+        "n": 78
+      },
+      "multi-session": {
+        "evidence_recall": 1.0,
+        "n": 133
+      },
+      "single-session-assistant": {
+        "evidence_recall": 1.0,
+        "n": 56
+      },
+      "single-session-preference": {
+        "evidence_recall": 1.0,
+        "n": 30
+      },
+      "single-session-user": {
+        "evidence_recall": 1.0,
+        "n": 70
+      },
+      "temporal-reasoning": {
+        "evidence_recall": 1.0,
+        "n": 133
+      }
+    },
+    "diagnostic_note": "Offline-only retrieval diagnostic. Evidence labels must not feed prediction, route, retrieval, compiler, answer, or verifier modules.",
+    "evidence_recall": 1.0,
+    "n_with_evidence_labels": 500
+  },
+  "traces": "/data/home_new/wujinqi/agent-memory/outputs/formal/stage1_spacing_profile_v102_lme_s_full_f844921/traces.jsonl"
+}

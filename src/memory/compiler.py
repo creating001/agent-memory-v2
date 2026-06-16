@@ -217,6 +217,7 @@ class EvidenceCompiler:
         evidence_row_labels: bool = False,
         final_answer_checklist: bool = False,
         max_memory_records: int = 12,
+        memory_context_newlines_after_blocks: int = 3,
         prompt_mode: str = "default",
         route_overrides: Mapping[str, Mapping[str, Any]] | None = None,
     ):
@@ -321,6 +322,9 @@ class EvidenceCompiler:
         self._evidence_row_labels = evidence_row_labels
         self._final_answer_checklist = final_answer_checklist
         self._max_memory_records = max(0, max_memory_records)
+        self._memory_context_newlines_after_blocks = max(
+            2, int(memory_context_newlines_after_blocks)
+        )
         if prompt_mode not in SUPPORTED_PROMPT_MODES:
             raise ValueError(f"Unsupported prompt_mode: {prompt_mode}")
         self._prompt_mode = prompt_mode
@@ -489,6 +493,9 @@ class EvidenceCompiler:
             route_guidance=self._route_guidance,
             evidence_row_labels=route_settings["evidence_row_labels"],
             final_answer_checklist=route_settings["final_answer_checklist"],
+            memory_context_newlines_after_blocks=(
+                self._memory_context_newlines_after_blocks
+            ),
             prompt_mode=self._prompt_mode,
         )
         return CompiledContext(
@@ -1182,6 +1189,7 @@ def _build_prompt(
     route_guidance: bool,
     evidence_row_labels: bool,
     final_answer_checklist: bool,
+    memory_context_newlines_after_blocks: int,
     prompt_mode: str,
 ) -> str:
     if prompt_mode == "raw_context_only":
@@ -1234,6 +1242,9 @@ def _build_prompt(
             dialogue_inference_contract=dialogue_inference_contract,
             temporal_order_contract=temporal_order_contract,
             final_answer_checklist=final_answer_checklist,
+            memory_context_newlines_after_blocks=(
+                memory_context_newlines_after_blocks
+            ),
             context_layout=context_layout,
         )
 
@@ -1395,6 +1406,7 @@ def _build_external_naive_prompt(
     dialogue_inference_contract: bool,
     temporal_order_contract: bool,
     final_answer_checklist: bool,
+    memory_context_newlines_after_blocks: int,
     context_layout: str,
 ) -> str:
     use_temporal_event_contract = (
@@ -1635,7 +1647,12 @@ def _build_external_naive_prompt(
         if block
     ]
     prompt_parts.extend(prompt_blocks)
-    memory_context_separator = [""] if prompt_blocks else ["", ""]
+    if prompt_blocks:
+        memory_context_separator = [""] * max(
+            0, int(memory_context_newlines_after_blocks) - 2
+        )
+    else:
+        memory_context_separator = ["", ""]
     prompt_parts.extend(
         [
             *memory_context_separator,

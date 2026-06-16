@@ -2317,6 +2317,36 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertIn("\n\n\nMemory Context:", context.prompt)
         self.assertNotIn("\n\n\n\nMemory Context:", context.prompt)
 
+    def test_external_naive_memory_context_spacing_is_configurable(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=1,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            structured_guide=True,
+            evidence_report_contract=True,
+            evidence_report_information_needs=("fact_lookup",),
+            memory_context_newlines_after_blocks=4,
+        )
+        context = compiler.compile(
+            question="Which music streaming service does Alex use?",
+            question_time=None,
+            route=RouteResult(information_need="fact_lookup", signals=()),
+            hits=(),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Alex uses Spotify for music streaming.",
+                    timestamp="2024-01-01",
+                ),
+            ),
+        )
+
+        self.assertIn("Structured Evidence Guide:", context.prompt)
+        self.assertIn("\n\n\n\nMemory Context:", context.prompt)
+
     def test_current_state_update_contract_is_config_gated(self) -> None:
         turns = (
             Turn(

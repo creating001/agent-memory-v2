@@ -1,0 +1,36 @@
+{
+  "clean_note": "This is offline-only evidence analysis. Its output must not be read by prediction, route, retrieval, compiler, answer, or verifier modules.",
+  "created_at_utc": "2026-06-16T01:03:30+00:00",
+  "git": {
+    "commit": "f8449216758d427b18a9bd7cc43f99ebf31c1f68",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "M src/memory/compiler.py\n M src/memory/pipeline.py\n M src/tests/test_clean_skeleton.py\n?? configs/stage1_prompt_discipline_v100_cached.json\n?? configs/stage1_short_turn_candidate_anchor_v101_cached.json\n?? configs/stage1_spacing_profile_v102_cached.json\n?? experiments/diagnostic/stage1_prompt_discipline_v100_lme_stratified_120_f844921/\n?? experiments/diagnostic/stage1_short_turn_candidate_anchor_v101_locomo_stratified_200_f844921/\n?? experiments/formal/stage1_spacing_profile_v102_locomo_nonadv_full_f844921/"
+  },
+  "labels": "/data/home_new/wujinqi/agent-memory/outputs/prepare_locomo_non_adversarial/labels.jsonl",
+  "metrics": {
+    "by_type": {
+      "1": {
+        "evidence_recall": 0.925531914893617,
+        "n": 282
+      },
+      "2": {
+        "evidence_recall": 0.9065420560747663,
+        "n": 321
+      },
+      "3": {
+        "evidence_recall": 0.6956521739130435,
+        "n": 92
+      },
+      "4": {
+        "evidence_recall": 0.9381688466111772,
+        "n": 841
+      }
+    },
+    "diagnostic_note": "Offline-only retrieval diagnostic. Evidence labels must not feed prediction, route, retrieval, compiler, answer, or verifier modules.",
+    "evidence_recall": 0.9147135416666666,
+    "n_with_evidence_labels": 1536
+  },
+  "traces": "/data/home_new/wujinqi/agent-memory/outputs/formal/stage1_spacing_profile_v102_locomo_nonadv_full_f844921/traces.jsonl"
+}

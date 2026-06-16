@@ -1,0 +1,12 @@
+{
+  "clean_note": "Prediction compatibility report only. It compares completed predictions and does not feed prediction logic.",
+  "baseline": "stage1_budgeted_selected_context_v96_locomo_nonadv_full_3c146bd",
+  "candidate": "stage1_spacing_profile_v102_locomo_nonadv_full_f844921",
+  "n_baseline": 1540,
+  "n_candidate": 1540,
+  "missing_in_candidate": [],
+  "extra_in_candidate": [],
+  "prediction_changed": 0,
+  "changed_record_keys": [],
+  "judge_inheritance": "allowed because prediction objects are identical and judge is offline-only"
+}

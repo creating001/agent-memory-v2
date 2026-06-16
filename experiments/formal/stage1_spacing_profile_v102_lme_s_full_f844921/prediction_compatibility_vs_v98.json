@@ -1,0 +1,12 @@
+{
+  "clean_note": "Prediction compatibility report only. It compares completed predictions and does not feed prediction logic.",
+  "baseline": "stage1_granularity_adaptive_v98_lme_s_full_7b0aab9 / inherited v88 judge",
+  "candidate": "stage1_spacing_profile_v102_lme_s_full_f844921",
+  "n_baseline": 500,
+  "n_candidate": 500,
+  "missing_in_candidate": [],
+  "extra_in_candidate": [],
+  "prediction_changed": 0,
+  "changed_record_keys": [],
+  "judge_inheritance": "allowed because prediction objects are identical and judge is offline-only"
+}

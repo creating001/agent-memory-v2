@@ -487,6 +487,9 @@ class Stage1Pipeline:
                 compiler_config.get("final_answer_checklist", False)
             ),
             max_memory_records=int(compiler_config.get("max_memory_records", 12)),
+            memory_context_newlines_after_blocks=int(
+                compiler_config.get("memory_context_newlines_after_blocks", 3)
+            ),
             prompt_mode=str(compiler_config.get("prompt_mode", "default")),
             route_overrides=compiler_config.get("route_overrides") or {},
         )
@@ -2144,6 +2147,9 @@ def _compiler_trace_config(
             compiler_config.get("source_anchor_session_rows", 0)
         ),
         "context_layout": str(compiler_config.get("context_layout", "flat")),
+        "memory_context_newlines_after_blocks": int(
+            compiler_config.get("memory_context_newlines_after_blocks", 3)
+        ),
         "max_memory_records": int(compiler_config.get("max_memory_records", 12)),
         "route_overrides": compiler_config.get("route_overrides") or {},
     }
@@ -2298,6 +2304,9 @@ def _configured_compiler(compiler_config: Mapping[str, Any]) -> EvidenceCompiler
         evidence_row_labels=bool(compiler_config.get("evidence_row_labels", False)),
         final_answer_checklist=bool(
             compiler_config.get("final_answer_checklist", False)
+        ),
+        memory_context_newlines_after_blocks=int(
+            compiler_config.get("memory_context_newlines_after_blocks", 3)
         ),
         prompt_mode=str(compiler_config.get("prompt_mode", "default")),
         route_overrides=compiler_config.get("route_overrides") or {},

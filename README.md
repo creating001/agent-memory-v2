@@ -6,11 +6,11 @@
 
 ## 当前 LTS
 
-当前项目暂时固定在 `configs/stage1_granularity_adaptive_v98_cached.json`：
+当前项目暂时固定在 `configs/stage1_spacing_profile_v102_cached.json`：
 
 - LongMemEval-S full：`400/500 = 0.800000`。
-- LoCoMo non-adversarial full：`1223/1540 = 0.794156`。
-- 两个 benchmark 使用同一套 clean raw-memory-granularity adaptive 算法，均满足 baseline target 和 token 预算。
+- LoCoMo non-adversarial full：`1232/1540 = 0.800000`。
+- 两个 benchmark 使用同一套 clean raw-memory-granularity adaptive 算法，均满足 baseline target 和 token 预算。V102 只把短 turn prompt spacing 显式纳入 profile；LongMemEval-S 长 turn 分支保持 v98，LoCoMo 短 turn 分支恢复 v96 行为。
 - 结果入口见 `experiments/README.md`；预测和 trace 见 `outputs/formal/<run_id>/`。
 
 ## 目录

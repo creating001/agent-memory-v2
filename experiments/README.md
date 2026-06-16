@@ -6,29 +6,31 @@
 
 | 项目 | 结果 |
 |---|---|
-| LTS 配置 | `configs/stage1_granularity_adaptive_v98_cached.json` |
-| 算法口径 | 同一套 raw-memory-granularity adaptive 算法；不使用 benchmark 标签、gold、judge、sample id、row index 或测试反馈。 |
-| LongMemEval-S full | `400/500 = 0.800000`，继承 v88 spacing-fix 完全一致 prediction。 |
-| LoCoMo non-adversarial full | `1223/1540 = 0.794156`，fresh DeepSeek judge。 |
-| token | LME avg build/query `80346.246 / 5912.794`；LoCoMo avg build/query `58386.008 / 5495.384`。 |
-| 状态 | 已达到 baseline target；未来探索另起版本，当前项目暂时固定为 LTS。 |
+| LTS 配置 | `configs/stage1_spacing_profile_v102_cached.json` |
+| 算法口径 | 同一套 raw-memory-granularity adaptive 算法；短 turn 恢复 v96 prompt spacing，长 turn 保持 v98 precision branch；不使用 benchmark 标签、gold、judge、sample id、row index 或测试反馈。 |
+| LongMemEval-S full | `400/500 = 0.800000`，与 v98/v88 prediction 完全一致。 |
+| LoCoMo non-adversarial full | `1232/1540 = 0.800000`，与 v96 prediction 完全一致。 |
+| token | LME avg build/query `80346.246 / 5912.794`；LoCoMo avg build/query `58386.008 / 5496.281`。 |
+| 状态 | 统一算法达到 baseline target；未来探索另起版本，当前项目暂时固定为 LTS。 |
 
 ## Split Best
 
 | Benchmark | run | accuracy | 说明 |
 |---|---|---:|---|
-| LongMemEval-S full | `formal/stage1_evidence_answer_detail_v88_spacing_fix_lme_s_full_31abf0b` | `0.800000` | 当前 LME split best；与历史 v88 prediction 完全一致。 |
-| LoCoMo non-adversarial full | `formal/stage1_budgeted_selected_context_v96_locomo_nonadv_full_3c146bd` | `0.800000` | 当前 LoCoMo split best；单独优于 v98，但不是双基准统一算法。 |
+| LongMemEval-S full | `formal/stage1_spacing_profile_v102_lme_s_full_f844921` | `0.800000` | 当前统一 LTS LME；与 v98/v88 prediction 完全一致。 |
+| LoCoMo non-adversarial full | `formal/stage1_spacing_profile_v102_locomo_nonadv_full_f844921` | `0.800000` | 当前统一 LTS LoCoMo；与 v96 prediction 完全一致。 |
 
 ## 保留 Formal Runs
 
 | run | 作用 |
 |---|---|
-| `stage1_granularity_adaptive_v98_lme_s_full_7b0aab9` | LTS LongMemEval-S 证明链。 |
-| `stage1_granularity_adaptive_v98_locomo_nonadv_full_252a24b` | LTS LoCoMo fresh judge 结果。 |
+| `stage1_spacing_profile_v102_lme_s_full_f844921` | 当前 LTS LongMemEval-S 证明链。 |
+| `stage1_spacing_profile_v102_locomo_nonadv_full_f844921` | 当前 LTS LoCoMo 证明链。 |
+| `stage1_granularity_adaptive_v98_lme_s_full_7b0aab9` | v102 LME 兼容继承来源。 |
+| `stage1_granularity_adaptive_v98_locomo_nonadv_full_252a24b` | v98 统一候选，LoCoMo 差 9 题的对照。 |
 | `stage1_evidence_answer_detail_v88_lme_s_full_55b8177` | 历史 v88 LME judge 来源。 |
 | `stage1_evidence_answer_detail_v88_spacing_fix_lme_s_full_31abf0b` | v88 prompt/cache spacing 修复复现。 |
-| `stage1_budgeted_selected_context_v96_locomo_nonadv_full_3c146bd` | LoCoMo split best。 |
+| `stage1_budgeted_selected_context_v96_locomo_nonadv_full_3c146bd` | v102 LoCoMo 兼容继承来源。 |
 | `stage1_budgeted_selected_context_v96_lme_s_full_e04d28b` | 说明 v96 不是统一算法的关键负向对照。 |
 | `stage1_selected_context_v95_locomo_nonadv_full_43ee885` | selected-context 正向转折点。 |
 | `stage1_selected_context_v95_lme_s_full_790975f` | selected-context 在 LME 负向/过预算的对照。 |
@@ -46,7 +48,9 @@
 
 | run | 作用 |
 |---|---|
-| `diagnostic/stage1_granularity_adaptive_v99_locomo_route_stratified_200_6c5bdf4` | 最新负向诊断：宽泛 short-answer boundary 在 route-stratified 200 上明显负向，后续不要走单纯“更短答案”方向。 |
+| `diagnostic/stage1_prompt_discipline_v100_lme_stratified_120_f844921` | 负向诊断：全 route prompt discipline 伤 LongMemEval-S，不跑全量。 |
+| `diagnostic/stage1_short_turn_candidate_anchor_v101_locomo_stratified_200_f844921` | 负向诊断：短 turn source-anchor/candidate-guide 伤 LoCoMo，不跑全量。 |
+| `diagnostic/stage1_granularity_adaptive_v99_locomo_route_stratified_200_6c5bdf4` | 历史负向诊断：宽泛 short-answer boundary 在 route-stratified 200 上明显负向，后续不要走单纯“更短答案”方向。 |
 
 ## 输出路径
 
