@@ -7,7 +7,7 @@ import re
 from dataclasses import asdict, dataclass
 from typing import Any
 
-from common.schemas import AnswerResult, CompiledContext, EvidenceRow, TokenUsage
+from common.schemas import AnswerResult, CompiledContext, EvidenceRow
 
 
 @dataclass(frozen=True)
@@ -159,16 +159,7 @@ def scoped_evidence_answer_result(
     return AnswerResult(
         answer=final_result.answer,
         model=final_result.model,
-        token_usage=TokenUsage(
-            build_tokens=(
-                extraction_result.token_usage.build_tokens
-                + final_result.token_usage.build_tokens
-            ),
-            query_tokens=(
-                extraction_result.token_usage.query_tokens
-                + final_result.token_usage.query_tokens
-            ),
-        ),
+        token_usage=extraction_result.token_usage + final_result.token_usage,
         raw_response=final_result.raw_response,
     )
 

@@ -102,6 +102,20 @@ def _cache_payload(answer: dict[str, Any]) -> dict[str, Any]:
         "token_usage": {
             "build_tokens": int(token_usage.get("build_tokens") or 0),
             "query_tokens": int(token_usage.get("query_tokens") or 0),
+            "build_think_tokens": int(token_usage.get("build_think_tokens") or 0),
+            "query_think_tokens": int(token_usage.get("query_think_tokens") or 0),
+            "build_total_tokens": int(
+                token_usage.get("build_total_tokens")
+                if token_usage.get("build_total_tokens") is not None
+                else int(token_usage.get("build_tokens") or 0)
+                + int(token_usage.get("build_think_tokens") or 0)
+            ),
+            "query_total_tokens": int(
+                token_usage.get("query_total_tokens")
+                if token_usage.get("query_total_tokens") is not None
+                else int(token_usage.get("query_tokens") or 0)
+                + int(token_usage.get("query_think_tokens") or 0)
+            ),
         },
         "raw_response": answer.get("raw_response"),
     }

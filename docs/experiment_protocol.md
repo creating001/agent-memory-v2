@@ -192,5 +192,12 @@ metrics:
     fields: [accuracy, f1, bleu]
 
   token_cost:
-    fields: [build_tokens, query_tokens]
+    fields:
+      - build_tokens
+      - query_tokens
+      - build_think_tokens
+      - query_think_tokens
+      - build_total_tokens
+      - query_total_tokens
+    note: build_tokens/query_tokens are visible LLM tokens. Think tokens are counted separately when explicitly reported by the provider.
 ```

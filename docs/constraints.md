@@ -25,4 +25,4 @@
 | LongMemEval avg query tokens | <= 6K / QA |  > 8K 只能作为 expensive / diagnostic |
 | LoCoMo avg query tokens | <= 6K / QA | > 8K 只能作为 expensive / diagnostic |
 
-其中 `avg_build_tokens` 和 `avg_query_tokens` 必须只包含 LLM 调用 token，embedding 模型和 rerank 模型的 token 不纳入统计。
+其中 `avg_build_tokens` 和 `avg_query_tokens` 指 LLM visible token：prompt tokens + 非 thinking completion tokens。若服务端明确返回 reasoning / think token 数量，必须从 `avg_build_tokens` / `avg_query_tokens` 中扣除，并单独记录 `avg_build_think_tokens` / `avg_query_think_tokens`。同时保留 `avg_build_total_tokens` / `avg_query_total_tokens` 表示 visible + think 的真实推理成本。embedding 模型和 rerank 模型的 token 不纳入这些 LLM token 字段。

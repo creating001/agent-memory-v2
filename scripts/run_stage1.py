@@ -48,6 +48,10 @@ def main() -> int:
     records = []
     total_query_tokens = 0
     total_build_tokens = 0
+    total_query_think_tokens = 0
+    total_build_think_tokens = 0
+    total_query_total_tokens = 0
+    total_build_total_tokens = 0
     total_evidence_items = 0
     total_compiler_memory_records = 0
     total_context_chars = 0
@@ -118,6 +122,20 @@ def main() -> int:
         records.append(result)
         total_build_tokens += int(token_cost["build_tokens"])
         total_query_tokens += int(token_cost["query_tokens"])
+        total_build_think_tokens += int(token_cost.get("build_think_tokens") or 0)
+        total_query_think_tokens += int(token_cost.get("query_think_tokens") or 0)
+        total_build_total_tokens += int(
+            token_cost.get("build_total_tokens")
+            if token_cost.get("build_total_tokens") is not None
+            else int(token_cost["build_tokens"])
+            + int(token_cost.get("build_think_tokens") or 0)
+        )
+        total_query_total_tokens += int(
+            token_cost.get("query_total_tokens")
+            if token_cost.get("query_total_tokens") is not None
+            else int(token_cost["query_tokens"])
+            + int(token_cost.get("query_think_tokens") or 0)
+        )
         total_evidence_items += len(compiled["evidence_rows"])
         total_compiler_memory_records += len(compiled.get("memory_records") or [])
         total_context_chars += int(compiled["context_chars"])
@@ -266,8 +284,28 @@ def main() -> int:
         "token_cost": {
             "total_build_tokens": total_build_tokens,
             "total_query_tokens": total_query_tokens,
+            "total_build_think_tokens": total_build_think_tokens,
+            "total_query_think_tokens": total_query_think_tokens,
+            "total_build_total_tokens": total_build_total_tokens,
+            "total_query_total_tokens": total_query_total_tokens,
             "avg_build_tokens": _safe_average(total_build_tokens, sample_count),
             "avg_query_tokens": _safe_average(total_query_tokens, sample_count),
+            "avg_build_think_tokens": _safe_average(
+                total_build_think_tokens,
+                sample_count,
+            ),
+            "avg_query_think_tokens": _safe_average(
+                total_query_think_tokens,
+                sample_count,
+            ),
+            "avg_build_total_tokens": _safe_average(
+                total_build_total_tokens,
+                sample_count,
+            ),
+            "avg_query_total_tokens": _safe_average(
+                total_query_total_tokens,
+                sample_count,
+            ),
         },
         "retrieval": {
             "top_k": config.get("retrieval", {}).get("top_k"),
@@ -1047,8 +1085,13 @@ def _write_summary(
         f"- f1: {metrics['f1']}",
         f"- bleu: {metrics['bleu']}",
         f"- avg_build_tokens: {metrics['token_cost']['avg_build_tokens']}",
-        "- build_token_accounting: logical cold-build LLM tokens; cached build chunks count from stored usage, while cache hits only avoid repeated local API calls.",
+        f"- avg_build_think_tokens: {metrics['token_cost']['avg_build_think_tokens']}",
+        f"- avg_build_total_tokens: {metrics['token_cost']['avg_build_total_tokens']}",
+        "- build_token_accounting: logical cold-build visible LLM tokens; cached build chunks count from stored usage, while cache hits only avoid repeated local API calls.",
         f"- avg_query_tokens: {metrics['token_cost']['avg_query_tokens']}",
+        f"- avg_query_think_tokens: {metrics['token_cost']['avg_query_think_tokens']}",
+        f"- avg_query_total_tokens: {metrics['token_cost']['avg_query_total_tokens']}",
+        "- token_accounting_note: avg_build_tokens / avg_query_tokens exclude explicit reasoning tokens when the provider reports them; avg_*_total_tokens include visible plus think tokens.",
         f"- avg_compiled_evidence_items: {metrics['retrieval']['avg_compiled_evidence_items']}",
         f"- retrieval_route_overrides: {metrics['retrieval']['route_overrides']}",
         f"- avg_effective_top_k: {metrics['retrieval']['avg_effective_top_k']}",
@@ -1285,7 +1328,9 @@ def _write_diagnosis(
         f"- samples_processed: {metrics['n_samples']}",
         f"- avg_compiled_evidence_items: {metrics['retrieval']['avg_compiled_evidence_items']}",
         f"- avg_build_tokens: {metrics['token_cost']['avg_build_tokens']}",
-        "- build_token_accounting: logical cold-build LLM tokens; cached build chunks count from stored usage, while cache hits only avoid repeated local API calls.",
+        f"- avg_build_think_tokens: {metrics['token_cost']['avg_build_think_tokens']}",
+        f"- avg_build_total_tokens: {metrics['token_cost']['avg_build_total_tokens']}",
+        "- build_token_accounting: logical cold-build visible LLM tokens; cached build chunks count from stored usage, while cache hits only avoid repeated local API calls.",
         f"- avg_build_memory_records: {metrics['build_memory']['avg_records']}",
         f"- avg_active_build_memory_records: {metrics['build_memory']['avg_active_records']}",
         f"- build_memory_temporal_fields: {metrics['build_memory']['temporal_fields']}",
@@ -1306,6 +1351,9 @@ def _write_diagnosis(
         f"- build_memory_include_superseded_information_needs: {metrics['retrieval']['build_memory_include_superseded_information_needs']}",
         f"- avg_context_chars: {metrics['retrieval']['avg_context_chars']}",
         f"- avg_query_tokens: {metrics['token_cost']['avg_query_tokens']}",
+        f"- avg_query_think_tokens: {metrics['token_cost']['avg_query_think_tokens']}",
+        f"- avg_query_total_tokens: {metrics['token_cost']['avg_query_total_tokens']}",
+        "- token_accounting_note: avg_build_tokens / avg_query_tokens exclude explicit reasoning tokens when the provider reports them; avg_*_total_tokens include visible plus think tokens.",
         f"- retrieval_route_overrides: {metrics['retrieval']['route_overrides']}",
         f"- avg_effective_top_k: {metrics['retrieval']['avg_effective_top_k']}",
         f"- avg_effective_dense_top_k: {metrics['retrieval']['avg_effective_dense_top_k']}",

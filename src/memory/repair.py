@@ -11,7 +11,7 @@ import re
 from dataclasses import asdict, dataclass
 from typing import Any
 
-from common.schemas import AnswerResult, CompiledContext, TokenUsage
+from common.schemas import AnswerResult, CompiledContext
 from memory.finalize import extract_json_object, raw_response_content
 
 
@@ -128,10 +128,7 @@ def maybe_repair_answer(
         after = revised_answer
         applied = after != draft.answer
 
-    final_token_usage = TokenUsage(
-        build_tokens=draft.token_usage.build_tokens + response.token_usage.build_tokens,
-        query_tokens=draft.token_usage.query_tokens + response.token_usage.query_tokens,
-    )
+    final_token_usage = draft.token_usage + response.token_usage
     final = AnswerResult(
         answer=after,
         model=response.model if applied else draft.model,

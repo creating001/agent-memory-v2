@@ -13,7 +13,7 @@ from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Any
 
-from common.schemas import AnswerResult, CompiledContext, TokenUsage
+from common.schemas import AnswerResult, CompiledContext, TokenUsage, llm_usage_to_token_usage
 
 
 @dataclass(frozen=True)
@@ -77,7 +77,6 @@ class CachedAnswerer:
                 "raw_response": result.raw_response,
             }
             self._put(key, payload)
-        token_usage = payload.get("token_usage") or {}
         raw_response = payload.get("raw_response")
         answer = str(payload.get("answer", ""))
         if _looks_like_structured_answer_json(answer):
@@ -90,10 +89,7 @@ class CachedAnswerer:
         return AnswerResult(
             answer=answer,
             model=str(payload.get("model", "cached_answerer")),
-            token_usage=TokenUsage(
-                build_tokens=int(token_usage.get("build_tokens") or 0),
-                query_tokens=int(token_usage.get("query_tokens") or 0),
-            ),
+            token_usage=TokenUsage.from_mapping(payload.get("token_usage")),
             raw_response=raw_response,
         )
 
@@ -175,8 +171,6 @@ class OpenAICompatibleAnswerer:
         content = _parse_answer_content(raw_content, output_format=self._output_format)
         usage = response.get("usage") or {}
         prompt_tokens = int(usage.get("prompt_tokens") or 0)
-        completion_tokens = int(usage.get("completion_tokens") or 0)
-        total_tokens = int(usage.get("total_tokens") or prompt_tokens + completion_tokens)
         if (
             self._max_input_tokens is not None
             and prompt_tokens > self._max_input_tokens
@@ -188,7 +182,7 @@ class OpenAICompatibleAnswerer:
         return AnswerResult(
             answer=content,
             model=self._model,
-            token_usage=TokenUsage(build_tokens=0, query_tokens=total_tokens),
+            token_usage=llm_usage_to_token_usage(usage, phase="query"),
             raw_response=json.dumps(
                 {
                     "content": raw_content,

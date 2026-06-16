@@ -87,6 +87,70 @@ class BuildMemoryTest(unittest.TestCase):
         self.assertEqual(second.cache_stats.misses, 0)
         self.assertEqual(second.cache_stats.hits, 1)
 
+    def test_build_cache_hit_separates_cached_thinking_tokens(self) -> None:
+        class FakeBuilder(OpenAICompatibleMemoryBuilder):
+            def __init__(self, cache_path: str):
+                super().__init__(
+                    base_url="http://unused.local/v1",
+                    model="fake-model",
+                    temperature=0.0,
+                    max_tokens=256,
+                    timeout=1.0,
+                    max_turns_per_chunk=10,
+                    max_chars_per_turn=1000,
+                    max_records_per_chunk=4,
+                    cache_path=cache_path,
+                    cache_namespace="test",
+                )
+                self.calls = 0
+
+            def _chat_completion(self, prompt: str) -> dict:
+                del prompt
+                self.calls += 1
+                return {
+                    "choices": [
+                        {
+                            "message": {
+                                "content": (
+                                    '{"records":[{"type":"fact","text":"Alex prefers jasmine tea.",'
+                                    '"subject":"Alex","predicate":"prefers","value":"jasmine tea",'
+                                    '"source_ids":["s1:t0"],"confidence":0.9}]}'
+                                )
+                            }
+                        }
+                    ],
+                    "usage": {
+                        "prompt_tokens": 30,
+                        "completion_tokens": 12,
+                        "total_tokens": 42,
+                        "completion_tokens_details": {"reasoning_tokens": 5},
+                    },
+                }
+
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text="Alex prefers jasmine tea.",
+            ),
+        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            builder = FakeBuilder(str(Path(temp_dir) / "build.sqlite3"))
+
+            first = builder.build(turns)
+            second = builder.build(turns)
+
+        self.assertEqual(builder.calls, 1)
+        self.assertEqual(first.token_usage.build_tokens, 37)
+        self.assertEqual(first.token_usage.build_think_tokens, 5)
+        self.assertEqual(first.token_usage.build_total_tokens, 42)
+        self.assertEqual(second.token_usage.build_tokens, 37)
+        self.assertEqual(second.token_usage.build_think_tokens, 5)
+        self.assertEqual(second.token_usage.build_total_tokens, 42)
+        self.assertEqual(second.cache_stats.hits, 1)
+
     def test_temporal_build_fields_are_opt_in(self) -> None:
         turns = (
             Turn(

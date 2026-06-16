@@ -14,7 +14,7 @@ from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Any
 
-from common.schemas import TokenUsage, Turn
+from common.schemas import TokenUsage, Turn, llm_usage_to_token_usage
 
 
 _MEMORY_TYPES = {
@@ -179,7 +179,7 @@ class OpenAICompatibleMemoryBuilder:
             )
 
         all_records: list[MemoryRecord] = []
-        total_tokens = 0
+        token_usage = TokenUsage()
         chunks = _chunk_turns(
             turns,
             self._max_turns_per_chunk,
@@ -208,7 +208,7 @@ class OpenAICompatibleMemoryBuilder:
                     "usage": usage,
                 }
                 self._put(cache_key, payload)
-            total_tokens += _usage_total_tokens(payload.get("usage"))
+            token_usage += llm_usage_to_token_usage(payload.get("usage"), phase="build")
 
             raw_records = _bounded_records(
                 _records_from_payload(payload.get("content", "")),
@@ -240,7 +240,7 @@ class OpenAICompatibleMemoryBuilder:
         )
         return BuiltMemory(
             records=managed,
-            token_usage=TokenUsage(build_tokens=total_tokens, query_tokens=0),
+            token_usage=token_usage,
             cache_stats=_cache_stats_delta(cache_stats_before, self._cache_stats),
             chunks=len(chunks),
             cache_enabled=self._cache_path is not None,
@@ -402,15 +402,6 @@ def _chunk_turns(
         if start + max_turns_per_chunk >= len(turns):
             break
     return tuple(chunks)
-
-
-def _usage_total_tokens(usage: Any) -> int:
-    if not isinstance(usage, dict):
-        return 0
-    total = usage.get("total_tokens")
-    if total is not None:
-        return int(total)
-    return int(usage.get("prompt_tokens") or 0) + int(usage.get("completion_tokens") or 0)
 
 
 def _records_from_payload(content: str) -> list[dict[str, Any]]:

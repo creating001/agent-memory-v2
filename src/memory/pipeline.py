@@ -1030,13 +1030,7 @@ class Stage1Pipeline:
             str(profile_name),
             self._compiler_trace_config,
         )
-        token_usage = TokenUsage(
-            build_tokens=(
-                built_memory.token_usage.build_tokens
-                + answer.token_usage.build_tokens
-            ),
-            query_tokens=answer.token_usage.query_tokens,
-        )
+        token_usage = built_memory.token_usage + answer.token_usage
         return {
             "answer": answer.answer,
             "trace": {

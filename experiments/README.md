@@ -67,7 +67,7 @@ outputs/formal/<run_id>/traces.jsonl
 outputs/diagnostic/<run_id>/
 ```
 
-`outputs/cache/` 只保留近期复现 LTS 和关键 baseline 所需的 embedding/build/answer cache。cache 命中只减少本地重复 API 调用；`avg_build_tokens` / `avg_query_tokens` 仍按逻辑冷启动 LLM token 记录。
+`outputs/cache/` 只保留近期复现 LTS 和关键 baseline 所需的 embedding/build/answer cache。cache 命中只减少本地重复 API 调用；`avg_build_tokens` / `avg_query_tokens` 仍按逻辑冷启动 visible LLM token 记录。若服务端明确返回 thinking token，则单独记录 `avg_build_think_tokens` / `avg_query_think_tokens`，并用 `avg_build_total_tokens` / `avg_query_total_tokens` 表示真实 visible + think 成本。
 
 ## 评估口径
 

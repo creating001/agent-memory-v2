@@ -48,10 +48,32 @@ from common.schemas import (
     RouteResult,
     TokenUsage,
     Turn,
+    llm_usage_to_token_usage,
 )
 
 
 class CleanSkeletonTest(unittest.TestCase):
+    def test_llm_usage_to_token_usage_separates_reasoning_tokens(self) -> None:
+        usage = {
+            "prompt_tokens": 100,
+            "completion_tokens": 30,
+            "total_tokens": 130,
+            "completion_tokens_details": {"reasoning_tokens": 12},
+        }
+
+        result = llm_usage_to_token_usage(usage, phase="query")
+
+        self.assertEqual(result.query_tokens, 118)
+        self.assertEqual(result.query_think_tokens, 12)
+        self.assertEqual(result.query_total_tokens, 130)
+
+    def test_token_usage_from_mapping_preserves_legacy_visible_tokens(self) -> None:
+        result = TokenUsage.from_mapping({"query_tokens": 42})
+
+        self.assertEqual(result.query_tokens, 42)
+        self.assertEqual(result.query_think_tokens, 0)
+        self.assertEqual(result.query_total_tokens, 42)
+
     def test_clean_guard_rejects_gold_answer(self) -> None:
         with self.assertRaises(CleanProtocolViolation):
             assert_clean_prediction_payload(
