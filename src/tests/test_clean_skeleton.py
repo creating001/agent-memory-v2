@@ -333,6 +333,55 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertIn("Nothing is Impossible", prompt)
         self.assertNotIn("question_type", prompt)
 
+    def test_grounded_inference_contract_is_question_gated(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=2,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            evidence_report_contract=True,
+            grounded_inference_contract=True,
+        )
+        rows = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text="Alex has collected classic children's books for years.",
+                timestamp="2024-01-01",
+            ),
+        )
+        hits = (
+            RetrievalHit(
+                source_id="s1:t0",
+                score=1.0,
+                rank=1,
+                retriever="test",
+            ),
+        )
+        route = RouteResult("fact_lookup", ("generic",), 4)
+
+        inference_context = compiler.compile(
+            question="Would Alex likely have Dr. Seuss books on the shelf?",
+            question_time=None,
+            route=route,
+            hits=hits,
+            evidence_turns=rows,
+        )
+        fact_context = compiler.compile(
+            question="What books does Alex collect?",
+            question_time=None,
+            route=route,
+            hits=hits,
+            evidence_turns=rows,
+        )
+
+        self.assertIn("Grounded Inference Discipline", inference_context.prompt)
+        self.assertIn("memory-grounded inference", inference_context.prompt)
+        self.assertNotIn("Grounded Inference Discipline", fact_context.prompt)
+        self.assertNotIn("question_type", inference_context.prompt)
+        self.assertNotIn("sample_id", inference_context.prompt)
+
     def test_selected_context_skips_long_center_turns(self) -> None:
         config = {
             "retrieval": {

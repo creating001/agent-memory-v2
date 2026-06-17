@@ -53,6 +53,14 @@ ASSISTANT_RECALL_PATTERN = re.compile(
     r")\b",
     re.IGNORECASE,
 )
+GROUNDED_INFERENCE_PATTERN = re.compile(
+    r"\b("
+    r"would|might|could|likely|unlikely|probably|seem(?:s)?|"
+    r"considered|do\s+you\s+think|what\s+might|how\s+would|"
+    r"still\s+want|be\s+considered"
+    r")\b",
+    re.IGNORECASE,
+)
 SUPPORTED_INFORMATION_NEEDS = {
     "current_state",
     "fact_lookup",
@@ -72,6 +80,7 @@ ROUTE_OVERRIDE_KEYS = {
     "evidence_report_detail",
     "evidence_row_labels",
     "final_answer_checklist",
+    "grounded_inference_contract",
     "max_memory_records",
     "max_evidence_chars",
     "max_evidence_items",
@@ -202,6 +211,7 @@ class EvidenceCompiler:
         personalized_advice_contract: bool = False,
         current_state_update_contract: bool = False,
         dialogue_inference_contract: bool = False,
+        grounded_inference_contract: bool = False,
         temporal_order_contract: bool = False,
         source_anchor_keep: int = 0,
         source_anchor_memory_rows: int = 0,
@@ -292,6 +302,7 @@ class EvidenceCompiler:
         self._personalized_advice_contract = personalized_advice_contract
         self._current_state_update_contract = current_state_update_contract
         self._dialogue_inference_contract = dialogue_inference_contract
+        self._grounded_inference_contract = grounded_inference_contract
         self._temporal_order_contract = temporal_order_contract
         if context_layout not in SUPPORTED_CONTEXT_LAYOUTS:
             raise ValueError(f"Unsupported context_layout: {context_layout}")
@@ -485,6 +496,10 @@ class EvidenceCompiler:
                 "current_state_update_contract"
             ],
             dialogue_inference_contract=route_settings["dialogue_inference_contract"],
+            grounded_inference_contract=(
+                route_settings["grounded_inference_contract"]
+                and _is_grounded_inference_question(question)
+            ),
             temporal_order_contract=route_settings["temporal_order_contract"],
             context_layout=route_settings["context_layout"],
             memory_layout=self._memory_layout,
@@ -525,6 +540,7 @@ class EvidenceCompiler:
             "evidence_order": self._evidence_order,
             "evidence_report_detail": self._evidence_report_detail,
             "final_answer_checklist": self._final_answer_checklist,
+            "grounded_inference_contract": self._grounded_inference_contract,
             "max_evidence_chars": self._max_evidence_chars,
             "max_evidence_items": self._max_evidence_items,
             "max_memory_records": self._max_memory_records,
@@ -655,6 +671,10 @@ def _validate_route_overrides(
         if "dialogue_inference_contract" in raw_overrides:
             overrides["dialogue_inference_contract"] = bool(
                 raw_overrides["dialogue_inference_contract"]
+            )
+        if "grounded_inference_contract" in raw_overrides:
+            overrides["grounded_inference_contract"] = bool(
+                raw_overrides["grounded_inference_contract"]
             )
         if "temporal_order_contract" in raw_overrides:
             overrides["temporal_order_contract"] = bool(
@@ -1181,6 +1201,7 @@ def _build_prompt(
     personalized_advice_contract: bool,
     current_state_update_contract: bool,
     dialogue_inference_contract: bool,
+    grounded_inference_contract: bool,
     temporal_order_contract: bool,
     context_layout: str,
     memory_layout: str,
@@ -1240,6 +1261,7 @@ def _build_prompt(
             personalized_advice_contract=personalized_advice_contract,
             current_state_update_contract=current_state_update_contract,
             dialogue_inference_contract=dialogue_inference_contract,
+            grounded_inference_contract=grounded_inference_contract,
             temporal_order_contract=temporal_order_contract,
             final_answer_checklist=final_answer_checklist,
             memory_context_newlines_after_blocks=(
@@ -1404,6 +1426,7 @@ def _build_external_naive_prompt(
     personalized_advice_contract: bool,
     current_state_update_contract: bool,
     dialogue_inference_contract: bool,
+    grounded_inference_contract: bool,
     temporal_order_contract: bool,
     final_answer_checklist: bool,
     memory_context_newlines_after_blocks: int,
@@ -1498,6 +1521,14 @@ def _build_external_naive_prompt(
         )
         rules.append(
             "Use Personalized Advice Discipline only to interpret relevant Memory Context rows; it is not independent evidence."
+        )
+    grounded_inference_block = ""
+    if grounded_inference_contract:
+        grounded_inference_block = "\n".join(
+            ["", "Grounded Inference Discipline:", *_grounded_inference_lines(), ""]
+        )
+        rules.append(
+            "Use Grounded Inference Discipline only to interpret Memory Context rows; it is not independent evidence."
         )
     if context_layout in {"session_thread", "chronological_session_thread"}:
         if context_layout == "chronological_session_thread":
@@ -1642,6 +1673,7 @@ def _build_external_naive_prompt(
             update_conflict_guide_block,
             operation_workpad_block,
             personalized_advice_block,
+            grounded_inference_block,
             final_answer_checklist_block,
         )
         if block
@@ -2463,6 +2495,26 @@ def _personalized_advice_lines() -> list[str]:
         "- If the context gives personalization anchors but no exact named option, answer with suitable option types, criteria, or next-step choices instead of refusing.",
         "- Do not introduce a specific named place, product, show, person, brand, or event unless that name appears in Memory Context.",
         "- Include one or two brief personalization anchors from Memory Context; if no anchor exists, say the information is not enough.",
+    ]
+
+
+def _is_grounded_inference_question(question: str) -> bool:
+    text = question.strip().lower()
+    if not text:
+        return False
+    if ASSISTANT_RECALL_PATTERN.search(text):
+        return False
+    return bool(GROUNDED_INFERENCE_PATTERN.search(text))
+
+
+def _grounded_inference_lines() -> list[str]:
+    return [
+        "- For questions asking would, might, likely, probably, or considered, the user is asking for a memory-grounded inference, not necessarily a verbatim quote.",
+        "- Use directly relevant anchors from Memory Context such as stated preferences, actions, constraints, experiences, self-descriptions, outcomes, and repeated behavior.",
+        "- If the anchors point clearly one way, answer with a calibrated conclusion such as yes, no, likely, unlikely, or somewhat; do not refuse only because the exact final wording is absent.",
+        "- Do not infer sensitive identity, religion, health, finances, or other personal status from stereotypes or demographics; use only explicit self-statements, concrete behavior, and conversation context.",
+        "- If there are no relevant anchors or the anchors conflict without a clear direction, say the provided information is not enough.",
+        "- Keep the final answer concise and include the key uncertainty qualifier when the evidence is indirect.",
     ]
 
 

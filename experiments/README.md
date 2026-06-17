@@ -23,6 +23,15 @@
 
 | 项目 | 结果 |
 |---|---|
+| 配置 | `configs/stage1_grounded_inference_v109_qwen36_no_think_build4k_cached.json` |
+| 目的 | 保持 v102 build/retrieval/granularity/selected context/finalizer 不变，只在 question-text modal/inference 问题上加入 grounded inference discipline，尝试减少 LoCoMo Open-Domain 过度拒答。 |
+| 计划 | 先跑 LongMemEval-S full；若 dual flash strict/lenient 低于 v102，则停止不跑 LoCoMo。若 LME 持平或提升，再跑 LoCoMo non-adversarial full。 |
+| 诊断文档 | `diagnostic/stage1_v102_generalization_audit_v104_plan.md` |
+
+## 已拒绝上下文候选
+
+| 项目 | 结果 |
+|---|---|
 | 配置 | `configs/stage1_context_guard_v104_qwen36_no_think_build4k_cached.json` |
 | 目的 | 移除按全样本平均 turn 长度的大块 profile 切换；selected context 改为 per-turn `max_center_chars`；关闭 mechanical finalizer，启用 source-grounded repair guardrail。 |
 | 结果 | LongMemEval-S full 单次 flash `395/500 = 0.790000`，avg query tokens `7367.622`，answer repair 触发 `178/500`；过预算且未形成 LTS 提升，已停止，不跑 LoCoMo full。 |

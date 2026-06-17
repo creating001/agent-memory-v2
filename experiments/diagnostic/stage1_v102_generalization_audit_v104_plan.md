@@ -320,3 +320,37 @@ Smoke 观察：
 - v108 不是新 LTS，当前默认仍是 v102。
 - 不应继续简单使用现有 memory source links 做 row reorder。
 - 下一步若继续做 build-memory 管理，应先改 build memory/evidence-unit 质量，或做可拒绝的 coverage/verifier，而不是直接把 memory-linked rows 插入 reader 上下文。
+
+## v109 计划：grounded inference discipline
+
+配置：`configs/stage1_grounded_inference_v109_qwen36_no_think_build4k_cached.json`
+
+设计依据：
+
+- 当前主目录 qwen3.6 no-thinking v102 在 LoCoMo non-adversarial full 上 lenient `0.798052`，距 `0.800000` baseline target 只差 4 题；badcase 中 Open-Domain / modal inference 问题大量表现为过度拒答。
+- v105-v108 说明直接把 typed memory 放进 reader prompt 或用现有 source links 重排 raw rows 都不稳定。因此 v109 不改 build memory、不改 retrieval、不改 raw row order、不改 finalizer，只改变 reader 对“grounded inference”问题的通用解释纪律。
+- 外部代码/方法参考：
+  - SimpleMem 代码中 `HybridRetriever` 使用 semantic/keyword/structured 多路检索，并用 answer prompt 要求答案只来自 retrieved contexts；v109 继承“context-only answer”，但不引入 SimpleMem 的在线 reflection 查询，避免额外 LLM/token 和不稳定性。
+  - Hindsight 代码把 `world`、`experience`、`observation` 等 fact type 分离，并在 recall/reflect 接口中保留 `based_on` 来源；v109 借鉴 epistemic separation，要求 inference 只能基于 Memory Context anchors，不把推断当原始事实。
+  - Graphiti 代码提供 BM25/cosine/BFS/cross-encoder 多 scope search 和 episode/node/edge rerank；v109 暂不做 rerank，因为 v103/v108 已证明当前粗粒度重排会伤 LME，先验证 reader discipline 的边际收益。
+  - MemOS LoCoMo prompt 明确允许答案 grounded in memories，并可用 general world knowledge interpretation；v109 只采用“基于记忆锚点做合理解释”的部分，舍弃具体相对时间和短答案格式规则，避免 benchmark-like finalizer。
+
+关键改动：
+
+- `compiler.grounded_inference_contract` 新增为可关闭开关，并支持 `route_overrides`。
+- 只在 question text 命中 modal/inference 表达时触发，例如 `would`、`might`、`likely`、`probably`、`considered`、`do you think`、`what might`。触发条件不使用 LoCoMo category、LongMemEval question_type、gold、judge、sample id、row index 或测试反馈。
+- v109 只在 `fact_lookup` / `profile_preference` / `current_state` route 打开该 contract；`temporal_lookup` / `list_count` 保持 v102，避免影响已知脆弱的时间和聚合题。
+- Prompt 中的 discipline 要求：当 Memory Context 有直接相关锚点时，可以输出 `yes/no/likely/unlikely/somewhat` 等校准结论；不能因为没有逐字答案就拒答；敏感身份、宗教、健康、财务等不能从 stereotype 推断，必须有显式自述或具体行为支撑；没有锚点或锚点冲突时仍回答信息不足。
+- answer cache 独立为 `outputs/cache/qwen36_no_think_build4k_answer_v109_grounded_inference.sqlite`；build cache 复用 v102，正式 token 统计仍按 cached usage 计入逻辑 cold-build token。
+
+Clean/controlled comparison:
+
+- 为减少本地 answer LLM temperature `0` 仍存在的小幅非确定性，formal run 前可用 `scripts/seed_answer_cache_from_traces.py` 从 v102 prediction traces seed 相同 prompt 的 answer cache。
+- 该脚本只读取 prediction-time prompt、answer、raw_response 和 usage；不读取 labels、judge、benchmark category、sample id 或 test feedback。
+- v109 改过 prompt 的 grounded inference 样本会新跑；未改 prompt 的样本命中 v102 trace seed cache，用于隔离局部 prompt 改动。
+
+验证策略：
+
+1. 先跑单元测试，确认 route override 和 question gate clean。
+2. 先跑 LongMemEval-S full；若 strict/lenient 低于当前 qwen3.6 v102 `0.814000 / 0.830000`，直接拒绝，不跑 LoCoMo full。
+3. 若 LME 持平或提升，再跑 LoCoMo non-adversarial full，重点观察 Open-Domain 和 Multi-Hop 是否减少 over-abstention，同时检查 Temporal/Single-Hop 是否被意外伤害。
