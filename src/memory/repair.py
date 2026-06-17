@@ -22,18 +22,22 @@ _INSUFFICIENT_ANSWER = re.compile(
     re.IGNORECASE,
 )
 _COLLECTION_QUESTION = re.compile(
-    r"\b(?:what|which)\s+(?:items?|events?|activities|places?|people|persons|"
-    r"books?|songs?|movies?|artists?|bands?|exercises?|causes?|foods?|meals?|"
-    r"classes?|workshops?|projects?|purchases?|hobbies|sports?|games?|"
-    r"restaurants?|stores?|services?|organizations?|groups?|symbols?|topics?|"
-    r"subjects?|courses?|awards?|trips?|visits?|tools?|apps?|devices?)\b|"
-    r"\bwhat\s+kind(?:s)?\s+of\b|"
+    r"\b(?:what|which)\s+(?:items|events|activities|places|people|persons|"
+    r"books|songs|movies|artists|bands|exercises|causes|foods|meals|"
+    r"classes|workshops|projects|purchases|hobbies|sports|games|"
+    r"restaurants|stores|services|organizations|groups|symbols|topics|"
+    r"subjects|courses|awards|trips|visits|tools|apps|devices)\b|"
+    r"\bwhat\s+kinds\s+of\b|"
     r"\bwhat\s+.+\b(?:has|have|had)\s+.+\b(?:done|bought|painted|visited|"
     r"attended|participated|read|seen|watched|tried|used|owned|made|created|"
     r"ordered|eaten|played|joined|taken)\b",
     re.IGNORECASE,
 )
 _COUNT_QUESTION = re.compile(r"\b(?:how many|number of|count of)\b", re.IGNORECASE)
+_ORDER_CHOICE_QUESTION = re.compile(
+    r"\b(?:which|what)\b[^?]{0,120}\b(?:first|earlier|later|before|after)\b",
+    re.IGNORECASE,
+)
 _NUMERIC_ANSWER = re.compile(r"\b\d+(?:\.\d+)?\b")
 _ITEM_SEPARATOR = re.compile(r"\s*(?:,|;|\band\b|\n|\|)\s*", re.IGNORECASE)
 _MODAL_INFERENCE_QUESTION = re.compile(
@@ -354,6 +358,8 @@ def _looks_like_short_collection_answer(
     if answer_type not in {"", "list", "count", "fact"}:
         return False
     if not _COLLECTION_QUESTION.search(lowered_question):
+        return False
+    if _ORDER_CHOICE_QUESTION.search(lowered_question):
         return False
     if _INSUFFICIENT_ANSWER.search(draft_answer or ""):
         return False

@@ -615,3 +615,56 @@ Clean 边界：
 
 - v113 拒绝为 no-op。v102 finalizer-impact 诊断说明 relative-time mechanical rule 有风险，但该规则在 v110 路径上已经没有实际触发，因此关闭它不能提升当前正向候选。
 - 后续第 4 点不能只关 finalizer 开关，应设计真正的 source-grounded verifier / consistency guardrail；同时第 2/5 点需要继续围绕 evidence sufficiency、coverage-preserving rerank 或 typed memory 作为校验信号，而不是直接重排 final raw rows。
+
+## v114/v115 诊断：替换式 scoped evidence 与 short-list verifier
+
+当前 badcase 复查显示，v110 LoCoMo 的错误主要集中在 `fact_lookup`、`list_count` 和 `temporal_lookup`；其中一批错误的 gold evidence source 已经在 Memory Context 或相邻 turn 附近，但 answer 阶段没有稳定使用。为避免盲目扩大 top-k，先做了两个小诊断：
+
+- v114：对 `list_count` 直接启用 scoped evidence 两阶段抽取/回答。
+  - 结果：3 条 smoke 中，模型能抽取 item，但把 `what/where` list 问题回答成数量；修正 prompt 后仍出现过度枚举和漏地点。
+  - 成本：smoke avg query tokens 约 `12K`，明显不适合直接 full。
+  - 结论：替换式 scoped answer 风险高，先不保留配置，不跑 full。
+- v115：改为 short-list consistency guardrail，只在 `list_count` 且 draft 明显短列表时调用 source-grounded repair，默认 keep。
+  - 触发估算：修正 trigger 后 LME `0/500`，LoCoMo `21/1540`。
+  - 结果：5 条 smoke 中触发 3 条，只修改 1 条，且修改为不够 source-grounded 的 “plus unspecified books”；关键漏项多数没有补上。
+  - 结论：answer-side verifier 不是当前最强方向；问题更像 selected context 没把邻近 turn 的完整答案带入，而不是 verifier 不会判断。
+
+这两个诊断均只使用 prediction-time trace、question、draft answer 和 Memory Context；gold/judge 只用于离线分析，不进入预测逻辑。相关临时配置和 smoke 目录已清理，避免污染主目录。
+
+## v116 计划：extended selected context
+
+配置：`configs/stage1_extended_selected_context_v116_qwen36_no_think_build4k_cached.json`
+
+设计依据：
+
+- 当前目标第 3 点指出 selected context 按长/短 turn 处理可能不够 general。v104 一次性移除大块 profile 并启用 broad repair 已失败，因此 v116 不再做大改。
+- LoCoMo v110 错例中，gold source 未覆盖的 wrong 样本里，有 `45` 个在已选 source 的 `±1` 邻域内、另有 `23` 个在 `±2` 邻域内；这说明部分错误不是 top-k 大小，而是短 turn 对话邻域不完整。
+- 典型模式是：retrieval 命中一个 anchor turn，下一轮提出澄清问题，再下一轮才给出答案。v110 `window_after=1` 只能看到澄清问题，看不到答案 turn。
+- 该机制是通用对话结构，不依赖 LongMemEval/LoCoMo 标签、category、gold、judge、sample id 或 row index。
+
+关键改动：
+
+- 继承 v110 build/retrieval top-k/granularity profile/compiler/modal grounded inference/finalizer/backbone。
+- 全局 short-turn selected context：
+  - `window_before=1`
+  - `window_after=2`
+  - `max_neighbor_chars=180`
+  - `max_center_chars=320`
+  - `max_rows=6`
+- long-turn profile 仍保持 `selected_context.enabled=false`，因此 LME 预期基本不变；LoCoMo 是主要验证对象。
+- answer cache 独立为 `outputs/cache/qwen36_no_think_build4k_answer_v116_extended_selected_context.sqlite`。
+
+Smoke：
+
+- run：`diagnostic/stage1_extended_selected_context_v116_locomo_neighbor_smoke`
+- 6 个刻意挑选的 LoCoMo 邻域错例中，dual flash strict/lenient `1/6`。
+- 明确修正：`What are the new shoes that Melanie got used for?` 从拒答改为 `running`，dual flash 判对。
+- 未修正/风险：有一条从拒答改为不够具体的 `an abstract painting`，说明扩展邻域能补证据，但仍可能带入不够精确的上下文。
+- smoke avg query tokens `5594.833`，没有显示过预算风险。
+
+验证策略：
+
+1. 提交 v116 代码/config/诊断记录，保证 formal run 有 clean commit。
+2. 先跑 LoCoMo non-adversarial full，因为 v116 主要影响短 turn selected context；记录 dual flash strict/lenient、avg query/build tokens、selected_context applied、answer changed vs v110。
+3. 如果 LoCoMo lenient 提升且不过 8K hard budget，再确认 LME prediction 与 v110 是否 answer text changed；若 LME 没变化，可记录 compatibility；若变化，再跑 LME full judge。
+4. 若 LoCoMo full 负向，v116 拒绝；下一步应考虑更细的 per-turn adjacency trigger，而不是继续扩大 window。

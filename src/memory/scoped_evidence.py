@@ -139,8 +139,10 @@ def build_scoped_evidence_answer_prompt(
             "4. For sums, differences, durations, or counts, verify the calculation and preserve the requested unit.",
             "5. For date/order questions, use event_time when present; use mention_date only when the event happened on that date or no more specific event_time is available.",
             "6. For list questions, preserve all distinct included item names rather than collapsing them into a broad category.",
-            "7. Match the requested answer slot exactly: place, person, count, date, duration, list, state, or fact.",
-            "8. Keep the final answer concise but complete enough to avoid a partial answer.",
+            "7. If the question asks what, which, who, where, or name, answer with the requested names/items/places, not just the number of included_items.",
+            "8. Only answer with a bare count when the question explicitly asks how many, number of, or count.",
+            "9. Match the requested answer slot exactly: place, person, count, date, duration, list, state, or fact.",
+            "10. Keep the final answer concise but complete enough to avoid a partial answer.",
             "",
             "Return ONLY valid JSON:",
             "{",
@@ -189,6 +191,9 @@ def _format_extraction_row(
 ) -> list[str]:
     return [
         f"### Memory {index}",
+        f"Source: {row.source_id}",
+        f"Session: {row.session_id}",
+        f"Turn: {row.turn_index}",
         f"Date: {row.timestamp or ''}",
         f"Role: {row.role}",
         "Content:",

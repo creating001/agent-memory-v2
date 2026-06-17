@@ -43,6 +43,14 @@
 
 | 项目 | 结果 |
 |---|---|
+| 配置 | `configs/stage1_extended_selected_context_v116_qwen36_no_think_build4k_cached.json` |
+| 目的 | 继承 v110，只把短 turn selected context 的后向窗口从 1 扩到 2，并把 neighbor 文本预算从 120 提到 180；不改变 top-k、不加 rerank/repair LLM。目标是修复“retrieved anchor 后一问一答才出现答案”的通用对话邻域问题。 |
+| Smoke | LoCoMo 6 个邻域错例中修正 1 个（new shoes -> running），未显著增加平均 query token；该 smoke 刻意挑错例，不代表 full 指标。 |
+| 状态 | 当前 LoCoMo full 候选；正式 run 前需提交 clean commit，并记录 strict/lenient、token、selected_context applied 和输出路径。 |
+| 诊断文档 | `diagnostic/stage1_v102_generalization_audit_v104_plan.md` |
+
+| 项目 | 结果 |
+|---|---|
 | 配置 | `configs/stage1_modal_grounded_inference_v110_qwen36_no_think_build4k_cached.json` |
 | 目的 | v109 收窄 ablation：保留 `would/might/could/likely/considered` 等 modal yes/no inference 的 grounded inference discipline，排除 plain advice/recommendation `what do you think` 负例。 |
 | 结果 | LongMemEval-S strict/lenient `0.812000 / 0.834000`；LoCoMo strict/lenient `0.779221 / 0.799351`。相比 v102，LME lenient `+2`、LoCoMo lenient `+2`；但 LoCoMo 距 `0.800000` 还差 1 题，暂不替代 v102 LTS。 |

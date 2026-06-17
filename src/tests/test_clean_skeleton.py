@@ -758,8 +758,12 @@ class CleanSkeletonTest(unittest.TestCase):
 
         self.assertTrue(should_apply_scoped_evidence(context, ("list_count",)))
         self.assertIn("Alex bought a helmet", extraction_prompt)
+        self.assertIn("Source: s1:t0", extraction_prompt)
+        self.assertIn("Session: s1", extraction_prompt)
+        self.assertIn("Turn: 0", extraction_prompt)
         self.assertIn('"included_items"', extraction_prompt)
         self.assertIn('"sufficient": true', answer_prompt)
+        self.assertIn("Only answer with a bare count", answer_prompt)
         self.assertNotIn("record_key", extraction_prompt)
         self.assertNotIn("question_type", extraction_prompt)
         self.assertNotIn("sample_id", extraction_prompt)
@@ -1378,6 +1382,20 @@ class CleanSkeletonTest(unittest.TestCase):
         )
 
         self.assertIn("short_collection_answer", short_reasons)
+
+        order_reasons = repair_trigger_reasons(
+            question="Which book did Alex finish first, Dune or Foundation?",
+            route_information_need="list_count",
+            draft_answer="Dune",
+            raw_response=json.dumps(
+                {"content": json.dumps({"sufficient": True, "answer_type": "fact"})}
+            ),
+            enable_uncertain_trigger=False,
+            enable_short_list_trigger=True,
+            enable_temporal_conflict_trigger=False,
+        )
+
+        self.assertNotIn("short_collection_answer", order_reasons)
 
     def test_answer_repair_profile_preference_trigger_is_opt_in(self) -> None:
         disabled_reasons = repair_trigger_reasons(

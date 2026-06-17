@@ -7,6 +7,7 @@
 | 用途 | 配置 | 状态 |
 |---|---|---|
 | 后续新实验默认配置 | `stage1_spacing_profile_v102_qwen36_no_think_build4k_cached.json` | V102 算法 + `Qwen/Qwen3.6-35B-A3B` answer/build backbone；请求级 `chat_template_kwargs.enable_thinking=false`；build `max_tokens=4096`，answer `max_output_tokens=16384`；使用独立 qwen36 no-thinking cache namespace。 |
+| 当前诊断候选 | `stage1_extended_selected_context_v116_qwen36_no_think_build4k_cached.json` | 继承 v110，只把短 turn selected context 的后向窗口从 1 扩到 2，并把 neighbor 文本预算从 120 提到 180、增加 `max_center_chars=320`。目标是通用对话邻域补证据，不改变 top-k、不加额外 LLM pass；smoke 6 个邻域错例修正 1 个，准备跑 LoCoMo full 验证。 |
 | 已拒绝诊断候选 | `stage1_no_relative_time_finalizer_v113_qwen36_no_think_build4k_cached.json` | 继承 v110 modal-only grounded inference，只关闭全局 relative-time mechanical finalizer。v102 finalizer-impact 离线诊断显示 LoCoMo relative-time 改写在触发样本上从 draft lenient `40/46` 降到 final `34/46`，但 v110 LoCoMo 路径中该 finalizer 已实际触发 `0` 次；v113 相比 v110 LME/LoCoMo answer text 分别 changed `0/500` 和 `0/1540`，因此拒绝为 no-op。 |
 | 已拒绝诊断候选 | `stage1_evidence_unit_rerank_v112_qwen36_no_think_build4k_cached.json` | 在 v110 正向候选基础上加入 Qwen3-Reranker-0.6B evidence-unit rerank；LME full strict/lenient `0.810000 / 0.828000`，低于 v102 和 v110，停止，不跑 LoCoMo full。诊断显示真实 changed-answer gain/loss `11/12`，multi-session 与 temporal coverage 受损。 |
 | 已拒绝诊断候选 | `stage1_modal_abstention_repair_v111_qwen36_no_think_build4k_cached.json` | 在 v110 基础上增加 source-grounded modal abstention repair；只在 modal/inference 问题的最终 draft answer 明确拒答/信息不足时触发 verifier。Smoke 有局部收益，但 LongMemEval-S full strict/lenient `0.816000 / 0.828000`，主指标低于 v102 `0.830000` 和 v110 `0.834000`，停止，不跑 LoCoMo full。 |
@@ -36,6 +37,7 @@
 - v111 同样复用 v102 build-memory cache，base answer cache 使用独立 `qwen36_no_think_build4k_answer_v111_modal_abstention_repair.sqlite`，可从 v110 traces + predictions seed；repair cache 使用 `qwen36_no_think_build4k_answer_repair_v111_modal_abstention.sqlite`。repair trigger 只看 prediction-time question/draft answer/Memory Context，不读取 labels/judge/category/sample id。
 - v112 同样复用 v102 build-memory cache，因为 build 阶段未改；answer cache 使用独立 `qwen36_no_think_build4k_answer_v112_evidence_unit_rerank.sqlite`。rerank 只读 question text、raw turns、same-session neighbors 和 build-memory source links，不读取 labels/judge/category/sample id。
 - v113 同样复用 v102 build-memory cache，因为 build/retrieval/compiler/backbone 全部未改；answer cache 使用独立 `qwen36_no_think_build4k_answer_v113_no_relative_time_finalizer.sqlite`。正式 run 前可从 v110 prediction traces seed 相同 prompt 的 base answer cache；预测阶段不读取 labels/judge/category/sample id。
+- v116 同样复用 v102 build-memory cache，因为 build/retrieval/compiler/backbone 全部未改；answer cache 使用独立 `qwen36_no_think_build4k_answer_v116_extended_selected_context.sqlite`。正式 run 前可从 v110 prediction traces seed 相同 prompt 的 base answer cache；只有 selected context 文本真正改变的样本会新跑 answer。
 
 ## 当前 Split Best
 
