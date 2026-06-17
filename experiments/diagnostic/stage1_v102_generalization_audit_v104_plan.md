@@ -700,3 +700,29 @@ Smoke：
 - v116 达到 baseline target，可作为当前默认 LTS。
 - selected context 后向邻域扩展有净收益，但继续扩大窗口的性价比不明确。
 - 未来若要冲 minimum target，应重点做 build-memory organization / query-time evidence planning / source-grounded consistency guardrail，而不是简单增加 top-k、上下文长度或样本级 answer 规则。
+
+## v117 smoke result: narrow source-grounded repair rejected
+
+候选思路：
+
+- 继承 v116，只打开现有 `answer.repair` 的窄触发器。
+- 触发器：`uncertain_min_support_items=1` 和 `modal_abstention_review`。
+- 明确关闭 `short_collection_answer` 和 `temporal_conflict`，因为离线估算显示它们会触发大量已正确样本。
+- 该 repair 只读 prediction-time question、draft answer JSON 和 Memory Context，不读 gold、judge、category、sample id 或 test feedback。
+
+触发估算：
+
+- LoCoMo：`uncertain_min1` 触发 `75` 条，其中 wrong `62`、correct `13`；`modal_abstention` 触发 `13` 条，全部是 wrong。
+- LME：`uncertain_min1` 触发 `33` 条，其中 wrong `19`、correct `14`；`modal_abstention` 触发 `2` 条，全部是 wrong。
+
+诊断 smoke：
+
+- LoCoMo smoke `46` 条：v116 subset strict/lenient `13/13`，v117 subset `10/12`，delta strict/lenient `-3/-1`；lenient gain/loss `3/4`。
+- LME smoke `31` 条：v116 subset strict/lenient `13/14`，v117 subset `12/13`，delta strict/lenient `-1/-1`；lenient gain/loss `0/1`。
+- v117 确实修复了部分 over-abstention，例如 roadtrip / favorite movie trilogy / Hollywood Bowl；但也把已经正确的答案改成更保守或错误的答案，例如 `$270` 被改成无法计算、fashion internship 被改成不确定。
+
+结论：
+
+- v117 不进入 full，不保留为正式配置。
+- 当前 repair prompt 仍容易把可接受的近似答案改成过度保守答案，或在实体归因上引入新错误。
+- 下一步不要继续堆 answer-side repair；应先做 query-time evidence planner / source manifest：把候选证据组织成可核查的事实、时间线、集合和冲突表，再让 verifier 只检查 support/coverage，而不是自由改写答案。
