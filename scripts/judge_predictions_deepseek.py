@@ -78,6 +78,7 @@ def main() -> int:
             and previous.get("prompt_hash") == prompt_hash
             and previous.get("model") == args.model
             and previous.get("temperature") == args.temperature
+            and previous.get("thinking") == args.thinking
         ):
             continue
 
@@ -88,6 +89,7 @@ def main() -> int:
                 "prompt_hash": prompt_hash,
                 "model": args.model,
                 "temperature": args.temperature,
+                "thinking": args.thinking,
                 "question_type": example.question_type,
             }
             judgments_by_key[key] = judgment
@@ -116,6 +118,7 @@ def main() -> int:
                     api_key=api_key or "",
                     model=args.model,
                     temperature=args.temperature,
+                    thinking=args.thinking,
                     timeout=args.timeout,
                     max_retries=args.max_retries,
                     retry_sleep=args.retry_sleep,
@@ -139,6 +142,7 @@ def main() -> int:
                         api_key=api_key or "",
                         model=args.model,
                         temperature=args.temperature,
+                        thinking=args.thinking,
                         timeout=args.timeout,
                         max_retries=args.max_retries,
                         retry_sleep=args.retry_sleep,
@@ -162,6 +166,8 @@ def main() -> int:
         "base_url": args.base_url,
         "api_key_env": args.api_key_env,
         "temperature": args.temperature,
+        "thinking": args.thinking,
+        "request_body_options": _request_body_options(args.thinking),
         "dry_run": args.dry_run,
         "workers": args.workers,
         "predictions": str(Path(args.predictions).resolve()),
@@ -188,6 +194,7 @@ def _judge_task(
     api_key: str,
     model: str,
     temperature: float,
+    thinking: str | None,
     timeout: float,
     max_retries: int,
     retry_sleep: float,
@@ -199,6 +206,7 @@ def _judge_task(
         api_key=api_key,
         model=model,
         temperature=temperature,
+        thinking=thinking,
         prompt=str(task["prompt"]),
         timeout=timeout,
         max_retries=max_retries,
@@ -212,6 +220,7 @@ def _judge_task(
         "prompt_hash": str(task["prompt_hash"]),
         "model": model,
         "temperature": temperature,
+        "thinking": thinking,
         "question_type": example.question_type,
         "usage": response.get("usage", {}),
     }
@@ -227,6 +236,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--base-url", default="https://api.deepseek.com")
     parser.add_argument("--api-key-env", default="DEEPSEEK_API_KEY")
     parser.add_argument("--temperature", type=float, default=0.0)
+    parser.add_argument("--thinking", choices=("enabled", "disabled"))
     parser.add_argument("--timeout", type=float, default=60.0)
     parser.add_argument("--max-retries", type=int, default=6)
     parser.add_argument("--retry-sleep", type=float, default=2.0)
@@ -244,6 +254,7 @@ def _call_deepseek_with_retries(
     api_key: str,
     model: str,
     temperature: float,
+    thinking: str | None,
     prompt: str,
     timeout: float,
     max_retries: int,
@@ -258,6 +269,7 @@ def _call_deepseek_with_retries(
                 api_key=api_key,
                 model=model,
                 temperature=temperature,
+                thinking=thinking,
                 prompt=prompt,
                 timeout=timeout,
             )
@@ -281,17 +293,18 @@ def _call_deepseek(
     api_key: str,
     model: str,
     temperature: float,
+    thinking: str | None,
     prompt: str,
     timeout: float,
 ) -> dict[str, Any]:
     endpoint = base_url.rstrip("/") + "/chat/completions"
-    request_body = json.dumps(
-        {
-            "model": model,
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": temperature,
-        }
-    ).encode("utf-8")
+    payload: dict[str, Any] = {
+        "model": model,
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": temperature,
+    }
+    payload.update(_request_body_options(thinking))
+    request_body = json.dumps(payload).encode("utf-8")
     request = urllib.request.Request(
         endpoint,
         data=request_body,
@@ -319,6 +332,12 @@ def _retryable_errors() -> tuple[type[BaseException], ...]:
         urllib.error.URLError,
         OSError,
     )
+
+
+def _request_body_options(thinking: str | None) -> dict[str, Any]:
+    if not thinking:
+        return {}
+    return {"thinking": {"type": thinking}}
 
 
 def _read_jsonl(path: str | Path) -> list[dict[str, Any]]:

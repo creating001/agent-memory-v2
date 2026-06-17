@@ -67,6 +67,14 @@ def main() -> int:
             "flash": FLASH_MODEL,
             "pro": PRO_MODEL,
         },
+        "judge_thinking": {
+            "flash": flash_payload.get("thinking"),
+            "pro": pro_payload.get("thinking"),
+        },
+        "judge_request_body_options": {
+            "flash": flash_payload.get("request_body_options", {}),
+            "pro": pro_payload.get("request_body_options", {}),
+        },
         "temperature": args.temperature,
         "metrics": dual_report["metrics"],
         "by_group": dual_report["by_group"],
@@ -128,6 +136,9 @@ def _ensure_judge_output(args: argparse.Namespace, *, model: str, output: Path) 
         "--progress-every",
         str(args.progress_every),
     ]
+    thinking = args.pro_thinking if model == PRO_MODEL else args.flash_thinking
+    if thinking:
+        command.extend(["--thinking", thinking])
     if not args.resume:
         command.append("--no-resume")
     subprocess.run(command, cwd=REPO_ROOT, check=True)
@@ -145,6 +156,8 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--base-url", default="https://api.deepseek.com")
     parser.add_argument("--api-key-env", default="DEEPSEEK_API_KEY")
     parser.add_argument("--temperature", type=float, default=0.0)
+    parser.add_argument("--flash-thinking", choices=("enabled", "disabled"))
+    parser.add_argument("--pro-thinking", choices=("enabled", "disabled"), default="disabled")
     parser.add_argument("--timeout", type=float, default=60.0)
     parser.add_argument("--max-retries", type=int, default=6)
     parser.add_argument("--retry-sleep", type=float, default=2.0)

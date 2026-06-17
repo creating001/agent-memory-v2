@@ -46,7 +46,13 @@ judge:
     pro: deepseek-v4-pro
   service: api
   temperature: 0.0
-  thinking: default
+  thinking:
+    flash: default
+    pro: disabled
+  request_body_options:
+    pro:
+      thinking:
+        type: disabled
   report:
     strict_accuracy: both_judges_correct
     lenient_accuracy: either_judge_correct
