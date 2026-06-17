@@ -28,6 +28,15 @@
 | 结果 | LongMemEval-S full 单次 flash `395/500 = 0.790000`，avg query tokens `7367.622`，answer repair 触发 `178/500`；过预算且未形成 LTS 提升，已停止，不跑 LoCoMo full。 |
 | 诊断文档 | `diagnostic/stage1_v102_generalization_audit_v104_plan.md` |
 
+## 最新负向候选
+
+| 项目 | 结果 |
+|---|---|
+| 配置 | `configs/stage1_memory_activation_v105_qwen36_no_think_build4k_cached.json` |
+| 目的 | 在 qwen3.6 no-thinking v102 LTS 上打开 source-aligned typed memory activation guide，并用 `memory_aware` raw-row ordering，验证 build memory 是否能从“辅助检索”升级为 query-time organization signal。 |
+| 结果 | LongMemEval-S full strict/lenient `0.774000 / 0.800000`，低于 v102 `0.814000 / 0.830000`；avg query tokens `6614.138`，avg evidence rows 从 v102 `34.752` 降到 `24.528`。负向，停止，不跑 LoCoMo full。 |
+| 诊断结论 | `memory_aware` ordering 让多证据聚合题过早丢 raw rows；下一步只测试 typed memory activation，不改变 v102 retrieval order。 |
+
 ## 历史 qwen3-30b 参考
 
 | 项目 | 结果 |
@@ -73,6 +82,7 @@
 | `stage1_update_conflict_guide_v80_lme_s_full_152b0e5` | LME update/conflict guide 关键提升点。 |
 | `stage1_rerank_context_v103_lme_s_full_f9fae4b` | qwen3.6 no-thinking v103 负结果：LME 单次 flash `405/500 = 0.810`，低于 qwen3.6 v102 dual flash lenient `0.830` 且只换来 query token 降低；说明单 turn rerank + 强裁剪不是当前主线。 |
 | `stage1_context_guard_v104_lme_s_full_043795e` | qwen3.6 no-thinking v104 负结果：LME 单次 flash `395/500 = 0.790`，avg query tokens `7367.622`；说明粗暴取消 profile + broad answer repair 不适合作为 LTS。 |
+| `stage1_memory_activation_v105_qwen36_no_think_build4k_lme_s_full_d8f2b4c` | qwen3.6 no-thinking v105 负结果：LME strict/lenient `0.774/0.800`，typed memory activation + `memory_aware` ordering 降低 multi-session 覆盖，不跑 LoCoMo full。 |
 
 ## 保留 Diagnostic Runs
 
