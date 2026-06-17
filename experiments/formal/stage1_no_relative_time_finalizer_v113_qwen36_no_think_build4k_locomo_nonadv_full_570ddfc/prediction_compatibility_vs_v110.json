@@ -1,0 +1,10 @@
+{
+  "answer_text_changed": 0,
+  "benchmark": "locomo",
+  "changed_record_keys": [],
+  "clean_note": "Prediction text comparison only; does not read labels, judge outputs, benchmark categories, sample ids, or test feedback.",
+  "n_joined": 1540,
+  "new_predictions": "/data/home_new/wujinqi/agent-memory/outputs/formal/stage1_no_relative_time_finalizer_v113_qwen36_no_think_build4k_locomo_nonadv_full_570ddfc/predictions.jsonl",
+  "reference": "v110 modal-only grounded inference",
+  "reference_predictions": "/data/home_new/wujinqi/agent-memory/outputs/formal/stage1_modal_grounded_inference_v110_qwen36_no_think_build4k_locomo_nonadv_full_2f33213/predictions.jsonl"
+}

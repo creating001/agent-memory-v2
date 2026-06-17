@@ -593,3 +593,25 @@ Clean 边界：
 1. 先用 v110 prediction traces seed 相同 prompt 的 base answer cache；该操作只读 prediction-time prompt/answer/raw_response/usage，不读 labels 或 judge。
 2. 先跑 LongMemEval-S full，预期与 v110 基本一致；若 LME lenient 不低于 v102 `0.830000`，继续跑 LoCoMo。
 3. LoCoMo 重点观察 relative-time finalizer 不再触发后是否突破 `0.800000` lenient，同时记录 strict、category delta 和 token 成本。
+
+## v113 run result
+
+正式预测和诊断已完成：
+
+- LME full run `stage1_no_relative_time_finalizer_v113_qwen36_no_think_build4k_lme_s_full_570ddfc`
+  - dual flash strict/lenient `409/500 = 0.818000` / `414/500 = 0.828000`
+  - avg build/query tokens `85393.566 / 6140.218`
+  - answer cache hits/misses `500/0`
+  - answer text changed vs v110 `0/500`
+  - finalizer applied `8/500`，relative-time finalizer `0`
+- LoCoMo prediction run `stage1_no_relative_time_finalizer_v113_qwen36_no_think_build4k_locomo_nonadv_full_570ddfc`
+  - avg build/query tokens `62015.574 / 5775.508`
+  - answer cache hits/misses `1540/0`
+  - answer text changed vs v110 `0/1540`
+  - finalizer applied `0/1540`
+  - 因 predictions 与 v110 完全一致，未重跑 LoCoMo judge；继续 judge 只会测量 dual flash 方差，不会证明方法变化。
+
+结论：
+
+- v113 拒绝为 no-op。v102 finalizer-impact 诊断说明 relative-time mechanical rule 有风险，但该规则在 v110 路径上已经没有实际触发，因此关闭它不能提升当前正向候选。
+- 后续第 4 点不能只关 finalizer 开关，应设计真正的 source-grounded verifier / consistency guardrail；同时第 2/5 点需要继续围绕 evidence sufficiency、coverage-preserving rerank 或 typed memory 作为校验信号，而不是直接重排 final raw rows。
