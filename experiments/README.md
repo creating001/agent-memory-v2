@@ -21,7 +21,12 @@
 
 ## 当前诊断候选
 
-暂无。当前默认 LTS 仍为 qwen3.6 no-thinking v102；下一步候选需要先基于 v109/v108/v107 badcase 和外部方法代码重新设计。
+| 项目 | 结果 |
+|---|---|
+| 配置 | `configs/stage1_modal_grounded_inference_v110_qwen36_no_think_build4k_cached.json` |
+| 目的 | v109 收窄 ablation：保留 `would/might/could/likely/considered` 等 modal yes/no inference 的 grounded inference discipline，排除 plain advice/recommendation `what do you think` 负例。 |
+| 计划 | 先跑 LongMemEval-S full；若 dual flash lenient 不低于 v102 `0.830000`，再跑 LoCoMo non-adversarial full。 |
+| 诊断文档 | `diagnostic/stage1_v102_generalization_audit_v104_plan.md` |
 
 ## 已拒绝上下文候选
 

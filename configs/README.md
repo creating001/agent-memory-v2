@@ -7,6 +7,7 @@
 | 用途 | 配置 | 状态 |
 |---|---|---|
 | 后续新实验默认配置 | `stage1_spacing_profile_v102_qwen36_no_think_build4k_cached.json` | V102 算法 + `Qwen/Qwen3.6-35B-A3B` answer/build backbone；请求级 `chat_template_kwargs.enable_thinking=false`；build `max_tokens=4096`，answer `max_output_tokens=16384`；使用独立 qwen36 no-thinking cache namespace。 |
+| 当前诊断候选 | `stage1_modal_grounded_inference_v110_qwen36_no_think_build4k_cached.json` | v109 收窄 ablation：只在 modal yes/no inference 问题触发 grounded inference discipline，排除 plain advice/recommendation `what do you think` 负例；先跑 LME full，若不低于 v102 再跑 LoCoMo full。 |
 | 已拒绝诊断候选 | `stage1_grounded_inference_v109_qwen36_no_think_build4k_cached.json` | v108 后的新方向：不改 retrieval/build/finalizer，只在 question-text modal/inference 问题上加入 grounded inference discipline；LME full strict/lenient `0.816000 / 0.828000`，主指标低于 v102 `0.830000`，停止，不跑 LoCoMo full。 |
 | 已拒绝诊断候选 | `stage1_source_coverage_v108_qwen36_no_think_build4k_cached.json` | v107 后的新方向：typed memory 不进入 reader prompt，只作为 source-linked coverage signal；LME full strict/lenient `0.802000 / 0.824000`，低于 v102，停止，不跑 LoCoMo full。 |
 | 诊断候选 | `stage1_route_scoped_memory_activation_v107_qwen36_no_think_build4k_cached.json` | v106 route 诊断后的隔离 ablation：只在 question-derived `fact_lookup` / `profile_preference` 打开 source-aligned typed memory activation；LME lenient 与 v102 持平、strict 略低；LoCoMo lenient 与 v102 持平、strict 略低，不作为 LTS。 |
@@ -28,6 +29,7 @@
 - v107 同样复用 v102 build-memory cache，因为 build 阶段完全未改；v107 answer cache 使用独立 `qwen36_no_think_build4k_answer_v107_route_scoped_memory_activation.sqlite`。
 - v108 同样复用 v102 build-memory cache，因为 build 阶段完全未改；v108 answer cache 使用独立 `qwen36_no_think_build4k_answer_v108_source_coverage.sqlite`。为隔离局部 route 改动，正式 run 前可用 `scripts/seed_answer_cache_from_traces.py` 从 v102 prediction traces seed 相同 prompt 的 answer cache；该脚本只读 prediction-time prompt/answer/usage，不读 labels/judge/category/sample id。
 - v109 同样复用 v102 build-memory cache，因为 build/retrieval 全部未改；v109 answer cache 使用独立 `qwen36_no_think_build4k_answer_v109_grounded_inference.sqlite`。为隔离局部 prompt 改动，正式 run 前可从 v102 prediction traces seed 相同 prompt 的 answer cache；只有触发 grounded inference discipline 的 prompt 会新跑。
+- v110 同样复用 v102 build-memory cache，因为 build/retrieval 全部未改；v110 answer cache 使用独立 `qwen36_no_think_build4k_answer_v110_modal_grounded_inference.sqlite`。可先 seed v102 traces，再 seed v109 traces，以复用相同 prompt 的 prediction-time answers；不读取 labels/judge/category/sample id。
 
 ## 当前 Split Best
 

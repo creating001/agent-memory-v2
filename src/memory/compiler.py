@@ -61,6 +61,13 @@ GROUNDED_INFERENCE_PATTERN = re.compile(
     r")\b",
     re.IGNORECASE,
 )
+MODAL_GROUNDED_INFERENCE_PATTERN = re.compile(
+    r"\b("
+    r"would|might|could|likely|unlikely|probably|seem(?:s)?|"
+    r"considered|what\s+might|how\s+would|still\s+want|be\s+considered"
+    r")\b",
+    re.IGNORECASE,
+)
 SUPPORTED_INFORMATION_NEEDS = {
     "current_state",
     "fact_lookup",
@@ -81,6 +88,7 @@ ROUTE_OVERRIDE_KEYS = {
     "evidence_row_labels",
     "final_answer_checklist",
     "grounded_inference_contract",
+    "grounded_inference_gate",
     "max_memory_records",
     "max_evidence_chars",
     "max_evidence_items",
@@ -212,6 +220,7 @@ class EvidenceCompiler:
         current_state_update_contract: bool = False,
         dialogue_inference_contract: bool = False,
         grounded_inference_contract: bool = False,
+        grounded_inference_gate: str = "broad",
         temporal_order_contract: bool = False,
         source_anchor_keep: int = 0,
         source_anchor_memory_rows: int = 0,
@@ -303,6 +312,11 @@ class EvidenceCompiler:
         self._current_state_update_contract = current_state_update_contract
         self._dialogue_inference_contract = dialogue_inference_contract
         self._grounded_inference_contract = grounded_inference_contract
+        if grounded_inference_gate not in {"broad", "modal_only"}:
+            raise ValueError(
+                f"Unsupported grounded_inference_gate: {grounded_inference_gate}"
+            )
+        self._grounded_inference_gate = grounded_inference_gate
         self._temporal_order_contract = temporal_order_contract
         if context_layout not in SUPPORTED_CONTEXT_LAYOUTS:
             raise ValueError(f"Unsupported context_layout: {context_layout}")
@@ -498,7 +512,10 @@ class EvidenceCompiler:
             dialogue_inference_contract=route_settings["dialogue_inference_contract"],
             grounded_inference_contract=(
                 route_settings["grounded_inference_contract"]
-                and _is_grounded_inference_question(question)
+                and _is_grounded_inference_question(
+                    question,
+                    gate=route_settings["grounded_inference_gate"],
+                )
             ),
             temporal_order_contract=route_settings["temporal_order_contract"],
             context_layout=route_settings["context_layout"],
@@ -541,6 +558,7 @@ class EvidenceCompiler:
             "evidence_report_detail": self._evidence_report_detail,
             "final_answer_checklist": self._final_answer_checklist,
             "grounded_inference_contract": self._grounded_inference_contract,
+            "grounded_inference_gate": self._grounded_inference_gate,
             "max_evidence_chars": self._max_evidence_chars,
             "max_evidence_items": self._max_evidence_items,
             "max_memory_records": self._max_memory_records,
@@ -676,6 +694,11 @@ def _validate_route_overrides(
             overrides["grounded_inference_contract"] = bool(
                 raw_overrides["grounded_inference_contract"]
             )
+        if "grounded_inference_gate" in raw_overrides:
+            gate = str(raw_overrides["grounded_inference_gate"])
+            if gate not in {"broad", "modal_only"}:
+                raise ValueError(f"Unsupported grounded_inference_gate: {gate}")
+            overrides["grounded_inference_gate"] = gate
         if "temporal_order_contract" in raw_overrides:
             overrides["temporal_order_contract"] = bool(
                 raw_overrides["temporal_order_contract"]
@@ -2498,13 +2521,17 @@ def _personalized_advice_lines() -> list[str]:
     ]
 
 
-def _is_grounded_inference_question(question: str) -> bool:
+def _is_grounded_inference_question(question: str, *, gate: str = "broad") -> bool:
     text = question.strip().lower()
     if not text:
         return False
     if ASSISTANT_RECALL_PATTERN.search(text):
         return False
-    return bool(GROUNDED_INFERENCE_PATTERN.search(text))
+    if gate == "modal_only":
+        return bool(MODAL_GROUNDED_INFERENCE_PATTERN.search(text))
+    if gate == "broad":
+        return bool(GROUNDED_INFERENCE_PATTERN.search(text))
+    raise ValueError(f"Unsupported grounded_inference_gate: {gate}")
 
 
 def _grounded_inference_lines() -> list[str]:

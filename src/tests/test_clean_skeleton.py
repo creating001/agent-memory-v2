@@ -382,6 +382,47 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertNotIn("question_type", inference_context.prompt)
         self.assertNotIn("sample_id", inference_context.prompt)
 
+    def test_grounded_inference_modal_gate_excludes_plain_advice(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=2,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            evidence_report_contract=True,
+            grounded_inference_contract=True,
+            grounded_inference_gate="modal_only",
+        )
+        rows = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text="Alex has a cat that sheds in the living room.",
+                timestamp="2024-01-01",
+            ),
+        )
+        hits = (RetrievalHit("s1:t0", 1.0, 1, "test"),)
+        route = RouteResult("fact_lookup", ("generic",), 4)
+
+        modal_context = compiler.compile(
+            question="Do you think it might be my living room?",
+            question_time=None,
+            route=route,
+            hits=hits,
+            evidence_turns=rows,
+        )
+        advice_context = compiler.compile(
+            question="I am trying to decide whether to buy now or wait. What do you think?",
+            question_time=None,
+            route=route,
+            hits=hits,
+            evidence_turns=rows,
+        )
+
+        self.assertIn("Grounded Inference Discipline", modal_context.prompt)
+        self.assertNotIn("Grounded Inference Discipline", advice_context.prompt)
+        self.assertNotIn("question_type", modal_context.prompt)
+
     def test_selected_context_skips_long_center_turns(self) -> None:
         config = {
             "retrieval": {

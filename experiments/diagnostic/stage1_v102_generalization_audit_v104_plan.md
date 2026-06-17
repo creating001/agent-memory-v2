@@ -376,3 +376,25 @@ Clean/controlled comparison:
 - v109 不是新 LTS，当前默认仍是 v102。
 - 因为主指标 lenient 低于 v102，停止，不跑 LoCoMo full。
 - grounded inference discipline 方向有局部信号，但不能宽泛作用在 advice/recommendation 问题上。下一步如果继续该方向，应区分 yes/no/modal inference 与 recommendation/advice，或做可拒绝的 abstention verifier，只在“信息不足”明显不成立时修正。
+
+## v110 计划：modal-only grounded inference gate
+
+配置：`configs/stage1_modal_grounded_inference_v110_qwen36_no_think_build4k_cached.json`
+
+设计依据：
+
+- v109 的 triggered 样本中，allergy/living-room 这类 `Do you think it might...` modal inference 从信息不足改为正确；NAS `What do you think?` advice/recommendation 从有用建议改为信息不足而错误。
+- 因此 v110 只收窄 question gate，不改变 prompt discipline 内容：保留 `would`、`might`、`could`、`likely`、`probably`、`considered`、`what might`、`how would` 等 modal yes/no inference；排除 standalone `do/what do you think` 这类 plain advice trigger。
+- 离线计数只用于诊断，不进入 prediction：LongMemEval-S broad gate 触发 `7/500`，modal-only 触发 `6/500`；LoCoMo non-adversarial modal-only 触发 `43/1540`，其中 v102 lenient wrong `29`，且 `28` 个属于 Open-Domain。Prediction 触发仍只使用 question text，不使用 category/gold/judge/sample id。
+
+关键改动：
+
+- 新增 `compiler.grounded_inference_gate`，支持 `broad` 和 `modal_only`；默认 `broad` 保持 v109 配置语义。
+- v110 在 `fact_lookup` / `profile_preference` / `current_state` route override 中设置 `grounded_inference_gate=modal_only`。
+- build/retrieval/granularity profile/selected context/finalizer/backbone 与 v102 保持一致。
+- answer cache 独立为 `outputs/cache/qwen36_no_think_build4k_answer_v110_modal_grounded_inference.sqlite`。
+
+验证策略：
+
+1. 先跑 LongMemEval-S full。若 lenient 低于 v102 `0.830000`，停止，不跑 LoCoMo。
+2. 若 LME lenient 持平或提升，再跑 LoCoMo full；重点观察 Open-Domain modal 问题是否提升，同时确认 Single-Hop/Temporal 不被 prompt discipline 误伤。
