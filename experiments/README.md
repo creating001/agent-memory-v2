@@ -19,6 +19,16 @@
 - 不要把 v101 及之前的 qwen3-30b 数字与 qwen3.6 no-thinking 数字直接当作同 backbone 方法对比。
 - `agent-memory-other` / `agent-memory-gpt` 是外部测试目录，不作为主项目 LTS 结果来源。
 
+## 当前待验证候选
+
+| 项目 | 结果 |
+|---|---|
+| 配置 | `configs/stage1_evidence_unit_rerank_v112_qwen36_no_think_build4k_cached.json` |
+| 目的 | 在 v110 正向候选基础上增加 evidence-unit rerank：中心 raw turn + same-session neighbor + source-linked build memory 作为 rerank 文档，最终 reader 仍以 raw evidence 为主。 |
+| 状态 | 待 formal 验证；先跑 LongMemEval-S full，若主指标不低于当前 v102/v110，再跑 LoCoMo non-adversarial full。 |
+| 诊断边界 | v112 只针对 top-k/context noise 和 build memory 组织信号；granularity/profile 与 selected-context 的 general 风险仍需后续独立处理。 |
+| 诊断文档 | `diagnostic/stage1_v102_generalization_audit_v104_plan.md` |
+
 ## 当前正向候选
 
 | 项目 | 结果 |

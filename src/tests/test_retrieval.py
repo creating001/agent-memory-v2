@@ -10,6 +10,7 @@ if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
 from memory.embeddings import EmbeddingBatch
+from memory.build import MemoryRecord
 from memory.retrieval import (
     DenseEmbeddingRetriever,
     LexicalBM25Retriever,
@@ -19,6 +20,7 @@ from memory.retrieval import (
     prepend_protected_hits,
 )
 from memory.rerank import (
+    format_rerank_evidence_document,
     format_rerank_turn_document,
     rerank_hits_with_anchor_retention,
 )
@@ -222,6 +224,47 @@ class RetrievalTest(unittest.TestCase):
         self.assertLessEqual(len(document), 80)
         self.assertIn("Date: 2024-01-01", document)
         self.assertIn("...", document)
+
+    def test_format_rerank_evidence_document_adds_neighbors_and_memory(self) -> None:
+        turn = Turn(
+            source_id="s1:t1",
+            session_id="s1",
+            turn_index=1,
+            role="user",
+            text="Alex redeemed the coupon at Target.",
+            timestamp="2024-01-02",
+        )
+        neighbor = Turn(
+            source_id="s1:t0",
+            session_id="s1",
+            turn_index=0,
+            role="assistant",
+            text="The coupon was for a grocery trip.",
+            timestamp="2024-01-02",
+        )
+        memory = MemoryRecord(
+            memory_id="m1",
+            memory_type="profile",
+            text="Alex usually redeems grocery coupons at Target.",
+            source_ids=("s1:t1",),
+            status="active",
+        )
+
+        document = format_rerank_evidence_document(
+            turn,
+            mode="turn_with_neighbors_and_memory",
+            neighbor_turns=(neighbor,),
+            memory_records=(memory,),
+        )
+
+        self.assertIn("Center Turn", document)
+        self.assertIn("Alex redeemed the coupon at Target", document)
+        self.assertIn("Neighbor Context", document)
+        self.assertIn("The coupon was for a grocery trip", document)
+        self.assertIn("Activated Build Memory", document)
+        self.assertIn("type=profile", document)
+        self.assertIn("sources=s1:t1", document)
+        self.assertNotIn("question_type", document)
 
 
 class _FakeEmbedder:

@@ -9,6 +9,7 @@ import urllib.request
 from dataclasses import dataclass
 from typing import Any
 
+from memory.build import MemoryRecord
 from common.schemas import RetrievalHit, Turn
 
 
@@ -177,6 +178,39 @@ def format_rerank_turn_document(turn: Turn, *, max_chars: int = 0) -> str:
     return truncate_for_rerank(text, max_chars=max_chars)
 
 
+def format_rerank_evidence_document(
+    turn: Turn,
+    *,
+    mode: str,
+    neighbor_turns: tuple[Turn, ...] = (),
+    memory_records: tuple[MemoryRecord, ...] = (),
+    max_chars: int = 0,
+    neighbor_max_chars: int = 240,
+    max_memory_records: int = 3,
+    memory_max_chars: int = 220,
+) -> str:
+    """Format a rerank document while keeping raw turn as the selection unit."""
+
+    if mode == "turn":
+        return format_rerank_turn_document(turn, max_chars=max_chars)
+    if mode not in {"turn_with_neighbors", "turn_with_neighbors_and_memory"}:
+        raise ValueError(f"Unsupported rerank document_text_mode: {mode}")
+
+    lines = [
+        "Center Turn:",
+        format_rerank_turn_document(turn),
+    ]
+    if neighbor_turns:
+        lines.extend(["", "Neighbor Context:"])
+        for neighbor in neighbor_turns:
+            lines.append(_short_turn_line(neighbor, max_chars=neighbor_max_chars))
+    if mode == "turn_with_neighbors_and_memory" and memory_records:
+        lines.extend(["", "Activated Build Memory:"])
+        for record in memory_records[: max(0, max_memory_records)]:
+            lines.append(_short_memory_line(record, max_chars=memory_max_chars))
+    return truncate_for_rerank("\n".join(lines), max_chars=max_chars)
+
+
 def truncate_for_rerank(document: str, *, max_chars: int = 0) -> str:
     if max_chars <= 0 or len(document) <= max_chars:
         return document
@@ -186,6 +220,30 @@ def truncate_for_rerank(document: str, *, max_chars: int = 0) -> str:
     left = (max_chars - len(marker)) // 2
     right = max_chars - len(marker) - left
     return f"{document[:left]}{marker}{document[-right:]}"
+
+
+def _short_turn_line(turn: Turn, *, max_chars: int) -> str:
+    text = f"{turn.role}: {turn.text}"
+    if max_chars > 0 and len(text) > max_chars:
+        text = text[: max(0, max_chars - 3)].rstrip() + "..."
+    if turn.timestamp:
+        return f"- Date: {turn.timestamp} | {text}"
+    return f"- {text}"
+
+
+def _short_memory_line(record: MemoryRecord, *, max_chars: int) -> str:
+    text = record.text
+    if max_chars > 0 and len(text) > max_chars:
+        text = text[: max(0, max_chars - 3)].rstrip() + "..."
+    fields = [
+        f"type={record.memory_type}",
+        f"status={record.status}",
+    ]
+    if record.timestamp:
+        fields.append(f"time={record.timestamp}")
+    if record.source_ids:
+        fields.append("sources=" + ",".join(record.source_ids[:3]))
+    return f"- {' | '.join(fields)} | {text}"
 
 
 def _reranked_hit(*, hit: RetrievalHit, score: float, rank: int) -> RetrievalHit:

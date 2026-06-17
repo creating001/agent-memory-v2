@@ -7,6 +7,7 @@
 | 用途 | 配置 | 状态 |
 |---|---|---|
 | 后续新实验默认配置 | `stage1_spacing_profile_v102_qwen36_no_think_build4k_cached.json` | V102 算法 + `Qwen/Qwen3.6-35B-A3B` answer/build backbone；请求级 `chat_template_kwargs.enable_thinking=false`；build `max_tokens=4096`，answer `max_output_tokens=16384`；使用独立 qwen36 no-thinking cache namespace。 |
+| 当前待验证诊断候选 | `stage1_evidence_unit_rerank_v112_qwen36_no_think_build4k_cached.json` | 在 v110 正向候选基础上加入 Qwen3-Reranker-0.6B evidence-unit rerank；rerank 文档为中心 raw turn + 同 session 邻居 + source-linked build memory，最终 answer context 仍是 raw evidence first。仅处理 top-k/context noise 与 build memory 组织信号，不声称解决 granularity/profile 的全部 general 风险。 |
 | 已拒绝诊断候选 | `stage1_modal_abstention_repair_v111_qwen36_no_think_build4k_cached.json` | 在 v110 基础上增加 source-grounded modal abstention repair；只在 modal/inference 问题的最终 draft answer 明确拒答/信息不足时触发 verifier。Smoke 有局部收益，但 LongMemEval-S full strict/lenient `0.816000 / 0.828000`，主指标低于 v102 `0.830000` 和 v110 `0.834000`，停止，不跑 LoCoMo full。 |
 | 正向但未达标候选 | `stage1_modal_grounded_inference_v110_qwen36_no_think_build4k_cached.json` | v109 收窄 ablation：只在 modal yes/no inference 问题触发 grounded inference discipline，排除 plain advice/recommendation `what do you think` 负例；LME strict/lenient `0.812000 / 0.834000`，LoCoMo strict/lenient `0.779221 / 0.799351`，LoCoMo lenient 距 `0.800000` 还差 1 题，暂不替代 v102 LTS。 |
 | 已拒绝诊断候选 | `stage1_grounded_inference_v109_qwen36_no_think_build4k_cached.json` | v108 后的新方向：不改 retrieval/build/finalizer，只在 question-text modal/inference 问题上加入 grounded inference discipline；LME full strict/lenient `0.816000 / 0.828000`，主指标低于 v102 `0.830000`，停止，不跑 LoCoMo full。 |
@@ -32,6 +33,7 @@
 - v109 同样复用 v102 build-memory cache，因为 build/retrieval 全部未改；v109 answer cache 使用独立 `qwen36_no_think_build4k_answer_v109_grounded_inference.sqlite`。为隔离局部 prompt 改动，正式 run 前可从 v102 prediction traces seed 相同 prompt 的 answer cache；只有触发 grounded inference discipline 的 prompt 会新跑。
 - v110 同样复用 v102 build-memory cache，因为 build/retrieval 全部未改；v110 answer cache 使用独立 `qwen36_no_think_build4k_answer_v110_modal_grounded_inference.sqlite`。正式 run 前用 v102 traces + v102 predictions seed 相同 prompt 的 prediction-time final answers；不读取 labels/judge/category/sample id，不再用 v109 traces 覆盖未改 prompt。v110 是当前正向候选，不是默认 LTS。
 - v111 同样复用 v102 build-memory cache，base answer cache 使用独立 `qwen36_no_think_build4k_answer_v111_modal_abstention_repair.sqlite`，可从 v110 traces + predictions seed；repair cache 使用 `qwen36_no_think_build4k_answer_repair_v111_modal_abstention.sqlite`。repair trigger 只看 prediction-time question/draft answer/Memory Context，不读取 labels/judge/category/sample id。
+- v112 同样复用 v102 build-memory cache，因为 build 阶段未改；answer cache 使用独立 `qwen36_no_think_build4k_answer_v112_evidence_unit_rerank.sqlite`。rerank 只读 question text、raw turns、same-session neighbors 和 build-memory source links，不读取 labels/judge/category/sample id。
 
 ## 当前 Split Best
 

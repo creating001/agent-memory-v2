@@ -493,3 +493,42 @@ Smoke 诊断：
 - v111 不是新 LTS，也不是可继续 full 的候选；因为 LongMemEval-S 主指标低于 v102 和 v110，停止，不跑 LoCoMo full。
 - v111 支持一个方法判断：source-grounded verifier 能修少量 over-abstention，但继续堆 answer-side verifier 不稳。
 - 下一步应回到当前目标的第 2/5 点：设计 evidence-unit rerank 和更好的 build-memory organization/query-time support，同时保持第 1/3 点的 profile/selected-context 风险在审计范围内。
+
+## v112 计划：evidence-unit rerank
+
+配置：`configs/stage1_evidence_unit_rerank_v112_qwen36_no_think_build4k_cached.json`
+
+设计依据：
+
+- 当前目标第 2 点指出 v102/v110 多路检索 top-k 较大，可能带来 context noise；第 5 点指出 build memory 主要只是投影回 source，不足以体现组织、管理和 query-time support。
+- v103 已证明“单 raw turn rerank + 强裁剪 final context”会伤 LME，因此 v112 不再压缩 answer context，也不降低 v110 的 top-k/compiler budget。
+- v105-v108 已证明直接把 typed memory guide 放进 reader prompt 或用 memory source links 重排 final rows 不稳定，因此 v112 只让 build memory 进入 rerank 文档，最终 reader 仍以 raw Memory Context 为主。
+- Hindsight 代码/文档中 recall 采用多路检索 RRF 后 cross-encoder rerank，并只用 conservative boost 调整排序；v112 借鉴“rerank 作为排序信号而不是唯一证据源”，但不引入其 graph/temporal boost，避免新复杂度。
+- TeleMem/mem0 代码中 search 会跨 user/event scopes 收集候选后做 optional global rerank；v112 借鉴“跨来源候选先融合再 rerank”，但不引入 persona/user_id 专用逻辑。
+- Graphiti/Zep 代码把 fact 的 `valid_at/invalid_at/created_at` 与 episode search/reranker 分开；v112 借鉴“fact/source/episode 分层”，但暂不引入完整图结构。
+
+关键改动：
+
+- 在 rerank 层新增 `document_text_mode`：
+  - `turn`：旧行为，默认保持不变；
+  - `turn_with_neighbors`：中心 raw turn + 同 session 邻居；
+  - `turn_with_neighbors_and_memory`：中心 raw turn + 同 session 邻居 + source-linked build memory。
+- v112 使用 `turn_with_neighbors_and_memory`，每个 rerank document 仍以一个 raw turn 为 selection unit；memory records 只作为排序提示，不进入最终 reader prompt，也不能独立替代 raw source。
+- rerank 只在 question-derived `fact_lookup` / `profile_preference` / `current_state` 上启用；`temporal_lookup` / `list_count` 维持 v110，避免重复 v103 在 temporal/list 上的覆盖损失。
+- `pool_k=60`，`anchor_keep=32`，`anchor_after_top=8`，保留原始融合检索 anchors，避免 cross-encoder 过度覆盖 BM25/dense/source recall。
+- `document_max_chars=1800`，`document_neighbor_window=1`，`document_max_memory_records=3`。这些只影响 rerank 模型输入，不计入 LLM visible token 预算；run summary 会额外记录 rerank token。
+- build/retrieval top-k、granularity profiles、selected context、compiler、modal grounded inference、answer finalizer 和 answer backbone 与 v110 保持一致；build cache 复用 v102，answer cache 独立为 `qwen36_no_think_build4k_answer_v112_evidence_unit_rerank.sqlite`。
+
+Clean 边界：
+
+- rerank 输入只有 question text、question_time、raw turns、same-session neighbor、build-memory source links 和 build-memory text。
+- 不读取 LongMemEval question_type、LoCoMo category、gold answer、judge output、sample id、row index 或 test feedback。
+- build memory 是 question-independent 从 raw dialogue 构建；cache hit 只减少重复调用，正式 token 仍按逻辑 cold-build usage 统计。
+
+验证策略：
+
+1. 先跑单元测试，确认默认 `turn` rerank 行为不变，evidence-unit document 不含隐藏 label。
+2. 确认 rerank 服务可用后做小 smoke，只检查 trace 中 rerank document mode、applied count、query token 和 prompt clean。
+3. 先跑 LongMemEval-S full。若 lenient 低于 v102 `0.830000` 且低于 v110 `0.834000`，停止，不跑 LoCoMo。
+4. 若 LME 持平或提升，再跑 LoCoMo non-adversarial full；重点看 LoCoMo 是否突破 `0.800000` lenient，同时检查 Multi-Hop/Temporal/Single-Hop 是否被 rerank collateral damage 抵消。
+5. 无论结果正负，都在 formal run 下记录 commit、配置、token 成本、rerank token、outputs path、metrics 和 diagnosis。

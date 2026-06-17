@@ -462,6 +462,15 @@ def main() -> int:
             "rerank_document_max_chars": config.get("retrieval", {})
             .get("rerank", {})
             .get("document_max_chars"),
+            "rerank_document_text_mode": config.get("retrieval", {})
+            .get("rerank", {})
+            .get("document_text_mode", "turn"),
+            "rerank_document_neighbor_window": config.get("retrieval", {})
+            .get("rerank", {})
+            .get("document_neighbor_window"),
+            "rerank_document_max_memory_records": config.get("retrieval", {})
+            .get("rerank", {})
+            .get("document_max_memory_records"),
             "rerank_anchor_keep": config.get("retrieval", {})
             .get("rerank", {})
             .get("anchor_keep"),
@@ -1183,6 +1192,9 @@ def _write_summary(
         f"- rerank_enabled: {metrics['retrieval']['rerank_enabled']}",
         f"- rerank_model: {metrics['retrieval']['rerank_model']}",
         f"- rerank_pool_k: {metrics['retrieval']['rerank_pool_k']}",
+        f"- rerank_document_text_mode: {metrics['retrieval']['rerank_document_text_mode']}",
+        f"- rerank_document_neighbor_window: {metrics['retrieval']['rerank_document_neighbor_window']}",
+        f"- rerank_document_max_memory_records: {metrics['retrieval']['rerank_document_max_memory_records']}",
         f"- rerank_anchor_keep: {metrics['retrieval']['rerank_anchor_keep']}",
         f"- rerank_anchor_after_top: {metrics['retrieval']['rerank_anchor_after_top']}",
         f"- rerank_applied_count: {metrics['retrieval']['rerank_applied_count']}",
@@ -1404,6 +1416,9 @@ def _write_diagnosis(
         f"- rerank_enabled: {metrics['retrieval']['rerank_enabled']}",
         f"- rerank_model: {metrics['retrieval']['rerank_model']}",
         f"- rerank_pool_k: {metrics['retrieval']['rerank_pool_k']}",
+        f"- rerank_document_text_mode: {metrics['retrieval']['rerank_document_text_mode']}",
+        f"- rerank_document_neighbor_window: {metrics['retrieval']['rerank_document_neighbor_window']}",
+        f"- rerank_document_max_memory_records: {metrics['retrieval']['rerank_document_max_memory_records']}",
         f"- rerank_anchor_keep: {metrics['retrieval']['rerank_anchor_keep']}",
         f"- rerank_anchor_after_top: {metrics['retrieval']['rerank_anchor_after_top']}",
         f"- rerank_applied_count: {metrics['retrieval']['rerank_applied_count']}",

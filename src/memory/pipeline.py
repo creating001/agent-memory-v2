@@ -16,6 +16,7 @@ from memory.finalize import AnswerFinalization, finalize_structured_answer
 from memory.repair import maybe_repair_answer
 from memory.rerank import (
     OpenAICompatibleRerankClient,
+    format_rerank_evidence_document,
     format_rerank_turn_document,
     rerank_hits_with_anchor_retention,
 )
@@ -263,6 +264,30 @@ class Stage1Pipeline:
         self._rerank_timeout = float(rerank_config.get("timeout", 120.0))
         self._rerank_document_max_chars = int(
             rerank_config.get("document_max_chars", 0)
+        )
+        self._rerank_document_text_mode = str(
+            rerank_config.get("document_text_mode", "turn")
+        )
+        if self._rerank_document_text_mode not in {
+            "turn",
+            "turn_with_neighbors",
+            "turn_with_neighbors_and_memory",
+        }:
+            raise ValueError(
+                "Unsupported retrieval.rerank.document_text_mode: "
+                f"{self._rerank_document_text_mode}"
+            )
+        self._rerank_document_neighbor_window = int(
+            rerank_config.get("document_neighbor_window", 1)
+        )
+        self._rerank_document_neighbor_max_chars = int(
+            rerank_config.get("document_neighbor_max_chars", 240)
+        )
+        self._rerank_document_max_memory_records = int(
+            rerank_config.get("document_max_memory_records", 3)
+        )
+        self._rerank_document_memory_max_chars = int(
+            rerank_config.get("document_memory_max_chars", 220)
         )
         self._rerank_anchor_keep = int(rerank_config.get("anchor_keep", 0))
         self._rerank_anchor_after_top = int(
@@ -947,6 +972,7 @@ class Stage1Pipeline:
                 request=request,
                 hits=hits,
                 top_k=top_k,
+                memory_hits=memory_hits,
             )
         evidence_turns = store.expand_neighbors(
             (hit.source_id for hit in hits),
@@ -1203,6 +1229,19 @@ class Stage1Pipeline:
                     "rerank_document_max_chars": self._rerank_document_max_chars
                     if self._rerank_enabled
                     else None,
+                    "rerank_document_text_mode": self._rerank_document_text_mode
+                    if self._rerank_enabled
+                    else None,
+                    "rerank_document_neighbor_window": (
+                        self._rerank_document_neighbor_window
+                        if self._rerank_enabled
+                        else None
+                    ),
+                    "rerank_document_max_memory_records": (
+                        self._rerank_document_max_memory_records
+                        if self._rerank_enabled
+                        else None
+                    ),
                     "rerank_anchor_keep": self._rerank_anchor_keep
                     if self._rerank_enabled
                     else None,
@@ -1395,6 +1434,7 @@ class Stage1Pipeline:
         request: PredictionRequest,
         hits: tuple[RetrievalHit, ...],
         top_k: int,
+        memory_hits: tuple[Any, ...],
     ) -> tuple[tuple[RetrievalHit, ...], dict[str, Any]]:
         if self._rerank_client is None or not hits:
             return hits[:top_k], _disabled_rerank_trace(
@@ -1415,12 +1455,14 @@ class Stage1Pipeline:
             trace["response"] = {"skipped": "no_source_documents"}
             return hits[:top_k], trace
         rerank_hits = tuple(hit for hit, _turn in rerank_items)
+        memory_records_by_source = _memory_records_by_source(memory_hits)
         documents = [
-            format_rerank_turn_document(
-                turn,
-                max_chars=self._rerank_document_max_chars,
+            self._format_rerank_document(
+                store=store,
+                turn=turn,
+                memory_records=memory_records_by_source.get(hit.source_id, ()),
             )
-            for _hit, turn in rerank_items
+            for hit, turn in rerank_items
         ]
         query = _dense_query_text(
             request.question,
@@ -1442,8 +1484,41 @@ class Stage1Pipeline:
             "candidate_count": len(rerank_hits),
             "returned_count": len(reranked_hits),
             "total_tokens": result.total_tokens,
+            "document_text_mode": self._rerank_document_text_mode,
+            "document_neighbor_window": self._rerank_document_neighbor_window,
+            "document_max_memory_records": (
+                self._rerank_document_max_memory_records
+            ),
             "response": result.response,
         }
+
+    def _format_rerank_document(
+        self,
+        *,
+        store: RawEvidenceStore,
+        turn: Any,
+        memory_records: tuple[Any, ...],
+    ) -> str:
+        if self._rerank_document_text_mode == "turn":
+            return format_rerank_turn_document(
+                turn,
+                max_chars=self._rerank_document_max_chars,
+            )
+        neighbor_turns = _neighbor_turns_for_rerank(
+            store,
+            turn,
+            window=self._rerank_document_neighbor_window,
+        )
+        return format_rerank_evidence_document(
+            turn,
+            mode=self._rerank_document_text_mode,
+            neighbor_turns=neighbor_turns,
+            memory_records=memory_records,
+            max_chars=self._rerank_document_max_chars,
+            neighbor_max_chars=self._rerank_document_neighbor_max_chars,
+            max_memory_records=self._rerank_document_max_memory_records,
+            memory_max_chars=self._rerank_document_memory_max_chars,
+        )
 
     def _finalize_answer(
         self,
@@ -1500,6 +1575,54 @@ class Stage1Pipeline:
                 bool(settings.get("enable_relative_time_calculation", False))
             ),
         )
+
+
+def _neighbor_turns_for_rerank(
+    store: RawEvidenceStore,
+    turn: Any,
+    *,
+    window: int,
+) -> tuple[Any, ...]:
+    window = max(0, int(window))
+    if window <= 0:
+        return ()
+    session_turns = store.session_turns(turn.session_id)
+    positions = {
+        candidate.source_id: index for index, candidate in enumerate(session_turns)
+    }
+    position = positions.get(turn.source_id)
+    if position is None:
+        return ()
+    start = max(0, position - window)
+    end = min(len(session_turns), position + window + 1)
+    return tuple(
+        candidate
+        for candidate in session_turns[start:end]
+        if candidate.source_id != turn.source_id
+    )
+
+
+def _memory_records_by_source(
+    memory_hits: tuple[Any, ...],
+) -> dict[str, tuple[Any, ...]]:
+    records_by_source: dict[str, list[Any]] = {}
+    seen_by_source: dict[str, set[str]] = {}
+    for memory_hit in memory_hits:
+        record = getattr(memory_hit, "record", None)
+        if record is None:
+            continue
+        memory_id = str(getattr(record, "memory_id", id(record)))
+        for source_id in getattr(record, "source_ids", ()) or ():
+            seen = seen_by_source.setdefault(source_id, set())
+            if memory_id in seen:
+                continue
+            seen.add(memory_id)
+            records_by_source.setdefault(source_id, []).append(record)
+    return {
+        source_id: tuple(records)
+        for source_id, records in records_by_source.items()
+    }
+
 
 _SOURCE_ALIGNMENT_STOPWORDS = {
     "a",

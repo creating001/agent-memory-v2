@@ -42,6 +42,8 @@ from memory.pipeline import (
     Stage1Pipeline,
     _align_build_memory_sources,
     _compiler_memory_records,
+    _memory_records_by_source,
+    _neighbor_turns_for_rerank,
 )
 from memory.store import RawEvidenceStore
 from common.schemas import (
@@ -654,6 +656,49 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual(rows[0]["source_id"], "good")
         self.assertNotIn("question_type", result["trace"]["compiled_context"]["prompt"])
         self.assertEqual(result["trace"]["token_cost"]["query_tokens"], 0)
+
+    def test_rerank_neighbors_are_same_session_only(self) -> None:
+        store = RawEvidenceStore(
+            (
+                Turn("s1:t0", "s1", 0, "user", "Before turn."),
+                Turn("s1:t1", "s1", 1, "user", "Center turn."),
+                Turn("s1:t2", "s1", 2, "assistant", "After turn."),
+                Turn("s2:t0", "s2", 0, "user", "Other session turn."),
+            )
+        )
+
+        neighbors = _neighbor_turns_for_rerank(
+            store,
+            store.get("s1:t1"),
+            window=1,
+        )
+
+        self.assertEqual([turn.source_id for turn in neighbors], ["s1:t0", "s1:t2"])
+
+    def test_memory_records_by_source_deduplicates_source_links(self) -> None:
+        record = MemoryRecord(
+            memory_id="m1",
+            memory_type="fact",
+            text="Alex redeemed a coupon at Target.",
+            source_ids=("s1:t0", "s1:t1", "s1:t0"),
+        )
+        other = MemoryRecord(
+            memory_id="m2",
+            memory_type="profile",
+            text="Alex likes grocery discounts.",
+            source_ids=("s1:t1",),
+        )
+
+        by_source = _memory_records_by_source(
+            (
+                MemoryHit(record=record, score=1.0, rank=1),
+                MemoryHit(record=other, score=0.5, rank=2),
+                MemoryHit(record=record, score=0.1, rank=3),
+            )
+        )
+
+        self.assertEqual(by_source["s1:t0"], (record,))
+        self.assertEqual(by_source["s1:t1"], (record, other))
 
     def test_scoped_evidence_is_disabled_by_default(self) -> None:
         result = Stage1Pipeline(
