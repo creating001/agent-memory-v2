@@ -13,7 +13,12 @@ if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
 from common.clean import CleanProtocolViolation, assert_clean_prediction_payload
-from memory.answer import CachedAnswerer, _message_text, _parse_answer_content
+from memory.answer import (
+    CachedAnswerer,
+    OpenAICompatibleAnswerer,
+    _message_text,
+    _parse_answer_content,
+)
 from memory.build import MemoryRecord
 from memory.compiler import EvidenceCompiler
 from memory.finalize import finalize_structured_answer, raw_response_content
@@ -979,6 +984,58 @@ class CleanSkeletonTest(unittest.TestCase):
 
     def test_answer_message_text_accepts_reasoning_field(self) -> None:
         self.assertEqual(_message_text({"content": None, "reasoning": "answer"}), "answer")
+
+    def test_openai_answerer_sends_chat_template_kwargs(self) -> None:
+        captured: dict[str, object] = {}
+
+        class FakeResponse:
+            def __enter__(self) -> "FakeResponse":
+                return self
+
+            def __exit__(self, *_args: object) -> None:
+                return None
+
+            def read(self) -> bytes:
+                return json.dumps(
+                    {
+                        "choices": [
+                            {"message": {"content": '{"answer":"jasmine tea"}'}}
+                        ],
+                        "usage": {"prompt_tokens": 10, "completion_tokens": 2},
+                    }
+                ).encode("utf-8")
+
+        class FakeOpener:
+            def open(self, request: object, timeout: float) -> FakeResponse:
+                del timeout
+                captured["payload"] = json.loads(request.data.decode("utf-8"))
+                return FakeResponse()
+
+        answerer = OpenAICompatibleAnswerer(
+            base_url="http://unused.local/v1",
+            model="fake-model",
+            temperature=0.0,
+            max_tokens=16,
+            timeout=1.0,
+            output_format="json_answer",
+            chat_template_kwargs={"enable_thinking": False},
+        )
+        context = CompiledContext(
+            question="What tea?",
+            question_time=None,
+            route=RouteResult("fact_lookup", (), 1),
+            evidence_rows=(),
+            prompt="Answer from evidence.",
+            context_chars=21,
+        )
+
+        with patch("memory.answer.urllib.request.build_opener", return_value=FakeOpener()):
+            answerer.answer(context)
+
+        self.assertEqual(
+            captured["payload"]["chat_template_kwargs"],
+            {"enable_thinking": False},
+        )
 
     def test_json_answer_output_extracts_answer_field(self) -> None:
         raw = '{"reasoning":"supported by memory","answer":"jasmine tea"}'

@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import json
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SRC_ROOT = REPO_ROOT / "src"
@@ -25,6 +27,70 @@ from common.schemas import RetrievalHit, RouteResult, Turn
 
 
 class BuildMemoryTest(unittest.TestCase):
+    def test_openai_memory_builder_sends_chat_template_kwargs(self) -> None:
+        captured: dict[str, object] = {}
+
+        class FakeResponse:
+            def __enter__(self) -> "FakeResponse":
+                return self
+
+            def __exit__(self, *_args: object) -> None:
+                return None
+
+            def read(self) -> bytes:
+                return json.dumps(
+                    {
+                        "choices": [
+                            {
+                                "message": {
+                                    "content": (
+                                        '{"records":[{"type":"fact",'
+                                        '"text":"Alex likes jasmine tea.",'
+                                        '"source_ids":["s1:t0"]}]}'
+                                    )
+                                }
+                            }
+                        ],
+                        "usage": {"prompt_tokens": 20, "completion_tokens": 5},
+                    }
+                ).encode("utf-8")
+
+        class FakeOpener:
+            def open(self, request: object, timeout: float) -> FakeResponse:
+                del timeout
+                captured["payload"] = json.loads(request.data.decode("utf-8"))
+                return FakeResponse()
+
+        builder = OpenAICompatibleMemoryBuilder(
+            base_url="http://unused.local/v1",
+            model="fake-model",
+            temperature=0.0,
+            max_tokens=256,
+            timeout=1.0,
+            max_turns_per_chunk=10,
+            max_chars_per_turn=1000,
+            max_records_per_chunk=4,
+            chat_template_kwargs={"enable_thinking": False},
+        )
+
+        with patch("memory.build.urllib.request.build_opener", return_value=FakeOpener()):
+            builder.build(
+                (
+                    Turn(
+                        source_id="s1:t0",
+                        session_id="s1",
+                        turn_index=0,
+                        role="user",
+                        text="Alex likes jasmine tea.",
+                    ),
+                )
+            )
+
+        self.assertEqual(
+            captured["payload"]["chat_template_kwargs"],
+            {"enable_thinking": False},
+        )
+
     def test_build_cache_hit_counts_cached_usage_as_logical_build_cost(self) -> None:
         class FakeBuilder(OpenAICompatibleMemoryBuilder):
             def __init__(self, cache_path: str):

@@ -142,6 +142,7 @@ class OpenAICompatibleMemoryBuilder:
         temporal_fields: bool = False,
         prompt_profile: str = "typed_compact",
         manage_facts: bool = True,
+        chat_template_kwargs: dict[str, Any] | None = None,
     ):
         if prompt_profile not in {"typed_compact", "lossless_atomic"}:
             raise ValueError(f"Unsupported build_memory.prompt_profile: {prompt_profile}")
@@ -163,6 +164,7 @@ class OpenAICompatibleMemoryBuilder:
         self._temporal_fields = temporal_fields
         self._prompt_profile = prompt_profile
         self._manage_facts = manage_facts
+        self._chat_template_kwargs = dict(chat_template_kwargs or {})
         self._connection: sqlite3.Connection | None = None
         self._cache_stats = BuildMemoryCacheStats()
 
@@ -317,14 +319,15 @@ class OpenAICompatibleMemoryBuilder:
 
     def _chat_completion(self, prompt: str) -> dict[str, Any]:
         endpoint = self._base_url + "/chat/completions"
-        request_body = json.dumps(
-            {
-                "model": self._model,
-                "messages": [{"role": "user", "content": prompt}],
-                "temperature": self._temperature,
-                "max_tokens": self._max_tokens,
-            }
-        ).encode("utf-8")
+        payload: dict[str, Any] = {
+            "model": self._model,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": self._temperature,
+            "max_tokens": self._max_tokens,
+        }
+        if self._chat_template_kwargs:
+            payload["chat_template_kwargs"] = self._chat_template_kwargs
+        request_body = json.dumps(payload).encode("utf-8")
         headers = {"Content-Type": "application/json"}
         if self._api_key_env:
             api_key = os.environ.get(self._api_key_env)

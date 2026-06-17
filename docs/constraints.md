@@ -9,12 +9,12 @@
 
 ## Performance Targets
 
-正确率目标是阶段性主线目标，不是破坏 clean setting 或成本约束的理由。所有结果必须同时满足 `docs/clean_protocol.md` 和本文档的 token 预算要求。
+正确率目标是阶段性主线目标，不是破坏 clean setting 或成本约束的理由。所有结果必须同时满足 `docs/clean_protocol.md` 和本文档的 token 预算要求。启用 dual judge 后，target 默认按 `lenient_accuracy` 判断，`strict_accuracy` 必须同时汇报为保守下界。
 
 | Benchmark | Scope | Baseline target | Minimum target | Mainline target | Stretch target |
 |---|---|---:|---:|---:|---:|
-| LongMemEval | full | >= 80% accuracy | >= 82% accuracy | >= 84% accuracy | >= 86% accuracy |
-| LoCoMo | non-adversarial | >= 78% accuracy | >= 80% accuracy | >= 82% accuracy | >= 84% accuracy |
+| LongMemEval | full | >= 82% accuracy | >= 85% accuracy | >= 88% accuracy | >= 91% accuracy |
+| LoCoMo | non-adversarial | >= 80% accuracy | >= 83% accuracy | >= 86% accuracy | >= 89% accuracy |
 
 ## Default Budgets
 

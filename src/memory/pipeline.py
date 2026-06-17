@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 from collections.abc import Mapping
 from dataclasses import replace
@@ -161,6 +162,7 @@ class Stage1Pipeline:
             "overlap_turns": int(build_memory_config.get("overlap_turns", 0)),
             "max_chars_per_turn": build_memory_config.get("max_chars_per_turn"),
             "max_records_per_chunk": build_memory_config.get("max_records_per_chunk"),
+            "chat_template_kwargs": build_memory_config.get("chat_template_kwargs"),
             "temporal_fields": bool(build_memory_config.get("temporal_fields", False)),
             "prompt_profile": str(
                 build_memory_config.get("prompt_profile", "typed_compact")
@@ -321,6 +323,9 @@ class Stage1Pipeline:
                     build_memory_config.get("prompt_profile", "typed_compact")
                 ),
                 manage_facts=bool(build_memory_config.get("manage_facts", True)),
+                chat_template_kwargs=_dict_config(
+                    build_memory_config.get("chat_template_kwargs")
+                ),
             )
         if self._dense_enabled:
             self._embedding_client = OpenAICompatibleEmbeddingClient(
@@ -698,6 +703,9 @@ class Stage1Pipeline:
                 "max_output_tokens": _answer_max_output_tokens(repair_answer_config),
                 "output_format": repair_answer_config.get(
                     "output_format", "json_answer"
+                ),
+                "chat_template_kwargs": repair_answer_config.get(
+                    "chat_template_kwargs"
                 ),
                 "cache_enabled": self._answer_repair_cache_enabled,
                 "cache_path": self._answer_repair_cache_path,
@@ -1955,6 +1963,14 @@ def _tuple_config(value: object) -> tuple[str, ...]:
     return (str(value),)
 
 
+def _dict_config(value: object) -> dict[str, Any]:
+    if value is None:
+        return {}
+    if isinstance(value, Mapping):
+        return dict(value)
+    raise ValueError(f"Expected mapping config, got {type(value).__name__}")
+
+
 RETRIEVAL_ROUTE_OVERRIDE_KEYS = {
     "top_k",
     "max_top_k",
@@ -2522,6 +2538,11 @@ def _answer_cache_namespace(
         "max_input_tokens": answer_config.get("max_input_tokens"),
         "max_output_tokens": _answer_max_output_tokens(answer_config),
         "output_format": answer_config.get("output_format", "text"),
+        "chat_template_kwargs": json.dumps(
+            _dict_config(answer_config.get("chat_template_kwargs")),
+            ensure_ascii=False,
+            sort_keys=True,
+        ),
     }
     return "answer:" + "|".join(f"{key}={fields[key]}" for key in sorted(fields))
 
@@ -2541,6 +2562,7 @@ def _repair_answer_config(
         "api_key_env",
         "output_format",
         "fallback_answer",
+        "chat_template_kwargs",
     )
     merged: dict[str, Any] = {
         key: answer_config[key] for key in inherited_keys if key in answer_config
@@ -2618,6 +2640,7 @@ def _configured_answerer(
             max_input_tokens=_optional_int(answer_config.get("max_input_tokens")),
             api_key_env=answer_config.get("api_key_env"),
             output_format=str(answer_config.get("output_format", "text")),
+            chat_template_kwargs=_dict_config(answer_config.get("chat_template_kwargs")),
         )
     elif answer_mode == "null_answerer":
         answerer = NullAnswerer(
@@ -2657,6 +2680,7 @@ def _answerer_trace_config(answer_config: Mapping[str, Any]) -> dict[str, Any]:
         "max_input_tokens": answer_config.get("max_input_tokens"),
         "max_output_tokens": _answer_max_output_tokens(answer_config),
         "output_format": answer_config.get("output_format", "text"),
+        "chat_template_kwargs": answer_config.get("chat_template_kwargs"),
         "cache_enabled": bool(cache_config.get("enabled", False)),
         "cache_path": cache_config.get("path"),
         "cache_namespace": _answer_cache_namespace(answer_config, answer_mode),

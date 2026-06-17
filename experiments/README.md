@@ -2,23 +2,32 @@
 
 `experiments/` 是人工查看正式结果和关键诊断的入口。当前目录已按 LTS 收尾整理：只保留当前 LTS 证据链、split best、强 baseline、关键转折点和最新负向诊断。旧负向探索的细节不再长期堆目录；重要结论保留在本文件和 git 历史中。
 
-## 当前 LTS
+## 当前默认实验配置
+
+| 项目 | 结果 |
+|---|---|
+| 默认配置 | `configs/stage1_spacing_profile_v102_qwen36_no_think_build4k_cached.json` |
+| Answer / build LLM | `Qwen/Qwen3.6-35B-A3B`，请求级 `chat_template_kwargs.enable_thinking=false`。 |
+| 继承算法 | V102 raw-memory-granularity adaptive；retrieval/compiler/finalizer 行为与 V102 一致，build 上限为 `4096`。 |
+| 状态 | 作为后续新实验默认配置；需要全量正式结果时必须另跑并记录 dual judge。 |
+
+## 已验证历史 LTS
 
 | 项目 | 结果 |
 |---|---|
 | LTS 配置 | `configs/stage1_spacing_profile_v102_cached.json` |
 | 算法口径 | 同一套 raw-memory-granularity adaptive 算法；短 turn 恢复 v96 prompt spacing，长 turn 保持 v98 precision branch；不使用 benchmark 标签、gold、judge、sample id、row index 或测试反馈。 |
-| LongMemEval-S full | `400/500 = 0.800000`，与 v98/v88 prediction 完全一致。 |
-| LoCoMo non-adversarial full | `1232/1540 = 0.800000`，与 v96 prediction 完全一致。 |
+| LongMemEval-S full | strict `386/500 = 0.772000`，lenient `403/500 = 0.806000`；flash 单 judge 为 `400/500 = 0.800000`。 |
+| LoCoMo non-adversarial full | strict `1195/1540 = 0.775974`，lenient `1267/1540 = 0.822727`；flash 单 judge 为 `1232/1540 = 0.800000`。 |
 | token | LME avg build/query `80346.246 / 5912.794`；LoCoMo avg build/query `58386.008 / 5496.281`。 |
-| 状态 | 统一算法达到 baseline target；未来探索另起版本，当前项目暂时固定为 LTS。 |
+| 状态 | 统一算法按 lenient dual judge 达到 baseline target；strict 是更保守的下界。这是历史验证结果，backbone 是 `Qwen/Qwen3-30B-A3B-Instruct-2507`。 |
 
 ## Split Best
 
 | Benchmark | run | accuracy | 说明 |
 |---|---|---:|---|
-| LongMemEval-S full | `formal/stage1_spacing_profile_v102_lme_s_full_f844921` | `0.800000` | 当前统一 LTS LME；与 v98/v88 prediction 完全一致。 |
-| LoCoMo non-adversarial full | `formal/stage1_spacing_profile_v102_locomo_nonadv_full_f844921` | `0.800000` | 当前统一 LTS LoCoMo；与 v96 prediction 完全一致。 |
+| LongMemEval-S full | `formal/stage1_spacing_profile_v102_lme_s_full_f844921` | strict `0.772000` / lenient `0.806000` | 当前统一 LTS LME；与 v98/v88 prediction 完全一致。 |
+| LoCoMo non-adversarial full | `formal/stage1_spacing_profile_v102_locomo_nonadv_full_f844921` | strict `0.775974` / lenient `0.822727` | 当前统一 LTS LoCoMo；与 v96 prediction 完全一致。 |
 
 ## 保留 Formal Runs
 
@@ -43,6 +52,7 @@
 | `stage1_evidence_report_contract_v28_lme_s_full_9917c22` | LME evidence_report contract 关键提升点。 |
 | `stage1_temporal_event_contract_v29_locomo_nonadv_full_c7b8390` | LoCoMo temporal event/mention time 关键提升点。 |
 | `stage1_update_conflict_guide_v80_lme_s_full_152b0e5` | LME update/conflict guide 关键提升点。 |
+| `dual_judge_reassessment_20260617.md` | dual judge 正式口径、LTS strict/lenient 和历史 backbone/embedding 对比重算记录。 |
 
 ## 保留 Diagnostic Runs
 
@@ -71,7 +81,8 @@ outputs/diagnostic/<run_id>/
 
 ## 评估口径
 
-- 主指标：DeepSeek judge accuracy。
+- 主指标：DeepSeek dual judge accuracy。strict accuracy 表示 `deepseek-v4-flash` 和 `deepseek-v4-pro` 都判对；lenient accuracy 表示任一 judge 判对。
+- flash/pro 单模型 accuracy 只作为诊断指标，不再作为唯一主指标。
 - `exact / F1 / BLEU` 只作为低成本诊断，不作为方法选择依据。
 - LongMemEval-S full：500 条。
 - LoCoMo non-adversarial full：1540 条。

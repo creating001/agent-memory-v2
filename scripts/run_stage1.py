@@ -500,6 +500,9 @@ def main() -> int:
             "max_records_per_chunk": config.get("build_memory", {}).get(
                 "max_records_per_chunk"
             ),
+            "chat_template_kwargs": config.get("build_memory", {}).get(
+                "chat_template_kwargs"
+            ),
             "temporal_fields": config.get("build_memory", {}).get(
                 "temporal_fields", False
             ),
@@ -944,6 +947,7 @@ def _answer_metrics(config: dict[str, Any]) -> dict[str, Any]:
         "max_input_tokens": answer_config.get("max_input_tokens"),
         "max_output_tokens": max_output_tokens,
         "max_tokens": max_output_tokens,
+        "chat_template_kwargs": answer_config.get("chat_template_kwargs"),
         "output_format": answer_config.get("output_format", "text"),
         "timeout": answer_config.get("timeout"),
         "cache_enabled": cache_config.get("enabled", False),
@@ -980,6 +984,9 @@ def _answer_metrics(config: dict[str, Any]) -> dict[str, Any]:
         "repair_temperature": repair_answer_config.get("temperature"),
         "repair_max_input_tokens": repair_answer_config.get("max_input_tokens"),
         "repair_max_output_tokens": _answer_max_output_tokens(repair_answer_config),
+        "repair_chat_template_kwargs": repair_answer_config.get(
+            "chat_template_kwargs"
+        ),
         "repair_output_format": repair_answer_config.get("output_format", "json_answer"),
         "repair_information_needs": repair_config.get("information_needs"),
         "repair_enable_uncertain_trigger": repair_config.get(
@@ -1010,7 +1017,8 @@ def _answer_note(config: dict[str, Any]) -> str:
             f"{answer['model']} at {answer['base_url']} with temperature "
             f"{answer['temperature']}, max_input_tokens "
             f"{answer['max_input_tokens']}, and max_output_tokens "
-            f"{answer['max_output_tokens']}."
+            f"{answer['max_output_tokens']}, chat_template_kwargs "
+            f"{answer['chat_template_kwargs']}."
         )
     if answer["mode"] == "null_answerer":
         return "Null answerer; generated answers are placeholders and accuracy is not meaningful."
@@ -1032,6 +1040,7 @@ def _repair_answer_config_for_metrics(
         "api_key_env",
         "output_format",
         "fallback_answer",
+        "chat_template_kwargs",
     )
     merged = {
         key: answer_config[key] for key in inherited_keys if key in answer_config
@@ -1103,6 +1112,7 @@ def _write_summary(
         f"- build_memory_prompt_profile: {metrics['build_memory']['prompt_profile']}",
         f"- build_memory_manage_facts: {metrics['build_memory']['manage_facts']}",
         f"- build_memory_overlap_turns: {metrics['build_memory']['overlap_turns']}",
+        f"- build_memory_chat_template_kwargs: {metrics['build_memory']['chat_template_kwargs']}",
         f"- build_memory_cache_enabled: {metrics['build_memory']['cache_enabled']}",
         f"- build_memory_cache_path: {metrics['build_memory']['cache_path']}",
         f"- build_memory_cache_hits: {metrics['build_memory']['cache_hits']}",
@@ -1175,6 +1185,7 @@ def _write_summary(
         f"- answer_model: {metrics['answer']['model']}",
         f"- answer_max_input_tokens: {metrics['answer']['max_input_tokens']}",
         f"- answer_max_output_tokens: {metrics['answer']['max_output_tokens']}",
+        f"- answer_chat_template_kwargs: {metrics['answer']['chat_template_kwargs']}",
         f"- answer_output_format: {metrics['answer']['output_format']}",
         f"- answer_cache_enabled: {metrics['answer']['cache_enabled']}",
         f"- answer_cache_path: {metrics['answer']['cache_path']}",
@@ -1197,6 +1208,7 @@ def _write_summary(
         f"- answer_repair_model: {metrics['answer']['repair_model']}",
         f"- answer_repair_max_input_tokens: {metrics['answer']['repair_max_input_tokens']}",
         f"- answer_repair_max_output_tokens: {metrics['answer']['repair_max_output_tokens']}",
+        f"- answer_repair_chat_template_kwargs: {metrics['answer']['repair_chat_template_kwargs']}",
         f"- answer_repair_output_format: {metrics['answer']['repair_output_format']}",
         f"- answer_repair_information_needs: {metrics['answer']['repair_information_needs']}",
         f"- answer_repair_enable_uncertain_trigger: {metrics['answer']['repair_enable_uncertain_trigger']}",
@@ -1441,6 +1453,7 @@ def _write_diagnosis(
         f"- temporal_priority_over_recent: {metrics['route']['temporal_priority_over_recent']}",
         f"- answer_max_input_tokens: {metrics['answer']['max_input_tokens']}",
         f"- answer_max_output_tokens: {metrics['answer']['max_output_tokens']}",
+        f"- answer_chat_template_kwargs: {metrics['answer']['chat_template_kwargs']}",
         f"- answer_cache_enabled: {metrics['answer']['cache_enabled']}",
         f"- answer_cache_path: {metrics['answer']['cache_path']}",
         f"- answer_cache_namespace: {metrics['answer']['cache_namespace']}",
@@ -1520,6 +1533,11 @@ def _answer_cache_namespace(answer_config: dict[str, Any]) -> str | None:
         "max_input_tokens": answer_config.get("max_input_tokens"),
         "max_output_tokens": max_output_tokens,
         "output_format": answer_config.get("output_format", "text"),
+        "chat_template_kwargs": json.dumps(
+            answer_config.get("chat_template_kwargs") or {},
+            ensure_ascii=False,
+            sort_keys=True,
+        ),
     }
     return "answer:" + "|".join(f"{key}={fields[key]}" for key in sorted(fields))
 

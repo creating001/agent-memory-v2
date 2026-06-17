@@ -13,6 +13,7 @@ from evaluation.judge import (
     JudgeExample,
     accuracy_from_judgments,
     build_judge_prompt,
+    dual_accuracy_from_judgments,
     parse_judge_label,
 )
 
@@ -58,6 +59,35 @@ class JudgeTest(unittest.TestCase):
 
         self.assertEqual(metrics["n_valid"], 2)
         self.assertEqual(metrics["accuracy"], 0.5)
+
+    def test_dual_accuracy_reports_strict_and_lenient(self) -> None:
+        report = dual_accuracy_from_judgments(
+            [
+                {"record_key": "a", "label": "CORRECT"},
+                {"record_key": "b", "label": "CORRECT"},
+                {"record_key": "c", "label": "INVALID"},
+            ],
+            [
+                {"record_key": "a", "label": "CORRECT"},
+                {"record_key": "b", "label": "WRONG"},
+                {"record_key": "c", "label": "CORRECT"},
+            ],
+            labels_by_key={
+                "a": {"question_type": "single-hop"},
+                "b": {"question_type": "multi-hop"},
+                "c": {"question_type": "multi-hop"},
+            },
+            group_field="question_type",
+        )
+
+        metrics = report["metrics"]
+        self.assertEqual(metrics["n_joined"], 3)
+        self.assertEqual(metrics["strict_correct"], 1)
+        self.assertEqual(metrics["lenient_correct"], 3)
+        self.assertEqual(metrics["n_any_invalid"], 1)
+        self.assertEqual(metrics["strict_accuracy"], 1 / 3)
+        self.assertEqual(metrics["lenient_accuracy"], 1.0)
+        self.assertEqual(report["by_group"]["multi-hop"]["n_joined"], 2)
 
 
 if __name__ == "__main__":

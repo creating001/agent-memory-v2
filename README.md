@@ -4,13 +4,20 @@
 
 核心不是固定某个框架，而是在严格 clean setting 和成本约束下，持续提升长期记忆的 build、management、retrieval、context organization 和 answer 能力。方法可以迭代替换，但不能使用 gold answer、judge output、benchmark 标签、sample id、test feedback 或样本级规则。
 
-## 当前 LTS
+## 当前默认配置
 
-当前项目暂时固定在 `configs/stage1_spacing_profile_v102_cached.json`：
+后续新实验默认使用 `configs/stage1_spacing_profile_v102_qwen36_no_think_build4k_cached.json`：
 
-- LongMemEval-S full：`400/500 = 0.800000`。
-- LoCoMo non-adversarial full：`1232/1540 = 0.800000`。
-- 两个 benchmark 使用同一套 clean raw-memory-granularity adaptive 算法，均满足 baseline target 和 token 预算。V102 只把短 turn prompt spacing 显式纳入 profile；LongMemEval-S 长 turn 分支保持 v98，LoCoMo 短 turn 分支恢复 v96 行为。
+- Answer / build LLM：`Qwen/Qwen3.6-35B-A3B`。
+- thinking：请求级 `chat_template_kwargs.enable_thinking=false`。
+- Answer 上限：`max_input_tokens=131072`，`max_output_tokens=16384`。
+- build 上限：`max_tokens=4096`，`max_records_per_chunk=20`。
+
+已验证的历史 LTS 结果来自 `configs/stage1_spacing_profile_v102_cached.json`：
+
+- LongMemEval-S full：strict `386/500 = 0.772000`，lenient `403/500 = 0.806000`。
+- LoCoMo non-adversarial full：strict `1195/1540 = 0.775974`，lenient `1267/1540 = 0.822727`。
+- 两个 benchmark 使用同一套 clean raw-memory-granularity adaptive 算法；按 lenient dual judge 达到 baseline target，strict 是更保守的下界。V102 只把短 turn prompt spacing 显式纳入 profile；LongMemEval-S 长 turn 分支保持 v98，LoCoMo 短 turn 分支恢复 v96 行为。
 - 结果入口见 `experiments/README.md`；预测和 trace 见 `outputs/formal/<run_id>/`。
 
 ## 目录
@@ -45,4 +52,4 @@ python -m pip install -e .
 python -m unittest discover -s src/tests
 ```
 
-正式实验必须在 `experiments/` 下留下 summary、metrics、diagnosis、配置快照、git commit/dirty 状态、token 成本和 outputs 路径。方法性能主要看 DeepSeek judge accuracy。
+正式实验必须在 `experiments/` 下留下 summary、metrics、diagnosis、配置快照、git commit/dirty 状态、token 成本和 outputs 路径。方法性能主要看 DeepSeek dual judge accuracy：strict 为 flash/pro 都判对，lenient 为任一 judge 判对。

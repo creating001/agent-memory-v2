@@ -8,12 +8,14 @@
 
 ```yaml
 answer:
-  name: Qwen/Qwen3-30B-A3B-Instruct-2507
+  name: Qwen/Qwen3.6-35B-A3B
   service: local_vllm_generation
   temperature: 0.0
   max_input_tokens: 131072
   max_output_tokens: 16384
-  thinking: default
+  thinking: disabled
+  chat_template_kwargs:
+    enable_thinking: false
 ```
 
 ### Embedding 模型
@@ -27,36 +29,51 @@ embedding:
   max_input_length: 32768
 ```
 
-### Judge 模型
-
-```yaml
-judge:
-  name: deepseek-v4-flash
-  service: api
-  temperature: 0.0
-  thinking: default
-```
-
 ### Rerank 模型
 
 ```yaml
 rerank:
-  name: BAAI/bge-m3 or Qwen/Qwen3-Reranker-0.6B
+  name: Qwen/Qwen3-Reranker-0.6B
   service: local_rerank_service
 ```
+
+### Judge 模型
+
+```yaml
+judge:
+  models:
+    flash: deepseek-v4-flash
+    pro: deepseek-v4-pro
+  service: api
+  temperature: 0.0
+  thinking: default
+  report:
+    strict_accuracy: both_judges_correct
+    lenient_accuracy: either_judge_correct
+    single_judge_accuracy: diagnostic_only
+```
+
+正式实验默认同时使用 `deepseek-v4-flash` 和 `deepseek-v4-pro` 做离线 judge：
+
+- `strict_accuracy`：两个 judge 都判为 `CORRECT` 才算正确。
+- `lenient_accuracy`：任一 judge 判为 `CORRECT` 即算正确。
+- flash/pro 的单模型 accuracy 只作为诊断指标，用于定位 judge 分歧，不作为唯一主指标。
+- judge 只能读取已经完成的 prediction 和 gold labels，不能进入 prediction、retrieval、compiler、answer、verifier 或 cache build 流程。
 
 ### 部署规划
 
 ```yaml
 deployment:
   answer:
-    model: Qwen/Qwen3-30B-A3B-Instruct-2507
+    model: Qwen/Qwen3.6-35B-A3B
     service: local_vllm_generation
     cuda_visible_devices: [0, 1, 2, 3]
     tensor_parallel_size: 4
     gpu_memory_utilization: 0.8
     max_model_len: 131072
     max_output_tokens: 16384
+    request_chat_template_kwargs:
+      enable_thinking: false
 
   embedding:
     model: Qwen/Qwen3-Embedding-0.6B
@@ -181,7 +198,13 @@ retrieval:
   top_k: must_report
 
 metrics:
-  accuracy
+  strict_accuracy
+
+  lenient_accuracy
+
+  flash_accuracy_diagnostic
+
+  pro_accuracy_diagnostic
 
   f1
 
@@ -189,7 +212,7 @@ metrics:
 
   by_type:
     group_by: question_type_or_category
-    fields: [accuracy, f1, bleu]
+    fields: [strict_accuracy, lenient_accuracy, flash_accuracy_diagnostic, pro_accuracy_diagnostic, f1, bleu]
 
   token_cost:
     fields:

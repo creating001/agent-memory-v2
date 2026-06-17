@@ -2,18 +2,19 @@
 
 `configs/` 只保留当前 LTS、当前 split best、强 baseline 和已保留正式实验支撑的关键对照。负向探索和无保留实验目录支撑的中间配置不长期保留；需要复现时从 git 历史回溯。
 
-## 当前 LTS
+## 当前默认配置
 
 | 用途 | 配置 | 状态 |
 |---|---|---|
-| 当前固定 LTS / baseline-target 统一算法 | `stage1_granularity_adaptive_v98_cached.json` | 同一套算法覆盖 LongMemEval-S full 和 LoCoMo non-adversarial full；LME `400/500 = 0.800000`，LoCoMo `1223/1540 = 0.794156`，均满足 baseline target 和 token 预算。 |
+| 后续新实验默认配置 | `stage1_spacing_profile_v102_qwen36_no_think_build4k_cached.json` | V102 算法 + `Qwen/Qwen3.6-35B-A3B` answer/build backbone；请求级 `chat_template_kwargs.enable_thinking=false`；build `max_tokens=4096`，answer `max_output_tokens=16384`；使用独立 qwen36 no-thinking cache namespace。 |
+| 已验证历史 LTS | `stage1_spacing_profile_v102_cached.json` | `Qwen/Qwen3-30B-A3B-Instruct-2507` backbone；LongMemEval-S full strict/lenient `0.772000 / 0.806000`，LoCoMo non-adversarial full strict/lenient `0.775974 / 0.822727`。 |
 
 说明：
 
-- v98 只根据 raw dialogue 的平均 turn 长度选择 granularity profile，不使用 benchmark 标签、gold、judge、sample id、row index 或测试反馈。
+- v102 只根据 raw dialogue 的平均 turn 长度选择 granularity profile，不使用 benchmark 标签、gold、judge、sample id、row index 或测试反馈。
 - 长 turn 分支恢复 v88 precision path：top40、selected_context off、operation workpad、update/advice guide、evidence-answer-detail finalizer。
 - 短 turn 分支继承 v96 selected-context path：top60、route-budgeted temporal top40、selected_context 最多 6 行。
-- v98 是当前 LTS 固定点；后续新方法必须另起版本和 cache namespace。
+- 新方法必须另起版本和 cache namespace；不能用 qwen3-30B 的历史 cache 证明 qwen3.6 no-thinking 配置。
 
 ## 当前 Split Best
 

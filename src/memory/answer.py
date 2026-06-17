@@ -152,6 +152,7 @@ class OpenAICompatibleAnswerer:
         max_input_tokens: int | None = None,
         api_key_env: str | None = None,
         output_format: str = "text",
+        chat_template_kwargs: dict[str, Any] | None = None,
     ):
         if output_format not in {"text", "json_answer"}:
             raise ValueError(f"Unsupported answer output_format: {output_format}")
@@ -163,6 +164,7 @@ class OpenAICompatibleAnswerer:
         self._max_input_tokens = max_input_tokens
         self._api_key_env = api_key_env
         self._output_format = output_format
+        self._chat_template_kwargs = dict(chat_template_kwargs or {})
 
     def answer(self, context: CompiledContext) -> AnswerResult:
         response = self._chat_completion(context.prompt)
@@ -205,6 +207,8 @@ class OpenAICompatibleAnswerer:
         }
         if self._output_format == "json_answer":
             payload["response_format"] = {"type": "json_object"}
+        if self._chat_template_kwargs:
+            payload["chat_template_kwargs"] = self._chat_template_kwargs
         request_body = json.dumps(payload).encode("utf-8")
         headers = {"Content-Type": "application/json"}
         if self._api_key_env:
