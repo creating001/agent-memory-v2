@@ -296,3 +296,27 @@ Smoke 观察：
 
 - 先跑 LongMemEval-S full；若 strict/lenient 不低于 v102，再跑 LoCoMo full。
 - 若 LME 下降，停止，并继续分析 source-anchor 是否在 fact/profile route 上误排证据。
+
+## v108 run result
+
+主目录 formal run `stage1_source_coverage_v108_qwen36_no_think_build4k_lme_s_full_293474e` 已完成 LongMemEval-S full：
+
+- dual flash strict/lenient `401/500 = 0.802000` / `412/500 = 0.824000`
+- avg build tokens `85393.566`
+- avg query tokens `6195.524`
+- avg compiled evidence rows `34.800`
+- answer cache hits `382/500`，来自 v102 prediction traces seed 的相同 prompt cache
+
+对比当前 qwen3.6 v102 LTS LongMemEval-S strict/lenient `0.814000 / 0.830000`，v108 明显负向，不跑 LoCoMo full。
+
+差异诊断：
+
+- lenient gain/loss：`7 / 10`，net `-3`。
+- route losses 主要在 fact_lookup：`9` 个 loss。
+- typed memory 不进 reader prompt 后 token/noise 降低，但现有 build memory source links 作为 row coverage signal 仍不够准。
+
+结论：
+
+- v108 不是新 LTS，当前默认仍是 v102。
+- 不应继续简单使用现有 memory source links 做 row reorder。
+- 下一步若继续做 build-memory 管理，应先改 build memory/evidence-unit 质量，或做可拒绝的 coverage/verifier，而不是直接把 memory-linked rows 插入 reader 上下文。

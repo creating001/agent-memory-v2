@@ -32,16 +32,20 @@
 
 | 项目 | 结果 |
 |---|---|
-| 配置 | `configs/stage1_route_scoped_memory_activation_v107_qwen36_no_think_build4k_cached.json` |
-| 目的 | 只在 question-derived `fact_lookup` / `profile_preference` 打开 source-aligned typed memory activation，避免 v106 在 temporal/list 上的负向。 |
-| LME 结果 | strict/lenient `0.810000 / 0.830000`，lenient 与 v102 持平，strict 低 2 题；avg query tokens `6308.482`。 |
-| LoCoMo 结果 | strict/lenient `0.774675 / 0.798052`，lenient 与 v102 持平，strict 低 3 题；Multi-Hop `+7`、Open-Domain `+3`，但 Temporal `-7`、Single-Hop `-3` 抵消。 |
-| 诊断结论 | route-scoped activation 有局部有效信号，但直接放进 reader prompt 仍不稳定；v102 保持 LTS。 |
+| 配置 | `configs/stage1_source_coverage_v108_qwen36_no_think_build4k_cached.json` |
+| 目的 | typed memory 不进入 reader prompt，只作为 source-linked coverage signal；对 `fact_lookup` / `profile_preference` / `current_state` 使用 source-anchor coverage，temporal/list 维持 v102。 |
+| 结果 | LongMemEval-S full strict/lenient `0.802000 / 0.824000`，低于 v102 `0.814000 / 0.830000`；avg query tokens `6195.524`。负向，停止，不跑 LoCoMo full。 |
+| 诊断结论 | 现有 build memory source links 作为 row coverage signal 仍偏噪，fact_lookup 净损失；v102 保持 LTS。 |
 
 ## 已拒绝候选补充
 
 | 项目 | 结果 |
 |---|---|
+| 配置 | `configs/stage1_route_scoped_memory_activation_v107_qwen36_no_think_build4k_cached.json` |
+| 目的 | 只在 question-derived `fact_lookup` / `profile_preference` 打开 source-aligned typed memory activation，避免 v106 在 temporal/list 上的负向。 |
+| LME 结果 | strict/lenient `0.810000 / 0.830000`，lenient 与 v102 持平，strict 低 2 题；avg query tokens `6308.482`。 |
+| LoCoMo 结果 | strict/lenient `0.774675 / 0.798052`，lenient 与 v102 持平，strict 低 3 题；Multi-Hop `+7`、Open-Domain `+3`，但 Temporal `-7`、Single-Hop `-3` 抵消。 |
+| 诊断结论 | route-scoped activation 有局部有效信号，但直接放进 reader prompt 仍不稳定；v102 保持 LTS。 |
 | 配置 | `configs/stage1_memory_activation_v106_qwen36_no_think_build4k_cached.json` |
 | 目的 | v105 负向后的隔离 ablation：只保留 source-aligned typed memory activation guide，恢复 v102 `evidence_order=retrieval`，不改变 raw-row ordering。 |
 | 结果 | LongMemEval-S full strict/lenient `0.806000 / 0.820000`，低于 v102 `0.814000 / 0.830000`；avg query tokens `6638.526`。负向，停止，不跑 LoCoMo full。 |
@@ -100,6 +104,7 @@
 | `stage1_memory_activation_v106_qwen36_no_think_build4k_lme_s_full_36c76cc` | qwen3.6 no-thinking v106 负结果：LME strict/lenient `0.806/0.820`，activation-only 仍低于 v102 且 query token 增加，不跑 LoCoMo full。 |
 | `stage1_route_scoped_memory_activation_v107_qwen36_no_think_build4k_lme_s_full_12a80f2` | qwen3.6 no-thinking v107 LME：strict/lenient `0.810/0.830`，lenient 持平但 strict 低于 v102。 |
 | `stage1_route_scoped_memory_activation_v107_qwen36_no_think_build4k_locomo_nonadv_full_935b7b7` | qwen3.6 no-thinking v107 LoCoMo：strict/lenient `0.774675/0.798052`，lenient 持平但 strict 低于 v102，未达到 baseline target。 |
+| `stage1_source_coverage_v108_qwen36_no_think_build4k_lme_s_full_293474e` | qwen3.6 no-thinking v108 负结果：LME strict/lenient `0.802/0.824`，source-anchor coverage 低于 v102，不跑 LoCoMo full。 |
 
 ## 保留 Diagnostic Runs
 
