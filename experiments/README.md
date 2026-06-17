@@ -29,14 +29,15 @@
 | 诊断 | v110 实际改变 prompt/answer 的样本集中在 modal inference；LoCoMo Open-Domain(category 3) lenient `45/96 -> 54/96`，但 Multi-Hop/Temporal/Single-Hop 有小幅抵消。 |
 | 诊断文档 | `diagnostic/stage1_v102_generalization_audit_v104_plan.md` |
 
-## 下一正式候选
+## 最新负向候选
 
 | 项目 | 结果 |
 |---|---|
 | 配置 | `configs/stage1_modal_abstention_repair_v111_qwen36_no_think_build4k_cached.json` |
 | 目的 | 在 v110 基础上增加 source-grounded modal abstention verifier，只修正“modal/inference 问题 + draft 明确信息不足”的过度拒答。 |
 | Smoke | LoCoMo 11 个 v110 modal-abstention wrong 子集从 `0/11` 到 strict/lenient `3/11`；LME 2 个触发子集从 `0/2` 到 lenient `1/2`。Smoke 目录已清理，结论记录在 `diagnostic/stage1_v102_generalization_audit_v104_plan.md`。 |
-| 计划 | 先提交 v111 代码/config，正式跑 LongMemEval-S full；若 LME 不低于 v110/v102 主口径，再跑 LoCoMo full。 |
+| 结果 | LongMemEval-S full strict/lenient `0.816000 / 0.828000`；相比 v110 `0.812000 / 0.834000`，strict +2 但主指标 lenient -3。停止，不跑 LoCoMo full。 |
+| 结论 | v111 说明 source-grounded verifier 能修少量 over-abstention，但目前不稳定；下一步应回到 evidence-unit rerank / memory organization，不能继续堆 answer-side verifier。 |
 
 ## 已拒绝上下文候选
 
@@ -131,6 +132,7 @@
 | `stage1_grounded_inference_v109_qwen36_no_think_build4k_lme_s_full_6ebbd45` | qwen3.6 no-thinking v109 负/不确定结果：LME strict/lenient `0.816/0.828`，主指标低于 v102，不跑 LoCoMo full。 |
 | `stage1_modal_grounded_inference_v110_qwen36_no_think_build4k_lme_s_full_2f33213` | qwen3.6 no-thinking v110 正向候选 LME：strict/lenient `0.812/0.834`，lenient 比 v102 高 2 题但 strict 低 1 题。 |
 | `stage1_modal_grounded_inference_v110_qwen36_no_think_build4k_locomo_nonadv_full_2f33213` | qwen3.6 no-thinking v110 正向候选 LoCoMo：strict/lenient `0.779221/0.799351`，lenient 比 v102 高 2 题，但仍差 1 题到 `0.800000`。 |
+| `stage1_modal_abstention_repair_v111_qwen36_no_think_build4k_lme_s_full_c9b4d23` | qwen3.6 no-thinking v111 负/不确定结果：LME strict/lenient `0.816/0.828`，主指标低于 v102/v110，不跑 LoCoMo full。 |
 
 ## 保留 Diagnostic Runs
 

@@ -463,3 +463,33 @@ Smoke 诊断：
 1. 提交 v111 代码和配置，保证正式 full run 记录 clean commit。
 2. 先跑 LongMemEval-S full；若 lenient 低于 v110 `0.834000` 或 v102 `0.830000`，谨慎停止，不跑 LoCoMo。
 3. 若 LME 持平或提升，再跑 LoCoMo full。LoCoMo 只需净增 1 个 lenient-correct 即达到 `0.800000`，但仍需同时观察 strict、category deltas 和 repair token 成本。
+
+## v111 run result
+
+主目录 formal run `stage1_modal_abstention_repair_v111_qwen36_no_think_build4k_lme_s_full_c9b4d23` 已完成 LongMemEval-S full：
+
+- dual flash strict/lenient `408/500 = 0.816000` / `414/500 = 0.828000`
+- avg build tokens `85393.566`
+- avg query tokens `6159.174`
+- avg compiled evidence rows `34.752`
+- base answer cache hits/misses `500/0`
+- repair triggered/applied `2/2`
+- repair query tokens total `9478`
+
+对比：
+
+- v102 LME strict/lenient `0.814000 / 0.830000`
+- v110 LME strict/lenient `0.812000 / 0.834000`
+- v111 相比 v110：strict `+2`，lenient `-3`
+
+诊断：
+
+- v111 实际 changed answers 只有 `2/500`，都属于 modal-abstention verifier 范围。
+- changed-answer 子集中有 1 条从 v110 lenient wrong 变为 v111 lenient correct；另一条仍 wrong。
+- 全量 dual flash transition 相比 v110 有 lenient gains `4`、losses `7`，净 `-3`。这说明在正式 judge 口径下，answer-side verifier 带来的局部收益不足以抵消全量评测波动/潜在不稳定。
+
+结论：
+
+- v111 不是新 LTS，也不是可继续 full 的候选；因为 LongMemEval-S 主指标低于 v102 和 v110，停止，不跑 LoCoMo full。
+- v111 支持一个方法判断：source-grounded verifier 能修少量 over-abstention，但继续堆 answer-side verifier 不稳。
+- 下一步应回到当前目标的第 2/5 点：设计 evidence-unit rerank 和更好的 build-memory organization/query-time support，同时保持第 1/3 点的 profile/selected-context 风险在审计范围内。
