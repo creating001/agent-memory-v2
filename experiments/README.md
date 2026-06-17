@@ -9,8 +9,8 @@
 | 默认配置 | `configs/stage1_spacing_profile_v102_qwen36_no_think_build4k_cached.json` |
 | Answer / build LLM | `Qwen/Qwen3.6-35B-A3B`，请求级 `chat_template_kwargs.enable_thinking=false`。 |
 | 继承算法 | V102 raw-memory-granularity adaptive；retrieval/compiler/finalizer 行为与 V102 一致，build 上限为 `4096`。 |
-| qwen3.6 no-thinking full 结果 | LongMemEval-S strict/lenient `0.806000 / 0.844000`；LoCoMo strict/lenient `0.787662 / 0.823377`。结果位于 `agent-memory-other`，主目录 README 记录当前口径。 |
-| 状态 | 作为后续新实验默认配置；已达到 baseline target，但 granularity/profile generalization 风险正在 v104 中诊断。 |
+| qwen3.6 no-thinking full 结果 | 正在主目录重跑 v102 formal prediction + dual judge；完成后以主目录结果作为 LTS，不再直接引用 `agent-memory-other` 测试目录数字。 |
+| 状态 | 作为后续新实验默认配置；v102 主目录复现完成前，qwen3.6 LTS 数字暂不固化。 |
 
 ## 当前诊断候选
 
@@ -18,7 +18,7 @@
 |---|---|
 | 配置 | `configs/stage1_context_guard_v104_qwen36_no_think_build4k_cached.json` |
 | 目的 | 移除按全样本平均 turn 长度的大块 profile 切换；selected context 改为 per-turn `max_center_chars`；关闭 mechanical finalizer，启用 source-grounded repair guardrail。 |
-| 计划 | 先跑 LongMemEval-S full；若同 backbone 下显著低于 v102，则停止，不浪费 LoCoMo full。 |
+| 结果 | LongMemEval-S full strict/lenient `0.772000 / 0.806000`，avg query tokens `7367.622`，answer repair 触发 `178/500`；过预算且未形成 LTS 提升，已停止，不跑 LoCoMo full。 |
 | 诊断文档 | `diagnostic/stage1_v102_generalization_audit_v104_plan.md` |
 
 ## 已验证历史 LTS
@@ -64,6 +64,7 @@
 | `stage1_update_conflict_guide_v80_lme_s_full_152b0e5` | LME update/conflict guide 关键提升点。 |
 | `dual_judge_reassessment_20260617.md` | dual judge 正式口径、LTS strict/lenient 和历史 backbone/embedding 对比重算记录。 |
 | `stage1_rerank_context_v103_lme_s_full_f9fae4b` | qwen3.6 no-thinking v103 负结果：LME strict/lenient `0.780 / 0.818`，低于 qwen3.6 v102 `0.806 / 0.844`；说明单 turn rerank + 强裁剪不是当前主线。 |
+| `stage1_context_guard_v104_lme_s_full_043795e` | qwen3.6 no-thinking v104 负结果：LME strict/lenient `0.772 / 0.806`，avg query tokens `7367.622`；说明粗暴取消 profile + broad answer repair 不适合作为 LTS。 |
 
 ## 保留 Diagnostic Runs
 

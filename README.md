@@ -13,12 +13,11 @@
 - Answer 上限：`max_input_tokens=131072`，`max_output_tokens=16384`。
 - build 上限：`max_tokens=4096`，`max_records_per_chunk=20`。
 
-当前默认 backbone 的已验证 v102 LTS 结果：
+当前默认 backbone 的 v102 LTS 结果正在主目录重跑确认：
 
 - Backbone：`Qwen/Qwen3.6-35B-A3B` no-thinking（build/answer 均使用 `chat_template_kwargs.enable_thinking=false`）。
-- LongMemEval-S full：strict `403/500 = 0.806000`，lenient `422/500 = 0.844000`。
-- LoCoMo non-adversarial full：strict `1213/1540 = 0.787662`，lenient `1268/1540 = 0.823377`。
-- 两个 benchmark 使用同一套 clean raw-memory-granularity adaptive v102 算法；按 lenient dual judge 达到 baseline target，strict 是更保守的下界。V102 只把短 turn prompt spacing 显式纳入 profile；LongMemEval-S 长 turn 分支保持 v98，LoCoMo 短 turn 分支恢复 v96 行为。
+- 两个 benchmark 将使用同一套 clean raw-memory-granularity adaptive v102 算法；主目录 full prediction + dual judge 完成后，再把 LongMemEval-S full 和 LoCoMo non-adversarial full 的 strict/lenient 结果写为 LTS。
+- V102 只把短 turn prompt spacing 显式纳入 profile；LongMemEval-S 长 turn 分支保持 v98，LoCoMo 短 turn 分支恢复 v96 行为。
 - 结果入口见 `experiments/README.md`；预测和 trace 见 `outputs/formal/<run_id>/`。
 
 ## 目录

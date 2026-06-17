@@ -85,3 +85,14 @@ Smoke 观察：
 2. 先跑 LongMemEval-S full，因为 v104 主要修复 LME query token 和 profile split 风险；若 strict/lenient 大幅低于 qwen3.6 v102，停止，不跑 LoCoMo full。
 3. 若 LME 接近或超过 v102，并且 avg query tokens <= 6K，再跑 LoCoMo non-adversarial full。
 4. 若 v104 失败，下一步不要回退到大块 profile；优先做 evidence-unit rerank / typed-memory activation，而不是单 turn rerank。
+
+## v104 run result
+
+主目录 formal run `stage1_context_guard_v104_lme_s_full_043795e` 已完成 LongMemEval-S full：
+
+- strict `386/500 = 0.772000`
+- lenient `403/500 = 0.806000`
+- avg query tokens `7367.622`
+- answer repair triggered `178/500`，额外 query tokens `772443`
+
+结论：v104 不是 LTS 候选，且 query token 明显超出 normal budget；LoCoMo full 不继续跑。下一步先在主目录重跑 v102，得到真正的主目录 qwen3.6 no-thinking LTS 口径，再基于 badcase 设计下一次方法。
