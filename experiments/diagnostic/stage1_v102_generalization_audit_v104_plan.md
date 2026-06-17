@@ -392,7 +392,7 @@ Clean/controlled comparison:
 - 新增 `compiler.grounded_inference_gate`，支持 `broad` 和 `modal_only`；默认 `broad` 保持 v109 配置语义。
 - v110 在 `fact_lookup` / `profile_preference` / `current_state` route override 中设置 `grounded_inference_gate=modal_only`。
 - build/retrieval/granularity profile/selected context/finalizer/backbone 与 v102 保持一致。
-- answer cache 独立为 `outputs/cache/qwen36_no_think_build4k_answer_v110_modal_grounded_inference.sqlite`。
+- answer cache 独立为 `outputs/cache/qwen36_no_think_build4k_answer_v110_modal_grounded_inference.sqlite`。正式 run 前用 v102 traces + v102 predictions seed 相同 prompt 的 prediction-time final answers；不使用 v109 traces 覆盖未改 prompt。
 
 验证策略：
 

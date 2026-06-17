@@ -29,7 +29,7 @@
 - v107 同样复用 v102 build-memory cache，因为 build 阶段完全未改；v107 answer cache 使用独立 `qwen36_no_think_build4k_answer_v107_route_scoped_memory_activation.sqlite`。
 - v108 同样复用 v102 build-memory cache，因为 build 阶段完全未改；v108 answer cache 使用独立 `qwen36_no_think_build4k_answer_v108_source_coverage.sqlite`。为隔离局部 route 改动，正式 run 前可用 `scripts/seed_answer_cache_from_traces.py` 从 v102 prediction traces seed 相同 prompt 的 answer cache；该脚本只读 prediction-time prompt/answer/usage，不读 labels/judge/category/sample id。
 - v109 同样复用 v102 build-memory cache，因为 build/retrieval 全部未改；v109 answer cache 使用独立 `qwen36_no_think_build4k_answer_v109_grounded_inference.sqlite`。为隔离局部 prompt 改动，正式 run 前可从 v102 prediction traces seed 相同 prompt 的 answer cache；只有触发 grounded inference discipline 的 prompt 会新跑。
-- v110 同样复用 v102 build-memory cache，因为 build/retrieval 全部未改；v110 answer cache 使用独立 `qwen36_no_think_build4k_answer_v110_modal_grounded_inference.sqlite`。可先 seed v102 traces，再 seed v109 traces，以复用相同 prompt 的 prediction-time answers；不读取 labels/judge/category/sample id。
+- v110 同样复用 v102 build-memory cache，因为 build/retrieval 全部未改；v110 answer cache 使用独立 `qwen36_no_think_build4k_answer_v110_modal_grounded_inference.sqlite`。正式 run 前用 v102 traces + v102 predictions seed 相同 prompt 的 prediction-time final answers；不读取 labels/judge/category/sample id，不再用 v109 traces 覆盖未改 prompt。
 
 ## 当前 Split Best
 
