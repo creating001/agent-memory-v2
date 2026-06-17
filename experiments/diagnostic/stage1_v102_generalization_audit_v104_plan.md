@@ -563,3 +563,33 @@ Clean 边界：
 - v112 不是新 LTS；当前默认仍是 v102，v110 仍只是正向但未达标候选。
 - evidence-unit document 比 v103 单 turn rerank 更合理，但直接改变 final raw-row order 仍会伤 multi-session/temporal 覆盖。
 - 后续如果继续 rerank，应改成不破坏覆盖的 scoped rerank，例如只在已选 coverage groups 内排序，或把 rerank score 作为 compiler secondary signal，而不是替换 final retrieval order。
+
+## v113 计划：移除 relative-time mechanical finalizer
+
+配置：`configs/stage1_no_relative_time_finalizer_v113_qwen36_no_think_build4k_cached.json`
+
+设计依据：
+
+- 当前目标第 4 点指出 mechanical finalizer 可能像 design-for-benchmark。v102 finalizer-impact 离线诊断显示，风险最高的 `evidence_report_relative_time_calculation` 在 LoCoMo 触发样本上是净负：draft dual-flash lenient `40/46`，finalizer 后 `34/46`。
+- LoCoMo judge prompt 已经允许等价 relative-time answer；把 relative phrase 强行改成绝对日期不仅不必要，还会在 event time / mention time 判断不稳时引入错误。
+- LongMemEval-S 的 long-turn profile 原本已关闭 relative-time calculation，因此 v113 对 LME 预测 prompt 和 base answer 不应产生变化；只会影响短-turn/LoCoMo 类输入中的 finalizer。
+- LME 中其它 non-relative finalizer 触发样本仍有净正收益：draft `22/54`，final `27/54`。因此 v113 不全关 finalizer，只移除当前最不 general 且净负的 relative-time mechanical rule。
+- 外部方法参考：Hindsight 强调 temporal search 以 source window 和 relevance 为主，不要求在 answer 后做机械日期改写；SimpleMem/LightMem 更倾向让 answer/verifier 判断 context sufficiency，而不是用固定 answer-format solver。v113 先做低风险消融，后续再设计更通用的 source-grounded verifier 替代剩余 mechanical finalizer。
+
+关键改动：
+
+- 继承 v110 modal-only grounded inference。
+- `answer.finalizer.enable_relative_time_calculation=false`。
+- build/retrieval/granularity profiles/selected context/compiler/answer backbone 全部保持 v110。
+- 使用独立 answer cache：`outputs/cache/qwen36_no_think_build4k_answer_v113_no_relative_time_finalizer.sqlite`。
+
+Clean 边界：
+
+- 预测阶段只使用 question text、question_time、raw Memory Context、build memory 和 v110 的通用 prompt discipline。
+- 关闭 relative-time finalizer 的依据来自离线诊断，但规则本身是全局配置开关，不包含 gold answer、judge output、benchmark category、sample id、row index、test feedback 或样本级规则。
+
+验证策略：
+
+1. 先用 v110 prediction traces seed 相同 prompt 的 base answer cache；该操作只读 prediction-time prompt/answer/raw_response/usage，不读 labels 或 judge。
+2. 先跑 LongMemEval-S full，预期与 v110 基本一致；若 LME lenient 不低于 v102 `0.830000`，继续跑 LoCoMo。
+3. LoCoMo 重点观察 relative-time finalizer 不再触发后是否突破 `0.800000` lenient，同时记录 strict、category delta 和 token 成本。

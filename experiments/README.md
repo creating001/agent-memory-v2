@@ -29,6 +29,15 @@
 | 诊断 | Rerank applied `220/500`；true answer changed `82/500`，changed-answer lenient gain/loss `11/12`。knowledge-update 有收益，但 multi-session 和 temporal-reasoning 覆盖受损，说明 rerank 仍不应直接改 final raw-row order。 |
 | 诊断文档 | `diagnostic/stage1_v102_generalization_audit_v104_plan.md` |
 
+## 当前诊断候选
+
+| 项目 | 结果 |
+|---|---|
+| 配置 | `configs/stage1_no_relative_time_finalizer_v113_qwen36_no_think_build4k_cached.json` |
+| 目的 | 继承 v110 modal-only grounded inference，只关闭 relative-time mechanical finalizer。v102 finalizer-impact 诊断显示 LoCoMo 该 finalizer 在触发样本上从 draft lenient `40/46` 降到 final `34/46`，既有 general 风险又净负。 |
+| 状态 | 待正式 full run；先跑 LME，若不低于 v102/v110 主指标，再跑 LoCoMo。 |
+| 诊断文档 | `diagnostic/v102_finalizer_impact/summary.md`；`diagnostic/stage1_v102_generalization_audit_v104_plan.md` |
+
 ## 当前正向候选
 
 | 项目 | 结果 |
