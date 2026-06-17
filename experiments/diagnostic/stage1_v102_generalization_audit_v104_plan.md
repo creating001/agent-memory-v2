@@ -261,3 +261,38 @@ Smoke 观察：
 - v107 不是新 LTS，当前默认仍是 v102。
 - route-scoped activation 对 Multi-Hop/Open-Domain 有局部有效信号，但 reader prompt 里直接暴露 typed memory 仍会引入 temporal/single-hop 噪声。
 - 下一步不要继续简单扩大 activated memory；应把 build memory 用在 source selection、coverage/conflict signal 或 evidence-unit rerank，且必须保证 raw evidence 覆盖不低于 v102。
+
+## v108 计划：source coverage without memory prompt
+
+配置：`configs/stage1_source_coverage_v108_qwen36_no_think_build4k_cached.json`
+
+设计依据：
+
+- v105-v107 显示，typed memory 直接进入 reader prompt 不稳定，尤其会带来 temporal/single-hop 噪声。
+- 外部方法 Mnemis/SimpleMem/EverOS/Hindsight/MemOS/Nemori 更共同的稳定思想是：derived memory 先做 source selection / provenance / coverage control，再回到 raw source，而不是让 summary/profile 与 raw evidence 竞争答案。
+- v108 因此不显示 typed memory guide，`compiler.max_memory_records=0`，只用 build memory 的 source links 调整部分 route 的 raw row coverage。
+
+关键改动：
+
+- build/retrieval/granularity profile/selected context/answer finalizer/backbone 与 v102 保持一致。
+- reader prompt 不新增 `activated_build_memory`；typed memory 不作为 independent evidence。
+- `fact_lookup` / `profile_preference` / `current_state` 使用 `evidence_order=source_anchor_coverage`。
+- source-anchor policy：先保留前 `32` 条 raw retrieval anchors，再插入少量 memory-linked source rows，每个 session 最多 `1` 条，避免 v105 那种大幅重排。
+- `temporal_lookup` / `list_count` 完全保持 v102 retrieval order，避免已知负向。
+- v108 answer cache 独立为 `outputs/cache/qwen36_no_think_build4k_answer_v108_source_coverage.sqlite`。
+
+Clean/controlled comparison:
+
+- 因为本地 answer LLM 即使 temperature `0` 也存在小幅非确定性，v108 formal run 前使用 `scripts/seed_answer_cache_from_traces.py` 从 v102 prediction traces seed 相同 prompt 的 answer cache。
+- 该脚本只读取 prediction-time trace 中的 prompt、answer、raw_response 和 token usage，不读取 labels、judge、benchmark category、sample id 或 test feedback。
+- 只有 prompt 完全相同的样本会命中新 namespace cache；v108 改过 prompt/order 的 route 仍会新跑。
+
+Smoke 观察：
+
+- LME 第 1 条 `fact_lookup`：无 `activated_build_memory`，rows `40`，query tokens `5011`。
+- LME 第 2 条 `temporal_lookup`：无 `activated_build_memory`，rows/query 与 v102 对齐，query tokens `6786`。
+
+验证策略：
+
+- 先跑 LongMemEval-S full；若 strict/lenient 不低于 v102，再跑 LoCoMo full。
+- 若 LME 下降，停止，并继续分析 source-anchor 是否在 fact/profile route 上误排证据。

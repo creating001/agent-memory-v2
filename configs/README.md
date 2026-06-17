@@ -7,6 +7,7 @@
 | 用途 | 配置 | 状态 |
 |---|---|---|
 | 后续新实验默认配置 | `stage1_spacing_profile_v102_qwen36_no_think_build4k_cached.json` | V102 算法 + `Qwen/Qwen3.6-35B-A3B` answer/build backbone；请求级 `chat_template_kwargs.enable_thinking=false`；build `max_tokens=4096`，answer `max_output_tokens=16384`；使用独立 qwen36 no-thinking cache namespace。 |
+| 当前候选 | `stage1_source_coverage_v108_qwen36_no_think_build4k_cached.json` | v107 后的新方向：typed memory 不进入 reader prompt，只作为 source-linked coverage signal；仅对 question-derived `fact_lookup` / `profile_preference` / `current_state` route 使用 `source_anchor_coverage`，temporal/list 维持 v102。待 full LME 验证。 |
 | 诊断候选 | `stage1_route_scoped_memory_activation_v107_qwen36_no_think_build4k_cached.json` | v106 route 诊断后的隔离 ablation：只在 question-derived `fact_lookup` / `profile_preference` 打开 source-aligned typed memory activation；LME lenient 与 v102 持平、strict 略低；LoCoMo lenient 与 v102 持平、strict 略低，不作为 LTS。 |
 | 已拒绝诊断候选 | `stage1_memory_activation_v106_qwen36_no_think_build4k_cached.json` | v105 负向后的隔离 ablation：保留 source-aligned typed memory activation guide，但恢复 v102 `evidence_order=retrieval`；LME full strict/lenient `0.806000 / 0.820000`，仍低于 v102 `0.814000 / 0.830000`，不跑 LoCoMo full。 |
 | 已拒绝诊断候选 | `stage1_memory_activation_v105_qwen36_no_think_build4k_cached.json` | 在当前 qwen3.6 no-thinking v102 LTS 上打开 source-aligned typed memory activation guide，并用 `memory_aware` raw-row ordering；LME full strict/lenient `0.774000 / 0.800000`，低于 v102 `0.814000 / 0.830000`，不跑 LoCoMo full。下一步只测试 activation，不改变 v102 retrieval order。 |
@@ -24,6 +25,7 @@
 - v105 复用 v102 build-memory cache，因为 build 阶段完全未改；正式汇报仍必须按 cached usage 统计逻辑 cold-build token。v105 answer cache 使用独立 `qwen36_no_think_build4k_answer_v105_memory_activation.sqlite`。
 - v106 同样复用 v102 build-memory cache，因为 build 阶段完全未改；v106 answer cache 使用独立 `qwen36_no_think_build4k_answer_v106_memory_activation.sqlite`。
 - v107 同样复用 v102 build-memory cache，因为 build 阶段完全未改；v107 answer cache 使用独立 `qwen36_no_think_build4k_answer_v107_route_scoped_memory_activation.sqlite`。
+- v108 同样复用 v102 build-memory cache，因为 build 阶段完全未改；v108 answer cache 使用独立 `qwen36_no_think_build4k_answer_v108_source_coverage.sqlite`。为隔离局部 route 改动，正式 run 前可用 `scripts/seed_answer_cache_from_traces.py` 从 v102 prediction traces seed 相同 prompt 的 answer cache；该脚本只读 prediction-time prompt/answer/usage，不读 labels/judge/category/sample id。
 
 ## 当前 Split Best
 
