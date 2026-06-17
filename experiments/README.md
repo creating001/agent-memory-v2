@@ -19,14 +19,14 @@
 - 不要把 v101 及之前的 qwen3-30b 数字与 qwen3.6 no-thinking 数字直接当作同 backbone 方法对比。
 - `agent-memory-other` / `agent-memory-gpt` 是外部测试目录，不作为主项目 LTS 结果来源。
 
-## 当前待验证候选
+## 最新负向候选
 
 | 项目 | 结果 |
 |---|---|
 | 配置 | `configs/stage1_evidence_unit_rerank_v112_qwen36_no_think_build4k_cached.json` |
 | 目的 | 在 v110 正向候选基础上增加 evidence-unit rerank：中心 raw turn + same-session neighbor + source-linked build memory 作为 rerank 文档，最终 reader 仍以 raw evidence 为主。 |
-| 状态 | 待 formal 验证；先跑 LongMemEval-S full，若主指标不低于当前 v102/v110，再跑 LoCoMo non-adversarial full。 |
-| 诊断边界 | v112 只针对 top-k/context noise 和 build memory 组织信号；granularity/profile 与 selected-context 的 general 风险仍需后续独立处理。 |
+| 结果 | LongMemEval-S full strict/lenient `0.810000 / 0.828000`；低于 v102 LTS `0.814000 / 0.830000` 和 v110 candidate `0.812000 / 0.834000`，停止，不跑 LoCoMo full。 |
+| 诊断 | Rerank applied `220/500`；true answer changed `82/500`，changed-answer lenient gain/loss `11/12`。knowledge-update 有收益，但 multi-session 和 temporal-reasoning 覆盖受损，说明 rerank 仍不应直接改 final raw-row order。 |
 | 诊断文档 | `diagnostic/stage1_v102_generalization_audit_v104_plan.md` |
 
 ## 当前正向候选
@@ -39,7 +39,7 @@
 | 诊断 | v110 实际改变 prompt/answer 的样本集中在 modal inference；LoCoMo Open-Domain(category 3) lenient `45/96 -> 54/96`，但 Multi-Hop/Temporal/Single-Hop 有小幅抵消。 |
 | 诊断文档 | `diagnostic/stage1_v102_generalization_audit_v104_plan.md` |
 
-## 最新负向候选
+## 近期负向候选
 
 | 项目 | 结果 |
 |---|---|
@@ -143,6 +143,7 @@
 | `stage1_modal_grounded_inference_v110_qwen36_no_think_build4k_lme_s_full_2f33213` | qwen3.6 no-thinking v110 正向候选 LME：strict/lenient `0.812/0.834`，lenient 比 v102 高 2 题但 strict 低 1 题。 |
 | `stage1_modal_grounded_inference_v110_qwen36_no_think_build4k_locomo_nonadv_full_2f33213` | qwen3.6 no-thinking v110 正向候选 LoCoMo：strict/lenient `0.779221/0.799351`，lenient 比 v102 高 2 题，但仍差 1 题到 `0.800000`。 |
 | `stage1_modal_abstention_repair_v111_qwen36_no_think_build4k_lme_s_full_c9b4d23` | qwen3.6 no-thinking v111 负/不确定结果：LME strict/lenient `0.816/0.828`，主指标低于 v102/v110，不跑 LoCoMo full。 |
+| `stage1_evidence_unit_rerank_v112_qwen36_no_think_build4k_lme_s_full_da79d4e` | qwen3.6 no-thinking v112 负结果：LME strict/lenient `0.810/0.828`，evidence-unit rerank changed-answer gain/loss `11/12`，不跑 LoCoMo full。 |
 
 ## 保留 Diagnostic Runs
 

@@ -532,3 +532,34 @@ Clean 边界：
 3. 先跑 LongMemEval-S full。若 lenient 低于 v102 `0.830000` 且低于 v110 `0.834000`，停止，不跑 LoCoMo。
 4. 若 LME 持平或提升，再跑 LoCoMo non-adversarial full；重点看 LoCoMo 是否突破 `0.800000` lenient，同时检查 Multi-Hop/Temporal/Single-Hop 是否被 rerank collateral damage 抵消。
 5. 无论结果正负，都在 formal run 下记录 commit、配置、token 成本、rerank token、outputs path、metrics 和 diagnosis。
+
+## v112 run result
+
+主目录 formal run `stage1_evidence_unit_rerank_v112_qwen36_no_think_build4k_lme_s_full_da79d4e` 已完成 LongMemEval-S full：
+
+- dual flash strict/lenient `405/500 = 0.810000` / `414/500 = 0.828000`
+- avg build tokens `85393.566`
+- avg query tokens `6210.196`
+- rerank applied `220/500`
+- avg rerank tokens when applied `22933.100`
+- avg compiled evidence rows `33.274`
+- answer cache hits/misses `280/220`
+
+对比：
+
+- v102 LTS LongMemEval-S strict/lenient `0.814000 / 0.830000`
+- v110 candidate LongMemEval-S strict/lenient `0.812000 / 0.834000`
+- v112 低于两者，因此停止，不跑 LoCoMo full。
+
+差异诊断：
+
+- v112 vs v110 lenient gain/loss `12 / 15`，net `-3`。
+- true answer text changed `82/500`，全部来自 rerank-applied samples。
+- changed-answer 子集 lenient gain/loss `11 / 12`，说明 evidence-unit rerank 的真实收益不足。
+- changed-answer by type：knowledge-update `+6/-0`，multi-session `+1/-3`，temporal-reasoning `+2/-5`，single-session-preference `+2/-2`，single-session-assistant `+0/-1`，single-session-user `+0/-1`。
+
+结论：
+
+- v112 不是新 LTS；当前默认仍是 v102，v110 仍只是正向但未达标候选。
+- evidence-unit document 比 v103 单 turn rerank 更合理，但直接改变 final raw-row order 仍会伤 multi-session/temporal 覆盖。
+- 后续如果继续 rerank，应改成不破坏覆盖的 scoped rerank，例如只在已选 coverage groups 内排序，或把 rerank score 作为 compiler secondary signal，而不是替换 final retrieval order。
