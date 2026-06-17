@@ -236,6 +236,9 @@ class Stage1Pipeline:
         self._selected_context_max_neighbor_chars = int(
             selected_context_config.get("max_neighbor_chars", 180)
         )
+        self._selected_context_max_center_chars = int(
+            selected_context_config.get("max_center_chars", 0)
+        )
         self._selected_context_require_anaphora = bool(
             selected_context_config.get("require_anaphora", True)
         )
@@ -248,6 +251,7 @@ class Stage1Pipeline:
             "window_after": self._selected_context_window_after,
             "max_rows": self._selected_context_max_rows,
             "max_neighbor_chars": self._selected_context_max_neighbor_chars,
+            "max_center_chars": self._selected_context_max_center_chars,
             "require_anaphora": self._selected_context_require_anaphora,
             "information_needs": self._selected_context_information_needs,
         }
@@ -956,6 +960,7 @@ class Stage1Pipeline:
             window_after=selected_context_settings["window_after"],
             max_rows=selected_context_settings["max_rows"],
             max_neighbor_chars=selected_context_settings["max_neighbor_chars"],
+            max_center_chars=selected_context_settings["max_center_chars"],
             require_anaphora=selected_context_settings["require_anaphora"],
         )
         selected_context["granularity_profile"] = granularity_profile
@@ -1352,6 +1357,7 @@ class Stage1Pipeline:
             "window_after": self._selected_context_window_after,
             "max_rows": self._selected_context_max_rows,
             "max_neighbor_chars": self._selected_context_max_neighbor_chars,
+            "max_center_chars": self._selected_context_max_center_chars,
             "require_anaphora": self._selected_context_require_anaphora,
             "information_needs": self._selected_context_information_needs,
         }
@@ -1860,6 +1866,7 @@ def _materialize_selected_context(
     window_after: int,
     max_rows: int,
     max_neighbor_chars: int,
+    max_center_chars: int,
     require_anaphora: bool,
 ) -> tuple[tuple[Turn, ...], dict[str, Any]]:
     trace: dict[str, Any] = {
@@ -1870,10 +1877,13 @@ def _materialize_selected_context(
         "window_after": window_after,
         "max_rows": max_rows,
         "max_neighbor_chars": max_neighbor_chars,
+        "max_center_chars": max_center_chars,
         "require_anaphora": require_anaphora,
         "eligible": False,
         "materialized_count": 0,
         "materialized_source_ids": [],
+        "skipped_long_center_count": 0,
+        "skipped_long_center_source_ids": [],
     }
     if not enabled or not turns:
         return turns, trace
@@ -1887,8 +1897,13 @@ def _materialize_selected_context(
     neighbor_chars = max(40, max_neighbor_chars)
     materialized_ids: list[str] = []
     materialized_turns: list[Turn] = []
+    skipped_long_center_ids: list[str] = []
 
     for turn in turns:
+        if max_center_chars > 0 and len(turn.text) > max_center_chars:
+            skipped_long_center_ids.append(turn.source_id)
+            materialized_turns.append(turn)
+            continue
         if len(materialized_ids) >= row_limit or (
             require_anaphora
             and not SELECTED_CONTEXT_ANAPHORA_PATTERN.search(turn.text)
@@ -1910,6 +1925,8 @@ def _materialize_selected_context(
 
     trace["materialized_count"] = len(materialized_ids)
     trace["materialized_source_ids"] = materialized_ids
+    trace["skipped_long_center_count"] = len(skipped_long_center_ids)
+    trace["skipped_long_center_source_ids"] = skipped_long_center_ids
     trace["applied"] = bool(materialized_ids)
     return tuple(materialized_turns), trace
 
@@ -2430,6 +2447,7 @@ def _validate_granularity_profiles(value: object) -> tuple[dict[str, Any], ...]:
             "window_after",
             "max_rows",
             "max_neighbor_chars",
+            "max_center_chars",
             "require_anaphora",
             "information_needs",
         }
@@ -2482,7 +2500,13 @@ def _normalized_selected_context_override(
     for key, value in raw.items():
         if key in {"enabled", "require_anaphora"}:
             result[key] = bool(value)
-        elif key in {"window_before", "window_after", "max_rows", "max_neighbor_chars"}:
+        elif key in {
+            "window_before",
+            "window_after",
+            "max_rows",
+            "max_neighbor_chars",
+            "max_center_chars",
+        }:
             result[key] = int(value)
         elif key == "information_needs":
             result[key] = _tuple_config(value)

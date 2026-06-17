@@ -9,7 +9,17 @@
 | 默认配置 | `configs/stage1_spacing_profile_v102_qwen36_no_think_build4k_cached.json` |
 | Answer / build LLM | `Qwen/Qwen3.6-35B-A3B`，请求级 `chat_template_kwargs.enable_thinking=false`。 |
 | 继承算法 | V102 raw-memory-granularity adaptive；retrieval/compiler/finalizer 行为与 V102 一致，build 上限为 `4096`。 |
-| 状态 | 作为后续新实验默认配置；需要全量正式结果时必须另跑并记录 dual judge。 |
+| qwen3.6 no-thinking full 结果 | LongMemEval-S strict/lenient `0.806000 / 0.844000`；LoCoMo strict/lenient `0.787662 / 0.823377`。结果位于 `agent-memory-other`，主目录 README 记录当前口径。 |
+| 状态 | 作为后续新实验默认配置；已达到 baseline target，但 granularity/profile generalization 风险正在 v104 中诊断。 |
+
+## 当前诊断候选
+
+| 项目 | 结果 |
+|---|---|
+| 配置 | `configs/stage1_context_guard_v104_qwen36_no_think_build4k_cached.json` |
+| 目的 | 移除按全样本平均 turn 长度的大块 profile 切换；selected context 改为 per-turn `max_center_chars`；关闭 mechanical finalizer，启用 source-grounded repair guardrail。 |
+| 计划 | 先跑 LongMemEval-S full；若同 backbone 下显著低于 v102，则停止，不浪费 LoCoMo full。 |
+| 诊断文档 | `diagnostic/stage1_v102_generalization_audit_v104_plan.md` |
 
 ## 已验证历史 LTS
 
@@ -53,6 +63,7 @@
 | `stage1_temporal_event_contract_v29_locomo_nonadv_full_c7b8390` | LoCoMo temporal event/mention time 关键提升点。 |
 | `stage1_update_conflict_guide_v80_lme_s_full_152b0e5` | LME update/conflict guide 关键提升点。 |
 | `dual_judge_reassessment_20260617.md` | dual judge 正式口径、LTS strict/lenient 和历史 backbone/embedding 对比重算记录。 |
+| `stage1_rerank_context_v103_lme_s_full_f9fae4b` | qwen3.6 no-thinking v103 负结果：LME strict/lenient `0.780 / 0.818`，低于 qwen3.6 v102 `0.806 / 0.844`；说明单 turn rerank + 强裁剪不是当前主线。 |
 
 ## 保留 Diagnostic Runs
 
@@ -61,6 +72,7 @@
 | `diagnostic/stage1_prompt_discipline_v100_lme_stratified_120_f844921` | 负向诊断：全 route prompt discipline 伤 LongMemEval-S，不跑全量。 |
 | `diagnostic/stage1_short_turn_candidate_anchor_v101_locomo_stratified_200_f844921` | 负向诊断：短 turn source-anchor/candidate-guide 伤 LoCoMo，不跑全量。 |
 | `diagnostic/stage1_granularity_adaptive_v99_locomo_route_stratified_200_6c5bdf4` | 历史负向诊断：宽泛 short-answer boundary 在 route-stratified 200 上明显负向，后续不要走单纯“更短答案”方向。 |
+| `diagnostic/stage1_v102_generalization_audit_v104_plan.md` | 当前结构审计：granularity/profile、selected context、mechanical finalizer、top-k/noise 和 build-memory 使用方式；提出 v104 诊断候选。 |
 
 ## 输出路径
 
