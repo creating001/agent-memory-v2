@@ -114,15 +114,8 @@ Question: {question}
 Gold answer: {gold_answer}
 Generated answer: {generated_answer}
 
-Return ONLY a valid JSON object in the following format:
-{
-  "reasoning": "One short sentence explaining the decision.",
-  "label": "CORRECT"
-}
-
-The value of "reasoning" must be one short sentence.
-The value of "label" must be exactly "CORRECT" or "WRONG".
-Do not include markdown, code fences, or any text outside the JSON object.
+Return exactly one label: CORRECT or WRONG.
+Do not include explanations, JSON, markdown, code fences, or any other text.
 ```
 
 ### LongMemEval Judge Templates

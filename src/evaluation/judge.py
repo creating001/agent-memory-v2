@@ -27,15 +27,8 @@ Question: {question}
 Gold answer: {gold_answer}
 Generated answer: {generated_answer}
 
-Return ONLY a valid JSON object in the following format:
-{{
-  "reasoning": "One short sentence explaining the decision.",
-  "label": "CORRECT"
-}}
-
-The value of "reasoning" must be one short sentence.
-The value of "label" must be exactly "CORRECT" or "WRONG".
-Do not include markdown, code fences, or any text outside the JSON object."""
+Return exactly one label: CORRECT or WRONG.
+Do not include explanations, JSON, markdown, code fences, or any other text."""
 
 
 LONGMEMEVAL_DEFAULT_TEMPLATE = """I will give you a question, a correct answer, and a response from a model. Please answer yes if the response contains the correct answer. Otherwise, answer no. If the response is equivalent to the correct answer or contains all the intermediate steps to get the correct answer, you should also answer yes. If the response only contains a subset of the information required by the answer, answer no.
@@ -116,6 +109,9 @@ def build_judge_prompt(example: JudgeExample) -> str:
 def parse_judge_label(benchmark: str, response_text: str) -> str:
     text = response_text.strip()
     if benchmark.lower() == "locomo":
+        label = text.upper().strip(" .\n\t\"'")
+        if label in {"CORRECT", "WRONG"}:
+            return label
         try:
             payload = json.loads(text)
         except json.JSONDecodeError:

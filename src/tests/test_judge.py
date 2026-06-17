@@ -19,7 +19,7 @@ from evaluation.judge import (
 
 
 class JudgeTest(unittest.TestCase):
-    def test_locomo_prompt_requires_json_label(self) -> None:
+    def test_locomo_prompt_requires_single_label(self) -> None:
         prompt = build_judge_prompt(
             JudgeExample(
                 record_key="a",
@@ -30,10 +30,12 @@ class JudgeTest(unittest.TestCase):
             )
         )
 
-        self.assertIn("Return ONLY a valid JSON object", prompt)
-        self.assertIn('"reasoning"', prompt)
+        self.assertIn("Return exactly one label: CORRECT or WRONG", prompt)
+        self.assertNotIn("reasoning", prompt)
+        self.assertEqual(parse_judge_label("locomo", "CORRECT"), "CORRECT")
+        self.assertEqual(parse_judge_label("locomo", "WRONG"), "WRONG")
         self.assertEqual(
-            parse_judge_label("locomo", '{"reasoning":"Same tea.","label":"CORRECT"}'),
+            parse_judge_label("locomo", '{"reasoning":"legacy","label":"CORRECT"}'),
             "CORRECT",
         )
 
