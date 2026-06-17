@@ -73,7 +73,12 @@ def main() -> int:
         prompt = build_judge_prompt(example)
         prompt_hash = hashlib.sha256(prompt.encode("utf-8")).hexdigest()[:16]
         previous = judgments_by_key.get(key)
-        if previous and previous.get("prompt_hash") == prompt_hash:
+        if (
+            previous
+            and previous.get("prompt_hash") == prompt_hash
+            and previous.get("model") == args.model
+            and previous.get("temperature") == args.temperature
+        ):
             continue
 
         if args.dry_run:
@@ -81,6 +86,8 @@ def main() -> int:
                 "record_key": key,
                 "label": "PENDING",
                 "prompt_hash": prompt_hash,
+                "model": args.model,
+                "temperature": args.temperature,
                 "question_type": example.question_type,
             }
             judgments_by_key[key] = judgment
@@ -108,6 +115,7 @@ def main() -> int:
                     base_url=args.base_url,
                     api_key=api_key or "",
                     model=args.model,
+                    temperature=args.temperature,
                     timeout=args.timeout,
                     max_retries=args.max_retries,
                     retry_sleep=args.retry_sleep,
@@ -130,6 +138,7 @@ def main() -> int:
                         base_url=args.base_url,
                         api_key=api_key or "",
                         model=args.model,
+                        temperature=args.temperature,
                         timeout=args.timeout,
                         max_retries=args.max_retries,
                         retry_sleep=args.retry_sleep,
@@ -152,6 +161,7 @@ def main() -> int:
         "model": args.model,
         "base_url": args.base_url,
         "api_key_env": args.api_key_env,
+        "temperature": args.temperature,
         "dry_run": args.dry_run,
         "workers": args.workers,
         "predictions": str(Path(args.predictions).resolve()),
@@ -177,6 +187,7 @@ def _judge_task(
     base_url: str,
     api_key: str,
     model: str,
+    temperature: float,
     timeout: float,
     max_retries: int,
     retry_sleep: float,
@@ -187,6 +198,7 @@ def _judge_task(
         base_url=base_url,
         api_key=api_key,
         model=model,
+        temperature=temperature,
         prompt=str(task["prompt"]),
         timeout=timeout,
         max_retries=max_retries,
@@ -198,6 +210,8 @@ def _judge_task(
         "label": parse_judge_label(benchmark, response_text),
         "raw_response": response_text,
         "prompt_hash": str(task["prompt_hash"]),
+        "model": model,
+        "temperature": temperature,
         "question_type": example.question_type,
         "usage": response.get("usage", {}),
     }
@@ -212,6 +226,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--model", default="deepseek-v4-flash")
     parser.add_argument("--base-url", default="https://api.deepseek.com")
     parser.add_argument("--api-key-env", default="DEEPSEEK_API_KEY")
+    parser.add_argument("--temperature", type=float, default=0.0)
     parser.add_argument("--timeout", type=float, default=60.0)
     parser.add_argument("--max-retries", type=int, default=6)
     parser.add_argument("--retry-sleep", type=float, default=2.0)
@@ -228,6 +243,7 @@ def _call_deepseek_with_retries(
     base_url: str,
     api_key: str,
     model: str,
+    temperature: float,
     prompt: str,
     timeout: float,
     max_retries: int,
@@ -241,6 +257,7 @@ def _call_deepseek_with_retries(
                 base_url=base_url,
                 api_key=api_key,
                 model=model,
+                temperature=temperature,
                 prompt=prompt,
                 timeout=timeout,
             )
@@ -260,14 +277,19 @@ def _call_deepseek_with_retries(
 
 
 def _call_deepseek(
-    base_url: str, api_key: str, model: str, prompt: str, timeout: float
+    base_url: str,
+    api_key: str,
+    model: str,
+    temperature: float,
+    prompt: str,
+    timeout: float,
 ) -> dict[str, Any]:
     endpoint = base_url.rstrip("/") + "/chat/completions"
     request_body = json.dumps(
         {
             "model": model,
             "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0.0,
+            "temperature": temperature,
         }
     ).encode("utf-8")
     request = urllib.request.Request(

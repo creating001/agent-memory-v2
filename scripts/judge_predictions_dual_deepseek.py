@@ -67,6 +67,7 @@ def main() -> int:
             "flash": FLASH_MODEL,
             "pro": PRO_MODEL,
         },
+        "temperature": args.temperature,
         "metrics": dual_report["metrics"],
         "by_group": dual_report["by_group"],
         "single_judge_metrics": {
@@ -114,6 +115,8 @@ def _ensure_judge_output(args: argparse.Namespace, *, model: str, output: Path) 
         args.base_url,
         "--api-key-env",
         args.api_key_env,
+        "--temperature",
+        str(args.temperature),
         "--timeout",
         str(args.timeout),
         "--max-retries",
@@ -141,6 +144,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--group-field")
     parser.add_argument("--base-url", default="https://api.deepseek.com")
     parser.add_argument("--api-key-env", default="DEEPSEEK_API_KEY")
+    parser.add_argument("--temperature", type=float, default=0.0)
     parser.add_argument("--timeout", type=float, default=60.0)
     parser.add_argument("--max-retries", type=int, default=6)
     parser.add_argument("--retry-sleep", type=float, default=2.0)
