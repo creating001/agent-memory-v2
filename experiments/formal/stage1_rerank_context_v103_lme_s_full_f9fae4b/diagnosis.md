@@ -5,28 +5,19 @@
 This run is a negative result for the v103 rerank-context candidate. Under the
 same Qwen/Qwen3.6-35B-A3B no-thinking backbone and default embedding setting,
 v103 reduces query tokens but hurts LongMemEval-S full accuracy compared with
-the qwen3.6 v102 baseline stored in `agent-memory-other`.
+the current main-repo qwen3.6 v102 run.
 
 ## Judge Result
 
-| Run | Backbone | Strict accuracy | Lenient accuracy | Flash accuracy | Pro accuracy | Avg query tokens |
-| --- | --- | ---: | ---: | ---: | ---: | ---: |
-| v102 default | Qwen3.6 no-thinking | 403/500 = 0.806 | 422/500 = 0.844 | 418/500 = 0.836 | 407/500 = 0.814 | 6174.112 |
-| v103 rerank-context | Qwen3.6 no-thinking | 390/500 = 0.780 | 409/500 = 0.818 | 405/500 = 0.810 | 394/500 = 0.788 | 5186.944 |
+| Run | Backbone | Judge metric | Accuracy | Avg query tokens |
+| --- | --- | --- | ---: | ---: |
+| v102 current LTS | Qwen3.6 no-thinking | dual flash lenient | 415/500 = 0.830 | 6137.344 |
+| v103 rerank-context | Qwen3.6 no-thinking | single flash diagnostic | 405/500 = 0.810 | 5186.944 |
 
-Delta v103 - v102 default: strict -13 correct (-0.026), lenient -13 correct
-(-0.026), flash -13 correct, pro -13 correct. Although v103 moves the average
-query tokens back under the 6K budget, the accuracy regression means it should
-not be promoted as an LTS candidate.
-
-By-question-type deltas against qwen3.6 v102 default:
-
-- knowledge-update: strict -2, lenient -3.
-- multi-session: strict -10, lenient -8.
-- single-session-assistant: strict +1, lenient -3.
-- single-session-preference: strict -1, lenient +5.
-- single-session-user: strict +2, lenient +0.
-- temporal-reasoning: strict -3, lenient -4.
+Although v103 moves the average query tokens back under the 6K budget, the
+accuracy regression means it should not be promoted as an LTS candidate. Old
+non-current dual-judge artifacts were removed from this run; it is retained as a
+negative query-token/rerank diagnostic only.
 
 Decision: reject v103 as a mainline candidate. Full LoCoMo v103 was stopped
 after this same-backbone LME regression was found; the aborted run produced only

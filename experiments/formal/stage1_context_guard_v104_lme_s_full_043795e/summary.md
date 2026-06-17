@@ -6,7 +6,7 @@ Stage-1 clean skeleton run: validate raw evidence storage, lexical retrieval, ne
 
 ## Result
 
-Rejected as LTS candidate. LongMemEval-S full dual judge result is strict `386/500 = 0.772000`, lenient `403/500 = 0.806000`; flash/pro single judge accuracy is `0.790000 / 0.788000`.
+Rejected as LTS candidate. LongMemEval-S full single-flash diagnostic accuracy is `395/500 = 0.790000`, below the current qwen3.6 v102 dual-flash lenient accuracy `0.830000`. Old non-current dual-judge artifacts were removed from this run.
 
 This run is also over the normal query budget: avg query tokens `7367.622`, with answer repair triggered on `178/500` samples and adding `772443` query tokens total. LoCoMo full was intentionally not run for this candidate.
 
@@ -31,7 +31,7 @@ This run is also over the normal query budget: avg query tokens `7367.622`, with
 ## Metrics
 
 - n_samples: 500
-- accuracy: strict `386/500 = 0.772000`, lenient `403/500 = 0.806000` by DeepSeek dual judge
+- accuracy: single-flash diagnostic `395/500 = 0.790000`
 - f1: None
 - bleu: None
 - avg_build_tokens: 85393.566

@@ -97,9 +97,8 @@ Smoke 观察：
 
 主目录 formal run `stage1_context_guard_v104_lme_s_full_043795e` 已完成 LongMemEval-S full：
 
-- strict `386/500 = 0.772000`
-- lenient `403/500 = 0.806000`
+- single-flash diagnostic accuracy `395/500 = 0.790000`
 - avg query tokens `7367.622`
 - answer repair triggered `178/500`，额外 query tokens `772443`
 
-结论：v104 不是 LTS 候选，且 query token 明显超出 normal budget；LoCoMo full 不继续跑。下一步先在主目录重跑 v102，得到真正的主目录 qwen3.6 no-thinking LTS 口径，再基于 badcase 设计下一次方法。
+结论：v104 不是 LTS 候选，且 query token 明显超出 normal budget；LoCoMo full 不继续跑。下一步应基于当前主目录 qwen3.6 no-thinking v102 dual-flash LTS 口径和 badcase 设计下一次方法。

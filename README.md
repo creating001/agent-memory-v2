@@ -20,6 +20,7 @@
 - LoCoMo non-adversarial full：strict `1196/1540 = 0.776623`，lenient `1229/1540 = 0.798052`。
 - 两个 benchmark 使用同一套 clean raw-memory-granularity adaptive v102 算法；按 dual flash lenient judge，LME 达到当前 baseline target，LoCoMo 距 `80%` baseline target 还差 4 题，下一阶段优先提升 LoCoMo 并保持 LME。
 - V102 只把短 turn prompt spacing 显式纳入 profile；LongMemEval-S 长 turn 分支保持 v98，LoCoMo 短 turn 分支恢复 v96 行为。
+- `v101` 及之前的结果默认是旧 `Qwen/Qwen3-30B-A3B-Instruct-2507` backbone；只有显式带 `qwen36_no_think_build4k` 的配置和 run 属于当前 qwen3.6 no-thinking backbone。
 - 结果入口见 `experiments/README.md`；预测和 trace 见 `outputs/formal/<run_id>/`。
 
 ## 目录

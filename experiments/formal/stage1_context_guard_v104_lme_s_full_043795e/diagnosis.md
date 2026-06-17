@@ -4,12 +4,11 @@
 
 V104 is rejected as an LTS candidate. It is clean and traceable, but LongMemEval-S full does not improve accuracy and the answer repair path pushes avg query tokens above the normal budget.
 
-DeepSeek dual judge:
+DeepSeek judge:
 
-- strict: `386/500 = 0.772000`
-- lenient: `403/500 = 0.806000`
-- flash/pro single judge: `395/500 = 0.790000` / `394/500 = 0.788000`
-- judge agreement: `0.966000`
+- single-flash diagnostic accuracy: `395/500 = 0.790000`
+- current qwen3.6 v102 dual-flash lenient reference: `415/500 = 0.830000`
+- old non-current dual-judge artifacts were removed from this run.
 
 Cost:
 

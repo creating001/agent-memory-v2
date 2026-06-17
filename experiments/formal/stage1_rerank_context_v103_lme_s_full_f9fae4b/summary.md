@@ -3,10 +3,11 @@
 ## Conclusion
 
 v103 is a rejected candidate. With the same Qwen/Qwen3.6-35B-A3B no-thinking
-backbone and default embedding setting, it scores LongMemEval-S strict/lenient
-0.780/0.818, below the qwen3.6 v102 baseline from `agent-memory-other`
-at 0.806/0.844. It does reduce avg query tokens from 6174.112 to 5186.944, but
-the accuracy loss is not acceptable for LTS.
+backbone and default embedding setting, it scores LongMemEval-S single-flash
+accuracy `405/500 = 0.810`, below the current qwen3.6 v102 dual-flash lenient
+accuracy `0.830`. It does reduce avg query tokens from about 6.1K to 5.2K, but
+the accuracy loss is not acceptable for LTS. Old non-current dual-judge artifacts were
+removed from this run; keep this as a negative query-token diagnostic only.
 
 ## Purpose
 

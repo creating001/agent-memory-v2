@@ -15,7 +15,8 @@
 ## Backbone 口径说明
 
 - `v101` 及之前的探索默认是 `Qwen/Qwen3-30B-A3B-Instruct-2507` 口径，属于历史 qwen3-30b 探索。
-- 当前默认 LTS 是 `Qwen/Qwen3.6-35B-A3B` no-thinking 口径，run 名称显式带 `qwen36_no_think_build4k`。
+- 当前默认 LTS 是 `Qwen/Qwen3.6-35B-A3B` no-thinking 口径；只有 run/config 名称显式带 `qwen36_no_think_build4k` 的记录才属于这个新 backbone。
+- 不要把 v101 及之前的 qwen3-30b 数字与 qwen3.6 no-thinking 数字直接当作同 backbone 方法对比。
 - `agent-memory-other` / `agent-memory-gpt` 是外部测试目录，不作为主项目 LTS 结果来源。
 
 ## 当前诊断候选
@@ -24,19 +25,19 @@
 |---|---|
 | 配置 | `configs/stage1_context_guard_v104_qwen36_no_think_build4k_cached.json` |
 | 目的 | 移除按全样本平均 turn 长度的大块 profile 切换；selected context 改为 per-turn `max_center_chars`；关闭 mechanical finalizer，启用 source-grounded repair guardrail。 |
-| 结果 | LongMemEval-S full strict/lenient `0.772000 / 0.806000`，avg query tokens `7367.622`，answer repair 触发 `178/500`；过预算且未形成 LTS 提升，已停止，不跑 LoCoMo full。 |
+| 结果 | LongMemEval-S full 单次 flash `395/500 = 0.790000`，avg query tokens `7367.622`，answer repair 触发 `178/500`；过预算且未形成 LTS 提升，已停止，不跑 LoCoMo full。 |
 | 诊断文档 | `diagnostic/stage1_v102_generalization_audit_v104_plan.md` |
 
-## 已验证历史 LTS
+## 历史 qwen3-30b 参考
 
 | 项目 | 结果 |
 |---|---|
-| LTS 配置 | `configs/stage1_spacing_profile_v102_cached.json` |
+| 配置 | `configs/stage1_spacing_profile_v102_cached.json` |
 | 算法口径 | 同一套 raw-memory-granularity adaptive 算法；短 turn 恢复 v96 prompt spacing，长 turn 保持 v98 precision branch；不使用 benchmark 标签、gold、judge、sample id、row index 或测试反馈。 |
-| LongMemEval-S full | strict `386/500 = 0.772000`，lenient `403/500 = 0.806000`；flash 单 judge 为 `400/500 = 0.800000`。 |
-| LoCoMo non-adversarial full | strict `1195/1540 = 0.775974`，lenient `1267/1540 = 0.822727`；flash 单 judge 为 `1232/1540 = 0.800000`。 |
+| LongMemEval-S full | 单次 flash judge `400/500 = 0.800000`。 |
+| LoCoMo non-adversarial full | 单次 flash judge `1232/1540 = 0.800000`。 |
 | token | LME avg build/query `80346.246 / 5912.794`；LoCoMo avg build/query `58386.008 / 5496.281`。 |
-| 状态 | 统一算法按 lenient dual judge 达到 baseline target；strict 是更保守的下界。这是历史验证结果，backbone 是 `Qwen/Qwen3-30B-A3B-Instruct-2507`；`v101` 及之前均按 qwen3-30b 历史探索理解。 |
+| 状态 | 历史参考结果，backbone 是 `Qwen/Qwen3-30B-A3B-Instruct-2507`；`v101` 及之前均按 qwen3-30b 历史探索理解，不作为当前 qwen3.6 dual flash target 判断。 |
 
 ## Split Best
 
@@ -49,8 +50,8 @@
 
 | run | 作用 |
 |---|---|
-| `stage1_spacing_profile_v102_lme_s_full_f844921` | 当前 LTS LongMemEval-S 证明链。 |
-| `stage1_spacing_profile_v102_locomo_nonadv_full_f844921` | 当前 LTS LoCoMo 证明链。 |
+| `stage1_spacing_profile_v102_lme_s_full_f844921` | 历史 qwen3-30b LongMemEval-S 证明链。 |
+| `stage1_spacing_profile_v102_locomo_nonadv_full_f844921` | 历史 qwen3-30b LoCoMo 证明链。 |
 | `stage1_spacing_profile_v102_qwen36_no_think_build4k_lme_s_full_4fc01c0` | 当前 qwen3.6 no-thinking LTS LongMemEval-S 主目录 rerun。 |
 | `stage1_spacing_profile_v102_qwen36_no_think_build4k_locomo_nonadv_full_1526d1c` | 当前 qwen3.6 no-thinking LTS LoCoMo 主目录 rerun；judge 使用 single-label prompt。 |
 | `stage1_granularity_adaptive_v98_lme_s_full_7b0aab9` | v102 LME 兼容继承来源。 |
@@ -70,9 +71,8 @@
 | `stage1_evidence_report_contract_v28_lme_s_full_9917c22` | LME evidence_report contract 关键提升点。 |
 | `stage1_temporal_event_contract_v29_locomo_nonadv_full_c7b8390` | LoCoMo temporal event/mention time 关键提升点。 |
 | `stage1_update_conflict_guide_v80_lme_s_full_152b0e5` | LME update/conflict guide 关键提升点。 |
-| `dual_judge_reassessment_20260617.md` | dual judge 正式口径、LTS strict/lenient 和历史 backbone/embedding 对比重算记录。 |
-| `stage1_rerank_context_v103_lme_s_full_f9fae4b` | qwen3.6 no-thinking v103 负结果：LME strict/lenient `0.780 / 0.818`，低于 qwen3.6 v102 dual flash `0.814 / 0.830`；说明单 turn rerank + 强裁剪不是当前主线。 |
-| `stage1_context_guard_v104_lme_s_full_043795e` | qwen3.6 no-thinking v104 负结果：LME strict/lenient `0.772 / 0.806`，avg query tokens `7367.622`；说明粗暴取消 profile + broad answer repair 不适合作为 LTS。 |
+| `stage1_rerank_context_v103_lme_s_full_f9fae4b` | qwen3.6 no-thinking v103 负结果：LME 单次 flash `405/500 = 0.810`，低于 qwen3.6 v102 dual flash lenient `0.830` 且只换来 query token 降低；说明单 turn rerank + 强裁剪不是当前主线。 |
+| `stage1_context_guard_v104_lme_s_full_043795e` | qwen3.6 no-thinking v104 负结果：LME 单次 flash `395/500 = 0.790`，avg query tokens `7367.622`；说明粗暴取消 profile + broad answer repair 不适合作为 LTS。 |
 
 ## 保留 Diagnostic Runs
 

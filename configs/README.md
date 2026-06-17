@@ -8,7 +8,7 @@
 |---|---|---|
 | 后续新实验默认配置 | `stage1_spacing_profile_v102_qwen36_no_think_build4k_cached.json` | V102 算法 + `Qwen/Qwen3.6-35B-A3B` answer/build backbone；请求级 `chat_template_kwargs.enable_thinking=false`；build `max_tokens=4096`，answer `max_output_tokens=16384`；使用独立 qwen36 no-thinking cache namespace。 |
 | 已拒绝诊断候选 | `stage1_context_guard_v104_qwen36_no_think_build4k_cached.json` | 移除大块 granularity profile 切换；selected context 改为 per-turn `max_center_chars`；关闭 mechanical finalizer，启用 source-grounded repair guardrail；LME full 负向且 query token 过高，不作为 LTS。 |
-| 已验证历史 LTS | `stage1_spacing_profile_v102_cached.json` | `Qwen/Qwen3-30B-A3B-Instruct-2507` backbone；LongMemEval-S full strict/lenient `0.772000 / 0.806000`，LoCoMo non-adversarial full strict/lenient `0.775974 / 0.822727`。 |
+| 历史 qwen3-30b 参考 | `stage1_spacing_profile_v102_cached.json` | `Qwen/Qwen3-30B-A3B-Instruct-2507` backbone；LongMemEval-S / LoCoMo non-adversarial full 单次 flash accuracy 均为 `0.800000`。旧 backbone，不作为当前 qwen3.6 dual flash target 判断。 |
 
 说明：
 
@@ -16,6 +16,7 @@
 - v102 只根据 raw dialogue 的平均 turn 长度选择 granularity profile，不使用 benchmark 标签、gold、judge、sample id、row index 或测试反馈；但当前已标记为 generalization 风险，见 `experiments/diagnostic/stage1_v102_generalization_audit_v104_plan.md`。
 - 长 turn 分支恢复 v88 precision path：top40、selected_context off、operation workpad、update/advice guide、evidence-answer-detail finalizer。
 - 短 turn 分支继承 v96 selected-context path：top60、route-budgeted temporal top40、selected_context 最多 6 行。
+- v101 及之前的配置默认属于 `Qwen/Qwen3-30B-A3B-Instruct-2507` 历史探索；只有显式带 `qwen36_no_think_build4k` 的配置才属于当前 qwen3.6 no-thinking backbone。
 - 新方法必须另起版本和 cache namespace；不能用 qwen3-30B 的历史 cache 或外部测试目录结果证明 qwen3.6 no-thinking 配置。
 
 ## 当前 Split Best
