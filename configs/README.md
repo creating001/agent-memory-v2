@@ -7,6 +7,7 @@
 | 用途 | 配置 | 状态 |
 |---|---|---|
 | 后续新实验默认配置 | `stage1_spacing_profile_v102_qwen36_no_think_build4k_cached.json` | V102 算法 + `Qwen/Qwen3.6-35B-A3B` answer/build backbone；请求级 `chat_template_kwargs.enable_thinking=false`；build `max_tokens=4096`，answer `max_output_tokens=16384`；使用独立 qwen36 no-thinking cache namespace。 |
+| 当前候选 | `stage1_memory_activation_v106_qwen36_no_think_build4k_cached.json` | v105 负向后的隔离 ablation：保留 source-aligned typed memory activation guide，但恢复 v102 `evidence_order=retrieval`，不改变 raw-row ordering；activation 降为 global `4` 条、route-sensitive `6` 条。待 full LME 验证。 |
 | 已拒绝诊断候选 | `stage1_memory_activation_v105_qwen36_no_think_build4k_cached.json` | 在当前 qwen3.6 no-thinking v102 LTS 上打开 source-aligned typed memory activation guide，并用 `memory_aware` raw-row ordering；LME full strict/lenient `0.774000 / 0.800000`，低于 v102 `0.814000 / 0.830000`，不跑 LoCoMo full。下一步只测试 activation，不改变 v102 retrieval order。 |
 | 已拒绝诊断候选 | `stage1_context_guard_v104_qwen36_no_think_build4k_cached.json` | 移除大块 granularity profile 切换；selected context 改为 per-turn `max_center_chars`；关闭 mechanical finalizer，启用 source-grounded repair guardrail；LME full 负向且 query token 过高，不作为 LTS。 |
 | 历史 qwen3-30b 参考 | `stage1_spacing_profile_v102_cached.json` | `Qwen/Qwen3-30B-A3B-Instruct-2507` backbone；LongMemEval-S / LoCoMo non-adversarial full 单次 flash accuracy 均为 `0.800000`。旧 backbone，不作为当前 qwen3.6 dual flash target 判断。 |
@@ -20,6 +21,7 @@
 - v101 及之前的配置默认属于 `Qwen/Qwen3-30B-A3B-Instruct-2507` 历史探索；只有显式带 `qwen36_no_think_build4k` 的配置才属于当前 qwen3.6 no-thinking backbone。
 - 新方法必须另起版本和 cache namespace；不能用 qwen3-30B 的历史 cache 或外部测试目录结果证明 qwen3.6 no-thinking 配置。
 - v105 复用 v102 build-memory cache，因为 build 阶段完全未改；正式汇报仍必须按 cached usage 统计逻辑 cold-build token。v105 answer cache 使用独立 `qwen36_no_think_build4k_answer_v105_memory_activation.sqlite`。
+- v106 同样复用 v102 build-memory cache，因为 build 阶段完全未改；v106 answer cache 使用独立 `qwen36_no_think_build4k_answer_v106_memory_activation.sqlite`。
 
 ## 当前 Split Best
 

@@ -129,3 +129,40 @@ Smoke 观察：
 2. 若 smoke 正常，先跑 LongMemEval-S full；LME 是当前更接近 target 的基准，用于确认 typed memory activation 不伤主能力。
 3. 如果 LME 不明显低于 v102，再跑 LoCoMo non-adversarial full；LoCoMo 当前距 lenient `0.800000` baseline target 只差 4 题，是 v105 的重点观察对象。
 4. 正式汇报继续使用 dual `deepseek-v4-flash` strict/lenient judge，并记录 commit、dirty、token、outputs 路径和 by-category diagnosis。
+
+## v105 run result
+
+主目录 formal run `stage1_memory_activation_v105_qwen36_no_think_build4k_lme_s_full_d8f2b4c` 已完成 LongMemEval-S full：
+
+- dual flash strict/lenient `387/500 = 0.774000` / `400/500 = 0.800000`
+- avg build tokens `85393.566`
+- avg query tokens `6614.138`
+- avg compiled evidence rows `24.528`
+- avg compiled memory records `5.710`
+
+对比当前 qwen3.6 v102 LTS LongMemEval-S strict/lenient `0.814000 / 0.830000`，v105 明显负向，不跑 LoCoMo full。
+
+差异诊断：
+
+- lenient gain/loss：`27 / 42`，net `-15`。
+- loss 主要集中在 multi-session：`25` 个 loss。
+- `memory_aware` ordering 把 memory-linked 但更长/更窄的 raw rows 提前，使 compiler 更早触达 `max_evidence_chars`，avg evidence rows 从 v102 `34.752` 降到 v105 `24.528`。
+- typed memory activation 有局部收益，但和 raw-row reorder 绑定后伤害 multi-session aggregation 覆盖。
+
+## v106 计划：activation-only ablation
+
+配置：`configs/stage1_memory_activation_v106_qwen36_no_think_build4k_cached.json`
+
+设计目的：
+
+- 隔离 v105 的失败来源：只测试 source-aligned typed memory activation guide，不再改变 raw-row order。
+- build/retrieval/granularity profile/selected context/answer finalizer/backbone 继续保持当前 qwen3.6 no-thinking v102 LTS。
+- `compiler.evidence_order` 恢复 `retrieval`，避免多证据聚合题因 row reorder 过早丢 raw rows。
+- `compiler.max_memory_records=4`，temporal/list/profile/current_state route 为 `6`，减少 activation token 和 noise。
+- answer cache 独立为 `outputs/cache/qwen36_no_think_build4k_answer_v106_memory_activation.sqlite`；build cache 可复用 v102，正式 token 统计仍按 cached usage 计入逻辑 cold-build token。
+
+Smoke 观察：
+
+- LME 前 2 条 rows 与 v102 对齐：第 1 条 `40` 行，第 2 条 `39` 行；v105 第 2 条只有 `32` 行。
+- activated memory 进入 prompt，但只映射到已召回 Memory Context rows。
+- 第 2 条 query tokens `7110`，说明 activation-only 仍有 token 代价；full run 必须重点观察 accuracy 是否值得这个代价。
