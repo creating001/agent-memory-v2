@@ -244,11 +244,19 @@ def _parse_answer_content(raw_content: str, *, output_format: str) -> str:
     if output_format != "json_answer":
         raise ValueError(f"Unsupported answer output_format: {output_format}")
     parsed = _extract_json_object(raw_content)
-    if isinstance(parsed, dict) and parsed.get("answer") is not None:
-        return _normalize_answer_value(parsed["answer"])
+    if isinstance(parsed, dict):
+        if parsed.get("answer") is not None:
+            answer = _normalize_answer_value(parsed["answer"])
+            if _structured_says_insufficient(parsed) and _answer_is_placeholder(answer):
+                return _insufficient_answer()
+            return answer
+        if _structured_says_insufficient(parsed):
+            return _insufficient_answer()
     salvaged = _extract_answer_field_string(raw_content)
     if salvaged is not None:
         return salvaged
+    if _structured_text_says_insufficient(raw_content):
+        return _insufficient_answer()
     return raw_content
 
 
@@ -291,6 +299,51 @@ def _extract_answer_field_string(text: str) -> str | None:
         return raw.strip()
 
 
+def _structured_says_insufficient(payload: dict[str, Any]) -> bool:
+    if payload.get("sufficient") is False:
+        return True
+    answer_type = str(payload.get("answer_type") or "").strip().lower()
+    return answer_type == "unknown" and bool(payload.get("missing"))
+
+
+def _structured_text_says_insufficient(text: str) -> bool:
+    lowered = text.lower()
+    return (
+        text.lstrip().startswith("{")
+        and (
+            re.search(r'"sufficient"\s*:\s*false\b', lowered) is not None
+            or (
+                re.search(r'"answer_type"\s*:\s*"unknown"', lowered) is not None
+                and re.search(r'"missing"\s*:', lowered) is not None
+            )
+        )
+    )
+
+
+def _answer_is_placeholder(answer: str) -> bool:
+    normalized = re.sub(r"[^a-z0-9]+", " ", answer.lower()).strip()
+    if not normalized:
+        return True
+    return normalized in {
+        "unknown",
+        "not available",
+        "not enough information",
+        "the provided information is not enough",
+        "provided information is not enough",
+        "insufficient information",
+        "cannot determine",
+        "can not determine",
+        "n a",
+        "na",
+        "none",
+        "null",
+    }
+
+
+def _insufficient_answer() -> str:
+    return "The provided information is not enough."
+
+
 def _parse_cached_raw_response(
     raw_response: Any,
     *,
@@ -309,7 +362,7 @@ def _parse_cached_raw_response(
 
 def _looks_like_structured_answer_json(answer: str) -> bool:
     text = answer.lstrip()
-    if not text.startswith("{") or '"answer"' not in text:
+    if not text.startswith("{"):
         return False
     return any(
         marker in text

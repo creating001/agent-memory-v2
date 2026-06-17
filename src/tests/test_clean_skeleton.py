@@ -1121,6 +1121,45 @@ class CleanSkeletonTest(unittest.TestCase):
             "jasmine tea",
         )
 
+    def test_json_answer_output_converts_structured_insufficient_without_answer(self) -> None:
+        raw = json.dumps(
+            {
+                "reasoning": "No direct evidence.",
+                "sufficient": False,
+                "answer_type": "unknown",
+                "missing": "specific date",
+            }
+        )
+
+        self.assertEqual(
+            _parse_answer_content(raw, output_format="json_answer"),
+            "The provided information is not enough.",
+        )
+
+    def test_json_answer_output_converts_unknown_placeholder_answer(self) -> None:
+        raw = json.dumps(
+            {
+                "reasoning": "No direct evidence.",
+                "sufficient": False,
+                "answer_type": "unknown",
+                "missing": "specific date",
+                "answer": "unknown",
+            }
+        )
+
+        self.assertEqual(
+            _parse_answer_content(raw, output_format="json_answer"),
+            "The provided information is not enough.",
+        )
+
+    def test_json_answer_output_converts_malformed_structured_insufficient(self) -> None:
+        raw = '{"reasoning":"bad quote " here","sufficient":false,"missing":"date"}'
+
+        self.assertEqual(
+            _parse_answer_content(raw, output_format="json_answer"),
+            "The provided information is not enough.",
+        )
+
     def test_answer_repair_trigger_detects_uncertain_and_short_collection(self) -> None:
         raw_response = json.dumps(
             {
