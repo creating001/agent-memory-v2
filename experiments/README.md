@@ -6,11 +6,11 @@
 
 | 项目 | 结果 |
 |---|---|
-| 默认配置 | `configs/stage1_spacing_profile_v102_qwen36_no_think_build4k_cached.json` |
+| 默认配置 | `configs/stage1_extended_selected_context_v116_qwen36_no_think_build4k_cached.json` |
 | Answer / build LLM | `Qwen/Qwen3.6-35B-A3B`，请求级 `chat_template_kwargs.enable_thinking=false`。 |
-| 继承算法 | V102 raw-memory-granularity adaptive；retrieval/compiler/finalizer 行为与 V102 一致，build 上限为 `4096`。 |
-| qwen3.6 no-thinking full 结果 | LongMemEval-S strict/lenient `0.814000 / 0.830000`；LoCoMo strict/lenient `0.776623 / 0.798052`。这是主目录 formal rerun + dual flash judge 结果，不引用 `agent-memory-other` 测试目录数字。 |
-| 状态 | 当前默认 LTS；两个 benchmark 使用同一算法。按 dual flash lenient judge，LME 达到当前 baseline target，LoCoMo 距 `80%` baseline target 还差 4 题。LME avg query tokens `6137.344`，略高于 6K normal target，是后续优化点。 |
+| 继承算法 | V116 extended selected context；继承 v110 modal-only grounded inference，只扩展短 turn selected-context 后向邻域，不改变 build/retrieval top-k/rerank/repair/backbone。 |
+| qwen3.6 no-thinking full 结果 | LongMemEval-S strict/lenient `0.812000 / 0.834000`；LoCoMo strict/lenient `0.779221 / 0.807143`。这是主目录 formal run + dual flash judge/compatibility 结果，不引用 `agent-memory-other` 测试目录数字。 |
+| 状态 | 当前默认 LTS；两个 benchmark 使用同一算法。按 dual flash lenient judge，LME 和 LoCoMo 均达到当前 baseline target，但尚未达到 minimum target。LME avg query tokens `6140.218` 略高于 6K normal target，LoCoMo avg query tokens `5956.221` 在 6K 内。 |
 
 ## Backbone 口径说明
 
@@ -25,7 +25,7 @@
 |---|---|
 | 配置 | `configs/stage1_evidence_unit_rerank_v112_qwen36_no_think_build4k_cached.json` |
 | 目的 | 在 v110 正向候选基础上增加 evidence-unit rerank：中心 raw turn + same-session neighbor + source-linked build memory 作为 rerank 文档，最终 reader 仍以 raw evidence 为主。 |
-| 结果 | LongMemEval-S full strict/lenient `0.810000 / 0.828000`；低于 v102 LTS `0.814000 / 0.830000` 和 v110 candidate `0.812000 / 0.834000`，停止，不跑 LoCoMo full。 |
+| 结果 | LongMemEval-S full strict/lenient `0.810000 / 0.828000`；低于 v102 `0.814000 / 0.830000`、v110/v116 LME lenient `0.834000`，停止，不跑 LoCoMo full。 |
 | 诊断 | Rerank applied `220/500`；true answer changed `82/500`，changed-answer lenient gain/loss `11/12`。knowledge-update 有收益，但 multi-session 和 temporal-reasoning 覆盖受损，说明 rerank 仍不应直接改 final raw-row order。 |
 | 诊断文档 | `diagnostic/stage1_v102_generalization_audit_v104_plan.md` |
 
@@ -39,21 +39,22 @@
 | 结论 | v113 是 v110 上的 no-op，不解决 LoCoMo 距 `0.800000` 差 1 题的问题；拒绝。v102 finalizer-impact 诊断仍说明 relative-time mechanical rule 有风险，但该规则在 v110 路径已没有实际触发。 |
 | 诊断文档 | `diagnostic/v102_finalizer_impact/summary.md`；`diagnostic/stage1_v102_generalization_audit_v104_plan.md` |
 
-## 当前正向候选
+## 当前 LTS
 
 | 项目 | 结果 |
 |---|---|
 | 配置 | `configs/stage1_extended_selected_context_v116_qwen36_no_think_build4k_cached.json` |
 | 目的 | 继承 v110，只把短 turn selected context 的后向窗口从 1 扩到 2，并把 neighbor 文本预算从 120 提到 180；不改变 top-k、不加 rerank/repair LLM。目标是修复“retrieved anchor 后一问一答才出现答案”的通用对话邻域问题。 |
 | Smoke | LoCoMo 6 个邻域错例中修正 1 个（new shoes -> running），未显著增加平均 query token；该 smoke 刻意挑错例，不代表 full 指标。 |
-| 状态 | 当前 LoCoMo full 候选；正式 run 前需提交 clean commit，并记录 strict/lenient、token、selected_context applied 和输出路径。 |
+| 结果 | LongMemEval-S strict/lenient `0.812000 / 0.834000`；LoCoMo strict/lenient `0.779221 / 0.807143`。LoCoMo 相比 v110 lenient `+12` 题，达到 `0.800000` baseline target；LME predictions 与 v110 完全一致，继承 v110 dual flash judge。 |
+| 状态 | 当前默认 LTS；同一算法覆盖两个 benchmark。后续探索应在 v116 上继续冲 minimum target，同时控制 LME query token。 |
 | 诊断文档 | `diagnostic/stage1_v102_generalization_audit_v104_plan.md` |
 
 | 项目 | 结果 |
 |---|---|
 | 配置 | `configs/stage1_modal_grounded_inference_v110_qwen36_no_think_build4k_cached.json` |
 | 目的 | v109 收窄 ablation：保留 `would/might/could/likely/considered` 等 modal yes/no inference 的 grounded inference discipline，排除 plain advice/recommendation `what do you think` 负例。 |
-| 结果 | LongMemEval-S strict/lenient `0.812000 / 0.834000`；LoCoMo strict/lenient `0.779221 / 0.799351`。相比 v102，LME lenient `+2`、LoCoMo lenient `+2`；但 LoCoMo 距 `0.800000` 还差 1 题，暂不替代 v102 LTS。 |
+| 结果 | LongMemEval-S strict/lenient `0.812000 / 0.834000`；LoCoMo strict/lenient `0.779221 / 0.799351`。相比 v102，LME lenient `+2`、LoCoMo lenient `+2`；但 LoCoMo 距 `0.800000` 还差 1 题，后续由 v116 继承并替代。 |
 | 诊断 | v110 实际改变 prompt/answer 的样本集中在 modal inference；LoCoMo Open-Domain(category 3) lenient `45/96 -> 54/96`，但 Multi-Hop/Temporal/Single-Hop 有小幅抵消。 |
 | 诊断文档 | `diagnostic/stage1_v102_generalization_audit_v104_plan.md` |
 
@@ -103,7 +104,7 @@
 | 结果 | LongMemEval-S full strict/lenient `0.806000 / 0.820000`，低于 v102 `0.814000 / 0.830000`；avg query tokens `6638.526`。负向，停止，不跑 LoCoMo full。 |
 | 诊断结论 | activation-only 恢复了 v102 的 evidence rows，但直接暴露 typed memory guide 仍带来 token/noise；下一步不要继续直接把 typed memory 作为 reader prompt guide。 |
 | 配置 | `configs/stage1_memory_activation_v105_qwen36_no_think_build4k_cached.json` |
-| 目的 | 在 qwen3.6 no-thinking v102 LTS 上打开 source-aligned typed memory activation guide，并用 `memory_aware` raw-row ordering，验证 build memory 是否能从“辅助检索”升级为 query-time organization signal。 |
+| 目的 | 在当时的 qwen3.6 no-thinking v102 LTS 上打开 source-aligned typed memory activation guide，并用 `memory_aware` raw-row ordering，验证 build memory 是否能从“辅助检索”升级为 query-time organization signal。 |
 | 结果 | LongMemEval-S full strict/lenient `0.774000 / 0.800000`，低于 v102 `0.814000 / 0.830000`；avg query tokens `6614.138`，avg evidence rows 从 v102 `34.752` 降到 `24.528`。负向，停止，不跑 LoCoMo full。 |
 | 诊断结论 | `memory_aware` ordering 让多证据聚合题过早丢 raw rows；下一步只测试 typed memory activation，不改变 v102 retrieval order。 |
 
@@ -122,8 +123,8 @@
 
 | Benchmark | run | accuracy | 说明 |
 |---|---|---:|---|
-| LongMemEval-S full | `formal/stage1_spacing_profile_v102_qwen36_no_think_build4k_lme_s_full_4fc01c0` | strict `0.814000` / lenient `0.830000` | 当前 qwen3.6 no-thinking LTS LME；judge 为 dual `deepseek-v4-flash`。 |
-| LoCoMo non-adversarial full | `formal/stage1_spacing_profile_v102_qwen36_no_think_build4k_locomo_nonadv_full_1526d1c` | strict `0.776623` / lenient `0.798052` | 当前 qwen3.6 no-thinking LTS LoCoMo；LoCoMo judge prompt 为 single-label `CORRECT/WRONG`，judge 为 dual `deepseek-v4-flash`。 |
+| LongMemEval-S full | `formal/stage1_extended_selected_context_v116_qwen36_no_think_build4k_lme_s_full_aeac792` | strict `0.812000` / lenient `0.834000` | 当前 qwen3.6 no-thinking LTS LME；predictions 与 v110 一致，judge 指标继承 v110 dual `deepseek-v4-flash`。 |
+| LoCoMo non-adversarial full | `formal/stage1_extended_selected_context_v116_qwen36_no_think_build4k_locomo_nonadv_full_aeac792` | strict `0.779221` / lenient `0.807143` | 当前 qwen3.6 no-thinking LTS LoCoMo；LoCoMo judge prompt 为 single-label `CORRECT/WRONG`，judge 为 dual `deepseek-v4-flash`。 |
 
 ## 保留 Formal Runs
 
@@ -131,8 +132,10 @@
 |---|---|
 | `stage1_spacing_profile_v102_lme_s_full_f844921` | 历史 qwen3-30b LongMemEval-S 证明链。 |
 | `stage1_spacing_profile_v102_locomo_nonadv_full_f844921` | 历史 qwen3-30b LoCoMo 证明链。 |
-| `stage1_spacing_profile_v102_qwen36_no_think_build4k_lme_s_full_4fc01c0` | 当前 qwen3.6 no-thinking LTS LongMemEval-S 主目录 rerun。 |
-| `stage1_spacing_profile_v102_qwen36_no_think_build4k_locomo_nonadv_full_1526d1c` | 当前 qwen3.6 no-thinking LTS LoCoMo 主目录 rerun；judge 使用 single-label prompt。 |
+| `stage1_spacing_profile_v102_qwen36_no_think_build4k_lme_s_full_4fc01c0` | 上一版 qwen3.6 no-thinking v102 LongMemEval-S 主目录 rerun。 |
+| `stage1_spacing_profile_v102_qwen36_no_think_build4k_locomo_nonadv_full_1526d1c` | 上一版 qwen3.6 no-thinking v102 LoCoMo 主目录 rerun；judge 使用 single-label prompt。 |
+| `stage1_extended_selected_context_v116_qwen36_no_think_build4k_lme_s_full_aeac792` | 当前 qwen3.6 no-thinking v116 LTS LongMemEval-S；与 v110 answer 完全一致，继承 dual flash `0.812/0.834`。 |
+| `stage1_extended_selected_context_v116_qwen36_no_think_build4k_locomo_nonadv_full_aeac792` | 当前 qwen3.6 no-thinking v116 LTS LoCoMo；dual flash strict/lenient `0.779221/0.807143`，达到 baseline target。 |
 | `stage1_granularity_adaptive_v98_lme_s_full_7b0aab9` | v102 LME 兼容继承来源。 |
 | `stage1_granularity_adaptive_v98_locomo_nonadv_full_252a24b` | v98 统一候选，LoCoMo 差 9 题的对照。 |
 | `stage1_evidence_answer_detail_v88_lme_s_full_55b8177` | 历史 v88 LME judge 来源。 |

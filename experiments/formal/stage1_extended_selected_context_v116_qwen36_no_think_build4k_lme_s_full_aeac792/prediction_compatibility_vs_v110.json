@@ -1,0 +1,28 @@
+{
+  "answer_text_changed": 0,
+  "baseline_run": "stage1_modal_grounded_inference_v110_qwen36_no_think_build4k_lme_s_full_2f33213",
+  "candidate_run": "stage1_extended_selected_context_v116_qwen36_no_think_build4k_lme_s_full_aeac792",
+  "changed_record_keys": [],
+  "inherited_dual_flash_metrics_from_baseline": {
+    "judge_1_correct": 410,
+    "judge_1_name": "flash_1",
+    "judge_2_correct": 413,
+    "judge_2_name": "flash_2",
+    "judge_agreement": 0.978,
+    "lenient_accuracy": 0.834,
+    "lenient_accuracy_both_valid": 0.834,
+    "lenient_correct": 417,
+    "n_any_invalid": 0,
+    "n_both_valid": 500,
+    "n_joined": 500,
+    "n_judge_1_judgments": 500,
+    "n_judge_2_judgments": 500,
+    "n_missing_judge_1": 0,
+    "n_missing_judge_2": 0,
+    "strict_accuracy": 0.812,
+    "strict_accuracy_both_valid": 0.812,
+    "strict_correct": 406
+  },
+  "n": 500,
+  "note": "V116 LME selected_context remains disabled by long_turn_precision profile; predictions are byte-level answer compatible with v110, so judge was not rerun."
+}

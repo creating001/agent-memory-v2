@@ -6,24 +6,24 @@
 
 ## 当前默认配置
 
-后续新实验默认使用 `configs/stage1_spacing_profile_v102_qwen36_no_think_build4k_cached.json`：
+后续新实验默认使用 `configs/stage1_extended_selected_context_v116_qwen36_no_think_build4k_cached.json`：
 
 - Answer / build LLM：`Qwen/Qwen3.6-35B-A3B`。
 - thinking：请求级 `chat_template_kwargs.enable_thinking=false`。
 - Answer 上限：`max_input_tokens=131072`，`max_output_tokens=16384`。
 - build 上限：`max_tokens=4096`，`max_records_per_chunk=20`。
 
-当前默认 backbone 的主目录 v102 LTS 结果：
+当前默认 backbone 的主目录 v116 LTS 结果：
 
 - Backbone：`Qwen/Qwen3.6-35B-A3B` no-thinking（build/answer 均使用 `chat_template_kwargs.enable_thinking=false`）。
-- LongMemEval-S full：strict `407/500 = 0.814000`，lenient `415/500 = 0.830000`。
-- LoCoMo non-adversarial full：strict `1196/1540 = 0.776623`，lenient `1229/1540 = 0.798052`。
-- 两个 benchmark 使用同一套 clean raw-memory-granularity adaptive v102 算法；按 dual flash lenient judge，LME 达到当前 baseline target，LoCoMo 距 `80%` baseline target 还差 4 题，下一阶段优先提升 LoCoMo 并保持 LME。
-- V102 只把短 turn prompt spacing 显式纳入 profile；LongMemEval-S 长 turn 分支保持 v98，LoCoMo 短 turn 分支恢复 v96 行为。
+- LongMemEval-S full：strict `406/500 = 0.812000`，lenient `417/500 = 0.834000`。
+- LoCoMo non-adversarial full：strict `1200/1540 = 0.779221`，lenient `1243/1540 = 0.807143`。
+- 两个 benchmark 使用同一套 clean v116 算法；按 dual flash lenient judge，LME 和 LoCoMo 均达到当前 baseline target，但仍未达到 minimum target。
+- V116 继承 v110 modal-only grounded inference，并把短 turn selected context 的后向邻域从 1 扩到 2、neighbor 文本预算从 120 提到 180；不改变 build、retrieval top-k、rerank、repair 或 answer backbone。
 - `v101` 及之前的结果默认是旧 `Qwen/Qwen3-30B-A3B-Instruct-2507` backbone；只有显式带 `qwen36_no_think_build4k` 的配置和 run 属于当前 qwen3.6 no-thinking backbone。
 - 结果入口见 `experiments/README.md`；预测和 trace 见 `outputs/formal/<run_id>/`。
 
-当前最新候选 `v110` 在同一 qwen3.6 no-thinking backbone 上只加入 modal-only grounded inference discipline：LongMemEval-S strict/lenient `0.812000 / 0.834000`，LoCoMo strict/lenient `0.779221 / 0.799351`。它改善 Open-Domain/modal inference，但 LoCoMo lenient 仍差 1 题到 `0.800000`，暂不替代 v102 LTS。
+上一版 qwen3.6 no-thinking v102 LTS 结果为 LongMemEval-S strict/lenient `0.814000 / 0.830000`、LoCoMo strict/lenient `0.776623 / 0.798052`。v116 相比 v102 保持 LME 达标，并把 LoCoMo lenient 推到 `0.807143`。
 
 ## 目录
 

@@ -6,7 +6,7 @@
 
 本文件只记录 prediction-time 可见信息、正式实验 trace 和外部方法代码调研结论；不使用 gold answer、judge output、benchmark 标签、sample id 或样本级规则来设计预测逻辑。
 
-## 当前 v102 证据
+## v102 风险基线证据
 
 主目录 qwen3.6 no-thinking v102 formal rerun 结果：
 
@@ -29,7 +29,20 @@
 - finalizer：LME 触发 `54/500`，其中 `missing_detail_from_structured_answer=47`、`evidence_report_count_answer_detail=5`、`evidence_report_money_difference=1`、`evidence_report_date_endpoint_duration=1`；LoCoMo 触发 `46/1540`，全部是 `evidence_report_relative_time_calculation`。
 - top-k/context：LME effective top-k `40`，avg context chars `19759`；LoCoMo temporal route top-k `40`、其他 route top-k `60`，avg context chars `16309`。
 
-结论：v102 不使用隐藏标签，因此 clean；但平均 turn 长度阈值几乎等价于把两个 benchmark 的输入形态分开处理，general 风险较高。它可以解释为 context granularity adaptation，但当前实现把 route、retrieval、selected context、compiler、finalizer 一起切换，粒度太粗。当前 LTS 先固定 v102，后续改进应在不牺牲 accuracy 的前提下逐步降低这种大块 profile 风险。
+结论：v102 不使用隐藏标签，因此 clean；但平均 turn 长度阈值几乎等价于把两个 benchmark 的输入形态分开处理，general 风险较高。它可以解释为 context granularity adaptation，但当前实现把 route、retrieval、selected context、compiler、finalizer 一起切换，粒度太粗。后续 v104-v116 的探索都以降低这种大块 profile 风险、同时保持 accuracy 为目标。
+
+## 当前 v116 结果
+
+主目录 qwen3.6 no-thinking v116 formal/compatibility 结果：
+
+- LongMemEval-S full：strict `406/500 = 0.812000`，lenient `417/500 = 0.834000`；predictions 与 v110 完全一致，继承 v110 dual flash judge。
+- LoCoMo non-adversarial full：strict `1200/1540 = 0.779221`，lenient `1243/1540 = 0.807143`。
+- LoCoMo 相比 v110：strict `+0`，lenient `+12`；相比 v102：strict `+4`，lenient `+14`。
+- Token：LME avg query `6140.218`，略高于 6K normal target；LoCoMo avg query `5956.221`，在 6K 内。
+- selected context：LME `0/500`，LoCoMo `1198/1540 = 0.777922`。
+- finalizer：LME `8/500`，LoCoMo `0/1540`；LoCoMo 收益不来自 mechanical finalizer。
+
+结论：v116 是当前默认 LTS，两个 benchmark 使用同一算法并达到 baseline target。它缓解了 selected-context 邻域不足和 LoCoMo baseline 缺口，但没有根治 granularity/profile 大块切换、LME query token 略高、多路 top-k/context noise，以及 build memory 主要作为 retrieval index 的问题。下一轮探索仍应围绕当前目标的五个问题继续推进。
 
 ## 逐项诊断
 
@@ -116,7 +129,7 @@ Smoke 观察：
 
 关键改动：
 
-- build/retrieval/granularity profile/selected context/answer finalizer/backbone 全部保持当前 qwen3.6 no-thinking v102 LTS。
+- build/retrieval/granularity profile/selected context/answer finalizer/backbone 全部保持当时的 qwen3.6 no-thinking v102 LTS。
 - `compiler.max_memory_records=6`，temporal/list/profile/current_state route 为 `8`。
 - `compiler.structured_guide_include_memory=true`：在 Structured Evidence Guide 中加入 source-aligned `activated_build_memory`，帮助模型理解 type/status/time/source，但最终事实仍回到 Memory Context。
 - `compiler.memory_order=question_overlap`：优先显示与问题词、信息需求和 memory type 更匹配的 memory records。
@@ -140,7 +153,7 @@ Smoke 观察：
 - avg compiled evidence rows `24.528`
 - avg compiled memory records `5.710`
 
-对比当前 qwen3.6 v102 LTS LongMemEval-S strict/lenient `0.814000 / 0.830000`，v105 明显负向，不跑 LoCoMo full。
+对比当时的 qwen3.6 v102 LTS LongMemEval-S strict/lenient `0.814000 / 0.830000`，v105 明显负向，不跑 LoCoMo full。
 
 差异诊断：
 
@@ -156,7 +169,7 @@ Smoke 观察：
 设计目的：
 
 - 隔离 v105 的失败来源：只测试 source-aligned typed memory activation guide，不再改变 raw-row order。
-- build/retrieval/granularity profile/selected context/answer finalizer/backbone 继续保持当前 qwen3.6 no-thinking v102 LTS。
+- build/retrieval/granularity profile/selected context/answer finalizer/backbone 继续保持当时的 qwen3.6 no-thinking v102 LTS。
 - `compiler.evidence_order` 恢复 `retrieval`，避免多证据聚合题因 row reorder 过早丢 raw rows。
 - `compiler.max_memory_records=4`，temporal/list/profile/current_state route 为 `6`，减少 activation token 和 noise。
 - answer cache 独立为 `outputs/cache/qwen36_no_think_build4k_answer_v106_memory_activation.sqlite`；build cache 可复用 v102，正式 token 统计仍按 cached usage 计入逻辑 cold-build token。
@@ -177,7 +190,7 @@ Smoke 观察：
 - avg compiled evidence rows `34.752`
 - avg compiled memory records `4.532`
 
-对比当前 qwen3.6 v102 LTS LongMemEval-S strict/lenient `0.814000 / 0.830000`，v106 仍然负向，不跑 LoCoMo full。
+对比当时的 qwen3.6 v102 LTS LongMemEval-S strict/lenient `0.814000 / 0.830000`，v106 仍然负向，不跑 LoCoMo full。
 
 差异诊断：
 
@@ -232,7 +245,7 @@ Smoke 观察：
 - avg compiled evidence rows `34.752`
 - avg compiled memory records `1.374`
 
-对比当前 qwen3.6 v102 LTS LongMemEval-S strict/lenient `0.814000 / 0.830000`：
+对比当时的 qwen3.6 v102 LTS LongMemEval-S strict/lenient `0.814000 / 0.830000`：
 
 - lenient 持平，strict 少 2 题。
 - lenient gain/loss：`17 / 17`，net `0`。
@@ -250,7 +263,7 @@ Smoke 观察：
 - avg compiled evidence rows `55.264`
 - avg compiled memory records `2.460`
 
-对比当前 qwen3.6 v102 LTS LoCoMo strict/lenient `0.776623 / 0.798052`：
+对比当时的 qwen3.6 v102 LTS LoCoMo strict/lenient `0.776623 / 0.798052`：
 
 - lenient 持平，strict 少 3 题。
 - lenient gain/loss：`51 / 51`，net `0`。
@@ -307,7 +320,7 @@ Smoke 观察：
 - avg compiled evidence rows `34.800`
 - answer cache hits `382/500`，来自 v102 prediction traces seed 的相同 prompt cache
 
-对比当前 qwen3.6 v102 LTS LongMemEval-S strict/lenient `0.814000 / 0.830000`，v108 明显负向，不跑 LoCoMo full。
+对比当时的 qwen3.6 v102 LTS LongMemEval-S strict/lenient `0.814000 / 0.830000`，v108 明显负向，不跑 LoCoMo full。
 
 差异诊断：
 
@@ -365,7 +378,7 @@ Clean/controlled comparison:
 - avg compiled evidence rows `34.752`
 - grounded inference prompt triggered `7/500`
 
-对比当前 qwen3.6 v102 LTS LongMemEval-S strict/lenient `0.814000 / 0.830000`：
+对比当时的 qwen3.6 v102 LTS LongMemEval-S strict/lenient `0.814000 / 0.830000`：
 
 - strict 高 1 题，但主指标 lenient 低 1 题。
 - 全量 lenient gain/loss：`4 / 5`，其中 triggered prompt 样本 gain/loss：`1 / 1`。
@@ -416,7 +429,7 @@ Clean/controlled comparison:
   - avg compiled evidence rows `55.264`
   - answer cache hits/misses `1504/36`
 
-对比当前 qwen3.6 v102 LTS：
+对比当时的 qwen3.6 v102 LTS：
 
 - LME lenient 从 `415` 到 `417`，净增 2；strict 从 `407` 到 `406`，少 1。
 - LoCoMo lenient 从 `1229` 到 `1231`，净增 2；strict 从 `1196` 到 `1200`，多 4。
@@ -432,7 +445,7 @@ Clean/controlled comparison:
 
 - v110 是正向候选，但不是新 LTS：LoCoMo lenient `0.799351` 距 `0.800000` 还差 1 题，且 LME strict 小幅回落。
 - modal-only grounded inference 方向值得保留为下一步证据，但需要更通用的 verifier/context organization 来减少 Temporal/Single-Hop 抵消，而不是继续扩大规则 gate。
-- 当前默认 LTS 仍是 v102；下一轮应优先围绕 Open-Domain over-abstention 和 evidence-unit rerank / verifier 设计，同时控制 LME 不退步。
+- 当时默认 LTS 仍是 v102；后续 v116 已继承 v110 并补齐 LoCoMo baseline target。继续探索应优先围绕 Open-Domain over-abstention、evidence-unit planning / verifier 和 build-memory organization，同时控制 LME 不退步。
 
 ## v111 计划：modal abstention verifier
 
@@ -668,3 +681,22 @@ Smoke：
 2. 先跑 LoCoMo non-adversarial full，因为 v116 主要影响短 turn selected context；记录 dual flash strict/lenient、avg query/build tokens、selected_context applied、answer changed vs v110。
 3. 如果 LoCoMo lenient 提升且不过 8K hard budget，再确认 LME prediction 与 v110 是否 answer text changed；若 LME 没变化，可记录 compatibility；若变化，再跑 LME full judge。
 4. 若 LoCoMo full 负向，v116 拒绝；下一步应考虑更细的 per-turn adjacency trigger，而不是继续扩大 window。
+
+## v116 run result
+
+正式结果入口：
+
+- LME: `experiments/formal/stage1_extended_selected_context_v116_qwen36_no_think_build4k_lme_s_full_aeac792/`
+- LoCoMo: `experiments/formal/stage1_extended_selected_context_v116_qwen36_no_think_build4k_locomo_nonadv_full_aeac792/`
+
+结果：
+
+- LME strict/lenient `0.812000 / 0.834000`，answer text changed vs v110 `0/500`。
+- LoCoMo strict/lenient `0.779221 / 0.807143`，answer text changed vs v110 `575/1540`，changed-answer lenient gain/loss `46/36`。
+- LoCoMo by-category lenient delta vs v110：Multi-Hop `+5`，Temporal Reasoning `+0`，Open-Domain `-3`，Single-Hop `+10`。
+
+结论：
+
+- v116 达到 baseline target，可作为当前默认 LTS。
+- selected context 后向邻域扩展有净收益，但继续扩大窗口的性价比不明确。
+- 未来若要冲 minimum target，应重点做 build-memory organization / query-time evidence planning / source-grounded consistency guardrail，而不是简单增加 top-k、上下文长度或样本级 answer 规则。
