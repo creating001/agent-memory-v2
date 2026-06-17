@@ -21,12 +21,7 @@
 
 ## 当前诊断候选
 
-| 项目 | 结果 |
-|---|---|
-| 配置 | `configs/stage1_grounded_inference_v109_qwen36_no_think_build4k_cached.json` |
-| 目的 | 保持 v102 build/retrieval/granularity/selected context/finalizer 不变，只在 question-text modal/inference 问题上加入 grounded inference discipline，尝试减少 LoCoMo Open-Domain 过度拒答。 |
-| 计划 | 先跑 LongMemEval-S full；若 dual flash strict/lenient 低于 v102，则停止不跑 LoCoMo。若 LME 持平或提升，再跑 LoCoMo non-adversarial full。 |
-| 诊断文档 | `diagnostic/stage1_v102_generalization_audit_v104_plan.md` |
+暂无。当前默认 LTS 仍为 qwen3.6 no-thinking v102；下一步候选需要先基于 v109/v108/v107 badcase 和外部方法代码重新设计。
 
 ## 已拒绝上下文候选
 
@@ -41,6 +36,10 @@
 
 | 项目 | 结果 |
 |---|---|
+| 配置 | `configs/stage1_grounded_inference_v109_qwen36_no_think_build4k_cached.json` |
+| 目的 | 保持 v102 build/retrieval/granularity/selected context/finalizer 不变，只在 question-text modal/inference 问题上加入 grounded inference discipline，尝试减少 LoCoMo Open-Domain 过度拒答。 |
+| 结果 | LongMemEval-S full strict/lenient `0.816000 / 0.828000`；strict 比 v102 高 1 题，但主指标 lenient 比 v102 `0.830000` 低 1 题。触发 prompt `7/500`，触发样本 lenient gain/loss `1/1`。负向/不确定，停止，不跑 LoCoMo full。 |
+| 诊断结论 | 通用 inference discipline 可以减少一个过度拒答，但也把一个有用 personalized advice 改成 abstention；下一步应区分 grounded yes/no inference 与 advice/recommendation，或做可拒绝的 abstention verifier。 |
 | 配置 | `configs/stage1_source_coverage_v108_qwen36_no_think_build4k_cached.json` |
 | 目的 | typed memory 不进入 reader prompt，只作为 source-linked coverage signal；对 `fact_lookup` / `profile_preference` / `current_state` 使用 source-anchor coverage，temporal/list 维持 v102。 |
 | 结果 | LongMemEval-S full strict/lenient `0.802000 / 0.824000`，低于 v102 `0.814000 / 0.830000`；avg query tokens `6195.524`。负向，停止，不跑 LoCoMo full。 |
@@ -114,6 +113,7 @@
 | `stage1_route_scoped_memory_activation_v107_qwen36_no_think_build4k_lme_s_full_12a80f2` | qwen3.6 no-thinking v107 LME：strict/lenient `0.810/0.830`，lenient 持平但 strict 低于 v102。 |
 | `stage1_route_scoped_memory_activation_v107_qwen36_no_think_build4k_locomo_nonadv_full_935b7b7` | qwen3.6 no-thinking v107 LoCoMo：strict/lenient `0.774675/0.798052`，lenient 持平但 strict 低于 v102，未达到 baseline target。 |
 | `stage1_source_coverage_v108_qwen36_no_think_build4k_lme_s_full_293474e` | qwen3.6 no-thinking v108 负结果：LME strict/lenient `0.802/0.824`，source-anchor coverage 低于 v102，不跑 LoCoMo full。 |
+| `stage1_grounded_inference_v109_qwen36_no_think_build4k_lme_s_full_6ebbd45` | qwen3.6 no-thinking v109 负/不确定结果：LME strict/lenient `0.816/0.828`，主指标低于 v102，不跑 LoCoMo full。 |
 
 ## 保留 Diagnostic Runs
 

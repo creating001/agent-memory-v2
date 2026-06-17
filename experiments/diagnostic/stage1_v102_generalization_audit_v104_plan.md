@@ -354,3 +354,25 @@ Clean/controlled comparison:
 1. 先跑单元测试，确认 route override 和 question gate clean。
 2. 先跑 LongMemEval-S full；若 strict/lenient 低于当前 qwen3.6 v102 `0.814000 / 0.830000`，直接拒绝，不跑 LoCoMo full。
 3. 若 LME 持平或提升，再跑 LoCoMo non-adversarial full，重点观察 Open-Domain 和 Multi-Hop 是否减少 over-abstention，同时检查 Temporal/Single-Hop 是否被意外伤害。
+
+## v109 run result
+
+主目录 formal run `stage1_grounded_inference_v109_qwen36_no_think_build4k_lme_s_full_6ebbd45` 已完成 LongMemEval-S full：
+
+- dual flash strict/lenient `408/500 = 0.816000` / `414/500 = 0.828000`
+- avg build tokens `85393.566`
+- avg query tokens `6139.928`
+- avg compiled evidence rows `34.752`
+- grounded inference prompt triggered `7/500`
+
+对比当前 qwen3.6 v102 LTS LongMemEval-S strict/lenient `0.814000 / 0.830000`：
+
+- strict 高 1 题，但主指标 lenient 低 1 题。
+- 全量 lenient gain/loss：`4 / 5`，其中 triggered prompt 样本 gain/loss：`1 / 1`。
+- 触发样本中，一个 allergy/living-room 问题从信息不足改为 grounded likely answer 并被判对；一个 NAS now-or-wait personalized advice 问题从实用建议改为信息不足并被判错。
+
+结论：
+
+- v109 不是新 LTS，当前默认仍是 v102。
+- 因为主指标 lenient 低于 v102，停止，不跑 LoCoMo full。
+- grounded inference discipline 方向有局部信号，但不能宽泛作用在 advice/recommendation 问题上。下一步如果继续该方向，应区分 yes/no/modal inference 与 recommendation/advice，或做可拒绝的 abstention verifier，只在“信息不足”明显不成立时修正。

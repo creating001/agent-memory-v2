@@ -7,7 +7,7 @@
 | 用途 | 配置 | 状态 |
 |---|---|---|
 | 后续新实验默认配置 | `stage1_spacing_profile_v102_qwen36_no_think_build4k_cached.json` | V102 算法 + `Qwen/Qwen3.6-35B-A3B` answer/build backbone；请求级 `chat_template_kwargs.enable_thinking=false`；build `max_tokens=4096`，answer `max_output_tokens=16384`；使用独立 qwen36 no-thinking cache namespace。 |
-| 当前诊断候选 | `stage1_grounded_inference_v109_qwen36_no_think_build4k_cached.json` | v108 后的新方向：不改 retrieval/build/finalizer，只在 question-text modal/inference 问题上加入 grounded inference discipline；目标是减少 LoCoMo open-domain 过度拒答。先跑 LME full，若低于 v102 则停止。 |
+| 已拒绝诊断候选 | `stage1_grounded_inference_v109_qwen36_no_think_build4k_cached.json` | v108 后的新方向：不改 retrieval/build/finalizer，只在 question-text modal/inference 问题上加入 grounded inference discipline；LME full strict/lenient `0.816000 / 0.828000`，主指标低于 v102 `0.830000`，停止，不跑 LoCoMo full。 |
 | 已拒绝诊断候选 | `stage1_source_coverage_v108_qwen36_no_think_build4k_cached.json` | v107 后的新方向：typed memory 不进入 reader prompt，只作为 source-linked coverage signal；LME full strict/lenient `0.802000 / 0.824000`，低于 v102，停止，不跑 LoCoMo full。 |
 | 诊断候选 | `stage1_route_scoped_memory_activation_v107_qwen36_no_think_build4k_cached.json` | v106 route 诊断后的隔离 ablation：只在 question-derived `fact_lookup` / `profile_preference` 打开 source-aligned typed memory activation；LME lenient 与 v102 持平、strict 略低；LoCoMo lenient 与 v102 持平、strict 略低，不作为 LTS。 |
 | 已拒绝诊断候选 | `stage1_memory_activation_v106_qwen36_no_think_build4k_cached.json` | v105 负向后的隔离 ablation：保留 source-aligned typed memory activation guide，但恢复 v102 `evidence_order=retrieval`；LME full strict/lenient `0.806000 / 0.820000`，仍低于 v102 `0.814000 / 0.830000`，不跑 LoCoMo full。 |
