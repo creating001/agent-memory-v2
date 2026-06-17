@@ -8,13 +8,20 @@
 
 ## 当前 v102 证据
 
-同 backbone 口径使用 `agent-memory-other` 中的 qwen3.6 no-thinking v102 full 结果：
+主目录 qwen3.6 no-thinking v102 formal rerun 结果：
+
+- LongMemEval-S full：strict `407/500 = 0.814`，lenient `415/500 = 0.830`。
+- LoCoMo non-adversarial full：strict `1196/1540 = 0.776623`，lenient `1229/1540 = 0.798052`。
+- Judge 口径：`deepseek-v4-flash` 独立跑两遍，temperature `0`，thinking default；LoCoMo judge prompt 只输出 single label。
+- LME avg query tokens `6137.344`，略高于 6K 目标；LoCoMo avg query tokens `5768.492`。
+
+早期同 backbone 测试目录 `agent-memory-other` 结果只作为历史参考，不作为主项目 LTS 口径：
 
 - LongMemEval-S full：strict `403/500 = 0.806`，lenient `422/500 = 0.844`。
 - LoCoMo non-adversarial full：strict `1213/1540 = 0.787662`，lenient `1268/1540 = 0.823377`。
 - LME avg query tokens `6174.112`，略高于 6K 目标；LoCoMo avg query tokens `5751.377`。
 
-Trace 形态：
+主目录 rerun 与历史测试目录的 trace 形态一致：
 
 - LME `500/500` 全部选择 `long_turn_precision` profile。
 - LoCoMo `1540/1540` 全部选择 `short_turn_v96_spacing` profile。
@@ -22,7 +29,7 @@ Trace 形态：
 - finalizer：LME 主要是 `missing_detail_from_structured_answer=42`，LoCoMo 主要是 `evidence_report_relative_time_calculation=41`。
 - top-k/context：LME effective top-k `40`，avg context chars `19759`；LoCoMo effective top-k avg `55.61`，avg context chars `16311`。
 
-结论：v102 不使用隐藏标签，因此 clean；但平均 turn 长度阈值几乎等价于把两个 benchmark 的输入形态分开处理，general 风险较高。它可以解释为 context granularity adaptation，但当前实现把 route、retrieval、selected context、compiler、finalizer 一起切换，粒度太粗。
+结论：v102 不使用隐藏标签，因此 clean；但平均 turn 长度阈值几乎等价于把两个 benchmark 的输入形态分开处理，general 风险较高。它可以解释为 context granularity adaptation，但当前实现把 route、retrieval、selected context、compiler、finalizer 一起切换，粒度太粗。当前 LTS 先固定 v102，后续改进应在不牺牲 accuracy 的前提下逐步降低这种大块 profile 风险。
 
 ## 逐项诊断
 
@@ -34,7 +41,7 @@ Trace 形态：
 
 2. 多路检索 top-k / context noise
 
-- 证据：v102 LoCoMo 大量使用 top60；LME query token 超 6K。v103 尝试 Qwen3-Reranker-0.6B 单 turn rerank + context budget，LME 同 backbone 退步：strict/lenient `0.780/0.818`，低于 v102 `0.806/0.844`。
+- 证据：v102 LoCoMo 大量使用 top60；LME query token 超 6K。v103 尝试 Qwen3-Reranker-0.6B 单 turn rerank + context budget，LME 同 backbone 退步：strict/lenient `0.780/0.818`，低于当前 v102 dual flash `0.814/0.830`。
 - 诊断：rerank 方向不是错，但 v103 把单个 raw turn 当 rerank document，可能丢失邻接对话和 episode 上下文；同时直接裁掉宽上下文会伤 multi-session/temporal。
 - 处理方向：下一次 rerank 不应只 rerank 单 turn，而应 rerank source-grounded evidence units：turn + short neighbor、typed memory text + raw source、episode/session snippet。先不要把 top-k 大幅砍掉，先用 rerank 调整顺序，再由 compiler budget 截断。
 

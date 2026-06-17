@@ -1,52 +1,52 @@
-# Diagnosis for stage1_spacing_profile_v102_qwen36_no_think_build4k_lme_s_full_4fc01c0
+# Diagnosis for stage1_spacing_profile_v102_qwen36_no_think_build4k_locomo_nonadv_full_1526d1c
 
 ## Summary
 
-This is the main-repo qwen3.6 no-thinking v102 LongMemEval-S full rerun. It uses the same clean raw-memory-granularity adaptive v102 algorithm as LoCoMo.
+This is the main-repo qwen3.6 no-thinking v102 LoCoMo non-adversarial full rerun. It uses the same clean raw-memory-granularity adaptive v102 algorithm as LongMemEval-S.
+
+Prediction used commit `1526d1c`. The offline LoCoMo judge uses the current dual flash protocol: two independent `deepseek-v4-flash` runs with temperature `0` and default thinking. No prediction outputs were regenerated for judge-only changes.
 
 DeepSeek dual judge:
 
-- strict: `407/500 = 0.814000`
-- lenient: `415/500 = 0.830000`
-- flash run 1 / run 2: `410/500 = 0.820000` / `412/500 = 0.824000`
-- judge agreement: `0.984000`
+- strict: `1196/1540 = 0.776623`
+- lenient: `1229/1540 = 0.798052`
+- flash run 1 / run 2: `1212/1540 = 0.787013` / `1213/1540 = 0.787662`
+- invalid judgments: `0`
+- judge agreement: `0.978571`
 - judge thinking: flash run 1 default, flash run 2 default
-- judge disagreement: run 1 WRONG / run 2 CORRECT `5`; run 1 CORRECT / run 2 WRONG `3`
+- judge disagreement: run 1 WRONG / run 2 CORRECT `17`; run 1 CORRECT / run 2 WRONG `16`
 
-Judge note: formal accuracy now uses two independent `deepseek-v4-flash` runs.
+Judge note: LoCoMo is `4` lenient-correct cases below the current `80%` baseline target under dual flash judge.
 
 Cost:
 
-- avg build tokens: `85393.566`
-- avg query tokens: `6137.344`
-- note: query tokens are slightly above the 6K normal target and below the 8K hard diagnostic boundary.
+- avg build tokens: `62015.574`
+- avg query tokens: `5768.492`
 
-Question type breakdown:
+Category breakdown:
 
-| Question type | strict correct / total | strict accuracy | lenient correct / total | lenient accuracy |
-|---|---:|---:|---:|---:|
-| knowledge-update | 63/78 | 0.807692 | 64/78 | 0.820513 |
-| multi-session | 105/133 | 0.789474 | 106/133 | 0.796992 |
-| single-session-assistant | 52/56 | 0.928571 | 53/56 | 0.946429 |
-| single-session-preference | 11/30 | 0.366667 | 14/30 | 0.466667 |
-| single-session-user | 65/70 | 0.928571 | 66/70 | 0.942857 |
-| temporal-reasoning | 111/133 | 0.834586 | 112/133 | 0.842105 |
+| Category | Name | strict correct / total | strict accuracy | lenient correct / total | lenient accuracy |
+|---:|---|---:|---:|---:|---:|
+| 1 | Multi-Hop | 177/282 | 0.627660 | 195/282 | 0.691489 |
+| 2 | Temporal Reasoning | 246/321 | 0.766355 | 250/321 | 0.778816 |
+| 3 | Open-Domain | 43/96 | 0.447917 | 45/96 | 0.468750 |
+| 4 | Single-Hop | 730/841 | 0.868014 | 739/841 | 0.878716 |
 
 ## Observations
 
-- samples_processed: 500
-- avg_compiled_evidence_items: 34.752
-- avg_build_tokens: 85393.566
+- samples_processed: 1540
+- avg_compiled_evidence_items: 55.263636363636365
+- avg_build_tokens: 62015.57402597403
 - avg_build_think_tokens: 0.0
-- avg_build_total_tokens: 85393.566
+- avg_build_total_tokens: 62015.57402597403
 - build_token_accounting: logical cold-build visible LLM tokens; cached build chunks count from stored usage, while cache hits only avoid repeated local API calls.
-- avg_build_memory_records: 115.818
-- avg_active_build_memory_records: 102.2
+- avg_build_memory_records: 150.91493506493507
+- avg_active_build_memory_records: 141.86818181818182
 - build_memory_temporal_fields: False
 - build_memory_prompt_profile: typed_compact
 - build_memory_manage_facts: True
 - build_memory_overlap_turns: 0
-- build_memory_cache_hits: 3341
+- build_memory_cache_hits: 12411
 - build_memory_cache_misses: 0
 - build_memory_cache_writes: 0
 - build_memory_source_alignment: {}
@@ -54,19 +54,19 @@ Question type breakdown:
 - build_memory_source_alignment_added_sources: 0
 - avg_build_memory_source_alignment_changed_records: 0.0
 - avg_build_memory_source_alignment_added_sources: 0.0
-- avg_memory_hits: 8.424
-- avg_memory_source_hits: 9.684
+- avg_memory_hits: 19.857792207792208
+- avg_memory_source_hits: 25.93831168831169
 - build_memory_include_superseded: False
 - build_memory_include_superseded_information_needs: ['temporal_lookup', 'list_count']
-- avg_context_chars: 19759.11
-- avg_query_tokens: 6137.344
+- avg_context_chars: 16309.37987012987
+- avg_query_tokens: 5768.4915584415585
 - avg_query_think_tokens: 0.0
-- avg_query_total_tokens: 6137.344
+- avg_query_total_tokens: 5768.4915584415585
 - token_accounting_note: avg_build_tokens / avg_query_tokens exclude explicit reasoning tokens when the provider reports them; avg_*_total_tokens include visible plus think tokens.
 - retrieval_route_overrides: {'temporal_lookup': {'top_k': 40, 'max_top_k': 40, 'dense_top_k': 40, 'lexical_protect_top_n': 0, 'dense_protect_top_n': 32}}
-- avg_effective_top_k: 40.0
-- avg_effective_dense_top_k: 40.0
-- avg_effective_dense_protect_top_n: 32.0
+- avg_effective_top_k: 55.61038961038961
+- avg_effective_dense_top_k: 55.61038961038961
+- avg_effective_dense_protect_top_n: 44.48831168831169
 - dense_protect_top_n: 48
 - turn_window_bm25_enabled: False
 - turn_window_top_k: None
@@ -78,9 +78,9 @@ Question type breakdown:
 - avg_turn_window_hits: 0.0
 - avg_turn_window_source_hits: 0.0
 - selected_context_enabled: True
-- selected_context_applied_count: 0
-- selected_context_applied_rate: 0.0
-- avg_selected_context_materialized_rows: 0.0
+- selected_context_applied_count: 1198
+- selected_context_applied_rate: 0.7779220779220779
+- avg_selected_context_materialized_rows: 4.667532467532467
 - avg_selected_context_skipped_long_center_rows: 0.0
 - rerank_enabled: False
 - rerank_model: None
@@ -93,7 +93,7 @@ Question type breakdown:
 - avg_rerank_returned_count: None
 - avg_rerank_tokens_when_applied: None
 - embedding_cache_enabled: True
-- embedding_cache_hits: 247238
+- embedding_cache_hits: 7422
 - embedding_cache_misses: 0
 - evidence_order: retrieval
 - memory_record_source: retrieval
@@ -114,7 +114,7 @@ Question type breakdown:
 - temporal_workpad_max_pairs: 12
 - operation_workpad_question_gate: False
 - personalized_advice_contract: False
-- personalized_advice_contract_applied: 29
+- personalized_advice_contract_applied: 0
 - structured_guide: True
 - structured_guide_max_rows: 12
 - structured_guide_include_rows: True
@@ -137,7 +137,7 @@ Question type breakdown:
 - update_conflict_guide_information_needs: None
 - update_conflict_guide_max_rows: 6
 - update_conflict_guide_snippet_chars: 180
-- update_conflict_guide_applied: 44
+- update_conflict_guide_applied: 0
 - current_state_update_contract: False
 - dialogue_inference_contract: False
 - temporal_order_contract: False
@@ -155,9 +155,9 @@ Question type breakdown:
 - answer_cache_enabled: True
 - answer_cache_path: outputs/cache/qwen36_no_think_build4k_answer_v102_spacing_profile.sqlite
 - answer_cache_namespace: stage1_spacing_profile_v102_qwen36_no_think_build4k
-- answer_cache_hits: 0
-- answer_cache_misses: 500
-- answer_cache_writes: 500
+- answer_cache_hits: 1540
+- answer_cache_misses: 0
+- answer_cache_writes: 0
 - answer_finalizer_enabled: True
 - answer_finalizer_mode: structured_evidence_mechanical
 - answer_finalizer_enable_count_correction: False
@@ -166,8 +166,8 @@ Question type breakdown:
 - answer_finalizer_enable_duration_rounding_correction: True
 - answer_finalizer_enable_missing_detail: False
 - answer_finalizer_enable_relative_time_calculation: True
-- answer_finalizer_applied_count: 54
-- answer_finalizer_applied_rate: 0.108
+- answer_finalizer_applied_count: 46
+- answer_finalizer_applied_rate: 0.02987012987012987
 - answer_repair_enabled: False
 - answer_repair_mode: openai_compatible
 - answer_repair_model: Qwen/Qwen3.6-35B-A3B

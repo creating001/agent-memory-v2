@@ -9,8 +9,14 @@
 | 默认配置 | `configs/stage1_spacing_profile_v102_qwen36_no_think_build4k_cached.json` |
 | Answer / build LLM | `Qwen/Qwen3.6-35B-A3B`，请求级 `chat_template_kwargs.enable_thinking=false`。 |
 | 继承算法 | V102 raw-memory-granularity adaptive；retrieval/compiler/finalizer 行为与 V102 一致，build 上限为 `4096`。 |
-| qwen3.6 no-thinking full 结果 | 正在主目录重跑 v102 formal prediction + dual judge；完成后以主目录结果作为 LTS，不再直接引用 `agent-memory-other` 测试目录数字。 |
-| 状态 | 作为后续新实验默认配置；v102 主目录复现完成前，qwen3.6 LTS 数字暂不固化。 |
+| qwen3.6 no-thinking full 结果 | LongMemEval-S strict/lenient `0.814000 / 0.830000`；LoCoMo strict/lenient `0.776623 / 0.798052`。这是主目录 formal rerun + dual flash judge 结果，不引用 `agent-memory-other` 测试目录数字。 |
+| 状态 | 当前默认 LTS；两个 benchmark 使用同一算法。按 dual flash lenient judge，LME 达到当前 baseline target，LoCoMo 距 `80%` baseline target 还差 4 题。LME avg query tokens `6137.344`，略高于 6K normal target，是后续优化点。 |
+
+## Backbone 口径说明
+
+- `v101` 及之前的探索默认是 `Qwen/Qwen3-30B-A3B-Instruct-2507` 口径，属于历史 qwen3-30b 探索。
+- 当前默认 LTS 是 `Qwen/Qwen3.6-35B-A3B` no-thinking 口径，run 名称显式带 `qwen36_no_think_build4k`。
+- `agent-memory-other` / `agent-memory-gpt` 是外部测试目录，不作为主项目 LTS 结果来源。
 
 ## 当前诊断候选
 
@@ -30,14 +36,14 @@
 | LongMemEval-S full | strict `386/500 = 0.772000`，lenient `403/500 = 0.806000`；flash 单 judge 为 `400/500 = 0.800000`。 |
 | LoCoMo non-adversarial full | strict `1195/1540 = 0.775974`，lenient `1267/1540 = 0.822727`；flash 单 judge 为 `1232/1540 = 0.800000`。 |
 | token | LME avg build/query `80346.246 / 5912.794`；LoCoMo avg build/query `58386.008 / 5496.281`。 |
-| 状态 | 统一算法按 lenient dual judge 达到 baseline target；strict 是更保守的下界。这是历史验证结果，backbone 是 `Qwen/Qwen3-30B-A3B-Instruct-2507`。 |
+| 状态 | 统一算法按 lenient dual judge 达到 baseline target；strict 是更保守的下界。这是历史验证结果，backbone 是 `Qwen/Qwen3-30B-A3B-Instruct-2507`；`v101` 及之前均按 qwen3-30b 历史探索理解。 |
 
 ## Split Best
 
 | Benchmark | run | accuracy | 说明 |
 |---|---|---:|---|
-| LongMemEval-S full | `formal/stage1_spacing_profile_v102_lme_s_full_f844921` | strict `0.772000` / lenient `0.806000` | 当前统一 LTS LME；与 v98/v88 prediction 完全一致。 |
-| LoCoMo non-adversarial full | `formal/stage1_spacing_profile_v102_locomo_nonadv_full_f844921` | strict `0.775974` / lenient `0.822727` | 当前统一 LTS LoCoMo；与 v96 prediction 完全一致。 |
+| LongMemEval-S full | `formal/stage1_spacing_profile_v102_qwen36_no_think_build4k_lme_s_full_4fc01c0` | strict `0.814000` / lenient `0.830000` | 当前 qwen3.6 no-thinking LTS LME；judge 为 dual `deepseek-v4-flash`。 |
+| LoCoMo non-adversarial full | `formal/stage1_spacing_profile_v102_qwen36_no_think_build4k_locomo_nonadv_full_1526d1c` | strict `0.776623` / lenient `0.798052` | 当前 qwen3.6 no-thinking LTS LoCoMo；LoCoMo judge prompt 为 single-label `CORRECT/WRONG`，judge 为 dual `deepseek-v4-flash`。 |
 
 ## 保留 Formal Runs
 
@@ -45,6 +51,8 @@
 |---|---|
 | `stage1_spacing_profile_v102_lme_s_full_f844921` | 当前 LTS LongMemEval-S 证明链。 |
 | `stage1_spacing_profile_v102_locomo_nonadv_full_f844921` | 当前 LTS LoCoMo 证明链。 |
+| `stage1_spacing_profile_v102_qwen36_no_think_build4k_lme_s_full_4fc01c0` | 当前 qwen3.6 no-thinking LTS LongMemEval-S 主目录 rerun。 |
+| `stage1_spacing_profile_v102_qwen36_no_think_build4k_locomo_nonadv_full_1526d1c` | 当前 qwen3.6 no-thinking LTS LoCoMo 主目录 rerun；judge 使用 single-label prompt。 |
 | `stage1_granularity_adaptive_v98_lme_s_full_7b0aab9` | v102 LME 兼容继承来源。 |
 | `stage1_granularity_adaptive_v98_locomo_nonadv_full_252a24b` | v98 统一候选，LoCoMo 差 9 题的对照。 |
 | `stage1_evidence_answer_detail_v88_lme_s_full_55b8177` | 历史 v88 LME judge 来源。 |
@@ -63,7 +71,7 @@
 | `stage1_temporal_event_contract_v29_locomo_nonadv_full_c7b8390` | LoCoMo temporal event/mention time 关键提升点。 |
 | `stage1_update_conflict_guide_v80_lme_s_full_152b0e5` | LME update/conflict guide 关键提升点。 |
 | `dual_judge_reassessment_20260617.md` | dual judge 正式口径、LTS strict/lenient 和历史 backbone/embedding 对比重算记录。 |
-| `stage1_rerank_context_v103_lme_s_full_f9fae4b` | qwen3.6 no-thinking v103 负结果：LME strict/lenient `0.780 / 0.818`，低于 qwen3.6 v102 `0.806 / 0.844`；说明单 turn rerank + 强裁剪不是当前主线。 |
+| `stage1_rerank_context_v103_lme_s_full_f9fae4b` | qwen3.6 no-thinking v103 负结果：LME strict/lenient `0.780 / 0.818`，低于 qwen3.6 v102 dual flash `0.814 / 0.830`；说明单 turn rerank + 强裁剪不是当前主线。 |
 | `stage1_context_guard_v104_lme_s_full_043795e` | qwen3.6 no-thinking v104 负结果：LME strict/lenient `0.772 / 0.806`，avg query tokens `7367.622`；说明粗暴取消 profile + broad answer repair 不适合作为 LTS。 |
 
 ## 保留 Diagnostic Runs
@@ -74,6 +82,7 @@
 | `diagnostic/stage1_short_turn_candidate_anchor_v101_locomo_stratified_200_f844921` | 负向诊断：短 turn source-anchor/candidate-guide 伤 LoCoMo，不跑全量。 |
 | `diagnostic/stage1_granularity_adaptive_v99_locomo_route_stratified_200_6c5bdf4` | 历史负向诊断：宽泛 short-answer boundary 在 route-stratified 200 上明显负向，后续不要走单纯“更短答案”方向。 |
 | `diagnostic/stage1_v102_generalization_audit_v104_plan.md` | 当前结构审计：granularity/profile、selected context、mechanical finalizer、top-k/noise 和 build-memory 使用方式；提出 v104 诊断候选。 |
+| `diagnostic/judge_protocol_audit_20260617.md` | 当前 judge 口径审计：记录双 `deepseek-v4-flash` 正式协议，以及 LoCoMo flash repeat 稳定性。 |
 
 ## 输出路径
 
@@ -94,12 +103,14 @@ outputs/diagnostic/<run_id>/
 
 ## 评估口径
 
-- 主指标：DeepSeek dual judge accuracy。strict accuracy 表示 `deepseek-v4-flash` 和 `deepseek-v4-pro` 都判对；lenient accuracy 表示任一 judge 判对。
-- flash/pro 单模型 accuracy 只作为诊断指标，不再作为唯一主指标。
+- 主指标：DeepSeek dual flash judge accuracy。`deepseek-v4-flash` 独立跑两遍，strict accuracy 表示两遍都判对；lenient accuracy 表示任一遍判对。
+- LoCoMo judge prompt 只允许输出一个 label：`CORRECT` 或 `WRONG`；不要求 reasoning 或 JSON。两遍 DeepSeek flash judge 均保持 temperature `0` 和 default thinking。
+- 当前记录两遍 flash 的单次 accuracy 和分歧样本，用于诊断 judge 随机分歧和 badcase；方法主指标仍是 dual flash strict/lenient。
+- 单次 flash accuracy 只作为诊断指标，不再作为唯一主指标。
 - `exact / F1 / BLEU` 只作为低成本诊断，不作为方法选择依据。
 - LongMemEval-S full：500 条。
 - LoCoMo non-adversarial full：1540 条。
-- 正式实验必须记录 commit、dirty 状态、配置、benchmark/subset、token 成本、outputs 路径和诊断结论。
+- 正式实验必须记录 commit、dirty 状态、配置、benchmark/subset、token 成本、outputs 路径和诊断结论。这里的 dirty 来自 `git status --short`；如果只包含未提交的实验产物目录，应标注为 artifact-only dirty，不等同于 prediction pipeline 代码/config dirty。
 
 ## 清理规则
 

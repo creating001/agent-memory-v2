@@ -13,10 +13,12 @@
 - Answer 上限：`max_input_tokens=131072`，`max_output_tokens=16384`。
 - build 上限：`max_tokens=4096`，`max_records_per_chunk=20`。
 
-当前默认 backbone 的 v102 LTS 结果正在主目录重跑确认：
+当前默认 backbone 的主目录 v102 LTS 结果：
 
 - Backbone：`Qwen/Qwen3.6-35B-A3B` no-thinking（build/answer 均使用 `chat_template_kwargs.enable_thinking=false`）。
-- 两个 benchmark 将使用同一套 clean raw-memory-granularity adaptive v102 算法；主目录 full prediction + dual judge 完成后，再把 LongMemEval-S full 和 LoCoMo non-adversarial full 的 strict/lenient 结果写为 LTS。
+- LongMemEval-S full：strict `407/500 = 0.814000`，lenient `415/500 = 0.830000`。
+- LoCoMo non-adversarial full：strict `1196/1540 = 0.776623`，lenient `1229/1540 = 0.798052`。
+- 两个 benchmark 使用同一套 clean raw-memory-granularity adaptive v102 算法；按 dual flash lenient judge，LME 达到当前 baseline target，LoCoMo 距 `80%` baseline target 还差 4 题，下一阶段优先提升 LoCoMo 并保持 LME。
 - V102 只把短 turn prompt spacing 显式纳入 profile；LongMemEval-S 长 turn 分支保持 v98，LoCoMo 短 turn 分支恢复 v96 行为。
 - 结果入口见 `experiments/README.md`；预测和 trace 见 `outputs/formal/<run_id>/`。
 
@@ -52,4 +54,4 @@ python -m pip install -e .
 python -m unittest discover -s src/tests
 ```
 
-正式实验必须在 `experiments/` 下留下 summary、metrics、diagnosis、配置快照、git commit/dirty 状态、token 成本和 outputs 路径。方法性能主要看 DeepSeek dual judge accuracy：strict 为 flash/pro 都判对，lenient 为任一 judge 判对。
+正式实验必须在 `experiments/` 下留下 summary、metrics、diagnosis、配置快照、git commit/dirty 状态、token 成本和 outputs 路径。方法性能主要看 DeepSeek dual flash judge accuracy：`deepseek-v4-flash` 独立跑两遍，strict 为两遍都判对，lenient 为任一遍判对；两遍 judge 均保持 temperature `0` 和 default thinking。

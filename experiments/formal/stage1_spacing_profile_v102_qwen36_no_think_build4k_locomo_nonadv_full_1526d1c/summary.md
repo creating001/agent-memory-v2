@@ -1,4 +1,4 @@
-# stage1_spacing_profile_v102_qwen36_no_think_build4k_lme_s_full_4fc01c0
+# stage1_spacing_profile_v102_qwen36_no_think_build4k_locomo_nonadv_full_1526d1c
 
 ## Purpose
 
@@ -6,64 +6,65 @@ Stage-1 clean skeleton run: validate raw evidence storage, lexical retrieval, ne
 
 ## Result
 
-Current main-repo qwen3.6 no-thinking v102 LME result:
+Current main-repo qwen3.6 no-thinking v102 LoCoMo result. Prediction used commit `1526d1c`; offline judge uses the current dual flash protocol with two independent `deepseek-v4-flash` runs.
 
-- strict: `407/500 = 0.814000`
-- lenient: `415/500 = 0.830000`
-- flash run 1 / run 2: `410/500 = 0.820000` / `412/500 = 0.824000`
-- judge agreement: `0.984000`
+- strict: `1196/1540 = 0.776623`
+- lenient: `1229/1540 = 0.798052`
+- flash run 1 / run 2: `1212/1540 = 0.787013` / `1213/1540 = 0.787662`
+- invalid judgments: `0`
+- judge agreement: `0.978571`
 - judge thinking: flash run 1 default, flash run 2 default
-- judge disagreement: run 1 WRONG / run 2 CORRECT `5`; run 1 CORRECT / run 2 WRONG `3`
-- avg build/query tokens: `85393.566 / 6137.344`
+- judge disagreement: run 1 WRONG / run 2 CORRECT `17`; run 1 CORRECT / run 2 WRONG `16`
+- avg build/query tokens: `62015.574 / 5768.492`
 
-Question type breakdown:
+Judge note: LoCoMo is `4` lenient-correct cases below the current `80%` baseline target under dual flash judge.
 
-| Question type | strict correct / total | strict accuracy | lenient correct / total | lenient accuracy |
-|---|---:|---:|---:|---:|
-| knowledge-update | 63/78 | 0.807692 | 64/78 | 0.820513 |
-| multi-session | 105/133 | 0.789474 | 106/133 | 0.796992 |
-| single-session-assistant | 52/56 | 0.928571 | 53/56 | 0.946429 |
-| single-session-preference | 11/30 | 0.366667 | 14/30 | 0.466667 |
-| single-session-user | 65/70 | 0.928571 | 66/70 | 0.942857 |
-| temporal-reasoning | 111/133 | 0.834586 | 112/133 | 0.842105 |
+Category breakdown:
+
+| Category | Name | strict correct / total | strict accuracy | lenient correct / total | lenient accuracy |
+|---:|---|---:|---:|---:|---:|
+| 1 | Multi-Hop | 177/282 | 0.627660 | 195/282 | 0.691489 |
+| 2 | Temporal Reasoning | 246/321 | 0.766355 | 250/321 | 0.778816 |
+| 3 | Open-Domain | 43/96 | 0.447917 | 45/96 | 0.468750 |
+| 4 | Single-Hop | 730/841 | 0.868014 | 739/841 | 0.878716 |
 
 ## Scope
 
-- benchmark: LongMemEval-S
-- subset: full
+- benchmark: LoCoMo
+- subset: non-adversarial-full
 - experiment_kind: formal
 - limit: None
-- workers: 8
-- input_path: /data/home_new/wujinqi/agent-memory/outputs/prepare_longmemeval_s_cleaned/prediction_input.jsonl
+- workers: 12
+- input_path: /data/home_new/wujinqi/agent-memory/outputs/prepare_locomo_non_adversarial/prediction_input.jsonl
 - config_path: /data/home_new/wujinqi/agent-memory/configs/stage1_spacing_profile_v102_qwen36_no_think_build4k_cached.json
 - answer: OpenAI-compatible answerer using Qwen/Qwen3.6-35B-A3B at http://127.0.0.1:8000/v1 with temperature 0, max_input_tokens 131072, and max_output_tokens 16384, chat_template_kwargs {'enable_thinking': False}.
 
 ## Git
 
 - inside_work_tree: True
-- commit: 4fc01c043b5f1d50eaa62653980399f6f5bb3738
+- commit: 1526d1cc8452aba8f384e8f1e3af20fffafbdf72
 - dirty: False
 - note: None
 
 ## Metrics
 
-- n_samples: 500
-- accuracy: strict `407/500 = 0.814000`, lenient `415/500 = 0.830000` by DeepSeek dual flash judge
+- n_samples: 1540
+- accuracy: strict `1196/1540 = 0.776623`, lenient `1229/1540 = 0.798052` by DeepSeek dual flash judge
 - f1: None
 - bleu: None
-- avg_build_tokens: 85393.566
+- avg_build_tokens: 62015.57402597403
 - avg_build_think_tokens: 0.0
-- avg_build_total_tokens: 85393.566
+- avg_build_total_tokens: 62015.57402597403
 - build_token_accounting: logical cold-build visible LLM tokens; cached build chunks count from stored usage, while cache hits only avoid repeated local API calls.
-- avg_query_tokens: 6137.344
+- avg_query_tokens: 5768.4915584415585
 - avg_query_think_tokens: 0.0
-- avg_query_total_tokens: 6137.344
+- avg_query_total_tokens: 5768.4915584415585
 - token_accounting_note: avg_build_tokens / avg_query_tokens exclude explicit reasoning tokens when the provider reports them; avg_*_total_tokens include visible plus think tokens.
-- avg_compiled_evidence_items: 34.752
+- avg_compiled_evidence_items: 55.263636363636365
 - retrieval_route_overrides: {'temporal_lookup': {'top_k': 40, 'max_top_k': 40, 'dense_top_k': 40, 'lexical_protect_top_n': 0, 'dense_protect_top_n': 32}}
-- avg_effective_top_k: 40.0
-- avg_effective_dense_top_k: 40.0
-- avg_effective_dense_protect_top_n: 32.0
+- avg_effective_top_k: 55.61038961038961
+- avg_effective_dense_top_k: 55.61038961038961
+- avg_effective_dense_protect_top_n: 44.48831168831169
 - build_memory_enabled: True
 - build_memory_model: Qwen/Qwen3.6-35B-A3B
 - build_memory_temporal_fields: False
@@ -73,7 +74,7 @@ Question type breakdown:
 - build_memory_chat_template_kwargs: {'enable_thinking': False}
 - build_memory_cache_enabled: True
 - build_memory_cache_path: outputs/cache/qwen36_no_think_build4k_memory_v102.sqlite
-- build_memory_cache_hits: 3341
+- build_memory_cache_hits: 12411
 - build_memory_cache_misses: 0
 - build_memory_cache_writes: 0
 - build_memory_source_alignment: {}
@@ -81,10 +82,10 @@ Question type breakdown:
 - build_memory_source_alignment_added_sources: 0
 - avg_build_memory_source_alignment_changed_records: 0.0
 - avg_build_memory_source_alignment_added_sources: 0.0
-- avg_build_memory_records: 115.818
-- avg_active_build_memory_records: 102.2
-- avg_memory_hits: 8.424
-- avg_memory_source_hits: 9.684
+- avg_build_memory_records: 150.91493506493507
+- avg_active_build_memory_records: 141.86818181818182
+- avg_memory_hits: 19.857792207792208
+- avg_memory_source_hits: 25.93831168831169
 - build_memory_include_superseded: False
 - build_memory_include_superseded_information_needs: ['temporal_lookup', 'list_count']
 - neighbor_order: hit_priority
@@ -97,7 +98,7 @@ Question type breakdown:
 - dense_query_text_mode: external_naive
 - embedding_cache_enabled: True
 - embedding_cache_path: outputs/cache/qwen3_embedding.sqlite
-- embedding_cache_hits: 247238
+- embedding_cache_hits: 7422
 - embedding_cache_misses: 0
 - embedding_cache_writes: 0
 - turn_window_bm25_enabled: False
@@ -121,9 +122,9 @@ Question type breakdown:
 - selected_context_max_center_chars: None
 - selected_context_information_needs: ['fact_lookup', 'list_count', 'profile_preference']
 - selected_context_require_anaphora: True
-- selected_context_applied_count: 0
-- selected_context_applied_rate: 0.0
-- avg_selected_context_materialized_rows: 0.0
+- selected_context_applied_count: 1198
+- selected_context_applied_rate: 0.7779220779220779
+- avg_selected_context_materialized_rows: 4.667532467532467
 - avg_selected_context_skipped_long_center_rows: 0.0
 - rerank_enabled: False
 - rerank_model: None
@@ -137,7 +138,7 @@ Question type breakdown:
 - avg_rerank_tokens_when_applied: None
 - rerank_token_accounting: rerank model tokens are reported separately and are not included in build/query LLM token budgets.
 - avg_embedding_tokens: 0.0
-- avg_context_chars: 19759.11
+- avg_context_chars: 16309.37987012987
 - compiler_prompt_mode: external_naive
 - compiler_memory_record_source: retrieval
 - avg_compiled_memory_records: 0.0
@@ -150,9 +151,9 @@ Question type breakdown:
 - answer_cache_enabled: True
 - answer_cache_path: outputs/cache/qwen36_no_think_build4k_answer_v102_spacing_profile.sqlite
 - answer_cache_namespace: stage1_spacing_profile_v102_qwen36_no_think_build4k
-- answer_cache_hits: 0
-- answer_cache_misses: 500
-- answer_cache_writes: 500
+- answer_cache_hits: 1540
+- answer_cache_misses: 0
+- answer_cache_writes: 0
 - answer_finalizer_enabled: True
 - answer_finalizer_mode: structured_evidence_mechanical
 - answer_finalizer_enable_count_correction: False
@@ -161,8 +162,8 @@ Question type breakdown:
 - answer_finalizer_enable_duration_rounding_correction: True
 - answer_finalizer_enable_missing_detail: False
 - answer_finalizer_enable_relative_time_calculation: True
-- answer_finalizer_applied_count: 54
-- answer_finalizer_applied_rate: 0.108
+- answer_finalizer_applied_count: 46
+- answer_finalizer_applied_rate: 0.02987012987012987
 - answer_repair_enabled: False
 - answer_repair_mode: openai_compatible
 - answer_repair_model: Qwen/Qwen3.6-35B-A3B
@@ -228,7 +229,7 @@ Question type breakdown:
 - temporal_workpad_max_pairs: 12
 - operation_workpad_question_gate: False
 - personalized_advice_contract: False
-- personalized_advice_contract_applied: 29
+- personalized_advice_contract_applied: 0
 - structured_guide: True
 - structured_guide_max_rows: 12
 - structured_guide_include_rows: True
@@ -251,7 +252,7 @@ Question type breakdown:
 - update_conflict_guide_information_needs: None
 - update_conflict_guide_max_rows: 6
 - update_conflict_guide_snippet_chars: 180
-- update_conflict_guide_applied: 44
+- update_conflict_guide_applied: 0
 - current_state_update_contract: False
 - dialogue_inference_contract: False
 - temporal_order_contract: False
@@ -267,10 +268,10 @@ Question type breakdown:
 
 ## Outputs
 
-- predictions: /data/home_new/wujinqi/agent-memory/outputs/formal/stage1_spacing_profile_v102_qwen36_no_think_build4k_lme_s_full_4fc01c0/predictions.jsonl
-- traces: /data/home_new/wujinqi/agent-memory/outputs/formal/stage1_spacing_profile_v102_qwen36_no_think_build4k_lme_s_full_4fc01c0/traces.jsonl
-- metrics: /data/home_new/wujinqi/agent-memory/experiments/formal/stage1_spacing_profile_v102_qwen36_no_think_build4k_lme_s_full_4fc01c0/metrics.json
-- manifest: /data/home_new/wujinqi/agent-memory/experiments/formal/stage1_spacing_profile_v102_qwen36_no_think_build4k_lme_s_full_4fc01c0/manifest.json
+- predictions: /data/home_new/wujinqi/agent-memory/outputs/formal/stage1_spacing_profile_v102_qwen36_no_think_build4k_locomo_nonadv_full_1526d1c/predictions.jsonl
+- traces: /data/home_new/wujinqi/agent-memory/outputs/formal/stage1_spacing_profile_v102_qwen36_no_think_build4k_locomo_nonadv_full_1526d1c/traces.jsonl
+- metrics: /data/home_new/wujinqi/agent-memory/experiments/formal/stage1_spacing_profile_v102_qwen36_no_think_build4k_locomo_nonadv_full_1526d1c/metrics.json
+- manifest: /data/home_new/wujinqi/agent-memory/experiments/formal/stage1_spacing_profile_v102_qwen36_no_think_build4k_locomo_nonadv_full_1526d1c/manifest.json
 
 ## Clean Notes
 

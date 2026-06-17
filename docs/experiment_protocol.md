@@ -42,28 +42,24 @@ rerank:
 ```yaml
 judge:
   models:
-    flash: deepseek-v4-flash
-    pro: deepseek-v4-pro
+    flash_1: deepseek-v4-flash
+    flash_2: deepseek-v4-flash
   service: api
   temperature: 0.0
   thinking:
-    flash: default
-    pro: disabled
-  request_body_options:
-    pro:
-      thinking:
-        type: disabled
+    flash_1: default
+    flash_2: default
   report:
     strict_accuracy: both_judges_correct
     lenient_accuracy: either_judge_correct
     single_judge_accuracy: diagnostic_only
 ```
 
-正式实验默认同时使用 `deepseek-v4-flash` 和 `deepseek-v4-pro` 做离线 judge：
+正式实验默认使用 `deepseek-v4-flash` 独立跑两遍离线 judge：
 
 - `strict_accuracy`：两个 judge 都判为 `CORRECT` 才算正确。
 - `lenient_accuracy`：任一 judge 判为 `CORRECT` 即算正确。
-- flash/pro 的单模型 accuracy 只作为诊断指标，用于定位 judge 分歧，不作为唯一主指标。
+- 两遍 flash 的单次 accuracy 只作为诊断指标，用于定位 judge 随机分歧，不作为唯一主指标。
 - judge 只能读取已经完成的 prediction 和 gold labels，不能进入 prediction、retrieval、compiler、answer、verifier 或 cache build 流程。
 
 ### 部署规划
@@ -207,9 +203,9 @@ metrics:
 
   lenient_accuracy
 
-  flash_accuracy_diagnostic
+  flash_1_accuracy_diagnostic
 
-  pro_accuracy_diagnostic
+  flash_2_accuracy_diagnostic
 
   f1
 
@@ -217,7 +213,7 @@ metrics:
 
   by_type:
     group_by: question_type_or_category
-    fields: [strict_accuracy, lenient_accuracy, flash_accuracy_diagnostic, pro_accuracy_diagnostic, f1, bleu]
+    fields: [strict_accuracy, lenient_accuracy, flash_1_accuracy_diagnostic, flash_2_accuracy_diagnostic, f1, bleu]
 
   token_cost:
     fields:

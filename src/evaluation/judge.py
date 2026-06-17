@@ -154,11 +154,12 @@ def accuracy_from_judgments(judgments: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def dual_accuracy_from_judgments(
-    flash_judgments: list[dict[str, Any]],
-    pro_judgments: list[dict[str, Any]],
+    first_judgments: list[dict[str, Any]],
+    second_judgments: list[dict[str, Any]],
     *,
     labels_by_key: dict[str, dict[str, Any]] | None = None,
     group_field: str | None = None,
+    judge_names: tuple[str, str] = ("judge_1", "judge_2"),
 ) -> dict[str, Any]:
     """Aggregate strict/lenient accuracy from two offline judge outputs.
 
@@ -167,30 +168,33 @@ def dual_accuracy_from_judgments(
     dropping difficult judge responses.
     """
 
-    flash_by_key = _judgments_by_key(flash_judgments)
-    pro_by_key = _judgments_by_key(pro_judgments)
-    flash_keys = set(flash_by_key)
-    pro_keys = set(pro_by_key)
+    first_name, second_name = judge_names
+    first_by_key = _judgments_by_key(first_judgments)
+    second_by_key = _judgments_by_key(second_judgments)
+    first_keys = set(first_by_key)
+    second_keys = set(second_by_key)
     shared_keys = _ordered_shared_keys(
-        flash_judgments, pro_judgments, flash_keys & pro_keys
+        first_judgments, second_judgments, first_keys & second_keys
     )
 
     rows: list[dict[str, Any]] = []
     for key in shared_keys:
-        flash_label = normalize_judge_label(str(flash_by_key[key].get("label")))
-        pro_label = normalize_judge_label(str(pro_by_key[key].get("label")))
+        first_label = normalize_judge_label(str(first_by_key[key].get("label")))
+        second_label = normalize_judge_label(str(second_by_key[key].get("label")))
         row = {
             "record_key": key,
-            "flash_label": flash_label,
-            "pro_label": pro_label,
-            "flash_correct": flash_label == "CORRECT",
-            "pro_correct": pro_label == "CORRECT",
-            "flash_valid": flash_label in {"CORRECT", "WRONG"},
-            "pro_valid": pro_label in {"CORRECT", "WRONG"},
+            "judge_1_name": first_name,
+            "judge_2_name": second_name,
+            "judge_1_label": first_label,
+            "judge_2_label": second_label,
+            "judge_1_correct": first_label == "CORRECT",
+            "judge_2_correct": second_label == "CORRECT",
+            "judge_1_valid": first_label in {"CORRECT", "WRONG"},
+            "judge_2_valid": second_label in {"CORRECT", "WRONG"},
         }
-        row["both_valid"] = bool(row["flash_valid"] and row["pro_valid"])
-        row["strict_correct"] = bool(row["flash_correct"] and row["pro_correct"])
-        row["lenient_correct"] = bool(row["flash_correct"] or row["pro_correct"])
+        row["both_valid"] = bool(row["judge_1_valid"] and row["judge_2_valid"])
+        row["strict_correct"] = bool(row["judge_1_correct"] and row["judge_2_correct"])
+        row["lenient_correct"] = bool(row["judge_1_correct"] or row["judge_2_correct"])
         group_value = _group_value(key, labels_by_key, group_field)
         if group_value is not None:
             row["group"] = group_value
@@ -199,10 +203,12 @@ def dual_accuracy_from_judgments(
     metrics = _dual_summary(rows)
     metrics.update(
         {
-            "n_flash_judgments": len(flash_judgments),
-            "n_pro_judgments": len(pro_judgments),
-            "n_missing_flash": len(pro_keys - flash_keys),
-            "n_missing_pro": len(flash_keys - pro_keys),
+            "judge_1_name": first_name,
+            "judge_2_name": second_name,
+            "n_judge_1_judgments": len(first_judgments),
+            "n_judge_2_judgments": len(second_judgments),
+            "n_missing_judge_1": len(second_keys - first_keys),
+            "n_missing_judge_2": len(first_keys - second_keys),
         }
     )
 
@@ -264,13 +270,13 @@ def _dual_summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
     lenient_correct = sum(1 for row in rows if row["lenient_correct"])
     both_valid = [row for row in rows if row["both_valid"]]
     both_valid_n = len(both_valid)
-    agreement = sum(1 for row in both_valid if row["flash_label"] == row["pro_label"])
+    agreement = sum(1 for row in both_valid if row["judge_1_label"] == row["judge_2_label"])
     return {
         "n_joined": n,
         "n_both_valid": both_valid_n,
         "n_any_invalid": n - both_valid_n,
-        "flash_correct": sum(1 for row in rows if row["flash_correct"]),
-        "pro_correct": sum(1 for row in rows if row["pro_correct"]),
+        "judge_1_correct": sum(1 for row in rows if row["judge_1_correct"]),
+        "judge_2_correct": sum(1 for row in rows if row["judge_2_correct"]),
         "strict_correct": strict_correct,
         "lenient_correct": lenient_correct,
         "strict_accuracy": strict_correct / n if n else None,
