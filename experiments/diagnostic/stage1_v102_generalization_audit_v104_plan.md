@@ -221,3 +221,21 @@ Smoke 观察：
 
 - 先跑 LongMemEval-S full；若没有超过或至少接近 v102 LTS，不跑 LoCoMo full。
 - 若 LME 达到或超过 v102，再跑 LoCoMo non-adversarial full，重点观察 LoCoMo Open-Domain / profile-like 问题是否受益。
+
+## v107 LME run result
+
+主目录 formal run `stage1_route_scoped_memory_activation_v107_qwen36_no_think_build4k_lme_s_full_12a80f2` 已完成 LongMemEval-S full：
+
+- dual flash strict/lenient `405/500 = 0.810000` / `415/500 = 0.830000`
+- avg build tokens `85393.566`
+- avg query tokens `6308.482`
+- avg compiled evidence rows `34.752`
+- avg compiled memory records `1.374`
+
+对比当前 qwen3.6 v102 LTS LongMemEval-S strict/lenient `0.814000 / 0.830000`：
+
+- lenient 持平，strict 少 2 题。
+- lenient gain/loss：`17 / 17`，net `0`。
+- route deltas：current_state `+1`，fact_lookup `-3`，list_count `+1`，profile_preference `0`，temporal_lookup `+1`。
+
+结论：v107 不是 LME 提升，但主指标 lenient 没退步。因为 LoCoMo 是当前 baseline target 缺口，继续跑 LoCoMo full；若 LoCoMo 不能明显提升，则拒绝 v107。

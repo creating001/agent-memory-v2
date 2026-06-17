@@ -1,0 +1,31 @@
+{
+  "benchmark": "longmemeval",
+  "clean_assertions": [
+    "Prediction loader rejects gold/reference/target answers.",
+    "Prediction loader rejects judge outputs and benchmark labels.",
+    "Prediction loader rejects sample ids, qids, and row indices.",
+    "record_key is copied only by the runner and is not passed into pipeline modules.",
+    "Derived context rows always retain raw source_id back-links.",
+    "Build-stage typed memory is created only from raw dialogue turns and visible metadata."
+  ],
+  "config_path": "/data/home_new/wujinqi/agent-memory/configs/stage1_route_scoped_memory_activation_v107_qwen36_no_think_build4k_cached.json",
+  "created_at_utc": "2026-06-17T10:42:58+00:00",
+  "experiment_dir": "/data/home_new/wujinqi/agent-memory/experiments/formal/stage1_route_scoped_memory_activation_v107_qwen36_no_think_build4k_lme_s_full_12a80f2",
+  "experiment_kind": "formal",
+  "git": {
+    "commit": "12a80f29d6603dad2daa14eb18495fdf23540361",
+    "dirty": false,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": ""
+  },
+  "input_path": "/data/home_new/wujinqi/agent-memory/outputs/prepare_longmemeval_s_cleaned/prediction_input.jsonl",
+  "output_path": "/data/home_new/wujinqi/agent-memory/outputs/formal/stage1_route_scoped_memory_activation_v107_qwen36_no_think_build4k_lme_s_full_12a80f2/predictions.jsonl",
+  "outputs": {
+    "predictions": "/data/home_new/wujinqi/agent-memory/outputs/formal/stage1_route_scoped_memory_activation_v107_qwen36_no_think_build4k_lme_s_full_12a80f2/predictions.jsonl",
+    "traces": "/data/home_new/wujinqi/agent-memory/outputs/formal/stage1_route_scoped_memory_activation_v107_qwen36_no_think_build4k_lme_s_full_12a80f2/traces.jsonl"
+  },
+  "run_id": "stage1_route_scoped_memory_activation_v107_qwen36_no_think_build4k_lme_s_full_12a80f2",
+  "subset": "s_cleaned_full",
+  "trace_path": "/data/home_new/wujinqi/agent-memory/outputs/formal/stage1_route_scoped_memory_activation_v107_qwen36_no_think_build4k_lme_s_full_12a80f2/traces.jsonl"
+}
