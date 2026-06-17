@@ -633,6 +633,9 @@ class Stage1Pipeline:
         self._answer_repair_enable_profile_preference_trigger = bool(
             answer_repair_config.get("enable_profile_preference_trigger", False)
         )
+        self._answer_repair_enable_modal_abstention_trigger = bool(
+            answer_repair_config.get("enable_modal_abstention_trigger", False)
+        )
         self._answer_repair_uncertain_min_support_items = int(
             answer_repair_config.get("uncertain_min_support_items", 0)
         )
@@ -656,6 +659,9 @@ class Stage1Pipeline:
             ),
             "enable_profile_preference_trigger": (
                 self._answer_repair_enable_profile_preference_trigger
+            ),
+            "enable_modal_abstention_trigger": (
+                self._answer_repair_enable_modal_abstention_trigger
             ),
             "uncertain_min_support_items": (
                 self._answer_repair_uncertain_min_support_items
@@ -1017,6 +1023,9 @@ class Stage1Pipeline:
             ),
             enable_profile_preference_trigger=(
                 self._answer_repair_enable_profile_preference_trigger
+            ),
+            enable_modal_abstention_trigger=(
+                self._answer_repair_enable_modal_abstention_trigger
             ),
             uncertain_min_support_items=(
                 self._answer_repair_uncertain_min_support_items

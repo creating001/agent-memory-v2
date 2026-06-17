@@ -1358,6 +1358,54 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertNotIn("profile_preference_review", disabled_reasons)
         self.assertIn("profile_preference_review", enabled_reasons)
 
+    def test_answer_repair_modal_abstention_trigger_is_opt_in(self) -> None:
+        disabled_reasons = repair_trigger_reasons(
+            question="Would Alex enjoy the book club?",
+            route_information_need="fact_lookup",
+            draft_answer="There is not enough information.",
+            raw_response=json.dumps({"content": json.dumps({"answer": "unknown"})}),
+            enable_uncertain_trigger=False,
+            enable_short_list_trigger=False,
+            enable_temporal_conflict_trigger=False,
+        )
+        enabled_reasons = repair_trigger_reasons(
+            question="Would Alex enjoy the book club?",
+            route_information_need="fact_lookup",
+            draft_answer="There is not enough information.",
+            raw_response=json.dumps({"content": json.dumps({"answer": "unknown"})}),
+            enable_uncertain_trigger=False,
+            enable_short_list_trigger=False,
+            enable_temporal_conflict_trigger=False,
+            enable_modal_abstention_trigger=True,
+        )
+        advice_reasons = repair_trigger_reasons(
+            question="What do you think Alex should try next?",
+            route_information_need="profile_preference",
+            draft_answer="There is not enough information.",
+            raw_response=json.dumps({"content": json.dumps({"answer": "unknown"})}),
+            enable_uncertain_trigger=False,
+            enable_short_list_trigger=False,
+            enable_temporal_conflict_trigger=False,
+            enable_modal_abstention_trigger=True,
+        )
+        raw_payload_only_reasons = repair_trigger_reasons(
+            question="Would Alex enjoy the book club?",
+            route_information_need="fact_lookup",
+            draft_answer="Likely yes, because Alex likes quiet reading groups.",
+            raw_response=json.dumps(
+                {"content": json.dumps({"sufficient": False, "answer": "unknown"})}
+            ),
+            enable_uncertain_trigger=False,
+            enable_short_list_trigger=False,
+            enable_temporal_conflict_trigger=False,
+            enable_modal_abstention_trigger=True,
+        )
+
+        self.assertNotIn("modal_abstention_review", disabled_reasons)
+        self.assertIn("modal_abstention_review", enabled_reasons)
+        self.assertNotIn("modal_abstention_review", advice_reasons)
+        self.assertNotIn("modal_abstention_review", raw_payload_only_reasons)
+
     def test_answer_repair_prompt_uses_runtime_context_and_draft(self) -> None:
         context = CompiledContext(
             question="What tea does Alex prefer?",
@@ -1437,6 +1485,46 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertIn("no-new-names rule", prompt)
         self.assertIn("unless that exact name appears verbatim", prompt)
         self.assertIn("Alex wants a lightweight laptop for travel.", prompt)
+
+    def test_answer_repair_prompt_adds_modal_abstention_rules(self) -> None:
+        context = CompiledContext(
+            question="Would Alex enjoy the book club?",
+            question_time="2026-01-01",
+            route=RouteResult(information_need="fact_lookup", signals=()),
+            evidence_rows=(
+                EvidenceRow(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="Alex says she likes quiet weekend reading groups.",
+                    timestamp="2025-12-31",
+                    retrieval_rank=1,
+                    retrieval_score=1.0,
+                ),
+            ),
+            prompt="original prompt",
+            context_chars=0,
+        )
+        draft = AnswerResult(
+            answer="There is not enough information.",
+            model="draft",
+            token_usage=TokenUsage(query_tokens=3),
+            raw_response=json.dumps({"content": '{"answer":"unknown"}'}),
+        )
+
+        prompt, _ = build_repair_prompt(
+            compiled=context,
+            draft=draft,
+            reasons=("modal_abstention_review",),
+            max_context_chars=1000,
+            max_row_text_chars=200,
+        )
+
+        self.assertIn("modal or inference questions", prompt)
+        self.assertIn("directly relevant anchors", prompt)
+        self.assertIn("do not infer from stereotypes", prompt)
+        self.assertIn("Alex says she likes quiet weekend reading groups.", prompt)
 
     def test_raw_response_content_extracts_answerer_content(self) -> None:
         raw_response = json.dumps(

@@ -36,6 +36,11 @@ _COLLECTION_QUESTION = re.compile(
 _COUNT_QUESTION = re.compile(r"\b(?:how many|number of|count of)\b", re.IGNORECASE)
 _NUMERIC_ANSWER = re.compile(r"\b\d+(?:\.\d+)?\b")
 _ITEM_SEPARATOR = re.compile(r"\s*(?:,|;|\band\b|\n|\|)\s*", re.IGNORECASE)
+_MODAL_INFERENCE_QUESTION = re.compile(
+    r"\b(?:would|might|could|likely|unlikely|probably|seem(?:s)?|"
+    r"considered|what\s+might|how\s+would|still\s+want|be\s+considered)\b",
+    re.IGNORECASE,
+)
 
 
 @dataclass(frozen=True)
@@ -72,6 +77,7 @@ def maybe_repair_answer(
     enable_short_list_trigger: bool,
     enable_temporal_conflict_trigger: bool,
     enable_profile_preference_trigger: bool,
+    enable_modal_abstention_trigger: bool,
     uncertain_min_support_items: int,
     max_context_chars: int,
     max_row_text_chars: int,
@@ -94,6 +100,7 @@ def maybe_repair_answer(
         enable_short_list_trigger=enable_short_list_trigger,
         enable_temporal_conflict_trigger=enable_temporal_conflict_trigger,
         enable_profile_preference_trigger=enable_profile_preference_trigger,
+        enable_modal_abstention_trigger=enable_modal_abstention_trigger,
         uncertain_min_support_items=uncertain_min_support_items,
     )
     if not reasons:
@@ -160,10 +167,12 @@ def repair_trigger_reasons(
     enable_short_list_trigger: bool,
     enable_temporal_conflict_trigger: bool,
     enable_profile_preference_trigger: bool = False,
+    enable_modal_abstention_trigger: bool = False,
     uncertain_min_support_items: int = 0,
 ) -> tuple[str, ...]:
     payload = _draft_payload(raw_response)
     reasons: list[str] = []
+    uncertain_signal = _has_uncertain_signal(draft_answer, payload)
 
     if (
         enable_profile_preference_trigger
@@ -171,16 +180,15 @@ def repair_trigger_reasons(
     ):
         reasons.append("profile_preference_review")
 
+    if (
+        enable_modal_abstention_trigger
+        and _INSUFFICIENT_ANSWER.search(draft_answer or "")
+        and _MODAL_INFERENCE_QUESTION.search(question or "")
+    ):
+        reasons.append("modal_abstention_review")
+
     if enable_uncertain_trigger:
-        answer_type = str(payload.get("answer_type") or "").strip().lower()
-        missing = str(payload.get("missing") or "").strip()
-        has_uncertain_signal = (
-            _INSUFFICIENT_ANSWER.search(draft_answer or "")
-            or payload.get("sufficient") is False
-            or answer_type == "unknown"
-            or bool(missing)
-        )
-        if has_uncertain_signal and _support_item_count(payload) >= max(
+        if uncertain_signal and _support_item_count(payload) >= max(
             0, int(uncertain_min_support_items)
         ):
             reasons.append("uncertain_or_missing")
@@ -256,6 +264,7 @@ def build_repair_prompt(
             "6. For current/latest questions, compare older and newer directly relevant evidence before revising.",
             "7. If evidence remains insufficient, keep or revise to a concise insufficient-information answer.",
             *_profile_preference_repair_rules(compiled),
+            *_modal_abstention_repair_rules(reasons),
             "Return only valid JSON.",
             "",
             "Output JSON:",
@@ -283,6 +292,17 @@ def _profile_preference_repair_rules(compiled: CompiledContext) -> list[str]:
     ]
 
 
+def _modal_abstention_repair_rules(reasons: tuple[str, ...]) -> list[str]:
+    if "modal_abstention_review" not in reasons:
+        return []
+    return [
+        "15. For modal or inference questions, a calibrated answer such as likely, unlikely, yes, no, or somewhat is allowed when Memory Context has directly relevant anchors.",
+        "16. Do not keep an insufficient-information refusal merely because the context lacks an exact verbatim answer; use the user's stated preferences, actions, constraints, outcomes, and self-descriptions as anchors.",
+        "17. Keep or revise to insufficient information when anchors are absent, conflicting, or only topically related.",
+        "18. For sensitive traits or statuses such as identity, religion, health, finances, or politics, do not infer from stereotypes; require explicit self-description or concrete behavior in Memory Context and use uncertainty qualifiers.",
+    ]
+
+
 def _noop(draft: AnswerResult, *, enabled: bool, reason: str) -> AnswerRepair:
     return AnswerRepair(
         answer=draft,
@@ -307,6 +327,17 @@ def _draft_payload(raw_response: str | None) -> dict[str, Any]:
 def _repair_decision(raw_response: str | None) -> str:
     payload = _draft_payload(raw_response)
     return str(payload.get("decision") or "").strip().lower()
+
+
+def _has_uncertain_signal(draft_answer: str, payload: dict[str, Any]) -> bool:
+    answer_type = str(payload.get("answer_type") or "").strip().lower()
+    missing = str(payload.get("missing") or "").strip()
+    return bool(
+        _INSUFFICIENT_ANSWER.search(draft_answer or "")
+        or payload.get("sufficient") is False
+        or answer_type == "unknown"
+        or missing
+    )
 
 
 def _looks_like_short_collection_answer(

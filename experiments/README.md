@@ -29,6 +29,15 @@
 | 诊断 | v110 实际改变 prompt/answer 的样本集中在 modal inference；LoCoMo Open-Domain(category 3) lenient `45/96 -> 54/96`，但 Multi-Hop/Temporal/Single-Hop 有小幅抵消。 |
 | 诊断文档 | `diagnostic/stage1_v102_generalization_audit_v104_plan.md` |
 
+## 下一正式候选
+
+| 项目 | 结果 |
+|---|---|
+| 配置 | `configs/stage1_modal_abstention_repair_v111_qwen36_no_think_build4k_cached.json` |
+| 目的 | 在 v110 基础上增加 source-grounded modal abstention verifier，只修正“modal/inference 问题 + draft 明确信息不足”的过度拒答。 |
+| Smoke | LoCoMo 11 个 v110 modal-abstention wrong 子集从 `0/11` 到 strict/lenient `3/11`；LME 2 个触发子集从 `0/2` 到 lenient `1/2`。Smoke 目录已清理，结论记录在 `diagnostic/stage1_v102_generalization_audit_v104_plan.md`。 |
+| 计划 | 先提交 v111 代码/config，正式跑 LongMemEval-S full；若 LME 不低于 v110/v102 主口径，再跑 LoCoMo full。 |
+
 ## 已拒绝上下文候选
 
 | 项目 | 结果 |

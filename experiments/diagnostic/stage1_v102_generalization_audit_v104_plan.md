@@ -433,3 +433,33 @@ Clean/controlled comparison:
 - v110 是正向候选，但不是新 LTS：LoCoMo lenient `0.799351` 距 `0.800000` 还差 1 题，且 LME strict 小幅回落。
 - modal-only grounded inference 方向值得保留为下一步证据，但需要更通用的 verifier/context organization 来减少 Temporal/Single-Hop 抵消，而不是继续扩大规则 gate。
 - 当前默认 LTS 仍是 v102；下一轮应优先围绕 Open-Domain over-abstention 和 evidence-unit rerank / verifier 设计，同时控制 LME 不退步。
+
+## v111 计划：modal abstention verifier
+
+配置：`configs/stage1_modal_abstention_repair_v111_qwen36_no_think_build4k_cached.json`
+
+设计依据：
+
+- v110 的真实收益集中在 LoCoMo Open-Domain/modal inference，但仍有一批问题因为 draft answer 明确信息不足而错失可由 Memory Context 支撑的 calibrated answer。
+- 继续扩大 question gate 容易回到 v109 的 advice/recommendation 误伤；更合适的是 query-time verifier：只在最终 draft answer 明确拒答/信息不足时二次检查 Memory Context 是否足以支持 likely/unlikely/yes/no 等答案。
+- 该 verifier 复用已有 `memory.repair` source-grounded repair 通道，输入只有 prediction-time question、route、Memory Context、draft answer 和 draft raw artifacts；不读取 gold、judge、benchmark label/category、sample id 或 test feedback。
+- 为避免 cache seed raw_response 与 final prediction answer 不一致导致误触发，`modal_abstention_review` 只看最终 draft answer 文本中的拒答/信息不足信号，不看 raw_response 里的 `sufficient=false`。
+
+关键改动：
+
+- 新增 `answer.repair.enable_modal_abstention_trigger`，默认 false，不改变旧配置行为。
+- v111 打开 repair，但关闭 broad uncertain/short-list/temporal/profile triggers；`information_needs` 限定为 `current_state` / `fact_lookup` / `profile_preference`。
+- Repair prompt 加入 modal/inference 规则：当 Memory Context 有直接相关 anchors 时允许 calibrated answer；无 anchors、冲突或只有主题相关时保持信息不足；敏感身份/宗教/健康/财务/政治等必须有明确自述或具体行为，禁止 stereotype 推断。
+- build/retrieval/compiler/finalizer/backbone 与 v110 保持一致；base answer cache 独立为 v111，可从 v110 traces + predictions seed；repair cache 独立。
+
+Smoke 诊断：
+
+- LoCoMo：选取 v110 中 `modal/inference question + final answer insufficient + lenient wrong` 的 11 条做 smoke。v110 子集 strict/lenient `0/11`，v111 strict/lenient `3/11`；repair triggered `7/11`，applied `3/11`。成功样例包括 roadtrip soon、NYC shop、fitness device。
+- LME：同类触发候选只有 2 条，且 v110 lenient 都错。v111 strict/lenient `0/2` / `1/2`；repair triggered `2/2`，applied `1/2`。
+- Smoke 只用于诊断和是否值得 full run；临时 smoke 目录已清理，方法和配置不包含样本级 key 或规则。
+
+验证策略：
+
+1. 提交 v111 代码和配置，保证正式 full run 记录 clean commit。
+2. 先跑 LongMemEval-S full；若 lenient 低于 v110 `0.834000` 或 v102 `0.830000`，谨慎停止，不跑 LoCoMo。
+3. 若 LME 持平或提升，再跑 LoCoMo full。LoCoMo 只需净增 1 个 lenient-correct 即达到 `0.800000`，但仍需同时观察 strict、category deltas 和 repair token 成本。
