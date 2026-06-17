@@ -191,3 +191,33 @@ Smoke 观察：
 - 暂停“直接把 typed memory guide 放进最终 reader prompt”的路线。
 - build memory 下一步应继续作为 source selection、coverage/conflict signal 或 evidence-unit rerank 的输入，但必须保证 raw evidence 覆盖不低于 v102。
 - 若做 rerank，不能重复 v103 的单 turn rerank；应以 source-grounded evidence unit 为单位，并设置 raw-row coverage guarantee。
+
+## v107 计划：route-scoped activation
+
+配置：`configs/stage1_route_scoped_memory_activation_v107_qwen36_no_think_build4k_cached.json`
+
+设计依据：
+
+- v106 route-level lenient 对比显示：`fact_lookup` 相对 v102 `+1`，`profile_preference` `+2`，`current_state` `0`；但 `temporal_lookup` `-6`，`list_count` `-2`。
+- 因此 v107 只在 question-derived `fact_lookup` / `profile_preference` route 打开少量 source-aligned typed memory activation；temporal/list/current 维持 v102 无 activation。
+- route 来自问题文本和通用 heuristic，不使用 LongMemEval question_type、LoCoMo category、gold、judge、sample id 或测试反馈。
+- raw-row order 继续使用 v102 `retrieval`，不再使用 v105 负向的 `memory_aware` order。
+
+关键改动：
+
+- `compiler.max_memory_records=0`
+- `compiler.route_overrides.fact_lookup.max_memory_records=4`
+- `compiler.route_overrides.profile_preference.max_memory_records=6`
+- `compiler.structured_guide_include_memory=true`
+- `compiler.evidence_order=retrieval`
+- answer cache 独立为 `outputs/cache/qwen36_no_think_build4k_answer_v107_route_scoped_memory_activation.sqlite`
+
+Smoke 观察：
+
+- LME 第 1 条 `fact_lookup`：activation 生效，`compiled_memory_records=1`，query tokens `5100`。
+- LME 第 2 条 `temporal_lookup`：activation 关闭，rows/query 与 v102 对齐，query tokens `6786`。
+
+验证策略：
+
+- 先跑 LongMemEval-S full；若没有超过或至少接近 v102 LTS，不跑 LoCoMo full。
+- 若 LME 达到或超过 v102，再跑 LoCoMo non-adversarial full，重点观察 LoCoMo Open-Domain / profile-like 问题是否受益。
