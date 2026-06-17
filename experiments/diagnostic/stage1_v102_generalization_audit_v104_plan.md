@@ -239,3 +239,25 @@ Smoke 观察：
 - route deltas：current_state `+1`，fact_lookup `-3`，list_count `+1`，profile_preference `0`，temporal_lookup `+1`。
 
 结论：v107 不是 LME 提升，但主指标 lenient 没退步。因为 LoCoMo 是当前 baseline target 缺口，继续跑 LoCoMo full；若 LoCoMo 不能明显提升，则拒绝 v107。
+
+## v107 LoCoMo run result
+
+主目录 formal run `stage1_route_scoped_memory_activation_v107_qwen36_no_think_build4k_locomo_nonadv_full_935b7b7` 已完成 LoCoMo non-adversarial full：
+
+- dual flash strict/lenient `1193/1540 = 0.774675` / `1229/1540 = 0.798052`
+- avg build tokens `62015.574`
+- avg query tokens `5961.069`
+- avg compiled evidence rows `55.264`
+- avg compiled memory records `2.460`
+
+对比当前 qwen3.6 v102 LTS LoCoMo strict/lenient `0.776623 / 0.798052`：
+
+- lenient 持平，strict 少 3 题。
+- lenient gain/loss：`51 / 51`，net `0`。
+- category deltas：Multi-Hop `+7`，Temporal Reasoning `-7`，Open-Domain `+3`，Single-Hop `-3`。
+
+结论：
+
+- v107 不是新 LTS，当前默认仍是 v102。
+- route-scoped activation 对 Multi-Hop/Open-Domain 有局部有效信号，但 reader prompt 里直接暴露 typed memory 仍会引入 temporal/single-hop 噪声。
+- 下一步不要继续简单扩大 activated memory；应把 build memory 用在 source selection、coverage/conflict signal 或 evidence-unit rerank，且必须保证 raw evidence 覆盖不低于 v102。

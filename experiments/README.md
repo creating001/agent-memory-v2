@@ -32,15 +32,20 @@
 
 | 项目 | 结果 |
 |---|---|
-| 配置 | `configs/stage1_memory_activation_v106_qwen36_no_think_build4k_cached.json` |
-| 目的 | v105 负向后的隔离 ablation：只保留 source-aligned typed memory activation guide，恢复 v102 `evidence_order=retrieval`，不改变 raw-row ordering。 |
-| 结果 | LongMemEval-S full strict/lenient `0.806000 / 0.820000`，低于 v102 `0.814000 / 0.830000`；avg query tokens `6638.526`。负向，停止，不跑 LoCoMo full。 |
-| 诊断结论 | activation-only 恢复了 v102 的 evidence rows，但直接暴露 typed memory guide 仍带来 token/noise；下一步不要继续直接把 typed memory 作为 reader prompt guide。 |
+| 配置 | `configs/stage1_route_scoped_memory_activation_v107_qwen36_no_think_build4k_cached.json` |
+| 目的 | 只在 question-derived `fact_lookup` / `profile_preference` 打开 source-aligned typed memory activation，避免 v106 在 temporal/list 上的负向。 |
+| LME 结果 | strict/lenient `0.810000 / 0.830000`，lenient 与 v102 持平，strict 低 2 题；avg query tokens `6308.482`。 |
+| LoCoMo 结果 | strict/lenient `0.774675 / 0.798052`，lenient 与 v102 持平，strict 低 3 题；Multi-Hop `+7`、Open-Domain `+3`，但 Temporal `-7`、Single-Hop `-3` 抵消。 |
+| 诊断结论 | route-scoped activation 有局部有效信号，但直接放进 reader prompt 仍不稳定；v102 保持 LTS。 |
 
 ## 已拒绝候选补充
 
 | 项目 | 结果 |
 |---|---|
+| 配置 | `configs/stage1_memory_activation_v106_qwen36_no_think_build4k_cached.json` |
+| 目的 | v105 负向后的隔离 ablation：只保留 source-aligned typed memory activation guide，恢复 v102 `evidence_order=retrieval`，不改变 raw-row ordering。 |
+| 结果 | LongMemEval-S full strict/lenient `0.806000 / 0.820000`，低于 v102 `0.814000 / 0.830000`；avg query tokens `6638.526`。负向，停止，不跑 LoCoMo full。 |
+| 诊断结论 | activation-only 恢复了 v102 的 evidence rows，但直接暴露 typed memory guide 仍带来 token/noise；下一步不要继续直接把 typed memory 作为 reader prompt guide。 |
 | 配置 | `configs/stage1_memory_activation_v105_qwen36_no_think_build4k_cached.json` |
 | 目的 | 在 qwen3.6 no-thinking v102 LTS 上打开 source-aligned typed memory activation guide，并用 `memory_aware` raw-row ordering，验证 build memory 是否能从“辅助检索”升级为 query-time organization signal。 |
 | 结果 | LongMemEval-S full strict/lenient `0.774000 / 0.800000`，低于 v102 `0.814000 / 0.830000`；avg query tokens `6614.138`，avg evidence rows 从 v102 `34.752` 降到 `24.528`。负向，停止，不跑 LoCoMo full。 |
@@ -93,6 +98,8 @@
 | `stage1_context_guard_v104_lme_s_full_043795e` | qwen3.6 no-thinking v104 负结果：LME 单次 flash `395/500 = 0.790`，avg query tokens `7367.622`；说明粗暴取消 profile + broad answer repair 不适合作为 LTS。 |
 | `stage1_memory_activation_v105_qwen36_no_think_build4k_lme_s_full_d8f2b4c` | qwen3.6 no-thinking v105 负结果：LME strict/lenient `0.774/0.800`，typed memory activation + `memory_aware` ordering 降低 multi-session 覆盖，不跑 LoCoMo full。 |
 | `stage1_memory_activation_v106_qwen36_no_think_build4k_lme_s_full_36c76cc` | qwen3.6 no-thinking v106 负结果：LME strict/lenient `0.806/0.820`，activation-only 仍低于 v102 且 query token 增加，不跑 LoCoMo full。 |
+| `stage1_route_scoped_memory_activation_v107_qwen36_no_think_build4k_lme_s_full_12a80f2` | qwen3.6 no-thinking v107 LME：strict/lenient `0.810/0.830`，lenient 持平但 strict 低于 v102。 |
+| `stage1_route_scoped_memory_activation_v107_qwen36_no_think_build4k_locomo_nonadv_full_935b7b7` | qwen3.6 no-thinking v107 LoCoMo：strict/lenient `0.774675/0.798052`，lenient 持平但 strict 低于 v102，未达到 baseline target。 |
 
 ## 保留 Diagnostic Runs
 
