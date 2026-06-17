@@ -18,7 +18,7 @@
 - `external/SimpleMem/simplemem/core/memory_builder.py`、`hybrid_retriever.py`、`answer_generator.py`、`models/memory_entry.py`：参考 build-stage lossless typed memory、多视角检索和 structured context。
 - `external/mem0/mem0/memory/main.py`：参考 metadata scope、search filter、memory add/search 工程边界。
 - `external/A-mem/test_advanced.py`：确认其 benchmark category/answer 参与 answer 的部分不 clean，只做负面参考和高层 memory neighborhood 参考。
-- `external/EverOS/src/everos/memory/models.py`、`search/manager.py`、`search/hierarchy.py`、`strategies/extract_atomic_facts.py`、`strategies/extract_user_profile.py`：参考 episode/atomic fact/profile 分层、parent provenance、fact-child MaxSim 到 episode-parent 的 hierarchy retrieval。
+- `external/EverOS/src/everos/memory/models.py`、`search/manager.py`、`search/hierarchy.py`、`search/recall/base.py`、`search/shaper.py`、`strategies/extract_atomic_facts.py`、`strategies/extract_user_profile.py`：参考 episode/atomic fact/profile 分层、parent provenance、fact-child MaxSim 到 episode-parent 的 hierarchy retrieval、候选元数据清洗和 search DTO 结构。
 - `external/MAMGA/memory/memory_builder.py`、`query_engine.py`、`temporal_parser.py`：参考 temporal graph/RRF/relative time parser；其中 session id / dataset keyword 映射不 clean，不能迁移。
 - `external/memanto/memanto/app/services/memory_parsing_service.py`、`memory_read_service.py`、`memory_write_service.py`：参考 memory type taxonomy、namespace/filter、as-of/superseded/TTL 查询。
 - `external/letta/letta/schemas/memory.py`：参考 core/archival/recall memory 的分层和 context window accounting。
@@ -39,7 +39,8 @@
 - `external/LoCoMo/task_eval/rag_utils.py`、`gpt_utils.py`：参考 dialogue-level RAG prompt 中“从对话精确作答”的读者纪律；`category`、answer choices 和评测字段不能进 prediction。
 - `external/MemoryBank-SiliconFriend/utils/prompt_utils.py`、`memory_bank/memory_retrieval/local_doc_qa.py`、`utils/memory_utils.py`、`memory_bank/summarize_memory.py`：参考按日期保存历史、相关记忆+日期注入、相同 source/date 邻居扩展、history/personality 双摘要；风险是 summary/profile 可能压掉 raw evidence，因此只作为 profile/event 双通道和 source expansion 的参考，不让摘要成为唯一事实源。
 - `external/memU/src/memu/app/retrieve.py`、`prompts/memory_type/{profile,event,knowledge,behavior}.py`、`prompts/retrieve/{pre_retrieval_decision,query_rewriter,llm_category_ranker,llm_item_ranker,judger}.py`：重点参考 profile/event/knowledge/behavior 类型拆分、query rewrite、category/item staged retrieval、sufficiency check；可借鉴为通用 memory-type gating 和不足时追加检索，但不能引入 gold/judge/benchmark 标签。
-- `external/hindsight/hindsight-embed/hindsight_embed/profile_manager.py`、`external/hindsight/hindsight-api-slim/hindsight_api/_pg_search.py`：本次读到的主要是 profile/env/port 管理与 ParadeDB/BM25 工程配置，暂不作为核心 memory 方法依据。
+- `external/hindsight/README.md`、`external/hindsight/hindsight-api-slim/hindsight_api/engine/search/retrieval.py`、`fusion.py`、`reranking.py`：参考 semantic/BM25/graph/temporal 四路并行 recall、per-source cap、RRF/interleave fusion、cross-encoder rerank 后再按 token budget 裁剪。对 v103 的启发是保留多路候选池，但用 rerank 和上下文预算控噪声。
+- `external/MemOS/src/memos/mem_scheduler/memory_manage_modules/search_pipeline.py`、`rerank_pipeline.py`、`external/MemOS/src/memos/reranker/strategies/dialogue_common.py`：参考 LongTermMemory/UserMemory 双通道搜索、过滤短/近重复 memory 后 rerank、对话 pair 作为 rerank 文档的格式；当前只采用 cross-encoder rerank 与文档截断思想，不引入 LLM rerank。
 - `external/general-agentic-memory/src/gam/core/tree.py`、`core/node.py`、`prompts/gam_prompts.py`：参考 memory tree / directory summary / batch memorize + organize 的层级组织思想；当前不引入文件系统式 memory OS，只借鉴“短 memory record + 层级摘要”的组织原则。
 - `external/nemori/nemori/core/memory_system.py`、`search/unified.py`、`domain/models.py`、`llm/generators/{episode,semantic,merger}.py`、`llm/prompts.py`、`evaluation/longmemeval/search.py`：参考 buffer -> episode -> semantic memory、episode/semantic 双通道 hybrid search、source_messages 回链、prediction-correction semantic delta 和 episode merge；评测脚本里的 gold/question_type 只作为负面边界，不能进入 prediction。
 
@@ -62,7 +63,7 @@
 | 13 | General Agentic Memory via Deep Research | `external/general-agentic-memory` | 已读 GAM tree / node / prompts | 参考层级 memory 组织和 batch memorize/organize；文件系统式 memory OS 暂不迁移。 |
 | 14 | Generative Agents | `external/generative_agents` | 已 clone，待读 | 参考 reflection/importance/recency 的经典结构；不直接适配 benchmark。 |
 | 15 | LD-Agent | `external/LD-Agent` | 已读 EventMemory/Personas | 参考 topic overlap、recency、session summary 和 persona/profile 抽取；profile 不覆盖 raw evidence。 |
-| 16 | Hindsight | `external/hindsight` | 已读部分工程代码 | 当前读到 profile/env 管理和 BM25 配置，暂未发现可直接作为核心 memory 方法依据；后续若参考 retain/recall/reflect 仍需继续读核心逻辑并确认 feedback 边界。 |
+| 16 | Hindsight | `external/hindsight` | 已读 recall/rerank 核心 | 参考四路并行 retrieval、RRF/interleave、cross-encoder rerank 和 token budget 裁剪；retain/reflect 更重，暂不迁移。 |
 | 17 | HippoRAG | `external/HippoRAG` | 已 clone，待读核心 | 可能参考 entity graph + retrieval fusion。 |
 | 18 | Honcho | `external/honcho` | 已 clone，待读 | 可能参考 production memory API / session state。 |
 | 19 | EM-LLM | `external/EM-LLM-model` | 已 clone，待读 | 可能参考 episodic/infinite-context memory。 |
@@ -88,7 +89,7 @@
 | 39 | MIA | `external/MIA` | 已读部分 memory serve / inference 入口 | 多数 correct/incorrect feedback 与 judge/gold 相关逻辑不 clean，只做负面边界；候选选择与最终生成分离的工程思想可参考。 |
 | 40 | MemoryOS | `external/MemoryOS` | 已读 pypi retriever/updater/prompts | 参考 short/mid/long-term 分层、双通道 knowledge 和 timestamp 检查；不作为短期重型依赖。 |
 | 41 | MemoryBank | `external/MemoryBank-SiliconFriend` | 已读 retrieval/summarize 入口 | 参考按日期 history/profile 管理、相关记忆注入和 same-source/date 邻居扩展；不能让 summary/profile 替代 raw evidence。 |
-| 42 | MemOS | `external/MemOS` | 已 clone，待读 | 参考 memory OS / governance，不作为短期重型依赖。 |
+| 42 | MemOS | `external/MemOS` | 已读 search/rerank 入口 | 参考 LongTerm/User memory 双通道、过滤后 rerank 和 dialogue pair 文档格式；不引入重型 memory OS 或 LLM rerank。 |
 | 43 | MemU | `external/memU` | 已读 retrieve 与 memory-type prompts | 参考 profile/event/knowledge/behavior 类型拆分、query rewrite、category/item staged retrieval 和 sufficiency check；预测阶段只可使用问题、原始对话和 build memory。 |
 | 44 | MIRIX | `external/MIRIX` | 已读 episodic schema | 参考 episodic/semantic/core memory taxonomy 和 event schema。 |
 | 45 | Mnemis | `external/Mnemis` | 已读 global selector/prompts | 参考层级图 selection 和 selected node 回链 episode/relation。 |
@@ -114,4 +115,5 @@
 - v43 采用 session-thread evidence layout + row-linked build memory guide：借鉴 xMemory/SimpleMem 的 episodic raw message 回链、Mnemis 的 selected node -> episode 回链和 Graphiti/Zep 的 temporal/provenance 思路；typed memory 只作为已召回 raw rows 的定位 guide，不作为独立事实源。
 - v64 采用 list_count-only adjacent-turn window BM25：借鉴 creating001 的 turn-pair/source-turn materialization，并结合 v54 在 `list_count` diagnostic 上 gain/loss `1/0` 的局部信号；119 条 LongMemEval-S list_count diagnostic 已验证负向（v64 `93/119` < v42 same119 `95/119`），顶层 config 删除，只保留诊断快照。
 - v65 采用 unit/sum mechanical finalizer：借鉴 creating001 的窄后处理 finalizer 思想，但只允许基于已生成答案和 visible evidence_report 做通用数值单位补全或加和一致性修正，不使用 gold、judge、benchmark 标签或样本规则；LongMemEval-S full 已验证负向（v65 `379/500` < v42 `387/500`，gain/loss `20/28`，answer_changed `120`），且受 current code drift 影响，不是纯 finalizer 正向消融。顶层 config 和源码分支删除，只保留 formal 快照。
+- v103 采用 query-side rerank + context budget：借鉴 Hindsight 的多路候选后 cross-encoder rerank、EverOS 的候选池/parent provenance、MemOS 的 rerank 文档截断。保持 v102 build memory 和 raw evidence first，不让 typed memory 直接成为独立事实源；先验证“候选池保留、最终上下文控噪声”是否提升 LongMemEval/LoCoMo accuracy。
 - clean 侧：所有 route 和 compiler 只能来自 question text、question_time、原始对话和 memory metadata；不能使用 LoCoMo category、LongMemEval question_type、evidence label、gold 或 judge。
