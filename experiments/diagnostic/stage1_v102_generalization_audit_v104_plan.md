@@ -166,3 +166,28 @@ Smoke 观察：
 - LME 前 2 条 rows 与 v102 对齐：第 1 条 `40` 行，第 2 条 `39` 行；v105 第 2 条只有 `32` 行。
 - activated memory 进入 prompt，但只映射到已召回 Memory Context rows。
 - 第 2 条 query tokens `7110`，说明 activation-only 仍有 token 代价；full run 必须重点观察 accuracy 是否值得这个代价。
+
+## v106 run result
+
+主目录 formal run `stage1_memory_activation_v106_qwen36_no_think_build4k_lme_s_full_36c76cc` 已完成 LongMemEval-S full：
+
+- dual flash strict/lenient `403/500 = 0.806000` / `410/500 = 0.820000`
+- avg build tokens `85393.566`
+- avg query tokens `6638.526`
+- avg compiled evidence rows `34.752`
+- avg compiled memory records `4.532`
+
+对比当前 qwen3.6 v102 LTS LongMemEval-S strict/lenient `0.814000 / 0.830000`，v106 仍然负向，不跑 LoCoMo full。
+
+差异诊断：
+
+- lenient gain/loss：`19 / 24`，net `-5`。
+- 去掉 `memory_aware` ordering 后，raw evidence rows 恢复到 v102 水平，说明 v105 的大幅退步主要来自 row ordering。
+- 但直接暴露 typed memory guide 仍增加 reader token/noise：avg query tokens 从 v102 `6137.344` 增到 v106 `6638.526`。
+- typed memory guide 对 knowledge-update 和 preference 有局部收益，但对 temporal 和 multi-session 仍有净损失。
+
+结论：
+
+- 暂停“直接把 typed memory guide 放进最终 reader prompt”的路线。
+- build memory 下一步应继续作为 source selection、coverage/conflict signal 或 evidence-unit rerank 的输入，但必须保证 raw evidence 覆盖不低于 v102。
+- 若做 rerank，不能重复 v103 的单 turn rerank；应以 source-grounded evidence unit 为单位，并设置 raw-row coverage guarantee。
