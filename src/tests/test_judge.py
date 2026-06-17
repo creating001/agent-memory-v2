@@ -31,7 +31,11 @@ class JudgeTest(unittest.TestCase):
         )
 
         self.assertIn("Return ONLY a valid JSON object", prompt)
-        self.assertEqual(parse_judge_label("locomo", '{"label":"CORRECT"}'), "CORRECT")
+        self.assertIn('"reasoning"', prompt)
+        self.assertEqual(
+            parse_judge_label("locomo", '{"reasoning":"Same tea.","label":"CORRECT"}'),
+            "CORRECT",
+        )
 
     def test_longmemeval_temporal_prompt_uses_off_by_one_rule(self) -> None:
         prompt = build_judge_prompt(

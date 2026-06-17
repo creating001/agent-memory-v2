@@ -13,8 +13,8 @@
 
 | Benchmark | Scope | Baseline target | Minimum target | Mainline target | Stretch target |
 |---|---|---:|---:|---:|---:|
-| LongMemEval | full | >= 82% accuracy | >= 85% accuracy | >= 88% accuracy | >= 91% accuracy |
-| LoCoMo | non-adversarial | >= 80% accuracy | >= 83% accuracy | >= 86% accuracy | >= 89% accuracy |
+| LongMemEval | full | >= 80% accuracy | >= 83.5% accuracy | >= 87% accuracy | >= 90.5% accuracy |
+| LoCoMo | non-adversarial | >= 80% accuracy | >= 83.5% accuracy | >= 87% accuracy | >= 90.5% accuracy |
 
 ## Default Budgets
 
