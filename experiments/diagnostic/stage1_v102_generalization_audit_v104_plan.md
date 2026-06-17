@@ -21,13 +21,13 @@
 - LoCoMo non-adversarial full：strict `1213/1540 = 0.787662`，lenient `1268/1540 = 0.823377`。
 - LME avg query tokens `6174.112`，略高于 6K 目标；LoCoMo avg query tokens `5751.377`。
 
-主目录 rerun 与历史测试目录的 trace 形态一致：
+主目录 rerun 与历史测试目录的 trace 形态基本一致。当前主目录 trace 重新核对如下：
 
 - LME `500/500` 全部选择 `long_turn_precision` profile。
 - LoCoMo `1540/1540` 全部选择 `short_turn_v96_spacing` profile。
 - selected context：LME `0/500`，LoCoMo `1198/1540 = 0.778`。
-- finalizer：LME 主要是 `missing_detail_from_structured_answer=42`，LoCoMo 主要是 `evidence_report_relative_time_calculation=41`。
-- top-k/context：LME effective top-k `40`，avg context chars `19759`；LoCoMo effective top-k avg `55.61`，avg context chars `16311`。
+- finalizer：LME 触发 `54/500`，其中 `missing_detail_from_structured_answer=47`、`evidence_report_count_answer_detail=5`、`evidence_report_money_difference=1`、`evidence_report_date_endpoint_duration=1`；LoCoMo 触发 `46/1540`，全部是 `evidence_report_relative_time_calculation`。
+- top-k/context：LME effective top-k `40`，avg context chars `19759`；LoCoMo temporal route top-k `40`、其他 route top-k `60`，avg context chars `16309`。
 
 结论：v102 不使用隐藏标签，因此 clean；但平均 turn 长度阈值几乎等价于把两个 benchmark 的输入形态分开处理，general 风险较高。它可以解释为 context granularity adaptation，但当前实现把 route、retrieval、selected context、compiler、finalizer 一起切换，粒度太粗。当前 LTS 先固定 v102，后续改进应在不牺牲 accuracy 的前提下逐步降低这种大块 profile 风险。
 
@@ -102,3 +102,30 @@ Smoke 观察：
 - answer repair triggered `178/500`，额外 query tokens `772443`
 
 结论：v104 不是 LTS 候选，且 query token 明显超出 normal budget；LoCoMo full 不继续跑。下一步应基于当前主目录 qwen3.6 no-thinking v102 dual-flash LTS 口径和 badcase 设计下一次方法。
+
+## v105 计划：typed memory activation
+
+配置：`configs/stage1_memory_activation_v105_qwen36_no_think_build4k_cached.json`
+
+设计依据：
+
+- v104 说明一次性取消大块 profile、关闭 finalizer 并启用 broad repair 会同时损伤 accuracy 和 token budget，因此下一步不继续这种大改。
+- v103 说明单 raw-turn rerank + 强裁剪会降低 LME accuracy；rerank 应推迟到 evidence-unit 层面，而不是马上砍 top-k。
+- Mnemis、SimpleMem、EverOS、Graphiti、Hindsight、MemOS、Nemori 的共同点是：build/long-term memory 应作为组织、selection、provenance 和 conflict signal，并回链原始 episode/source，而不是把 summary/profile 作为唯一事实源。
+- 早期 v37 row-linked typed memory bundle 在旧 backbone 下负向，说明不能让 typed memory 与 raw context 竞争答案来源；v105 只显示已召回 raw rows 能对齐到的少量 activated memory，并在 prompt 中声明它不是 independent evidence。
+
+关键改动：
+
+- build/retrieval/granularity profile/selected context/answer finalizer/backbone 全部保持当前 qwen3.6 no-thinking v102 LTS。
+- `compiler.max_memory_records=6`，temporal/list/profile/current_state route 为 `8`。
+- `compiler.structured_guide_include_memory=true`：在 Structured Evidence Guide 中加入 source-aligned `activated_build_memory`，帮助模型理解 type/status/time/source，但最终事实仍回到 Memory Context。
+- `compiler.memory_order=question_overlap`：优先显示与问题词、信息需求和 memory type 更匹配的 memory records。
+- `compiler.evidence_order=memory_aware`：用 typed memory 的 source links 轻量调整 raw row 顺序，但不减少 top-k，避免再次因过早裁剪损失证据。
+- answer cache 独立为 `outputs/cache/qwen36_no_think_build4k_answer_v105_memory_activation.sqlite`；build cache 可复用 v102，因为 build 阶段未改，正式 token 统计仍按 cached usage 计入逻辑 cold-build token。
+
+验证策略：
+
+1. 先跑单测和 smoke，检查 prompt 中确实出现 source-aligned activated memory，且没有 gold/judge/category/sample id。
+2. 若 smoke 正常，先跑 LongMemEval-S full；LME 是当前更接近 target 的基准，用于确认 typed memory activation 不伤主能力。
+3. 如果 LME 不明显低于 v102，再跑 LoCoMo non-adversarial full；LoCoMo 当前距 lenient `0.800000` baseline target 只差 4 题，是 v105 的重点观察对象。
+4. 正式汇报继续使用 dual `deepseek-v4-flash` strict/lenient judge，并记录 commit、dirty、token、outputs 路径和 by-category diagnosis。
