@@ -79,16 +79,16 @@ deployment:
     model: Qwen/Qwen3-Embedding-0.6B
     service: local_vllm_embedding
     cuda_visible_devices: [4]
-    gpu_memory_utilization: 0.4
+    gpu_memory_utilization: 0.8
 
   rerank:
     model: Qwen/Qwen3-Reranker-0.6B
     service: local_rerank_service
-    cuda_visible_devices: [4]
-    gpu_memory_utilization: 0.4
+    cuda_visible_devices: [5]
+    gpu_memory_utilization: 0.8
 ```
 
-部署时默认 Answer LLM 独占 GPU 0-3，embedding 与 rerank 共享 GPU 4。`gpu_memory_utilization` 是服务启动时的目标显存占用上限；如果 rerank 后端不支持该参数，就合理限制一下。
+部署时默认 Answer LLM 独占 GPU 0-3，embedding 独占 GPU 4，rerank 独占 GPU 5。`gpu_memory_utilization` 是服务启动时的目标显存占用上限；如果 rerank 后端不支持该参数，就合理限制一下。
 
 ## 2. Prompt Template 协议
 
