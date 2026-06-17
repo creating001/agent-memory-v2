@@ -398,3 +398,38 @@ Clean/controlled comparison:
 
 1. 先跑 LongMemEval-S full。若 lenient 低于 v102 `0.830000`，停止，不跑 LoCoMo。
 2. 若 LME lenient 持平或提升，再跑 LoCoMo full；重点观察 Open-Domain modal 问题是否提升，同时确认 Single-Hop/Temporal 不被 prompt discipline 误伤。
+
+## v110 run result
+
+主目录 formal runs 已完成：
+
+- LongMemEval-S full `stage1_modal_grounded_inference_v110_qwen36_no_think_build4k_lme_s_full_2f33213`
+  - dual flash strict/lenient `406/500 = 0.812000` / `417/500 = 0.834000`
+  - avg build tokens `85393.566`
+  - avg query tokens `6140.218`
+  - avg compiled evidence rows `34.752`
+  - answer cache hits/misses `494/6`
+- LoCoMo non-adversarial full `stage1_modal_grounded_inference_v110_qwen36_no_think_build4k_locomo_nonadv_full_2f33213`
+  - dual flash strict/lenient `1200/1540 = 0.779221` / `1231/1540 = 0.799351`
+  - avg build tokens `62015.574`
+  - avg query tokens `5775.508`
+  - avg compiled evidence rows `55.264`
+  - answer cache hits/misses `1504/36`
+
+对比当前 qwen3.6 v102 LTS：
+
+- LME lenient 从 `415` 到 `417`，净增 2；strict 从 `407` 到 `406`，少 1。
+- LoCoMo lenient 从 `1229` 到 `1231`，净增 2；strict 从 `1196` 到 `1200`，多 4。
+- LoCoMo category deltas（lenient）：Multi-Hop `195 -> 192`，Temporal Reasoning `250 -> 248`，Open-Domain `45 -> 54`，Single-Hop `739 -> 737`。
+
+真实方法变化诊断：
+
+- LME answer text changed `11/500`；其中 modal inference 触发带来 1 个明确 gain（living-room/allergy 问题从过度拒答变成 grounded likely answer），其余变化主要是同 prompt/cache/finalizer 表面差异或 judge 方差。
+- LoCoMo answer text changed `41/1540`，主要集中在 Open-Domain；其中 changed-answer 子集 lenient gains `8`、losses `0`，说明 modal-only grounded inference 对 LoCoMo Open-Domain 是正向。
+- 全量 transition 中还有不少答案未变但 judge 结果变化的样本；这些属于 dual flash 重跑方差，不能当作方法真实变化。
+
+结论：
+
+- v110 是正向候选，但不是新 LTS：LoCoMo lenient `0.799351` 距 `0.800000` 还差 1 题，且 LME strict 小幅回落。
+- modal-only grounded inference 方向值得保留为下一步证据，但需要更通用的 verifier/context organization 来减少 Temporal/Single-Hop 抵消，而不是继续扩大规则 gate。
+- 当前默认 LTS 仍是 v102；下一轮应优先围绕 Open-Domain over-abstention 和 evidence-unit rerank / verifier 设计，同时控制 LME 不退步。

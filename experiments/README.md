@@ -19,13 +19,14 @@
 - 不要把 v101 及之前的 qwen3-30b 数字与 qwen3.6 no-thinking 数字直接当作同 backbone 方法对比。
 - `agent-memory-other` / `agent-memory-gpt` 是外部测试目录，不作为主项目 LTS 结果来源。
 
-## 当前诊断候选
+## 当前正向候选
 
 | 项目 | 结果 |
 |---|---|
 | 配置 | `configs/stage1_modal_grounded_inference_v110_qwen36_no_think_build4k_cached.json` |
 | 目的 | v109 收窄 ablation：保留 `would/might/could/likely/considered` 等 modal yes/no inference 的 grounded inference discipline，排除 plain advice/recommendation `what do you think` 负例。 |
-| 计划 | 先跑 LongMemEval-S full；若 dual flash lenient 不低于 v102 `0.830000`，再跑 LoCoMo non-adversarial full。 |
+| 结果 | LongMemEval-S strict/lenient `0.812000 / 0.834000`；LoCoMo strict/lenient `0.779221 / 0.799351`。相比 v102，LME lenient `+2`、LoCoMo lenient `+2`；但 LoCoMo 距 `0.800000` 还差 1 题，暂不替代 v102 LTS。 |
+| 诊断 | v110 实际改变 prompt/answer 的样本集中在 modal inference；LoCoMo Open-Domain(category 3) lenient `45/96 -> 54/96`，但 Multi-Hop/Temporal/Single-Hop 有小幅抵消。 |
 | 诊断文档 | `diagnostic/stage1_v102_generalization_audit_v104_plan.md` |
 
 ## 已拒绝上下文候选
@@ -119,6 +120,8 @@
 | `stage1_route_scoped_memory_activation_v107_qwen36_no_think_build4k_locomo_nonadv_full_935b7b7` | qwen3.6 no-thinking v107 LoCoMo：strict/lenient `0.774675/0.798052`，lenient 持平但 strict 低于 v102，未达到 baseline target。 |
 | `stage1_source_coverage_v108_qwen36_no_think_build4k_lme_s_full_293474e` | qwen3.6 no-thinking v108 负结果：LME strict/lenient `0.802/0.824`，source-anchor coverage 低于 v102，不跑 LoCoMo full。 |
 | `stage1_grounded_inference_v109_qwen36_no_think_build4k_lme_s_full_6ebbd45` | qwen3.6 no-thinking v109 负/不确定结果：LME strict/lenient `0.816/0.828`，主指标低于 v102，不跑 LoCoMo full。 |
+| `stage1_modal_grounded_inference_v110_qwen36_no_think_build4k_lme_s_full_2f33213` | qwen3.6 no-thinking v110 正向候选 LME：strict/lenient `0.812/0.834`，lenient 比 v102 高 2 题但 strict 低 1 题。 |
+| `stage1_modal_grounded_inference_v110_qwen36_no_think_build4k_locomo_nonadv_full_2f33213` | qwen3.6 no-thinking v110 正向候选 LoCoMo：strict/lenient `0.779221/0.799351`，lenient 比 v102 高 2 题，但仍差 1 题到 `0.800000`。 |
 
 ## 保留 Diagnostic Runs
 

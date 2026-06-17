@@ -23,6 +23,8 @@
 - `v101` 及之前的结果默认是旧 `Qwen/Qwen3-30B-A3B-Instruct-2507` backbone；只有显式带 `qwen36_no_think_build4k` 的配置和 run 属于当前 qwen3.6 no-thinking backbone。
 - 结果入口见 `experiments/README.md`；预测和 trace 见 `outputs/formal/<run_id>/`。
 
+当前最新候选 `v110` 在同一 qwen3.6 no-thinking backbone 上只加入 modal-only grounded inference discipline：LongMemEval-S strict/lenient `0.812000 / 0.834000`，LoCoMo strict/lenient `0.779221 / 0.799351`。它改善 Open-Domain/modal inference，但 LoCoMo lenient 仍差 1 题到 `0.800000`，暂不替代 v102 LTS。
+
 ## 目录
 
 ```text
