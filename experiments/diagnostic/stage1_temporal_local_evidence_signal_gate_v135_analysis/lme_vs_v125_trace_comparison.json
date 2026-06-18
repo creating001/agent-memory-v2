@@ -1,0 +1,33 @@
+{
+  "avg_context_char_delta": 0.0,
+  "avg_evidence_row_delta": 0.0,
+  "avg_selected_context_materialized_delta": 0.0,
+  "base": "outputs/diagnostic/stage1_route_scoped_local_evidence_unit_v125_lme_dry/traces.jsonl",
+  "by_route": {
+    "current_state": {
+      "n": 22
+    },
+    "fact_lookup": {
+      "n": 183
+    },
+    "list_count": {
+      "n": 119
+    },
+    "profile_preference": {
+      "n": 15
+    },
+    "temporal_lookup": {
+      "n": 161
+    }
+  },
+  "candidate": "outputs/diagnostic/stage1_temporal_local_evidence_signal_gate_v135_lme_dry/traces.jsonl",
+  "changed_evidence_row_ids": 0,
+  "changed_prompt_key_preview": [],
+  "changed_prompts": 0,
+  "changed_routes": 0,
+  "changed_row_key_preview": [],
+  "joined_records": 500,
+  "selected_context_applied_changed": 0,
+  "total_materialized_neighbor_delta": 0,
+  "total_skipped_low_signal_neighbors": 0
+}

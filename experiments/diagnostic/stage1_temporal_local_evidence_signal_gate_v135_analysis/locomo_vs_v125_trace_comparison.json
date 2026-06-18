@@ -1,0 +1,55 @@
+{
+  "avg_context_char_delta": -17.564285714285713,
+  "avg_evidence_row_delta": 0.0,
+  "avg_selected_context_materialized_delta": 0.0,
+  "base": "outputs/diagnostic/stage1_route_scoped_local_evidence_unit_v125_locomo_dry/traces.jsonl",
+  "by_route": {
+    "current_state": {
+      "n": 4
+    },
+    "fact_lookup": {
+      "n": 882
+    },
+    "list_count": {
+      "n": 270
+    },
+    "profile_preference": {
+      "n": 46
+    },
+    "temporal_lookup": {
+      "changed_prompts": 189,
+      "n": 338
+    }
+  },
+  "candidate": "outputs/diagnostic/stage1_temporal_local_evidence_signal_gate_v135_locomo_dry/traces.jsonl",
+  "changed_evidence_row_ids": 0,
+  "changed_prompt_key_preview": [
+    "02034cd82523e3308abb9c8e",
+    "0255475f807b14908f063d2b",
+    "05a2fa4682ace156a523b92c",
+    "05cc41d556b96a3679fb44cf",
+    "0772dbbf523e05466c09b977",
+    "077dc113032925d7209f2c6a",
+    "0815398122f8239995796297",
+    "0d798f45f3b37893b6adb96f",
+    "0e84a27176a6aaa47a9b1d96",
+    "11a386f7fad013ec77923fdd",
+    "1332a1fb369bf7f232e5202b",
+    "1340bc97cd504e993b131b87",
+    "13fc31c4da9f316b40c10d39",
+    "146487c67925ca15d9b78d68",
+    "14a021bb06f545de13855b62",
+    "15a51d953a9956839e73debe",
+    "16f4a3c5201f10aaad73d619",
+    "1719f314ab55290d4c30572d",
+    "1a3996765421d628cbd6132c",
+    "1c59aeedb7dabd41477b4d32"
+  ],
+  "changed_prompts": 189,
+  "changed_routes": 0,
+  "changed_row_key_preview": [],
+  "joined_records": 1540,
+  "selected_context_applied_changed": 0,
+  "total_materialized_neighbor_delta": 23069,
+  "total_skipped_low_signal_neighbors": 339
+}

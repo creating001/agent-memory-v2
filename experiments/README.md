@@ -25,10 +25,9 @@
 
 | 优先级 | 项目 | 当前状态 | 下一步 |
 |---:|---|---|---|
-| 1 | `v135` temporal local evidence signal gate | 对应风险 #3。已实现 generic neighbor signal gate：邻居需提供 temporal marker、question-term overlap 或 center-term overlap | 跑 LoCoMo temporal/full dry-run；若 scope/cost 正常再补 paired dual judge |
-| 2 | `v126` profile/current memory source interleave | 对应风险 #5。LoCoMo profile/current route-all exact `0.320000 -> 0.360000` | 补 paired dual judge；若 LME judge 不正向则停止 |
-| 3 | `v127` superseded source chain | 对应风险 #5。LME lexical exact `0.426000 -> 0.428000`；LoCoMo exact 持平、F1/BLEU 小升 | 补 paired dual judge，并重点看 update/profile badcase |
-| 4 | `v129` route-scoped char budget / rerank 后续 | 对应风险 #2。v129 lexical 小正向但 token 收益有限；v134 judge 负向已拒绝 | 保留为 token-budget 对照，下一步不能只靠截断省 token |
+| 1 | `v135` temporal local evidence signal gate | 对应风险 #3。LoCoMo dry-run 只改 `temporal_lookup` prompts `189/338`，row ids `0` change；LME dry-run `0/500` change | 跑 LoCoMo temporal answer + paired dual judge；正向或性能不掉且风险下降则考虑新 LTS，否则降级 |
+| 2 | #5 memory organization/update chain | 合并处理 `v126` profile/current source interleave 与 `v127` superseded source chain；目前只有 lexical 诊断正向/持平证据 | 做一个成对 judge 决策批次；若 judge 不正向，停止堆新配置，先回到 badcase |
+| 3 | #2 context noise/rerank/budget | `v129` 是保留 token-budget 对照，`v134` 已因 paired dual judge 负向拒绝 | 等 #3/#5 当前项收敛后再做；下一版必须证明 coverage 不掉，不能只靠截断省 token |
 
 ## 保留候选
 
@@ -88,6 +87,7 @@
 | 文档/目录 | 作用 |
 |---|---|
 | `diagnostic/stage1_fact_tail_snippet_budget_v134_summary.md` | v133/v134 tail text budget 诊断 |
+| `diagnostic/stage1_temporal_local_evidence_signal_gate_v135_analysis/` | v135 dry-run scope comparison and decision notes |
 | `diagnostic/stage1_fact_tail_filter_preserve_order_v132_summary.md` | v132 hard row pruning 负向诊断 |
 | `diagnostic/stage1_route_scoped_fact_profile_state_budget_v129_summary.md` | v129 route-scoped char budget 诊断 |
 | `diagnostic/stage1_route_scoped_local_evidence_unit_v125_lme_dry/` | v125 LongMemEval compiler compatibility dry-run |
