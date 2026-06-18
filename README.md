@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_trace_event_time_candidate_manifest_v180_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_grouped_event_time_candidate_manifest_v181_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v180 local LTS | 说明 |
+| Benchmark | 当前 v181 local LTS | 说明 |
 |---|---:|---|
-| LongMemEval-S full | strict/lenient `0.834000 / 0.846000` | v180 与 v176 answer diff `0/500`；answer cache `500/500` hits，性能继承 v176。 |
-| LoCoMo non-adversarial full | strict/lenient `0.792857 / 0.818182` | v180 与 v176 answer diff `0/1540`；answer cache `1540/1540` hits，性能继承 v176。 |
+| LongMemEval-S full | strict/lenient `0.834000 / 0.846000` | v181 与 v180 answer diff `0/500`；answer cache `500/500` hits，性能继承 v180/v176。 |
+| LoCoMo non-adversarial full | strict/lenient `0.792857 / 0.818182` | v181 与 v180 answer diff `0/1540`；answer cache `1540/1540` hits，性能继承 v180/v176。 |
 
-v180 的 LTS 理由：继承 v176 的 answer/repair 行为，并新增 trace-only answer-slot-aware event-time candidate manifest。它只写入 `compiled_context.diagnostics`，记录 source-backed `event_time`、`mention_time`、time precision、dedup key、conflict groups 和保守 `safe_order` 可用性，不进入 prompt、retrieval、repair、finalizer 或 cache key。v180 降低 #5 event/state/time organization 审计风险；#1 granularity/profile 泛化、#2 top-k/context noise/rerank、#3 selected-context 泛化和更广泛 #5 lifecycle/update/conflict reasoning 仍是优先待办。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_trace_event_time_candidate_manifest_v180_scope_summary.md`。
+v181 的 LTS 理由：继承 v180 的 answer/repair 行为，并把 trace-only event-time manifest 升级为按 answer slot 分组的管理视图，记录 source ids、高置信 source ids、event-time 集合、time kinds、冲突类型、best candidate 和 resolution。它只写入 `compiled_context.diagnostics`，不进入 prompt、retrieval、repair、finalizer 或 cache key。v181 继续降低 #5 event/state/time organization 与 conflict audit 风险；#1 granularity/profile 泛化、#2 top-k/context noise/rerank、#3 selected-context 泛化和更广泛 #5 prompt-safe candidate map 仍是优先待办。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_grouped_event_time_candidate_manifest_v181_scope_summary.md`。
 
 ## 目录
 
