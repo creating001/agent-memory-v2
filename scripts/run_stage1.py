@@ -70,6 +70,7 @@ def main() -> int:
     total_selected_context_applied = 0
     total_selected_context_materialized = 0
     total_selected_context_skipped_long_center = 0
+    total_selected_context_skipped_question_reference_center = 0
     total_selected_context_budget_gate_applied = 0
     total_selected_context_budget_gate_blocked = 0
     total_selected_context_budget_gate_headroom = 0
@@ -177,6 +178,9 @@ def main() -> int:
         )
         total_selected_context_skipped_long_center += int(
             selected_context.get("skipped_long_center_count") or 0
+        )
+        total_selected_context_skipped_question_reference_center += int(
+            selected_context.get("skipped_question_reference_center_count") or 0
         )
         if selected_context.get("budget_gate_applied"):
             total_selected_context_budget_gate_applied += 1
@@ -454,6 +458,11 @@ def main() -> int:
             )
             .get("selected_context", {})
             .get("require_question_reference"),
+            "selected_context_require_question_reference_min_center_chars": config.get(
+                "retrieval", {}
+            )
+            .get("selected_context", {})
+            .get("require_question_reference_min_center_chars"),
             "selected_context_min_context_budget_headroom_chars": config.get(
                 "retrieval", {}
             )
@@ -478,6 +487,12 @@ def main() -> int:
             ),
             "avg_selected_context_skipped_long_center_rows": _safe_average(
                 total_selected_context_skipped_long_center, sample_count
+            ),
+            "avg_selected_context_skipped_question_reference_center_rows": (
+                _safe_average(
+                    total_selected_context_skipped_question_reference_center,
+                    sample_count,
+                )
             ),
             "rerank_enabled": config.get("retrieval", {})
             .get("rerank", {})
@@ -1280,6 +1295,7 @@ def _write_summary(
         f"- selected_context_information_needs: {metrics['retrieval']['selected_context_information_needs']}",
         f"- selected_context_require_anaphora: {metrics['retrieval']['selected_context_require_anaphora']}",
         f"- selected_context_require_question_reference: {metrics['retrieval']['selected_context_require_question_reference']}",
+        f"- selected_context_require_question_reference_min_center_chars: {metrics['retrieval']['selected_context_require_question_reference_min_center_chars']}",
         f"- selected_context_min_context_budget_headroom_chars: {metrics['retrieval']['selected_context_min_context_budget_headroom_chars']}",
         f"- selected_context_applied_count: {metrics['retrieval']['selected_context_applied_count']}",
         f"- selected_context_applied_rate: {metrics['retrieval']['selected_context_applied_rate']}",
@@ -1288,6 +1304,7 @@ def _write_summary(
         f"- avg_selected_context_budget_gate_headroom_chars: {metrics['retrieval']['avg_selected_context_budget_gate_headroom_chars']}",
         f"- avg_selected_context_materialized_rows: {metrics['retrieval']['avg_selected_context_materialized_rows']}",
         f"- avg_selected_context_skipped_long_center_rows: {metrics['retrieval']['avg_selected_context_skipped_long_center_rows']}",
+        f"- avg_selected_context_skipped_question_reference_center_rows: {metrics['retrieval']['avg_selected_context_skipped_question_reference_center_rows']}",
         f"- rerank_enabled: {metrics['retrieval']['rerank_enabled']}",
         f"- rerank_model: {metrics['retrieval']['rerank_model']}",
         f"- rerank_pool_k: {metrics['retrieval']['rerank_pool_k']}",
@@ -1530,6 +1547,7 @@ def _write_diagnosis(
         f"- avg_selected_context_budget_gate_headroom_chars: {metrics['retrieval']['avg_selected_context_budget_gate_headroom_chars']}",
         f"- avg_selected_context_materialized_rows: {metrics['retrieval']['avg_selected_context_materialized_rows']}",
         f"- avg_selected_context_skipped_long_center_rows: {metrics['retrieval']['avg_selected_context_skipped_long_center_rows']}",
+        f"- avg_selected_context_skipped_question_reference_center_rows: {metrics['retrieval']['avg_selected_context_skipped_question_reference_center_rows']}",
         f"- rerank_enabled: {metrics['retrieval']['rerank_enabled']}",
         f"- rerank_model: {metrics['retrieval']['rerank_model']}",
         f"- rerank_pool_k: {metrics['retrieval']['rerank_pool_k']}",

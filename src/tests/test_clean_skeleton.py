@@ -426,6 +426,106 @@ class CleanSkeletonTest(unittest.TestCase):
             referenced_row_text,
         )
 
+    def test_selected_context_can_require_question_reference_for_long_centers(
+        self,
+    ) -> None:
+        config = {
+            "retrieval": {
+                "top_k": 2,
+                "max_top_k": 2,
+                "neighbor_window": 0,
+                "selected_context": {
+                    "enabled": True,
+                    "window_before": 1,
+                    "window_after": 0,
+                    "max_rows": 2,
+                    "max_neighbor_chars": 80,
+                    "max_center_chars": 400,
+                    "require_anaphora": True,
+                    "require_question_reference_min_center_chars": 80,
+                    "information_needs": ["fact_lookup"],
+                },
+            },
+            "compiler": {
+                "prompt_mode": "external_naive",
+                "max_evidence_items": 2,
+                "max_evidence_chars": 4000,
+            },
+            "answer": {"fallback_answer": "unknown"},
+        }
+        short_turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text='Alex read "Nothing is Impossible" last year.',
+            ),
+            Turn(
+                source_id="s1:t1",
+                session_id="s1",
+                turn_index=1,
+                role="assistant",
+                text="This book inspired Alex to keep training.",
+            ),
+        )
+        short_result = Stage1Pipeline(config).predict(
+            PredictionRequest(question="What inspired Alex?", turns=short_turns)
+        )
+        short_trace = short_result["trace"]["retrieval"]["selected_context"]
+
+        self.assertTrue(short_trace["applied"])
+        self.assertFalse(short_trace["question_reference"])
+        self.assertEqual(short_trace["skipped_question_reference_center_count"], 0)
+
+        long_center_text = (
+            "This book inspired Alex to keep training because the story connected "
+            "to Alex's marathon preparation, weekly practice routine, and long-term "
+            "goal of staying disciplined."
+        )
+        long_turns = (
+            short_turns[0],
+            Turn(
+                source_id="s1:t1",
+                session_id="s1",
+                turn_index=1,
+                role="assistant",
+                text=long_center_text,
+            ),
+        )
+        plain_result = Stage1Pipeline(config).predict(
+            PredictionRequest(question="What inspired Alex?", turns=long_turns)
+        )
+        plain_trace = plain_result["trace"]["retrieval"]["selected_context"]
+        plain_row_text = "\n".join(
+            row["text"]
+            for row in plain_result["trace"]["compiled_context"]["evidence_rows"]
+        )
+
+        self.assertFalse(plain_trace["applied"])
+        self.assertFalse(plain_trace["question_reference"])
+        self.assertEqual(plain_trace["skipped_question_reference_center_count"], 1)
+        self.assertEqual(
+            plain_trace["skipped_question_reference_center_source_ids"], ["s1:t1"]
+        )
+        self.assertNotIn("Local dialogue context from the same session", plain_row_text)
+
+        referenced_result = Stage1Pipeline(config).predict(
+            PredictionRequest(
+                question="What else inspired Alex about that book?",
+                turns=long_turns,
+            )
+        )
+        referenced_trace = referenced_result["trace"]["retrieval"][
+            "selected_context"
+        ]
+
+        self.assertTrue(referenced_trace["applied"])
+        self.assertTrue(referenced_trace["question_reference"])
+        self.assertEqual(
+            referenced_trace["skipped_question_reference_center_count"], 0
+        )
+
     def test_selected_context_route_override_is_scoped(self) -> None:
         config = {
             "retrieval": {

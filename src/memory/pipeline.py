@@ -316,6 +316,11 @@ class Stage1Pipeline:
         self._selected_context_require_question_reference = bool(
             selected_context_config.get("require_question_reference", False)
         )
+        self._selected_context_require_question_reference_min_center_chars = int(
+            selected_context_config.get(
+                "require_question_reference_min_center_chars", 0
+            )
+        )
         self._selected_context_min_context_budget_headroom_chars = int(
             selected_context_config.get("min_context_budget_headroom_chars", 0)
         )
@@ -337,6 +342,9 @@ class Stage1Pipeline:
             "require_anaphora": self._selected_context_require_anaphora,
             "require_question_reference": (
                 self._selected_context_require_question_reference
+            ),
+            "require_question_reference_min_center_chars": (
+                self._selected_context_require_question_reference_min_center_chars
             ),
             "min_context_budget_headroom_chars": (
                 self._selected_context_min_context_budget_headroom_chars
@@ -1376,6 +1384,9 @@ class Stage1Pipeline:
             require_question_reference=selected_context_settings[
                 "require_question_reference"
             ],
+            require_question_reference_min_center_chars=selected_context_settings[
+                "require_question_reference_min_center_chars"
+            ],
         )
         selected_context.update(selected_context_budget_gate)
         selected_context["granularity_profile"] = granularity_profile
@@ -1853,6 +1864,9 @@ class Stage1Pipeline:
             "require_anaphora": self._selected_context_require_anaphora,
             "require_question_reference": (
                 self._selected_context_require_question_reference
+            ),
+            "require_question_reference_min_center_chars": (
+                self._selected_context_require_question_reference_min_center_chars
             ),
             "min_context_budget_headroom_chars": (
                 self._selected_context_min_context_budget_headroom_chars
@@ -3326,7 +3340,11 @@ def _materialize_selected_context(
     require_anaphora: bool,
     question: str,
     require_question_reference: bool,
+    require_question_reference_min_center_chars: int,
 ) -> tuple[tuple[Turn, ...], dict[str, Any]]:
+    row_question_reference_threshold = max(
+        0, int(require_question_reference_min_center_chars)
+    )
     trace: dict[str, Any] = {
         "enabled": enabled,
         "applied": False,
@@ -3338,6 +3356,9 @@ def _materialize_selected_context(
         "max_center_chars": max_center_chars,
         "require_anaphora": require_anaphora,
         "require_question_reference": require_question_reference,
+        "require_question_reference_min_center_chars": (
+            row_question_reference_threshold
+        ),
         "question_reference": False,
         "skip_reason": None,
         "eligible": False,
@@ -3345,6 +3366,8 @@ def _materialize_selected_context(
         "materialized_source_ids": [],
         "skipped_long_center_count": 0,
         "skipped_long_center_source_ids": [],
+        "skipped_question_reference_center_count": 0,
+        "skipped_question_reference_center_source_ids": [],
     }
     if not enabled or not turns:
         trace["skip_reason"] = "disabled_or_empty"
@@ -3369,10 +3392,19 @@ def _materialize_selected_context(
     materialized_ids: list[str] = []
     materialized_turns: list[Turn] = []
     skipped_long_center_ids: list[str] = []
+    skipped_question_reference_center_ids: list[str] = []
 
     for turn in turns:
         if max_center_chars > 0 and len(turn.text) > max_center_chars:
             skipped_long_center_ids.append(turn.source_id)
+            materialized_turns.append(turn)
+            continue
+        if (
+            row_question_reference_threshold > 0
+            and len(turn.text) >= row_question_reference_threshold
+            and not question_reference
+        ):
+            skipped_question_reference_center_ids.append(turn.source_id)
             materialized_turns.append(turn)
             continue
         if len(materialized_ids) >= row_limit or (
@@ -3398,6 +3430,12 @@ def _materialize_selected_context(
     trace["materialized_source_ids"] = materialized_ids
     trace["skipped_long_center_count"] = len(skipped_long_center_ids)
     trace["skipped_long_center_source_ids"] = skipped_long_center_ids
+    trace["skipped_question_reference_center_count"] = len(
+        skipped_question_reference_center_ids
+    )
+    trace["skipped_question_reference_center_source_ids"] = (
+        skipped_question_reference_center_ids
+    )
     trace["applied"] = bool(materialized_ids)
     return tuple(materialized_turns), trace
 
@@ -3478,6 +3516,7 @@ SELECTED_CONTEXT_OVERRIDE_KEYS = {
     "min_context_budget_headroom_chars",
     "require_anaphora",
     "require_question_reference",
+    "require_question_reference_min_center_chars",
     "information_needs",
 }
 
@@ -4133,6 +4172,7 @@ def _normalized_selected_context_override(
             "max_neighbor_chars",
             "max_center_chars",
             "min_context_budget_headroom_chars",
+            "require_question_reference_min_center_chars",
         }:
             result[key] = int(value)
         elif key == "information_needs":
