@@ -1105,6 +1105,9 @@ def _answer_metrics(config: dict[str, Any]) -> dict[str, Any]:
         "repair_enable_modal_abstention_trigger": repair_config.get(
             "enable_modal_abstention_trigger", False
         ),
+        "repair_modal_abstention_information_needs": repair_config.get(
+            "modal_abstention_information_needs"
+        ),
         "repair_max_context_chars": repair_config.get("max_context_chars", 14000),
         "repair_max_row_text_chars": repair_config.get("max_row_text_chars", 700),
         "repair_cache_enabled": repair_cache_config.get("enabled", False),
@@ -1344,6 +1347,7 @@ def _write_summary(
         f"- answer_repair_enable_profile_preference_trigger: {metrics['answer'].get('repair_enable_profile_preference_trigger', False)}",
         f"- answer_repair_enable_profile_advice_abstention_trigger: {metrics['answer'].get('repair_enable_profile_advice_abstention_trigger', False)}",
         f"- answer_repair_enable_modal_abstention_trigger: {metrics['answer'].get('repair_enable_modal_abstention_trigger', False)}",
+        f"- answer_repair_modal_abstention_information_needs: {metrics['answer'].get('repair_modal_abstention_information_needs')}",
         f"- answer_repair_max_context_chars: {metrics['answer']['repair_max_context_chars']}",
         f"- answer_repair_max_row_text_chars: {metrics['answer']['repair_max_row_text_chars']}",
         f"- answer_repair_cache_enabled: {metrics['answer']['repair_cache_enabled']}",
@@ -1624,6 +1628,7 @@ def _write_diagnosis(
         f"- answer_repair_enable_profile_preference_trigger: {metrics['answer'].get('repair_enable_profile_preference_trigger', False)}",
         f"- answer_repair_enable_profile_advice_abstention_trigger: {metrics['answer'].get('repair_enable_profile_advice_abstention_trigger', False)}",
         f"- answer_repair_enable_modal_abstention_trigger: {metrics['answer'].get('repair_enable_modal_abstention_trigger', False)}",
+        f"- answer_repair_modal_abstention_information_needs: {metrics['answer'].get('repair_modal_abstention_information_needs')}",
         f"- answer_repair_triggered_count: {metrics['answer']['repair_triggered_count']}",
         f"- answer_repair_triggered_rate: {metrics['answer']['repair_triggered_rate']}",
         f"- answer_repair_applied_count: {metrics['answer']['repair_applied_count']}",

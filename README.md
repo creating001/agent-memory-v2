@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_memory_lifecycle_manifest_v162_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_scoped_modal_profile_advice_repair_v168_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v162 local LTS | 说明 |
+| Benchmark | 当前 v168 local LTS | 说明 |
 |---|---:|---|
-| LongMemEval-S full | strict/lenient `0.822000 / 0.834000` | v162 与 v158 answer diff `0/500`，answer cache `500/500` 命中；沿用 v158/v154 full dual judge 计数：`411/500` strict，`417/500` lenient。 |
-| LoCoMo non-adversarial full | strict/lenient `0.789610 / 0.815584` | v162 与 v158 answer diff `0/1540`，answer cache `1540/1540` 命中；沿用 v158/v154/v151/v127 full dual judge 计数：`1216/1540` strict，`1256/1540` lenient。 |
+| LongMemEval-S full | strict/lenient `0.826000 / 0.838000` | v168 与 v162 answer diff `2/500`；changed-answer dual judge `0/2 -> 2/2`，patched full `413/500` strict、`419/500` lenient。 |
+| LoCoMo non-adversarial full | strict/lenient `0.789610 / 0.815584` | v168 与 v162 answer diff `0/1540`；继承 v162 full dual judge `1216/1540` strict、`1256/1540` lenient。 |
 
-v162 的 LTS 理由：继承 v158 的 answer/retrieval/compiler/repair 行为，并新增 trace-only source-backed memory lifecycle manifest，同时审计 build memory 和本次 query activated memory 的 slot、conflict、source visibility 与 question overlap。该信息不进入 retrieval、compiler、answer 或 repair，因此 accuracy 与 v158 完全一致；它降低 #5 memory lifecycle/state/conflict/query-time reasoning 的诊断和治理风险，但还不是 #5 的最终答案。#1 granularity/profile、#2 top-k/context noise/rerank，以及把 lifecycle manifest 安全转化为预测收益仍是优先待办。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_memory_lifecycle_manifest_v162_scope_summary.md`。
+v168 的 LTS 理由：继承 v162 的 source-backed lifecycle manifest，并新增窄触发的 no-new-names same-domain profile/advice repair。它只修 `profile_preference` 中表面拒答的建议/推荐问题，把可见 Memory Context 里的同域偏好锚点转成 criteria、option type 或 search terms；不引入 unsupported named entities，且 modal abstention repair 仅保留 current-state 作用域。它降低 #5 query-time memory reasoning 风险并提升 LongMemEval accuracy；#1 granularity/profile、#2 top-k/context noise/rerank、以及更广泛 lifecycle/update/conflict reasoning 仍是优先待办。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_scoped_modal_profile_advice_repair_v168_scope_summary.md`。
 
 ## 目录
 

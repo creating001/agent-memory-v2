@@ -892,6 +892,9 @@ class Stage1Pipeline:
         self._answer_repair_enable_modal_abstention_trigger = bool(
             answer_repair_config.get("enable_modal_abstention_trigger", False)
         )
+        self._answer_repair_modal_abstention_information_needs = _tuple_config(
+            answer_repair_config.get("modal_abstention_information_needs")
+        )
         self._answer_repair_enable_lifecycle_ledger = bool(
             answer_repair_config.get("enable_lifecycle_ledger", False)
         )
@@ -930,6 +933,9 @@ class Stage1Pipeline:
             ),
             "enable_modal_abstention_trigger": (
                 self._answer_repair_enable_modal_abstention_trigger
+            ),
+            "modal_abstention_information_needs": (
+                self._answer_repair_modal_abstention_information_needs
             ),
             "enable_lifecycle_ledger": (
                 self._answer_repair_enable_lifecycle_ledger
@@ -1358,6 +1364,11 @@ class Stage1Pipeline:
             ),
             enable_modal_abstention_trigger=(
                 self._answer_repair_enable_modal_abstention_trigger
+                and (
+                    not self._answer_repair_modal_abstention_information_needs
+                    or route.information_need
+                    in self._answer_repair_modal_abstention_information_needs
+                )
             ),
             uncertain_min_support_items=(
                 self._answer_repair_uncertain_min_support_items

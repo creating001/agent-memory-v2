@@ -1,0 +1,67 @@
+{
+  "benchmark": "longmemeval",
+  "subset": "s_full_changed_answers",
+  "parent_lts": "stage1_memory_lifecycle_manifest_v162_qwen36_no_think_build4k_cached",
+  "candidate": "stage1_scoped_modal_profile_advice_repair_v168_qwen36_no_think_build4k_cached",
+  "n_changed_answers": 2,
+  "judge": {
+    "model": "deepseek-v4-flash",
+    "runs": 2,
+    "temperature": 0,
+    "thinking": "default"
+  },
+  "v162": {
+    "strict_correct": 0,
+    "lenient_correct": 0,
+    "strict_accuracy": 0.0,
+    "lenient_accuracy": 0.0,
+    "judge_agreement": 1.0,
+    "n_both_valid": 2,
+    "usage": {
+      "prompt_tokens": 766,
+      "completion_tokens": 863,
+      "total_tokens": 1629
+    },
+    "outputs": {
+      "dual_judge": "outputs/diagnostic/stage1_scoped_modal_profile_advice_repair_v168_lme_changed_vs_v162/v162_dual_judge.json",
+      "flash_1": "outputs/diagnostic/stage1_scoped_modal_profile_advice_repair_v168_lme_changed_vs_v162/v162_deepseek_judge_flash_1.json",
+      "flash_2": "outputs/diagnostic/stage1_scoped_modal_profile_advice_repair_v168_lme_changed_vs_v162/v162_deepseek_judge_flash_2.json"
+    }
+  },
+  "v168": {
+    "strict_correct": 2,
+    "lenient_correct": 2,
+    "strict_accuracy": 1.0,
+    "lenient_accuracy": 1.0,
+    "judge_agreement": 1.0,
+    "n_both_valid": 2,
+    "usage": {
+      "prompt_tokens": 858,
+      "completion_tokens": 688,
+      "total_tokens": 1546
+    },
+    "outputs": {
+      "dual_judge": "outputs/diagnostic/stage1_scoped_modal_profile_advice_repair_v168_lme_changed_vs_v162/v168_dual_judge.json",
+      "flash_1": "outputs/diagnostic/stage1_scoped_modal_profile_advice_repair_v168_lme_changed_vs_v162/v168_deepseek_judge_flash_1.json",
+      "flash_2": "outputs/diagnostic/stage1_scoped_modal_profile_advice_repair_v168_lme_changed_vs_v162/v168_deepseek_judge_flash_2.json"
+    }
+  },
+  "patched_full": {
+    "longmemeval": {
+      "strict_correct": 413,
+      "lenient_correct": 419,
+      "total": 500,
+      "strict_accuracy": 0.826,
+      "lenient_accuracy": 0.838
+    },
+    "locomo": {
+      "strict_correct": 1216,
+      "lenient_correct": 1256,
+      "total": 1540,
+      "strict_accuracy": 0.7896103896103897,
+      "lenient_accuracy": 0.8155844155844156,
+      "answer_diff_vs_v162": 0
+    }
+  },
+  "decision": "promote_lts"
+}

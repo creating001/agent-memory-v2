@@ -6,12 +6,12 @@
 
 | 项目 | 结果 |
 |---|---|
-| 当前 LTS 配置 | `configs/stage1_memory_lifecycle_manifest_v162_qwen36_no_think_build4k_cached.json` |
+| 当前 LTS 配置 | `configs/stage1_scoped_modal_profile_advice_repair_v168_qwen36_no_think_build4k_cached.json` |
 | Backbone | `Qwen/Qwen3.6-35B-A3B` answer/build，`chat_template_kwargs.enable_thinking=false` |
-| 方法 | V162 trace-only memory lifecycle manifest：继承 v158 的预测行为，新增 build memory 与 activated memory 的 source-backed slot/conflict/visibility/query-overlap 审计。 |
-| LongMemEval-S full | v162 与 v158 answer diff `0/500`，继承 dual judge strict/lenient `0.822000 / 0.834000`；`411/500` strict，`417/500` lenient |
-| LoCoMo non-adversarial full | v162 与 v158 answer diff `0/1540`，继承 dual judge strict/lenient `0.789610 / 0.815584`；`1216/1540` strict，`1256/1540` lenient |
-| 状态 | 当前本地 qwen3.6 no-thinking LTS。相对 v158，v162 不改变 prediction，降低 #5 lifecycle/conflict/query activation 的可诊断和治理风险；#1 granularity/profile、#2 top-k/context noise/rerank、以及把 #5 manifest 安全转成预测收益仍未解决。 |
+| 方法 | V168 scoped modal + no-new-names same-domain profile/advice repair：继承 v162 lifecycle manifest，只对 `profile_preference` 表面拒答建议题做 source-backed criteria/type/search-term repair。 |
+| LongMemEval-S full | v168 与 v162 answer diff `2/500`，paired dual judge strict/lenient `0/2 -> 2/2`；patched full `0.826000 / 0.838000`，`413/500` strict，`419/500` lenient |
+| LoCoMo non-adversarial full | v168 与 v162 answer diff `0/1540`，继承 dual judge strict/lenient `0.789610 / 0.815584`；`1216/1540` strict，`1256/1540` lenient |
+| 状态 | 当前本地 qwen3.6 no-thinking LTS。相对 v162，v168 降低 #5 query-time profile/advice memory reasoning 风险并提升 LME；#1 granularity/profile、#2 top-k/context noise/rerank、以及更广泛 lifecycle/update/conflict reasoning 仍未解决。 |
 
 `paired-delta derived` 的含义：新版本只改少量答案，未变化答案沿用父 LTS full dual judge records，变化答案单独跑 paired dual judge 后替换计数。若新版本与父 LTS answer-identical，则可继承父 LTS judge records，但必须记录 full answer diff、cache hit/miss 和输出路径。若论文级最终汇报需要完全独立 run，再对 LTS 配置重跑 fresh full judge。
 
@@ -26,7 +26,7 @@
 
 | 优先级 | 项目 | 当前状态 | 下一步 |
 |---:|---|---|---|
-| 1 | #5 memory lifecycle/state/conflict/query-time reasoning | v154 已把 source-backed lifecycle ledger 放进窄 current-state repair；v162 新增 trace-only build/activated lifecycle manifest；v167 已修 v166 no-new-names 风险，LME full `+2/+2`、LoCoMo 持平，但 profile 上还有 modal trigger wrong->wrong overreach | 做 v168：modal abstention 只保留 current-state 原作用域，profile 只走 surface advice trigger；若 full diff 为 LME `+2`、LoCoMo `0` 则升 LTS |
+| 1 | #5 memory lifecycle/state/conflict/query-time reasoning | v168 已把 profile/advice 表面拒答修复成 source-backed same-domain criteria/type repair，LME full `+2/+2`、LoCoMo diff `0` | 扩展到更广泛 answer-slot-aware lifecycle/update/conflict verifier，避免只覆盖 profile/advice |
 | 2 | #2 top-k/context noise/rerank | v129/v134/v140/v152 说明简单裁剪、tail snippet 或 list-count rerank pruning 会伤 accuracy；当前 query context 仍偏长 | 转向 coverage-preserving route-aware context organization：先保留覆盖证据，再做 grouping/dedup/aggregation table |
 | 3 | #1 granularity/profile + #3 selected context | v158 已把 long-turn selected context 从一刀切禁用改成 narrow question-gated policy；granularity profile 仍基于 avg-turn chars | 继续重做更通用的 context organization，逐步减少 avg-turn profile 依赖 |
 | 4 | src cleanup | 已有多轮兼容分支，`repair.py`、compiler、pipeline 仍会继续变复杂 | 每个阶段结束后做小范围清理，删已确认无用的兼容代码，不删仍有消融价值的模块 |
@@ -35,7 +35,8 @@
 
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
-| `configs/stage1_memory_lifecycle_manifest_v162_qwen36_no_think_build4k_cached.json` | current LTS | LME strict/lenient `0.822000/0.834000`，LoCoMo `0.789610/0.815584`；v162 vs v158 answer diff `0/500`、`0/1540` | 当前 LTS；比 v158 降低 #5 lifecycle/conflict/query activation 的可诊断和治理风险且 accuracy 不降 |
+| `configs/stage1_scoped_modal_profile_advice_repair_v168_qwen36_no_think_build4k_cached.json` | current LTS | LME strict/lenient `0.826000/0.838000`，LoCoMo `0.789610/0.815584`；v168 vs v162 answer diff `2/500`、`0/1540` | 当前 LTS；比 v162 降低 #5 profile/advice query-time memory reasoning 风险且 LME accuracy 提升 |
+| `configs/stage1_memory_lifecycle_manifest_v162_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.822000/0.834000`，LoCoMo `0.789610/0.815584`；v162 vs v158 answer diff `0/500`、`0/1540` | 被 v168 替代；仍是 lifecycle/conflict/query activation manifest 父对照 |
 | `configs/stage1_narrow_question_gated_selected_context_v158_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.822000/0.834000`，LoCoMo `0.789610/0.815584`；v158 vs v154 changed-answer paired judge 持平 | 被 v162 替代；仍是 #3 long-turn selected-context blanket-disable 风险收敛证据 |
 | `configs/stage1_current_state_lifecycle_ledger_v154_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.822000/0.834000`，LoCoMo `0.789610/0.815584`；changed-answer paired judge vs v151 持平 | 被 v158 替代；仍是 #5 lifecycle ledger 父对照 |
 | `configs/stage1_current_state_source_repair_v151_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.822000/0.834000`，LoCoMo `0.789610/0.815584`；changed-answer paired judge vs v150 正向/持平 | 被 v154 替代；仍是窄 source repair 父对照 |
@@ -53,7 +54,7 @@
 
 | 配置 | 原因 |
 |---|---|
-| `stage1_no_new_names_profile_advice_repair_v167_qwen36_no_think_build4k_cached.json` | LME full patched strict/lenient `0.826/0.838`（`+2/+2`），LoCoMo 持平；但 LoCoMo 有一条 profile modal wrong->wrong，无收益且有 overreach 风险，待 v168 收窄后再升 LTS。 |
+| `stage1_no_new_names_profile_advice_repair_v167_qwen36_no_think_build4k_cached.json` | LME full patched strict/lenient `0.826/0.838`（`+2/+2`），LoCoMo 持平；但 LoCoMo 有一条 profile modal wrong->wrong，无收益且有 overreach 风险；v168 已收窄并替代。 |
 | `stage1_same_domain_profile_advice_repair_v166_qwen36_no_think_build4k_cached.json` | LME profile changed subset strict/lenient `0/3 -> 3/3` 正向，但一条 answer 引入 Memory Context 未支持的 `MICCAI/IPMI` 会议名；因 no-new-names clean 风险不升 LTS。 |
 | `stage1_surface_profile_advice_repair_v165_qwen36_no_think_build4k_cached.json` | 修复 v164 过宽触发，LME profile answer diff `0/15`，但触发 `4` 次 repair、增加 `18061` repair query tokens 且无收益；不升 LTS。 |
 | `stage1_profile_advice_abstention_repair_v164_qwen36_no_think_build4k_cached.json` | clean 的 profile/advice abstention repair 触发过宽，错误修掉一条原本正确的 LME profile answer；changed subset strict/lenient `1/1 -> 0/1`、`1/1 -> 0/1`，不升 LTS。 |
@@ -81,6 +82,10 @@
 
 | 路径 | 内容 |
 |---|---|
+| `diagnostic/stage1_scoped_modal_profile_advice_repair_v168_scope_summary.md` | v168 LTS 晋升：LME full `+2/+2`，LoCoMo answer diff `0/1540`，profile modal overreach 已收窄 |
+| `diagnostic/stage1_scoped_modal_profile_advice_repair_v168_lme_changed_vs_v162/metrics.json` | v168 vs v162 LME full changed-answer paired dual judge 指标快照 |
+| `diagnostic/stage1_scoped_modal_profile_advice_repair_v168_lme_s_full/` | v168 LME full cached prediction run artifacts |
+| `diagnostic/stage1_scoped_modal_profile_advice_repair_v168_locomo_nonadv_full/` | v168 LoCoMo full cached prediction run artifacts |
 | `diagnostic/stage1_no_new_names_profile_advice_repair_v167_scope_summary.md` | v167 正向但待收窄：LME full `+2/+2`，LoCoMo 持平但 profile modal wrong->wrong |
 | `diagnostic/stage1_no_new_names_profile_advice_repair_v167_lme_changed_vs_v162/metrics.json` | v167 vs v162 LME full changed-answer paired dual judge 指标快照 |
 | `diagnostic/stage1_no_new_names_profile_advice_repair_v167_locomo_changed_vs_v162/metrics.json` | v167 vs v162 LoCoMo full changed-answer paired dual judge 指标快照 |
