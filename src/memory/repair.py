@@ -45,6 +45,31 @@ _MODAL_INFERENCE_QUESTION = re.compile(
     r"considered|what\s+might|how\s+would|still\s+want|be\s+considered)\b",
     re.IGNORECASE,
 )
+_SOURCE_GROUNDED_MODAL_YES_NO_QUESTION = re.compile(
+    r"^\s*(?:would|could|might)\b[^?]{8,240}\?\s*$",
+    re.IGNORECASE,
+)
+_SOURCE_GROUNDED_MODAL_BLOCKED_QUESTION = re.compile(
+    r"\b(?:which|what|who|where|when|how\s+many|how\s+much)\b|"
+    r"\b(?:recommend|recommendation|suggest|suggestion|advice|good\s+idea|"
+    r"should|help\s+me\s+(?:choose|pick)|gift|shop|book|company|states?|"
+    r"national\s+park|store|restaurant|venue|product|brand)\b",
+    re.IGNORECASE,
+)
+_SOURCE_GROUNDED_MODAL_SENSITIVE_ATTRIBUTION = re.compile(
+    r"\bbe\s+considered\s+(?:religious|political|conservative|liberal|"
+    r"wealthy|poor|healthy|disabled|diagnosed|depressed|anxious)\b",
+    re.IGNORECASE,
+)
+_SOURCE_GROUNDED_MODAL_SUPPORT_ANCHOR = re.compile(
+    r"\b(?:because|why|motivat(?:e|ed|es|ing|ion|ional)?|motive|"
+    r"driv(?:e|en)|therefore|so\s+(?:i|he|she|they)\s+could|"
+    r"made\s+(?:me|him|her|them)|realiz(?:e|ed)|"
+    r"want(?:s|ed)?|would\s+like|love(?:s|d)?|enjoy(?:s|ed)?|prefer(?:s|red)?|"
+    r"dream|passion|interested|fuel(?:s|ed)?|alive|scary|trauma|afraid|fear|"
+    r"accident|support(?:ed)?|help(?:ed|ful)?|important|connection)\b",
+    re.IGNORECASE,
+)
 _CURRENT_STATE_LIFECYCLE_QUESTION = re.compile(
     r"\b(current|currently|now|still|latest|most\s+recent|previous|previously|"
     r"before|after|since|how\s+long|duration|tenure|status|changed|compared)\b",
@@ -214,7 +239,9 @@ def maybe_repair_answer(
     enable_profile_preference_trigger: bool,
     enable_profile_advice_abstention_trigger: bool,
     enable_modal_abstention_trigger: bool,
+    enable_source_grounded_modal_inference_trigger: bool,
     uncertain_min_support_items: int,
+    source_grounded_modal_min_support_items: int,
     max_context_chars: int,
     max_row_text_chars: int,
     enable_lifecycle_ledger: bool = False,
@@ -242,7 +269,13 @@ def maybe_repair_answer(
             enable_profile_advice_abstention_trigger
         ),
         enable_modal_abstention_trigger=enable_modal_abstention_trigger,
+        enable_source_grounded_modal_inference_trigger=(
+            enable_source_grounded_modal_inference_trigger
+        ),
         uncertain_min_support_items=uncertain_min_support_items,
+        source_grounded_modal_min_support_items=(
+            source_grounded_modal_min_support_items
+        ),
     )
     if enable_lifecycle_slot_trigger:
         reasons = (
@@ -317,7 +350,9 @@ def repair_trigger_reasons(
     enable_profile_preference_trigger: bool = False,
     enable_profile_advice_abstention_trigger: bool = False,
     enable_modal_abstention_trigger: bool = False,
+    enable_source_grounded_modal_inference_trigger: bool = False,
     uncertain_min_support_items: int = 0,
+    source_grounded_modal_min_support_items: int = 2,
 ) -> tuple[str, ...]:
     payload = _draft_payload(raw_response)
     reasons: list[str] = []
@@ -344,6 +379,18 @@ def repair_trigger_reasons(
         and _MODAL_INFERENCE_QUESTION.search(question or "")
     ):
         reasons.append("modal_abstention_review")
+
+    if (
+        enable_source_grounded_modal_inference_trigger
+        and _source_grounded_modal_inference_applies(
+            question=question,
+            route_information_need=route_information_need,
+            draft_answer=draft_answer,
+            payload=payload,
+            min_support_items=source_grounded_modal_min_support_items,
+        )
+    ):
+        reasons.append("source_grounded_modal_inference_review")
 
     if enable_uncertain_trigger:
         if uncertain_signal and _support_item_count(payload) >= max(
@@ -487,7 +534,10 @@ def _profile_preference_repair_rules(
 
 
 def _modal_abstention_repair_rules(reasons: tuple[str, ...]) -> list[str]:
-    if "modal_abstention_review" not in reasons:
+    if (
+        "modal_abstention_review" not in reasons
+        and "source_grounded_modal_inference_review" not in reasons
+    ):
         return []
     return [
         "15. For modal or inference questions, a calibrated answer such as likely, unlikely, yes, no, or somewhat is allowed when Memory Context has directly relevant anchors.",
@@ -738,6 +788,56 @@ def _support_item_count(payload: dict[str, Any]) -> int:
         if isinstance(item, dict)
         and str(item.get("status") or "").strip().lower() == "support"
     )
+
+
+def _source_grounded_modal_inference_applies(
+    *,
+    question: str,
+    route_information_need: str,
+    draft_answer: str,
+    payload: dict[str, Any],
+    min_support_items: int,
+) -> bool:
+    if route_information_need not in {"fact_lookup", "profile_preference"}:
+        return False
+    text = question or ""
+    if not _INSUFFICIENT_ANSWER.search(draft_answer or ""):
+        return False
+    if not _SOURCE_GROUNDED_MODAL_YES_NO_QUESTION.search(text):
+        return False
+    if _SOURCE_GROUNDED_MODAL_BLOCKED_QUESTION.search(text):
+        return False
+    if _SOURCE_GROUNDED_MODAL_SENSITIVE_ATTRIBUTION.search(text):
+        return False
+    support_items = _support_items(payload)
+    if len(support_items) < max(0, int(min_support_items)):
+        return False
+    return _has_source_grounded_modal_anchor(support_items)
+
+
+def _support_items(payload: dict[str, Any]) -> tuple[dict[str, Any], ...]:
+    report = payload.get("evidence_report")
+    if not isinstance(report, list):
+        return ()
+    return tuple(
+        item
+        for item in report
+        if isinstance(item, dict)
+        and str(item.get("status") or "").strip().lower() == "support"
+    )
+
+
+def _has_source_grounded_modal_anchor(
+    support_items: tuple[dict[str, Any], ...],
+) -> bool:
+    for item in support_items:
+        text = " ".join(
+            str(item.get(field) or "")
+            for field in ("slot", "value", "reason")
+        )
+        if _SOURCE_GROUNDED_MODAL_SUPPORT_ANCHOR.search(text):
+            return True
+    return False
 
 
 def _repair_memory_context(

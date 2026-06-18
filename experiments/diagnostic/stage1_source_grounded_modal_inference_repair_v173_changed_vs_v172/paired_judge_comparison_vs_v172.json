@@ -1,0 +1,89 @@
+{
+  "created_at_utc": "2026-06-18T21:41:39.000407+00:00",
+  "benchmark": "locomo",
+  "parent": "v172",
+  "candidate": "v173",
+  "changed_count": 2,
+  "changed_subset": {
+    "v172_metrics": {
+      "judge_1_correct": 0,
+      "judge_1_name": "flash_1",
+      "judge_2_correct": 0,
+      "judge_2_name": "flash_2",
+      "judge_agreement": 1.0,
+      "lenient_accuracy": 0.0,
+      "lenient_accuracy_both_valid": 0.0,
+      "lenient_correct": 0,
+      "n_any_invalid": 0,
+      "n_both_valid": 2,
+      "n_joined": 2,
+      "n_judge_1_judgments": 2,
+      "n_judge_2_judgments": 2,
+      "n_missing_judge_1": 0,
+      "n_missing_judge_2": 0,
+      "strict_accuracy": 0.0,
+      "strict_accuracy_both_valid": 0.0,
+      "strict_correct": 0
+    },
+    "v173_metrics": {
+      "judge_1_correct": 2,
+      "judge_1_name": "flash_1",
+      "judge_2_correct": 2,
+      "judge_2_name": "flash_2",
+      "judge_agreement": 1.0,
+      "lenient_accuracy": 1.0,
+      "lenient_accuracy_both_valid": 1.0,
+      "lenient_correct": 2,
+      "n_any_invalid": 0,
+      "n_both_valid": 2,
+      "n_joined": 2,
+      "n_judge_1_judgments": 2,
+      "n_judge_2_judgments": 2,
+      "n_missing_judge_1": 0,
+      "n_missing_judge_2": 0,
+      "strict_accuracy": 1.0,
+      "strict_accuracy_both_valid": 1.0,
+      "strict_correct": 2
+    },
+    "strict_delta": 2,
+    "lenient_delta": 2
+  },
+  "patched_full": {
+    "parent_v172_strict_correct": 1218,
+    "parent_v172_lenient_correct": 1257,
+    "n_samples": 1540,
+    "v173_strict_correct": 1220,
+    "v173_lenient_correct": 1259,
+    "v173_strict_accuracy": 0.7922077922077922,
+    "v173_lenient_accuracy": 0.8175324675324676
+  },
+  "records": [
+    {
+      "record_key": "09948051ad1179cead77946e",
+      "question": "Would Melanie go on another roadtrip soon?",
+      "gold_answer": "Likely no; since this one went badly",
+      "v172_answer": "The provided information is not enough.",
+      "v173_answer": "Unlikely",
+      "v172_strict_correct": false,
+      "v172_lenient_correct": false,
+      "v173_strict_correct": true,
+      "v173_lenient_correct": true
+    },
+    {
+      "record_key": "563cf440f22a0686ad946f02",
+      "question": "Would Calvin enjoy performing at the Hollywood Bowl?",
+      "gold_answer": "Yes; because he enjoys the rush of performing onstage to large crowds",
+      "v172_answer": "The provided information is not enough.",
+      "v173_answer": "Likely yes, as Calvin explicitly states that performing live fuels his soul, energizes him, and that he loves the connection with the crowd.",
+      "v172_strict_correct": false,
+      "v172_lenient_correct": false,
+      "v173_strict_correct": true,
+      "v173_lenient_correct": true
+    }
+  ],
+  "judge_paths": {
+    "v172_dual": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_source_grounded_modal_inference_repair_v173_changed_vs_v172/v172_dual_judge.json",
+    "v173_dual": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_source_grounded_modal_inference_repair_v173_changed_vs_v172/v173_dual_judge.json"
+  },
+  "clean_note": "Labels and judge outputs are used only in this offline changed-answer evaluation, after prediction."
+}

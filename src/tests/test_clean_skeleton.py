@@ -2373,6 +2373,121 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertNotIn("modal_abstention_review", advice_reasons)
         self.assertNotIn("modal_abstention_review", raw_payload_only_reasons)
 
+    def test_answer_repair_source_grounded_modal_inference_trigger_is_narrow(
+        self,
+    ) -> None:
+        raw_supported = json.dumps(
+            {
+                "content": json.dumps(
+                    {
+                        "evidence_report": [
+                            {
+                                "status": "support",
+                                "slot": "preference for performing",
+                                "value": "Performing live fuels my soul.",
+                                "reason": "Calvin explicitly says he loves the rush and connection with the crowd.",
+                            },
+                            {
+                                "status": "support",
+                                "slot": "large-stage experience",
+                                "value": "A big stage was a dream come true.",
+                                "reason": "This is a directly relevant positive anchor for a large venue.",
+                            },
+                        ]
+                    }
+                )
+            }
+        )
+        supported_reasons = repair_trigger_reasons(
+            question="Would Calvin enjoy performing at the Hollywood Bowl?",
+            route_information_need="fact_lookup",
+            draft_answer="The provided information is not enough.",
+            raw_response=raw_supported,
+            enable_uncertain_trigger=False,
+            enable_short_list_trigger=False,
+            enable_temporal_conflict_trigger=False,
+            enable_source_grounded_modal_inference_trigger=True,
+        )
+
+        raw_weak = json.dumps(
+            {
+                "content": json.dumps(
+                    {
+                        "evidence_report": [
+                            {
+                                "status": "support",
+                                "slot": "origin",
+                                "value": "home country",
+                                "reason": "Establishes where Caroline moved from.",
+                            },
+                            {
+                                "status": "support",
+                                "slot": "home country identity",
+                                "value": "Sweden",
+                                "reason": "Identifies the home country.",
+                            },
+                        ]
+                    }
+                )
+            }
+        )
+        weak_reasons = repair_trigger_reasons(
+            question="Would Caroline want to move back to her home country soon?",
+            route_information_need="fact_lookup",
+            draft_answer="The provided information is not enough.",
+            raw_response=raw_weak,
+            enable_uncertain_trigger=False,
+            enable_short_list_trigger=False,
+            enable_temporal_conflict_trigger=False,
+            enable_source_grounded_modal_inference_trigger=True,
+        )
+        advice_reasons = repair_trigger_reasons(
+            question="Do you think it would be a good idea to attend my reunion?",
+            route_information_need="profile_preference",
+            draft_answer="The provided information is not enough.",
+            raw_response=raw_supported,
+            enable_uncertain_trigger=False,
+            enable_short_list_trigger=False,
+            enable_temporal_conflict_trigger=False,
+            enable_source_grounded_modal_inference_trigger=True,
+        )
+        external_name_reasons = repair_trigger_reasons(
+            question="Which outdoor gear company likely signed John?",
+            route_information_need="fact_lookup",
+            draft_answer="The provided information is not enough.",
+            raw_response=raw_supported,
+            enable_uncertain_trigger=False,
+            enable_short_list_trigger=False,
+            enable_temporal_conflict_trigger=False,
+            enable_source_grounded_modal_inference_trigger=True,
+        )
+        sensitive_reasons = repair_trigger_reasons(
+            question="Would Caroline be considered religious?",
+            route_information_need="fact_lookup",
+            draft_answer="The provided information is not enough.",
+            raw_response=raw_supported,
+            enable_uncertain_trigger=False,
+            enable_short_list_trigger=False,
+            enable_temporal_conflict_trigger=False,
+            enable_source_grounded_modal_inference_trigger=True,
+        )
+
+        self.assertIn(
+            "source_grounded_modal_inference_review", supported_reasons
+        )
+        self.assertNotIn(
+            "source_grounded_modal_inference_review", weak_reasons
+        )
+        self.assertNotIn(
+            "source_grounded_modal_inference_review", advice_reasons
+        )
+        self.assertNotIn(
+            "source_grounded_modal_inference_review", external_name_reasons
+        )
+        self.assertNotIn(
+            "source_grounded_modal_inference_review", sensitive_reasons
+        )
+
     def test_answer_repair_prompt_uses_runtime_context_and_draft(self) -> None:
         context = CompiledContext(
             question="What tea does Alex prefer?",
@@ -2765,18 +2880,25 @@ class CleanSkeletonTest(unittest.TestCase):
             raw_response=json.dumps({"content": '{"answer":"unknown"}'}),
         )
 
-        prompt, _ = build_repair_prompt(
-            compiled=context,
-            draft=draft,
-            reasons=("modal_abstention_review",),
-            max_context_chars=1000,
-            max_row_text_chars=200,
-        )
+        for reason in (
+            "modal_abstention_review",
+            "source_grounded_modal_inference_review",
+        ):
+            with self.subTest(reason=reason):
+                prompt, _ = build_repair_prompt(
+                    compiled=context,
+                    draft=draft,
+                    reasons=(reason,),
+                    max_context_chars=1000,
+                    max_row_text_chars=200,
+                )
 
-        self.assertIn("modal or inference questions", prompt)
-        self.assertIn("directly relevant anchors", prompt)
-        self.assertIn("do not infer from stereotypes", prompt)
-        self.assertIn("Alex says she likes quiet weekend reading groups.", prompt)
+                self.assertIn("modal or inference questions", prompt)
+                self.assertIn("directly relevant anchors", prompt)
+                self.assertIn("do not infer from stereotypes", prompt)
+                self.assertIn(
+                    "Alex says she likes quiet weekend reading groups.", prompt
+                )
 
     def test_raw_response_content_extracts_answerer_content(self) -> None:
         raw_response = json.dumps(

@@ -1,0 +1,15 @@
+{
+  "parent": "v172",
+  "candidate": "v173",
+  "benchmark": "locomo",
+  "changed_count": 2,
+  "changed_keys": [
+    "09948051ad1179cead77946e",
+    "563cf440f22a0686ad946f02"
+  ],
+  "outputs": {
+    "v172_predictions": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_source_grounded_modal_inference_repair_v173_changed_vs_v172/v172_predictions.jsonl",
+    "v173_predictions": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_source_grounded_modal_inference_repair_v173_changed_vs_v172/v173_predictions.jsonl",
+    "labels": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_source_grounded_modal_inference_repair_v173_changed_vs_v172/labels.jsonl"
+  }
+}

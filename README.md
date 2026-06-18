@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_profile_preference_value_guard_v172_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_source_grounded_modal_inference_repair_v173_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v172 local LTS | 说明 |
+| Benchmark | 当前 v173 local LTS | 说明 |
 |---|---:|---|
-| LongMemEval-S full | strict/lenient `0.830000 / 0.840000` | v172 与 v171 answer diff `0/500`；继承 v171 patched full `415/500` strict、`420/500` lenient。 |
-| LoCoMo non-adversarial full | strict/lenient `0.790909 / 0.816234` | v172 与 v171 answer diff `1/1540`；changed-answer dual judge strict/lenient `0/1 -> 1/1`，patched full `1218/1540` strict、`1257/1540` lenient。 |
+| LongMemEval-S full | strict/lenient `0.830000 / 0.840000` | v173 与 v172 answer diff `0/500`；继承 v172 patched full `415/500` strict、`420/500` lenient。 |
+| LoCoMo non-adversarial full | strict/lenient `0.792208 / 0.817532` | v173 与 v172 answer diff `2/1540`；changed-answer dual judge strict/lenient `0/2 -> 2/2`，patched full `1220/1540` strict、`1259/1540` lenient。 |
 
-v172 的 LTS 理由：继承 v171 的 source-backed repair、numeric/source value specificity guard 和 lifecycle-slot guard，并新增一个很窄的 profile preference value guard。只有当 draft 已经拒答、问题直接询问 favorite/preference/like/interest 的具体值、且预测期 `evidence_report` 里恰好有一个非含糊的 source-backed preference support `value` 时，finalizer 才保留该值；recommendation/advice/modal/list/count/temporal/option、多候选和代词/unnamed 等含糊值全部阻断。它降低 #4 over-abstention / answer surface loss 和 #5 profile-preference query-time memory activation 风险；#1 granularity/profile 泛化、#2 top-k/context noise/rerank、#3 selected-context 泛化和更广泛 #5 lifecycle/update/conflict reasoning 仍是优先待办。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_profile_preference_value_guard_v172_scope_summary.md`。
+v173 的 LTS 理由：继承 v172 的 source-backed repair、numeric/source value specificity guard、lifecycle-slot guard 和 profile preference value guard，并新增一个很窄的 source-grounded modal yes/no inference repair trigger。只有当 draft 拒答、问题是 modal yes/no、不是 recommendation/external-name/list/count/which-what/sensitive-attribution，且预测期 `evidence_report` 至少有 2 个带动机、偏好、因果、情绪或结果锚点的 source-backed support items 时，才调用 verifier；typed/support memory 只做 source-backed activation，最终仍由 Memory Context 定案。它降低 #4 over-abstention / verifier 风险和 #5 query-time memory reasoning 风险；#1 granularity/profile 泛化、#2 top-k/context noise/rerank、#3 selected-context 泛化和更广泛 #5 lifecycle/update/conflict reasoning 仍是优先待办。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_source_grounded_modal_inference_repair_v173_scope_summary.md`。
 
 ## 目录
 
