@@ -1,0 +1,32 @@
+{
+  "artifacts": {
+    "lme_changed_judge": "experiments/diagnostic/stage1_list_count_rerank_filter_v152_lme_changed_vs_v151/",
+    "lme_predictions": "outputs/diagnostic/stage1_list_count_rerank_filter_v152_lme_s_full/",
+    "locomo_changed_judge": "experiments/diagnostic/stage1_list_count_rerank_filter_v152_locomo_changed_vs_v151/",
+    "locomo_predictions": "outputs/diagnostic/stage1_list_count_rerank_filter_v152_locomo_nonadv_full/"
+  },
+  "base_lts": "v151",
+  "clean_note": "Prediction uses question text, raw Memory Context, same-session visible turn order, and prebuilt source-linked memory only. It does not use gold answers, judge output, benchmark labels, sample ids, row indices, test feedback, or sample-level shortcuts.",
+  "config": "configs/stage1_list_count_rerank_filter_v152_qwen36_no_think_build4k_cached.json",
+  "decision": "rejected_not_lts",
+  "lme": {
+    "avg_query_tokens": 6164.606,
+    "avg_rerank_tokens_when_applied": 20669.04201680672,
+    "changed_answers": 15,
+    "delta_lenient_correct": -1,
+    "delta_strict_correct": -1,
+    "derived_v152_lenient_accuracy": 0.832,
+    "derived_v152_lenient_correct": 416,
+    "derived_v152_strict_accuracy": 0.82,
+    "derived_v152_strict_correct": 410,
+    "rerank_applied": 119,
+    "total_rerank_tokens": 2459616,
+    "v151_changed_lenient_correct": 11,
+    "v151_changed_strict_correct": 10,
+    "v151_full_lenient_correct": 417,
+    "v151_full_strict_correct": 411,
+    "v152_changed_lenient_correct": 10,
+    "v152_changed_strict_correct": 9
+  },
+  "version": "v152"
+}

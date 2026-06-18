@@ -27,7 +27,7 @@
 | 优先级 | 项目 | 当前状态 | 下一步 |
 |---:|---|---|---|
 | 1 | #5 memory lifecycle/state/conflict/query-time reasoning | v151 只保留 current-state duration/source repair；还没有完整 lifecycle/conflict/update 管理 | 继续做 source-backed state/version/conflict management；typed memory 只做 source-backed activation，不当 reader evidence |
-| 2 | #2 top-k/context noise/rerank | v129/v134/v140 说明简单裁剪或 tail snippet 会伤 accuracy；当前 query context 仍偏长 | 设计 evidence-unit rerank 或 route-aware context organization，必须同时看 accuracy 和 token 成本 |
+| 2 | #2 top-k/context noise/rerank | v129/v134/v140/v152 说明简单裁剪、tail snippet 或 list-count rerank pruning 会伤 accuracy；当前 query context 仍偏长 | 转向 coverage-preserving route-aware context organization：先保留覆盖证据，再做 grouping/dedup/aggregation table |
 | 3 | #1 granularity/profile + #3 selected context | v128/v140 表明长短 turn/profile 分支仍有 generalization 风险 | 重做更通用的 context organization，避免 benchmark profile 或长短 turn 硬分支 |
 | 4 | src cleanup | 已有多轮兼容分支，`repair.py`、compiler、pipeline 仍会继续变复杂 | 每个阶段结束后做小范围清理，删已确认无用的兼容代码，不删仍有消融价值的模块 |
 
@@ -51,6 +51,7 @@
 | 配置 | 原因 |
 |---|---|
 | `stage1_answer_slot_checklist_v149_qwen36_no_think_build4k_cached.json` | broad checklist 在 LME changed subset 明显负向：strict/lenient `13/21 -> 9/21`、`13/21 -> 10/21`；v150 已改成窄触发 verifier。 |
+| `stage1_list_count_rerank_filter_v152_qwen36_no_think_build4k_cached.json` | list/count tail rerank 降 query token 但 LME changed subset `10/15 -> 9/15` strict、LoCoMo `75/120 -> 69/120` strict，且新增大量 rerank token。 |
 | `stage1_scoped_version_chain_interleave_v148_qwen36_no_think_build4k_cached.json` | source-backed scoped row ordering scope clean，但 LME changed subset `5/10 -> 4/10` strict、`6/10 -> 4/10` lenient。 |
 | `stage1_temporal_scope_priority_v147_qwen36_no_think_build4k_cached.json` | 全局 temporal priority 伤 current-state/list 证据选择；LME changed subset `5/6 -> 3/6`。 |
 | `stage1_scoped_state_source_activation_v146_qwen36_no_think_build4k_cached.json` | 更 clean 但相对 v127 基本 no-op，不升 LTS。 |
@@ -65,6 +66,7 @@
 
 | 路径 | 内容 |
 |---|---|
+| `diagnostic/stage1_list_count_rerank_filter_v152_scope_summary.md` | v152 list-count rerank-filter 负向结论和 #2 下一步 |
 | `diagnostic/stage1_current_state_source_repair_v151_scope_summary.md` | v151 LTS 晋升、changed-answer judge、badcase 和风险结论 |
 | `diagnostic/stage1_current_state_source_repair_v151_lme_s_full/` | v151 LME full cached prediction run artifacts |
 | `diagnostic/stage1_current_state_source_repair_v151_locomo_nonadv_full/` | v151 LoCoMo full cached prediction run artifacts |

@@ -18,6 +18,7 @@
 | `stage1_route_scoped_local_evidence_unit_v125_qwen36_no_think_build4k_cached.json` | v127 父 LTS；降低 #4 mechanical finalizer 和 #3 selected-context heuristic 风险。 |
 | `stage1_memory_source_interleave_v126_qwen36_no_think_build4k_cached.json` | source-backed memory source interleave ablation，被 v127 继承修正。 |
 | `stage1_route_scoped_fact_profile_state_budget_v129_qwen36_no_think_build4k_cached.json` | route-scoped token-budget 对照；成本方向有参考价值，但不是 LTS。 |
+| `stage1_list_count_rerank_filter_v152_qwen36_no_think_build4k_cached.json` | #2 list-count rerank pruning 负向对照；降 query token 但 dual judge 负向且增加 rerank token。 |
 | `stage1_source_grounded_guard_v121_qwen36_no_think_build4k_cached.json` | #4 source-grounded guardrail 对照；不做 broad mechanical answer rewrite。 |
 | `stage1_long_profile_profile_state_selected_context_v128_qwen36_no_think_build4k_cached.json` | #1/#3 selected-context generalization 审计。 |
 | `stage1_scoped_memory_state_guide_v142_qwen36_no_think_build4k_cached.json` | #5 scoped state guide 负向/混合对照。 |
