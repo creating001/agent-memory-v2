@@ -872,6 +872,9 @@ class Stage1Pipeline:
         self._answer_repair_enable_uncertain_trigger = bool(
             answer_repair_config.get("enable_uncertain_trigger", True)
         )
+        self._answer_repair_uncertain_trigger_information_needs = _tuple_config(
+            answer_repair_config.get("uncertain_trigger_information_needs")
+        )
         self._answer_repair_enable_short_list_trigger = bool(
             answer_repair_config.get("enable_short_list_trigger", True)
         )
@@ -880,6 +883,11 @@ class Stage1Pipeline:
         )
         self._answer_repair_enable_profile_preference_trigger = bool(
             answer_repair_config.get("enable_profile_preference_trigger", False)
+        )
+        self._answer_repair_enable_profile_advice_abstention_trigger = bool(
+            answer_repair_config.get(
+                "enable_profile_advice_abstention_trigger", False
+            )
         )
         self._answer_repair_enable_modal_abstention_trigger = bool(
             answer_repair_config.get("enable_modal_abstention_trigger", False)
@@ -905,6 +913,9 @@ class Stage1Pipeline:
             "mode": self._answer_repair_mode if self._answer_repair_enabled else None,
             "information_needs": self._answer_repair_information_needs,
             "enable_uncertain_trigger": self._answer_repair_enable_uncertain_trigger,
+            "uncertain_trigger_information_needs": (
+                self._answer_repair_uncertain_trigger_information_needs
+            ),
             "enable_short_list_trigger": (
                 self._answer_repair_enable_short_list_trigger
             ),
@@ -913,6 +924,9 @@ class Stage1Pipeline:
             ),
             "enable_profile_preference_trigger": (
                 self._answer_repair_enable_profile_preference_trigger
+            ),
+            "enable_profile_advice_abstention_trigger": (
+                self._answer_repair_enable_profile_advice_abstention_trigger
             ),
             "enable_modal_abstention_trigger": (
                 self._answer_repair_enable_modal_abstention_trigger
@@ -1324,13 +1338,23 @@ class Stage1Pipeline:
             draft=draft_answer,
             enabled=self._answer_repair_enabled,
             information_needs=self._answer_repair_information_needs,
-            enable_uncertain_trigger=self._answer_repair_enable_uncertain_trigger,
+            enable_uncertain_trigger=(
+                self._answer_repair_enable_uncertain_trigger
+                and (
+                    not self._answer_repair_uncertain_trigger_information_needs
+                    or route.information_need
+                    in self._answer_repair_uncertain_trigger_information_needs
+                )
+            ),
             enable_short_list_trigger=self._answer_repair_enable_short_list_trigger,
             enable_temporal_conflict_trigger=(
                 self._answer_repair_enable_temporal_conflict_trigger
             ),
             enable_profile_preference_trigger=(
                 self._answer_repair_enable_profile_preference_trigger
+            ),
+            enable_profile_advice_abstention_trigger=(
+                self._answer_repair_enable_profile_advice_abstention_trigger
             ),
             enable_modal_abstention_trigger=(
                 self._answer_repair_enable_modal_abstention_trigger

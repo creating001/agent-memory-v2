@@ -60,6 +60,12 @@ _LIFECYCLE_ADVICE_QUESTION = re.compile(
     r"trying\s+to\s+decide|should\s+i|should\s+we|complement)\b",
     re.IGNORECASE,
 )
+_PROFILE_ADVICE_ABSTENTION_QUESTION = re.compile(
+    r"\b(recommend|recommendation|suggest|suggestion|advice|ideas?|options?|"
+    r"resources?|activities|where\s+can\s+i|what\s+can\s+i|what\s+should|"
+    r"should\s+i|should\s+we|help\s+me\s+(?:choose|pick|decide))\b",
+    re.IGNORECASE,
+)
 _LIFECYCLE_ORDER_OR_COLLECTION_QUESTION = re.compile(
     r"\b(order\s+of|from\s+earliest\s+to\s+latest|earliest\s+to\s+latest|"
     r"which\b[^?]{0,120}\b(?:first|earlier|later)|"
@@ -206,6 +212,7 @@ def maybe_repair_answer(
     enable_short_list_trigger: bool,
     enable_temporal_conflict_trigger: bool,
     enable_profile_preference_trigger: bool,
+    enable_profile_advice_abstention_trigger: bool,
     enable_modal_abstention_trigger: bool,
     uncertain_min_support_items: int,
     max_context_chars: int,
@@ -231,6 +238,9 @@ def maybe_repair_answer(
         enable_short_list_trigger=enable_short_list_trigger,
         enable_temporal_conflict_trigger=enable_temporal_conflict_trigger,
         enable_profile_preference_trigger=enable_profile_preference_trigger,
+        enable_profile_advice_abstention_trigger=(
+            enable_profile_advice_abstention_trigger
+        ),
         enable_modal_abstention_trigger=enable_modal_abstention_trigger,
         uncertain_min_support_items=uncertain_min_support_items,
     )
@@ -305,6 +315,7 @@ def repair_trigger_reasons(
     enable_short_list_trigger: bool,
     enable_temporal_conflict_trigger: bool,
     enable_profile_preference_trigger: bool = False,
+    enable_profile_advice_abstention_trigger: bool = False,
     enable_modal_abstention_trigger: bool = False,
     uncertain_min_support_items: int = 0,
 ) -> tuple[str, ...]:
@@ -317,6 +328,14 @@ def repair_trigger_reasons(
         and route_information_need == "profile_preference"
     ):
         reasons.append("profile_preference_review")
+
+    if (
+        enable_profile_advice_abstention_trigger
+        and route_information_need == "profile_preference"
+        and uncertain_signal
+        and _PROFILE_ADVICE_ABSTENTION_QUESTION.search(question or "")
+    ):
+        reasons.append("profile_advice_abstention_review")
 
     if (
         enable_modal_abstention_trigger

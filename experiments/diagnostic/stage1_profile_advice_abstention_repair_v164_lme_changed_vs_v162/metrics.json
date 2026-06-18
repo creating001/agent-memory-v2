@@ -1,0 +1,51 @@
+{
+  "benchmark": "longmemeval",
+  "subset": "profile_preference_changed_answers",
+  "parent_lts": "stage1_memory_lifecycle_manifest_v162_qwen36_no_think_build4k_cached",
+  "candidate": "stage1_profile_advice_abstention_repair_v164_qwen36_no_think_build4k_cached",
+  "n_changed_answers": 1,
+  "judge": {
+    "model": "deepseek-v4-flash",
+    "runs": 2,
+    "temperature": 0,
+    "thinking": "default"
+  },
+  "v162": {
+    "strict_correct": 1,
+    "lenient_correct": 1,
+    "strict_accuracy": 1.0,
+    "lenient_accuracy": 1.0,
+    "judge_agreement": 1.0,
+    "n_both_valid": 1,
+    "usage": {
+      "prompt_tokens": 460,
+      "completion_tokens": 268,
+      "total_tokens": 728
+    },
+    "outputs": {
+      "dual_judge": "outputs/diagnostic/stage1_profile_advice_abstention_repair_v164_lme_changed_vs_v162/v162_dual_judge.json",
+      "flash_1": "outputs/diagnostic/stage1_profile_advice_abstention_repair_v164_lme_changed_vs_v162/v162_deepseek_judge_flash_1.json",
+      "flash_2": "outputs/diagnostic/stage1_profile_advice_abstention_repair_v164_lme_changed_vs_v162/v162_deepseek_judge_flash_2.json"
+    }
+  },
+  "v164": {
+    "strict_correct": 0,
+    "lenient_correct": 0,
+    "strict_accuracy": 0.0,
+    "lenient_accuracy": 0.0,
+    "judge_agreement": 1.0,
+    "n_both_valid": 1,
+    "usage": {
+      "prompt_tokens": 490,
+      "completion_tokens": 481,
+      "total_tokens": 971
+    },
+    "outputs": {
+      "dual_judge": "outputs/diagnostic/stage1_profile_advice_abstention_repair_v164_lme_changed_vs_v162/v164_dual_judge.json",
+      "flash_1": "outputs/diagnostic/stage1_profile_advice_abstention_repair_v164_lme_changed_vs_v162/v164_deepseek_judge_flash_1.json",
+      "flash_2": "outputs/diagnostic/stage1_profile_advice_abstention_repair_v164_lme_changed_vs_v162/v164_deepseek_judge_flash_2.json"
+    }
+  },
+  "decision": "reject_candidate_do_not_promote_lts",
+  "reason": "V164 changed one LongMemEval profile answer and both judge runs marked the changed answer wrong; the trigger trusted draft JSON uncertainty and repaired an already-correct surface answer."
+}

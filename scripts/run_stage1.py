@@ -1087,6 +1087,9 @@ def _answer_metrics(config: dict[str, Any]) -> dict[str, Any]:
         "repair_enable_uncertain_trigger": repair_config.get(
             "enable_uncertain_trigger", True
         ),
+        "repair_uncertain_trigger_information_needs": repair_config.get(
+            "uncertain_trigger_information_needs"
+        ),
         "repair_enable_short_list_trigger": repair_config.get(
             "enable_short_list_trigger", True
         ),
@@ -1095,6 +1098,9 @@ def _answer_metrics(config: dict[str, Any]) -> dict[str, Any]:
         ),
         "repair_enable_profile_preference_trigger": repair_config.get(
             "enable_profile_preference_trigger", False
+        ),
+        "repair_enable_profile_advice_abstention_trigger": repair_config.get(
+            "enable_profile_advice_abstention_trigger", False
         ),
         "repair_enable_modal_abstention_trigger": repair_config.get(
             "enable_modal_abstention_trigger", False
@@ -1332,9 +1338,11 @@ def _write_summary(
         f"- answer_repair_output_format: {metrics['answer']['repair_output_format']}",
         f"- answer_repair_information_needs: {metrics['answer']['repair_information_needs']}",
         f"- answer_repair_enable_uncertain_trigger: {metrics['answer']['repair_enable_uncertain_trigger']}",
+        f"- answer_repair_uncertain_trigger_information_needs: {metrics['answer']['repair_uncertain_trigger_information_needs']}",
         f"- answer_repair_enable_short_list_trigger: {metrics['answer']['repair_enable_short_list_trigger']}",
         f"- answer_repair_enable_temporal_conflict_trigger: {metrics['answer']['repair_enable_temporal_conflict_trigger']}",
         f"- answer_repair_enable_profile_preference_trigger: {metrics['answer'].get('repair_enable_profile_preference_trigger', False)}",
+        f"- answer_repair_enable_profile_advice_abstention_trigger: {metrics['answer'].get('repair_enable_profile_advice_abstention_trigger', False)}",
         f"- answer_repair_enable_modal_abstention_trigger: {metrics['answer'].get('repair_enable_modal_abstention_trigger', False)}",
         f"- answer_repair_max_context_chars: {metrics['answer']['repair_max_context_chars']}",
         f"- answer_repair_max_row_text_chars: {metrics['answer']['repair_max_row_text_chars']}",
@@ -1612,7 +1620,9 @@ def _write_diagnosis(
         f"- answer_repair_max_input_tokens: {metrics['answer']['repair_max_input_tokens']}",
         f"- answer_repair_max_output_tokens: {metrics['answer']['repair_max_output_tokens']}",
         f"- answer_repair_information_needs: {metrics['answer']['repair_information_needs']}",
+        f"- answer_repair_uncertain_trigger_information_needs: {metrics['answer']['repair_uncertain_trigger_information_needs']}",
         f"- answer_repair_enable_profile_preference_trigger: {metrics['answer'].get('repair_enable_profile_preference_trigger', False)}",
+        f"- answer_repair_enable_profile_advice_abstention_trigger: {metrics['answer'].get('repair_enable_profile_advice_abstention_trigger', False)}",
         f"- answer_repair_enable_modal_abstention_trigger: {metrics['answer'].get('repair_enable_modal_abstention_trigger', False)}",
         f"- answer_repair_triggered_count: {metrics['answer']['repair_triggered_count']}",
         f"- answer_repair_triggered_rate: {metrics['answer']['repair_triggered_rate']}",

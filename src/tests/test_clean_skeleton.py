@@ -2257,6 +2257,55 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertNotIn("profile_preference_review", disabled_reasons)
         self.assertIn("profile_preference_review", enabled_reasons)
 
+    def test_answer_repair_profile_advice_abstention_trigger_is_narrow(self) -> None:
+        enabled_reasons = repair_trigger_reasons(
+            question="Can you suggest some useful accessories for my phone?",
+            route_information_need="profile_preference",
+            draft_answer="There is not enough information.",
+            raw_response=json.dumps({"content": json.dumps({"answer": "unknown"})}),
+            enable_uncertain_trigger=False,
+            enable_short_list_trigger=False,
+            enable_temporal_conflict_trigger=False,
+            enable_profile_advice_abstention_trigger=True,
+        )
+        non_abstention_reasons = repair_trigger_reasons(
+            question="Can you suggest some useful accessories for my phone?",
+            route_information_need="profile_preference",
+            draft_answer="A case and screen protector would fit your phone needs.",
+            raw_response=json.dumps({"content": json.dumps({"answer": "case"})}),
+            enable_uncertain_trigger=False,
+            enable_short_list_trigger=False,
+            enable_temporal_conflict_trigger=False,
+            enable_profile_advice_abstention_trigger=True,
+        )
+        fact_route_reasons = repair_trigger_reasons(
+            question="Can you suggest some useful accessories for my phone?",
+            route_information_need="fact_lookup",
+            draft_answer="There is not enough information.",
+            raw_response=json.dumps({"content": json.dumps({"answer": "unknown"})}),
+            enable_uncertain_trigger=False,
+            enable_short_list_trigger=False,
+            enable_temporal_conflict_trigger=False,
+            enable_profile_advice_abstention_trigger=True,
+        )
+        non_advice_reasons = repair_trigger_reasons(
+            question="What color did I say my phone case was?",
+            route_information_need="profile_preference",
+            draft_answer="There is not enough information.",
+            raw_response=json.dumps({"content": json.dumps({"answer": "unknown"})}),
+            enable_uncertain_trigger=False,
+            enable_short_list_trigger=False,
+            enable_temporal_conflict_trigger=False,
+            enable_profile_advice_abstention_trigger=True,
+        )
+
+        self.assertIn("profile_advice_abstention_review", enabled_reasons)
+        self.assertNotIn(
+            "profile_advice_abstention_review", non_abstention_reasons
+        )
+        self.assertNotIn("profile_advice_abstention_review", fact_route_reasons)
+        self.assertNotIn("profile_advice_abstention_review", non_advice_reasons)
+
     def test_answer_repair_modal_abstention_trigger_is_opt_in(self) -> None:
         disabled_reasons = repair_trigger_reasons(
             question="Would Alex enjoy the book club?",
