@@ -45,6 +45,103 @@ _MODAL_INFERENCE_QUESTION = re.compile(
     r"considered|what\s+might|how\s+would|still\s+want|be\s+considered)\b",
     re.IGNORECASE,
 )
+_CURRENT_STATE_LIFECYCLE_QUESTION = re.compile(
+    r"\b(current|currently|now|still|latest|most\s+recent|previous|previously|"
+    r"before|after|since|how\s+long|duration|tenure|status|changed|compared)\b",
+    re.IGNORECASE,
+)
+_TOKEN_PATTERN = re.compile(r"[\w]+", re.UNICODE)
+_NUMERIC_DATE = re.compile(r"\b(\d{4})[/-](\d{1,2})[/-](\d{1,2})\b")
+_TEXT_DATE = re.compile(
+    r"\b(\d{1,2})\s+"
+    r"(January|February|March|April|May|June|July|August|September|October|"
+    r"November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sept|Sep|Oct|Nov|Dec)"
+    r",?\s+(\d{4})\b",
+    re.IGNORECASE,
+)
+_MONTH_BY_NAME = {
+    "january": 1,
+    "jan": 1,
+    "february": 2,
+    "feb": 2,
+    "march": 3,
+    "mar": 3,
+    "april": 4,
+    "apr": 4,
+    "may": 5,
+    "june": 6,
+    "jun": 6,
+    "july": 7,
+    "jul": 7,
+    "august": 8,
+    "aug": 8,
+    "september": 9,
+    "sept": 9,
+    "sep": 9,
+    "october": 10,
+    "oct": 10,
+    "november": 11,
+    "nov": 11,
+    "december": 12,
+    "dec": 12,
+}
+_TERM_STOPWORDS = {
+    "a",
+    "an",
+    "and",
+    "are",
+    "at",
+    "been",
+    "before",
+    "being",
+    "compared",
+    "current",
+    "currently",
+    "did",
+    "do",
+    "does",
+    "duration",
+    "for",
+    "from",
+    "had",
+    "has",
+    "have",
+    "how",
+    "i",
+    "in",
+    "is",
+    "it",
+    "job",
+    "latest",
+    "long",
+    "me",
+    "my",
+    "now",
+    "of",
+    "on",
+    "or",
+    "previous",
+    "previously",
+    "recent",
+    "role",
+    "since",
+    "still",
+    "the",
+    "to",
+    "was",
+    "were",
+    "what",
+    "when",
+    "where",
+    "which",
+    "who",
+    "work",
+    "worked",
+    "working",
+    "with",
+    "you",
+    "your",
+}
 
 
 @dataclass(frozen=True)
@@ -85,6 +182,8 @@ def maybe_repair_answer(
     uncertain_min_support_items: int,
     max_context_chars: int,
     max_row_text_chars: int,
+    enable_lifecycle_ledger: bool = False,
+    enable_lifecycle_slot_trigger: bool = False,
 ) -> AnswerRepair:
     """Run a second LLM pass only when generic runtime signals show risk."""
 
@@ -107,6 +206,12 @@ def maybe_repair_answer(
         enable_modal_abstention_trigger=enable_modal_abstention_trigger,
         uncertain_min_support_items=uncertain_min_support_items,
     )
+    if enable_lifecycle_slot_trigger:
+        reasons = (
+            *reasons,
+            *_lifecycle_slot_trigger_reasons(compiled=compiled, draft=draft),
+        )
+        reasons = tuple(dict.fromkeys(reasons))
     if not reasons:
         return _noop(draft, enabled=True, reason="no_trigger")
 
@@ -114,6 +219,7 @@ def maybe_repair_answer(
         compiled=compiled,
         draft=draft,
         reasons=reasons,
+        enable_lifecycle_ledger=enable_lifecycle_ledger,
         max_context_chars=max_context_chars,
         max_row_text_chars=max_row_text_chars,
     )
@@ -223,12 +329,19 @@ def build_repair_prompt(
     reasons: tuple[str, ...],
     max_context_chars: int,
     max_row_text_chars: int,
+    enable_lifecycle_ledger: bool = False,
 ) -> tuple[str, int]:
     draft_json = raw_response_content(draft.raw_response) or draft.answer
     memory_context, context_chars = _repair_memory_context(
         compiled,
         max_context_chars=max_context_chars,
         max_row_text_chars=max_row_text_chars,
+    )
+    lifecycle_ledger = _current_state_lifecycle_ledger(
+        compiled,
+        enabled=enable_lifecycle_ledger,
+        max_rows=10,
+        max_text_chars=min(max_row_text_chars, 360) if max_row_text_chars else 360,
     )
     question_time = compiled.question_time or ""
     reason_text = ", ".join(reasons)
@@ -258,6 +371,7 @@ def build_repair_prompt(
             "",
             "Memory Context:",
             memory_context,
+            *lifecycle_ledger,
             "",
             "Rules:",
             "1. Prefer decision=keep when the draft answer is directly supported and complete enough for the question.",
@@ -316,6 +430,123 @@ def _modal_abstention_repair_rules(reasons: tuple[str, ...]) -> list[str]:
         "17. Keep or revise to insufficient information when anchors are absent, conflicting, or only topically related.",
         "18. For sensitive traits or statuses such as identity, religion, health, finances, or politics, do not infer from stereotypes; require explicit self-description or concrete behavior in Memory Context and use uncertainty qualifiers.",
     ]
+
+
+def _lifecycle_slot_trigger_reasons(
+    *,
+    compiled: CompiledContext,
+    draft: AnswerResult,
+) -> tuple[str, ...]:
+    if compiled.route.information_need != "current_state":
+        return ()
+    if not _CURRENT_STATE_LIFECYCLE_QUESTION.search(compiled.question or ""):
+        return ()
+    payload = _draft_payload(draft.raw_response)
+    if _has_uncertain_signal(draft.answer, payload):
+        return ()
+    if len(_support_values(payload)) <= 1:
+        return ()
+    if len(_current_state_lifecycle_rows(compiled, max_rows=10)) < 2:
+        return ()
+    return ("current_state_lifecycle_review",)
+
+
+def _current_state_lifecycle_ledger(
+    compiled: CompiledContext,
+    *,
+    enabled: bool,
+    max_rows: int,
+    max_text_chars: int,
+) -> list[str]:
+    if not enabled or compiled.route.information_need != "current_state":
+        return []
+    rows = _current_state_lifecycle_rows(compiled, max_rows=max_rows)
+    if len(rows) < 2:
+        return []
+
+    newest_index = len(rows) - 1
+    lines = [
+        "",
+        "Current-State Lifecycle Ledger:",
+        "Use this as a compact source index for update/state reasoning; verify every claim against Memory Context rows.",
+        "The ledger must not add a stricter evidence requirement than Memory Context; simple arithmetic over directly supported dates or durations is allowed.",
+    ]
+    for ledger_index, (row_index, row) in enumerate(rows, start=1):
+        text = row.text
+        if max_text_chars and len(text) > max_text_chars:
+            text = (text[: max(0, max_text_chars - 3)].rstrip() + "...")[
+                :max_text_chars
+            ]
+        status = (
+            "newest_candidate"
+            if ledger_index - 1 == newest_index
+            else "older_candidate"
+        )
+        lines.append(
+            " ".join(
+                part
+                for part in (
+                    f"Ledger {ledger_index}:",
+                    f"memory=Memory {row_index}",
+                    f"source_id={row.source_id}",
+                    f"date={row.timestamp or ''}",
+                    f"role={row.role}",
+                    f"status={status}",
+                    f"text={text}",
+                )
+                if part
+            )
+        )
+    return lines
+
+
+def _current_state_lifecycle_rows(
+    compiled: CompiledContext,
+    *,
+    max_rows: int,
+) -> tuple[tuple[int, Any], ...]:
+    question_terms = _content_terms(compiled.question)
+    if not question_terms:
+        return ()
+    scored: list[tuple[int, int, tuple[int, int, int], int, Any]] = []
+    for index, row in enumerate(compiled.evidence_rows, start=1):
+        row_terms = _content_terms(" ".join((row.role, row.text)))
+        overlap = len(question_terms.intersection(row_terms))
+        if overlap <= 0:
+            continue
+        rank = row.retrieval_rank if row.retrieval_rank is not None else index
+        scored.append((overlap, -rank, _date_key(row.timestamp), index, row))
+    if len(scored) < 2:
+        return ()
+    selected = sorted(scored, key=lambda item: (-item[0], item[1], item[3]))[
+        : max(2, max_rows)
+    ]
+    ordered = sorted(selected, key=lambda item: (item[2], item[3]))
+    return tuple((index, row) for _score, _rank, _date, index, row in ordered)
+
+
+def _content_terms(text: str) -> frozenset[str]:
+    terms = []
+    for token in _TOKEN_PATTERN.findall((text or "").lower()):
+        if len(token) < 3 or token in _TERM_STOPWORDS:
+            continue
+        terms.append(token)
+    return frozenset(terms)
+
+
+def _date_key(value: str | None) -> tuple[int, int, int]:
+    text = value or ""
+    numeric = _NUMERIC_DATE.search(text)
+    if numeric:
+        year, month, day = numeric.groups()
+        return (int(year), int(month), int(day))
+    textual = _TEXT_DATE.search(text)
+    if textual:
+        day, month_name, year = textual.groups()
+        month = _MONTH_BY_NAME.get(month_name.lower(), 0)
+        if month:
+            return (int(year), month, int(day))
+    return (9999, 12, 31)
 
 
 def _noop(draft: AnswerResult, *, enabled: bool, reason: str) -> AnswerRepair:

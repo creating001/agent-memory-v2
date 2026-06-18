@@ -2293,6 +2293,115 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertIn("state relation", prompt)
         self.assertIn("Alex started the current role in January 2024.", prompt)
 
+    def test_answer_repair_lifecycle_ledger_is_config_gated(self) -> None:
+        context = CompiledContext(
+            question="What is Alex's current role?",
+            question_time="2025-06-01",
+            route=RouteResult(information_need="current_state", signals=()),
+            evidence_rows=(
+                EvidenceRow(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="Alex worked as a data analyst in 2023.",
+                    timestamp="2023-06-01",
+                    retrieval_rank=1,
+                    retrieval_score=1.0,
+                ),
+                EvidenceRow(
+                    source_id="s2:t1",
+                    session_id="s2",
+                    turn_index=1,
+                    role="user",
+                    text="Alex is now a product manager.",
+                    timestamp="2024-06-01",
+                    retrieval_rank=2,
+                    retrieval_score=0.9,
+                ),
+            ),
+            prompt="original prompt",
+            context_chars=0,
+        )
+        draft = AnswerResult(
+            answer="data analyst",
+            model="draft",
+            token_usage=TokenUsage(query_tokens=3),
+            raw_response=json.dumps(
+                {"content": '{"sufficient":true,"answer":"data analyst"}'}
+            ),
+        )
+
+        disabled_prompt, _ = build_repair_prompt(
+            compiled=context,
+            draft=draft,
+            reasons=("uncertain_or_missing",),
+            max_context_chars=1000,
+            max_row_text_chars=200,
+        )
+        enabled_prompt, _ = build_repair_prompt(
+            compiled=context,
+            draft=draft,
+            reasons=("uncertain_or_missing",),
+            max_context_chars=1000,
+            max_row_text_chars=200,
+            enable_lifecycle_ledger=True,
+        )
+
+        self.assertNotIn("Current-State Lifecycle Ledger:", disabled_prompt)
+        self.assertIn("Current-State Lifecycle Ledger:", enabled_prompt)
+        self.assertIn("memory=Memory 1", enabled_prompt)
+        self.assertIn("source_id=s2:t1", enabled_prompt)
+        self.assertIn("newest_candidate", enabled_prompt)
+
+    def test_answer_repair_lifecycle_ledger_skips_generic_duration_slot(self) -> None:
+        context = CompiledContext(
+            question="How long have I been working in my current role?",
+            question_time="2023-06-01",
+            route=RouteResult(information_need="current_state", signals=()),
+            evidence_rows=(
+                EvidenceRow(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="I worked my way up to Senior Marketing Specialist after 2 years and 4 months.",
+                    timestamp="2023-05-27",
+                    retrieval_rank=1,
+                    retrieval_score=1.0,
+                ),
+                EvidenceRow(
+                    source_id="s2:t1",
+                    session_id="s2",
+                    turn_index=1,
+                    role="user",
+                    text="I have 3 years and 9 months experience in the company.",
+                    timestamp="2023-05-29",
+                    retrieval_rank=2,
+                    retrieval_score=0.9,
+                ),
+            ),
+            prompt="original prompt",
+            context_chars=0,
+        )
+        draft = AnswerResult(
+            answer="unknown",
+            model="draft",
+            token_usage=TokenUsage(query_tokens=3),
+            raw_response=json.dumps({"content": '{"answer":"unknown"}'}),
+        )
+
+        prompt, _ = build_repair_prompt(
+            compiled=context,
+            draft=draft,
+            reasons=("uncertain_or_missing",),
+            max_context_chars=1000,
+            max_row_text_chars=200,
+            enable_lifecycle_ledger=True,
+        )
+
+        self.assertNotIn("Current-State Lifecycle Ledger:", prompt)
+
     def test_answer_repair_prompt_adds_modal_abstention_rules(self) -> None:
         context = CompiledContext(
             question="Would Alex enjoy the book club?",

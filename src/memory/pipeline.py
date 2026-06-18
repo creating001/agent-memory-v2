@@ -829,6 +829,12 @@ class Stage1Pipeline:
         self._answer_repair_enable_modal_abstention_trigger = bool(
             answer_repair_config.get("enable_modal_abstention_trigger", False)
         )
+        self._answer_repair_enable_lifecycle_ledger = bool(
+            answer_repair_config.get("enable_lifecycle_ledger", False)
+        )
+        self._answer_repair_enable_lifecycle_slot_trigger = bool(
+            answer_repair_config.get("enable_lifecycle_slot_trigger", False)
+        )
         self._answer_repair_uncertain_min_support_items = int(
             answer_repair_config.get("uncertain_min_support_items", 0)
         )
@@ -855,6 +861,12 @@ class Stage1Pipeline:
             ),
             "enable_modal_abstention_trigger": (
                 self._answer_repair_enable_modal_abstention_trigger
+            ),
+            "enable_lifecycle_ledger": (
+                self._answer_repair_enable_lifecycle_ledger
+            ),
+            "enable_lifecycle_slot_trigger": (
+                self._answer_repair_enable_lifecycle_slot_trigger
             ),
             "uncertain_min_support_items": (
                 self._answer_repair_uncertain_min_support_items
@@ -1262,6 +1274,10 @@ class Stage1Pipeline:
             ),
             max_context_chars=self._answer_repair_max_context_chars,
             max_row_text_chars=self._answer_repair_max_row_text_chars,
+            enable_lifecycle_ledger=self._answer_repair_enable_lifecycle_ledger,
+            enable_lifecycle_slot_trigger=(
+                self._answer_repair_enable_lifecycle_slot_trigger
+            ),
         )
         repair_cache_after = _answer_cache_stats(self._answer_repairer)
         answer = answer_repair.answer

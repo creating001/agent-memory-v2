@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_current_state_source_repair_v151_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_current_state_lifecycle_ledger_v154_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v151 local LTS | 说明 |
+| Benchmark | 当前 v154 local LTS | 说明 |
 |---|---:|---|
-| LongMemEval-S full | strict/lenient `0.822000 / 0.834000` | v127 fresh full + v151 changed-answer paired dual judge 派生：`411/500` strict，`417/500` lenient；v151 仅改 `1/500` 条答案。 |
-| LoCoMo non-adversarial full | strict/lenient `0.789610 / 0.815584` | v151 与 v127 answer-normalized 等价，沿用 v127 fresh full dual judge：`1216/1540` strict，`1256/1540` lenient。 |
+| LongMemEval-S full | strict/lenient `0.822000 / 0.834000` | v154 vs v151 changed-answer paired dual judge 派生：`411/500` strict，`417/500` lenient；v154 仅改 `1/500` 条答案，变化样本两遍 judge 均正确。 |
+| LoCoMo non-adversarial full | strict/lenient `0.789610 / 0.815584` | v154 与 v151 answer-normalized 等价，沿用 v151/v127 full dual judge：`1216/1540` strict，`1256/1540` lenient。 |
 
-v151 的 LTS 理由：继承 v150/v127 的 source-backed memory organization 和 current-state source repair，但把 v150 的 `profile_preference` repair 移出 LTS 主线，避免 recommendation/profile 过度改写。repair 只读预测阶段已有的 question、draft、answer JSON 和同一份 Memory Context；不读 gold、judge、标签、sample id 或 test feedback。它保留 current-role duration 的正确修复，降低 #4/#5 的 verifier overreach 风险，LongMemEval-S strict 提升、lenient 持平，LoCoMo 持平，并降低 query token。#1 granularity/profile、#2 top-k/context noise/rerank，以及 #5 更完整的 lifecycle/conflict/update 管理仍是优先待办。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_current_state_source_repair_v151_scope_summary.md`。
+v154 的 LTS 理由：继承 v151 的窄 current-state source repair，并在 repair prompt 中加入可配置的 Current-State Lifecycle Ledger。ledger 只作为同一份 raw Memory Context 的 source-backed update/state 索引，不把 typed memory text 当最终 evidence，也不扩大主回答 prompt 或新增触发面。性能与 v151 持平，同时降低 #5 中“memory lifecycle/update reasoning 不可审计”的风险。#1 granularity/profile、#2 top-k/context noise/rerank，以及更完整的 lifecycle/conflict/update 管理仍是优先待办。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_current_state_lifecycle_ledger_v154_scope_summary.md`。
 
 ## 目录
 
