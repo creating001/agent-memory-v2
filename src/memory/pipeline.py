@@ -59,6 +59,9 @@ class Stage1Pipeline:
         dense_config = retrieval_config.get("dense", {})
         turn_window_config = retrieval_config.get("turn_window_bm25", {})
         selected_context_config = retrieval_config.get("selected_context", {})
+        context_budget_config = retrieval_config.get("context_budget", {})
+        if not isinstance(context_budget_config, Mapping):
+            raise ValueError("retrieval.context_budget must be an object")
         rerank_config = retrieval_config.get("rerank", {})
         route_config = self._config.get("route", {})
         if self._config.get("question_analysis", {}).get("enabled", False):
@@ -256,6 +259,24 @@ class Stage1Pipeline:
             "information_needs": self._selected_context_information_needs,
             "route_overrides": self._selected_context_route_overrides,
         }
+        self._context_budget_enabled = bool(
+            context_budget_config.get("enabled", False)
+        )
+        self._context_budget_max_chars = int(
+            context_budget_config.get("max_chars", 0)
+        )
+        self._context_budget_min_hits = int(
+            context_budget_config.get("min_hits", 0)
+        )
+        self._context_budget_protect_top_n = int(
+            context_budget_config.get("protect_top_n", 0)
+        )
+        self._context_budget_max_hits = int(
+            context_budget_config.get("max_hits", 0)
+        )
+        self._context_budget_information_needs = _tuple_config(
+            context_budget_config.get("information_needs")
+        )
         self._rerank_enabled = bool(rerank_config.get("enabled", False))
         self._rerank_model = rerank_config.get("model")
         self._rerank_base_url = rerank_config.get("base_url")
@@ -962,6 +983,30 @@ class Stage1Pipeline:
                 top_k=top_k,
                 memory_hits=memory_hits,
             )
+        pre_context_budget_hits = hits
+        context_budget_trace = _disabled_context_budget_trace(
+            enabled=self._context_budget_enabled,
+            max_chars=self._context_budget_max_chars,
+            min_hits=self._context_budget_min_hits,
+            protect_top_n=self._context_budget_protect_top_n,
+            max_hits=self._context_budget_max_hits,
+            information_needs=self._context_budget_information_needs,
+        )
+        if _context_budget_applies(
+            route=route,
+            enabled=self._context_budget_enabled,
+            max_chars=self._context_budget_max_chars,
+            information_needs=self._context_budget_information_needs,
+        ):
+            hits, context_budget_trace = _apply_context_budget(
+                store=store,
+                hits=hits,
+                max_chars=self._context_budget_max_chars,
+                min_hits=self._context_budget_min_hits,
+                protect_top_n=self._context_budget_protect_top_n,
+                max_hits=self._context_budget_max_hits,
+                information_needs=self._context_budget_information_needs,
+            )
         evidence_turns = store.expand_neighbors(
             (hit.source_id for hit in hits),
             window=self._neighbor_window,
@@ -1232,6 +1277,43 @@ class Stage1Pipeline:
                     "rerank_response": rerank_trace["response"],
                     "pre_rerank_hits": [
                         hit.to_dict() for hit in pre_rerank_hits
+                    ],
+                    "context_budget_enabled": self._context_budget_enabled,
+                    "context_budget_applied": context_budget_trace["applied"],
+                    "context_budget_max_chars": self._context_budget_max_chars
+                    if self._context_budget_enabled
+                    else None,
+                    "context_budget_min_hits": self._context_budget_min_hits
+                    if self._context_budget_enabled
+                    else None,
+                    "context_budget_protect_top_n": (
+                        self._context_budget_protect_top_n
+                        if self._context_budget_enabled
+                        else None
+                    ),
+                    "context_budget_max_hits": self._context_budget_max_hits
+                    if self._context_budget_enabled
+                    else None,
+                    "context_budget_information_needs": (
+                        self._context_budget_information_needs
+                    ),
+                    "context_budget_candidate_count": (
+                        context_budget_trace["candidate_count"]
+                    ),
+                    "context_budget_returned_count": (
+                        context_budget_trace["returned_count"]
+                    ),
+                    "context_budget_estimated_chars": (
+                        context_budget_trace["estimated_chars"]
+                    ),
+                    "context_budget_dropped_count": (
+                        context_budget_trace["dropped_count"]
+                    ),
+                    "context_budget_dropped_source_ids": (
+                        context_budget_trace["dropped_source_ids"]
+                    ),
+                    "pre_context_budget_hits": [
+                        hit.to_dict() for hit in pre_context_budget_hits
                     ],
                     "hits": [hit.to_dict() for hit in hits],
                 },
@@ -1862,6 +1944,104 @@ def _disabled_rerank_trace(
         "returned_count": 0,
         "total_tokens": 0,
         "response": None,
+    }
+
+
+def _context_budget_applies(
+    *,
+    route: RouteResult,
+    enabled: bool,
+    max_chars: int,
+    information_needs: tuple[str, ...],
+) -> bool:
+    if not enabled or max_chars <= 0:
+        return False
+    if not information_needs:
+        return True
+    return route.information_need in information_needs
+
+
+def _disabled_context_budget_trace(
+    *,
+    enabled: bool,
+    max_chars: int,
+    min_hits: int,
+    protect_top_n: int,
+    max_hits: int,
+    information_needs: tuple[str, ...],
+) -> dict[str, Any]:
+    return {
+        "enabled": enabled,
+        "applied": False,
+        "max_chars": max_chars,
+        "min_hits": min_hits,
+        "protect_top_n": protect_top_n,
+        "max_hits": max_hits,
+        "information_needs": information_needs,
+        "candidate_count": 0,
+        "returned_count": 0,
+        "estimated_chars": 0,
+        "dropped_count": 0,
+        "dropped_source_ids": [],
+    }
+
+
+def _apply_context_budget(
+    *,
+    store: RawEvidenceStore,
+    hits: tuple[RetrievalHit, ...],
+    max_chars: int,
+    min_hits: int,
+    protect_top_n: int,
+    max_hits: int,
+    information_needs: tuple[str, ...],
+) -> tuple[tuple[RetrievalHit, ...], dict[str, Any]]:
+    if not hits:
+        return hits, {
+            **_disabled_context_budget_trace(
+                enabled=True,
+                max_chars=max_chars,
+                min_hits=min_hits,
+                protect_top_n=protect_top_n,
+                max_hits=max_hits,
+                information_needs=information_needs,
+            ),
+            "applied": True,
+        }
+
+    protected = max(0, protect_top_n)
+    minimum = max(0, min_hits)
+    hard_max = max(0, max_hits)
+    selected: list[RetrievalHit] = []
+    dropped: list[str] = []
+    estimated_chars = 0
+
+    for index, hit in enumerate(hits):
+        if hard_max > 0 and len(selected) >= hard_max:
+            dropped.extend(candidate.source_id for candidate in hits[index:])
+            break
+        turn = store.get(hit.source_id)
+        turn_chars = len(turn.text) if turn is not None else 0
+        force_keep = index < protected or len(selected) < minimum
+        if force_keep or estimated_chars + turn_chars <= max_chars:
+            selected.append(hit)
+            estimated_chars += turn_chars
+        else:
+            dropped.append(hit.source_id)
+
+    return tuple(selected), {
+        "enabled": True,
+        "applied": True,
+        "max_chars": max_chars,
+        "min_hits": min_hits,
+        "protect_top_n": protect_top_n,
+        "max_hits": max_hits,
+        "information_needs": information_needs,
+        "candidate_count": len(hits),
+        "returned_count": len(selected),
+        "estimated_chars": estimated_chars,
+        "dropped_count": len(dropped),
+        "dropped_source_ids": dropped,
     }
 
 

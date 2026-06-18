@@ -674,6 +674,72 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertTrue(long_finalizer["enable_count_answer_detail"])
         self.assertFalse(long_finalizer["enable_relative_time_calculation"])
 
+    def test_context_budget_filters_long_tail_hits_without_granularity_profile(self) -> None:
+        config = {
+            "retrieval": {
+                "top_k": 4,
+                "max_top_k": 4,
+                "neighbor_window": 0,
+                "context_budget": {
+                    "enabled": True,
+                    "max_chars": 95,
+                    "min_hits": 1,
+                    "protect_top_n": 1,
+                },
+            },
+            "compiler": {"max_evidence_items": 4, "max_evidence_chars": 4000},
+            "answer": {"fallback_answer": "unknown"},
+        }
+        request = PredictionRequest(
+            question="anchor beta gamma target",
+            turns=(
+                Turn(
+                    source_id="anchor",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="anchor beta gamma target",
+                ),
+                Turn(
+                    source_id="long",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="target " + "noise " * 80,
+                ),
+                Turn(
+                    source_id="beta",
+                    session_id="s1",
+                    turn_index=2,
+                    role="user",
+                    text="beta target short evidence",
+                ),
+                Turn(
+                    source_id="gamma",
+                    session_id="s1",
+                    turn_index=3,
+                    role="user",
+                    text="gamma target short evidence",
+                ),
+            ),
+        )
+
+        result = Stage1Pipeline(config).predict(request)
+        retrieval = result["trace"]["retrieval"]
+        hit_ids = [hit["source_id"] for hit in retrieval["hits"]]
+        row_ids = [
+            row["source_id"]
+            for row in result["trace"]["compiled_context"]["evidence_rows"]
+        ]
+
+        self.assertIsNone(retrieval["granularity_profile"])
+        self.assertTrue(retrieval["context_budget_applied"])
+        self.assertEqual(retrieval["context_budget_candidate_count"], 4)
+        self.assertEqual(retrieval["context_budget_returned_count"], 3)
+        self.assertIn("long", retrieval["context_budget_dropped_source_ids"])
+        self.assertNotIn("long", hit_ids)
+        self.assertNotIn("long", row_ids)
+
     def test_pipeline_rerank_expands_candidate_pool_and_reorders_hits(self) -> None:
         config = {
             "retrieval": {

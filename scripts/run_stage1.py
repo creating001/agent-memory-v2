@@ -71,6 +71,11 @@ def main() -> int:
     total_rerank_candidate_count = 0
     total_rerank_returned_count = 0
     total_rerank_tokens = 0
+    total_context_budget_applied = 0
+    total_context_budget_candidate_count = 0
+    total_context_budget_returned_count = 0
+    total_context_budget_estimated_chars = 0
+    total_context_budget_dropped_count = 0
     total_embedding_cache_hits = 0
     total_embedding_cache_misses = 0
     total_embedding_cache_writes = 0
@@ -164,6 +169,20 @@ def main() -> int:
             retrieval_trace.get("rerank_returned_count") or 0
         )
         total_rerank_tokens += int(retrieval_trace.get("rerank_total_tokens") or 0)
+        if retrieval_trace.get("context_budget_applied"):
+            total_context_budget_applied += 1
+        total_context_budget_candidate_count += int(
+            retrieval_trace.get("context_budget_candidate_count") or 0
+        )
+        total_context_budget_returned_count += int(
+            retrieval_trace.get("context_budget_returned_count") or 0
+        )
+        total_context_budget_estimated_chars += int(
+            retrieval_trace.get("context_budget_estimated_chars") or 0
+        )
+        total_context_budget_dropped_count += int(
+            retrieval_trace.get("context_budget_dropped_count") or 0
+        )
         embedding_cache = retrieval_trace.get("embedding_cache") or {}
         total_embedding_cache_hits += int(embedding_cache.get("hits") or 0)
         total_embedding_cache_misses += int(embedding_cache.get("misses") or 0)
@@ -436,6 +455,44 @@ def main() -> int:
             "avg_rerank_tokens_when_applied": _safe_average(
                 total_rerank_tokens,
                 total_rerank_applied,
+            ),
+            "context_budget_enabled": config.get("retrieval", {})
+            .get("context_budget", {})
+            .get("enabled", False),
+            "context_budget_max_chars": config.get("retrieval", {})
+            .get("context_budget", {})
+            .get("max_chars"),
+            "context_budget_min_hits": config.get("retrieval", {})
+            .get("context_budget", {})
+            .get("min_hits"),
+            "context_budget_protect_top_n": config.get("retrieval", {})
+            .get("context_budget", {})
+            .get("protect_top_n"),
+            "context_budget_max_hits": config.get("retrieval", {})
+            .get("context_budget", {})
+            .get("max_hits"),
+            "context_budget_information_needs": config.get("retrieval", {})
+            .get("context_budget", {})
+            .get("information_needs"),
+            "context_budget_applied_count": total_context_budget_applied,
+            "context_budget_applied_rate": _safe_average(
+                total_context_budget_applied, sample_count
+            ),
+            "avg_context_budget_candidate_count": _safe_average(
+                total_context_budget_candidate_count,
+                total_context_budget_applied,
+            ),
+            "avg_context_budget_returned_count": _safe_average(
+                total_context_budget_returned_count,
+                total_context_budget_applied,
+            ),
+            "avg_context_budget_estimated_chars": _safe_average(
+                total_context_budget_estimated_chars,
+                total_context_budget_applied,
+            ),
+            "avg_context_budget_dropped_count": _safe_average(
+                total_context_budget_dropped_count,
+                total_context_budget_applied,
             ),
             "total_embedding_tokens": total_embedding_tokens,
             "avg_embedding_tokens": _safe_average(total_embedding_tokens, sample_count),
@@ -1102,6 +1159,18 @@ def _write_summary(
         f"- avg_rerank_returned_count: {metrics['retrieval']['avg_rerank_returned_count']}",
         f"- avg_rerank_tokens_when_applied: {metrics['retrieval']['avg_rerank_tokens_when_applied']}",
         "- rerank_token_accounting: rerank model tokens are reported separately and are not included in build/query LLM token budgets.",
+        f"- context_budget_enabled: {metrics['retrieval']['context_budget_enabled']}",
+        f"- context_budget_max_chars: {metrics['retrieval']['context_budget_max_chars']}",
+        f"- context_budget_min_hits: {metrics['retrieval']['context_budget_min_hits']}",
+        f"- context_budget_protect_top_n: {metrics['retrieval']['context_budget_protect_top_n']}",
+        f"- context_budget_max_hits: {metrics['retrieval']['context_budget_max_hits']}",
+        f"- context_budget_information_needs: {metrics['retrieval']['context_budget_information_needs']}",
+        f"- context_budget_applied_count: {metrics['retrieval']['context_budget_applied_count']}",
+        f"- context_budget_applied_rate: {metrics['retrieval']['context_budget_applied_rate']}",
+        f"- avg_context_budget_candidate_count: {metrics['retrieval']['avg_context_budget_candidate_count']}",
+        f"- avg_context_budget_returned_count: {metrics['retrieval']['avg_context_budget_returned_count']}",
+        f"- avg_context_budget_estimated_chars: {metrics['retrieval']['avg_context_budget_estimated_chars']}",
+        f"- avg_context_budget_dropped_count: {metrics['retrieval']['avg_context_budget_dropped_count']}",
         f"- avg_embedding_tokens: {metrics['retrieval']['avg_embedding_tokens']}",
         f"- avg_context_chars: {metrics['retrieval']['avg_context_chars']}",
         f"- compiler_prompt_mode: {metrics['compiler']['prompt_mode']}",
@@ -1306,6 +1375,13 @@ def _write_diagnosis(
         f"- avg_rerank_candidate_count: {metrics['retrieval']['avg_rerank_candidate_count']}",
         f"- avg_rerank_returned_count: {metrics['retrieval']['avg_rerank_returned_count']}",
         f"- avg_rerank_tokens_when_applied: {metrics['retrieval']['avg_rerank_tokens_when_applied']}",
+        f"- context_budget_enabled: {metrics['retrieval']['context_budget_enabled']}",
+        f"- context_budget_applied_count: {metrics['retrieval']['context_budget_applied_count']}",
+        f"- context_budget_applied_rate: {metrics['retrieval']['context_budget_applied_rate']}",
+        f"- avg_context_budget_candidate_count: {metrics['retrieval']['avg_context_budget_candidate_count']}",
+        f"- avg_context_budget_returned_count: {metrics['retrieval']['avg_context_budget_returned_count']}",
+        f"- avg_context_budget_estimated_chars: {metrics['retrieval']['avg_context_budget_estimated_chars']}",
+        f"- avg_context_budget_dropped_count: {metrics['retrieval']['avg_context_budget_dropped_count']}",
         f"- embedding_cache_enabled: {metrics['retrieval']['embedding_cache_enabled']}",
         f"- embedding_cache_hits: {metrics['retrieval']['embedding_cache_hits']}",
         f"- embedding_cache_misses: {metrics['retrieval']['embedding_cache_misses']}",
