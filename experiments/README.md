@@ -25,7 +25,7 @@
 
 | 优先级 | 项目 | 当前状态 | 下一步 |
 |---:|---|---|---|
-| 1 | #5 memory lifecycle/state/conflict/query-time reasoning | v142 scoped state guide 在 LME full strict/lenient `0.816/0.836`，但 LoCoMo full `0.784416/0.806494` 低于 v127 fresh `0.789610/0.815584`，不升 LTS | 下一版不要只加 guide；优先做 clean 的 conflict/as-of state、version chain retrieval、state summarization 和 query-time memory reasoning |
+| 1 | #5 memory lifecycle/state/conflict/query-time reasoning | v144 source-backed version-chain row ordering 比 v142 guide 更 clean，但 formal LME `0.812/0.840` mixed、LoCoMo `0.785714/0.811688` 低于 fresh v127，不升 LTS | 下一版不要只重排行；优先把 state/version chain 用到 clean retrieval/candidate expansion 和 query-time state reasoning |
 | 2 | #1 granularity/profile generalization + #2/#3 context pressure | v140 清除 profile 分支并降低 LME avg context chars 到 `18940.848`，但 LME strict/lenient `0.794/0.826` 低于 v127 | 重做 retrieval/context organization，避免 v139/v140 这种损覆盖的 compiler pressure |
 | 3 | src cleanup | `src` 审计显示暂无可整模块删除的 tracked 代码；`repair.py`、rerank、turn-window 和 guide 逻辑仍有消融或 guardrail 价值 | 后续随实验节奏拆小 `compiler.py` / `pipeline.py`，删除确认无用的兼容分支，不删仍有验证价值的模块 |
 
@@ -47,6 +47,7 @@
 
 | 配置 | 原因 |
 |---|---|
+| `stage1_memory_version_chain_v144_qwen36_no_think_build4k_cached.json` | source-backed version-chain row ordering 只改 `current_state/profile_preference`，不把 typed memory text 当 reader evidence。Compile scope 合理：LME changed `31/500`、LoCoMo changed `50/1540`，几乎不增 context。但 full dual judge：LME strict/lenient `0.812000/0.840000`，LoCoMo `0.785714/0.811688`；LoCoMo 低于 fresh v127 `0.789610/0.815584`，不升 LTS。保留为 #5 state/version ablation。 |
 | `stage1_scoped_memory_state_guide_v142_qwen36_no_think_build4k_cached.json` | scoped state guide 比 v141 收窄。相对 fresh v127，LME strict `408/500` 低于 `410/500`、lenient `418/500` 高于 `416/500`，但 LoCoMo strict/lenient `1208/1540` / `1242/1540` 均低于 v127 `1216/1540` / `1256/1540`。结论：作为 #5 阶段性诊断保留，不升统一 LTS；下一步做更完整的 conflict/as-of state、version chain 和 query-time memory reasoning。 |
 | `stage1_memory_state_guide_v141_qwen36_no_think_build4k_cached.json` | #5 方向正确但 dry-run scope 太宽：source-linked state guide 在 LME `218/500`、LoCoMo `932/1540` prompts 出现，avg context chars `20436.048/18313.279`；主要被 fact_lookup 大面积触发，暂不 formal，下一版收窄 |
 | `stage1_route_gated_context_pressure_v140_qwen36_no_think_build4k_cached.json` | route-gated 修正比 v139 略恢复，LME full dual strict/lenient `0.790/0.818 -> 0.794/0.826`，且 profile 分支清零、avg context chars 降到 `18940.848`；但仍低于 fresh v127 LME `0.820/0.832`，multi-session strict/lenient 只有 `0.714/0.759`，不跑 LoCoMo，不升 LTS |
@@ -73,6 +74,8 @@
 |---|---|
 | `stage1_superseded_source_chain_v127_lme_s_full_fresh` | 当前 LTS fresh full；strict/lenient `0.820000/0.832000` |
 | `stage1_superseded_source_chain_v127_locomo_nonadv_full_fresh` | 当前 LTS fresh full；strict/lenient `0.789610/0.815584` |
+| `stage1_memory_version_chain_v144_lme_s_full` | v144 #5 source-backed version-chain row ordering formal；strict/lenient `0.812000/0.840000`，mixed vs v127 |
+| `stage1_memory_version_chain_v144_locomo_nonadv_full` | v144 #5 source-backed version-chain row ordering formal；strict/lenient `0.785714/0.811688`，低于 fresh v127，故不升 LTS |
 | `stage1_scoped_memory_state_guide_v142_lme_s_full` | v142 #5 scoped state guide formal；strict/lenient `0.816000/0.836000` |
 | `stage1_scoped_memory_state_guide_v142_locomo_nonadv_full` | v142 #5 scoped state guide formal；strict/lenient `0.784416/0.806494`，低于 fresh v127，故不升 LTS |
 | `stage1_extended_selected_context_v116_qwen36_no_think_build4k_lme_s_full_aeac792` | previous LTS；strict/lenient `0.812000/0.834000` |
@@ -102,6 +105,7 @@
 | `diagnostic/stage1_superseded_source_chain_v127_summary.md` | v127 superseded source chain 诊断 |
 | `diagnostic/stage1_memory_source_interleave_v126_profile_state_summary.md` | v126 profile/current source interleave 诊断 |
 | `diagnostic/stage1_scoped_memory_state_guide_v142_badcase_summary.md` | v142 formal 后 LoCoMo gain/loss 聚合和 #5 下一步约束 |
+| `diagnostic/stage1_memory_version_chain_v144_scope_summary.md` | v144 source-backed version-chain row ordering scope/formal 结论：结构更 clean，但 accuracy 不升 LTS |
 | `diagnostic/stage1_global_update_conflict_v143_scope_probe_summary.md` | v143 方向 probe：全局 update/conflict guide 对 LoCoMo 为 no-op，未成正式版本 |
 | `diagnostic/src_cleanup_audit_20260618.md` | v142 后 src 清理审计：确认暂无可安全删除的整模块 |
 | `diagnostic/stage1_build_memory_usage_trace_audit_v126_plan.md` | build memory 使用方式审计 |

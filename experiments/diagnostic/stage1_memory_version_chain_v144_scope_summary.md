@@ -42,11 +42,24 @@ Compared with fresh v127:
 
 ## Decision
 
-Proceed to a formal v144 answer run seeded from v127 prediction traces so unchanged prompts reuse the v127 answer cache payload. Only changed prompts should require new answer calls. V144 cannot become LTS until full dual `deepseek-v4-flash` judge confirms strict/lenient accuracy and the risk reduction is accepted against v127 fresh LTS.
+Proceeding to formal was justified by the narrow compile scope. The formal result rejects v144 as a unified LTS:
+
+| Benchmark | strict | lenient | LTS decision |
+|---|---:|---:|---|
+| LongMemEval-S full | `406/500 = 0.812000` | `420/500 = 0.840000` | mixed vs fresh v127 `410/500` strict and `416/500` lenient |
+| LoCoMo non-adversarial full | `1210/1540 = 0.785714` | `1250/1540 = 0.811688` | below fresh v127 `1216/1540` strict and `1256/1540` lenient |
+
+Paired changed-prompt subset vs fresh v127:
+- LME strict net `-2`, lenient net `0`.
+- LoCoMo strict net `+1`, lenient net `0`.
+
+Conclusion: v144 is cleaner than v142's prompt guide for risk #5 because it keeps typed memory out of direct reader evidence, but row reordering alone does not improve accuracy enough. Keep v127 as current LTS and keep v144 as a reusable ablation for future state/version retrieval work.
 
 ## Outputs
 
 - LME compile traces: `outputs/diagnostic/stage1_memory_version_chain_v144_lme_s_full_compile/traces.jsonl`
 - LME compile experiment record: `experiments/diagnostic/stage1_memory_version_chain_v144_lme_s_full_compile/`
+- LME formal judge: `experiments/formal/stage1_memory_version_chain_v144_lme_s_full/deepseek_dual_judge.json`
 - LoCoMo compile traces: `outputs/diagnostic/stage1_memory_version_chain_v144_locomo_nonadv_full_compile/traces.jsonl`
 - LoCoMo compile experiment record: `experiments/diagnostic/stage1_memory_version_chain_v144_locomo_nonadv_full_compile/`
+- LoCoMo formal judge: `experiments/formal/stage1_memory_version_chain_v144_locomo_nonadv_full/deepseek_dual_judge.json`
