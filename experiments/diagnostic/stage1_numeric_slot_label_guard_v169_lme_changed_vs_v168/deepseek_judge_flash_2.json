@@ -1,0 +1,59 @@
+{
+  "api_key_env": "DEEPSEEK_API_KEY",
+  "base_url": "https://api.deepseek.com",
+  "benchmark": "longmemeval",
+  "clean_note": "Offline judge reads gold labels only after prediction. This output must not be consumed by prediction, retrieval, compiler, answer, or verifier.",
+  "created_at_utc": "2026-06-18T20:07:43+00:00",
+  "dry_run": false,
+  "git": {
+    "commit": "8473030aab55d565660b95fbcdcc64f7107a729d",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "M scripts/run_stage1.py\n M src/memory/finalize.py\n M src/memory/pipeline.py\n M src/tests/test_clean_skeleton.py\n?? configs/stage1_numeric_slot_label_guard_v169_qwen36_no_think_build4k_cached.json\n?? experiments/diagnostic/stage1_numeric_slot_label_guard_v169_lme_changed_vs_v168/\n?? experiments/diagnostic/stage1_numeric_slot_label_guard_v169_lme_s_full/\n?? experiments/diagnostic/stage1_numeric_slot_label_guard_v169_locomo_nonadv_full/"
+  },
+  "judgments": [
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "ab751014fb5a8bc1",
+      "question_type": "knowledge-update",
+      "raw_response": "yes",
+      "record_key": "c8e1ba8228ec76a80757b503",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 60,
+        "completion_tokens_details": {
+          "reasoning_tokens": 58
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 114,
+        "prompt_tokens": 114,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "total_tokens": 174
+      }
+    }
+  ],
+  "labels": "/data/home_new/wujinqi/agent-memory/outputs/prepare_longmemeval_s_cleaned/labels.jsonl",
+  "metrics": {
+    "accuracy": 1.0,
+    "n_invalid": 0,
+    "n_judgments": 1,
+    "n_valid": 1
+  },
+  "model": "deepseek-v4-flash",
+  "partial_output": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_numeric_slot_label_guard_v169_lme_changed_vs_v168/deepseek_judge_flash_2.json.partial.jsonl",
+  "predictions": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_numeric_slot_label_guard_v169_lme_changed_vs_v168/predictions.jsonl",
+  "request_body_options": {},
+  "temperature": 0.0,
+  "thinking": null,
+  "usage": {
+    "completion_tokens": 60,
+    "prompt_tokens": 114,
+    "total_tokens": 174
+  },
+  "workers": 2
+}

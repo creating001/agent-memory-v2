@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_scoped_modal_profile_advice_repair_v168_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_numeric_slot_label_guard_v169_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v168 local LTS | 说明 |
+| Benchmark | 当前 v169 local LTS | 说明 |
 |---|---:|---|
-| LongMemEval-S full | strict/lenient `0.826000 / 0.838000` | v168 与 v162 answer diff `2/500`；changed-answer dual judge `0/2 -> 2/2`，patched full `413/500` strict、`419/500` lenient。 |
-| LoCoMo non-adversarial full | strict/lenient `0.789610 / 0.815584` | v168 与 v162 answer diff `0/1540`；继承 v162 full dual judge `1216/1540` strict、`1256/1540` lenient。 |
+| LongMemEval-S full | strict/lenient `0.828000 / 0.838000` | v169 与 v168 answer diff `1/500`；changed-answer dual judge strict `0/1 -> 1/1`、lenient `1/1 -> 1/1`，patched full `414/500` strict、`419/500` lenient。 |
+| LoCoMo non-adversarial full | strict/lenient `0.789610 / 0.815584` | v169 与 v168 answer diff `0/1540`；继承 full dual judge `1216/1540` strict、`1256/1540` lenient。 |
 
-v168 的 LTS 理由：继承 v162 的 source-backed lifecycle manifest，并新增窄触发的 no-new-names same-domain profile/advice repair。它只修 `profile_preference` 中表面拒答的建议/推荐问题，把可见 Memory Context 里的同域偏好锚点转成 criteria、option type 或 search terms；不引入 unsupported named entities，且 modal abstention repair 仅保留 current-state 作用域。它降低 #5 query-time memory reasoning 风险并提升 LongMemEval accuracy；#1 granularity/profile、#2 top-k/context noise/rerank、以及更广泛 lifecycle/update/conflict reasoning 仍是优先待办。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_scoped_modal_profile_advice_repair_v168_scope_summary.md`。
+v169 的 LTS 理由：继承 v168 的 source-backed lifecycle/profile-advice repair，并新增默认关闭、窄触发的 numeric slot label guard。它只在非 count 问题中，把 answer 模型已支持的裸数字 level 槽位保真为 `level N`，不计算新值、不读 gold/judge/sample id/test feedback。它降低 #4 answer surface slot-loss 风险，并把 LME strict 提升 1 条；#1 granularity/profile、#2 top-k/context noise/rerank、#3 selected-context 泛化、以及更广泛 #5 lifecycle/update/conflict reasoning 仍是优先待办。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_numeric_slot_label_guard_v169_scope_summary.md`。
 
 ## 目录
 

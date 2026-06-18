@@ -83,6 +83,11 @@ _INSUFFICIENT_ANSWER = re.compile(
     r"unknown|do not know|don't know)\b",
     re.IGNORECASE,
 )
+_BARE_NUMERIC_ANSWER = re.compile(
+    r"^\s*[0-9][0-9,]*(?:\.[0-9]+)?\s*$",
+    re.IGNORECASE,
+)
+_LEVEL_SLOT = re.compile(r"\blevel\b", re.IGNORECASE)
 _NUMBER = re.compile(r"(?<![A-Za-z])([0-9][0-9,]*(?:\.[0-9]+)?)(?![A-Za-z])")
 _MONEY = re.compile(
     r"(?:\$\s*([0-9][0-9,]*(?:\.[0-9]+)?)|"
@@ -266,9 +271,11 @@ def finalize_structured_answer(
 
 def guard_source_grounded_answer(
     *,
+    question: str = "",
     draft_answer: str,
     raw_response: str | None,
     enable_missing_detail: bool = False,
+    enable_numeric_slot_label_preservation: bool = False,
 ) -> AnswerFinalization:
     """Generic source-grounded guardrail that never computes a new answer.
 
@@ -300,6 +307,14 @@ def guard_source_grounded_answer(
                     expected_value=detailed.expected_value,
                 )
         return _noop(draft_answer, "model_marked_insufficient")
+    if enable_numeric_slot_label_preservation:
+        labeled = _finalize_numeric_slot_label_preservation(
+            question=question,
+            draft_answer=draft_answer,
+            payload=payload,
+        )
+        if labeled is not None:
+            return labeled
     return _noop(draft_answer, "source_grounded_guard_consistent")
 
 
@@ -381,6 +396,67 @@ def _finalize_missing_detail(
         applied=True,
         reason="missing_detail_from_structured_answer",
         expected_value=missing,
+    )
+
+
+def _finalize_numeric_slot_label_preservation(
+    *,
+    question: str,
+    draft_answer: str,
+    payload: dict[str, Any],
+) -> AnswerFinalization | None:
+    """Preserve a source-backed numeric slot label without changing the value."""
+
+    if _answer_is_insufficient(draft_answer):
+        return None
+    if not _BARE_NUMERIC_ANSWER.fullmatch(draft_answer):
+        return None
+    if not _LEVEL_SLOT.search(question):
+        return None
+
+    lowered_question = question.lower()
+    if (
+        _COUNT_QUESTION.search(lowered_question)
+        or _DURATION_COUNT_QUESTION.search(lowered_question)
+        or _SUM_QUESTION.search(lowered_question)
+        or _MONEY_QUESTION.search(lowered_question)
+        or _is_average_question(question)
+    ):
+        return None
+
+    expected = _extract_plain_value(draft_answer)
+    if expected is None:
+        return None
+    report = payload.get("evidence_report")
+    if not isinstance(report, list):
+        return None
+
+    matches = []
+    for item in report:
+        if not isinstance(item, dict):
+            continue
+        if str(item.get("status") or "").strip().lower() != "support":
+            continue
+        value = str(item.get("value") or "")
+        item_value = _extract_plain_value(value)
+        if item_value is None or item_value != expected:
+            continue
+        basis = " ".join(
+            str(item.get(field) or "") for field in ("slot", "value", "reason")
+        )
+        if _LEVEL_SLOT.search(basis):
+            matches.append(item)
+
+    if not matches:
+        return None
+    answer = f"level {draft_answer.strip()}"
+    return AnswerFinalization(
+        answer=answer,
+        before=draft_answer,
+        applied=True,
+        reason="numeric_slot_label_preservation",
+        evidence_item_count=len(matches),
+        expected_value=answer,
     )
 
 

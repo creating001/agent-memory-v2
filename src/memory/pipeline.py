@@ -817,6 +817,12 @@ class Stage1Pipeline:
         self._answer_finalizer_enable_relative_time_calculation = bool(
             answer_finalizer_config.get("enable_relative_time_calculation", False)
         )
+        self._answer_finalizer_enable_numeric_slot_label_preservation = bool(
+            answer_finalizer_config.get(
+                "enable_numeric_slot_label_preservation",
+                False,
+            )
+        )
         self._answer_finalizer_trace_config = {
             "enabled": self._answer_finalizer_enabled,
             "mode": self._answer_finalizer_mode,
@@ -847,6 +853,9 @@ class Stage1Pipeline:
             ),
             "enable_relative_time_calculation": (
                 self._answer_finalizer_enable_relative_time_calculation
+            ),
+            "enable_numeric_slot_label_preservation": (
+                self._answer_finalizer_enable_numeric_slot_label_preservation
             ),
         }
         self._answer_finalizer_profile_settings = {
@@ -1873,10 +1882,14 @@ class Stage1Pipeline:
         mode = str(settings.get("mode", "structured_evidence_mechanical"))
         if mode == "source_grounded_consistency_guard":
             return guard_source_grounded_answer(
+                question=question,
                 draft_answer=answer.answer,
                 raw_response=answer.raw_response,
                 enable_missing_detail=bool(
                     settings.get("enable_missing_detail", False)
+                ),
+                enable_numeric_slot_label_preservation=bool(
+                    settings.get("enable_numeric_slot_label_preservation", False)
                 ),
             )
         if mode != "structured_evidence_mechanical":
@@ -3822,6 +3835,9 @@ def _answer_finalizer_settings_from_config(
         ),
         "enable_relative_time_calculation": bool(
             config.get("enable_relative_time_calculation", False)
+        ),
+        "enable_numeric_slot_label_preservation": bool(
+            config.get("enable_numeric_slot_label_preservation", False)
         ),
     }
 

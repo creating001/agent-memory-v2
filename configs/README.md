@@ -6,13 +6,16 @@
 
 | 用途 | 配置 | 状态 |
 |---|---|---|
-| 后续新实验默认配置 | `stage1_current_state_source_repair_v151_qwen36_no_think_build4k_cached.json` | 当前本地 v151 LTS。继承 v150/v127 source-backed active/superseded update organization，并把 repair scope 收窄到 `current_state`，避免 profile recommendation 过度改写。LongMemEval-S paired-delta derived strict/lenient `0.822000 / 0.834000`，LoCoMo `0.789610 / 0.815584`。 |
+| 后续新实验默认配置 | `stage1_numeric_slot_label_guard_v169_qwen36_no_think_build4k_cached.json` | 当前本地 v169 LTS。继承 v168 scoped profile/advice repair，并新增窄触发 source-grounded numeric slot label guard；LongMemEval-S paired-delta derived strict/lenient `0.828000 / 0.838000`，LoCoMo `0.789610 / 0.815584`。 |
 
 ## 保留对照
 
 | 配置 | 作用 |
 |---|---|
-| `stage1_current_state_source_repair_v151_qwen36_no_think_build4k_cached.json` | 当前 LTS；只保留 current-state source repair，LME `0.822000 / 0.834000`，LoCoMo `0.789610 / 0.815584`。 |
+| `stage1_numeric_slot_label_guard_v169_qwen36_no_think_build4k_cached.json` | 当前 LTS；source-grounded finalizer 只保真裸数字 `level` 槽位，LME `0.828000 / 0.838000`，LoCoMo `0.789610 / 0.815584`。 |
+| `stage1_scoped_modal_profile_advice_repair_v168_qwen36_no_think_build4k_cached.json` | v169 父 LTS；scoped profile/advice repair，LME `0.826000 / 0.838000`，LoCoMo `0.789610 / 0.815584`。 |
+| `stage1_memory_lifecycle_manifest_v162_qwen36_no_think_build4k_cached.json` | v168 父 LTS；trace-only lifecycle manifest，性能继承 v158。 |
+| `stage1_current_state_source_repair_v151_qwen36_no_think_build4k_cached.json` | previous LTS；只保留 current-state source repair，LME `0.822000 / 0.834000`，LoCoMo `0.789610 / 0.815584`。 |
 | `stage1_selective_source_repair_v150_qwen36_no_think_build4k_cached.json` | v151 父 LTS；profile/current repair，LME `0.820000 / 0.834000`，LoCoMo `0.789610 / 0.815584`，被 v151 收窄替代。 |
 | `stage1_superseded_source_chain_v127_qwen36_no_think_build4k_cached.json` | v150 父 LTS；fresh full dual judge：LME `0.820000 / 0.832000`，LoCoMo `0.789610 / 0.815584`。 |
 | `stage1_route_scoped_local_evidence_unit_v125_qwen36_no_think_build4k_cached.json` | v127 父 LTS；降低 #4 mechanical finalizer 和 #3 selected-context heuristic 风险。 |
@@ -31,8 +34,8 @@
 
 | Benchmark | 配置 | 结果 | 用途 |
 |---|---|---:|---|
-| LongMemEval-S full | `stage1_current_state_source_repair_v151_qwen36_no_think_build4k_cached.json` | strict `0.822000` / lenient `0.834000` | 当前 LTS；paired-delta derived dual judge。 |
-| LoCoMo non-adversarial full | `stage1_current_state_source_repair_v151_qwen36_no_think_build4k_cached.json` | strict `0.789610` / lenient `0.815584` | 当前 LTS；v151 与 v127 answer-normalized 等价。 |
+| LongMemEval-S full | `stage1_numeric_slot_label_guard_v169_qwen36_no_think_build4k_cached.json` | strict `0.828000` / lenient `0.838000` | 当前 LTS；paired-delta derived dual judge。 |
+| LoCoMo non-adversarial full | `stage1_numeric_slot_label_guard_v169_qwen36_no_think_build4k_cached.json` | strict `0.789610` / lenient `0.815584` | 当前 LTS；v169 与 v168 answer-normalized 等价。 |
 
 ## 关键 Baseline
 
@@ -51,8 +54,8 @@
 ## Cache 和版本规则
 
 - 当前主线是 `Qwen/Qwen3.6-35B-A3B` no-thinking；只有显式带 `qwen36_no_think_build4k` 的配置才参与当前 LTS 对比。
-- 新方法必须另起版本、answer cache path 和 cache namespace；repair/verifier 也要单独 cache namespace。
-- v151 复用 v102 build-memory cache，因为 build 阶段未改；base answer cache 为 `outputs/cache/qwen36_no_think_build4k_answer_v151_current_state_source_repair.sqlite`，repair cache 为 `outputs/cache/qwen36_no_think_build4k_answer_repair_v151_current_state_source_repair.sqlite`。
+- 新方法必须另起版本；若 answer prompt 或 repair/verifier prompt 改变，必须另起对应 cache path/namespace。若只改 source-grounded finalizer/postprocess 且 answer raw response 不变，可显式复用父 answer cache，并在记录中说明。
+- v169 复用 v102 build-memory cache、v158 base answer cache 和 v168 repair cache，因为 build、answer prompt 与 repair prompt 均未变；改动只在 source-grounded finalizer。
 - cache 命中只能减少重复 API 调用，不能改变逻辑 token 统计。正式记录仍报告逻辑 cold-build/query token。
 - 不得使用 gold answer、judge output、benchmark 标签、sample id、test feedback 或样本级规则构造配置、cache、prediction、retrieval、compiler、answer 或 repair。
 

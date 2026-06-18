@@ -2900,6 +2900,73 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual(finalization.reason, "source_grounded_guard_consistent")
         self.assertEqual(finalization.answer, "1")
 
+    def test_source_grounded_guard_preserves_numeric_level_slot_when_enabled(self) -> None:
+        content = json.dumps(
+            {
+                "sufficient": True,
+                "answer_type": "count",
+                "evidence_report": [
+                    {
+                        "status": "support",
+                        "slot": "previous goal level",
+                        "value": "100",
+                        "reason": "The user previously wanted to reach level 100.",
+                    },
+                    {
+                        "status": "support",
+                        "slot": "updated goal level",
+                        "value": "150",
+                        "reason": "The user later updated the goal to level 150.",
+                    },
+                ],
+                "answer": "100",
+            }
+        )
+        raw_response = json.dumps({"content": content})
+
+        finalization = guard_source_grounded_answer(
+            question=(
+                "What was my previous goal for my Apex Legends level before I "
+                "updated my goal?"
+            ),
+            draft_answer="100",
+            raw_response=raw_response,
+            enable_numeric_slot_label_preservation=True,
+        )
+
+        self.assertTrue(finalization.applied)
+        self.assertEqual(finalization.reason, "numeric_slot_label_preservation")
+        self.assertEqual(finalization.answer, "level 100")
+
+    def test_source_grounded_guard_does_not_label_count_question(self) -> None:
+        content = json.dumps(
+            {
+                "sufficient": True,
+                "answer_type": "count",
+                "evidence_report": [
+                    {
+                        "status": "support",
+                        "slot": "completed levels",
+                        "value": "100",
+                        "reason": "The user completed 100 levels.",
+                    },
+                ],
+                "answer": "100",
+            }
+        )
+        raw_response = json.dumps({"content": content})
+
+        finalization = guard_source_grounded_answer(
+            question="How many levels did I complete?",
+            draft_answer="100",
+            raw_response=raw_response,
+            enable_numeric_slot_label_preservation=True,
+        )
+
+        self.assertFalse(finalization.applied)
+        self.assertEqual(finalization.reason, "source_grounded_guard_consistent")
+        self.assertEqual(finalization.answer, "100")
+
     def test_evidence_report_count_increment_finalizer_is_explicit(self) -> None:
         content = json.dumps(
             {
