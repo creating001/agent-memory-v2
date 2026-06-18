@@ -1,0 +1,163 @@
+{
+  "parent": "v176",
+  "candidate": "v177",
+  "n_changed_answers": 15,
+  "old_strict_correct": 12,
+  "new_strict_correct": 7,
+  "old_lenient_correct": 12,
+  "new_lenient_correct": 7,
+  "strict_delta": -5,
+  "lenient_delta": -5,
+  "records": [
+    {
+      "record_key": "0a537c6dfde0742723049ca4",
+      "old_strict": true,
+      "new_strict": true,
+      "old_lenient": true,
+      "new_lenient": true,
+      "strict_delta": 0,
+      "lenient_delta": 0,
+      "group": "single-session-preference"
+    },
+    {
+      "record_key": "158692bc43ef28e0e43d991f",
+      "old_strict": true,
+      "new_strict": true,
+      "old_lenient": true,
+      "new_lenient": true,
+      "strict_delta": 0,
+      "lenient_delta": 0,
+      "group": "single-session-preference"
+    },
+    {
+      "record_key": "5110d0ed1a7cb0fefd131e4d",
+      "old_strict": true,
+      "new_strict": false,
+      "old_lenient": true,
+      "new_lenient": false,
+      "strict_delta": -1,
+      "lenient_delta": -1,
+      "group": "single-session-preference"
+    },
+    {
+      "record_key": "8b879add5b99d7c3de847de7",
+      "old_strict": false,
+      "new_strict": false,
+      "old_lenient": false,
+      "new_lenient": false,
+      "strict_delta": 0,
+      "lenient_delta": 0,
+      "group": "single-session-preference"
+    },
+    {
+      "record_key": "1d4fed4463c88e0a44c6281c",
+      "old_strict": true,
+      "new_strict": false,
+      "old_lenient": true,
+      "new_lenient": false,
+      "strict_delta": -1,
+      "lenient_delta": -1,
+      "group": "single-session-preference"
+    },
+    {
+      "record_key": "08cccaf312a179d4f4b961d3",
+      "old_strict": true,
+      "new_strict": false,
+      "old_lenient": true,
+      "new_lenient": false,
+      "strict_delta": -1,
+      "lenient_delta": -1,
+      "group": "single-session-preference"
+    },
+    {
+      "record_key": "f9ae007ab8a08057a78ba572",
+      "old_strict": true,
+      "new_strict": false,
+      "old_lenient": true,
+      "new_lenient": false,
+      "strict_delta": -1,
+      "lenient_delta": -1,
+      "group": "single-session-preference"
+    },
+    {
+      "record_key": "5819961e927d864a6b8d3a21",
+      "old_strict": true,
+      "new_strict": true,
+      "old_lenient": true,
+      "new_lenient": true,
+      "strict_delta": 0,
+      "lenient_delta": 0,
+      "group": "single-session-preference"
+    },
+    {
+      "record_key": "dadf0d7c77ff05ffc3f75b08",
+      "old_strict": false,
+      "new_strict": false,
+      "old_lenient": false,
+      "new_lenient": false,
+      "strict_delta": 0,
+      "lenient_delta": 0,
+      "group": "single-session-preference"
+    },
+    {
+      "record_key": "a1e403c5b6ee9c67eceee109",
+      "old_strict": true,
+      "new_strict": false,
+      "old_lenient": true,
+      "new_lenient": false,
+      "strict_delta": -1,
+      "lenient_delta": -1,
+      "group": "multi-session"
+    },
+    {
+      "record_key": "a3e4c89a8fdf800fa3b2676f",
+      "old_strict": true,
+      "new_strict": false,
+      "old_lenient": true,
+      "new_lenient": false,
+      "strict_delta": -1,
+      "lenient_delta": -1,
+      "group": "temporal-reasoning"
+    },
+    {
+      "record_key": "740d3b0bc662060a816e231f",
+      "old_strict": false,
+      "new_strict": true,
+      "old_lenient": false,
+      "new_lenient": true,
+      "strict_delta": 1,
+      "lenient_delta": 1,
+      "group": "temporal-reasoning"
+    },
+    {
+      "record_key": "1f7723fca5c03dfc8ff0e0ca",
+      "old_strict": true,
+      "new_strict": true,
+      "old_lenient": true,
+      "new_lenient": true,
+      "strict_delta": 0,
+      "lenient_delta": 0,
+      "group": "temporal-reasoning"
+    },
+    {
+      "record_key": "ba57c4f922001033e979f087",
+      "old_strict": true,
+      "new_strict": true,
+      "old_lenient": true,
+      "new_lenient": true,
+      "strict_delta": 0,
+      "lenient_delta": 0,
+      "group": "knowledge-update"
+    },
+    {
+      "record_key": "7933cff5854d25ce3c9e8901",
+      "old_strict": true,
+      "new_strict": true,
+      "old_lenient": true,
+      "new_lenient": true,
+      "strict_delta": 0,
+      "lenient_delta": 0,
+      "group": "knowledge-update"
+    }
+  ]
+}
