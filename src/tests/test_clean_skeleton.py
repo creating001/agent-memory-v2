@@ -19,7 +19,7 @@ from memory.answer import (
     _message_text,
     _parse_answer_content,
 )
-from memory.build import MemoryRecord
+from memory.build import BuiltMemory, MemoryRecord
 from memory.compiler import EvidenceCompiler
 from memory.finalize import (
     finalize_structured_answer,
@@ -39,6 +39,7 @@ from memory.pipeline import (
     Stage1Pipeline,
     _align_build_memory_sources,
     _compiler_memory_records,
+    _memory_slot_chain_source_hits,
     _memory_records_by_source,
     _neighbor_turns_for_rerank,
 )
@@ -1234,6 +1235,162 @@ class CleanSkeletonTest(unittest.TestCase):
             [record.memory_id for record in combined],
             ["mem-retrieval", "mem-row"],
         )
+
+    def test_memory_slot_chain_source_hits_expand_active_and_superseded_sources(self) -> None:
+        old_record = MemoryRecord(
+            memory_id="old",
+            memory_type="state",
+            text="Alex lives in Austin.",
+            source_ids=("s1:t0",),
+            subject="Alex",
+            predicate="lives_in",
+            value="Austin",
+            timestamp="2024-01-01",
+            status="superseded",
+            superseded_by="new",
+        )
+        new_record = MemoryRecord(
+            memory_id="new",
+            memory_type="state",
+            text="Alex lives in Seattle.",
+            source_ids=("s1:t1",),
+            subject="Alex",
+            predicate="lives_in",
+            value="Seattle",
+            timestamp="2024-05-01",
+            status="active",
+        )
+        unrelated_record = MemoryRecord(
+            memory_id="other",
+            memory_type="state",
+            text="Alex drives a hybrid car.",
+            source_ids=("s1:t2",),
+            subject="Alex",
+            predicate="drives",
+            value="hybrid car",
+        )
+
+        hits, trace = _memory_slot_chain_source_hits(
+            memory_hits=(MemoryHit(record=old_record, score=2.0, rank=1),),
+            built_memory_records=(old_record, new_record, unrelated_record),
+            route=RouteResult("current_state", ("current_state",)),
+            available_source_ids={"s1:t0", "s1:t1", "s1:t2"},
+            max_chains=2,
+            max_sources_per_chain=4,
+            memory_types=("state",),
+        )
+
+        self.assertTrue(trace["applied"])
+        self.assertEqual([hit.source_id for hit in hits], ["s1:t1", "s1:t0"])
+        self.assertEqual(
+            {hit.retriever for hit in hits},
+            {"build_memory_slot_chain"},
+        )
+        self.assertEqual(trace["chains"][0]["matched_memory_id"], "old")
+        self.assertEqual(trace["chains"][0]["source_ids"], ("s1:t1", "s1:t0"))
+        self.assertNotIn("s1:t2", trace["chains"][0]["source_ids"])
+
+    def test_pipeline_memory_slot_chain_can_supply_raw_rows_without_lexical_or_dense(self) -> None:
+        old_record = MemoryRecord(
+            memory_id="old",
+            memory_type="state",
+            text="Alex lives in Austin.",
+            source_ids=("s1:t0",),
+            subject="Alex",
+            predicate="lives_in",
+            value="Austin",
+            timestamp="2024-01-01",
+            status="superseded",
+            superseded_by="new",
+        )
+        new_record = MemoryRecord(
+            memory_id="new",
+            memory_type="state",
+            text="Alex lives in Seattle.",
+            source_ids=("s2:t0",),
+            subject="Alex",
+            predicate="lives_in",
+            value="Seattle",
+            timestamp="2024-05-01",
+            status="active",
+        )
+
+        class FakeBuilder:
+            def build(self, turns: tuple[Turn, ...]) -> BuiltMemory:
+                del turns
+                return BuiltMemory(
+                    records=(new_record, old_record),
+                    token_usage=TokenUsage(),
+                )
+
+        config = {
+            "build_memory": {
+                "enabled": True,
+                "mode": "openai_compatible",
+                "model": "fake",
+                "top_k": 1,
+                "max_sources_per_record": 1,
+                "include_superseded": True,
+            },
+            "retrieval": {
+                "top_k": 2,
+                "max_top_k": 2,
+                "neighbor_window": 0,
+                "lexical": {"enabled": False},
+                "memory_slot_chain": {
+                    "enabled": True,
+                    "information_needs": ["current_state"],
+                    "memory_types": ["state"],
+                    "max_chains": 2,
+                    "max_sources_per_chain": 4,
+                },
+            },
+            "compiler": {
+                "prompt_mode": "external_naive",
+                "max_evidence_items": 2,
+                "max_evidence_chars": 4000,
+            },
+            "answer": {"fallback_answer": "unknown"},
+        }
+        pipeline = Stage1Pipeline(config)
+        pipeline._memory_builder = FakeBuilder()
+        request = PredictionRequest(
+            question="Where does Alex live now?",
+            turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="I live in Austin.",
+                    timestamp="2024-01-01",
+                ),
+                Turn(
+                    source_id="s2:t0",
+                    session_id="s2",
+                    turn_index=0,
+                    role="user",
+                    text="I moved to Seattle.",
+                    timestamp="2024-05-01",
+                ),
+            ),
+        )
+
+        result = pipeline.predict(request)
+        retrieval = result["trace"]["retrieval"]
+        row_ids = [
+            row["source_id"]
+            for row in result["trace"]["compiled_context"]["evidence_rows"]
+        ]
+
+        self.assertTrue(retrieval["memory_slot_chain_applied"])
+        self.assertEqual(
+            [hit["source_id"] for hit in retrieval["memory_slot_chain_source_hits"]],
+            ["s2:t0", "s1:t0"],
+        )
+        self.assertEqual(row_ids, ["s2:t0", "s1:t0"])
+        self.assertIn("I moved to Seattle.", result["trace"]["compiled_context"]["prompt"])
+        self.assertIn("I live in Austin.", result["trace"]["compiled_context"]["prompt"])
 
     def test_build_memory_source_alignment_adds_adjacent_supporting_turn(self) -> None:
         record = MemoryRecord(

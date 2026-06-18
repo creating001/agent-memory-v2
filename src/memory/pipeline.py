@@ -62,6 +62,9 @@ class Stage1Pipeline:
         context_budget_config = retrieval_config.get("context_budget", {})
         if not isinstance(context_budget_config, Mapping):
             raise ValueError("retrieval.context_budget must be an object")
+        memory_slot_chain_config = retrieval_config.get("memory_slot_chain", {})
+        if not isinstance(memory_slot_chain_config, Mapping):
+            raise ValueError("retrieval.memory_slot_chain must be an object")
         rerank_config = retrieval_config.get("rerank", {})
         route_config = self._config.get("route", {})
         if self._config.get("question_analysis", {}).get("enabled", False):
@@ -181,6 +184,27 @@ class Stage1Pipeline:
                 "min_delta": self._build_memory_source_alignment_min_delta,
             },
         }
+        self._memory_slot_chain_enabled = bool(
+            memory_slot_chain_config.get("enabled", False)
+        )
+        self._memory_slot_chain_information_needs = _tuple_config(
+            memory_slot_chain_config.get(
+                "information_needs",
+                ("current_state", "profile_preference"),
+            )
+        )
+        self._memory_slot_chain_max_chains = int(
+            memory_slot_chain_config.get("max_chains", 4)
+        )
+        self._memory_slot_chain_max_sources_per_chain = int(
+            memory_slot_chain_config.get("max_sources_per_chain", 6)
+        )
+        self._memory_slot_chain_memory_types = _tuple_config(
+            memory_slot_chain_config.get(
+                "memory_types",
+                ("preference", "profile", "relationship", "state"),
+            )
+        )
         self._dense_enabled = bool(dense_config.get("enabled", False))
         self._dense_top_k = int(dense_config.get("top_k", self._base_top_k))
         self._dense_batch_size = int(dense_config.get("batch_size", 32))
@@ -927,6 +951,14 @@ class Stage1Pipeline:
             )
         memory_hits = ()
         memory_source_hits = ()
+        memory_slot_chain_source_hits = ()
+        memory_slot_chain_trace = _disabled_memory_slot_chain_trace(
+            enabled=self._memory_slot_chain_enabled,
+            information_needs=self._memory_slot_chain_information_needs,
+            max_chains=self._memory_slot_chain_max_chains,
+            max_sources_per_chain=self._memory_slot_chain_max_sources_per_chain,
+            memory_types=self._memory_slot_chain_memory_types,
+        )
         build_memory_include_superseded = (
             self._build_memory_include_superseded
             or route.information_need
@@ -946,6 +978,25 @@ class Stage1Pipeline:
                 memory_hits,
                 max_sources_per_memory=self._build_memory_max_sources_per_record,
             )
+            if _memory_slot_chain_applies(
+                enabled=self._memory_slot_chain_enabled,
+                route=route,
+                information_needs=self._memory_slot_chain_information_needs,
+            ):
+                (
+                    memory_slot_chain_source_hits,
+                    memory_slot_chain_trace,
+                ) = _memory_slot_chain_source_hits(
+                    memory_hits=memory_hits,
+                    built_memory_records=built_memory.records,
+                    route=route,
+                    available_source_ids={turn.source_id for turn in store.turns},
+                    max_chains=self._memory_slot_chain_max_chains,
+                    max_sources_per_chain=(
+                        self._memory_slot_chain_max_sources_per_chain
+                    ),
+                    memory_types=self._memory_slot_chain_memory_types,
+                )
         turn_window_hits = ()
         turn_window_source_hits = ()
         turn_window_bm25_applied = False
@@ -1004,6 +1055,8 @@ class Stage1Pipeline:
             )
             if memory_source_hits:
                 hit_lists = (*hit_lists, memory_source_hits)
+            if memory_slot_chain_source_hits:
+                hit_lists = (*hit_lists, memory_slot_chain_source_hits)
             if turn_window_source_hits:
                 hit_lists = (*hit_lists, turn_window_source_hits)
             hits = _merge_hit_lists(
@@ -1024,13 +1077,18 @@ class Stage1Pipeline:
                     top_k=candidate_top_k,
                 )
         else:
-            if memory_source_hits or turn_window_source_hits:
+            if (
+                memory_source_hits
+                or memory_slot_chain_source_hits
+                or turn_window_source_hits
+            ):
                 hits = _merge_hit_lists(
                     tuple(
                         hits
                         for hits in (
                             lexical_hits,
                             memory_source_hits,
+                            memory_slot_chain_source_hits,
                             turn_window_source_hits,
                         )
                         if hits
@@ -1330,6 +1388,24 @@ class Stage1Pipeline:
                     "memory_source_hits": [
                         hit.to_dict() for hit in memory_source_hits
                     ],
+                    "memory_slot_chain_enabled": self._memory_slot_chain_enabled,
+                    "memory_slot_chain_applied": memory_slot_chain_trace["applied"],
+                    "memory_slot_chain_information_needs": (
+                        self._memory_slot_chain_information_needs
+                    ),
+                    "memory_slot_chain_max_chains": (
+                        self._memory_slot_chain_max_chains
+                    ),
+                    "memory_slot_chain_max_sources_per_chain": (
+                        self._memory_slot_chain_max_sources_per_chain
+                    ),
+                    "memory_slot_chain_memory_types": (
+                        self._memory_slot_chain_memory_types
+                    ),
+                    "memory_slot_chain_source_hits": [
+                        hit.to_dict() for hit in memory_slot_chain_source_hits
+                    ],
+                    "memory_slot_chain_chains": memory_slot_chain_trace["chains"],
                     "dense_hits": [hit.to_dict() for hit in dense_hits],
                     "turn_window_hits": [
                         hit.to_dict() for hit in turn_window_hits
@@ -1998,6 +2074,218 @@ def _dedupe_memory_records(records: tuple[Any, ...]) -> tuple[Any, ...]:
         seen.add(memory_id)
         result.append(record)
     return tuple(result)
+
+
+def _memory_slot_chain_applies(
+    *,
+    enabled: bool,
+    route: RouteResult,
+    information_needs: tuple[str, ...],
+) -> bool:
+    if not enabled:
+        return False
+    if information_needs and route.information_need not in information_needs:
+        return False
+    return route.information_need in {"current_state", "profile_preference"}
+
+
+def _disabled_memory_slot_chain_trace(
+    *,
+    enabled: bool,
+    information_needs: tuple[str, ...],
+    max_chains: int,
+    max_sources_per_chain: int,
+    memory_types: tuple[str, ...],
+) -> dict[str, Any]:
+    return {
+        "enabled": enabled,
+        "applied": False,
+        "information_needs": information_needs,
+        "max_chains": max_chains,
+        "max_sources_per_chain": max_sources_per_chain,
+        "memory_types": memory_types,
+        "chains": [],
+    }
+
+
+def _memory_slot_chain_source_hits(
+    *,
+    memory_hits: tuple[Any, ...],
+    built_memory_records: tuple[Any, ...],
+    route: RouteResult,
+    available_source_ids: set[str],
+    max_chains: int,
+    max_sources_per_chain: int,
+    memory_types: tuple[str, ...],
+) -> tuple[tuple[RetrievalHit, ...], dict[str, Any]]:
+    trace = _disabled_memory_slot_chain_trace(
+        enabled=True,
+        information_needs=(route.information_need,),
+        max_chains=max_chains,
+        max_sources_per_chain=max_sources_per_chain,
+        memory_types=memory_types,
+    )
+    if not memory_hits or not built_memory_records:
+        return (), trace
+
+    groups: dict[tuple[str, str, str], list[Any]] = {}
+    for record in built_memory_records:
+        key = _memory_slot_chain_key(record, route=route, memory_types=memory_types)
+        if key is None:
+            continue
+        groups.setdefault(key, []).append(record)
+
+    selected_hits: list[RetrievalHit] = []
+    chain_traces: list[dict[str, Any]] = []
+    seen_sources: set[str] = set()
+    seen_keys: set[tuple[str, str, str]] = set()
+    rank = 1
+    for memory_hit in memory_hits:
+        if len(chain_traces) >= max(0, max_chains):
+            break
+        record = getattr(memory_hit, "record", None)
+        key = _memory_slot_chain_key(record, route=route, memory_types=memory_types)
+        if key is None or key in seen_keys:
+            continue
+        seen_keys.add(key)
+        records = tuple(groups.get(key, ()))
+        if not _is_memory_slot_chain(records):
+            continue
+
+        source_ids = _memory_slot_chain_sources(
+            records,
+            available_source_ids=available_source_ids,
+            max_sources=max_sources_per_chain,
+        )
+        if not source_ids:
+            continue
+
+        chain_memory_ids = tuple(
+            str(getattr(item, "memory_id", "")) for item in records
+        )
+        chain_statuses = tuple(str(getattr(item, "status", "active")) for item in records)
+        chain_traces.append(
+            {
+                "slot": {
+                    "memory_type": key[0],
+                    "subject": key[1],
+                    "predicate": key[2],
+                },
+                "matched_memory_id": str(getattr(record, "memory_id", "")),
+                "memory_ids": chain_memory_ids,
+                "statuses": chain_statuses,
+                "source_ids": source_ids,
+            }
+        )
+
+        base_score = float(getattr(memory_hit, "score", 0.0) or 0.0)
+        for offset, source_id in enumerate(source_ids):
+            if source_id in seen_sources:
+                continue
+            seen_sources.add(source_id)
+            selected_hits.append(
+                RetrievalHit(
+                    source_id=source_id,
+                    score=base_score - (offset * 1e-6),
+                    rank=rank,
+                    retriever="build_memory_slot_chain",
+                    matched_terms=tuple(getattr(memory_hit, "matched_terms", ()) or ()),
+                )
+            )
+            rank += 1
+
+    return tuple(selected_hits), {
+        **trace,
+        "applied": bool(chain_traces),
+        "chains": chain_traces,
+    }
+
+
+def _memory_slot_chain_key(
+    record: Any,
+    *,
+    route: RouteResult,
+    memory_types: tuple[str, ...],
+) -> tuple[str, str, str] | None:
+    if record is None:
+        return None
+    memory_type = str(getattr(record, "memory_type", "") or "").lower()
+    allowed_types = {item.lower() for item in memory_types} if memory_types else {
+        "preference",
+        "profile",
+        "relationship",
+        "state",
+    }
+    if memory_type not in allowed_types:
+        return None
+    if route.information_need == "current_state" and memory_type not in {
+        "preference",
+        "profile",
+        "relationship",
+        "state",
+    }:
+        return None
+    if route.information_need == "profile_preference" and memory_type not in {
+        "preference",
+        "profile",
+        "relationship",
+        "state",
+    }:
+        return None
+    subject = _normalize_memory_slot_text(str(getattr(record, "subject", "") or ""))
+    predicate = _normalize_memory_slot_text(str(getattr(record, "predicate", "") or ""))
+    if not subject or not predicate:
+        return None
+    return (memory_type, subject, predicate)
+
+
+def _is_memory_slot_chain(records: tuple[Any, ...]) -> bool:
+    if len(records) < 2:
+        return False
+    values = {
+        _normalize_memory_slot_text(
+            str(getattr(record, "value", "") or getattr(record, "text", "") or "")
+        )
+        for record in records
+    }
+    statuses = {str(getattr(record, "status", "active") or "active") for record in records}
+    return len(values) > 1 or "superseded" in statuses
+
+
+def _memory_slot_chain_sources(
+    records: tuple[Any, ...],
+    *,
+    available_source_ids: set[str],
+    max_sources: int,
+) -> tuple[str, ...]:
+    if max_sources <= 0:
+        return ()
+    selected: list[str] = []
+    for record in sorted(records, key=_memory_slot_chain_record_sort_key):
+        for source_id in tuple(getattr(record, "source_ids", ()) or ()):
+            source_id = str(source_id)
+            if source_id not in available_source_ids or source_id in selected:
+                continue
+            selected.append(source_id)
+            if len(selected) >= max_sources:
+                return tuple(selected)
+    return tuple(selected)
+
+
+def _memory_slot_chain_record_sort_key(record: Any) -> tuple[int, str, str]:
+    status = str(getattr(record, "status", "active") or "active")
+    status_rank = 0 if status == "active" else 1
+    time_value = (
+        getattr(record, "valid_from", None)
+        or getattr(record, "timestamp", None)
+        or getattr(record, "mention_time", None)
+        or ""
+    )
+    return (status_rank, str(time_value), str(getattr(record, "memory_id", "")))
+
+
+def _normalize_memory_slot_text(value: str) -> str:
+    return re.sub(r"\s+", " ", value.strip().lower())
 
 
 def _route_feature_applies(
