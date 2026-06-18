@@ -1,0 +1,41 @@
+{
+  "clean_note": "This script is offline-only. Its outputs must not be read by prediction, retrieval, compiler, answer, or verifier modules.",
+  "created_at_utc": "2026-06-17T17:40:41+00:00",
+  "git": {
+    "commit": "88efe8b4d0968e0715c825d0a196905fa25bee2c",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "M experiments/README.md\n M experiments/diagnostic/stage1_v102_generalization_audit_v104_plan.md\n M src/memory/answer.py\n M src/memory/compiler.py\n M src/memory/finalize.py\n M src/memory/pipeline.py\n M src/memory/rerank.py\n M src/tests/test_clean_skeleton.py\n?? configs/stage1_aggregation_contract_v123_qwen36_no_think_build4k_cached.json\n?? configs/stage1_inline_memory_hint_v119_qwen36_no_think_build4k_cached.json\n?? configs/stage1_local_evidence_unit_v124_qwen36_no_think_build4k_cached.json\n?? configs/stage1_per_row_selected_context_v122_qwen36_no_think_build4k_cached.json\n?? configs/stage1_rerank_filter_v120_qwen36_no_think_build4k_cached.json\n?? configs/stage1_route_scoped_local_evidence_unit_v125_qwen36_no_think_build4k_cached.json\n?? configs/stage1_source_grounded_guard_v121_qwen36_no_think_build4k_cached.json\n?? configs/stage1_source_manifest_candidate_guide_v118_qwen36_no_think_build4k_cached.json\n?? experiments/diagnostic/stage1_aggregation_contract_v123_lme_list_count_all/\n?? experiments/diagnostic/stage1_inline_memory_hint_v119_lme_list_count_all_reparse/\n?? experiments/diagnostic/stage1_inline_memory_hint_v119_locomo_list_count_all_reparse/\n?? experiments/diagnostic/stage1_local_evidence_unit_v124_locomo_dry/\n?? experiments/diagnostic/stage1_per_row_selected_context_v122_lme_dry/\n?? experiments/diagnostic/stage1_rerank_filter_v120_lme_list_count_all/\n?? experiments/diagnostic/stage1_rerank_filter_v120_locomo_list_count_all/\n?? experiments/diagnostic/stage1_route_scoped_local_evidence_unit_v125_locomo_dry/\n?? experiments/diagnostic/stage1_route_scoped_local_evidence_unit_v125_locomo_temporal_route_all/\n?? experiments/diagnostic/stage1_source_manifest_candidate_guide_v118_lme_list5/\n?? experiments/diagnostic/stage1_source_manifest_candidate_guide_v118_locomo_list5/\n?? experiments/diagnostic/v116_finalizer_impact/\n?? experiments/diagnostic/v121_source_grounded_guard_lme_finalizer_applied_8/\n?? src/tests/test_compiler.py"
+  },
+  "labels": "/data/home_new/wujinqi/agent-memory/outputs/prepare_locomo_non_adversarial/labels.jsonl",
+  "metrics": {
+    "accuracy_exact": 0.21597633136094674,
+    "bleu_unigram": 0.47105564254562343,
+    "by_type": {
+      "1": {
+        "accuracy_exact": 0.2,
+        "n": 10
+      },
+      "2": {
+        "accuracy_exact": 0.17793594306049823,
+        "n": 281
+      },
+      "3": {
+        "accuracy_exact": 0.0,
+        "n": 1
+      },
+      "4": {
+        "accuracy_exact": 0.45652173913043476,
+        "n": 46
+      }
+    },
+    "f1": 0.5057099557557758,
+    "metrics_note": "Offline lexical metrics only. Judge-based benchmark accuracy should be computed in a separate offline step and must not feed prediction.",
+    "n_joined": 338,
+    "n_labels": 1540,
+    "n_missing_gold": 0,
+    "n_predictions": 338
+  },
+  "predictions": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_route_scoped_local_evidence_unit_v125_locomo_temporal_route_all/predictions.jsonl"
+}

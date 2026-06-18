@@ -57,18 +57,25 @@
 - 证据：v102 LoCoMo 大量使用 top60；LME query token 超 6K。v103 尝试 Qwen3-Reranker-0.6B 单 turn rerank + context budget，LME 同 backbone 退步：strict/lenient `0.780/0.818`，低于当前 v102 dual flash `0.814/0.830`。
 - 诊断：rerank 方向不是错，但 v103 把单个 raw turn 当 rerank document，可能丢失邻接对话和 episode 上下文；同时直接裁掉宽上下文会伤 multi-session/temporal。
 - 处理方向：下一次 rerank 不应只 rerank 单 turn，而应 rerank source-grounded evidence units：turn + short neighbor、typed memory text + raw source、episode/session snippet。先不要把 top-k 大幅砍掉，先用 rerank 调整顺序，再由 compiler budget 截断。
+- v129 route-scoped context budget 诊断：继承 v127，不改 retrieval top-k，只对 `fact_lookup` / `profile_preference` / `current_state` 设置 compiler route budget `max_evidence_chars=17000`，不碰 `temporal_lookup` / `list_count`。LME changed prompts `118/500`，full route-only lexical exact/F1/BLEU1 `0.428000/0.633744/0.589603 -> 0.430000/0.636173/0.592207`；LoCoMo changed prompts `581/1540`，full route-only `0.244156/0.537674/0.483784 -> 0.245455/0.538048/0.483962`。但 token 收益有限：LME full avg context chars 只从 `19769.610` 降到 `19390.896`，LoCoMo 从 `17400.642` 降到 `17113.901`，LoCoMo changed subset avg query 仍为 `6112.337`。结论：固定 route char budget 是 clean 的窄正向诊断，但没有解决 top-k/context noise；下一步应做 evidence-density policy 或 rerank-assisted tail pruning，保留高支撑 raw rows、裁掉低边际 tail。
+- v130-v132 fact tail pruning 诊断：v130/v131 证明 `memory_source_interleave` 即使收窄到 fact route，也会产生大面积 order-only prompt drift；v132 新增 `memory_tail_filter_preserve_order`，只保留 LoCoMo fact 的前 40 retrieval anchors 并加入最多 1 条 memory-linked tail raw row，按原 retrieval order 输出。v132 显著降成本：LoCoMo fact avg query `5115.770`，fact context chars `17637.0 -> 14678.1`，rows `55.85 -> 41.00`；但准确率负向，changed subset exact/F1/BLEU1 `0.249433/0.550951/0.488438 -> 0.241497/0.536504/0.476871`，exact gain/loss `14/21`。结论：hard row-count pruning 不适合 `fact_lookup`，后续应保留事实覆盖，用更软的 row-text compression、low-support long-row truncation 或 rerank/memory 作为预算分配信号。
 
 3. Selected context 长/短 turn 规则
 
 - 证据：v102 通过 profile 对 LME 全关、LoCoMo 大量开启。
 - 风险：这是最明显的 dataset-shape heuristic。
 - 已实现改造：新增 `selected_context.max_center_chars`。selected context 现在可以按每条 retrieved turn 判断：只有中心 turn 不太长、且有指代/上下文依赖时补邻居。这样长文本样本中的短指代行仍可补上下文，短文本样本中的长中心行也会跳过。
+- v122 dry-run：继承 v121，只移除 long-turn profile 的 `selected_context.enabled=false`。LME full 编译诊断显示 selected_context 会应用到 `317/500`，avg context chars `+528.594`，avg evidence rows `-2.738`，changed evidence row count `308/500`。结论是不跑 full answer：直接把 short-turn selected context 搬到 long-turn 场景会大范围改变 prompt 并压缩 raw evidence 覆盖。后续应把 profile 改成更通用的 token-budget / evidence-density policy，而不是扩大邻域窗口。
+- v124 dry-run：继承 v121，在 short-turn policy 中加入 `temporal_lookup` 并把 `max_rows` 提到 `10`。LoCoMo full 编译诊断显示 changed `1536/1540`，selected_context applied `1536` vs v116 `1198`，avg context chars `+2101.65`，avg evidence rows `-5.008`。结论是不跑 full answer：全局 local evidence unit 太宽，会影响 fact/list/profile 并压缩 raw rows；下一步改为 `temporal_lookup` route-scoped 小窗口。
+- v125 dry-run/answer 诊断：新增 `retrieval.selected_context.route_overrides.temporal_lookup`，只在 temporal route 加小窗口 local evidence unit。LoCoMo full dry-run 显示只改变 temporal prompt `338/338`，非 temporal route prompt 全部不变，evidence row ids `0/1540` 改变；temporal avg context chars `+1688.524`。temporal route-all answer 诊断 lexical exact/F1/BLEU1 从 v116 `0.186391/0.468985/0.436853` 到 v125 `0.215976/0.505710/0.471056`，exact gain/loss `13/3`。但当前环境缺少 `DEEPSEEK_API_KEY`，v125 dual flash 主指标未跑，因此只能保留为待 judge 候选。
+- v128 dry-run/answer 诊断：继承 v127，只在 `long_turn_precision` profile 的 `profile_preference/current_state` 路由启用已有 per-row selected-context policy，用 route + anaphora/center-length 替代全 profile disable。LME 只改变 `37/500` prompts，fact/list/temporal 不变；LoCoMo changed prompt/rows/context 为 `0/1540`。LME changed-prompt answer 诊断 exact 持平 `0.351351`，F1/BLEU1 小幅上升，但 avg query tokens `6480.730` 超 6K normal target；full route-only exact 也持平 `0.428000`。结论：这是 clean 的结构证据，说明可以把 v122 的宽影响收窄，但没有 accuracy gain，不升级、不优先 judge。
 
 4. Mechanical finalizer 风险
 
-- 证据：当前 finalizer 不读 gold/judge/标签，但包含相对时间、日期差、金额差、平均值、count detail 等机械改写。LoCoMo 中 41 条相对时间答案由 finalizer 改写。
-- 风险：这些规则通用但看起来像 benchmark answer-format solver，尤其是相对时间和数值题。
-- 处理方向：v104 诊断候选关闭 mechanical finalizer，改用已有 `answer.repair` 的 source-grounded verifier/repair 通道。repair 只看 Memory Context 和 Draft Answer，在不确定、短列表、时间冲突、profile/preference 等通用风险信号下触发；它不会读 gold、judge、category 或 question_type。
+- 证据：v102 finalizer 不读 gold/judge/标签，但包含相对时间、日期差、金额差、平均值、count detail 等机械改写。v102 finalizer-impact 诊断显示 LME 触发 `54` 条、LoCoMo 触发 `46` 条；LoCoMo relative-time finalizer 在触发子集上从 draft lenient `40/46` 降到 final `34/46`。
+- v116 现状：LME finalizer 只触发 `8/500`，LoCoMo `0/1540`；这 8 条全部是 `missing_detail_from_structured_answer`，不是算术或相对时间改写。对这 8 条做 draft-only 双 flash：draft strict/lenient `1/8 / 1/8`，v116 final subset `1/8 / 2/8`，说明 missing-detail 有极小正收益，但 broad mechanical finalizer 的其它规则没有当前 LTS 收益证据。
+- 风险：相对时间、日期差、金额差、平均值、count detail 这类规则虽然不作弊，但容易像 benchmark answer-format solver；保留它们会增加 general 解释成本。
+- 已实现收敛：v121 新增 `source_grounded_consistency_guard` mode。该 mode 不做 count/date/money/relative-time 机械算答案，只允许在 answer model 自己结构化输出 `sufficient=false` 且给出 `missing` 字段时，把短拒答扩写成 source-grounded 缺失说明。v121 在 v116 LME finalizer-applied 8 条 smoke 上输出与 v116 完全一致，只把 trace reason 改为 `source_grounded_missing_detail`。
 
 5. Build memory 使用不足
 
@@ -81,6 +88,9 @@
   - Hindsight：多路 recall 后做 rerank，同时用 temporal/recency/proof count 作为轻量排序调制，而不是让 rerank 覆盖所有信号。
   - MemU：memory as file system，resource/items/resources 分层，强调原始来源和主动 context loading。
 - 处理方向：后续 v105/v106 应把 build memory 升级为 typed memory activation layer：memory record 命中后形成 source-grounded evidence unit，包含 memory text、type、status、source turns、neighbor turns、temporal fields；compiler 可以显示少量 typed memory guide，但最终答案仍要求回到 raw source 或明确标注 typed memory 来源。
+- v126 trace audit：v116 traces 显示 build memory 已广泛参与 source projection，而不是完全闲置。LME `489/500` 有 memory hits、`486/500` 有 memory-projected source 进入最终 rows；LoCoMo `1539/1540` 有 memory hits 且有 memory-projected source 进入最终 rows。LoCoMo 平均 memory hits `19.858`、memory source hits `25.938`、最终 rows 中 memory source ids `11.582`。结论：build memory 的下一步不是继续给 reader 加 hint，而是做 source-backed coverage/conflict/entity/temporal organization，仍让最终答案回到 raw Memory Context rows。
+- v126 profile/current diagnostic：新增 `memory_source_interleave` raw-row ordering，先保留 retrieval anchors，再按原 retrieval order 提前少量 build-memory-linked raw rows，不把 typed memory 文本暴露给 reader。最初 broad version 影响 LoCoMo `929/1540` prompts，过宽；最终配置只作用于 `profile_preference/current_state`。LoCoMo dry-run 只改 `50/1540` prompts，LME 只改 `12/500` prompts。LoCoMo profile/current lexical exact/F1/BLEU1 从 v125 subset `0.320000/0.526452/0.472298` 到 v126 `0.360000/0.577031/0.522415`；LoCoMo full route-only lexical 也小幅正向。LME full route-only exact 持平 `0.426000`，F1/BLEU1 从 `0.631668/0.587792` 降到 `0.630589/0.586597`。结论：保留为窄范围待 judge candidate，不能升级 LTS；若 dual judge 不正向应停止。
+- v127 superseded source-chain diagnostic：继承 v126，只允许 profile/current route 的 memory BM25 召回 superseded build-memory records，从而把 older/newer state chains 投影回 raw source rows。LME 只改 `5/500` prompts，full route-only lexical exact `0.426000 -> 0.428000`；LoCoMo 只改 `24/1540` prompts，full exact 持平但 F1/BLEU1 小幅上升。结论：保留为 narrow positive diagnostic candidate，仍需 dual flash judge，不能升级 LTS。
 
 ## v104 诊断候选
 
@@ -726,3 +736,237 @@ Smoke：
 - v117 不进入 full，不保留为正式配置。
 - 当前 repair prompt 仍容易把可接受的近似答案改成过度保守答案，或在实体归因上引入新错误。
 - 下一步不要继续堆 answer-side repair；应先做 query-time evidence planner / source manifest：把候选证据组织成可核查的事实、时间线、集合和冲突表，再让 verifier 只检查 support/coverage，而不是自由改写答案。
+
+## v118 smoke result: prompt-side source manifest rejected
+
+候选思路：
+
+- 继承 v116，不改 build cache、retrieval top-k、granularity profiles、selected context、modal grounded inference、mechanical finalizer 或 answer backbone。
+- 新增可选 `Candidate Evidence Map` 的 source-linked build-memory hints；build memory 只作为 raw Memory Context rows 的组织标签，不作为独立证据。
+- 为控制成本，最终 v118 只在通用 `list_count` route 启用；诊断输入由 clean prediction input 通过当前 `QuestionRouter` 选出，不使用 gold、judge、category、sample id 或 row index。
+
+外部方法借鉴与取舍：
+
+- 借鉴 MemOS / MemU / Nemori / SimpleMem / Graphiti 的共同点：派生 memory 应保留 source backpointer，用于组织、定位、冲突和召回，而不是替代 raw evidence。
+- 取舍：不引入完整 graph / memory OS，也不让 typed memory 直接进入最终答案区；只在候选 evidence map 中显示短 source hint。
+
+诊断结果：
+
+- LME list-count smoke5：v116 strict/lenient `5/5` / `5/5`，v118 strict/lenient `5/5` / `5/5`；answer changed `1/5`，只是 `500 copies` -> `500`；avg query tokens 相比 v116 `+553.6`。
+- LoCoMo list-count smoke5：v116 strict/lenient `2/5` / `4/5`，v118 strict/lenient `2/5` / `3/5`；answer changed `4/5`，其中一条 lenient-correct 被改错；avg query tokens 相比 v116 `+625.8`。
+
+结论：
+
+- v118 不进入 full。source manifest 作为额外 prompt block 是 clean 的，但成本高且会干扰 LoCoMo list/count 答案。
+- 下一步不要继续“给 reader 追加一块候选表”的路线；更合理的是把 evidence planning 变成更紧凑的结构化中间层或检索/排序侧信号，或者替换已有 guide 中的冗余内容，而不是叠加新 prompt。
+
+## v119 route-all result: inline memory hint rejected
+
+候选思路：
+
+- 继承 v116，不改 build cache、retrieval top-k、granularity profiles、selected context、modal grounded inference、mechanical finalizer 或 answer backbone。
+- 不再新增 v118 的 `Candidate Evidence Map` block，而是在已有 `Structured Evidence Guide` row 上追加极短 `memory_hint=type:value`。
+- 只在通用 `list_count` information need 启用；hint 必须来自 build memory 的 `source_ids`，且只能贴到同一个 raw Memory Context row 上，因此不是独立答案证据。
+
+工程修复：
+
+- 在 v119 route-all 诊断中发现 Qwen3.6 偶发 malformed JSON / long reasoning loop，旧 parser 会把整段 JSON/reasoning 当答案写入 prediction。
+- 已将 `json_answer` parser 改为通用格式 guard：优先合法 JSON，其次只抢救 `"answer"` 字段或明确短 `Answer:` / `I will output ...` marker；无法安全抽取时返回统一 insufficient。
+- 该修复不读 gold、judge、benchmark label、sample id 或 test feedback；只处理模型输出格式失败。
+
+诊断范围：
+
+- LME：由 clean prediction input 经当前 `QuestionRouter` 选出的全部 `list_count` route，119/500。
+- LoCoMo：由 clean prediction input 经当前 `QuestionRouter` 选出的全部 `list_count` route，270/1540。
+- v116 对照为同一批 record_key 的正式 full prediction 子集。
+
+结果：
+
+- LME route-all：v116 strict/lenient `0.848739 / 0.873950`；v119 strict/lenient `0.823529 / 0.857143`。answer changed `22/119`，strict gain/loss `3/6`，lenient gain/loss `3/5`。
+- LoCoMo route-all：v116 strict/lenient `0.677778 / 0.729630`；v119 strict/lenient `0.670370 / 0.700000`。answer changed `121/270`，strict gain/loss `11/13`，lenient gain/loss `9/17`。
+- Token：LME route-all avg build/query `84898.555 / 6064.235`；LoCoMo route-all avg build/query `62924.622 / 6401.967`。这些 query tokens 来自原始 cached API usage，parser reparse 只修输出文本，不回写模型实际消耗。
+- 输出路径：`outputs/diagnostic/stage1_inline_memory_hint_v119_lme_list_count_all_reparse/`；`outputs/diagnostic/stage1_inline_memory_hint_v119_locomo_list_count_all_reparse/`。
+
+结论：
+
+- v119 不进入 full，也不作为 LTS。
+- source-linked memory hint 本身 clean，但直接塞进 reader prompt 仍会改变大量答案并带来净负；这支持 v118 的判断：build memory 不应继续以额外 reader hint 的形式暴露。
+- 下一步若继续解决“build memory 不只是 retrieval index”的问题，应转向检索/排序侧或更明确的 query-time planning 中间层，例如 rerank、evidence unit selection、conflict/state planner；不要继续简单增加 reader prompt 内容。
+
+## v120 route-all result: rerank tail filter rejected
+
+候选思路：
+
+- 继承 v116，不改 build cache、granularity profiles、selected context、compiler、modal grounded inference、mechanical finalizer 或 answer backbone。
+- 只对通用 `list_count` information need 启用 Qwen3-Reranker-0.6B。
+- 与 v112 直接重排最终 raw rows 不同，v120 使用 `selection_mode=filter_preserve_order`：先取 60-row candidate pool，保留前 32 个 hybrid-retrieval anchor，再用 rerank score 选择 tail，最终 reader context 仍按原 hybrid retrieval 顺序输出，最终保留 52 rows。
+- 设计参考 SimpleMem / Graphiti / MemOS 的 multi-view retrieval + rerank 思路，但取舍为：rerank 只做低置信 tail filtering，不让 cross-encoder 覆盖原 hybrid order。
+
+诊断范围：
+
+- LME：由 clean prediction input 经当前 `QuestionRouter` 选出的全部 `list_count` route，119/500。
+- LoCoMo：由 clean prediction input 经当前 `QuestionRouter` 选出的全部 `list_count` route，270/1540。
+- v116 对照为同一批 record_key 的正式 full prediction 子集。
+
+结果：
+
+- LME route-all：v116 strict/lenient `0.848739 / 0.873950`；v120 strict/lenient `0.831933 / 0.848739`。answer changed `24/119`，strict gain/loss `5/7`，lenient gain/loss `4/7`。
+- LoCoMo route-all：v116 strict/lenient `0.677778 / 0.729630`；v120 strict/lenient `0.662963 / 0.711111`。answer changed `117/270`，strict gain/loss `14/18`，lenient gain/loss `15/20`。
+- Token：LME route-all avg build/query `84898.555 / 5976.345`，avg rerank tokens `20669.042`；LoCoMo route-all avg build/query `62924.622 / 5985.081`，avg rerank tokens `14577.867`。rerank tokens 按协议单独记录，不计入 LLM build/query token。
+- 形态：LoCoMo avg query tokens 比 v116 selected subset 约 `-390`，avg context chars 约 `-1154`；但 accuracy 净负。
+- 输出路径：`outputs/diagnostic/stage1_rerank_filter_v120_lme_list_count_all/`；`outputs/diagnostic/stage1_rerank_filter_v120_locomo_list_count_all/`。
+
+结论：
+
+- v120 不进入 full，也不作为 LTS。
+- 对 list/count 来说，减少 tail 虽可降 token，但会损失覆盖，cross-encoder relevance 不足以替代 broad evidence coverage。
+- 后续 rerank 不能简单用于裁剪 list/count 集合；更合理的方向是 coverage-aware organization，例如保留 broad raw evidence，再用 build memory / rerank 生成 coverage groups、dedup/merge 或 conflict/state plan，而不是减少最终可见证据。
+
+## v122 dry-run result: per-row selected context rejected for LME
+
+配置：`configs/stage1_per_row_selected_context_v122_qwen36_no_think_build4k_cached.json`
+
+设计目的：
+
+- 继承 v121，只移除 long-turn profile 的 `selected_context.enabled=false`，检查 selected context 长/短 turn 规则能否改成更 general 的 per-row policy。
+- 不调用 answer LLM，只做 full LME compile dry-run，避免在高风险 prompt 大改上浪费正式评估成本。
+
+结果：
+
+- selected_context applied `317/500`
+- changed_context `317/500`
+- avg context char delta `+528.594`
+- avg evidence row delta `-2.738`
+- changed evidence row count `308/500`
+
+结论：拒绝，不跑 full answer。这个改动虽然比 benchmark-level profile 更 general，但在 LME 上会大范围改变 prompt，并因为固定 evidence budget 压缩 raw evidence rows。下一步应做 token-budget / evidence-density policy，而不是把 short-turn selected context 直接搬到 long-turn 场景。
+
+## v123 route-all result: aggregation contract rejected
+
+配置：`configs/stage1_aggregation_contract_v123_qwen36_no_think_build4k_cached.json`
+
+设计目的：
+
+- 继承 v121，只对 `list_count` information need 中的问题语义触发通用 `aggregation_report_contract`。
+- 不改变 build/retrieval/top-k/selected context；只让 answer model 在 evidence report 中标记 include/exclude、canonical item、count increment/operand 和 calculation。
+- 该设计不使用 gold、judge、benchmark 标签、sample id 或样本级规则。
+
+结果：
+
+- LME list_count route-all：v116 strict/lenient `0.848739 / 0.873950`，v123 `0.815126 / 0.840336`。
+- Answer changed vs v116：`20/119`。
+- Strict gain/loss：`4/8`；lenient gain/loss：`1/5`。
+- Token：avg build/query `84898.555 / 6144.160`；build cache hit `797`，answer cache miss/write `119/119`。
+
+诊断：
+
+- v123 在 temporal-reasoning group strict 有小幅收益，但 knowledge-update 和 multi-session 下降更大。
+- Reader-side aggregation schema 会增加模型过度排除或过度承诺的风险，不能稳定修复 list/count。
+
+结论：拒绝，不跑 LoCoMo。后续不要继续给最终 answer prompt 叠加更重的 aggregation 指令；更应做 evidence planning / dedup / conflict organization / build-memory management，并保持 raw evidence 覆盖。
+
+## v124 dry-run result: broad local evidence unit rejected
+
+配置：`configs/stage1_local_evidence_unit_v124_qwen36_no_think_build4k_cached.json`
+
+设计目的：
+
+- 继承 v121，只改变短 turn selected-context policy：加入 `temporal_lookup`，并把 `max_rows` 从 `6` 提到 `10`。
+- 不调用 answer LLM，只做 full LoCoMo compile dry-run，用于判断更宽 local evidence unit 是否会造成不可接受的 prompt churn。
+- 该设计只使用 question text、raw Memory Context、same-session visible turn order 和 prediction-time route，不使用 gold、judge、benchmark 标签、sample id 或样本级规则。
+
+结果：
+
+- changed `1536/1540`
+- selected_context applied `1536` vs v116 `1198`
+- materialized selected-context rows `15360` vs v116 `7188`
+- avg context char delta `+2101.65`
+- avg evidence row delta `-5.008`
+- temporal_lookup route avg context char delta `+6077.1`
+- fact/list/profile routes也全部改变，并且平均减少约 6 条 raw evidence row
+
+诊断：
+
+- v124 捕捉到了“邻接证据补全”的方向，但策略过宽。
+- 它不是直接泄漏或 benchmark shortcut，仍然 clean；问题是成本和 context-noise 过高，且会压缩非 temporal 路线的 raw evidence coverage。
+- 更合理的下一步是保留 v116 fact/list/profile selected context 不变，只为 `temporal_lookup` 增加小窗口 route override。
+
+结论：拒绝，不跑 full answer。继续 v125 route-scoped local evidence unit。
+
+## v125 diagnostic result: route-scoped temporal local evidence unit pending judge
+
+配置：`configs/stage1_route_scoped_local_evidence_unit_v125_qwen36_no_think_build4k_cached.json`
+
+设计目的：
+
+- 继承 v121/v116，只新增 `retrieval.selected_context.route_overrides.temporal_lookup`。
+- temporal questions 可以围绕最多 4 个短、指代性中心 row 补同 session 前后各 1 个邻居；fact/list/profile selected context 保持 v116 不变。
+- 该设计只使用 question text、raw Memory Context、same-session visible turn order 和 prediction-time route，不使用 gold、judge、benchmark 标签、sample id 或样本级规则。
+
+dry-run 结果：
+
+- LoCoMo full null-answer compile dry-run。
+- route override applied `338/338` temporal samples。
+- changed prompt：temporal `338/338`；current/fact/list/profile `0`。
+- changed evidence row ids：`0/1540`。
+- temporal avg context char delta `+1688.524`；非 temporal route 全部 `0.0`。
+- selected-context materialized rows：v116 `7188`，v125 `8540`。
+
+answer 诊断：
+
+- LoCoMo temporal route-all `338` 条。
+- Avg build/query tokens `60931.935 / 5395.908`。
+- Build cache hit/miss/write `2680/0/0`；answer cache hit/miss/write `1/337/337`。
+- Answer changed vs v116 temporal subset `127/338`；finalizer applied `0`。
+- V116 same-subset existing dual flash baseline：strict/lenient `0.769231 / 0.789941`。
+- V125 dual flash 未跑：当前环境没有 `DEEPSEEK_API_KEY` 或其它 `DEEPSEEK*` env。
+- 辅助 lexical exact/F1/BLEU1：v116 temporal subset `0.186391 / 0.468985 / 0.436853`，v125 `0.215976 / 0.505710 / 0.471056`；exact gain/loss `13/3`。
+
+full cached artifact：
+
+- 预测路径：先用 `scripts/seed_answer_cache_from_traces.py` 从 v116 prediction traces seed 相同 prompt 到 v125 answer cache；再跑 full LoCoMo v125 config。
+- 输出：`outputs/diagnostic/stage1_route_scoped_local_evidence_unit_v125_locomo_nonadv_full_cached/`。
+- Avg build/query tokens `62015.574 / 6058.560`；answer cache hit/miss/write `1540/0/0`。
+- Full lexical exact/F1/BLEU1：v116 `0.236364 / 0.527409 / 0.474098`，v125 full cached `0.242857 / 0.535751 / 0.481794`。
+- 相对 v116 changed answer `131/1540`：其中 temporal `127`；非 temporal `4` 来自同一 dirty worktree 中通用 `json_answer` parser/cache-hit repair 对旧 malformed cached answer 的修复，不是 v125 selected-context route override 本身。
+
+route-only full merge：
+
+- 为隔离 parser-guard confound，另建 full prediction merge artifact。
+- 输入：v116 full predictions for non-temporal records + v125 temporal route-all predictions for temporal records。
+- 输出：`outputs/diagnostic/stage1_route_scoped_local_evidence_unit_v125_locomo_nonadv_full_route_only_merge/predictions.jsonl`。
+- Merge counts：v116/base `1202`，v125 temporal `338`，route mismatch `0`。
+- 相对 v116 changed answer `127/1540`，全部是 `temporal_lookup`。
+- Exact gain/loss `13/3`。
+- Full lexical exact/F1/BLEU1：v116 `0.236364 / 0.527409 / 0.474098`，v125 route-only merge `0.242857 / 0.535470 / 0.481605`。
+
+结论：v125 通过 scope/cost 诊断，且辅助 lexical 正向；但 primary dual `deepseek-v4-flash` accuracy 缺失，不能升级 LTS。补 temporal 和 route-only full judge 后再决定是否跑/合并 full formal。
+
+## v133/v134 diagnostic result: fact tail text budget
+
+配置：
+
+- `configs/stage1_fact_tail_snippet_budget_v133_qwen36_no_think_build4k_cached.json`
+- `configs/stage1_fact_tail_snippet_budget_v134_qwen36_no_think_build4k_cached.json`
+
+设计目的：
+
+- 继承 v129 的 `fact_lookup/profile_preference/current_state` route-scoped `max_evidence_chars=17000`。
+- 修复 v132 hard row pruning 的 coverage loss：不删除 `fact_lookup` low-rank raw rows，只压缩 direct retrieval rank `>40` 的 row text。
+- Tail compression 只影响最终 prompt rendering；row selection 仍按未压缩文本预算执行，避免因为压缩而额外纳入 row。
+- 该设计只使用 question text、prediction-time route、retrieval rank 和 raw row text，不使用 gold、judge、benchmark 标签、sample id、row index、test feedback 或样本级规则。
+
+dry-run 结果：
+
+- LME：v133/v134 均 `0/500` prompt change，row set 和 avg context 完全不变。
+- v133：LoCoMo fact prompt changed `207/882`，row set changed `0`，fact avg context 只降 `8.552` chars，过保守，拒绝。
+- v134：LoCoMo fact prompt changed `882/882`，row set changed `0`，fact avg context `17637.014 -> 17025.604`，full avg context `17113.901 -> 16763.730`，avg evidence rows 保持 `52.860`。
+
+answer 诊断：
+
+- LoCoMo fact changed subset `882` 条。
+- V134 avg build/query tokens `62126.289 / 5910.726`，把 changed-subset query 降到 6K 内。
+- Changed-subset lexical exact/F1/BLEU1：v129 `0.249433 / 0.550951 / 0.488438`，v134 `0.253968 / 0.550460 / 0.490170`，exact gain/loss `22/18`。
+- Full route-only merge：v129 exact/F1/BLEU1 `0.245455 / 0.538048 / 0.483962`，v134 `0.248052 / 0.537767 / 0.484954`，merge counts 为 v134 fact override `882`、v129 non-fact `658`。
+
+结论：v133 拒绝。v134 保留为 narrow positive token-budget diagnostic candidate，但不能升级 LTS；primary dual `deepseek-v4-flash` judge 未跑，且 F1 轻微下降。下一步先补 v134 fact subset/full route-only dual judge；若 judge 正向，再考虑相邻 `tail_max_row_text_chars=80`。

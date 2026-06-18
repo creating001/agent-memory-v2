@@ -12,12 +12,17 @@ from memory.answer import CachedAnswerer, NullAnswerer, OpenAICompatibleAnswerer
 from memory.build import NullMemoryBuilder, OpenAICompatibleMemoryBuilder
 from memory.compiler import EvidenceCompiler, SUPPORTED_INFORMATION_NEEDS
 from memory.embeddings import CachedEmbeddingClient, OpenAICompatibleEmbeddingClient
-from memory.finalize import AnswerFinalization, finalize_structured_answer
+from memory.finalize import (
+    AnswerFinalization,
+    finalize_structured_answer,
+    guard_source_grounded_answer,
+)
 from memory.repair import maybe_repair_answer
 from memory.rerank import (
     OpenAICompatibleRerankClient,
     format_rerank_evidence_document,
     format_rerank_turn_document,
+    rerank_hits_filter_preserve_order,
     rerank_hits_with_anchor_retention,
 )
 from memory.retrieval import (
@@ -246,6 +251,11 @@ class Stage1Pipeline:
         self._selected_context_information_needs = _tuple_config(
             selected_context_config.get("information_needs")
         )
+        self._selected_context_route_overrides = (
+            _validate_selected_context_route_overrides(
+                selected_context_config.get("route_overrides") or {}
+            )
+        )
         self._selected_context_trace_config = {
             "enabled": self._selected_context_enabled,
             "window_before": self._selected_context_window_before,
@@ -255,6 +265,7 @@ class Stage1Pipeline:
             "max_center_chars": self._selected_context_max_center_chars,
             "require_anaphora": self._selected_context_require_anaphora,
             "information_needs": self._selected_context_information_needs,
+            "route_overrides": self._selected_context_route_overrides,
         }
         self._rerank_enabled = bool(rerank_config.get("enabled", False))
         self._rerank_model = rerank_config.get("model")
@@ -293,6 +304,17 @@ class Stage1Pipeline:
         self._rerank_anchor_after_top = int(
             rerank_config.get("anchor_after_top", 0)
         )
+        self._rerank_selection_mode = str(
+            rerank_config.get("selection_mode", "reorder")
+        )
+        if self._rerank_selection_mode not in {
+            "reorder",
+            "filter_preserve_order",
+        }:
+            raise ValueError(
+                "Unsupported retrieval.rerank.selection_mode: "
+                f"{self._rerank_selection_mode}"
+            )
         self._rerank_query_text_mode = str(
             rerank_config.get("query_text_mode", "external_naive")
         )
@@ -402,6 +424,15 @@ class Stage1Pipeline:
             structured_guide_include_memory=bool(
                 compiler_config.get("structured_guide_include_memory", True)
             ),
+            structured_guide_memory_hints=bool(
+                compiler_config.get("structured_guide_memory_hints", False)
+            ),
+            structured_guide_max_memory_hints_per_row=int(
+                compiler_config.get("structured_guide_max_memory_hints_per_row", 1)
+            ),
+            structured_guide_memory_hint_chars=int(
+                compiler_config.get("structured_guide_memory_hint_chars", 70)
+            ),
             structured_guide_disabled_signals=_tuple_config(
                 compiler_config.get("structured_guide_disabled_signals")
             ),
@@ -460,6 +491,15 @@ class Stage1Pipeline:
             candidate_guide_snippet_chars=int(
                 compiler_config.get("candidate_guide_snippet_chars", 160)
             ),
+            candidate_guide_include_memory_hints=bool(
+                compiler_config.get("candidate_guide_include_memory_hints", False)
+            ),
+            candidate_guide_max_memory_hints=int(
+                compiler_config.get("candidate_guide_max_memory_hints", 2)
+            ),
+            candidate_guide_memory_hint_chars=int(
+                compiler_config.get("candidate_guide_memory_hint_chars", 120)
+            ),
             update_conflict_guide=bool(
                 compiler_config.get("update_conflict_guide", False)
             ),
@@ -513,6 +553,15 @@ class Stage1Pipeline:
             memory_layout=str(compiler_config.get("memory_layout", "flat")),
             row_text_mode=str(compiler_config.get("row_text_mode", "full")),
             max_row_text_chars=int(compiler_config.get("max_row_text_chars", 0)),
+            tail_row_text_mode=str(
+                compiler_config.get("tail_row_text_mode", "full")
+            ),
+            tail_row_text_after_rank=int(
+                compiler_config.get("tail_row_text_after_rank", 0)
+            ),
+            tail_max_row_text_chars=int(
+                compiler_config.get("tail_max_row_text_chars", 0)
+            ),
             route_guidance=bool(compiler_config.get("route_guidance", False)),
             evidence_row_labels=bool(
                 compiler_config.get("evidence_row_labels", False)
@@ -980,7 +1029,8 @@ class Stage1Pipeline:
             order=self._neighbor_order,
         )
         selected_context_settings = self._selected_context_settings(
-            granularity_profile
+            granularity_profile,
+            route,
         )
         evidence_turns, selected_context = _materialize_selected_context(
             store=store,
@@ -996,6 +1046,9 @@ class Stage1Pipeline:
             require_anaphora=selected_context_settings["require_anaphora"],
         )
         selected_context["granularity_profile"] = granularity_profile
+        selected_context["route_override"] = selected_context_settings.get(
+            "route_override"
+        )
         compiler_memory_records = _compiler_memory_records(
             source=self._compiler_memory_record_source,
             memory_hits=memory_hits,
@@ -1248,6 +1301,9 @@ class Stage1Pipeline:
                     "rerank_anchor_after_top": self._rerank_anchor_after_top
                     if self._rerank_enabled
                     else None,
+                    "rerank_selection_mode": self._rerank_selection_mode
+                    if self._rerank_enabled
+                    else None,
                     "rerank_information_needs": self._rerank_information_needs,
                     "rerank_candidate_count": rerank_trace["candidate_count"],
                     "rerank_returned_count": rerank_trace["returned_count"],
@@ -1398,6 +1454,7 @@ class Stage1Pipeline:
     def _selected_context_settings(
         self,
         granularity_profile: Mapping[str, Any] | None,
+        route: RouteResult,
     ) -> dict[str, Any]:
         settings: dict[str, Any] = {
             "enabled": self._selected_context_enabled,
@@ -1409,6 +1466,12 @@ class Stage1Pipeline:
             "require_anaphora": self._selected_context_require_anaphora,
             "information_needs": self._selected_context_information_needs,
         }
+        route_override = self._selected_context_route_overrides.get(
+            route.information_need
+        )
+        if route_override:
+            settings.update(route_override)
+            settings["route_override"] = route.information_need
         if granularity_profile:
             settings.update(granularity_profile.get("selected_context", {}))
             settings["information_needs"] = _tuple_config(
@@ -1470,17 +1533,27 @@ class Stage1Pipeline:
             mode=self._rerank_query_text_mode,
         )
         result = self._rerank_client.rerank(query=query, documents=documents)
-        reranked_hits = rerank_hits_with_anchor_retention(
-            hits=rerank_hits,
-            scores=result.scores,
-            top_k=top_k,
-            anchor_keep=self._rerank_anchor_keep,
-            anchor_after_top=self._rerank_anchor_after_top,
-        )
+        if self._rerank_selection_mode == "filter_preserve_order":
+            reranked_hits = rerank_hits_filter_preserve_order(
+                hits=rerank_hits,
+                scores=result.scores,
+                top_k=top_k,
+                anchor_keep=self._rerank_anchor_keep,
+                anchor_after_top=self._rerank_anchor_after_top,
+            )
+        else:
+            reranked_hits = rerank_hits_with_anchor_retention(
+                hits=rerank_hits,
+                scores=result.scores,
+                top_k=top_k,
+                anchor_keep=self._rerank_anchor_keep,
+                anchor_after_top=self._rerank_anchor_after_top,
+            )
         return reranked_hits, {
             "enabled": self._rerank_enabled,
             "applied": True,
             "information_needs": self._rerank_information_needs,
+            "selection_mode": self._rerank_selection_mode,
             "candidate_count": len(rerank_hits),
             "returned_count": len(reranked_hits),
             "total_tokens": result.total_tokens,
@@ -1535,6 +1608,14 @@ class Stage1Pipeline:
                 reason="disabled",
             )
         mode = str(settings.get("mode", "structured_evidence_mechanical"))
+        if mode == "source_grounded_consistency_guard":
+            return guard_source_grounded_answer(
+                draft_answer=answer.answer,
+                raw_response=answer.raw_response,
+                enable_missing_detail=bool(
+                    settings.get("enable_missing_detail", False)
+                ),
+            )
         if mode != "structured_evidence_mechanical":
             raise ValueError(
                 f"Unsupported answer.finalizer.mode: {mode}"
@@ -2127,6 +2208,16 @@ RETRIEVAL_ROUTE_OVERRIDE_KEYS = {
     "lexical_protect_top_n",
     "dense_protect_top_n",
 }
+SELECTED_CONTEXT_OVERRIDE_KEYS = {
+    "enabled",
+    "window_before",
+    "window_after",
+    "max_rows",
+    "max_neighbor_chars",
+    "max_center_chars",
+    "require_anaphora",
+    "information_needs",
+}
 
 
 def _merged_config(
@@ -2175,6 +2266,13 @@ def _compiler_trace_config(
         "memory_layout": str(compiler_config.get("memory_layout", "flat")),
         "row_text_mode": str(compiler_config.get("row_text_mode", "full")),
         "max_row_text_chars": int(compiler_config.get("max_row_text_chars", 0)),
+        "tail_row_text_mode": str(compiler_config.get("tail_row_text_mode", "full")),
+        "tail_row_text_after_rank": int(
+            compiler_config.get("tail_row_text_after_rank", 0)
+        ),
+        "tail_max_row_text_chars": int(
+            compiler_config.get("tail_max_row_text_chars", 0)
+        ),
         "evidence_row_labels": bool(compiler_config.get("evidence_row_labels", False)),
         "final_answer_checklist": bool(
             compiler_config.get("final_answer_checklist", False)
@@ -2208,6 +2306,15 @@ def _compiler_trace_config(
         ),
         "structured_guide_include_memory": bool(
             compiler_config.get("structured_guide_include_memory", True)
+        ),
+        "structured_guide_memory_hints": bool(
+            compiler_config.get("structured_guide_memory_hints", False)
+        ),
+        "structured_guide_max_memory_hints_per_row": int(
+            compiler_config.get("structured_guide_max_memory_hints_per_row", 1)
+        ),
+        "structured_guide_memory_hint_chars": int(
+            compiler_config.get("structured_guide_memory_hint_chars", 70)
         ),
         "structured_guide_disabled_signals": _tuple_config(
             compiler_config.get("structured_guide_disabled_signals")
@@ -2257,6 +2364,15 @@ def _compiler_trace_config(
         ),
         "candidate_guide_snippet_chars": int(
             compiler_config.get("candidate_guide_snippet_chars", 160)
+        ),
+        "candidate_guide_include_memory_hints": bool(
+            compiler_config.get("candidate_guide_include_memory_hints", False)
+        ),
+        "candidate_guide_max_memory_hints": int(
+            compiler_config.get("candidate_guide_max_memory_hints", 2)
+        ),
+        "candidate_guide_memory_hint_chars": int(
+            compiler_config.get("candidate_guide_memory_hint_chars", 120)
         ),
         "update_conflict_guide": bool(
             compiler_config.get("update_conflict_guide", False)
@@ -2348,6 +2464,15 @@ def _configured_compiler(compiler_config: Mapping[str, Any]) -> EvidenceCompiler
         structured_guide_include_memory=bool(
             compiler_config.get("structured_guide_include_memory", True)
         ),
+        structured_guide_memory_hints=bool(
+            compiler_config.get("structured_guide_memory_hints", False)
+        ),
+        structured_guide_max_memory_hints_per_row=int(
+            compiler_config.get("structured_guide_max_memory_hints_per_row", 1)
+        ),
+        structured_guide_memory_hint_chars=int(
+            compiler_config.get("structured_guide_memory_hint_chars", 70)
+        ),
         structured_guide_disabled_signals=_tuple_config(
             compiler_config.get("structured_guide_disabled_signals")
         ),
@@ -2406,6 +2531,15 @@ def _configured_compiler(compiler_config: Mapping[str, Any]) -> EvidenceCompiler
         candidate_guide_snippet_chars=int(
             compiler_config.get("candidate_guide_snippet_chars", 160)
         ),
+        candidate_guide_include_memory_hints=bool(
+            compiler_config.get("candidate_guide_include_memory_hints", False)
+        ),
+        candidate_guide_max_memory_hints=int(
+            compiler_config.get("candidate_guide_max_memory_hints", 2)
+        ),
+        candidate_guide_memory_hint_chars=int(
+            compiler_config.get("candidate_guide_memory_hint_chars", 120)
+        ),
         update_conflict_guide=bool(
             compiler_config.get("update_conflict_guide", False)
         ),
@@ -2459,6 +2593,13 @@ def _configured_compiler(compiler_config: Mapping[str, Any]) -> EvidenceCompiler
         memory_layout=str(compiler_config.get("memory_layout", "flat")),
         row_text_mode=str(compiler_config.get("row_text_mode", "full")),
         max_row_text_chars=int(compiler_config.get("max_row_text_chars", 0)),
+        tail_row_text_mode=str(compiler_config.get("tail_row_text_mode", "full")),
+        tail_row_text_after_rank=int(
+            compiler_config.get("tail_row_text_after_rank", 0)
+        ),
+        tail_max_row_text_chars=int(
+            compiler_config.get("tail_max_row_text_chars", 0)
+        ),
         route_guidance=bool(compiler_config.get("route_guidance", False)),
         evidence_row_labels=bool(compiler_config.get("evidence_row_labels", False)),
         final_answer_checklist=bool(
@@ -2534,6 +2675,34 @@ def _validate_retrieval_route_overrides(
     return normalized
 
 
+def _validate_selected_context_route_overrides(
+    route_overrides: Mapping[str, Mapping[str, Any]],
+) -> dict[str, dict[str, Any]]:
+    normalized: dict[str, dict[str, Any]] = {}
+    for information_need, raw_overrides in route_overrides.items():
+        if information_need not in SUPPORTED_INFORMATION_NEEDS:
+            raise ValueError(
+                "Unsupported retrieval.selected_context route override: "
+                f"{information_need}"
+            )
+        if not isinstance(raw_overrides, Mapping):
+            raise ValueError(
+                "retrieval.selected_context.route_overrides."
+                f"{information_need} must be an object"
+            )
+        unknown_keys = set(raw_overrides).difference(SELECTED_CONTEXT_OVERRIDE_KEYS)
+        if unknown_keys:
+            keys = ", ".join(sorted(unknown_keys))
+            raise ValueError(
+                "Unsupported retrieval.selected_context.route_overrides."
+                f"{information_need} keys: {keys}"
+            )
+        normalized[information_need] = _normalized_selected_context_override(
+            raw_overrides
+        )
+    return normalized
+
+
 def _validate_granularity_profiles(value: object) -> tuple[dict[str, Any], ...]:
     if not value:
         return ()
@@ -2573,17 +2742,9 @@ def _validate_granularity_profiles(value: object) -> tuple[dict[str, Any], ...]:
         if unknown_retrieval:
             keys = ", ".join(sorted(unknown_retrieval))
             raise ValueError(f"Unsupported granularity retrieval keys: {keys}")
-        allowed_selected = {
-            "enabled",
-            "window_before",
-            "window_after",
-            "max_rows",
-            "max_neighbor_chars",
-            "max_center_chars",
-            "require_anaphora",
-            "information_needs",
-        }
-        unknown_selected = set(selected_context).difference(allowed_selected)
+        unknown_selected = set(selected_context).difference(
+            SELECTED_CONTEXT_OVERRIDE_KEYS
+        )
         if unknown_selected:
             keys = ", ".join(sorted(unknown_selected))
             raise ValueError(f"Unsupported granularity selected_context keys: {keys}")

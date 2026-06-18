@@ -78,7 +78,10 @@ SUPPORTED_INFORMATION_NEEDS = {
 SUPPORTED_CONTEXT_LAYOUTS = {"flat", "session_thread", "chronological_session_thread"}
 ROUTE_OVERRIDE_KEYS = {
     "candidate_guide",
+    "candidate_guide_include_memory_hints",
+    "candidate_guide_max_memory_hints",
     "candidate_guide_max_rows",
+    "candidate_guide_memory_hint_chars",
     "candidate_guide_snippet_chars",
     "context_layout",
     "current_state_update_contract",
@@ -94,12 +97,18 @@ ROUTE_OVERRIDE_KEYS = {
     "max_evidence_items",
     "max_row_text_chars",
     "row_text_mode",
+    "tail_max_row_text_chars",
+    "tail_row_text_after_rank",
+    "tail_row_text_mode",
     "source_anchor_keep",
     "source_anchor_memory_rows",
     "source_anchor_per_session",
     "source_anchor_session_rows",
     "structured_guide_include_memory",
     "structured_guide_include_rows",
+    "structured_guide_max_memory_hints_per_row",
+    "structured_guide_memory_hint_chars",
+    "structured_guide_memory_hints",
     "structured_guide_max_rows",
     "temporal_order_contract",
     "update_conflict_guide",
@@ -180,6 +189,9 @@ class EvidenceCompiler:
         structured_guide_max_rows: int = 12,
         structured_guide_include_rows: bool = True,
         structured_guide_include_memory: bool = True,
+        structured_guide_memory_hints: bool = False,
+        structured_guide_max_memory_hints_per_row: int = 1,
+        structured_guide_memory_hint_chars: int = 70,
         structured_guide_disabled_signals: tuple[str, ...] = (),
         structured_answer_contract: bool = False,
         structured_answer_contract_information_needs: tuple[str, ...] = (
@@ -202,6 +214,9 @@ class EvidenceCompiler:
         ),
         candidate_guide_max_rows: int = 6,
         candidate_guide_snippet_chars: int = 160,
+        candidate_guide_include_memory_hints: bool = False,
+        candidate_guide_max_memory_hints: int = 2,
+        candidate_guide_memory_hint_chars: int = 120,
         update_conflict_guide: bool = False,
         update_conflict_guide_information_needs: tuple[str, ...] = (
             "current_state",
@@ -232,6 +247,9 @@ class EvidenceCompiler:
         memory_layout: str = "flat",
         row_text_mode: str = "full",
         max_row_text_chars: int = 0,
+        tail_row_text_mode: str = "full",
+        tail_row_text_after_rank: int = 0,
+        tail_max_row_text_chars: int = 0,
         route_guidance: bool = False,
         evidence_row_labels: bool = False,
         final_answer_checklist: bool = False,
@@ -259,6 +277,13 @@ class EvidenceCompiler:
         self._structured_guide_max_rows = max(1, structured_guide_max_rows)
         self._structured_guide_include_rows = structured_guide_include_rows
         self._structured_guide_include_memory = structured_guide_include_memory
+        self._structured_guide_memory_hints = bool(structured_guide_memory_hints)
+        self._structured_guide_max_memory_hints_per_row = max(
+            0, int(structured_guide_max_memory_hints_per_row)
+        )
+        self._structured_guide_memory_hint_chars = max(
+            30, int(structured_guide_memory_hint_chars)
+        )
         self._structured_guide_disabled_signals = tuple(
             str(signal) for signal in structured_guide_disabled_signals
         )
@@ -290,6 +315,15 @@ class EvidenceCompiler:
         self._candidate_guide_max_rows = max(1, int(candidate_guide_max_rows))
         self._candidate_guide_snippet_chars = max(
             80, int(candidate_guide_snippet_chars)
+        )
+        self._candidate_guide_include_memory_hints = bool(
+            candidate_guide_include_memory_hints
+        )
+        self._candidate_guide_max_memory_hints = max(
+            0, int(candidate_guide_max_memory_hints)
+        )
+        self._candidate_guide_memory_hint_chars = max(
+            40, int(candidate_guide_memory_hint_chars)
         )
         self._update_conflict_guide = update_conflict_guide
         self._update_conflict_guide_information_needs = _validate_information_needs(
@@ -326,6 +360,8 @@ class EvidenceCompiler:
             "question_overlap",
             "memory_aware",
             "source_anchor_coverage",
+            "memory_source_interleave",
+            "memory_tail_filter_preserve_order",
         }:
             raise ValueError(f"Unsupported evidence_order: {evidence_order}")
         self._evidence_order = evidence_order
@@ -343,6 +379,11 @@ class EvidenceCompiler:
             raise ValueError(f"Unsupported row_text_mode: {row_text_mode}")
         self._row_text_mode = row_text_mode
         self._max_row_text_chars = max_row_text_chars or 800
+        if tail_row_text_mode not in {"full", "query_snippet", "role_query_snippet"}:
+            raise ValueError(f"Unsupported tail_row_text_mode: {tail_row_text_mode}")
+        self._tail_row_text_mode = tail_row_text_mode
+        self._tail_row_text_after_rank = max(0, int(tail_row_text_after_rank))
+        self._tail_max_row_text_chars = tail_max_row_text_chars or self._max_row_text_chars
         self._route_guidance = route_guidance
         self._evidence_row_labels = evidence_row_labels
         self._final_answer_checklist = final_answer_checklist
@@ -455,6 +496,15 @@ class EvidenceCompiler:
             structured_guide_include_memory=route_settings[
                 "structured_guide_include_memory"
             ],
+            structured_guide_memory_hints=route_settings[
+                "structured_guide_memory_hints"
+            ],
+            structured_guide_max_memory_hints_per_row=route_settings[
+                "structured_guide_max_memory_hints_per_row"
+            ],
+            structured_guide_memory_hint_chars=route_settings[
+                "structured_guide_memory_hint_chars"
+            ],
             structured_answer_contract=(
                 self._structured_answer_contract
                 and route.information_need
@@ -479,6 +529,15 @@ class EvidenceCompiler:
             candidate_guide_max_rows=route_settings["candidate_guide_max_rows"],
             candidate_guide_snippet_chars=route_settings[
                 "candidate_guide_snippet_chars"
+            ],
+            candidate_guide_include_memory_hints=route_settings[
+                "candidate_guide_include_memory_hints"
+            ],
+            candidate_guide_max_memory_hints=route_settings[
+                "candidate_guide_max_memory_hints"
+            ],
+            candidate_guide_memory_hint_chars=route_settings[
+                "candidate_guide_memory_hint_chars"
             ],
             update_conflict_guide=(
                 route_settings["update_conflict_guide"]
@@ -522,6 +581,9 @@ class EvidenceCompiler:
             memory_layout=self._memory_layout,
             row_text_mode=route_settings["row_text_mode"],
             max_row_text_chars=route_settings["max_row_text_chars"],
+            tail_row_text_mode=route_settings["tail_row_text_mode"],
+            tail_row_text_after_rank=route_settings["tail_row_text_after_rank"],
+            tail_max_row_text_chars=route_settings["tail_max_row_text_chars"],
             route_guidance=self._route_guidance,
             evidence_row_labels=route_settings["evidence_row_labels"],
             final_answer_checklist=route_settings["final_answer_checklist"],
@@ -543,7 +605,16 @@ class EvidenceCompiler:
     def _settings_for_route(self, route: RouteResult) -> dict[str, Any]:
         settings: dict[str, Any] = {
             "candidate_guide": self._candidate_guide,
+            "candidate_guide_include_memory_hints": (
+                self._candidate_guide_include_memory_hints
+            ),
+            "candidate_guide_max_memory_hints": (
+                self._candidate_guide_max_memory_hints
+            ),
             "candidate_guide_max_rows": self._candidate_guide_max_rows,
+            "candidate_guide_memory_hint_chars": (
+                self._candidate_guide_memory_hint_chars
+            ),
             "candidate_guide_snippet_chars": self._candidate_guide_snippet_chars,
             "update_conflict_guide": self._update_conflict_guide,
             "update_conflict_guide_max_rows": self._update_conflict_guide_max_rows,
@@ -565,12 +636,22 @@ class EvidenceCompiler:
             "max_row_text_chars": self._max_row_text_chars,
             "operation_workpad_question_gate": self._operation_workpad_question_gate,
             "row_text_mode": self._row_text_mode,
+            "tail_max_row_text_chars": self._tail_max_row_text_chars,
+            "tail_row_text_after_rank": self._tail_row_text_after_rank,
+            "tail_row_text_mode": self._tail_row_text_mode,
             "source_anchor_keep": self._source_anchor_keep,
             "source_anchor_memory_rows": self._source_anchor_memory_rows,
             "source_anchor_per_session": self._source_anchor_per_session,
             "source_anchor_session_rows": self._source_anchor_session_rows,
             "structured_guide_include_memory": self._structured_guide_include_memory,
             "structured_guide_include_rows": self._structured_guide_include_rows,
+            "structured_guide_max_memory_hints_per_row": (
+                self._structured_guide_max_memory_hints_per_row
+            ),
+            "structured_guide_memory_hint_chars": (
+                self._structured_guide_memory_hint_chars
+            ),
+            "structured_guide_memory_hints": self._structured_guide_memory_hints,
             "structured_guide_max_rows": self._structured_guide_max_rows,
             "temporal_order_contract": self._temporal_order_contract,
         }
@@ -624,11 +705,42 @@ def _validate_route_overrides(
             overrides["structured_guide_include_memory"] = bool(
                 raw_overrides["structured_guide_include_memory"]
             )
+        if "structured_guide_memory_hints" in raw_overrides:
+            overrides["structured_guide_memory_hints"] = bool(
+                raw_overrides["structured_guide_memory_hints"]
+            )
+        if "structured_guide_max_memory_hints_per_row" in raw_overrides:
+            overrides["structured_guide_max_memory_hints_per_row"] = max(
+                0, int(raw_overrides["structured_guide_max_memory_hints_per_row"])
+            )
+        if "structured_guide_memory_hint_chars" in raw_overrides:
+            overrides["structured_guide_memory_hint_chars"] = max(
+                30, int(raw_overrides["structured_guide_memory_hint_chars"])
+            )
         if "row_text_mode" in raw_overrides:
             row_text_mode = str(raw_overrides["row_text_mode"])
             if row_text_mode not in {"full", "query_snippet", "role_query_snippet"}:
                 raise ValueError(f"Unsupported row_text_mode: {row_text_mode}")
             overrides["row_text_mode"] = row_text_mode
+        if "tail_row_text_mode" in raw_overrides:
+            tail_row_text_mode = str(raw_overrides["tail_row_text_mode"])
+            if tail_row_text_mode not in {
+                "full",
+                "query_snippet",
+                "role_query_snippet",
+            }:
+                raise ValueError(
+                    f"Unsupported tail_row_text_mode: {tail_row_text_mode}"
+                )
+            overrides["tail_row_text_mode"] = tail_row_text_mode
+        if "tail_row_text_after_rank" in raw_overrides:
+            overrides["tail_row_text_after_rank"] = max(
+                0, int(raw_overrides["tail_row_text_after_rank"])
+            )
+        if "tail_max_row_text_chars" in raw_overrides:
+            overrides["tail_max_row_text_chars"] = (
+                int(raw_overrides["tail_max_row_text_chars"]) or 800
+            )
         if "evidence_order" in raw_overrides:
             evidence_order = str(raw_overrides["evidence_order"])
             if evidence_order not in {
@@ -636,6 +748,8 @@ def _validate_route_overrides(
                 "question_overlap",
                 "memory_aware",
                 "source_anchor_coverage",
+                "memory_source_interleave",
+                "memory_tail_filter_preserve_order",
             }:
                 raise ValueError(f"Unsupported evidence_order: {evidence_order}")
             overrides["evidence_order"] = evidence_order
@@ -653,9 +767,21 @@ def _validate_route_overrides(
             )
         if "candidate_guide" in raw_overrides:
             overrides["candidate_guide"] = bool(raw_overrides["candidate_guide"])
+        if "candidate_guide_include_memory_hints" in raw_overrides:
+            overrides["candidate_guide_include_memory_hints"] = bool(
+                raw_overrides["candidate_guide_include_memory_hints"]
+            )
+        if "candidate_guide_max_memory_hints" in raw_overrides:
+            overrides["candidate_guide_max_memory_hints"] = max(
+                0, int(raw_overrides["candidate_guide_max_memory_hints"])
+            )
         if "candidate_guide_max_rows" in raw_overrides:
             overrides["candidate_guide_max_rows"] = max(
                 1, int(raw_overrides["candidate_guide_max_rows"])
+            )
+        if "candidate_guide_memory_hint_chars" in raw_overrides:
+            overrides["candidate_guide_memory_hint_chars"] = max(
+                40, int(raw_overrides["candidate_guide_memory_hint_chars"])
             )
         if "candidate_guide_snippet_chars" in raw_overrides:
             overrides["candidate_guide_snippet_chars"] = max(
@@ -741,10 +867,34 @@ def _order_rows(
         "question_overlap",
         "memory_aware",
         "source_anchor_coverage",
+        "memory_source_interleave",
+        "memory_tail_filter_preserve_order",
     }:
         raise ValueError(f"Unsupported evidence_order: {evidence_order}")
 
     question_terms = _content_terms(question)
+    if evidence_order == "memory_tail_filter_preserve_order":
+        return _memory_tail_filter_preserve_order(
+            rows,
+            question_terms=question_terms,
+            route=route,
+            memory_records=memory_records,
+            anchor_keep=source_anchor_keep,
+            memory_rows=source_anchor_memory_rows,
+            per_session=source_anchor_per_session,
+            session_rows=source_anchor_session_rows,
+        )
+    if evidence_order == "memory_source_interleave":
+        return _memory_source_interleave_order(
+            rows,
+            question_terms=question_terms,
+            route=route,
+            memory_records=memory_records,
+            anchor_keep=source_anchor_keep,
+            memory_rows=source_anchor_memory_rows,
+            per_session=source_anchor_per_session,
+            session_rows=source_anchor_session_rows,
+        )
     if evidence_order == "source_anchor_coverage":
         return _source_anchor_coverage_order(
             rows,
@@ -788,6 +938,75 @@ def _order_rows(
             ),
         )
     )
+
+
+def _memory_source_interleave_order(
+    rows: tuple[EvidenceRow, ...],
+    *,
+    question_terms: frozenset[str],
+    route: RouteResult,
+    memory_records: tuple[MemoryRecord, ...],
+    anchor_keep: int,
+    memory_rows: int,
+    per_session: int,
+    session_rows: int,
+) -> tuple[EvidenceRow, ...]:
+    memory_source_scores = _memory_source_scores(
+        memory_records,
+        question_terms=question_terms,
+        route=route,
+    )
+    if not rows or not memory_source_scores:
+        return rows
+
+    selected: list[EvidenceRow] = []
+    seen: set[str] = set()
+    memory_anchor_sessions: list[str] = []
+    memory_session_counts: dict[str, int] = {}
+
+    def add(row: EvidenceRow, *, memory_anchor: bool = False) -> bool:
+        if row.source_id in seen:
+            return False
+        seen.add(row.source_id)
+        selected.append(row)
+        if memory_anchor and row.session_id not in memory_anchor_sessions:
+            memory_anchor_sessions.append(row.session_id)
+        return True
+
+    for row in rows[:anchor_keep]:
+        add(row)
+
+    added_memory_rows = 0
+    for row in rows[anchor_keep:]:
+        if memory_source_scores.get(row.source_id, 0.0) <= 0:
+            continue
+        if (
+            per_session > 0
+            and memory_session_counts.get(row.session_id, 0) >= per_session
+        ):
+            continue
+        if add(row, memory_anchor=True):
+            memory_session_counts[row.session_id] = (
+                memory_session_counts.get(row.session_id, 0) + 1
+            )
+            added_memory_rows += 1
+            if memory_rows > 0 and added_memory_rows >= memory_rows:
+                break
+
+    if session_rows > 0:
+        session_counts: dict[str, int] = {}
+        for session_id in memory_anchor_sessions:
+            for row in rows:
+                if row.session_id != session_id:
+                    continue
+                if session_counts.get(session_id, 0) >= session_rows:
+                    break
+                if add(row):
+                    session_counts[session_id] = session_counts.get(session_id, 0) + 1
+
+    for row in rows:
+        add(row)
+    return tuple(selected)
 
 
 def _source_anchor_coverage_order(
@@ -865,6 +1084,71 @@ def _source_anchor_coverage_order(
     for row in rows:
         add(row)
     return tuple(selected)
+
+
+def _memory_tail_filter_preserve_order(
+    rows: tuple[EvidenceRow, ...],
+    *,
+    question_terms: frozenset[str],
+    route: RouteResult,
+    memory_records: tuple[MemoryRecord, ...],
+    anchor_keep: int,
+    memory_rows: int,
+    per_session: int,
+    session_rows: int,
+) -> tuple[EvidenceRow, ...]:
+    if not rows or anchor_keep <= 0:
+        return rows
+
+    memory_source_scores = _memory_source_scores(
+        memory_records,
+        question_terms=question_terms,
+        route=route,
+    )
+    selected_ids = {row.source_id for row in rows[:anchor_keep]}
+    memory_anchor_sessions: list[str] = []
+    memory_session_counts: dict[str, int] = {}
+
+    if memory_rows > 0 and memory_source_scores:
+        added_memory_rows = 0
+        tail_rows = rows[anchor_keep:]
+        for row in sorted(
+            tail_rows,
+            key=lambda item: _source_anchor_row_key(
+                item,
+                question_terms=question_terms,
+                route=route,
+                memory_source_scores=memory_source_scores,
+            ),
+        ):
+            if memory_source_scores.get(row.source_id, 0.0) <= 0:
+                continue
+            if (
+                per_session > 0
+                and memory_session_counts.get(row.session_id, 0) >= per_session
+            ):
+                continue
+            selected_ids.add(row.source_id)
+            if row.session_id not in memory_anchor_sessions:
+                memory_anchor_sessions.append(row.session_id)
+            memory_session_counts[row.session_id] = (
+                memory_session_counts.get(row.session_id, 0) + 1
+            )
+            added_memory_rows += 1
+            if added_memory_rows >= memory_rows:
+                break
+
+    if session_rows > 0 and memory_anchor_sessions:
+        session_counts: dict[str, int] = {}
+        for row in rows[anchor_keep:]:
+            if row.session_id not in memory_anchor_sessions:
+                continue
+            if session_counts.get(row.session_id, 0) >= session_rows:
+                continue
+            selected_ids.add(row.source_id)
+            session_counts[row.session_id] = session_counts.get(row.session_id, 0) + 1
+
+    return tuple(row for row in rows if row.source_id in selected_ids)
 
 
 def _source_anchor_row_key(
@@ -1208,6 +1492,9 @@ def _build_prompt(
     structured_guide_max_rows: int,
     structured_guide_include_rows: bool,
     structured_guide_include_memory: bool,
+    structured_guide_memory_hints: bool,
+    structured_guide_max_memory_hints_per_row: int,
+    structured_guide_memory_hint_chars: int,
     structured_answer_contract: bool,
     structured_answer_contract_max_items: int,
     evidence_report_contract: bool,
@@ -1215,6 +1502,9 @@ def _build_prompt(
     candidate_guide: bool,
     candidate_guide_max_rows: int,
     candidate_guide_snippet_chars: int,
+    candidate_guide_include_memory_hints: bool,
+    candidate_guide_max_memory_hints: int,
+    candidate_guide_memory_hint_chars: int,
     update_conflict_guide: bool,
     update_conflict_guide_max_rows: int,
     update_conflict_guide_snippet_chars: int,
@@ -1230,6 +1520,9 @@ def _build_prompt(
     memory_layout: str,
     row_text_mode: str,
     max_row_text_chars: int,
+    tail_row_text_mode: str,
+    tail_row_text_after_rank: int,
+    tail_max_row_text_chars: int,
     route_guidance: bool,
     evidence_row_labels: bool,
     final_answer_checklist: bool,
@@ -1244,6 +1537,9 @@ def _build_prompt(
             answer_style=answer_style,
             row_text_mode=row_text_mode,
             max_row_text_chars=max_row_text_chars,
+            tail_row_text_mode=tail_row_text_mode,
+            tail_row_text_after_rank=tail_row_text_after_rank,
+            tail_max_row_text_chars=tail_max_row_text_chars,
             evidence_row_labels=evidence_row_labels,
             context_layout=context_layout,
         )
@@ -1256,6 +1552,9 @@ def _build_prompt(
             rows=rows,
             row_text_mode=row_text_mode,
             max_row_text_chars=max_row_text_chars,
+            tail_row_text_mode=tail_row_text_mode,
+            tail_row_text_after_rank=tail_row_text_after_rank,
+            tail_max_row_text_chars=tail_max_row_text_chars,
             temporal_workpad=temporal_workpad,
             temporal_text_normalization=temporal_text_normalization,
             temporal_event_contract=temporal_event_contract,
@@ -1266,6 +1565,11 @@ def _build_prompt(
             structured_guide_max_rows=structured_guide_max_rows,
             structured_guide_include_rows=structured_guide_include_rows,
             structured_guide_include_memory=structured_guide_include_memory,
+            structured_guide_memory_hints=structured_guide_memory_hints,
+            structured_guide_max_memory_hints_per_row=(
+                structured_guide_max_memory_hints_per_row
+            ),
+            structured_guide_memory_hint_chars=structured_guide_memory_hint_chars,
             structured_answer_contract=structured_answer_contract,
             structured_answer_contract_max_items=structured_answer_contract_max_items,
             evidence_report_contract=evidence_report_contract,
@@ -1273,6 +1577,11 @@ def _build_prompt(
             candidate_guide=candidate_guide,
             candidate_guide_max_rows=candidate_guide_max_rows,
             candidate_guide_snippet_chars=candidate_guide_snippet_chars,
+            candidate_guide_include_memory_hints=(
+                candidate_guide_include_memory_hints
+            ),
+            candidate_guide_max_memory_hints=candidate_guide_max_memory_hints,
+            candidate_guide_memory_hint_chars=candidate_guide_memory_hint_chars,
             update_conflict_guide=update_conflict_guide,
             update_conflict_guide_max_rows=update_conflict_guide_max_rows,
             update_conflict_guide_snippet_chars=(
@@ -1351,6 +1660,9 @@ def _build_prompt(
                 question=question,
                 row_text_mode=row_text_mode,
                 max_row_text_chars=max_row_text_chars,
+                tail_row_text_mode=tail_row_text_mode,
+                tail_row_text_after_rank=tail_row_text_after_rank,
+                tail_max_row_text_chars=tail_max_row_text_chars,
                 row_label=f"E{row_index}" if evidence_row_labels else None,
             )
         )
@@ -1375,6 +1687,9 @@ def _build_raw_context_only_prompt(
     answer_style: str,
     row_text_mode: str,
     max_row_text_chars: int,
+    tail_row_text_mode: str,
+    tail_row_text_after_rank: int,
+    tail_max_row_text_chars: int,
     evidence_row_labels: bool,
     context_layout: str,
 ) -> str:
@@ -1408,6 +1723,9 @@ def _build_raw_context_only_prompt(
                 question=question,
                 row_text_mode=row_text_mode,
                 max_row_text_chars=max_row_text_chars,
+                tail_row_text_mode=tail_row_text_mode,
+                tail_row_text_after_rank=tail_row_text_after_rank,
+                tail_max_row_text_chars=tail_max_row_text_chars,
                 row_label=f"E{row_index}" if evidence_row_labels else None,
             )
         )
@@ -1423,6 +1741,9 @@ def _build_external_naive_prompt(
     rows: tuple[EvidenceRow, ...],
     row_text_mode: str,
     max_row_text_chars: int,
+    tail_row_text_mode: str,
+    tail_row_text_after_rank: int,
+    tail_max_row_text_chars: int,
     temporal_workpad: bool,
     temporal_text_normalization: bool,
     temporal_event_contract: bool,
@@ -1433,6 +1754,9 @@ def _build_external_naive_prompt(
     structured_guide_max_rows: int,
     structured_guide_include_rows: bool,
     structured_guide_include_memory: bool,
+    structured_guide_memory_hints: bool,
+    structured_guide_max_memory_hints_per_row: int,
+    structured_guide_memory_hint_chars: int,
     structured_answer_contract: bool,
     structured_answer_contract_max_items: int,
     evidence_report_contract: bool,
@@ -1440,6 +1764,9 @@ def _build_external_naive_prompt(
     candidate_guide: bool,
     candidate_guide_max_rows: int,
     candidate_guide_snippet_chars: int,
+    candidate_guide_include_memory_hints: bool,
+    candidate_guide_max_memory_hints: int,
+    candidate_guide_memory_hint_chars: int,
     update_conflict_guide: bool,
     update_conflict_guide_max_rows: int,
     update_conflict_guide_snippet_chars: int,
@@ -1482,6 +1809,7 @@ def _build_external_naive_prompt(
     if structured_guide:
         guide_lines = _external_structured_guide_lines(
             question=question,
+            route=route,
             rows=rows,
             memory_records=memory_records,
             max_rows=structured_guide_max_rows,
@@ -1489,6 +1817,9 @@ def _build_external_naive_prompt(
             event_contract=use_temporal_event_contract,
             include_rows=structured_guide_include_rows,
             include_memory=structured_guide_include_memory,
+            include_inline_memory_hints=structured_guide_memory_hints,
+            max_memory_hints_per_row=structured_guide_max_memory_hints_per_row,
+            memory_hint_chars=structured_guide_memory_hint_chars,
         )
         if guide_lines:
             structured_guide_block = "\n".join(
@@ -1500,8 +1831,12 @@ def _build_external_naive_prompt(
             question=question,
             route=route,
             rows=rows,
+            memory_records=memory_records,
             max_rows=candidate_guide_max_rows,
             snippet_chars=candidate_guide_snippet_chars,
+            include_memory_hints=candidate_guide_include_memory_hints,
+            max_memory_hints=candidate_guide_max_memory_hints,
+            memory_hint_chars=candidate_guide_memory_hint_chars,
         )
         if candidate_lines:
             candidate_guide_block = "\n".join(
@@ -1717,6 +2052,9 @@ def _build_external_naive_prompt(
                 question=question,
                 row_text_mode=row_text_mode,
                 max_row_text_chars=max_row_text_chars,
+                tail_row_text_mode=tail_row_text_mode,
+                tail_row_text_after_rank=tail_row_text_after_rank,
+                tail_max_row_text_chars=tail_max_row_text_chars,
                 context_layout=context_layout,
             ),
             temporal_aid,
@@ -1875,6 +2213,7 @@ def _detailed_evidence_report_rules(question: str) -> list[str]:
 def _external_structured_guide_lines(
     *,
     question: str,
+    route: RouteResult,
     rows: tuple[EvidenceRow, ...],
     memory_records: tuple[MemoryRecord, ...],
     max_rows: int,
@@ -1882,6 +2221,9 @@ def _external_structured_guide_lines(
     event_contract: bool,
     include_rows: bool,
     include_memory: bool,
+    include_inline_memory_hints: bool,
+    max_memory_hints_per_row: int,
+    memory_hint_chars: int,
 ) -> list[str]:
     if (not include_rows and not include_memory) or (not rows and not memory_records):
         return []
@@ -1893,6 +2235,11 @@ def _external_structured_guide_lines(
     source_to_memory_index = {
         row.source_id: index for index, row in enumerate(rows, start=1)
     }
+    memory_records_by_source = (
+        _memory_records_by_source_id(memory_records)
+        if include_inline_memory_hints and max_memory_hints_per_row > 0
+        else {}
+    )
 
     if include_rows and rows:
         lines.append("- row_index:")
@@ -1917,9 +2264,18 @@ def _external_structured_guide_lines(
                             f'"{phrase}"=>"{normalized}"'
                             for phrase, normalized in relative_times[:4]
                         )
+            memory_hint_text = ""
+            memory_hint = _structured_row_memory_hint_text(
+                memory_records_by_source.get(row.source_id, ()),
+                route=route,
+                max_hints=max_memory_hints_per_row,
+                max_chars=memory_hint_chars,
+            )
+            if memory_hint:
+                memory_hint_text = f" | memory_hint={memory_hint}"
             lines.append(
                 f"  - Memory {index}: row_date={row_date_text} role={row.role} "
-                f"matched_terms={matched_text}{relative_text}"
+                f"matched_terms={matched_text}{relative_text}{memory_hint_text}"
             )
 
     if include_memory:
@@ -1933,6 +2289,36 @@ def _external_structured_guide_lines(
     if len(lines) == 1:
         return []
     return lines
+
+
+def _structured_row_memory_hint_text(
+    memory_records: tuple[MemoryRecord, ...],
+    *,
+    route: RouteResult,
+    max_hints: int,
+    max_chars: int,
+) -> str:
+    if not memory_records or max_hints <= 0:
+        return ""
+    hints = []
+    for record in memory_records:
+        if not _memory_type_matches_route(record.memory_type, route):
+            continue
+        hint = _compact_inline_memory_hint(record, max_chars=max_chars)
+        if hint:
+            hints.append(hint)
+        if len(hints) >= max_hints:
+            break
+    return "; ".join(hints)
+
+
+def _compact_inline_memory_hint(record: MemoryRecord, *, max_chars: int) -> str:
+    memory_type = record.memory_type or "memory"
+    status = f"({record.status})" if record.status and record.status != "active" else ""
+    value = record.value or record.text
+    if not value:
+        return f"{memory_type}{status}"
+    return f"{memory_type}{status}:{_truncate_text(_single_line(value), max_chars)}"
 
 
 def _external_memory_guide_lines(
@@ -1981,18 +2367,28 @@ def _external_candidate_guide_lines(
     question: str,
     route: RouteResult,
     rows: tuple[EvidenceRow, ...],
+    memory_records: tuple[MemoryRecord, ...],
     max_rows: int,
     snippet_chars: int,
+    include_memory_hints: bool,
+    max_memory_hints: int,
+    memory_hint_chars: int,
 ) -> list[str]:
     """Compact source-preserving row map for candidate-heavy questions."""
 
     if not rows:
         return []
 
+    memory_records_by_source = (
+        _memory_records_by_source_id(memory_records)
+        if include_memory_hints and max_memory_hints > 0
+        else {}
+    )
     selected = _candidate_guide_rows(
         question=question,
         route=route,
         rows=rows,
+        memory_records_by_source=memory_records_by_source,
         max_rows=max_rows,
     )
     if not selected:
@@ -2012,11 +2408,19 @@ def _external_candidate_guide_lines(
         quantity_text = f" | quantities={'; '.join(quantities)}" if quantities else ""
         times = _candidate_time_mentions(row.text)
         time_text = f" | time_phrases={'; '.join(times)}" if times else ""
+        memory_hints = _candidate_memory_hint_text(
+            memory_records_by_source.get(row.source_id, ()),
+            max_hints=max_memory_hints,
+            max_chars=memory_hint_chars,
+        )
+        memory_hint_text = (
+            f" | source_memory_hints={memory_hints}" if memory_hints else ""
+        )
         snippet = _single_line(_query_snippet(row.text, question, snippet_chars))
         lines.append(
             f"  - Memory {memory_index}: date={row.timestamp or 'unknown'} "
             f"role={row.role} matched_terms={matched_text}{quantity_text}"
-            f"{time_text} | text=\"{snippet}\""
+            f"{time_text}{memory_hint_text} | text=\"{snippet}\""
         )
     return lines
 
@@ -2057,6 +2461,7 @@ def _candidate_guide_rows(
     question: str,
     route: RouteResult,
     rows: tuple[EvidenceRow, ...],
+    memory_records_by_source: Mapping[str, tuple[MemoryRecord, ...]],
     max_rows: int,
 ) -> tuple[tuple[int, EvidenceRow], ...]:
     question_terms = _content_terms(question)
@@ -2066,6 +2471,7 @@ def _candidate_guide_rows(
             row,
             question_terms=question_terms,
             route=route,
+            memory_records=memory_records_by_source.get(row.source_id, ()),
         )
         if row.retrieval_rank is not None:
             score += 1.0 / (row.retrieval_rank + 4.0)
@@ -2138,9 +2544,16 @@ def _candidate_guide_row_score(
     *,
     question_terms: frozenset[str],
     route: RouteResult,
+    memory_records: tuple[MemoryRecord, ...],
 ) -> float:
     row_terms = _content_terms(row.text)
     score = len(question_terms.intersection(row_terms)) * 2.0
+    if memory_records:
+        score += _source_memory_candidate_bonus(
+            question_terms=question_terms,
+            memory_records=memory_records,
+            route=route,
+        )
     if route.information_need in {"list_count", "temporal_lookup"} and _has_quantity_expression(row.text):
         score += 0.8
     if route.information_need in {"temporal_lookup", "current_state"} and (
@@ -2150,6 +2563,100 @@ def _candidate_guide_row_score(
     if route.information_need in {"profile_preference", "current_state"} and _has_profile_or_state_signal(row.text):
         score += 0.7
     return score
+
+
+def _memory_records_by_source_id(
+    memory_records: tuple[MemoryRecord, ...],
+) -> dict[str, tuple[MemoryRecord, ...]]:
+    records_by_source: dict[str, list[MemoryRecord]] = {}
+    seen_by_source: dict[str, set[str]] = {}
+    for record in memory_records:
+        memory_id = record.memory_id or id(record)
+        for source_id in record.source_ids:
+            seen = seen_by_source.setdefault(source_id, set())
+            memory_key = str(memory_id)
+            if memory_key in seen:
+                continue
+            seen.add(memory_key)
+            records_by_source.setdefault(source_id, []).append(record)
+    return {source_id: tuple(records) for source_id, records in records_by_source.items()}
+
+
+def _source_memory_candidate_bonus(
+    *,
+    question_terms: frozenset[str],
+    memory_records: tuple[MemoryRecord, ...],
+    route: RouteResult,
+) -> float:
+    best_overlap = 0
+    type_bonus = 0.0
+    for record in memory_records:
+        record_terms = _content_terms(_memory_record_hint_basis(record))
+        best_overlap = max(best_overlap, len(question_terms.intersection(record_terms)))
+        if _memory_type_matches_route(record.memory_type, route):
+            type_bonus = max(type_bonus, 0.4)
+    return min(2.5, best_overlap * 0.8) + type_bonus
+
+
+def _memory_type_matches_route(memory_type: str, route: RouteResult) -> bool:
+    normalized = memory_type.lower()
+    if route.information_need == "profile_preference":
+        return normalized in {"preference", "profile", "state"}
+    if route.information_need == "current_state":
+        return normalized in {"state", "profile", "preference", "relationship"}
+    if route.information_need == "temporal_lookup":
+        return normalized in {"event", "plan", "fact", "state"}
+    if route.information_need == "list_count":
+        return normalized in {"event", "fact", "relationship", "plan", "state"}
+    if route.information_need == "fact_lookup":
+        return normalized in {"fact", "event", "relationship", "state", "profile"}
+    return False
+
+
+def _candidate_memory_hint_text(
+    memory_records: tuple[MemoryRecord, ...],
+    *,
+    max_hints: int,
+    max_chars: int,
+) -> str:
+    if not memory_records or max_hints <= 0:
+        return ""
+    hints = [
+        _compact_memory_hint(record, max_chars=max_chars)
+        for record in memory_records[:max_hints]
+    ]
+    return "; ".join(hint for hint in hints if hint)
+
+
+def _compact_memory_hint(record: MemoryRecord, *, max_chars: int) -> str:
+    fields = [record.memory_type or "memory"]
+    if record.status and record.status != "active":
+        fields.append(f"status={record.status}")
+    time_value = (
+        record.event_time
+        or record.valid_from
+        or record.mention_time
+        or record.timestamp
+    )
+    if time_value:
+        fields.append(f"time={_single_line(time_value)}")
+    basis = _memory_record_hint_basis(record)
+    if basis:
+        fields.append(_truncate_text(_single_line(basis), max_chars))
+    return ": ".join(fields[:1]) + (" | " + " | ".join(fields[1:]) if len(fields) > 1 else "")
+
+
+def _memory_record_hint_basis(record: MemoryRecord) -> str:
+    return " ".join(
+        part
+        for part in (
+            record.subject,
+            record.predicate,
+            record.value,
+            record.text,
+        )
+        if part
+    )
 
 
 def _external_update_conflict_guide_lines(
@@ -2694,6 +3201,9 @@ def _external_naive_context(
     question: str,
     row_text_mode: str,
     max_row_text_chars: int,
+    tail_row_text_mode: str,
+    tail_row_text_after_rank: int,
+    tail_max_row_text_chars: int,
     context_layout: str = "flat",
 ) -> str:
     if not rows:
@@ -2704,6 +3214,9 @@ def _external_naive_context(
             question=question,
             row_text_mode=row_text_mode,
             max_row_text_chars=max_row_text_chars,
+            tail_row_text_mode=tail_row_text_mode,
+            tail_row_text_after_rank=tail_row_text_after_rank,
+            tail_max_row_text_chars=tail_max_row_text_chars,
         )
     if context_layout != "flat":
         raise ValueError(f"Unsupported context_layout: {context_layout}")
@@ -2714,12 +3227,14 @@ def _external_naive_context(
             header += f"\nDate: {row.timestamp}"
         if row.session_id:
             header += f"\nSession: {row.session_id}"
-        text = _row_prompt_text(
-            row.text,
+        text = _row_prompt_text_for_row(
+            row,
             question=question,
-            role=row.role,
             row_text_mode=row_text_mode,
             max_row_text_chars=max_row_text_chars,
+            tail_row_text_mode=tail_row_text_mode,
+            tail_row_text_after_rank=tail_row_text_after_rank,
+            tail_max_row_text_chars=tail_max_row_text_chars,
         )
         blocks.append(f"{header}\n{row.role}: {text}")
     return "\n\n".join(blocks)
@@ -2731,6 +3246,9 @@ def _external_session_thread_context(
     question: str,
     row_text_mode: str,
     max_row_text_chars: int,
+    tail_row_text_mode: str,
+    tail_row_text_after_rank: int,
+    tail_max_row_text_chars: int,
 ) -> str:
     blocks: list[str] = []
     current_session: str | None = None
@@ -2746,12 +3264,14 @@ def _external_session_thread_context(
         header += f"\nTurn: {row.turn_index}"
         if row.retrieval_rank is not None:
             header += f"\nRetrieval rank: {row.retrieval_rank}"
-        text = _row_prompt_text(
-            row.text,
+        text = _row_prompt_text_for_row(
+            row,
             question=question,
-            role=row.role,
             row_text_mode=row_text_mode,
             max_row_text_chars=max_row_text_chars,
+            tail_row_text_mode=tail_row_text_mode,
+            tail_row_text_after_rank=tail_row_text_after_rank,
+            tail_max_row_text_chars=tail_max_row_text_chars,
         )
         blocks.append(f"{header}\n{row.role}: {text}")
     return "\n\n".join(blocks)
@@ -2827,23 +3347,56 @@ def _format_row(
     question: str,
     row_text_mode: str,
     max_row_text_chars: int,
+    tail_row_text_mode: str = "full",
+    tail_row_text_after_rank: int = 0,
+    tail_max_row_text_chars: int = 0,
     row_label: str | None = None,
 ) -> str:
     rank = row.retrieval_rank if row.retrieval_rank is not None else "neighbor"
     score = f"{row.retrieval_score:.4f}" if row.retrieval_score is not None else "n/a"
     timestamp = row.timestamp or "unknown_time"
-    text = _row_prompt_text(
-        row.text,
+    text = _row_prompt_text_for_row(
+        row,
         question=question,
-        role=row.role,
         row_text_mode=row_text_mode,
         max_row_text_chars=max_row_text_chars,
+        tail_row_text_mode=tail_row_text_mode,
+        tail_row_text_after_rank=tail_row_text_after_rank,
+        tail_max_row_text_chars=tail_max_row_text_chars,
     )
     label_prefix = f"{row_label} " if row_label else ""
     return (
         f"- {label_prefix}source_id={row.source_id} session={row.session_id} "
         f"turn={row.turn_index} role={row.role} time={timestamp} "
         f"rank={rank} score={score}: {text}"
+    )
+
+
+def _row_prompt_text_for_row(
+    row: EvidenceRow,
+    *,
+    question: str,
+    row_text_mode: str,
+    max_row_text_chars: int,
+    tail_row_text_mode: str,
+    tail_row_text_after_rank: int,
+    tail_max_row_text_chars: int,
+) -> str:
+    effective_mode = row_text_mode
+    effective_max_chars = max_row_text_chars
+    if (
+        tail_row_text_after_rank > 0
+        and row.retrieval_rank is not None
+        and row.retrieval_rank > tail_row_text_after_rank
+    ):
+        effective_mode = tail_row_text_mode
+        effective_max_chars = tail_max_row_text_chars or max_row_text_chars
+    return _row_prompt_text(
+        row.text,
+        question=question,
+        role=row.role,
+        row_text_mode=effective_mode,
+        max_row_text_chars=effective_max_chars,
     )
 
 

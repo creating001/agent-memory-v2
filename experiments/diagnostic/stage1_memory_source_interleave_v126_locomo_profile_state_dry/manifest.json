@@ -1,0 +1,31 @@
+{
+  "benchmark": "locomo",
+  "clean_assertions": [
+    "Prediction loader rejects gold/reference/target answers.",
+    "Prediction loader rejects judge outputs and benchmark labels.",
+    "Prediction loader rejects sample ids, qids, and row indices.",
+    "record_key is copied only by the runner and is not passed into pipeline modules.",
+    "Derived context rows always retain raw source_id back-links.",
+    "Build-stage typed memory is created only from raw dialogue turns and visible metadata."
+  ],
+  "config_path": "/tmp/stage1_memory_source_interleave_v126_null_answer.json",
+  "created_at_utc": "2026-06-17T18:12:08+00:00",
+  "experiment_dir": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_memory_source_interleave_v126_locomo_profile_state_dry",
+  "experiment_kind": "diagnostic",
+  "git": {
+    "commit": "88efe8b4d0968e0715c825d0a196905fa25bee2c",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "M configs/README.md\n M experiments/README.md\n M experiments/diagnostic/stage1_v102_generalization_audit_v104_plan.md\n M src/memory/answer.py\n M src/memory/compiler.py\n M src/memory/finalize.py\n M src/memory/pipeline.py\n M src/memory/rerank.py\n M src/tests/test_clean_skeleton.py\n?? configs/stage1_aggregation_contract_v123_qwen36_no_think_build4k_cached.json\n?? configs/stage1_inline_memory_hint_v119_qwen36_no_think_build4k_cached.json\n?? configs/stage1_local_evidence_unit_v124_qwen36_no_think_build4k_cached.json\n?? configs/stage1_memory_source_interleave_v126_qwen36_no_think_build4k_cached.json\n?? configs/stage1_per_row_selected_context_v122_qwen36_no_think_build4k_cached.json\n?? configs/stage1_rerank_filter_v120_qwen36_no_think_build4k_cached.json\n?? configs/stage1_route_scoped_local_evidence_unit_v125_qwen36_no_think_build4k_cached.json\n?? configs/stage1_source_grounded_guard_v121_qwen36_no_think_build4k_cached.json\n?? configs/stage1_source_manifest_candidate_guide_v118_qwen36_no_think_build4k_cached.json\n?? experiments/diagnostic/stage1_aggregation_contract_v123_lme_list_count_all/\n?? experiments/diagnostic/stage1_build_memory_usage_trace_audit_v126_plan.md\n?? experiments/diagnostic/stage1_inline_memory_hint_v119_lme_list_count_all_reparse/\n?? experiments/diagnostic/stage1_inline_memory_hint_v119_locomo_list_count_all_reparse/\n?? experiments/diagnostic/stage1_local_evidence_unit_v124_locomo_dry/\n?? experiments/diagnostic/stage1_memory_source_interleave_v126_locomo_dry/\n?? experiments/diagnostic/stage1_per_row_selected_context_v122_lme_dry/\n?? experiments/diagnostic/stage1_rerank_filter_v120_lme_list_count_all/\n?? experiments/diagnostic/stage1_rerank_filter_v120_locomo_list_count_all/\n?? experiments/diagnostic/stage1_route_scoped_local_evidence_unit_v125_locomo_dry/\n?? experiments/diagnostic/stage1_route_scoped_local_evidence_unit_v125_locomo_nonadv_full_cached/\n?? experiments/diagnostic/stage1_route_scoped_local_evidence_unit_v125_locomo_nonadv_full_route_only_merge/\n?? experiments/diagnostic/stage1_route_scoped_local_evidence_unit_v125_locomo_temporal_route_all/\n?? experiments/diagnostic/stage1_source_manifest_candidate_guide_v118_lme_list5/\n?? experiments/diagnostic/stage1_source_manifest_candidate_guide_v118_locomo_list5/\n?? experiments/diagnostic/v116_finalizer_impact/\n?? experiments/diagnostic/v121_source_grounded_guard_lme_finalizer_applied_8/\n?? scripts/merge_predictions_by_trace_route.py\n?? src/tests/test_compiler.py\n?? src/tests/test_merge_predictions_by_trace_route.py"
+  },
+  "input_path": "/data/home_new/wujinqi/agent-memory/outputs/prepare_locomo_non_adversarial/prediction_input.jsonl",
+  "output_path": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_memory_source_interleave_v126_locomo_profile_state_dry/predictions.jsonl",
+  "outputs": {
+    "predictions": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_memory_source_interleave_v126_locomo_profile_state_dry/predictions.jsonl",
+    "traces": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_memory_source_interleave_v126_locomo_profile_state_dry/traces.jsonl"
+  },
+  "run_id": "stage1_memory_source_interleave_v126_locomo_profile_state_dry",
+  "subset": "non_adversarial_profile_state_null_answer",
+  "trace_path": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_memory_source_interleave_v126_locomo_profile_state_dry/traces.jsonl"
+}

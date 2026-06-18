@@ -12,7 +12,7 @@ from typing import Any
 
 @dataclass(frozen=True)
 class AnswerFinalization:
-    """Traceable result for a mechanical answer finalizer."""
+    """Traceable result for an answer finalizer or guardrail."""
 
     answer: str
     before: str
@@ -262,6 +262,45 @@ def finalize_structured_answer(
             return counted
 
     return _noop(draft_answer, "unsupported_or_consistent")
+
+
+def guard_source_grounded_answer(
+    *,
+    draft_answer: str,
+    raw_response: str | None,
+    enable_missing_detail: bool = False,
+) -> AnswerFinalization:
+    """Generic source-grounded guardrail that never computes a new answer.
+
+    This mode only uses the answer model's structured response as a consistency
+    trace. It may expand a short insufficient answer with the model's own
+    missing-evidence field, but it does not count, sum, calculate dates, resolve
+    relative time, or otherwise rewrite a supported answer.
+    """
+
+    content = raw_response_content(raw_response)
+    if not content:
+        return _noop(draft_answer, "no_raw_response_content")
+    payload = extract_json_object(content)
+    if not payload:
+        return _noop(draft_answer, "no_structured_answer_json")
+    if payload.get("sufficient") is False:
+        if enable_missing_detail:
+            detailed = _finalize_missing_detail(
+                draft_answer=draft_answer,
+                payload=payload,
+            )
+            if detailed is not None:
+                return AnswerFinalization(
+                    answer=detailed.answer,
+                    before=detailed.before,
+                    applied=True,
+                    reason="source_grounded_missing_detail",
+                    evidence_item_count=detailed.evidence_item_count,
+                    expected_value=detailed.expected_value,
+                )
+        return _noop(draft_answer, "model_marked_insufficient")
+    return _noop(draft_answer, "source_grounded_guard_consistent")
 
 
 def raw_response_content(raw_response: str | None) -> str:

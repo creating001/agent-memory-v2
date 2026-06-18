@@ -257,6 +257,11 @@ def _parse_answer_content(raw_content: str, *, output_format: str) -> str:
         return salvaged
     if _structured_text_says_insufficient(raw_content):
         return _insufficient_answer()
+    fallback = _extract_final_answer_marker(raw_content)
+    if fallback is not None:
+        return fallback
+    if _looks_like_malformed_structured_answer(raw_content):
+        return _insufficient_answer()
     return raw_content
 
 
@@ -290,13 +295,85 @@ def _extract_answer_field_string(text: str) -> str | None:
     matches = list(
         re.finditer(r'"answer"\s*:\s*"((?:[^"\\]|\\.)*)"', text, re.DOTALL)
     )
-    if not matches:
+    if matches:
+        raw = matches[-1].group(1)
+        try:
+            return str(json.loads(f'"{raw}"')).strip()
+        except json.JSONDecodeError:
+            return raw.strip()
+    scalar_matches = list(
+        re.finditer(r'"answer"\s*:\s*(?!")([^,\n\r}]{1,120})', text)
+    )
+    if not scalar_matches:
         return None
-    raw = matches[-1].group(1)
-    try:
-        return str(json.loads(f'"{raw}"')).strip()
-    except json.JSONDecodeError:
-        return raw.strip()
+    return _clean_final_answer_candidate(scalar_matches[-1].group(1)) or None
+
+
+def _extract_final_answer_marker(text: str) -> str | None:
+    """Recover concise answers from malformed JSON/reasoning loops."""
+
+    candidates: list[str] = []
+    for pattern in (
+        r"(?:^|[\n\r.;])\s*(?:final\s+answer|answer)\s*[:：]\s*([^\n\r{}]{1,200})",
+        r"\bI\s+(?:will|would)\s+(?:answer|output|provide)\s+([^\n\r{}]{1,120})",
+        r"\bI(?:'ll|\s+will|\s+would)\s+(?:go\s+with|choose)\s+([^\n\r{}]{1,120})",
+    ):
+        for match in re.finditer(pattern, text, flags=re.IGNORECASE):
+            candidate = _clean_final_answer_candidate(match.group(1))
+            if candidate:
+                candidates.append(candidate)
+    return candidates[-1] if candidates else None
+
+
+def _clean_final_answer_candidate(candidate: str) -> str:
+    value = candidate.replace("\\n", "\n").replace("\\r", "\n").splitlines()[0]
+    value = value.strip().strip("`").strip().strip("\"'").strip()
+    value = re.sub(r"\s+", " ", value)
+    value = re.split(
+        r"\s+(?:if|because|but|however|although)\b",
+        value,
+        maxsplit=1,
+        flags=re.IGNORECASE,
+    )[0].strip()
+    value = re.sub(r"[\"',.;:]+$", "", value).strip()
+    lowered = value.lower()
+    if not value:
+        return ""
+    if len(value) > 120 or len(value.split()) > 20:
+        return ""
+    if lowered.startswith(("if ", "because ", "however ", "although ", "but ")):
+        return ""
+    if any(
+        marker in lowered
+        for marker in (
+            "because",
+            "condition",
+            "if the answer",
+            "memory ",
+            "reasoning",
+            "the context",
+        )
+    ):
+        return ""
+    return value
+
+
+def _looks_like_malformed_structured_answer(text: str) -> bool:
+    stripped = text.lstrip()
+    if not stripped.startswith("{"):
+        return False
+    lowered = stripped[:4000].lower()
+    return any(
+        marker in lowered
+        for marker in (
+            '"answer"',
+            '"answer_type"',
+            '"evidence_report"',
+            '"missing"',
+            '"reasoning"',
+            '"sufficient"',
+        )
+    )
 
 
 def _structured_says_insufficient(payload: dict[str, Any]) -> bool:
@@ -361,18 +438,7 @@ def _parse_cached_raw_response(
 
 
 def _looks_like_structured_answer_json(answer: str) -> bool:
-    text = answer.lstrip()
-    if not text.startswith("{"):
-        return False
-    return any(
-        marker in text
-        for marker in (
-            '"answer_type"',
-            '"evidence_report"',
-            '"sufficient"',
-            '"missing"',
-        )
-    )
+    return _looks_like_malformed_structured_answer(answer)
 
 
 def _answer_cache_key(*, namespace: str, prompt: str) -> str:

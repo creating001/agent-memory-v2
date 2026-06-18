@@ -1,0 +1,417 @@
+from __future__ import annotations
+
+import sys
+import unittest
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+SRC_ROOT = REPO_ROOT / "src"
+if str(SRC_ROOT) not in sys.path:
+    sys.path.insert(0, str(SRC_ROOT))
+
+from common.schemas import RetrievalHit, RouteResult, Turn
+from memory.build import MemoryRecord
+from memory.compiler import EvidenceCompiler
+
+
+class CompilerTest(unittest.TestCase):
+    def test_structured_guide_memory_hints_are_opt_in(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=4,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            structured_guide=True,
+            max_memory_records=2,
+        )
+
+        compiled = compiler.compile(
+            question="What books has Melanie read?",
+            question_time=None,
+            route=RouteResult("list_count", ("list_or_count",)),
+            hits=(RetrievalHit("s1:t0", 1.0, 1, "test"),),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="I finished Charlotte's Web last weekend.",
+                    timestamp="2024-01-08",
+                ),
+            ),
+            memory_records=(
+                MemoryRecord(
+                    memory_id="m1",
+                    memory_type="event",
+                    text="Melanie finished Charlotte's Web.",
+                    source_ids=("s1:t0",),
+                    value="Charlotte's Web",
+                ),
+            ),
+        )
+
+        self.assertIn("Structured Evidence Guide:", compiled.prompt)
+        self.assertNotIn("memory_hint=", compiled.prompt)
+
+    def test_structured_guide_memory_hints_are_source_linked_and_route_filtered(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=4,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            structured_guide=True,
+            structured_guide_memory_hints=True,
+            max_memory_records=4,
+        )
+
+        compiled = compiler.compile(
+            question="What books has Melanie read?",
+            question_time=None,
+            route=RouteResult("list_count", ("list_or_count",)),
+            hits=(RetrievalHit("s1:t0", 1.0, 1, "test"),),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="I finished Charlotte's Web last weekend.",
+                    timestamp="2024-01-08",
+                ),
+            ),
+            memory_records=(
+                MemoryRecord(
+                    memory_id="m1",
+                    memory_type="event",
+                    text="Melanie finished Charlotte's Web.",
+                    source_ids=("s1:t0",),
+                    value="Charlotte's Web",
+                ),
+                MemoryRecord(
+                    memory_id="m2",
+                    memory_type="profile",
+                    text="Melanie likes reading.",
+                    source_ids=("s1:t0",),
+                    value="reading",
+                ),
+                MemoryRecord(
+                    memory_id="m3",
+                    memory_type="event",
+                    text="Melanie read Nothing is Impossible.",
+                    source_ids=("s1:t9",),
+                    value="Nothing is Impossible",
+                ),
+            ),
+        )
+
+        self.assertIn("memory_hint=event:Charlotte's Web", compiled.prompt)
+        self.assertNotIn("profile:reading", compiled.prompt)
+        self.assertNotIn("Nothing is Impossible", compiled.prompt)
+
+    def test_candidate_guide_memory_hints_are_opt_in(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=4,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            candidate_guide=True,
+            max_memory_records=2,
+        )
+
+        compiled = compiler.compile(
+            question="What books has Melanie read?",
+            question_time=None,
+            route=RouteResult("list_count", ("list_or_count",)),
+            hits=(RetrievalHit("s1:t0", 1.0, 1, "test"),),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="I finished Charlotte's Web last weekend.",
+                    timestamp="2024-01-08",
+                ),
+            ),
+            memory_records=(
+                MemoryRecord(
+                    memory_id="m1",
+                    memory_type="event",
+                    text="Melanie finished Charlotte's Web.",
+                    source_ids=("s1:t0",),
+                    value="Charlotte's Web",
+                ),
+            ),
+        )
+
+        self.assertIn("Candidate Evidence Map:", compiled.prompt)
+        self.assertNotIn("source_memory_hints=", compiled.prompt)
+
+    def test_candidate_guide_includes_only_source_linked_memory_hints(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=4,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            candidate_guide=True,
+            candidate_guide_include_memory_hints=True,
+            candidate_guide_max_memory_hints=1,
+            max_memory_records=4,
+        )
+
+        compiled = compiler.compile(
+            question="What books has Melanie read?",
+            question_time=None,
+            route=RouteResult("list_count", ("list_or_count",)),
+            hits=(RetrievalHit("s1:t0", 1.0, 1, "test"),),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="I finished Charlotte's Web last weekend.",
+                    timestamp="2024-01-08",
+                ),
+            ),
+            memory_records=(
+                MemoryRecord(
+                    memory_id="m1",
+                    memory_type="event",
+                    text="Melanie finished Charlotte's Web.",
+                    source_ids=("s1:t0",),
+                    value="Charlotte's Web",
+                ),
+                MemoryRecord(
+                    memory_id="m2",
+                    memory_type="event",
+                    text="Melanie read Nothing is Impossible.",
+                    source_ids=("s1:t9",),
+                    value="Nothing is Impossible",
+                ),
+            ),
+        )
+
+        self.assertIn("source_memory_hints=event", compiled.prompt)
+        self.assertIn("Charlotte's Web", compiled.prompt)
+        self.assertNotIn("Nothing is Impossible", compiled.prompt)
+
+    def test_memory_tail_filter_preserves_retrieval_order(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=10,
+            max_evidence_chars=8000,
+            prompt_mode="external_naive",
+            route_overrides={
+                "fact_lookup": {
+                    "evidence_order": "memory_tail_filter_preserve_order",
+                    "source_anchor_keep": 2,
+                    "source_anchor_memory_rows": 1,
+                    "source_anchor_per_session": 1,
+                }
+            },
+        )
+
+        turns = tuple(
+            Turn(
+                source_id=f"s1:t{index}",
+                session_id="s1",
+                turn_index=index,
+                role="user",
+                text=text,
+                timestamp="2024-01-08",
+            )
+            for index, text in enumerate(
+                (
+                    "I talked about unrelated setup.",
+                    "I mentioned a possible store.",
+                    "The weather was rainy.",
+                    "We discussed dinner.",
+                    "The coupon was redeemed at Target.",
+                )
+            )
+        )
+
+        compiled = compiler.compile(
+            question="Where was the coupon redeemed?",
+            question_time=None,
+            route=RouteResult("fact_lookup", ("factoid",)),
+            hits=tuple(
+                RetrievalHit(turn.source_id, 1.0 / (index + 1), index + 1, "test")
+                for index, turn in enumerate(turns)
+            ),
+            evidence_turns=turns,
+            memory_records=(
+                MemoryRecord(
+                    memory_id="m1",
+                    memory_type="fact",
+                    text="The coupon was redeemed at Target.",
+                    source_ids=("s1:t4",),
+                    value="Target",
+                ),
+            ),
+        )
+
+        self.assertEqual(
+            [row.source_id for row in compiled.evidence_rows],
+            ["s1:t0", "s1:t1", "s1:t4"],
+        )
+        self.assertIn("Target", compiled.prompt)
+        self.assertNotIn("The weather was rainy.", compiled.prompt)
+
+    def test_tail_row_text_compression_applies_only_after_direct_hit_rank(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=4,
+            max_evidence_chars=12000,
+            prompt_mode="external_naive",
+            route_overrides={
+                "fact_lookup": {
+                    "tail_row_text_after_rank": 2,
+                    "tail_row_text_mode": "query_snippet",
+                    "tail_max_row_text_chars": 90,
+                }
+            },
+        )
+
+        tail_text = (
+            "TAIL_PREFIX_SHOULD_BE_REMOVED "
+            + ("unrelated setup " * 20)
+            + "The coupon redeemed at Target after lunch. "
+            + ("unrelated close " * 20)
+            + "TAIL_SUFFIX_SHOULD_BE_REMOVED"
+        )
+        neighbor_text = (
+            "NEIGHBOR_FULL_SENTINEL_START "
+            + ("neighbor detail " * 20)
+            + "NEIGHBOR_FULL_SENTINEL_END"
+        )
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text="TOP_RANK_FULL_SENTINEL_START " + ("top detail " * 20)
+                + "TOP_RANK_FULL_SENTINEL_END",
+                timestamp="2024-01-08",
+            ),
+            Turn(
+                source_id="s1:t1",
+                session_id="s1",
+                turn_index=1,
+                role="user",
+                text="SECOND_RANK_FULL_SENTINEL",
+                timestamp="2024-01-08",
+            ),
+            Turn(
+                source_id="s1:t2",
+                session_id="s1",
+                turn_index=2,
+                role="user",
+                text=tail_text,
+                timestamp="2024-01-08",
+            ),
+            Turn(
+                source_id="s1:t3",
+                session_id="s1",
+                turn_index=3,
+                role="assistant",
+                text=neighbor_text,
+                timestamp="2024-01-08",
+            ),
+        )
+
+        compiled = compiler.compile(
+            question="Where was the coupon redeemed?",
+            question_time=None,
+            route=RouteResult("fact_lookup", ("factoid",)),
+            hits=(
+                RetrievalHit("s1:t0", 1.0, 1, "test"),
+                RetrievalHit("s1:t1", 0.9, 2, "test"),
+                RetrievalHit("s1:t2", 0.8, 3, "test"),
+            ),
+            evidence_turns=turns,
+            memory_records=(),
+        )
+
+        self.assertIn("TOP_RANK_FULL_SENTINEL_END", compiled.prompt)
+        self.assertIn("The coupon redeemed at Target", compiled.prompt)
+        self.assertNotIn("TAIL_PREFIX_SHOULD_BE_REMOVED", compiled.prompt)
+        self.assertNotIn("TAIL_SUFFIX_SHOULD_BE_REMOVED", compiled.prompt)
+        self.assertIn("NEIGHBOR_FULL_SENTINEL_START", compiled.prompt)
+        self.assertIn("NEIGHBOR_FULL_SENTINEL_END", compiled.prompt)
+
+    def test_tail_row_text_compression_does_not_admit_extra_rows(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=4,
+            max_evidence_chars=1600,
+            prompt_mode="external_naive",
+            route_overrides={
+                "fact_lookup": {
+                    "tail_row_text_after_rank": 2,
+                    "tail_row_text_mode": "query_snippet",
+                    "tail_max_row_text_chars": 80,
+                }
+            },
+        )
+
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text="alpha short top row",
+                timestamp="2024-01-08",
+            ),
+            Turn(
+                source_id="s1:t1",
+                session_id="s1",
+                turn_index=1,
+                role="user",
+                text="beta short second row",
+                timestamp="2024-01-08",
+            ),
+            Turn(
+                source_id="s1:t2",
+                session_id="s1",
+                turn_index=2,
+                role="user",
+                text="TAIL_PREFIX "
+                + ("unrelated filler " * 55)
+                + "coupon redeemed at Target "
+                + ("more filler " * 20)
+                + "TAIL_SUFFIX",
+                timestamp="2024-01-08",
+            ),
+            Turn(
+                source_id="s1:t3",
+                session_id="s1",
+                turn_index=3,
+                role="user",
+                text="EXTRA_ROW_SHOULD_NOT_BE_SELECTED",
+                timestamp="2024-01-08",
+            ),
+        )
+
+        compiled = compiler.compile(
+            question="Where was the coupon redeemed?",
+            question_time=None,
+            route=RouteResult("fact_lookup", ("factoid",)),
+            hits=(
+                RetrievalHit("s1:t0", 1.0, 1, "test"),
+                RetrievalHit("s1:t1", 0.9, 2, "test"),
+                RetrievalHit("s1:t2", 0.8, 3, "test"),
+                RetrievalHit("s1:t3", 0.7, 4, "test"),
+            ),
+            evidence_turns=turns,
+            memory_records=(),
+        )
+
+        self.assertEqual(
+            [row.source_id for row in compiled.evidence_rows],
+            ["s1:t0", "s1:t1", "s1:t2"],
+        )
+        self.assertIn("coupon redeemed at Target", compiled.prompt)
+        self.assertNotIn("TAIL_PREFIX", compiled.prompt)
+        self.assertNotIn("EXTRA_ROW_SHOULD_NOT_BE_SELECTED", compiled.prompt)
+
+
+if __name__ == "__main__":
+    unittest.main()

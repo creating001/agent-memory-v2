@@ -21,9 +21,13 @@ from memory.answer import (
 )
 from memory.build import MemoryRecord
 from memory.compiler import EvidenceCompiler
-from memory.finalize import finalize_structured_answer, raw_response_content
+from memory.finalize import (
+    finalize_structured_answer,
+    guard_source_grounded_answer,
+    raw_response_content,
+)
 from memory.repair import build_repair_prompt, repair_trigger_reasons
-from memory.rerank import RerankResult
+from memory.rerank import RerankResult, rerank_hits_filter_preserve_order
 from memory.retrieval import (
     MemoryHit,
     TurnWindowBM25Retriever,
@@ -334,6 +338,79 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertIn("Nothing is Impossible", row_text)
         self.assertIn("Nothing is Impossible", prompt)
         self.assertNotIn("question_type", prompt)
+
+    def test_selected_context_route_override_is_scoped(self) -> None:
+        config = {
+            "retrieval": {
+                "top_k": 2,
+                "max_top_k": 2,
+                "neighbor_window": 0,
+                "selected_context": {
+                    "enabled": True,
+                    "window_before": 0,
+                    "window_after": 0,
+                    "max_rows": 1,
+                    "max_neighbor_chars": 80,
+                    "require_anaphora": True,
+                    "information_needs": ["list_count"],
+                    "route_overrides": {
+                        "temporal_lookup": {
+                            "enabled": True,
+                            "window_before": 1,
+                            "window_after": 0,
+                            "max_rows": 1,
+                            "max_neighbor_chars": 80,
+                            "require_anaphora": True,
+                            "information_needs": ["temporal_lookup"],
+                        }
+                    },
+                },
+            },
+            "compiler": {
+                "prompt_mode": "external_naive",
+                "max_evidence_items": 2,
+                "max_evidence_chars": 4000,
+            },
+            "answer": {"fallback_answer": "unknown"},
+        }
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text="Alex visited the museum.",
+            ),
+            Turn(
+                source_id="s1:t1",
+                session_id="s1",
+                turn_index=1,
+                role="assistant",
+                text="That museum visit happened on Monday.",
+            ),
+        )
+
+        temporal_result = Stage1Pipeline(config).predict(
+            PredictionRequest(question="When did Alex visit the museum?", turns=turns)
+        )
+        temporal_trace = temporal_result["trace"]["retrieval"]["selected_context"]
+        temporal_row_text = "\n".join(
+            row["text"]
+            for row in temporal_result["trace"]["compiled_context"]["evidence_rows"]
+        )
+
+        self.assertTrue(temporal_trace["applied"])
+        self.assertEqual(temporal_trace["route_override"], "temporal_lookup")
+        self.assertIn("Local dialogue context from the same session", temporal_row_text)
+        self.assertIn("Alex visited the museum", temporal_row_text)
+
+        fact_result = Stage1Pipeline(config).predict(
+            PredictionRequest(question="What did Alex visit?", turns=turns)
+        )
+        fact_trace = fact_result["trace"]["retrieval"]["selected_context"]
+
+        self.assertFalse(fact_trace["applied"])
+        self.assertIsNone(fact_trace["route_override"])
 
     def test_grounded_inference_contract_is_question_gated(self) -> None:
         compiler = EvidenceCompiler(
@@ -656,6 +733,85 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual(rows[0]["source_id"], "good")
         self.assertNotIn("question_type", result["trace"]["compiled_context"]["prompt"])
         self.assertEqual(result["trace"]["token_cost"]["query_tokens"], 0)
+
+    def test_rerank_filter_preserves_retrieval_order_after_selection(self) -> None:
+        hits = (
+            RetrievalHit("anchor", 0.9, 1, "hybrid"),
+            RetrievalHit("best", 0.8, 2, "hybrid"),
+            RetrievalHit("second", 0.7, 3, "hybrid"),
+        )
+
+        filtered = rerank_hits_filter_preserve_order(
+            hits=hits,
+            scores=(0.7, 1.0, 0.95),
+            top_k=2,
+            anchor_keep=1,
+        )
+
+        self.assertEqual([hit.source_id for hit in filtered], ["anchor", "best"])
+        self.assertTrue(all("rerank_filter" in hit.retriever for hit in filtered))
+
+    def test_pipeline_rerank_filter_selects_tail_without_reordering_anchor(self) -> None:
+        config = {
+            "retrieval": {
+                "top_k": 2,
+                "max_top_k": 2,
+                "neighbor_window": 0,
+                "drop_query_stopwords": True,
+                "rerank": {
+                    "enabled": True,
+                    "base_url": "http://127.0.0.1:8002/v1",
+                    "model": "fake-reranker",
+                    "pool_k": 3,
+                    "anchor_keep": 1,
+                    "anchor_after_top": 0,
+                    "selection_mode": "filter_preserve_order",
+                },
+            },
+            "compiler": {"max_evidence_items": 2, "max_evidence_chars": 4000},
+            "answer": {"fallback_answer": "unknown"},
+        }
+        request = PredictionRequest(
+            question="Where did Alex redeem the coupon?",
+            turns=(
+                Turn(
+                    source_id="anchor",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Where redeem coupon where redeem coupon.",
+                ),
+                Turn(
+                    source_id="target",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="Alex redeemed the coupon at Target.",
+                ),
+                Turn(
+                    source_id="tail",
+                    session_id="s1",
+                    turn_index=2,
+                    role="user",
+                    text="Coupon reminder.",
+                ),
+            ),
+        )
+
+        with patch("memory.pipeline.OpenAICompatibleRerankClient", _FakeReranker):
+            result = Stage1Pipeline(config).predict(request)
+
+        retrieval_trace = result["trace"]["retrieval"]
+        rows = result["trace"]["compiled_context"]["evidence_rows"]
+
+        self.assertEqual(retrieval_trace["candidate_top_k"], 3)
+        self.assertTrue(retrieval_trace["rerank_applied"])
+        self.assertEqual(retrieval_trace["rerank_selection_mode"], "filter_preserve_order")
+        self.assertEqual(
+            [hit["source_id"] for hit in retrieval_trace["hits"]],
+            ["anchor", "target"],
+        )
+        self.assertEqual([row["source_id"] for row in rows], ["anchor", "target"])
 
     def test_rerank_neighbors_are_same_session_only(self) -> None:
         store = RawEvidenceStore(
@@ -1260,6 +1416,55 @@ class CleanSkeletonTest(unittest.TestCase):
             "jasmine tea",
         )
 
+    def test_json_answer_output_salvages_scalar_answer_field_from_malformed_json(self) -> None:
+        raw = '{"reasoning":"bad quote " here","answer": 7}'
+
+        self.assertEqual(
+            _parse_answer_content(raw, output_format="json_answer"),
+            "7",
+        )
+
+    def test_json_answer_output_salvages_final_answer_marker_from_malformed_json(self) -> None:
+        raw = (
+            '{"reasoning":"The model kept reasoning and never closed JSON. '
+            'Answer: 7\\nMore reasoning repeats here."'
+        )
+
+        self.assertEqual(
+            _parse_answer_content(raw, output_format="json_answer"),
+            "7",
+        )
+
+    def test_json_answer_output_salvages_i_will_output_marker(self) -> None:
+        raw = (
+            '{"reasoning":"After comparing the evidence I will output 5. '
+            'If a stricter interpretation is used, it could differ."'
+        )
+
+        self.assertEqual(
+            _parse_answer_content(raw, output_format="json_answer"),
+            "5",
+        )
+
+    def test_json_answer_output_strips_wrapper_quote_from_salvaged_marker(self) -> None:
+        raw = "{\"reasoning\":\"I would answer 'at least 2 completed'.\""
+
+        self.assertEqual(
+            _parse_answer_content(raw, output_format="json_answer"),
+            "at least 2 completed",
+        )
+
+    def test_json_answer_output_does_not_salvage_conditional_marker(self) -> None:
+        raw = (
+            '{"reasoning":"The candidate is not a final answer. '
+            'Answer: if the missing evidence is available then use 5."'
+        )
+
+        self.assertEqual(
+            _parse_answer_content(raw, output_format="json_answer"),
+            "The provided information is not enough.",
+        )
+
     def test_json_answer_output_converts_structured_insufficient_without_answer(self) -> None:
         raw = json.dumps(
             {
@@ -1657,6 +1862,58 @@ class CleanSkeletonTest(unittest.TestCase):
         )
 
         self.assertFalse(finalization.applied)
+        self.assertEqual(finalization.answer, "1")
+
+    def test_source_grounded_guard_adds_only_missing_detail(self) -> None:
+        content = json.dumps(
+            {
+                "sufficient": False,
+                "missing": "No row states the start date.",
+                "answer": "The provided information is not enough.",
+            }
+        )
+        raw_response = json.dumps({"content": content})
+
+        finalization = guard_source_grounded_answer(
+            draft_answer="The provided information is not enough.",
+            raw_response=raw_response,
+            enable_missing_detail=True,
+        )
+
+        self.assertTrue(finalization.applied)
+        self.assertEqual(finalization.reason, "source_grounded_missing_detail")
+        self.assertIn("No row states the start date", finalization.answer)
+
+    def test_source_grounded_guard_does_not_compute_count(self) -> None:
+        content = json.dumps(
+            {
+                "sufficient": True,
+                "answer_type": "count",
+                "evidence_report": [
+                    {
+                        "status": "support",
+                        "canonical_item": "first plant",
+                        "count_increment": "1",
+                    },
+                    {
+                        "status": "support",
+                        "canonical_item": "second plant",
+                        "count_increment": "1",
+                    },
+                ],
+                "answer": "1",
+            }
+        )
+        raw_response = json.dumps({"content": content})
+
+        finalization = guard_source_grounded_answer(
+            draft_answer="1",
+            raw_response=raw_response,
+            enable_missing_detail=True,
+        )
+
+        self.assertFalse(finalization.applied)
+        self.assertEqual(finalization.reason, "source_grounded_guard_consistent")
         self.assertEqual(finalization.answer, "1")
 
     def test_evidence_report_count_increment_finalizer_is_explicit(self) -> None:
@@ -2331,7 +2588,7 @@ class CleanSkeletonTest(unittest.TestCase):
             {"hits": 1, "misses": 1, "writes": 1},
         )
 
-    def test_cached_answerer_preserves_cached_answer_on_hits(self) -> None:
+    def test_cached_answerer_repairs_malformed_json_answer_residue(self) -> None:
         compiler = EvidenceCompiler(max_evidence_items=1, max_evidence_chars=1000)
         route = RouteResult(information_need="fact_lookup", signals=())
         context = compiler.compile(
@@ -2361,12 +2618,8 @@ class CleanSkeletonTest(unittest.TestCase):
             first = answerer.answer(context)
             second = answerer.answer(context)
 
-        expected_answer = (
-            '{"reasoning":"quoted text broke the JSON: "bad quote"",'
-            '"answer":"jasmine tea"}'
-        )
-        self.assertEqual(first.answer, expected_answer)
-        self.assertEqual(second.answer, first.answer)
+        self.assertEqual(first.answer, "jasmine tea")
+        self.assertEqual(second.answer, "jasmine tea")
         self.assertEqual(inner.calls, 1)
 
     def test_cached_answerer_repairs_structured_json_answer_residue(self) -> None:
@@ -3901,6 +4154,82 @@ class CleanSkeletonTest(unittest.TestCase):
         )
         self.assertEqual(compiled.memory_records, ())
         self.assertNotIn("The user prefers turbinado sugar", compiled.prompt)
+
+    def test_memory_source_interleave_preserves_memory_source_retrieval_order(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=4,
+            max_evidence_chars=4000,
+            evidence_order="memory_source_interleave",
+            source_anchor_keep=1,
+            source_anchor_memory_rows=2,
+            source_anchor_per_session=0,
+            max_memory_records=0,
+        )
+        route = RouteResult(information_need="profile_preference", signals=())
+        low_score_memory = MemoryRecord(
+            memory_id="m1",
+            memory_type="fact",
+            text="The user mentioned turbinado sugar.",
+            source_ids=("s2:t0",),
+            value="turbinado sugar",
+        )
+        high_score_memory = MemoryRecord(
+            memory_id="m2",
+            memory_type="preference",
+            text="The user prefers almond flour and maple syrup.",
+            source_ids=("s3:t0",),
+            value="almond flour maple syrup",
+        )
+
+        compiled = compiler.compile(
+            question="What would improve my cookies?",
+            question_time=None,
+            route=route,
+            hits=(
+                RetrievalHit("s1:t0", 1.0, 1, "dense_embedding"),
+                RetrievalHit("s2:t0", 0.8, 2, "build_memory_bm25"),
+                RetrievalHit("s1:t1", 0.7, 3, "dense_embedding"),
+                RetrievalHit("s3:t0", 0.6, 4, "build_memory_bm25"),
+            ),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="I tried a cherry clafoutis recipe.",
+                ),
+                Turn(
+                    source_id="s2:t0",
+                    session_id="s2",
+                    turn_index=0,
+                    role="user",
+                    text="I found turbinado sugar adds a richer flavor.",
+                ),
+                Turn(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="Almond flour worked well in a dessert.",
+                ),
+                Turn(
+                    source_id="s3:t0",
+                    session_id="s3",
+                    turn_index=0,
+                    role="user",
+                    text="Maple syrup made my cookies more balanced.",
+                ),
+            ),
+            memory_records=(high_score_memory, low_score_memory),
+        )
+
+        self.assertEqual(
+            [row.source_id for row in compiled.evidence_rows],
+            ["s1:t0", "s2:t0", "s3:t0", "s1:t1"],
+        )
+        self.assertEqual(compiled.memory_records, ())
+        self.assertNotIn("The user prefers almond flour", compiled.prompt)
 
     def test_source_anchor_coverage_without_memory_preserves_order(self) -> None:
         compiler = EvidenceCompiler(

@@ -171,6 +171,48 @@ def rerank_hits_with_anchor_retention(
     )
 
 
+def rerank_hits_filter_preserve_order(
+    *,
+    hits: tuple[RetrievalHit, ...],
+    scores: tuple[float, ...],
+    top_k: int,
+    anchor_keep: int = 0,
+    anchor_after_top: int = 0,
+) -> tuple[RetrievalHit, ...]:
+    """Use rerank scores for selection while preserving retrieval order."""
+
+    if not hits or top_k <= 0:
+        return ()
+    if len(hits) != len(scores):
+        raise ValueError("rerank scores must align with hits")
+    if top_k >= len(hits):
+        return tuple(
+            _filtered_hit(hit=hit, rank=rank)
+            for rank, hit in enumerate(hits, start=1)
+        )
+
+    selected: set[str] = set()
+    for hit in hits[: max(0, anchor_keep)]:
+        selected.add(hit.source_id)
+
+    scored_hits = sorted(
+        zip(hits, scores, range(len(hits)), strict=True),
+        key=lambda item: (-item[1], item[2]),
+    )
+    for hit, _score, _index in scored_hits[: max(0, anchor_after_top)]:
+        selected.add(hit.source_id)
+    for hit, _score, _index in scored_hits:
+        if len(selected) >= top_k:
+            break
+        selected.add(hit.source_id)
+
+    ordered = [hit for hit in hits if hit.source_id in selected][:top_k]
+    return tuple(
+        _filtered_hit(hit=hit, rank=rank)
+        for rank, hit in enumerate(ordered, start=1)
+    )
+
+
 def format_rerank_turn_document(turn: Turn, *, max_chars: int = 0) -> str:
     text = f"{turn.role}: {turn.text}"
     if turn.timestamp:
@@ -253,6 +295,19 @@ def _reranked_hit(*, hit: RetrievalHit, score: float, rank: int) -> RetrievalHit
     return RetrievalHit(
         source_id=hit.source_id,
         score=score,
+        rank=rank,
+        retriever=retriever,
+        matched_terms=hit.matched_terms,
+    )
+
+
+def _filtered_hit(*, hit: RetrievalHit, rank: int) -> RetrievalHit:
+    retriever = hit.retriever
+    if "rerank" not in retriever:
+        retriever = f"{retriever}+rerank_filter"
+    return RetrievalHit(
+        source_id=hit.source_id,
+        score=hit.score,
         rank=rank,
         retriever=retriever,
         matched_terms=hit.matched_terms,

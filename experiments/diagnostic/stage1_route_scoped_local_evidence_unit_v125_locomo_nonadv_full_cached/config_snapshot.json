@@ -1,0 +1,234 @@
+{
+  "answer": {
+    "base_url": "http://127.0.0.1:8000/v1",
+    "cache": {
+      "enabled": true,
+      "namespace": "stage1_route_scoped_local_evidence_unit_v125_qwen36_no_think_build4k",
+      "path": "outputs/cache/qwen36_no_think_build4k_answer_v125_route_scoped_local_evidence_unit.sqlite"
+    },
+    "chat_template_kwargs": {
+      "enable_thinking": false
+    },
+    "finalizer": {
+      "enable_missing_detail": false,
+      "enabled": true,
+      "mode": "source_grounded_consistency_guard"
+    },
+    "max_input_tokens": 131072,
+    "max_output_tokens": 16384,
+    "max_tokens": 16384,
+    "mode": "openai_compatible",
+    "model": "Qwen/Qwen3.6-35B-A3B",
+    "output_format": "json_answer",
+    "temperature": 0,
+    "timeout": 600
+  },
+  "build_memory": {
+    "base_url": "http://127.0.0.1:8000/v1",
+    "cache": {
+      "enabled": true,
+      "namespace": "stage1_spacing_profile_v102_qwen36_no_think_build4k_cold",
+      "path": "outputs/cache/qwen36_no_think_build4k_memory_v102.sqlite"
+    },
+    "chat_template_kwargs": {
+      "enable_thinking": false
+    },
+    "drop_query_stopwords": true,
+    "enabled": true,
+    "include_superseded": false,
+    "include_superseded_information_needs": [
+      "temporal_lookup",
+      "list_count"
+    ],
+    "max_chars_per_turn": 500,
+    "max_records_per_chunk": 20,
+    "max_sources_per_record": 4,
+    "max_tokens": 4096,
+    "max_turns_per_chunk": 80,
+    "mode": "openai_compatible",
+    "model": "Qwen/Qwen3.6-35B-A3B",
+    "temperature": 0,
+    "timeout": 900,
+    "top_k": 20
+  },
+  "compiler": {
+    "answer_style": "concise",
+    "evidence_order": "retrieval",
+    "evidence_report_contract": true,
+    "evidence_report_information_needs": [
+      "current_state",
+      "fact_lookup",
+      "list_count",
+      "profile_preference",
+      "temporal_lookup"
+    ],
+    "evidence_report_max_items": 8,
+    "evidence_row_labels": false,
+    "final_answer_checklist": false,
+    "max_evidence_chars": 18000,
+    "max_evidence_items": 60,
+    "max_memory_records": 0,
+    "memory_layout": "flat",
+    "memory_order": "retrieval",
+    "operation_workpad": false,
+    "prompt_mode": "external_naive",
+    "route_guidance": false,
+    "route_overrides": {
+      "current_state": {
+        "grounded_inference_contract": true,
+        "grounded_inference_gate": "modal_only"
+      },
+      "fact_lookup": {
+        "grounded_inference_contract": true,
+        "grounded_inference_gate": "modal_only"
+      },
+      "profile_preference": {
+        "grounded_inference_contract": true,
+        "grounded_inference_gate": "modal_only"
+      },
+      "temporal_lookup": {
+        "max_evidence_chars": 18000,
+        "max_evidence_items": 40
+      }
+    },
+    "row_text_mode": "full",
+    "structured_answer_contract": false,
+    "structured_guide": true,
+    "structured_guide_disabled_signals": [
+      "personalized_recommendation"
+    ],
+    "structured_guide_include_memory": false,
+    "structured_guide_include_rows": true,
+    "structured_guide_max_rows": 12,
+    "temporal_event_contract": true,
+    "temporal_grounding": false,
+    "temporal_hints": false,
+    "temporal_text_normalization": true,
+    "temporal_workpad": true,
+    "temporal_workpad_max_pairs": 12,
+    "temporal_workpad_max_rows": 12,
+    "temporal_workpad_scope": "route"
+  },
+  "description": "V125 diagnostic candidate on current Qwen/Qwen3.6-35B-A3B no-thinking backbone. It inherits V121 source-grounded guard and keeps V116 build, retrieval top-k, granularity profiles, compiler, modal grounded inference, answer prompt, and the existing fact/list/profile selected-context policy unchanged. The only retrieval-context change is a route-scoped local evidence unit for temporal_lookup: prediction-time temporal questions may materialize a small same-session before/after window around up to four short anaphoric center rows. This narrows the rejected V124 broad local expansion to a general information-need policy motivated by source expansion / evidence-unit memory methods. It uses only question text, raw Memory Context, same-session visible turn order, and prediction-time route; no gold answers, judge output, benchmark labels, sample ids, row indices, test feedback, or sample-level shortcuts are used by prediction.",
+  "name": "stage1_route_scoped_local_evidence_unit_v125_qwen36_no_think_build4k_cached",
+  "retrieval": {
+    "dense": {
+      "base_url": "http://127.0.0.1:8001/v1",
+      "batch_size": 32,
+      "cache": {
+        "enabled": true,
+        "namespace": "Qwen/Qwen3-Embedding-0.6B",
+        "path": "outputs/cache/qwen3_embedding.sqlite"
+      },
+      "document_text_mode": "external_naive",
+      "enabled": true,
+      "lexical_protect_top_n": 0,
+      "model": "Qwen/Qwen3-Embedding-0.6B",
+      "protect_top_n": 48,
+      "query_text_mode": "external_naive",
+      "rrf_k": 60,
+      "timeout": 120,
+      "top_k": 60
+    },
+    "drop_query_stopwords": true,
+    "granularity_profiles": [
+      {
+        "compiler": {
+          "memory_context_newlines_after_blocks": 4
+        },
+        "max_avg_turn_chars": 299.999,
+        "name": "short_turn_v96_spacing"
+      },
+      {
+        "answer_finalizer": {
+          "enable_missing_detail": true,
+          "enabled": true,
+          "mode": "source_grounded_consistency_guard"
+        },
+        "compiler": {
+          "max_evidence_chars": 18000,
+          "max_evidence_items": 40,
+          "operation_workpad": true,
+          "operation_workpad_information_needs": [
+            "list_count",
+            "temporal_lookup"
+          ],
+          "personalized_advice_contract": true,
+          "temporal_event_contract": false,
+          "update_conflict_guide": true,
+          "update_conflict_guide_information_needs": [
+            "current_state",
+            "fact_lookup"
+          ],
+          "update_conflict_guide_max_rows": 6,
+          "update_conflict_guide_snippet_chars": 180
+        },
+        "min_avg_turn_chars": 300,
+        "name": "long_turn_precision",
+        "retrieval": {
+          "dense_protect_top_n": 32,
+          "dense_top_k": 40,
+          "lexical_protect_top_n": 0,
+          "max_top_k": 40,
+          "top_k": 40
+        },
+        "route": {
+          "enable_broad_list_patterns": false
+        },
+        "selected_context": {
+          "enabled": false
+        }
+      }
+    ],
+    "lexical": {
+      "enabled": true
+    },
+    "max_top_k": 60,
+    "neighbor_order": "hit_priority",
+    "neighbor_window": 0,
+    "route_overrides": {
+      "temporal_lookup": {
+        "dense_protect_top_n": 32,
+        "dense_top_k": 40,
+        "lexical_protect_top_n": 0,
+        "max_top_k": 40,
+        "top_k": 40
+      }
+    },
+    "score_threshold": 0,
+    "selected_context": {
+      "enabled": true,
+      "information_needs": [
+        "fact_lookup",
+        "list_count",
+        "profile_preference"
+      ],
+      "max_center_chars": 320,
+      "max_neighbor_chars": 180,
+      "max_rows": 6,
+      "require_anaphora": true,
+      "route_overrides": {
+        "temporal_lookup": {
+          "enabled": true,
+          "information_needs": [
+            "temporal_lookup"
+          ],
+          "max_center_chars": 260,
+          "max_neighbor_chars": 140,
+          "max_rows": 4,
+          "require_anaphora": true,
+          "window_after": 1,
+          "window_before": 1
+        }
+      },
+      "window_after": 2,
+      "window_before": 1
+    },
+    "top_k": 60
+  },
+  "route": {
+    "enable_broad_list_patterns": true,
+    "enable_recommendation_profile_patterns": true,
+    "temporal_priority_over_recent": false
+  }
+}
