@@ -144,5 +144,6 @@ Evidence so far:
 - lexical metrics are positive on temporal subset and route-only full merge, but remain diagnostic only
 - primary paired temporal dual judge is positive: strict `+7`, lenient `+9`
 - full route-only dual judge is strict-positive but lenient-marginal against current v116 LTS; see `experiments/diagnostic/stage1_route_scoped_local_evidence_unit_v125_locomo_nonadv_full_route_only_merge/manual_diagnosis.md`
+- LME compiler compatibility passed in null-answer dry-run: `0/500` prompt changes, `0/500` evidence-row changes, route unchanged, avg context delta `0.0`; see `experiments/diagnostic/stage1_route_scoped_local_evidence_unit_v125_lme_dry/manual_diagnosis.md`
 
-Next step: run LME compatibility/dry-run and inspect temporal gain/loss badcases before considering a formal full run. V125 is not a new LTS yet because LTS requires fewer risk points and better full dual judge accuracy across the target benchmarks.
+Next step: inspect temporal gain/loss badcases and prove answer/finalizer compatibility on LongMemEval before considering a formal full run. V125 is not a new LTS yet because LTS requires fewer risk points and better full dual judge accuracy across the target benchmarks.

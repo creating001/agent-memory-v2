@@ -88,4 +88,6 @@ This full diagnostic is strict-positive but lenient-marginal:
 
 Keep V125 as a promising diagnostic candidate, not an LTS replacement yet.
 
-The route-only full merge improves strict accuracy and barely improves lenient accuracy. Because the LTS rule requires both fewer risk points and better full dual judge accuracy across target benchmarks, the next step is LME compatibility plus badcase analysis. If LME is neutral or positive and temporal losses are explainable, run a clean formal full prediction/judge before considering promotion.
+The route-only full merge improves strict accuracy and barely improves lenient accuracy. LME compiler compatibility passed in null-answer dry-run with `0/500` prompt changes and `0/500` evidence-row changes, but answer/finalizer compatibility is not yet proven because V125 inherits the V121 `source_grounded_consistency_guard` while V116 LTS used `structured_evidence_mechanical`.
+
+Because the LTS rule requires both fewer risk points and better full dual judge accuracy across target benchmarks, the next step is temporal gain/loss badcase analysis plus LongMemEval answer/finalizer compatibility or a clean formal full run before considering promotion.
