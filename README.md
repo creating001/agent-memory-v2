@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_selective_source_repair_v150_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_current_state_source_repair_v151_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v150 local LTS | 说明 |
+| Benchmark | 当前 v151 local LTS | 说明 |
 |---|---:|---|
-| LongMemEval-S full | strict/lenient `0.820000 / 0.834000` | v127 fresh full + v150 changed-answer paired dual judge 派生：`410/500` strict，`417/500` lenient；v150 仅改 `2/500` 条答案。 |
-| LoCoMo non-adversarial full | strict/lenient `0.789610 / 0.815584` | v127 fresh full + v150 changed-answer paired dual judge 派生：`1216/1540` strict，`1256/1540` lenient；v150 仅改 `2/1540` 条答案。 |
+| LongMemEval-S full | strict/lenient `0.822000 / 0.834000` | v127 fresh full + v151 changed-answer paired dual judge 派生：`411/500` strict，`417/500` lenient；v151 仅改 `1/500` 条答案。 |
+| LoCoMo non-adversarial full | strict/lenient `0.789610 / 0.815584` | v151 与 v127 answer-normalized 等价，沿用 v127 fresh full dual judge：`1216/1540` strict，`1256/1540` lenient。 |
 
-v150 的 LTS 理由：继承 v127 的 source-backed memory organization，并把 v149 负向的 broad checklist 收窄成只在 `current_state/profile_preference` draft 明确不充分、拒答或 modal abstention 时触发的 source verifier/repair。repair 只读预测阶段已有的 question、draft、answer JSON 和同一份 Memory Context；不读 gold、judge、标签、sample id 或 test feedback。它降低 #4 final answer guardrail 和 #5 query-time state reasoning 风险，LongMemEval-S lenient 小幅正向、strict 持平，LoCoMo 持平。#1 granularity/profile、#2 top-k/context noise/rerank，以及 #5 更完整的 lifecycle/conflict/update 管理仍是优先待办。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_selective_source_repair_v150_scope_summary.md`。
+v151 的 LTS 理由：继承 v150/v127 的 source-backed memory organization 和 current-state source repair，但把 v150 的 `profile_preference` repair 移出 LTS 主线，避免 recommendation/profile 过度改写。repair 只读预测阶段已有的 question、draft、answer JSON 和同一份 Memory Context；不读 gold、judge、标签、sample id 或 test feedback。它保留 current-role duration 的正确修复，降低 #4/#5 的 verifier overreach 风险，LongMemEval-S strict 提升、lenient 持平，LoCoMo 持平，并降低 query token。#1 granularity/profile、#2 top-k/context noise/rerank，以及 #5 更完整的 lifecycle/conflict/update 管理仍是优先待办。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_current_state_source_repair_v151_scope_summary.md`。
 
 ## 目录
 

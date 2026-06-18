@@ -6,14 +6,14 @@
 
 | 项目 | 结果 |
 |---|---|
-| 当前 LTS 配置 | `configs/stage1_selective_source_repair_v150_qwen36_no_think_build4k_cached.json` |
+| 当前 LTS 配置 | `configs/stage1_current_state_source_repair_v151_qwen36_no_think_build4k_cached.json` |
 | Backbone | `Qwen/Qwen3.6-35B-A3B` answer/build，`chat_template_kwargs.enable_thinking=false` |
-| 方法 | V150 selective source repair：继承 v127 source-backed active/superseded update organization，在 `current_state/profile_preference` 上用窄触发 source verifier 修复 draft 拒答或不充分答案；typed memory text 不作为 reader evidence。 |
-| LongMemEval-S full | paired-delta derived dual judge strict/lenient `0.820000 / 0.834000`；`410/500` strict，`417/500` lenient |
-| LoCoMo non-adversarial full | paired-delta derived dual judge strict/lenient `0.789610 / 0.815584`；`1216/1540` strict，`1256/1540` lenient |
-| 状态 | 当前本地 qwen3.6 no-thinking LTS。相对 v127，v150 降低 #4 source-grounded answer guard 和 #5 query-time state reasoning 风险；#1 granularity/profile、#2 top-k/context noise/rerank、#5 更完整的 lifecycle/conflict/update 管理仍未解决。 |
+| 方法 | V151 current-state source repair：继承 v150/v127 source-backed active/superseded update organization，只在 `current_state` 上用窄触发 source verifier 修复 draft 拒答或不充分答案；typed memory text 不作为 reader evidence。 |
+| LongMemEval-S full | paired-delta derived dual judge strict/lenient `0.822000 / 0.834000`；`411/500` strict，`417/500` lenient |
+| LoCoMo non-adversarial full | v151 与 v127 answer-normalized 等价，strict/lenient `0.789610 / 0.815584`；`1216/1540` strict，`1256/1540` lenient |
+| 状态 | 当前本地 qwen3.6 no-thinking LTS。相对 v150，v151 移除 profile repair 过度改写，降低 #4 verifier overreach 和 #5 query-time profile/state 混用风险；#1 granularity/profile、#2 top-k/context noise/rerank、#5 更完整的 lifecycle/conflict/update 管理仍未解决。 |
 
-`paired-delta derived` 的含义：v150 预测与 v127 只有少量答案变化，未变化答案沿用 v127 fresh full dual judge records，变化答案单独跑 v127/v150 paired dual judge 后替换计数。若论文级最终汇报需要完全独立 run，再对 LTS 配置重跑 fresh full judge。
+`paired-delta derived` 的含义：v151 预测与 v127/v150 只有少量答案变化，未变化答案沿用 v127 fresh full dual judge records，变化答案单独跑 paired dual judge 后替换计数。若论文级最终汇报需要完全独立 run，再对 LTS 配置重跑 fresh full judge。
 
 ## 口径说明
 
@@ -26,7 +26,7 @@
 
 | 优先级 | 项目 | 当前状态 | 下一步 |
 |---:|---|---|---|
-| 1 | #5 memory lifecycle/state/conflict/query-time reasoning | v150 只解决窄触发 verifier 和 current-state duration/source relation；还没有完整 lifecycle/conflict/update 管理 | 继续做 source-backed state/version/conflict management；typed memory 只做 source-backed activation，不当 reader evidence |
+| 1 | #5 memory lifecycle/state/conflict/query-time reasoning | v151 只保留 current-state duration/source repair；还没有完整 lifecycle/conflict/update 管理 | 继续做 source-backed state/version/conflict management；typed memory 只做 source-backed activation，不当 reader evidence |
 | 2 | #2 top-k/context noise/rerank | v129/v134/v140 说明简单裁剪或 tail snippet 会伤 accuracy；当前 query context 仍偏长 | 设计 evidence-unit rerank 或 route-aware context organization，必须同时看 accuracy 和 token 成本 |
 | 3 | #1 granularity/profile + #3 selected context | v128/v140 表明长短 turn/profile 分支仍有 generalization 风险 | 重做更通用的 context organization，避免 benchmark profile 或长短 turn 硬分支 |
 | 4 | src cleanup | 已有多轮兼容分支，`repair.py`、compiler、pipeline 仍会继续变复杂 | 每个阶段结束后做小范围清理，删已确认无用的兼容代码，不删仍有消融价值的模块 |
@@ -35,8 +35,9 @@
 
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
-| `configs/stage1_selective_source_repair_v150_qwen36_no_think_build4k_cached.json` | current LTS | LME strict/lenient `0.820000/0.834000`，LoCoMo `0.789610/0.815584`；changed-answer paired judge 非负 | 当前 LTS；降低 #4/#5 风险 |
-| `configs/stage1_superseded_source_chain_v127_qwen36_no_think_build4k_cached.json` | previous LTS | fresh full dual judge：LME `0.820000/0.832000`，LoCoMo `0.789610/0.815584` | 被 v150 替代；仍是 source-backed update organization 父对照 |
+| `configs/stage1_current_state_source_repair_v151_qwen36_no_think_build4k_cached.json` | current LTS | LME strict/lenient `0.822000/0.834000`，LoCoMo `0.789610/0.815584`；changed-answer paired judge vs v150 正向/持平 | 当前 LTS；比 v150 更窄、更少误改写、更低 query token |
+| `configs/stage1_selective_source_repair_v150_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.820000/0.834000`，LoCoMo `0.789610/0.815584` | 被 v151 替代：profile repair 过度改写一条 LME recommendation，v151 移除该风险并提升 LME strict |
+| `configs/stage1_superseded_source_chain_v127_qwen36_no_think_build4k_cached.json` | previous LTS | fresh full dual judge：LME `0.820000/0.832000`，LoCoMo `0.789610/0.815584` | 被 v150/v151 替代；仍是 source-backed update organization 父对照 |
 | `configs/stage1_route_scoped_local_evidence_unit_v125_qwen36_no_think_build4k_cached.json` | previous LTS | LoCoMo temporal paired dual judge 正向；LME 兼容继承 v116 | 被 v127/v150 替代；保留为 #3/#4 风险收敛证据 |
 | `configs/stage1_route_scoped_fact_profile_state_budget_v129_qwen36_no_think_build4k_cached.json` | token-budget | route-only exact 略正向但 judge 证据不足 | 作为成本方向父对照，不是 LTS |
 | `configs/stage1_memory_source_interleave_v126_qwen36_no_think_build4k_cached.json` | memory organization | LoCoMo profile/current paired dual `+4/+4`，LME `-1/-1` | 被 v127 继承和修正；保留为 ablation |
@@ -64,6 +65,11 @@
 
 | 路径 | 内容 |
 |---|---|
+| `diagnostic/stage1_current_state_source_repair_v151_scope_summary.md` | v151 LTS 晋升、changed-answer judge、badcase 和风险结论 |
+| `diagnostic/stage1_current_state_source_repair_v151_lme_s_full/` | v151 LME full cached prediction run artifacts |
+| `diagnostic/stage1_current_state_source_repair_v151_locomo_nonadv_full/` | v151 LoCoMo full cached prediction run artifacts |
+| `diagnostic/stage1_current_state_source_repair_v151_lme_changed_vs_v150/` | LME v151 vs v150 changed-answer paired dual judge |
+| `diagnostic/stage1_current_state_source_repair_v151_locomo_changed_vs_v150/` | LoCoMo v151 vs v150 changed-answer paired dual judge |
 | `diagnostic/stage1_selective_source_repair_v150_scope_summary.md` | v150 LTS 晋升、changed-answer judge、badcase 和风险结论 |
 | `diagnostic/stage1_selective_source_repair_v150_lme_s_full/` | v150 LME full cached prediction run artifacts |
 | `diagnostic/stage1_selective_source_repair_v150_locomo_nonadv_full/` | v150 LoCoMo full cached prediction run artifacts |

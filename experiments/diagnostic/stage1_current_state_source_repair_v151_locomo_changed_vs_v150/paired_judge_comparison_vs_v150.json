@@ -1,0 +1,107 @@
+{
+  "created_at_utc": "2026-06-18T16:13:55.411238+00:00",
+  "benchmark": "locomo",
+  "candidate": "v151 current_state source repair",
+  "base_lts": "v150 selective source repair",
+  "decision_signal": "changed_answer_paired_dual_judge_vs_current_lts",
+  "clean_note": "Predictions were produced before judging. Judge outputs and labels are used only for offline evaluation and are not consumed by retrieval, compiler, answer, verifier, cache construction, or configuration.",
+  "git": {
+    "commit": "f132f5ab8da2888418ea0e50f2c20afe5868f647",
+    "dirty": true,
+    "status_short": "?? configs/stage1_current_state_source_repair_v151_qwen36_no_think_build4k_cached.json\n?? experiments/diagnostic/stage1_current_state_source_repair_v151_lme_changed_vs_v127/\n?? experiments/diagnostic/stage1_current_state_source_repair_v151_lme_changed_vs_v150/\n?? experiments/diagnostic/stage1_current_state_source_repair_v151_lme_s_full/\n?? experiments/diagnostic/stage1_current_state_source_repair_v151_locomo_changed_vs_v150/\n?? experiments/diagnostic/stage1_current_state_source_repair_v151_locomo_nonadv_full/"
+  },
+  "changed_answer_subset": {
+    "n_changed": 2,
+    "changed_keys": [
+      "076e0ce5f5d89aac0a37b3e3",
+      "1b8d739b406d9f1624266d4b"
+    ],
+    "v150": {
+      "n": 2,
+      "strict_correct": 1,
+      "lenient_correct": 1,
+      "strict_accuracy": 0.5,
+      "lenient_accuracy": 0.5
+    },
+    "v151": {
+      "n": 2,
+      "strict_correct": 1,
+      "lenient_correct": 1,
+      "strict_accuracy": 0.5,
+      "lenient_accuracy": 0.5
+    },
+    "delta": {
+      "strict_correct": 0,
+      "lenient_correct": 0,
+      "strict_accuracy": 0.0,
+      "lenient_accuracy": 0.0
+    },
+    "per_record": [
+      {
+        "record_key": "076e0ce5f5d89aac0a37b3e3",
+        "group": "3",
+        "base_strict_correct": true,
+        "base_lenient_correct": true,
+        "v151_strict_correct": true,
+        "v151_lenient_correct": true,
+        "strict_delta": 0,
+        "lenient_delta": 0,
+        "base_judges": [
+          "CORRECT",
+          "CORRECT"
+        ],
+        "v151_judges": [
+          "CORRECT",
+          "CORRECT"
+        ]
+      },
+      {
+        "record_key": "1b8d739b406d9f1624266d4b",
+        "group": "4",
+        "base_strict_correct": false,
+        "base_lenient_correct": false,
+        "v151_strict_correct": false,
+        "v151_lenient_correct": false,
+        "strict_delta": 0,
+        "lenient_delta": 0,
+        "base_judges": [
+          "WRONG",
+          "WRONG"
+        ],
+        "v151_judges": [
+          "WRONG",
+          "WRONG"
+        ]
+      }
+    ]
+  },
+  "derived_full_dual_judge": {
+    "method": "v151 full is derived from v127 fresh full dual judge records with v151 changed-vs-v127 records replaced; unchanged predictions were answer-normalized equivalent to v127 for LoCoMo and to v127 except one LME current_state sample.",
+    "v151_vs_v127_anchor": {
+      "n": 1540,
+      "strict_correct": 1216,
+      "lenient_correct": 1256,
+      "strict_accuracy": 0.78961,
+      "lenient_accuracy": 0.815584
+    },
+    "v127_fresh_full": {
+      "n": 1540,
+      "strict_correct": 1216,
+      "lenient_correct": 1256,
+      "strict_accuracy": 0.78961,
+      "lenient_accuracy": 0.815584
+    },
+    "delta_vs_v127": {
+      "strict_correct": 0,
+      "lenient_correct": 0,
+      "strict_accuracy": 0.0,
+      "lenient_accuracy": 0.0
+    }
+  },
+  "artifacts": {
+    "v150_changed_dual_judge": "experiments/diagnostic/stage1_current_state_source_repair_v151_locomo_changed_vs_v150/v150_changed_deepseek_dual_judge.json",
+    "v151_changed_dual_judge": "experiments/diagnostic/stage1_current_state_source_repair_v151_locomo_changed_vs_v150/v151_changed_deepseek_dual_judge.json",
+    "changed_answers": "outputs/diagnostic/stage1_current_state_source_repair_v151_locomo_changed_vs_v150/changed_answers.jsonl",
+    "labels": "outputs/diagnostic/stage1_current_state_source_repair_v151_locomo_changed_vs_v150/labels.jsonl"
+  }
+}

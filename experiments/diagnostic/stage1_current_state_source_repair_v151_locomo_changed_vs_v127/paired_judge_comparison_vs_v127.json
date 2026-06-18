@@ -1,0 +1,39 @@
+{
+  "created_at_utc": "2026-06-18T16:13:55.411238+00:00",
+  "benchmark": "locomo",
+  "candidate": "v151 current_state source repair",
+  "base": "v127 superseded source chain",
+  "decision_signal": "no_changed_answers_vs_v127",
+  "changed_answer_subset": {
+    "n_changed": 0,
+    "changed_keys": []
+  },
+  "derived_full_dual_judge": {
+    "method": "v151 LoCoMo predictions are answer-normalized equivalent to v127; use v127 fresh full dual judge records.",
+    "v127_fresh_full": {
+      "n": 1540,
+      "strict_correct": 1216,
+      "lenient_correct": 1256,
+      "strict_accuracy": 0.78961,
+      "lenient_accuracy": 0.815584
+    },
+    "v151_paired_delta_derived_full": {
+      "n": 1540,
+      "strict_correct": 1216,
+      "lenient_correct": 1256,
+      "strict_accuracy": 0.78961,
+      "lenient_accuracy": 0.815584
+    },
+    "delta": {
+      "strict_correct": 0,
+      "lenient_correct": 0,
+      "strict_accuracy": 0.0,
+      "lenient_accuracy": 0.0
+    }
+  },
+  "git": {
+    "commit": "f132f5ab8da2888418ea0e50f2c20afe5868f647",
+    "dirty": true,
+    "status_short": "?? configs/stage1_current_state_source_repair_v151_qwen36_no_think_build4k_cached.json\n?? experiments/diagnostic/stage1_current_state_source_repair_v151_lme_changed_vs_v127/\n?? experiments/diagnostic/stage1_current_state_source_repair_v151_lme_changed_vs_v150/\n?? experiments/diagnostic/stage1_current_state_source_repair_v151_lme_s_full/\n?? experiments/diagnostic/stage1_current_state_source_repair_v151_locomo_changed_vs_v150/\n?? experiments/diagnostic/stage1_current_state_source_repair_v151_locomo_nonadv_full/"
+  }
+}

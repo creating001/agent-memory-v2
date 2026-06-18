@@ -6,12 +6,14 @@
 
 | 用途 | 配置 | 状态 |
 |---|---|---|
-| 后续新实验默认配置 | `stage1_selective_source_repair_v150_qwen36_no_think_build4k_cached.json` | 当前本地 v150 LTS。继承 v127 source-backed active/superseded update organization，并新增窄触发 source verifier/repair：只在 `current_state/profile_preference` draft 明确不充分、拒答或 modal abstention 时读取同一份 Memory Context 修复答案。LongMemEval-S paired-delta derived strict/lenient `0.820000 / 0.834000`，LoCoMo `0.789610 / 0.815584`。 |
+| 后续新实验默认配置 | `stage1_current_state_source_repair_v151_qwen36_no_think_build4k_cached.json` | 当前本地 v151 LTS。继承 v150/v127 source-backed active/superseded update organization，并把 repair scope 收窄到 `current_state`，避免 profile recommendation 过度改写。LongMemEval-S paired-delta derived strict/lenient `0.822000 / 0.834000`，LoCoMo `0.789610 / 0.815584`。 |
 
 ## 保留对照
 
 | 配置 | 作用 |
 |---|---|
+| `stage1_current_state_source_repair_v151_qwen36_no_think_build4k_cached.json` | 当前 LTS；只保留 current-state source repair，LME `0.822000 / 0.834000`，LoCoMo `0.789610 / 0.815584`。 |
+| `stage1_selective_source_repair_v150_qwen36_no_think_build4k_cached.json` | v151 父 LTS；profile/current repair，LME `0.820000 / 0.834000`，LoCoMo `0.789610 / 0.815584`，被 v151 收窄替代。 |
 | `stage1_superseded_source_chain_v127_qwen36_no_think_build4k_cached.json` | v150 父 LTS；fresh full dual judge：LME `0.820000 / 0.832000`，LoCoMo `0.789610 / 0.815584`。 |
 | `stage1_route_scoped_local_evidence_unit_v125_qwen36_no_think_build4k_cached.json` | v127 父 LTS；降低 #4 mechanical finalizer 和 #3 selected-context heuristic 风险。 |
 | `stage1_memory_source_interleave_v126_qwen36_no_think_build4k_cached.json` | source-backed memory source interleave ablation，被 v127 继承修正。 |
@@ -27,8 +29,8 @@
 
 | Benchmark | 配置 | 结果 | 用途 |
 |---|---|---:|---|
-| LongMemEval-S full | `stage1_selective_source_repair_v150_qwen36_no_think_build4k_cached.json` | strict `0.820000` / lenient `0.834000` | 当前 LTS；paired-delta derived dual judge。 |
-| LoCoMo non-adversarial full | `stage1_selective_source_repair_v150_qwen36_no_think_build4k_cached.json` | strict `0.789610` / lenient `0.815584` | 当前 LTS；paired-delta derived dual judge。 |
+| LongMemEval-S full | `stage1_current_state_source_repair_v151_qwen36_no_think_build4k_cached.json` | strict `0.822000` / lenient `0.834000` | 当前 LTS；paired-delta derived dual judge。 |
+| LoCoMo non-adversarial full | `stage1_current_state_source_repair_v151_qwen36_no_think_build4k_cached.json` | strict `0.789610` / lenient `0.815584` | 当前 LTS；v151 与 v127 answer-normalized 等价。 |
 
 ## 关键 Baseline
 
@@ -48,7 +50,7 @@
 
 - 当前主线是 `Qwen/Qwen3.6-35B-A3B` no-thinking；只有显式带 `qwen36_no_think_build4k` 的配置才参与当前 LTS 对比。
 - 新方法必须另起版本、answer cache path 和 cache namespace；repair/verifier 也要单独 cache namespace。
-- v150 复用 v102 build-memory cache，因为 build 阶段未改；base answer cache 为 `outputs/cache/qwen36_no_think_build4k_answer_v150_selective_source_repair.sqlite`，repair cache 为 `outputs/cache/qwen36_no_think_build4k_answer_repair_v150_selective_source_repair.sqlite`。
+- v151 复用 v102 build-memory cache，因为 build 阶段未改；base answer cache 为 `outputs/cache/qwen36_no_think_build4k_answer_v151_current_state_source_repair.sqlite`，repair cache 为 `outputs/cache/qwen36_no_think_build4k_answer_repair_v151_current_state_source_repair.sqlite`。
 - cache 命中只能减少重复 API 调用，不能改变逻辑 token 统计。正式记录仍报告逻辑 cold-build/query token。
 - 不得使用 gold answer、judge output、benchmark 标签、sample id、test feedback 或样本级规则构造配置、cache、prediction、retrieval、compiler、answer 或 repair。
 

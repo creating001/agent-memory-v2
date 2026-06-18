@@ -1,0 +1,86 @@
+{
+  "created_at_utc": "2026-06-18T16:13:55.411238+00:00",
+  "benchmark": "longmemeval",
+  "candidate": "v151 current_state source repair",
+  "base": "v127 superseded source chain",
+  "decision_signal": "retained_current_state_repair_vs_v127",
+  "clean_note": "Offline judge only; no evaluation signal is used by prediction.",
+  "git": {
+    "commit": "f132f5ab8da2888418ea0e50f2c20afe5868f647",
+    "dirty": true,
+    "status_short": "?? configs/stage1_current_state_source_repair_v151_qwen36_no_think_build4k_cached.json\n?? experiments/diagnostic/stage1_current_state_source_repair_v151_lme_changed_vs_v127/\n?? experiments/diagnostic/stage1_current_state_source_repair_v151_lme_changed_vs_v150/\n?? experiments/diagnostic/stage1_current_state_source_repair_v151_lme_s_full/\n?? experiments/diagnostic/stage1_current_state_source_repair_v151_locomo_changed_vs_v150/\n?? experiments/diagnostic/stage1_current_state_source_repair_v151_locomo_nonadv_full/"
+  },
+  "changed_answer_subset": {
+    "n_changed": 1,
+    "changed_keys": [
+      "a1e403c5b6ee9c67eceee109"
+    ],
+    "v127": {
+      "n": 1,
+      "strict_correct": 0,
+      "lenient_correct": 0,
+      "strict_accuracy": 0.0,
+      "lenient_accuracy": 0.0
+    },
+    "v151": {
+      "n": 1,
+      "strict_correct": 1,
+      "lenient_correct": 1,
+      "strict_accuracy": 1.0,
+      "lenient_accuracy": 1.0
+    },
+    "delta": {
+      "strict_correct": 1,
+      "lenient_correct": 1,
+      "strict_accuracy": 1.0,
+      "lenient_accuracy": 1.0
+    },
+    "per_record": [
+      {
+        "record_key": "a1e403c5b6ee9c67eceee109",
+        "group": "multi-session",
+        "base_strict_correct": false,
+        "base_lenient_correct": false,
+        "v151_strict_correct": true,
+        "v151_lenient_correct": true,
+        "strict_delta": 1,
+        "lenient_delta": 1,
+        "base_judges": [
+          "WRONG",
+          "WRONG"
+        ],
+        "v151_judges": [
+          "CORRECT",
+          "CORRECT"
+        ]
+      }
+    ]
+  },
+  "derived_full_dual_judge": {
+    "method": "v127 fresh full dual judge records with one v151 changed current_state record replaced.",
+    "v127_fresh_full": {
+      "n": 500,
+      "strict_correct": 410,
+      "lenient_correct": 416,
+      "strict_accuracy": 0.82,
+      "lenient_accuracy": 0.832
+    },
+    "v151_paired_delta_derived_full": {
+      "n": 500,
+      "strict_correct": 411,
+      "lenient_correct": 417,
+      "strict_accuracy": 0.822,
+      "lenient_accuracy": 0.834
+    },
+    "delta": {
+      "strict_correct": 1,
+      "lenient_correct": 1,
+      "strict_accuracy": 0.002,
+      "lenient_accuracy": 0.002
+    }
+  },
+  "artifacts": {
+    "v127_changed_dual_judge": "experiments/diagnostic/stage1_current_state_source_repair_v151_lme_changed_vs_v127/v127_changed_deepseek_dual_judge.json",
+    "v151_changed_dual_judge": "experiments/diagnostic/stage1_current_state_source_repair_v151_lme_changed_vs_v127/v151_changed_deepseek_dual_judge.json"
+  }
+}
