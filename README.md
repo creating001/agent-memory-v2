@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_cross_route_profile_advice_repair_v176_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_trace_event_time_candidate_manifest_v180_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v176 local LTS | 说明 |
+| Benchmark | 当前 v180 local LTS | 说明 |
 |---|---:|---|
-| LongMemEval-S full | strict/lenient `0.834000 / 0.846000` | v176 与 v175 answer diff `2/500`；changed-answer dual judge strict `0/2 -> 1/2`、lenient `0/2 -> 2/2`，patched full `417/500` strict、`423/500` lenient。 |
-| LoCoMo non-adversarial full | strict/lenient `0.792857 / 0.818182` | v176 与 v175 answer diff `0/1540`；继承 v175 patched full `1221/1540` strict、`1260/1540` lenient。 |
+| LongMemEval-S full | strict/lenient `0.834000 / 0.846000` | v180 与 v176 answer diff `0/500`；answer cache `500/500` hits，性能继承 v176。 |
+| LoCoMo non-adversarial full | strict/lenient `0.792857 / 0.818182` | v180 与 v176 answer diff `0/1540`；answer cache `1540/1540` hits，性能继承 v176。 |
 
-v176 的 LTS 理由：继承 v175 的 temporal operand arithmetic repair，并新增窄 cross-route profile/advice abstention repair。它只在 advice/suggestion/tips/recommendation/decision-support 问题被路由成 `fact_lookup` 或 `list_count`、draft 拒答、且预测期 `evidence_report` 有 source-backed personalized anchor 时调用 verifier；对具体外部命名请求保持阻断，并沿用 no-new-names 规则。typed/support memory 只做 source-backed activation，最终仍由 Memory Context 定案。v176 降低 #5 profile/event query-time memory reasoning 风险；#1 granularity/profile 泛化、#2 top-k/context noise/rerank、#3 selected-context 泛化和更广泛 #5 lifecycle/update/conflict reasoning 仍是优先待办。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_cross_route_profile_advice_repair_v176_scope_summary.md`。
+v180 的 LTS 理由：继承 v176 的 answer/repair 行为，并新增 trace-only answer-slot-aware event-time candidate manifest。它只写入 `compiled_context.diagnostics`，记录 source-backed `event_time`、`mention_time`、time precision、dedup key、conflict groups 和保守 `safe_order` 可用性，不进入 prompt、retrieval、repair、finalizer 或 cache key。v180 降低 #5 event/state/time organization 审计风险；#1 granularity/profile 泛化、#2 top-k/context noise/rerank、#3 selected-context 泛化和更广泛 #5 lifecycle/update/conflict reasoning 仍是优先待办。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_trace_event_time_candidate_manifest_v180_scope_summary.md`。
 
 ## 目录
 

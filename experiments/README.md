@@ -6,12 +6,12 @@
 
 | 项目 | 结果 |
 |---|---|
-| 当前 LTS 配置 | `configs/stage1_cross_route_profile_advice_repair_v176_qwen36_no_think_build4k_cached.json` |
+| 当前 LTS 配置 | `configs/stage1_trace_event_time_candidate_manifest_v180_qwen36_no_think_build4k_cached.json` |
 | Backbone | `Qwen/Qwen3.6-35B-A3B` answer/build，`chat_template_kwargs.enable_thinking=false` |
-| 方法 | V176 cross-route profile advice repair：继承 v175，并在 advice/suggestion/tips/recommendation/decision-support 问题被错路由成 `fact_lookup`/`list_count`、draft 拒答、且 `evidence_report` 有 source-backed anchor 时调用 no-new-names verifier。 |
-| LongMemEval-S full | v176 与 v175 answer diff `2/500`，changed-answer paired dual judge strict `0/2 -> 1/2`、lenient `0/2 -> 2/2`；patched full `0.834000 / 0.846000`，`417/500` strict，`423/500` lenient |
-| LoCoMo non-adversarial full | v176 与 v175 answer diff `0/1540`；继承 v175 patched full `0.792857 / 0.818182`，`1221/1540` strict，`1260/1540` lenient |
-| 状态 | 当前本地 qwen3.6 no-thinking LTS。v176 降低 #5 profile/event query-time memory reasoning 风险；#1 granularity/profile 泛化、#2 top-k/context noise/rerank、#3 selected-context 泛化和更广泛 #5 lifecycle/update/conflict management 仍未解决。 |
+| 方法 | V180 trace-only event-time candidate manifest：继承 v176 answer/repair 行为，只在 `compiled_context.diagnostics` 记录 source-backed event_time、mention_time、time precision、dedup key、conflict groups 和保守 safe-order 可用性。 |
+| LongMemEval-S full | v180 与 v176 answer diff `0/500`，answer cache `500/500` hits；继承 v176 full `0.834000 / 0.846000`，`417/500` strict，`423/500` lenient；manifest applied `234/500`，safe order `0` |
+| LoCoMo non-adversarial full | v180 与 v176 answer diff `0/1540`，answer cache `1540/1540` hits；继承 v176 full `0.792857 / 0.818182`，`1221/1540` strict，`1260/1540` lenient；manifest applied `356/1540`，safe order `2` |
+| 状态 | 当前本地 qwen3.6 no-thinking LTS。v180 降低 #5 event/state/time organization 审计风险；#1 granularity/profile 泛化、#2 top-k/context noise/rerank、#3 selected-context 泛化和更广泛 #5 lifecycle/update/conflict management 仍未解决。 |
 
 `paired-delta derived` 的含义：新版本只改少量答案，未变化答案沿用父 LTS full dual judge records，变化答案单独跑 paired dual judge 后替换计数。若新版本与父 LTS answer-identical，则可继承父 LTS judge records，但必须记录 full answer diff、cache hit/miss 和输出路径。若论文级最终汇报需要完全独立 run，再对 LTS 配置重跑 fresh full judge。
 
@@ -26,7 +26,7 @@
 
 | 优先级 | 项目 | 当前状态 | 下一步 |
 |---:|---|---|---|
-| 1 | #5 memory lifecycle/state/conflict/query-time reasoning | v176 增加了 cross-route profile/advice activation；v175/v173/v172/v171 已让 temporal arithmetic、modal、profile preference 和 occupation/role lifecycle slot 能参与 source-backed verifier/finalizer；v178 说明 temporal-order verifier 不能强扭 source-backed relative-time 解释；v179 说明直接向 answer prompt 注入 timeline 会过度影响排序 | 转向更窄的 answer-slot-aware event-time candidate map：先 dedup/inclusion，再暴露 event_time/time_precision/conflict；typed memory 只做激活/组织，不用 gold/judge 定序 |
+| 1 | #5 memory lifecycle/state/conflict/query-time reasoning | v180 新增 trace-only event-time candidate manifest；v176 增加 cross-route profile/advice activation；v175/v173/v172/v171 已让 temporal arithmetic、modal、profile preference 和 occupation/role lifecycle slot 能参与 source-backed verifier/finalizer；v178/v179 说明不能强行用 temporal verifier 或 prompt timeline 扭转 source-backed evidence | 基于 v180 manifest 的 blocked buckets 做 badcase 审计，再设计更窄的 prompt-safe candidate map；只有高精度、distinct answer slots 才允许进入 answer prompt |
 | 2 | #2 top-k/context noise/rerank | v129/v134/v140/v152 说明简单裁剪、tail snippet 或 list-count rerank pruning 会伤 accuracy；当前 query context 仍偏长 | 转向 coverage-preserving route-aware context organization：先保留覆盖证据，再做 grouping/dedup/aggregation table |
 | 3 | #1 granularity/profile + #3 selected context | v177 说明 row-length + center-row anaphora 的 selected-context gate 仍过宽；granularity profile 仍基于 avg-turn chars，v158 narrow question-gated policy 仍是较稳边界 | 继续重做更通用的 context organization；selected-context 不能只靠中心行 anaphora 扩邻居，优先做 question-side local reference 或 source-backed candidate map |
 | 4 | src cleanup | 已有多轮兼容分支，`repair.py`、compiler、pipeline 仍会继续变复杂 | 每个阶段结束后做小范围清理，删已确认无用的兼容代码，不删仍有消融价值的模块 |
@@ -35,7 +35,8 @@
 
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
-| `configs/stage1_cross_route_profile_advice_repair_v176_qwen36_no_think_build4k_cached.json` | current LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.792857/0.818182`；v176 vs v175 answer diff `2/500`、`0/1540` | 当前 LTS；降低错路由 advice/profile 拒答风险，LME strict `+1`、lenient `+2` |
+| `configs/stage1_trace_event_time_candidate_manifest_v180_qwen36_no_think_build4k_cached.json` | current LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.792857/0.818182`；v180 vs v176 answer diff `0/500`、`0/1540` | 当前 LTS；trace-only event-time candidate manifest 降低 #5 organization/audit 风险，性能继承 v176 |
+| `configs/stage1_cross_route_profile_advice_repair_v176_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.792857/0.818182`；v176 vs v175 answer diff `2/500`、`0/1540` | 被 v180 替代；仍是 cross-route profile/advice repair 父对照，LME strict `+1`、lenient `+2` |
 | `configs/stage1_temporal_operand_arithmetic_repair_v175_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.832000/0.842000`，LoCoMo `0.792857/0.818182`；v175 vs v173 answer diff `1/500`、`1/1540` | 被 v176 替代；仍是 temporal/age/duration query-time arithmetic reasoning 父对照 |
 | `configs/stage1_source_grounded_modal_inference_repair_v173_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.830000/0.840000`，LoCoMo `0.792208/0.817532`；v173 vs v172 answer diff `0/500`、`2/1540` | 被 v175 替代；仍是 modal yes/no 拒答和 query-time memory reasoning 父对照 |
 | `configs/stage1_profile_preference_value_guard_v172_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.830000/0.840000`，LoCoMo `0.790909/0.816234`；v172 vs v171 answer diff `0/500`、`1/1540` | 被 v173 替代；仍是 profile-preference value guard 父对照 |
@@ -94,6 +95,9 @@
 
 | 路径 | 内容 |
 |---|---|
+| `diagnostic/stage1_trace_event_time_candidate_manifest_v180_scope_summary.md` | v180 LTS 晋升：trace-only event-time candidate manifest，LME/LoCoMo answer diff 均为 0，性能继承 v176 |
+| `diagnostic/stage1_trace_event_time_candidate_manifest_v180_lme_s_full/` | v180 LME full cached trace run artifacts；manifest applied `234/500` |
+| `diagnostic/stage1_trace_event_time_candidate_manifest_v180_locomo_nonadv_full/` | v180 LoCoMo full cached trace run artifacts；manifest applied `356/1540` |
 | `diagnostic/stage1_event_timeline_context_v179_scope_summary.md` | v179 负向结论：Source Event Timeline 作为 prompt block 过强，changed-answer dual judge strict/lenient `1/3 -> 0/3` |
 | `diagnostic/stage1_event_timeline_context_v179_trigger_probe/` | v179 4-row trigger probe；answer diff `3/4` |
 | `diagnostic/stage1_event_timeline_context_v179_changed_vs_v176/` | v179 vs v176 changed-answer paired dual judge |
