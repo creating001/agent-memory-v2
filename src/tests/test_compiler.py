@@ -145,6 +145,86 @@ class CompilerTest(unittest.TestCase):
         self.assertIn("Candidate Evidence Map:", compiled.prompt)
         self.assertNotIn("source_memory_hints=", compiled.prompt)
 
+    def test_fixed_set_memory_source_interleave_preserves_budget_set(self) -> None:
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text="I asked about choosing a first instrument.",
+            ),
+            Turn(
+                source_id="s2:t0",
+                session_id="s2",
+                turn_index=0,
+                role="user",
+                text="I rented a keyboard for practice.",
+            ),
+            Turn(
+                source_id="s3:t0",
+                session_id="s3",
+                turn_index=0,
+                role="user",
+                text="I bought a saxophone for jazz lessons.",
+            ),
+        )
+        hits = (
+            RetrievalHit("s1:t0", 1.0, 1, "test"),
+            RetrievalHit("s2:t0", 0.9, 2, "test"),
+            RetrievalHit("s3:t0", 0.8, 3, "test"),
+        )
+        memory_records = (
+            MemoryRecord(
+                memory_id="m1",
+                memory_type="fact",
+                text="The user bought a saxophone.",
+                source_ids=("s3:t0",),
+                value="saxophone",
+            ),
+        )
+        route = RouteResult("fact_lookup", ())
+
+        regular = EvidenceCompiler(
+            max_evidence_items=2,
+            max_evidence_chars=4000,
+            evidence_order="memory_source_interleave",
+            source_anchor_keep=0,
+            source_anchor_memory_rows=1,
+            max_memory_records=0,
+        ).compile(
+            question="Which instrument did I buy?",
+            question_time=None,
+            route=route,
+            hits=hits,
+            evidence_turns=turns,
+            memory_records=memory_records,
+        )
+        fixed_set = EvidenceCompiler(
+            max_evidence_items=2,
+            max_evidence_chars=4000,
+            evidence_order="fixed_set_memory_source_interleave",
+            source_anchor_keep=0,
+            source_anchor_memory_rows=1,
+            max_memory_records=0,
+        ).compile(
+            question="Which instrument did I buy?",
+            question_time=None,
+            route=route,
+            hits=hits,
+            evidence_turns=turns,
+            memory_records=memory_records,
+        )
+
+        self.assertEqual(
+            [row.source_id for row in regular.evidence_rows],
+            ["s3:t0", "s1:t0"],
+        )
+        self.assertEqual(
+            [row.source_id for row in fixed_set.evidence_rows],
+            ["s1:t0", "s2:t0"],
+        )
+
     def test_memory_state_guide_links_managed_state_to_raw_rows(self) -> None:
         compiler = EvidenceCompiler(
             max_evidence_items=4,

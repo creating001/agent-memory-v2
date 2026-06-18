@@ -119,6 +119,18 @@ ROUTE_OVERRIDE_KEYS = {
     "update_conflict_guide_max_rows",
     "update_conflict_guide_snippet_chars",
 }
+EVIDENCE_ORDER_MODES = {
+    "retrieval",
+    "question_overlap",
+    "memory_aware",
+    "source_anchor_coverage",
+    "memory_source_interleave",
+    "memory_version_chain_interleave",
+    "scoped_memory_version_chain_interleave",
+    "memory_tail_filter_preserve_order",
+    "fixed_set_memory_source_interleave",
+}
+FIXED_SET_EVIDENCE_ORDER_MODES = {"fixed_set_memory_source_interleave"}
 SUPPORTED_PROMPT_MODES = {"default", "external_naive", "raw_context_only"}
 DEFAULT_STRUCTURED_ANSWER_CONTRACT_NEEDS = ("list_count", "temporal_lookup")
 QUESTION_STOPWORDS = {
@@ -382,16 +394,7 @@ class EvidenceCompiler:
         if context_layout not in SUPPORTED_CONTEXT_LAYOUTS:
             raise ValueError(f"Unsupported context_layout: {context_layout}")
         self._context_layout = context_layout
-        if evidence_order not in {
-            "retrieval",
-            "question_overlap",
-            "memory_aware",
-            "source_anchor_coverage",
-            "memory_source_interleave",
-            "memory_version_chain_interleave",
-            "scoped_memory_version_chain_interleave",
-            "memory_tail_filter_preserve_order",
-        }:
+        if evidence_order not in EVIDENCE_ORDER_MODES:
             raise ValueError(f"Unsupported evidence_order: {evidence_order}")
         self._evidence_order = evidence_order
         self._source_anchor_keep = max(0, int(source_anchor_keep))
@@ -453,11 +456,17 @@ class EvidenceCompiler:
 
         route_settings = self._settings_for_route(route)
 
+        evidence_order = route_settings["evidence_order"]
+        selection_evidence_order = (
+            "retrieval"
+            if evidence_order in FIXED_SET_EVIDENCE_ORDER_MODES
+            else evidence_order
+        )
         ordered_candidates = _order_rows(
             tuple(candidates),
             question=question,
             route=route,
-            evidence_order=route_settings["evidence_order"],
+            evidence_order=selection_evidence_order,
             memory_records=tuple(memory_records),
             source_anchor_keep=route_settings["source_anchor_keep"],
             source_anchor_memory_rows=route_settings["source_anchor_memory_rows"],
@@ -482,6 +491,27 @@ class EvidenceCompiler:
                 break
             rows.append(row)
             used_chars += row_chars
+
+        if evidence_order == "fixed_set_memory_source_interleave":
+            rows = list(
+                _order_rows(
+                    tuple(rows),
+                    question=question,
+                    route=route,
+                    evidence_order="memory_source_interleave",
+                    memory_records=tuple(memory_records),
+                    source_anchor_keep=route_settings["source_anchor_keep"],
+                    source_anchor_memory_rows=route_settings[
+                        "source_anchor_memory_rows"
+                    ],
+                    source_anchor_per_session=route_settings[
+                        "source_anchor_per_session"
+                    ],
+                    source_anchor_session_rows=route_settings[
+                        "source_anchor_session_rows"
+                    ],
+                )
+            )
 
         ordered_memory_records = _order_memory_records(
             tuple(memory_records),
@@ -791,16 +821,7 @@ def _validate_route_overrides(
             )
         if "evidence_order" in raw_overrides:
             evidence_order = str(raw_overrides["evidence_order"])
-            if evidence_order not in {
-                "retrieval",
-                "question_overlap",
-                "memory_aware",
-                "source_anchor_coverage",
-                "memory_source_interleave",
-                "memory_version_chain_interleave",
-                "scoped_memory_version_chain_interleave",
-                "memory_tail_filter_preserve_order",
-            }:
+            if evidence_order not in EVIDENCE_ORDER_MODES:
                 raise ValueError(f"Unsupported evidence_order: {evidence_order}")
             overrides["evidence_order"] = evidence_order
         for key in (
@@ -929,15 +950,7 @@ def _order_rows(
 ) -> tuple[EvidenceRow, ...]:
     if evidence_order == "retrieval":
         return rows
-    if evidence_order not in {
-        "question_overlap",
-        "memory_aware",
-        "source_anchor_coverage",
-        "memory_source_interleave",
-        "memory_version_chain_interleave",
-        "scoped_memory_version_chain_interleave",
-        "memory_tail_filter_preserve_order",
-    }:
+    if evidence_order not in EVIDENCE_ORDER_MODES:
         raise ValueError(f"Unsupported evidence_order: {evidence_order}")
 
     question_terms = _content_terms(question)
@@ -952,7 +965,10 @@ def _order_rows(
             per_session=source_anchor_per_session,
             session_rows=source_anchor_session_rows,
         )
-    if evidence_order == "memory_source_interleave":
+    if evidence_order in {
+        "memory_source_interleave",
+        "fixed_set_memory_source_interleave",
+    }:
         return _memory_source_interleave_order(
             rows,
             question_terms=question_terms,
