@@ -1,0 +1,436 @@
+{
+  "benchmark": "lme",
+  "n": 21,
+  "v127_metrics": {
+    "judge_1_correct": 13,
+    "judge_1_name": "flash_1",
+    "judge_2_correct": 13,
+    "judge_2_name": "flash_2",
+    "judge_agreement": 1.0,
+    "lenient_accuracy": 0.6190476190476191,
+    "lenient_accuracy_both_valid": 0.6190476190476191,
+    "lenient_correct": 13,
+    "n_any_invalid": 0,
+    "n_both_valid": 21,
+    "n_joined": 21,
+    "n_judge_1_judgments": 21,
+    "n_judge_2_judgments": 21,
+    "n_missing_judge_1": 0,
+    "n_missing_judge_2": 0,
+    "strict_accuracy": 0.6190476190476191,
+    "strict_accuracy_both_valid": 0.6190476190476191,
+    "strict_correct": 13
+  },
+  "v149_metrics": {
+    "judge_1_correct": 9,
+    "judge_1_name": "flash_1",
+    "judge_2_correct": 10,
+    "judge_2_name": "flash_2",
+    "judge_agreement": 0.9523809523809523,
+    "lenient_accuracy": 0.47619047619047616,
+    "lenient_accuracy_both_valid": 0.47619047619047616,
+    "lenient_correct": 10,
+    "n_any_invalid": 0,
+    "n_both_valid": 21,
+    "n_joined": 21,
+    "n_judge_1_judgments": 21,
+    "n_judge_2_judgments": 21,
+    "n_missing_judge_1": 0,
+    "n_missing_judge_2": 0,
+    "strict_accuracy": 0.42857142857142855,
+    "strict_accuracy_both_valid": 0.42857142857142855,
+    "strict_correct": 9
+  },
+  "delta": {
+    "strict_correct": -4,
+    "lenient_correct": -3,
+    "strict_accuracy": -0.19047619047619052,
+    "lenient_accuracy": -0.1428571428571429
+  },
+  "gain_loss_counts": {
+    "gain": 2,
+    "loss": 5,
+    "mixed": 0,
+    "same": 14
+  },
+  "records": [
+    {
+      "record_key": "08cccaf312a179d4f4b961d3",
+      "question": "I've been feeling like my chocolate chip cookies need something extra. Any advice?",
+      "v127_answer": "The provided information is not enough to answer the question: No memory context regarding chocolate chip cookies or specific advice for them",
+      "v149_answer": "The provided information is not enough to answer the question: No memory context mentions chocolate chip cookies or provides specific advice for enhancing them",
+      "v127": {
+        "strict": false,
+        "lenient": false,
+        "flash_1": false,
+        "flash_2": false
+      },
+      "v149": {
+        "strict": false,
+        "lenient": false,
+        "flash_1": false,
+        "flash_2": false
+      }
+    },
+    {
+      "record_key": "0a537c6dfde0742723049ca4",
+      "question": "Can you suggest some accessories that would complement my current photography setup?",
+      "v127_answer": "Based on your Sony A7R IV setup, consider camera bags from brands like Think Tank Photo, Lowepro, F-Stop Gear, Peak Design, or MindShift Gear (Memory 12). You may also want cases or pouches for your Godox V1 flash (Memory 4), external battery packs for on-the-go charging (Memory 20), and a soft cloth with cleaning solution for your Sony 24-70mm f/2.8 lens (Memory 18). Additionally, you are considering the Gitzo GT3543LS tripod (Memory 7).",
+      "v149_answer": "Based on your Sony A7R IV setup, consider camera bags from brands like Think Tank Photo, Lowepro, F-Stop Gear, Peak Design, or MindShift Gear. You may also want to look into cases or pouches for your Godox V1 flash and external battery packs for on-the-go charging.",
+      "v127": {
+        "strict": true,
+        "lenient": true,
+        "flash_1": true,
+        "flash_2": true
+      },
+      "v149": {
+        "strict": true,
+        "lenient": true,
+        "flash_1": true,
+        "flash_2": true
+      }
+    },
+    {
+      "record_key": "158692bc43ef28e0e43d991f",
+      "question": "Can you recommend some recent publications or conferences that I might find interesting?",
+      "v127_answer": "The provided information is not enough to answer the question: No specific named publications or conferences appear in the memory context that can be recommended as 'recent' or 'interesting' based on the user's history",
+      "v149_answer": "The provided information is not enough to answer the question: No specific named publications or conferences are present in the memory context to recommend",
+      "v127": {
+        "strict": false,
+        "lenient": false,
+        "flash_1": false,
+        "flash_2": false
+      },
+      "v149": {
+        "strict": false,
+        "lenient": false,
+        "flash_1": false,
+        "flash_2": false
+      }
+    },
+    {
+      "record_key": "1d4fed4463c88e0a44c6281c",
+      "question": "Can you suggest some activities that I can do in the evening?",
+      "v127_answer": "Based on your preference to wind down by 9:30 pm, you can try guided meditation sessions designed for sleep and relaxation. Specifically, you mentioned planning to try the \"Body Scan\" meditation by Insight Timer to help calm your mind and body before bed.",
+      "v149_answer": "Based on your preference to wind down by 9:30 pm, you can try guided meditation sessions designed for sleep and relaxation, such as the 'Body Scan' meditation by Insight Timer.",
+      "v127": {
+        "strict": true,
+        "lenient": true,
+        "flash_1": true,
+        "flash_2": true
+      },
+      "v149": {
+        "strict": false,
+        "lenient": false,
+        "flash_1": false,
+        "flash_2": false
+      }
+    },
+    {
+      "record_key": "1f7723fca5c03dfc8ff0e0ca",
+      "question": "How long have I been working before I started my current job at Google?",
+      "v127_answer": "The provided information is not enough to answer the question: No memory context confirms the user works at Google or provides a start date for a position at Google",
+      "v149_answer": "The provided information is not enough to answer the question: No memory context mentions the user working at Google or provides work history specifically prior to a Google role",
+      "v127": {
+        "strict": true,
+        "lenient": true,
+        "flash_1": true,
+        "flash_2": true
+      },
+      "v149": {
+        "strict": true,
+        "lenient": true,
+        "flash_1": true,
+        "flash_2": true
+      }
+    },
+    {
+      "record_key": "2a18e972b47c27c2c1f2fdb8",
+      "question": "How long have I been working before I started my current job at NovaTech?",
+      "v127_answer": "4 years and 9 months",
+      "v149_answer": "The provided information is not enough to answer the question: The specific duration of work *before* starting at NovaTech is not explicitly stated in any memory row; it requires calculation (Total Experience - Current Tenure) which is not directly provided as a fact",
+      "v127": {
+        "strict": true,
+        "lenient": true,
+        "flash_1": true,
+        "flash_2": true
+      },
+      "v149": {
+        "strict": false,
+        "lenient": false,
+        "flash_1": false,
+        "flash_2": false
+      }
+    },
+    {
+      "record_key": "431c6d9ef160528ca54104f8",
+      "question": "Can you suggest a hotel for my upcoming trip to Miami?",
+      "v127_answer": "The provided information is not enough to answer the question: No memory context regarding Miami or hotels in Miami",
+      "v149_answer": "The provided information is not enough to answer the question: No memory context rows mention Miami or provide hotel recommendations for Miami",
+      "v127": {
+        "strict": false,
+        "lenient": false,
+        "flash_1": false,
+        "flash_2": false
+      },
+      "v149": {
+        "strict": false,
+        "lenient": false,
+        "flash_1": false,
+        "flash_2": false
+      }
+    },
+    {
+      "record_key": "5110d0ed1a7cb0fefd131e4d",
+      "question": "Can you recommend some interesting cultural events happening around me this weekend?",
+      "v127_answer": "Based on your interest in language diversity and cultural exchange, particularly for French and Spanish languages, suitable options to look for this weekend include local Language Festivals, International Festivals celebrating specific countries, or Cultural Exchange Meetups. You can find these by checking platforms like Meetup or Eventbrite using keywords like 'language festival' or 'cultural exchange'.",
+      "v149_answer": "The provided information is not enough to answer the question: Specific names, dates, or locations of cultural events happening this weekend (2023/05/27-28 or 2023/05/28-29 depending on definition, but specifically the upcoming weekend relative to 2023/05/30 is not applicable as...",
+      "v127": {
+        "strict": true,
+        "lenient": true,
+        "flash_1": true,
+        "flash_2": true
+      },
+      "v149": {
+        "strict": false,
+        "lenient": false,
+        "flash_1": false,
+        "flash_2": false
+      }
+    },
+    {
+      "record_key": "5819961e927d864a6b8d3a21",
+      "question": "Can you suggest some useful accessories for my phone?",
+      "v127_answer": "Based on your iPhone 13 Pro, consider a high-quality wallet case (e.g., Nomad, Bellroy, or Spigen) for storage and protection, a screen protector to prevent scratches, and potentially a wireless charging power bank for convenient on-the-go charging.",
+      "v149_answer": "Based on your iPhone 13 Pro, consider a wallet case from brands like Nomad, Bellroy, or Spigen; a replacement screen protector for your cracked one; and potentially a wireless charging power bank if you want to upgrade from your current Best Buy model.",
+      "v127": {
+        "strict": true,
+        "lenient": true,
+        "flash_1": true,
+        "flash_2": true
+      },
+      "v149": {
+        "strict": true,
+        "lenient": true,
+        "flash_1": true,
+        "flash_2": true
+      }
+    },
+    {
+      "record_key": "740d3b0bc662060a816e231f",
+      "question": "What is the order of the six museums I visited from earliest to latest?",
+      "v127_answer": "1. Museum of Contemporary Art, 2. Science Museum, 3. Metropolitan Museum of Art, 4. Museum of History, 5. Modern Art Museum, 6. Natural History Museum",
+      "v149_answer": "1. Science Museum (2023-01-15), 2. Metropolitan Museum of Art (2023-02-10), 3. Museum of History (2023-02-15), 4. Modern Art Museum (2023-02-17/20), 5. Natural History Museum (2023-03-04), 6. Museum of Contemporary Art (2023-03-04)",
+      "v127": {
+        "strict": false,
+        "lenient": false,
+        "flash_1": false,
+        "flash_2": false
+      },
+      "v149": {
+        "strict": false,
+        "lenient": false,
+        "flash_1": false,
+        "flash_2": false
+      }
+    },
+    {
+      "record_key": "7933cff5854d25ce3c9e8901",
+      "question": "How long have I been living in my current apartment in Shinjuku?",
+      "v127_answer": "The provided information is not enough to answer the question. The context indicates the user lives in Harajuku, not Shinjuku.",
+      "v149_answer": "The provided information is not enough to answer the question: No memory context confirms the user lives in Shinjuku; current residence is stated as Harajuku",
+      "v127": {
+        "strict": true,
+        "lenient": true,
+        "flash_1": true,
+        "flash_2": true
+      },
+      "v149": {
+        "strict": true,
+        "lenient": true,
+        "flash_1": true,
+        "flash_2": true
+      }
+    },
+    {
+      "record_key": "8b879add5b99d7c3de847de7",
+      "question": "Can you recommend a show or movie for me to watch tonight?",
+      "v127_answer": "The provided information is not enough to recommend a specific named show or movie. Based on your interest in politics, conservative ideology, and the 20th century, you might look for historical dramas or political thrillers set in the 20th century that explore conservative viewpoints or historical political events.",
+      "v149_answer": "Based on your interest in politics, conservative viewpoints, and the 20th century, you might look for documentaries or historical dramas from that era focusing on conservative political movements or figures.",
+      "v127": {
+        "strict": false,
+        "lenient": false,
+        "flash_1": false,
+        "flash_2": false
+      },
+      "v149": {
+        "strict": false,
+        "lenient": false,
+        "flash_1": false,
+        "flash_2": false
+      }
+    },
+    {
+      "record_key": "a1e403c5b6ee9c67eceee109",
+      "question": "How long have I been working in my current role?",
+      "v127_answer": "The provided information is not enough to determine how long you have been in your current role.",
+      "v149_answer": "1 year and 5 months",
+      "v127": {
+        "strict": false,
+        "lenient": false,
+        "flash_1": false,
+        "flash_2": false
+      },
+      "v149": {
+        "strict": true,
+        "lenient": true,
+        "flash_1": true,
+        "flash_2": true
+      }
+    },
+    {
+      "record_key": "a3e4c89a8fdf800fa3b2676f",
+      "question": "What is the order of the three trips I took in the past three months, from earliest to latest?",
+      "v127_answer": "1. Day hike to Muir Woods National Monument (March 10, 2023); 2. Road trip to Big Sur and Monterey (April 20, 2023); 3. Solo camping trip to Yosemite (April 20, 2023).",
+      "v149_answer": "1. Day hike to Muir Woods National Monument (March 10, 2023), 2. Solo camping trip to Yosemite and road trip to Big Sur and Monterey (April 20, 2023), 3. Trip to explore John Muir Wilderness area (May 15, 2023)",
+      "v127": {
+        "strict": true,
+        "lenient": true,
+        "flash_1": true,
+        "flash_2": true
+      },
+      "v149": {
+        "strict": false,
+        "lenient": false,
+        "flash_1": false,
+        "flash_2": false
+      }
+    },
+    {
+      "record_key": "a83973be45d3cdb73504b52b",
+      "question": "How many days had passed since I finished reading 'The Seven Husbands of Evelyn Hugo' when I attended the book reading event at the local library, where the author of 'The Silent Patient' is discussing her latest thriller novel?",
+      "v127_answer": "18 days",
+      "v149_answer": "18",
+      "v127": {
+        "strict": true,
+        "lenient": true,
+        "flash_1": true,
+        "flash_2": true
+      },
+      "v149": {
+        "strict": true,
+        "lenient": true,
+        "flash_1": true,
+        "flash_2": true
+      }
+    },
+    {
+      "record_key": "af807a537c4950ead62c23aa",
+      "question": "How often do I play tennis with my friends at the local park previously? How often do I play now?",
+      "v127_answer": "Previously: weekly. Now: every other week.",
+      "v149_answer": "Previously, you played weekly; now, you play every other week.",
+      "v127": {
+        "strict": true,
+        "lenient": true,
+        "flash_1": true,
+        "flash_2": true
+      },
+      "v149": {
+        "strict": true,
+        "lenient": true,
+        "flash_1": true,
+        "flash_2": true
+      }
+    },
+    {
+      "record_key": "ba57c4f922001033e979f087",
+      "question": "How many engineers do I lead when I just started my new role as Senior Software Engineer? How many engineers do I lead now?",
+      "v127_answer": "You led 4 engineers when you started your new role, and you now lead 5 engineers.",
+      "v149_answer": "You led 4 engineers when you started, and you now lead 5 engineers.",
+      "v127": {
+        "strict": true,
+        "lenient": true,
+        "flash_1": true,
+        "flash_2": true
+      },
+      "v149": {
+        "strict": true,
+        "lenient": true,
+        "flash_1": true,
+        "flash_2": true
+      }
+    },
+    {
+      "record_key": "cb96414dbbb017e56ece7a3f",
+      "question": "What is the order of the three sports events I participated in during the past month, from earliest to latest?",
+      "v127_answer": "1. Spring Sprint Triathlon (2023/06/02), 2. Midsummer 5K Run (2023/06/10), 3. Charity Soccer Tournament (2023/06/17)",
+      "v149_answer": "1. Spring Sprint Triathlon (June 2), 2. Midsummer 5K Run (June 10), 3. Company's annual charity soccer tournament (June 17)",
+      "v127": {
+        "strict": true,
+        "lenient": true,
+        "flash_1": true,
+        "flash_2": true
+      },
+      "v149": {
+        "strict": true,
+        "lenient": true,
+        "flash_1": true,
+        "flash_2": true
+      }
+    },
+    {
+      "record_key": "dadf0d7c77ff05ffc3f75b08",
+      "question": "Can you suggest some activities I can do during my commute to work?",
+      "v127_answer": "Based on your commute habits, you can listen to podcasts, such as history, true crime, or self-improvement genres (you already enjoy 'How I Built This'). You should also aim to stop wasting time checking email and social media to stay productive and entertained.",
+      "v149_answer": "Based on your memory, you can listen to podcasts, such as \"How I Built This\" or history podcasts, during your bike commute.",
+      "v127": {
+        "strict": false,
+        "lenient": false,
+        "flash_1": false,
+        "flash_2": false
+      },
+      "v149": {
+        "strict": false,
+        "lenient": true,
+        "flash_1": false,
+        "flash_2": true
+      }
+    },
+    {
+      "record_key": "f42847e71c4d486a8c6c7c0b",
+      "question": "What is the order of airlines I flew with from earliest to latest before today?",
+      "v127_answer": "JetBlue, United Airlines, American Airlines",
+      "v149_answer": "JetBlue, United, American",
+      "v127": {
+        "strict": false,
+        "lenient": false,
+        "flash_1": false,
+        "flash_2": false
+      },
+      "v149": {
+        "strict": false,
+        "lenient": false,
+        "flash_1": false,
+        "flash_2": false
+      }
+    },
+    {
+      "record_key": "f9ae007ab8a08057a78ba572",
+      "question": "I'm trying to decide whether to buy a NAS device now or wait. What do you think?",
+      "v127_answer": "Based on your current needs for expanding storage capacity and securing your data with features like encryption, it is advisable to buy a NAS now. The context highlights that a NAS offers better convenience and centralization than your current external hard drive setup. Specific beginner-friendly options like the Synology DiskStation DS218j or QNAP TS-231P are available, as well as more secure options like the Synology DS1819+ if security is your primary concern. There is no information in the context suggesting that waiting will yield better deals or necessary features.",
+      "v149_answer": "The provided information is not enough to answer the question: No information in the memory context regarding future NAS releases, price trends, or specific advice to wait or buy immediately",
+      "v127": {
+        "strict": true,
+        "lenient": true,
+        "flash_1": true,
+        "flash_2": true
+      },
+      "v149": {
+        "strict": false,
+        "lenient": false,
+        "flash_1": false,
+        "flash_2": false
+      }
+    }
+  ]
+}

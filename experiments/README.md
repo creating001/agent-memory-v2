@@ -25,7 +25,7 @@
 
 | 优先级 | 项目 | 当前状态 | 下一步 |
 |---:|---|---|---|
-| 1 | #5 memory lifecycle/state/conflict/query-time reasoning | v145 slot-chain formal 负向；v146 lifecycle scope 为 no-op；v147 global temporal-priority 负向；v148 scoped version-chain row ordering 在 LME changed-answer judge 负向、LoCoMo 持平 | 下一版不要扩大 memory row ordering；优先做 answer-slot-aware raw source guard，区分 current/previous/both/duration/order/preference anchor |
+| 1 | #5 memory lifecycle/state/conflict/query-time reasoning | v145 slot-chain formal 负向；v146 lifecycle scope 为 no-op；v147 global temporal-priority 负向；v148 scoped row ordering 负向；v149 broad answer-slot checklist 在 LME 负向 | 下一版不要做 broad checklist；改成 draft/evidence-report 触发的窄 verifier，保留 recommendation 与可计算 duration 的 clean 推断能力 |
 | 2 | #1 granularity/profile generalization + #2/#3 context pressure | v140 清除 profile 分支并降低 LME avg context chars 到 `18940.848`，但 LME strict/lenient `0.794/0.826` 低于 v127 | 重做 retrieval/context organization，避免 v139/v140 这种损覆盖的 compiler pressure |
 | 3 | src cleanup | `src` 审计显示暂无可整模块删除的 tracked 代码；`repair.py`、rerank、turn-window 和 guide 逻辑仍有消融或 guardrail 价值 | 后续随实验节奏拆小 `compiler.py` / `pipeline.py`，删除确认无用的兼容分支，不删仍有验证价值的模块 |
 
@@ -47,6 +47,7 @@
 
 | 配置 | 原因 |
 |---|---|
+| `stage1_answer_slot_checklist_v149_qwen36_no_think_build4k_cached.json` | 继承 v127，只在 `current_state/profile_preference` 打开 generic `final_answer_checklist`，不改 retrieval/row ordering，typed memory text 仍不作为 reader evidence。Compile scope：LME prompt changed `37/500`、LoCoMo `50/1540`，row order/set/route 全为 `0` change。Changed-answer paired dual judge：LME 从 v127 `13/21` strict/lenient 降到 v149 `9/21` strict、`10/21` lenient；LoCoMo strict `11/22 -> 13/22` 但 lenient `15/22 -> 13/22`。不升 LTS；结论是 broad checklist 过度拒答，下一版需窄触发 verifier。 |
 | `stage1_scoped_version_chain_interleave_v148_qwen36_no_think_build4k_cached.json` | 继承 v127，仅在 `current_state/profile_preference` 对已可见 raw rows 做 source-backed scoped version-chain interleave，typed memory text 不作为 reader evidence。Compile scope 窄：LME prompt changed `14/500`、LoCoMo `50/1540`，context 基本不变；但 changed-answer paired dual judge：LME 从 v127 `5/10` strict、`6/10` lenient 降到 v148 `4/10` strict、`4/10` lenient，LoCoMo `13/18` strict/lenient 持平。不升 LTS。 |
 | `stage1_temporal_scope_priority_v147_qwen36_no_think_build4k_cached.json` | 继承 v127，仅打开 `route.temporal_priority_over_recent=true`，试图降低 temporal/current route 歧义。Compile scope 很小：LME route changed `9/500`、LoCoMo `1/1540`；full cached prediction：LME answer changed `6/500`、LoCoMo `0/1540`。LME changed-answer paired dual judge 从 v127 `5/6` strict/lenient 降到 v147 `3/6`，不升 LTS。结论：#5 需要 answer-slot-aware as-of state/source selection，不能做全局 temporal priority。 |
 | `stage1_scoped_state_source_activation_v146_qwen36_no_think_build4k_cached.json` | v146 把 v145 的 retrieval-time slot-chain 收窄为 lifecycle-scope + predicate/value/text overlap gate；typed memory 仍只做 source-backed activation，reader 只看 raw rows。Compile-only：LME slot-chain `1/500`、LoCoMo `0/1540`；相对 v127 prompt/row-set changes 均为 `0`，因此不跑 formal、不升 LTS。 |
@@ -97,6 +98,7 @@
 
 | 文档/目录 | 作用 |
 |---|---|
+| `diagnostic/stage1_answer_slot_checklist_v149_scope_summary.md` | v149 answer-slot checklist：row set 不变但 LME changed-answer paired judge 负向，拒绝并指向窄触发 verifier |
 | `diagnostic/stage1_scoped_version_chain_interleave_v148_scope_summary.md` | v148 scoped version-chain interleave：scope clean 但 LME changed-answer paired judge 负向，拒绝并指向 answer-slot-aware guard |
 | `diagnostic/stage1_temporal_scope_priority_v147_scope_summary.md` | v147 temporal/current route-priority scope probe：changed-answer paired judge 负向，拒绝并给出 #5 下一步 |
 | `diagnostic/stage1_scoped_state_source_activation_v146_scope_summary.md` | v146 query-scoped source activation：更 clean 但相对 v127 no-op，不跑 formal |
