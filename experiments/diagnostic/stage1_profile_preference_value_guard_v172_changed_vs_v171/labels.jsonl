@@ -1,0 +1,1 @@
+{"benchmark": "locomo", "category": 1, "evidence": ["D3:3", "D5:5", "D23:15", "D22:12"], "gold_answer": "Ginger snaps", "question": "What is Evan's favorite food?", "question_type": null, "record_key": "6658015006384a53816e150c", "source_sample_id": "conv-49", "subset": "non-adversarial"}

@@ -6,12 +6,12 @@
 
 | 项目 | 结果 |
 |---|---|
-| 当前 LTS 配置 | `configs/stage1_lifecycle_slot_specificity_guard_v171_qwen36_no_think_build4k_cached.json` |
+| 当前 LTS 配置 | `configs/stage1_profile_preference_value_guard_v172_qwen36_no_think_build4k_cached.json` |
 | Backbone | `Qwen/Qwen3.6-35B-A3B` answer/build，`chat_template_kwargs.enable_thinking=false` |
-| 方法 | V171 lifecycle-slot specificity guard：继承 v170，并允许 previous/current occupation/role/job/title/career 问题保留唯一更具体的 source-backed support `value`。 |
-| LongMemEval-S full | v171 与 v170 answer diff `1/500`，changed-answer paired dual judge strict/lenient `0/1 -> 1/1`；patched full `0.830000 / 0.840000`，`415/500` strict，`420/500` lenient |
-| LoCoMo non-adversarial full | v171 与 v170 answer diff `0/1540`，继承 v170 paired-delta derived `0.790260 / 0.815584`，`1217/1540` strict，`1256/1540` lenient |
-| 状态 | 当前本地 qwen3.6 no-thinking LTS。相对 v170，v171 降低 #4 answer-surface specificity loss 和 #5 lifecycle-slot query-time reasoning 风险，并提升 LME strict/lenient；#1 granularity/profile、#2 top-k/context noise/rerank、#3 selected-context 泛化和更广泛 #5 lifecycle/update/conflict reasoning 仍未解决。 |
+| 方法 | V172 profile-preference value guard：继承 v171，并在拒答、问题直接询问 preference value、且 `evidence_report` 只有一个非含糊 source-backed support value 时保真该值。 |
+| LongMemEval-S full | v172 与 v171 answer diff `0/500`；继承 v171 patched full `0.830000 / 0.840000`，`415/500` strict，`420/500` lenient |
+| LoCoMo non-adversarial full | v172 与 v171 answer diff `1/1540`，changed-answer paired dual judge strict/lenient `0/1 -> 1/1`；patched full `0.790909 / 0.816234`，`1218/1540` strict，`1257/1540` lenient |
+| 状态 | 当前本地 qwen3.6 no-thinking LTS。v172 降低 #4 over-abstention / answer surface loss 和 #5 profile-preference query-time memory activation 风险，并提升 LoCoMo strict/lenient；#1 granularity/profile 泛化、#2 top-k/context noise/rerank、#3 selected-context 泛化和更广泛 #5 lifecycle/update/conflict reasoning 仍未解决。 |
 
 `paired-delta derived` 的含义：新版本只改少量答案，未变化答案沿用父 LTS full dual judge records，变化答案单独跑 paired dual judge 后替换计数。若新版本与父 LTS answer-identical，则可继承父 LTS judge records，但必须记录 full answer diff、cache hit/miss 和输出路径。若论文级最终汇报需要完全独立 run，再对 LTS 配置重跑 fresh full judge。
 
@@ -26,16 +26,17 @@
 
 | 优先级 | 项目 | 当前状态 | 下一步 |
 |---:|---|---|---|
-| 1 | #5 memory lifecycle/state/conflict/query-time reasoning | v171 让 previous/current occupation/role 等 lifecycle slot 能参与 source-backed specificity 保真，但更广泛 state/update/conflict reasoning 仍薄 | 扩展到 answer-slot-aware lifecycle/update/conflict verifier，必须保持 source-backed typed memory 只做激活/索引 |
+| 1 | #5 memory lifecycle/state/conflict/query-time reasoning | v172 增加了窄 profile preference query-time activation，v171 已让 previous/current occupation/role 等 lifecycle slot 能参与 source-backed specificity 保真；更广泛 state/update/conflict reasoning 仍薄 | 扩展到 answer-slot-aware lifecycle/update/conflict verifier，必须保持 source-backed typed memory 只做激活/索引 |
 | 2 | #2 top-k/context noise/rerank | v129/v134/v140/v152 说明简单裁剪、tail snippet 或 list-count rerank pruning 会伤 accuracy；当前 query context 仍偏长 | 转向 coverage-preserving route-aware context organization：先保留覆盖证据，再做 grouping/dedup/aggregation table |
-| 3 | #1 granularity/profile + #3 selected context | v158 已把 long-turn selected context 从一刀切禁用改成 narrow question-gated policy；granularity profile 仍基于 avg-turn chars | 继续重做更通用的 context organization，逐步减少 avg-turn profile 依赖 |
+| 3 | #1 granularity/profile + #3 selected context | v172 对 profile preference 值做窄 source-backed 保真，但 granularity profile 仍基于 avg-turn chars；v158 已把 long-turn selected context 从一刀切禁用改成 narrow question-gated policy | 继续重做更通用的 context organization，逐步减少 avg-turn profile 依赖 |
 | 4 | src cleanup | 已有多轮兼容分支，`repair.py`、compiler、pipeline 仍会继续变复杂 | 每个阶段结束后做小范围清理，删已确认无用的兼容代码，不删仍有消融价值的模块 |
 
 ## 保留候选
 
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
-| `configs/stage1_lifecycle_slot_specificity_guard_v171_qwen36_no_think_build4k_cached.json` | current LTS | LME strict/lenient `0.830000/0.840000`，LoCoMo `0.790260/0.815584`；v171 vs v170 answer diff `1/500`、`0/1540` | 当前 LTS；比 v170 降低 occupation/role lifecycle-slot specificity 风险且 LME strict/lenient 提升 |
+| `configs/stage1_profile_preference_value_guard_v172_qwen36_no_think_build4k_cached.json` | current LTS | LME strict/lenient `0.830000/0.840000`，LoCoMo `0.790909/0.816234`；v172 vs v171 answer diff `0/500`、`1/1540` | 当前 LTS；降低 profile-preference 拒答/activation 风险且 LoCoMo strict/lenient 提升 |
+| `configs/stage1_lifecycle_slot_specificity_guard_v171_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.830000/0.840000`，LoCoMo `0.790260/0.815584`；v171 vs v170 answer diff `1/500`、`0/1540` | 被 v172 替代；仍是 occupation/role lifecycle-slot specificity 父对照 |
 | `configs/stage1_source_value_specificity_guard_v170_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.828000/0.838000`，LoCoMo `0.790260/0.815584`；v170 vs v169 answer diff `0/500`、`8/1540` | 被 v171 替代；仍是 #4 generic source value specificity 父对照 |
 | `configs/stage1_numeric_slot_label_guard_v169_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.828000/0.838000`，LoCoMo `0.789610/0.815584`；v169 vs v168 answer diff `1/500`、`0/1540` | 被 v170 替代；仍是 #4 numeric slot label 父对照 |
 | `configs/stage1_scoped_modal_profile_advice_repair_v168_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.826000/0.838000`，LoCoMo `0.789610/0.815584`；v168 vs v162 answer diff `2/500`、`0/1540` | 被 v169 替代；仍是 #5 profile/advice query-time memory reasoning 父对照 |
@@ -86,6 +87,10 @@
 
 | 路径 | 内容 |
 |---|---|
+| `diagnostic/stage1_profile_preference_value_guard_v172_scope_summary.md` | v172 LTS 晋升：LME answer diff `0/500`，LoCoMo changed-answer paired dual judge `0/1 -> 1/1`，profile preference value source-backed 保真 |
+| `diagnostic/stage1_profile_preference_value_guard_v172_changed_vs_v171/` | v172 vs v171 changed-answer paired dual judge，LoCoMo strict/lenient `0/1 -> 1/1` |
+| `diagnostic/stage1_profile_preference_value_guard_v172_lme_s_full/` | v172 LME full cached prediction run artifacts |
+| `diagnostic/stage1_profile_preference_value_guard_v172_locomo_nonadv_full/` | v172 LoCoMo full cached prediction run artifacts |
 | `diagnostic/stage1_lifecycle_slot_specificity_guard_v171_scope_summary.md` | v171 LTS 晋升：LME full strict/lenient `+1/+1`，LoCoMo answer diff `0/1540`，previous/current occupation/role lifecycle-slot specificity 保真 |
 | `diagnostic/stage1_lifecycle_slot_specificity_guard_v171_changed_vs_v170/` | v171 vs v170 changed-answer paired dual judge，LME strict/lenient `0/1 -> 1/1` |
 | `diagnostic/stage1_lifecycle_slot_specificity_guard_v171_lme_s_full/` | v171 LME full cached prediction run artifacts |

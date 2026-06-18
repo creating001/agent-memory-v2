@@ -829,6 +829,12 @@ class Stage1Pipeline:
                 False,
             )
         )
+        self._answer_finalizer_enable_profile_preference_value_preservation = bool(
+            answer_finalizer_config.get(
+                "enable_profile_preference_value_preservation",
+                False,
+            )
+        )
         self._answer_finalizer_trace_config = {
             "enabled": self._answer_finalizer_enabled,
             "mode": self._answer_finalizer_mode,
@@ -865,6 +871,9 @@ class Stage1Pipeline:
             ),
             "enable_source_value_specificity_preservation": (
                 self._answer_finalizer_enable_source_value_specificity_preservation
+            ),
+            "enable_profile_preference_value_preservation": (
+                self._answer_finalizer_enable_profile_preference_value_preservation
             ),
         }
         self._answer_finalizer_profile_settings = {
@@ -1903,6 +1912,12 @@ class Stage1Pipeline:
                 enable_source_value_specificity_preservation=bool(
                     settings.get(
                         "enable_source_value_specificity_preservation",
+                        False,
+                    )
+                ),
+                enable_profile_preference_value_preservation=bool(
+                    settings.get(
+                        "enable_profile_preference_value_preservation",
                         False,
                     )
                 ),
@@ -3856,6 +3871,9 @@ def _answer_finalizer_settings_from_config(
         ),
         "enable_source_value_specificity_preservation": bool(
             config.get("enable_source_value_specificity_preservation", False)
+        ),
+        "enable_profile_preference_value_preservation": bool(
+            config.get("enable_profile_preference_value_preservation", False)
         ),
     }
 

@@ -123,6 +123,32 @@ _SOURCE_VALUE_SPECIFICITY_STOPWORDS = frozenset(
     "would could should can may might will as that this these those i you he "
     "she they we it".split()
 )
+_PROFILE_PREFERENCE_VALUE_QUESTION = re.compile(
+    r"\b(?:what|which|who)\b[^?]{0,120}\b"
+    r"(?:favorite|favourite|prefer(?:s|red|ence)?|likes?|loves?|"
+    r"enjoys?|interests?|weakness|go-to|kind of|type of)\b|"
+    r"\b(?:favorite|favourite|prefer(?:s|red|ence)?|likes?|loves?|"
+    r"enjoys?|interests?|weakness|go-to)\b[^?]{0,120}\b"
+    r"(?:what|which|who)\b",
+    re.IGNORECASE,
+)
+_PROFILE_PREFERENCE_VALUE_BAD_QUESTION = re.compile(
+    r"\b(recommend|suggest|advice|should|would|could|might|likely|if|"
+    r"without|how many|when|where did|what time|what date|before|after|"
+    r"first|last|latest|total|sum|average|difference)\b|\bor\b",
+    re.IGNORECASE,
+)
+_PROFILE_PREFERENCE_VALUE_SLOT = re.compile(
+    r"\b(preference|favorite|favourite|food|likes?|loves?|enjoys?|interest|"
+    r"hobby|weakness|go-to)\b",
+    re.IGNORECASE,
+)
+_PROFILE_PREFERENCE_VALUE_VAGUE = re.compile(
+    r"\b(it|this|that|unnamed|unknown|unclear|unspecified|specific|none|"
+    r"no|not|food preference|preference|favorite|favourite|thing|things|"
+    r"something|anything|various|multiple|support|evidence|memory)\b",
+    re.IGNORECASE,
+)
 _NUMBER = re.compile(r"(?<![A-Za-z])([0-9][0-9,]*(?:\.[0-9]+)?)(?![A-Za-z])")
 _MONEY = re.compile(
     r"(?:\$\s*([0-9][0-9,]*(?:\.[0-9]+)?)|"
@@ -312,6 +338,7 @@ def guard_source_grounded_answer(
     enable_missing_detail: bool = False,
     enable_numeric_slot_label_preservation: bool = False,
     enable_source_value_specificity_preservation: bool = False,
+    enable_profile_preference_value_preservation: bool = False,
 ) -> AnswerFinalization:
     """Generic source-grounded guardrail that never computes a new answer.
 
@@ -328,6 +355,14 @@ def guard_source_grounded_answer(
     if not payload:
         return _noop(draft_answer, "no_structured_answer_json")
     if payload.get("sufficient") is False:
+        if enable_profile_preference_value_preservation:
+            preference_value = _finalize_profile_preference_value_preservation(
+                question=question,
+                draft_answer=draft_answer,
+                payload=payload,
+            )
+            if preference_value is not None:
+                return preference_value
         if enable_missing_detail:
             detailed = _finalize_missing_detail(
                 draft_answer=draft_answer,
@@ -611,6 +646,78 @@ def _source_value_specificity_question_allowed(question: str) -> bool:
     if _SOURCE_VALUE_SPECIFICITY_HARD_BAD_QUESTION.search(question):
         return False
     return bool(_SOURCE_VALUE_SPECIFICITY_LIFECYCLE_SLOT_QUESTION.search(question))
+
+
+def _finalize_profile_preference_value_preservation(
+    *,
+    question: str,
+    draft_answer: str,
+    payload: dict[str, Any],
+) -> AnswerFinalization | None:
+    if not _answer_is_insufficient(draft_answer):
+        return None
+    if not _profile_preference_value_question_allowed(question):
+        return None
+    answer_type = str(payload.get("answer_type") or "").strip().lower()
+    if answer_type in _SOURCE_VALUE_SPECIFICITY_BAD_ANSWER_TYPES:
+        return None
+    report = payload.get("evidence_report")
+    if not isinstance(report, list):
+        return None
+
+    candidates: list[str] = []
+    for item in report:
+        if not isinstance(item, dict):
+            continue
+        if str(item.get("status") or "").strip().lower() != "support":
+            continue
+        if not _PROFILE_PREFERENCE_VALUE_SLOT.search(str(item.get("slot") or "")):
+            continue
+        value = _source_value_specificity_candidate_value(item)
+        if _is_profile_preference_value_candidate(value):
+            candidates.append(value)
+
+    unique_candidates: list[str] = []
+    seen: set[str] = set()
+    for candidate in candidates:
+        key = _clean_key(candidate)
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        unique_candidates.append(candidate)
+    if len(unique_candidates) != 1:
+        return None
+
+    answer = unique_candidates[0]
+    return AnswerFinalization(
+        answer=answer,
+        before=draft_answer,
+        applied=True,
+        reason="profile_preference_value_preservation",
+        evidence_item_count=1,
+        expected_value=answer,
+    )
+
+
+def _profile_preference_value_question_allowed(question: str) -> bool:
+    if not _PROFILE_PREFERENCE_VALUE_QUESTION.search(question or ""):
+        return False
+    return not bool(_PROFILE_PREFERENCE_VALUE_BAD_QUESTION.search(question or ""))
+
+
+def _is_profile_preference_value_candidate(candidate: str) -> bool:
+    if not candidate:
+        return False
+    if len(candidate) > 80:
+        return False
+    if "," in candidate or ";" in candidate or " / " in candidate:
+        return False
+    if _PROFILE_PREFERENCE_VALUE_VAGUE.search(candidate):
+        return False
+    if _extract_plain_value(candidate) is not None:
+        return False
+    terms = _specificity_terms(candidate)
+    return 1 <= len(terms) <= 8
 
 
 def _specificity_terms(text: str) -> list[str]:

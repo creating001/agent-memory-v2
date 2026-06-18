@@ -1078,6 +1078,9 @@ def _answer_metrics(config: dict[str, Any]) -> dict[str, Any]:
         "finalizer_enable_source_value_specificity_preservation": answer_config.get(
             "finalizer", {}
         ).get("enable_source_value_specificity_preservation", False),
+        "finalizer_enable_profile_preference_value_preservation": answer_config.get(
+            "finalizer", {}
+        ).get("enable_profile_preference_value_preservation", False),
         "repair_enabled": repair_config.get("enabled", False),
         "repair_mode": repair_config.get("mode", answer_config.get("mode")),
         "repair_model": repair_answer_config.get("model"),
@@ -1338,6 +1341,7 @@ def _write_summary(
         f"- answer_finalizer_enable_relative_time_calculation: {metrics['answer']['finalizer_enable_relative_time_calculation']}",
         f"- answer_finalizer_enable_numeric_slot_label_preservation: {metrics['answer']['finalizer_enable_numeric_slot_label_preservation']}",
         f"- answer_finalizer_enable_source_value_specificity_preservation: {metrics['answer']['finalizer_enable_source_value_specificity_preservation']}",
+        f"- answer_finalizer_enable_profile_preference_value_preservation: {metrics['answer']['finalizer_enable_profile_preference_value_preservation']}",
         f"- answer_finalizer_applied_count: {metrics['answer']['finalizer_applied_count']}",
         f"- answer_finalizer_applied_rate: {metrics['answer']['finalizer_applied_rate']}",
         f"- answer_repair_enabled: {metrics['answer']['repair_enabled']}",
@@ -1626,6 +1630,7 @@ def _write_diagnosis(
         f"- answer_finalizer_enable_relative_time_calculation: {metrics['answer']['finalizer_enable_relative_time_calculation']}",
         f"- answer_finalizer_enable_numeric_slot_label_preservation: {metrics['answer']['finalizer_enable_numeric_slot_label_preservation']}",
         f"- answer_finalizer_enable_source_value_specificity_preservation: {metrics['answer']['finalizer_enable_source_value_specificity_preservation']}",
+        f"- answer_finalizer_enable_profile_preference_value_preservation: {metrics['answer']['finalizer_enable_profile_preference_value_preservation']}",
         f"- answer_finalizer_applied_count: {metrics['answer']['finalizer_applied_count']}",
         f"- answer_finalizer_applied_rate: {metrics['answer']['finalizer_applied_rate']}",
         f"- answer_repair_enabled: {metrics['answer']['repair_enabled']}",

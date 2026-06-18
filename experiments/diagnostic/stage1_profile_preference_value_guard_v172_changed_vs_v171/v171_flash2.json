@@ -1,0 +1,59 @@
+{
+  "api_key_env": "DEEPSEEK_API_KEY",
+  "base_url": "https://api.deepseek.com",
+  "benchmark": "locomo",
+  "clean_note": "Offline judge reads gold labels only after prediction. This output must not be consumed by prediction, retrieval, compiler, answer, or verifier.",
+  "created_at_utc": "2026-06-18T21:11:57+00:00",
+  "dry_run": false,
+  "git": {
+    "commit": "11f7ca839b84215b07cc04663f9e70a73212364e",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "M scripts/run_stage1.py\n M src/memory/finalize.py\n M src/memory/pipeline.py\n M src/tests/test_clean_skeleton.py\n?? configs/stage1_profile_preference_value_guard_v172_qwen36_no_think_build4k_cached.json\n?? experiments/diagnostic/stage1_profile_preference_value_guard_v172_changed_vs_v171/\n?? experiments/diagnostic/stage1_profile_preference_value_guard_v172_lme_s_full/\n?? experiments/diagnostic/stage1_profile_preference_value_guard_v172_locomo_nonadv_full/"
+  },
+  "judgments": [
+    {
+      "label": "WRONG",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "eeafccce2f74428d",
+      "question_type": null,
+      "raw_response": "WRONG",
+      "record_key": "6658015006384a53816e150c",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 59,
+        "completion_tokens_details": {
+          "reasoning_tokens": 56
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 101,
+        "prompt_tokens": 357,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 416
+      }
+    }
+  ],
+  "labels": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_profile_preference_value_guard_v172_changed_vs_v171/labels.jsonl",
+  "metrics": {
+    "accuracy": 0.0,
+    "n_invalid": 0,
+    "n_judgments": 1,
+    "n_valid": 1
+  },
+  "model": "deepseek-v4-flash",
+  "partial_output": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_profile_preference_value_guard_v172_changed_vs_v171/v171_flash2.json.partial.jsonl",
+  "predictions": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_profile_preference_value_guard_v172_changed_vs_v171/v171_predictions.jsonl",
+  "request_body_options": {},
+  "temperature": 0.0,
+  "thinking": null,
+  "usage": {
+    "completion_tokens": 59,
+    "prompt_tokens": 357,
+    "total_tokens": 416
+  },
+  "workers": 2
+}

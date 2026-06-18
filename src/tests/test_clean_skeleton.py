@@ -3121,6 +3121,94 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertFalse(finalization.applied)
         self.assertEqual(finalization.answer, "Hawaii")
 
+    def test_source_grounded_guard_preserves_profile_preference_value(self) -> None:
+        content = json.dumps(
+            {
+                "sufficient": False,
+                "answer_type": "unknown",
+                "missing": "No explicit favorite is stated.",
+                "evidence_report": [
+                    {
+                        "status": "support",
+                        "slot": "food preference",
+                        "value": "ginger snaps",
+                    },
+                    {
+                        "status": "support",
+                        "slot": "food preference",
+                        "value": "ginger snaps",
+                    },
+                ],
+                "answer": "The provided information is not enough.",
+            }
+        )
+        raw_response = json.dumps({"content": content})
+
+        finalization = guard_source_grounded_answer(
+            question="What is Evan's favorite food?",
+            draft_answer="The provided information is not enough.",
+            raw_response=raw_response,
+            enable_profile_preference_value_preservation=True,
+        )
+
+        self.assertTrue(finalization.applied)
+        self.assertEqual(
+            finalization.reason, "profile_preference_value_preservation"
+        )
+        self.assertEqual(finalization.answer, "ginger snaps")
+
+    def test_source_grounded_guard_blocks_vague_profile_preference_value(self) -> None:
+        content = json.dumps(
+            {
+                "sufficient": False,
+                "answer_type": "unknown",
+                "evidence_report": [
+                    {
+                        "status": "support",
+                        "slot": "favorite movie",
+                        "value": "It",
+                    }
+                ],
+                "answer": "The provided information is not enough.",
+            }
+        )
+        raw_response = json.dumps({"content": content})
+
+        finalization = guard_source_grounded_answer(
+            question="What is one of Joanna's favorite movies?",
+            draft_answer="The provided information is not enough.",
+            raw_response=raw_response,
+            enable_profile_preference_value_preservation=True,
+        )
+
+        self.assertFalse(finalization.applied)
+
+    def test_source_grounded_guard_blocks_advice_preference_value(self) -> None:
+        content = json.dumps(
+            {
+                "sufficient": False,
+                "answer_type": "unknown",
+                "evidence_report": [
+                    {
+                        "status": "support",
+                        "slot": "topic preference",
+                        "value": "politics",
+                    }
+                ],
+                "answer": "The provided information is not enough.",
+            }
+        )
+        raw_response = json.dumps({"content": content})
+
+        finalization = guard_source_grounded_answer(
+            question="Can you recommend a show or movie for me to watch tonight?",
+            draft_answer="The provided information is not enough.",
+            raw_response=raw_response,
+            enable_profile_preference_value_preservation=True,
+        )
+
+        self.assertFalse(finalization.applied)
+
     def test_evidence_report_count_increment_finalizer_is_explicit(self) -> None:
         content = json.dumps(
             {

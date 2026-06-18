@@ -1,0 +1,13 @@
+{
+  "benchmark": "locomo",
+  "candidate": "v172 profile_preference_value_preservation",
+  "category": 1,
+  "clean_note": "Gold and judge output are used only for offline diagnosis and paired evaluation, never by prediction code.",
+  "gold_answer": "Ginger snaps",
+  "parent": "v171 lifecycle_slot_specificity_guard",
+  "question": "What is Evan's favorite food?",
+  "record_key": "6658015006384a53816e150c",
+  "subset": "non_adversarial_full",
+  "v171_answer": "The provided information is not enough.",
+  "v172_answer": "ginger snaps"
+}

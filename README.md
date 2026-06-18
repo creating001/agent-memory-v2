@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_lifecycle_slot_specificity_guard_v171_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_profile_preference_value_guard_v172_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v171 local LTS | 说明 |
+| Benchmark | 当前 v172 local LTS | 说明 |
 |---|---:|---|
-| LongMemEval-S full | strict/lenient `0.830000 / 0.840000` | v171 与 v170 answer diff `1/500`；changed-answer dual judge strict/lenient `0/1 -> 1/1`，patched full `415/500` strict、`420/500` lenient。 |
-| LoCoMo non-adversarial full | strict/lenient `0.790260 / 0.815584` | v171 与 v170 answer diff `0/1540`；继承 v170 paired-delta derived `1217/1540` strict、`1256/1540` lenient。 |
+| LongMemEval-S full | strict/lenient `0.830000 / 0.840000` | v172 与 v171 answer diff `0/500`；继承 v171 patched full `415/500` strict、`420/500` lenient。 |
+| LoCoMo non-adversarial full | strict/lenient `0.790909 / 0.816234` | v172 与 v171 answer diff `1/1540`；changed-answer dual judge strict/lenient `0/1 -> 1/1`，patched full `1218/1540` strict、`1257/1540` lenient。 |
 
-v171 的 LTS 理由：继承 v170 的 source-backed repair、numeric slot label guard 和 source value specificity guard，并把 `previous/current occupation|role|job|position|title|career` 这类 lifecycle slot 问题从粗粒度 temporal 禁止门里放出来。它只在当前短答是唯一更具体 support `value` 的子串时保留 source-backed 完整槽值，不计算新值、不合并多条证据、不读 gold/judge/sample id/test feedback。它进一步降低 #4 answer surface specificity loss 和 #5 lifecycle-slot query-time reasoning 风险；#1 granularity/profile、#2 top-k/context noise/rerank、#3 selected-context 泛化和更广泛 #5 lifecycle/update/conflict reasoning 仍是优先待办。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_lifecycle_slot_specificity_guard_v171_scope_summary.md`。
+v172 的 LTS 理由：继承 v171 的 source-backed repair、numeric/source value specificity guard 和 lifecycle-slot guard，并新增一个很窄的 profile preference value guard。只有当 draft 已经拒答、问题直接询问 favorite/preference/like/interest 的具体值、且预测期 `evidence_report` 里恰好有一个非含糊的 source-backed preference support `value` 时，finalizer 才保留该值；recommendation/advice/modal/list/count/temporal/option、多候选和代词/unnamed 等含糊值全部阻断。它降低 #4 over-abstention / answer surface loss 和 #5 profile-preference query-time memory activation 风险；#1 granularity/profile 泛化、#2 top-k/context noise/rerank、#3 selected-context 泛化和更广泛 #5 lifecycle/update/conflict reasoning 仍是优先待办。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_profile_preference_value_guard_v172_scope_summary.md`。
 
 ## 目录
 
