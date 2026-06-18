@@ -99,6 +99,9 @@ LoCoMo fact route specifically:
 
 ## Answer Diagnostics
 
+These lexical metrics are diagnostic only. The algorithm decision uses dual
+`deepseek-v4-flash` judge accuracy.
+
 Changed-prompt input:
 
 - `outputs/diagnostic_inputs/stage1_fact_tail_snippet_budget_v134_locomo_fact_changed.jsonl`
@@ -126,6 +129,32 @@ Full LoCoMo route-only merge:
 - Full changed answers: `352/1540`
 - Exact gain/loss: `22/18`
 
+## Dual Judge
+
+Dual `deepseek-v4-flash` judge was run on the same 882 LoCoMo fact changed keys
+for V134 and its direct V129 parent.
+
+| predictions | strict | lenient | strict correct | lenient correct |
+|---|---:|---:|---:|---:|
+| V129 same 882 keys | `0.819728` | `0.833333` | `723/882` | `735/882` |
+| V134 same 882 keys | `0.807256` | `0.824263` | `712/882` | `727/882` |
+
+Paired judge delta:
+
+- strict gain/loss: `19/30`, net `-11`
+- lenient gain/loss: `23/31`, net `-8`
+- strict accuracy delta: `-0.012472`
+- lenient accuracy delta: `-0.009070`
+
+By LoCoMo category, V134 does not show a compensating judge gain:
+
+| category | n | strict delta | lenient delta |
+|---|---:|---:|---:|
+| `1` | `120` | `-2` | `-1` |
+| `2` | `19` | `0` | `0` |
+| `3` | `73` | `-1` | `-1` |
+| `4` | `670` | `-8` | `-6` |
+
 ## Outputs
 
 - V133 LME dry-run traces: `outputs/diagnostic/stage1_fact_tail_snippet_budget_v133_lme_dry/traces.jsonl`
@@ -135,16 +164,23 @@ Full LoCoMo route-only merge:
 - V134 LoCoMo fact predictions: `outputs/diagnostic/stage1_fact_tail_snippet_budget_v134_locomo_fact_changed/predictions.jsonl`
 - V134 LoCoMo full merge predictions: `outputs/diagnostic/stage1_fact_tail_snippet_budget_v134_locomo_nonadv_full_route_only_merge/predictions.jsonl`
 - V134 LoCoMo full lexical metrics: `experiments/diagnostic/stage1_fact_tail_snippet_budget_v134_locomo_nonadv_full_route_only_merge/lexical_metrics.json`
+- V134 fact dual judge: `experiments/diagnostic/stage1_fact_tail_snippet_budget_v134_locomo_fact_changed/deepseek_dual_judge.json`
+- V129 same-key fact dual judge: `experiments/diagnostic/stage1_fact_tail_snippet_budget_v134_locomo_fact_changed/v129_fact_changed_deepseek_dual_judge.json`
+- Paired judge comparison and changed records: `experiments/diagnostic/stage1_fact_tail_snippet_budget_v134_locomo_fact_changed/paired_judge_comparison_vs_v129.json`
 
 ## Decision
 
 V133 is rejected as too conservative.
 
-V134 is kept as a narrow positive token-budget diagnostic, not an LTS replacement yet:
+V134 is rejected as an LTS candidate:
 
 - Clean: it uses only route/rank/question/raw row text and preserves row set.
 - Cost: LoCoMo fact changed subset avg query tokens drops to `5910.726`, under the 6K target.
-- Accuracy proxy: full LoCoMo route-only lexical exact improves `0.245455 -> 0.248052`, with exact gain/loss `22/18`; F1 is nearly flat but slightly negative.
-- Risk: the effect is narrow and only lexical so far. Dual `deepseek-v4-flash` judge is still required before considering promotion.
+- Main metric: paired dual judge against V129 is negative on the same 882 keys:
+  strict `0.819728 -> 0.807256`, lenient `0.833333 -> 0.824263`.
+- Interpretation: tail snippet compression saves tokens but removes enough useful
+  wording from low-rank raw rows to hurt judged answer quality.
 
-Next recommendation: run dual flash judge for the V134 LoCoMo fact subset and full route-only merge. If judge agrees with the lexical positive, consider testing an adjacent `tail_max_row_text_chars=80` diagnostic; otherwise keep V134 as a token-budget note and move back to evidence organization rather than more compression.
+Full route-only judge and a more aggressive `tail_max_row_text_chars=80`
+variant are not worth running. Next work should move back to source-backed
+evidence organization and badcase analysis rather than stronger compression.

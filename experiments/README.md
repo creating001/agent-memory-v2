@@ -2,11 +2,11 @@
 
 `experiments/` 是正式结果和关键诊断的人类可读入口。详细证据保留在各 run 目录、`summary.md`、`diagnosis.md`、`metrics.json` 和 `manifest.json` 中；本文件只维护稳定索引和当前决策。
 
-## 当前默认
+## 当前 LTS
 
 | 项目 | 结果 |
 |---|---|
-| 默认配置 | `configs/stage1_extended_selected_context_v116_qwen36_no_think_build4k_cached.json` |
+| 当前 LTS 配置 | `configs/stage1_extended_selected_context_v116_qwen36_no_think_build4k_cached.json` |
 | Backbone | `Qwen/Qwen3.6-35B-A3B` answer/build，`chat_template_kwargs.enable_thinking=false` |
 | 方法 | V116 extended selected context；继承 v110 modal-only grounded inference，只扩展短 turn selected-context 后向邻域 |
 | LongMemEval-S full | strict/lenient `0.812000 / 0.834000` |
@@ -18,23 +18,22 @@
 - `v101` 及之前默认属于 `Qwen/Qwen3-30B-A3B-Instruct-2507` 历史探索。
 - 当前主线是 `Qwen/Qwen3.6-35B-A3B` no-thinking；只有名称显式带 `qwen36_no_think_build4k` 的记录才按当前 backbone 对比。
 - `agent-memory-other` / `agent-memory-gpt` 是外部测试目录，不作为主项目 LTS 结果来源。
-- `exact / F1 / BLEU` 只作为低成本诊断；方法主指标仍是 dual `deepseek-v4-flash` judge strict/lenient。
+- `exact / F1 / BLEU` 只作为低成本诊断和 badcase 定位；算法是否成立、是否升级 LTS，只看 dual `deepseek-v4-flash` judge strict/lenient。
+- 新 LTS 必须同时满足：相对当前 LTS 或直接父对照风险点更少，并且 paired/full dual judge accuracy 更好。只省 token、只减少风险但不提分、或只有 lexical 正向，都不能替代 LTS。
 
 ## 优先待办
 
 | 优先级 | 项目 | 当前状态 | 下一步 |
 |---:|---|---|---|
-| 1 | `v134` fact tail snippet budget | LoCoMo full route-only lexical exact `0.245455 -> 0.248052`，changed-subset avg query `5910.726`，row set 不变 | 补 LoCoMo fact subset 和 full route-only dual judge；若 judge 正向，再测相邻 `tail_max_row_text_chars=80` |
-| 2 | `v125` temporal local evidence unit | LoCoMo temporal subset lexical exact `0.186391 -> 0.215976`，full route-only exact `0.236364 -> 0.242857` | 补 temporal subset 和 full route-only dual judge |
-| 3 | `v126` profile/current memory source interleave | LoCoMo profile/current route-all exact `0.320000 -> 0.360000`；full route-only exact 高于 v125 | 补 LoCoMo 与 LME full route-only dual judge；若 LME judge 不正向则停止 |
-| 4 | `v127` superseded source chain | LME full route-only lexical exact `0.426000 -> 0.428000`；LoCoMo exact 持平、F1/BLEU 小升 | 和 v125/v126/v134 一起排队补 dual judge |
-| 5 | `v129` route-scoped char budget | LME/LoCoMo full route-only lexical 小正向；LoCoMo changed-subset query 仍 `6112.337` | 保留为 v134 的父对照，不单独优先 judge |
+| 1 | `v125` temporal local evidence unit | LoCoMo temporal subset lexical exact `0.186391 -> 0.215976`，full route-only exact `0.236364 -> 0.242857` | 补 temporal subset paired dual judge；若主指标正向，再考虑 full route-only judge |
+| 2 | `v126` profile/current memory source interleave | LoCoMo profile/current route-all exact `0.320000 -> 0.360000`；full route-only exact 高于 v125 | 补 paired dual judge；若 LME judge 不正向则停止 |
+| 3 | `v127` superseded source chain | LME full route-only lexical exact `0.426000 -> 0.428000`；LoCoMo exact 持平、F1/BLEU 小升 | 补 paired dual judge，并重点看 update/profile badcase |
+| 4 | `v129` route-scoped char budget | LME/LoCoMo full route-only lexical 小正向；LoCoMo changed-subset query 仍 `6112.337` | 作为 token-budget 对照保留；优先级低于 evidence organization 候选 |
 
 ## 保留候选
 
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
-| `configs/stage1_fact_tail_snippet_budget_v134_qwen36_no_think_build4k_cached.json` | token-budget | LME `0/500` prompt change；LoCoMo fact row set `0` change，fact avg context `17637.014 -> 17025.604`；full lexical exact/F1/BLEU1 `0.245455/0.538048/0.483962 -> 0.248052/0.537767/0.484954` | Narrow positive diagnostic；待 judge |
 | `configs/stage1_route_scoped_fact_profile_state_budget_v129_qwen36_no_think_build4k_cached.json` | token-budget | LME full route-only exact `0.428000 -> 0.430000`；LoCoMo `0.244156 -> 0.245455` | Narrow positive diagnostic；作为 v134 父对照 |
 | `configs/stage1_route_scoped_local_evidence_unit_v125_qwen36_no_think_build4k_cached.json` | temporal context | 只改变 LoCoMo temporal prompts `338/338`；route-only full exact `0.236364 -> 0.242857` | Promising diagnostic；待 judge |
 | `configs/stage1_memory_source_interleave_v126_qwen36_no_think_build4k_cached.json` | memory organization | LoCoMo profile/current exact `0.320000 -> 0.360000`；LME exact 持平但 F1/BLEU 轻降 | Narrow diagnostic；待 judge |
@@ -47,6 +46,7 @@
 
 | 配置 | 原因 |
 |---|---|
+| `stage1_fact_tail_snippet_budget_v134_qwen36_no_think_build4k_cached.json` | token 降低但 paired dual judge 负向；LoCoMo fact subset strict/lenient `0.819728/0.833333 -> 0.807256/0.824263`，净 strict `-11`、lenient `-8` |
 | `stage1_fact_tail_snippet_budget_v133_qwen36_no_think_build4k_cached.json` | 过保守；LoCoMo fact avg context 只降 `8.552` chars，full avg context 只降 `4.898` chars |
 | `stage1_fact_tail_filter_preserve_order_v132_qwen36_no_think_build4k_cached.json` | hard row pruning 虽降 query 到 `5115.770`，但 LoCoMo fact exact `0.249433 -> 0.241497`，full exact `0.245455 -> 0.240909` |
 | `stage1_conservative_fact_tail_source_interleave_v131_qwen36_no_think_build4k_cached.json` | dry-run 仍主要是 order-only prompt drift，没有 context benefit |

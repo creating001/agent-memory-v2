@@ -919,7 +919,7 @@ answer 诊断：
 - Build cache hit/miss/write `2680/0/0`；answer cache hit/miss/write `1/337/337`。
 - Answer changed vs v116 temporal subset `127/338`；finalizer applied `0`。
 - V116 same-subset existing dual flash baseline：strict/lenient `0.769231 / 0.789941`。
-- V125 dual flash 未跑：当前环境没有 `DEEPSEEK_API_KEY` 或其它 `DEEPSEEK*` env。
+- V125 paired dual flash 主指标仍待补。
 - 辅助 lexical exact/F1/BLEU1：v116 temporal subset `0.186391 / 0.468985 / 0.436853`，v125 `0.215976 / 0.505710 / 0.471056`；exact gain/loss `13/3`。
 
 full cached artifact：
@@ -969,4 +969,11 @@ answer 诊断：
 - Changed-subset lexical exact/F1/BLEU1：v129 `0.249433 / 0.550951 / 0.488438`，v134 `0.253968 / 0.550460 / 0.490170`，exact gain/loss `22/18`。
 - Full route-only merge：v129 exact/F1/BLEU1 `0.245455 / 0.538048 / 0.483962`，v134 `0.248052 / 0.537767 / 0.484954`，merge counts 为 v134 fact override `882`、v129 non-fact `658`。
 
-结论：v133 拒绝。v134 保留为 narrow positive token-budget diagnostic candidate，但不能升级 LTS；primary dual `deepseek-v4-flash` judge 未跑，且 F1 轻微下降。下一步先补 v134 fact subset/full route-only dual judge；若 judge 正向，再考虑相邻 `tail_max_row_text_chars=80`。
+dual judge：
+
+- 对同 882 个 LoCoMo fact changed keys 补跑 paired dual `deepseek-v4-flash` judge。
+- V129 same-key strict/lenient：`0.819728 / 0.833333`，`723/882` strict correct、`735/882` lenient correct。
+- V134 same-key strict/lenient：`0.807256 / 0.824263`，`712/882` strict correct、`727/882` lenient correct。
+- Paired gain/loss：strict `19/30`，lenient `23/31`，净 strict `-11`、lenient `-8`。
+
+结论：v133 拒绝。v134 虽然把 changed-subset query 降到 6K 内，但 paired dual judge 主指标负向，因此拒绝为 LTS 候选；不继续 full route-only judge，也不测试更强的 `tail_max_row_text_chars=80`。下一步应回到 source-backed evidence organization 和 badcase 分析，而不是继续压缩事实尾部 raw text。
