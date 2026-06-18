@@ -1,0 +1,51 @@
+{
+  "benchmark": "longmemeval",
+  "subset": "profile_preference_changed_answers",
+  "parent_lts": "stage1_memory_lifecycle_manifest_v162_qwen36_no_think_build4k_cached",
+  "candidate": "stage1_profile_memory_activation_v163_qwen36_no_think_build4k_cached",
+  "n_changed_answers": 9,
+  "judge": {
+    "model": "deepseek-v4-flash",
+    "runs": 2,
+    "temperature": 0,
+    "thinking": "default"
+  },
+  "v162": {
+    "strict_correct": 3,
+    "lenient_correct": 4,
+    "strict_accuracy": 0.3333333333333333,
+    "lenient_accuracy": 0.4444444444444444,
+    "judge_agreement": 0.8888888888888888,
+    "n_both_valid": 9,
+    "usage": {
+      "prompt_tokens": 3768,
+      "completion_tokens": 3673,
+      "total_tokens": 7441
+    },
+    "outputs": {
+      "dual_judge": "outputs/diagnostic/stage1_profile_memory_activation_v163_lme_changed_vs_v162/v162_dual_judge.json",
+      "flash_1": "outputs/diagnostic/stage1_profile_memory_activation_v163_lme_changed_vs_v162/deepseek_judge_flash_1.json",
+      "flash_2": "outputs/diagnostic/stage1_profile_memory_activation_v163_lme_changed_vs_v162/deepseek_judge_flash_2.json"
+    }
+  },
+  "v163": {
+    "strict_correct": 2,
+    "lenient_correct": 3,
+    "strict_accuracy": 0.2222222222222222,
+    "lenient_accuracy": 0.3333333333333333,
+    "judge_agreement": 0.8888888888888888,
+    "n_both_valid": 9,
+    "usage": {
+      "prompt_tokens": 3616,
+      "completion_tokens": 3606,
+      "total_tokens": 7222
+    },
+    "outputs": {
+      "dual_judge": "outputs/diagnostic/stage1_profile_memory_activation_v163_lme_changed_vs_v162/v163_dual_judge.json",
+      "flash_1": "outputs/diagnostic/stage1_profile_memory_activation_v163_lme_changed_vs_v162/v163_deepseek_judge_flash_1.json",
+      "flash_2": "outputs/diagnostic/stage1_profile_memory_activation_v163_lme_changed_vs_v162/v163_deepseek_judge_flash_2.json"
+    }
+  },
+  "decision": "reject_candidate_do_not_promote_lts",
+  "reason": "V163 decreases changed-answer strict and lenient judge accuracy on LongMemEval-S profile_preference; primary failure mode is over-abstention on advice/profile questions."
+}

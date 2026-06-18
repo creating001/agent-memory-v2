@@ -4063,6 +4063,67 @@ class CleanSkeletonTest(unittest.TestCase):
 
         self.assertNotIn("Personalized Advice Discipline:", context.prompt)
 
+    def test_profile_activation_guide_uses_visible_source_backlinks(self) -> None:
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text="I prefer hotels with water views and quiet rooftop lounges.",
+                timestamp="2024-01-01",
+            ),
+        )
+        compiler = EvidenceCompiler(
+            max_evidence_items=1,
+            max_evidence_chars=4000,
+            max_memory_records=2,
+            memory_order="question_overlap",
+            prompt_mode="external_naive",
+            profile_activation_guide=True,
+            profile_activation_guide_max_records=2,
+            evidence_report_contract=True,
+            evidence_report_information_needs=("profile_preference",),
+        )
+
+        context = compiler.compile(
+            question="Can you suggest a hotel style for my Miami trip?",
+            question_time=None,
+            route=RouteResult(information_need="profile_preference", signals=()),
+            hits=(RetrievalHit("s1:t0", 1.0, 1, "lexical_bm25"),),
+            evidence_turns=turns,
+            memory_records=(
+                MemoryRecord(
+                    memory_id="hotel-view",
+                    memory_type="preference",
+                    text="User prefers hotels with water views and quiet rooftops.",
+                    source_ids=("s1:t0",),
+                    subject="User",
+                    predicate="hotel preference",
+                    value="water views and quiet rooftop lounges",
+                    status="active",
+                ),
+                MemoryRecord(
+                    memory_id="invisible",
+                    memory_type="preference",
+                    text="User prefers unrelated desert resorts.",
+                    source_ids=("s2:t0",),
+                    subject="User",
+                    predicate="hotel preference",
+                    value="desert resorts",
+                    status="active",
+                ),
+            ),
+        )
+
+        self.assertIn("Profile Memory Activation Guide:", context.prompt)
+        self.assertIn("sources=Memory 1", context.prompt)
+        self.assertIn("water views", context.prompt)
+        self.assertNotIn("desert resorts", context.prompt)
+        self.assertIn("not independent evidence", context.prompt)
+        self.assertNotIn("sample id", context.prompt.lower())
+        self.assertNotIn("judge output", context.prompt.lower())
+
     def test_temporal_order_contract_is_route_override_gated(self) -> None:
         turns = (
             Turn(

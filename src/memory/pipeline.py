@@ -628,6 +628,21 @@ class Stage1Pipeline:
             memory_state_guide_include_superseded=bool(
                 compiler_config.get("memory_state_guide_include_superseded", True)
             ),
+            profile_activation_guide=bool(
+                compiler_config.get("profile_activation_guide", False)
+            ),
+            profile_activation_guide_information_needs=_tuple_config(
+                compiler_config.get(
+                    "profile_activation_guide_information_needs",
+                    ("profile_preference",),
+                )
+            ),
+            profile_activation_guide_max_records=int(
+                compiler_config.get("profile_activation_guide_max_records", 4)
+            ),
+            profile_activation_guide_value_chars=int(
+                compiler_config.get("profile_activation_guide_value_chars", 160)
+            ),
             operation_workpad=bool(compiler_config.get("operation_workpad", False)),
             operation_workpad_information_needs=_tuple_config(
                 compiler_config.get(
@@ -3471,6 +3486,21 @@ def _compiler_trace_config(
         "memory_state_guide_include_superseded": bool(
             compiler_config.get("memory_state_guide_include_superseded", True)
         ),
+        "profile_activation_guide": bool(
+            compiler_config.get("profile_activation_guide", False)
+        ),
+        "profile_activation_guide_information_needs": _tuple_config(
+            compiler_config.get(
+                "profile_activation_guide_information_needs",
+                ("profile_preference",),
+            )
+        ),
+        "profile_activation_guide_max_records": int(
+            compiler_config.get("profile_activation_guide_max_records", 4)
+        ),
+        "profile_activation_guide_value_chars": int(
+            compiler_config.get("profile_activation_guide_value_chars", 160)
+        ),
         "operation_workpad": bool(compiler_config.get("operation_workpad", False)),
         "operation_workpad_information_needs": _tuple_config(
             compiler_config.get(
@@ -3652,6 +3682,21 @@ def _configured_compiler(compiler_config: Mapping[str, Any]) -> EvidenceCompiler
         ),
         memory_state_guide_include_superseded=bool(
             compiler_config.get("memory_state_guide_include_superseded", True)
+        ),
+        profile_activation_guide=bool(
+            compiler_config.get("profile_activation_guide", False)
+        ),
+        profile_activation_guide_information_needs=_tuple_config(
+            compiler_config.get(
+                "profile_activation_guide_information_needs",
+                ("profile_preference",),
+            )
+        ),
+        profile_activation_guide_max_records=int(
+            compiler_config.get("profile_activation_guide_max_records", 4)
+        ),
+        profile_activation_guide_value_chars=int(
+            compiler_config.get("profile_activation_guide_value_chars", 160)
         ),
         operation_workpad=bool(compiler_config.get("operation_workpad", False)),
         operation_workpad_information_needs=_tuple_config(

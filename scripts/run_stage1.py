@@ -807,6 +807,18 @@ def main() -> int:
             "memory_state_guide_include_superseded": config.get(
                 "compiler", {}
             ).get("memory_state_guide_include_superseded", True),
+            "profile_activation_guide": config.get("compiler", {}).get(
+                "profile_activation_guide", False
+            ),
+            "profile_activation_guide_information_needs": config.get(
+                "compiler", {}
+            ).get("profile_activation_guide_information_needs"),
+            "profile_activation_guide_max_records": config.get("compiler", {}).get(
+                "profile_activation_guide_max_records", 4
+            ),
+            "profile_activation_guide_value_chars": config.get("compiler", {}).get(
+                "profile_activation_guide_value_chars", 160
+            ),
             "operation_workpad": config.get("compiler", {}).get(
                 "operation_workpad", False
             ),
@@ -1394,6 +1406,10 @@ def _write_summary(
         f"- memory_state_guide_max_records: {metrics['compiler']['memory_state_guide_max_records']}",
         f"- memory_state_guide_value_chars: {metrics['compiler']['memory_state_guide_value_chars']}",
         f"- memory_state_guide_include_superseded: {metrics['compiler']['memory_state_guide_include_superseded']}",
+        f"- profile_activation_guide: {metrics['compiler']['profile_activation_guide']}",
+        f"- profile_activation_guide_information_needs: {metrics['compiler']['profile_activation_guide_information_needs']}",
+        f"- profile_activation_guide_max_records: {metrics['compiler']['profile_activation_guide_max_records']}",
+        f"- profile_activation_guide_value_chars: {metrics['compiler']['profile_activation_guide_value_chars']}",
         f"- current_state_update_contract: {metrics['compiler']['current_state_update_contract']}",
         f"- dialogue_inference_contract: {metrics['compiler']['dialogue_inference_contract']}",
         f"- temporal_order_contract: {metrics['compiler']['temporal_order_contract']}",

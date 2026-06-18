@@ -100,6 +100,9 @@ ROUTE_OVERRIDE_KEYS = {
     "memory_state_guide_include_superseded",
     "memory_state_guide_max_records",
     "memory_state_guide_value_chars",
+    "profile_activation_guide",
+    "profile_activation_guide_max_records",
+    "profile_activation_guide_value_chars",
     "row_text_mode",
     "tail_max_row_text_chars",
     "tail_row_text_after_rank",
@@ -251,6 +254,12 @@ class EvidenceCompiler:
         memory_state_guide_max_records: int = 8,
         memory_state_guide_value_chars: int = 120,
         memory_state_guide_include_superseded: bool = True,
+        profile_activation_guide: bool = False,
+        profile_activation_guide_information_needs: tuple[str, ...] = (
+            "profile_preference",
+        ),
+        profile_activation_guide_max_records: int = 4,
+        profile_activation_guide_value_chars: int = 160,
         operation_workpad: bool = False,
         operation_workpad_information_needs: tuple[str, ...] = (
             DEFAULT_STRUCTURED_ANSWER_CONTRACT_NEEDS
@@ -374,6 +383,17 @@ class EvidenceCompiler:
         )
         self._memory_state_guide_include_superseded = bool(
             memory_state_guide_include_superseded
+        )
+        self._profile_activation_guide = bool(profile_activation_guide)
+        self._profile_activation_guide_information_needs = _validate_information_needs(
+            profile_activation_guide_information_needs,
+            field_name="profile_activation_guide_information_needs",
+        )
+        self._profile_activation_guide_max_records = max(
+            1, int(profile_activation_guide_max_records)
+        )
+        self._profile_activation_guide_value_chars = max(
+            60, int(profile_activation_guide_value_chars)
         )
         self._operation_workpad = operation_workpad
         self._operation_workpad_information_needs = _validate_information_needs(
@@ -622,6 +642,17 @@ class EvidenceCompiler:
             memory_state_guide_include_superseded=route_settings[
                 "memory_state_guide_include_superseded"
             ],
+            profile_activation_guide=(
+                route_settings["profile_activation_guide"]
+                and route.information_need
+                in self._profile_activation_guide_information_needs
+            ),
+            profile_activation_guide_max_records=route_settings[
+                "profile_activation_guide_max_records"
+            ],
+            profile_activation_guide_value_chars=route_settings[
+                "profile_activation_guide_value_chars"
+            ],
             evidence_report_max_items=self._evidence_report_max_items,
             evidence_report_detail=route_settings["evidence_report_detail"],
             operation_workpad=(
@@ -698,6 +729,13 @@ class EvidenceCompiler:
             "memory_state_guide_value_chars": self._memory_state_guide_value_chars,
             "memory_state_guide_include_superseded": (
                 self._memory_state_guide_include_superseded
+            ),
+            "profile_activation_guide": self._profile_activation_guide,
+            "profile_activation_guide_max_records": (
+                self._profile_activation_guide_max_records
+            ),
+            "profile_activation_guide_value_chars": (
+                self._profile_activation_guide_value_chars
             ),
             "evidence_row_labels": self._evidence_row_labels,
             "context_layout": self._context_layout,
@@ -885,6 +923,18 @@ def _validate_route_overrides(
         if "memory_state_guide_include_superseded" in raw_overrides:
             overrides["memory_state_guide_include_superseded"] = bool(
                 raw_overrides["memory_state_guide_include_superseded"]
+            )
+        if "profile_activation_guide" in raw_overrides:
+            overrides["profile_activation_guide"] = bool(
+                raw_overrides["profile_activation_guide"]
+            )
+        if "profile_activation_guide_max_records" in raw_overrides:
+            overrides["profile_activation_guide_max_records"] = max(
+                1, int(raw_overrides["profile_activation_guide_max_records"])
+            )
+        if "profile_activation_guide_value_chars" in raw_overrides:
+            overrides["profile_activation_guide_value_chars"] = max(
+                60, int(raw_overrides["profile_activation_guide_value_chars"])
             )
         if "evidence_row_labels" in raw_overrides:
             overrides["evidence_row_labels"] = bool(
@@ -2145,6 +2195,9 @@ def _build_prompt(
     memory_state_guide_max_records: int,
     memory_state_guide_value_chars: int,
     memory_state_guide_include_superseded: bool,
+    profile_activation_guide: bool,
+    profile_activation_guide_max_records: int,
+    profile_activation_guide_value_chars: int,
     evidence_report_max_items: int,
     evidence_report_detail: bool,
     operation_workpad: bool,
@@ -2230,6 +2283,9 @@ def _build_prompt(
             memory_state_guide_include_superseded=(
                 memory_state_guide_include_superseded
             ),
+            profile_activation_guide=profile_activation_guide,
+            profile_activation_guide_max_records=profile_activation_guide_max_records,
+            profile_activation_guide_value_chars=profile_activation_guide_value_chars,
             evidence_report_max_items=evidence_report_max_items,
             evidence_report_detail=evidence_report_detail,
             operation_workpad=operation_workpad,
@@ -2417,6 +2473,9 @@ def _build_external_naive_prompt(
     memory_state_guide_max_records: int,
     memory_state_guide_value_chars: int,
     memory_state_guide_include_superseded: bool,
+    profile_activation_guide: bool,
+    profile_activation_guide_max_records: int,
+    profile_activation_guide_value_chars: int,
     evidence_report_max_items: int,
     evidence_report_detail: bool,
     operation_workpad: bool,
@@ -2489,6 +2548,20 @@ def _build_external_naive_prompt(
             candidate_guide_block = "\n".join(
                 ["", "Candidate Evidence Map:", *candidate_lines, ""]
             )
+    profile_activation_guide_block = ""
+    if profile_activation_guide:
+        profile_activation_lines = _external_profile_activation_guide_lines(
+            question=question,
+            route=route,
+            rows=rows,
+            memory_records=memory_records,
+            max_records=profile_activation_guide_max_records,
+            max_value_chars=profile_activation_guide_value_chars,
+        )
+        if profile_activation_lines:
+            profile_activation_guide_block = "\n".join(
+                ["", "Profile Memory Activation Guide:", *profile_activation_lines, ""]
+            )
     memory_state_guide_block = ""
     if memory_state_guide:
         memory_state_lines = _external_memory_state_guide_lines(
@@ -2525,6 +2598,10 @@ def _build_external_naive_prompt(
     if candidate_guide_block:
         rules.append(
             "Use Candidate Evidence Map only as a compact index into Memory Context; it is not independent evidence."
+        )
+    if profile_activation_guide_block:
+        rules.append(
+            "Use Profile Memory Activation Guide only as a source-backed preference/profile index into cited Memory Context rows; it is not independent evidence."
         )
     if memory_state_guide_block:
         rules.append(
@@ -2694,6 +2771,7 @@ def _build_external_naive_prompt(
         for block in (
             structured_guide_block,
             candidate_guide_block,
+            profile_activation_guide_block,
             memory_state_guide_block,
             update_conflict_guide_block,
             operation_workpad_block,
@@ -3027,6 +3105,116 @@ def _external_memory_guide_lines(
             fields.append(f"value={_truncate_text(_single_line(record.value), 120)}")
         lines.append(f"  - {' | '.join(fields)}: {text}")
     return lines
+
+
+def _external_profile_activation_guide_lines(
+    *,
+    question: str,
+    route: RouteResult,
+    rows: tuple[EvidenceRow, ...],
+    memory_records: tuple[MemoryRecord, ...],
+    max_records: int,
+    max_value_chars: int,
+) -> list[str]:
+    """Preference/profile activation map grounded in visible raw rows."""
+
+    if (
+        route.information_need != "profile_preference"
+        or not rows
+        or not memory_records
+        or max_records <= 0
+    ):
+        return []
+
+    source_to_memory_index = {
+        row.source_id: index for index, row in enumerate(rows, start=1)
+    }
+    question_terms = _content_terms(question)
+    candidates: list[tuple[float, int, MemoryRecord, tuple[str, ...]]] = []
+    for ordinal, record in enumerate(memory_records):
+        source_labels = _memory_record_source_labels(record, source_to_memory_index)
+        if not source_labels:
+            continue
+        score = _profile_activation_record_score(
+            record,
+            question_terms=question_terms,
+        )
+        if score <= 0:
+            continue
+        candidates.append((score, -ordinal, record, source_labels))
+
+    if not candidates:
+        return []
+
+    candidates.sort(reverse=True)
+    selected = candidates[:max_records]
+    lines = [
+        "Use this source-backed profile view to activate durable preferences, constraints, prior choices, and successful examples relevant to advice/profile questions.",
+        "- Each record is linked to visible raw Memory Context rows; verify final claims against those rows.",
+        "- Do not turn a one-time event into a stable preference, but it can guide a compatible suggestion when the user asks for advice.",
+        "- records:",
+    ]
+    for _, _, record, source_labels in selected:
+        fields = [
+            f"type={record.memory_type}",
+            f"status={record.status or 'active'}",
+        ]
+        if record.subject:
+            fields.append(
+                f"subject={_truncate_text(_single_line(record.subject), 60)}"
+            )
+        if record.predicate:
+            fields.append(
+                f"predicate={_truncate_text(_single_line(record.predicate), 60)}"
+            )
+        value = record.value or record.text
+        if value:
+            fields.append(
+                f"value={_truncate_text(_single_line(value), max_value_chars)}"
+            )
+        time_value = (
+            record.event_time
+            or record.valid_from
+            or record.mention_time
+            or record.timestamp
+            or "unknown"
+        )
+        fields.append(f"time={_single_line(time_value)}")
+        fields.append(f"sources={', '.join(source_labels[:6])}")
+        lines.append(f"  - {' | '.join(fields)}")
+    return lines
+
+
+def _profile_activation_record_score(
+    record: MemoryRecord,
+    *,
+    question_terms: frozenset[str],
+) -> float:
+    memory_type = (record.memory_type or "").lower()
+    type_weights = {
+        "preference": 3.0,
+        "profile": 2.5,
+        "state": 1.8,
+        "fact": 1.2,
+        "event": 0.8,
+    }
+    type_score = type_weights.get(memory_type, 0.0)
+    if type_score <= 0:
+        return 0.0
+
+    basis_terms = _content_terms(_memory_record_hint_basis(record))
+    overlap = len(question_terms.intersection(basis_terms))
+    if overlap <= 0 and memory_type not in {"preference", "profile"}:
+        return 0.0
+
+    score = type_score + overlap * 2.0
+    if record.status == "active":
+        score += 0.4
+    elif record.status == "superseded":
+        score -= 0.5
+    if record.subject or record.predicate or record.value:
+        score += 0.4
+    return score
 
 
 def _external_memory_state_guide_lines(
