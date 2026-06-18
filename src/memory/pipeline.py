@@ -606,6 +606,9 @@ class Stage1Pipeline:
         self._compiler_context_pressure_max_headroom_chars = int(
             compiler_context_pressure_config.get("max_headroom_chars", 0)
         )
+        self._compiler_context_pressure_information_needs = _tuple_config(
+            compiler_context_pressure_config.get("information_needs")
+        )
         self._compiler_context_pressure_overrides = _dict_config(
             compiler_context_pressure_config.get("compiler") or {}
         )
@@ -1116,6 +1119,10 @@ class Stage1Pipeline:
             max_headroom_chars=(
                 self._compiler_context_pressure_max_headroom_chars
             ),
+            information_needs=(
+                self._compiler_context_pressure_information_needs
+            ),
+            route=route,
             overrides=self._compiler_context_pressure_overrides,
             context_budget_trace=context_budget_trace,
         )
@@ -2180,6 +2187,8 @@ def _compiler_context_pressure_trace(
     *,
     enabled: bool,
     max_headroom_chars: int,
+    information_needs: tuple[str, ...],
+    route: RouteResult,
     overrides: Mapping[str, Any],
     context_budget_trace: Mapping[str, Any],
 ) -> dict[str, Any]:
@@ -2189,6 +2198,7 @@ def _compiler_context_pressure_trace(
         "applied": False,
         "reason": "disabled" if not enabled else "not_under_pressure",
         "max_headroom_chars": threshold,
+        "information_needs": information_needs,
         "headroom_chars": None,
         "context_budget_estimated_chars": (
             context_budget_trace.get("estimated_chars")
@@ -2197,6 +2207,9 @@ def _compiler_context_pressure_trace(
         "compiler_overrides": dict(overrides),
     }
     if not enabled:
+        return trace
+    if information_needs and route.information_need not in information_needs:
+        trace["reason"] = "route_not_enabled"
         return trace
     if not context_budget_trace.get("applied"):
         trace["reason"] = "no_context_budget"

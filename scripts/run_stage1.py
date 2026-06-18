@@ -782,6 +782,9 @@ def main() -> int:
             "context_pressure_max_headroom_chars": config.get("compiler", {})
             .get("context_pressure", {})
             .get("max_headroom_chars"),
+            "context_pressure_information_needs": config.get("compiler", {})
+            .get("context_pressure", {})
+            .get("information_needs"),
             "context_pressure_overrides": config.get("compiler", {})
             .get("context_pressure", {})
             .get("compiler"),
@@ -1311,6 +1314,7 @@ def _write_summary(
         f"- personalized_advice_contract_applied: {metrics['compiler']['personalized_advice_contract_applied']}",
         f"- context_pressure_enabled: {metrics['compiler']['context_pressure_enabled']}",
         f"- context_pressure_max_headroom_chars: {metrics['compiler']['context_pressure_max_headroom_chars']}",
+        f"- context_pressure_information_needs: {metrics['compiler']['context_pressure_information_needs']}",
         f"- context_pressure_overrides: {metrics['compiler']['context_pressure_overrides']}",
         f"- context_pressure_applied_count: {metrics['compiler']['context_pressure_applied_count']}",
         f"- context_pressure_applied_rate: {metrics['compiler']['context_pressure_applied_rate']}",
