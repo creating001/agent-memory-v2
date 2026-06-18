@@ -26,7 +26,11 @@ from memory.finalize import (
     guard_source_grounded_answer,
     raw_response_content,
 )
-from memory.repair import build_repair_prompt, repair_trigger_reasons
+from memory.repair import (
+    _lifecycle_slot_trigger_reasons,
+    build_repair_prompt,
+    repair_trigger_reasons,
+)
 from memory.rerank import RerankResult, rerank_hits_filter_preserve_order
 from memory.retrieval import (
     MemoryHit,
@@ -2401,6 +2405,83 @@ class CleanSkeletonTest(unittest.TestCase):
         )
 
         self.assertNotIn("Current-State Lifecycle Ledger:", prompt)
+
+    def test_lifecycle_slot_trigger_is_state_slot_gated(self) -> None:
+        def context_for(question: str) -> CompiledContext:
+            return CompiledContext(
+                question=question,
+                question_time="2025-06-01",
+                route=RouteResult(information_need="current_state", signals=()),
+                evidence_rows=(
+                    EvidenceRow(
+                        source_id="s1:t1",
+                        session_id="s1",
+                        turn_index=1,
+                        role="user",
+                        text="Alex led 4 engineers when the role started.",
+                        timestamp="2024-01-01",
+                        retrieval_rank=1,
+                        retrieval_score=1.0,
+                    ),
+                    EvidenceRow(
+                        source_id="s2:t1",
+                        session_id="s2",
+                        turn_index=1,
+                        role="user",
+                        text="Alex now leads 5 engineers.",
+                        timestamp="2025-01-01",
+                        retrieval_rank=2,
+                        retrieval_score=0.9,
+                    ),
+                ),
+                prompt="original prompt",
+                context_chars=0,
+            )
+
+        draft = AnswerResult(
+            answer="5 engineers",
+            model="draft",
+            token_usage=TokenUsage(query_tokens=3),
+            raw_response=json.dumps(
+                {
+                    "content": json.dumps(
+                        {
+                            "sufficient": True,
+                            "answer_type": "fact",
+                            "evidence_report": [
+                                {"status": "support", "value": "4 engineers"},
+                                {"status": "support", "value": "5 engineers"},
+                            ],
+                            "answer": "5 engineers",
+                        }
+                    )
+                }
+            ),
+        )
+
+        self.assertEqual(
+            _lifecycle_slot_trigger_reasons(
+                compiled=context_for("How many engineers do I lead now?"),
+                draft=draft,
+            ),
+            ("current_state_lifecycle_review",),
+        )
+
+        blocked_questions = (
+            "Can you suggest accessories that complement my current setup?",
+            "What is the order of airlines I flew with from earliest to latest before today?",
+            "What percentage of the property's price is the renovation cost of my current house?",
+            "What did Mel and her kids paint in their latest project in July 2023?",
+        )
+        for question in blocked_questions:
+            with self.subTest(question=question):
+                self.assertEqual(
+                    _lifecycle_slot_trigger_reasons(
+                        compiled=context_for(question),
+                        draft=draft,
+                    ),
+                    (),
+                )
 
     def test_answer_repair_prompt_adds_modal_abstention_rules(self) -> None:
         context = CompiledContext(

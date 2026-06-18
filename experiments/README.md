@@ -52,6 +52,7 @@
 | 配置 | 原因 |
 |---|---|
 | `stage1_answer_slot_checklist_v149_qwen36_no_think_build4k_cached.json` | broad checklist 在 LME changed subset 明显负向：strict/lenient `13/21 -> 9/21`、`13/21 -> 10/21`；v150 已改成窄触发 verifier。 |
+| `stage1_current_state_lifecycle_slot_trigger_v155_qwen36_no_think_build4k_cached.json` | 触发门比 v154 更窄但额外 verifier 没有改变任何答案，LME/LoCoMo answer diff 均为 0，同时增加 query tokens；不升 LTS。 |
 | `stage1_current_state_update_contract_v153_qwen36_no_think_build4k_cached.json` | prompt-only current-state update discipline 在 LME changed subset 明显负向：strict/lenient `9/10 -> 5/10`，LoCoMo 持平；不升 LTS。 |
 | `stage1_list_count_rerank_filter_v152_qwen36_no_think_build4k_cached.json` | list/count tail rerank 降 query token 但 LME changed subset `10/15 -> 9/15` strict、LoCoMo `75/120 -> 69/120` strict，且新增大量 rerank token。 |
 | `stage1_scoped_version_chain_interleave_v148_qwen36_no_think_build4k_cached.json` | source-backed scoped row ordering scope clean，但 LME changed subset `5/10 -> 4/10` strict、`6/10 -> 4/10` lenient。 |
@@ -68,6 +69,7 @@
 
 | 路径 | 内容 |
 |---|---|
+| `diagnostic/stage1_current_state_lifecycle_slot_trigger_v155_scope_summary.md` | v155 lifecycle-slot trigger 诊断：answer diff 0 但 token 增加，不升 LTS |
 | `diagnostic/stage1_current_state_lifecycle_ledger_v154_scope_summary.md` | v154 LTS 晋升、changed-answer judge、坏 run 教训和 #5 风险结论 |
 | `diagnostic/stage1_current_state_lifecycle_ledger_v154_lme_s_full_r3/` | v154 LME full cached prediction run artifacts |
 | `diagnostic/stage1_current_state_lifecycle_ledger_v154_locomo_nonadv_full_r3/` | v154 LoCoMo full cached prediction run artifacts |

@@ -50,6 +50,34 @@ _CURRENT_STATE_LIFECYCLE_QUESTION = re.compile(
     r"before|after|since|how\s+long|duration|tenure|status|changed|compared)\b",
     re.IGNORECASE,
 )
+_LIFECYCLE_STATE_SLOT_QUESTION = re.compile(
+    r"\b(current|currently|now|still|previous|previously|status|goal|"
+    r"feel(?:s|ing)?|working|living|lead|have|record)\b",
+    re.IGNORECASE,
+)
+_LIFECYCLE_ADVICE_QUESTION = re.compile(
+    r"\b(suggest|recommend|recommendation|advice|what\s+do\s+you\s+think|"
+    r"trying\s+to\s+decide|should\s+i|should\s+we|complement)\b",
+    re.IGNORECASE,
+)
+_LIFECYCLE_ORDER_OR_COLLECTION_QUESTION = re.compile(
+    r"\b(order\s+of|from\s+earliest\s+to\s+latest|earliest\s+to\s+latest|"
+    r"which\b[^?]{0,120}\b(?:first|earlier|later)|"
+    r"what\s+(?:items|events|activities|places|people|books|songs|movies|"
+    r"artists|bands|projects|purchases|trips|visits))\b",
+    re.IGNORECASE,
+)
+_LIFECYCLE_CALCULATION_QUESTION = re.compile(
+    r"\b(percentage|percent|how\s+many\s+days|how\s+much\s+more|compared\s+to|"
+    r"total\s+cost|difference|average)\b|"
+    r"\bhow\s+long\b[^?]{0,120}\bbefore\b",
+    re.IGNORECASE,
+)
+_LIFECYCLE_LATEST_EVENT_QUESTION = re.compile(
+    r"\bwhat\s+did\b[^?]{0,160}\blatest\b[^?]{0,120}\b"
+    r"(project|trip|visit|event|purchase|order|class|workshop)\b",
+    re.IGNORECASE,
+)
 _TOKEN_PATTERN = re.compile(r"[\w]+", re.UNICODE)
 _NUMERIC_DATE = re.compile(r"\b(\d{4})[/-](\d{1,2})[/-](\d{1,2})\b")
 _TEXT_DATE = re.compile(
@@ -439,16 +467,36 @@ def _lifecycle_slot_trigger_reasons(
 ) -> tuple[str, ...]:
     if compiled.route.information_need != "current_state":
         return ()
-    if not _CURRENT_STATE_LIFECYCLE_QUESTION.search(compiled.question or ""):
+    if not _lifecycle_slot_question_applies(compiled.question):
         return ()
     payload = _draft_payload(draft.raw_response)
     if _has_uncertain_signal(draft.answer, payload):
+        return ()
+    answer_type = str(payload.get("answer_type") or "").strip().lower()
+    if answer_type in {"list"}:
         return ()
     if len(_support_values(payload)) <= 1:
         return ()
     if len(_current_state_lifecycle_rows(compiled, max_rows=10)) < 2:
         return ()
     return ("current_state_lifecycle_review",)
+
+
+def _lifecycle_slot_question_applies(question: str) -> bool:
+    text = question or ""
+    if not _CURRENT_STATE_LIFECYCLE_QUESTION.search(text):
+        return False
+    if not _LIFECYCLE_STATE_SLOT_QUESTION.search(text):
+        return False
+    if _LIFECYCLE_ADVICE_QUESTION.search(text):
+        return False
+    if _LIFECYCLE_ORDER_OR_COLLECTION_QUESTION.search(text):
+        return False
+    if _LIFECYCLE_CALCULATION_QUESTION.search(text):
+        return False
+    if _LIFECYCLE_LATEST_EVENT_QUESTION.search(text):
+        return False
+    return True
 
 
 def _current_state_lifecycle_ledger(
