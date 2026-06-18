@@ -1,0 +1,322 @@
+{
+  "answer": {
+    "base_url": "http://127.0.0.1:8000/v1",
+    "cache": {
+      "enabled": true,
+      "namespace": "stage1_narrow_question_gated_selected_context_v158_qwen36_no_think_build4k",
+      "path": "outputs/cache/qwen36_no_think_build4k_answer_v158_narrow_question_gated_selected_context.sqlite"
+    },
+    "chat_template_kwargs": {
+      "enable_thinking": false
+    },
+    "finalizer": {
+      "enable_missing_detail": false,
+      "enable_numeric_slot_label_preservation": true,
+      "enable_profile_preference_value_preservation": true,
+      "enable_source_value_specificity_preservation": true,
+      "enabled": true,
+      "mode": "source_grounded_consistency_guard"
+    },
+    "max_input_tokens": 131072,
+    "max_output_tokens": 16384,
+    "max_tokens": 16384,
+    "mode": "openai_compatible",
+    "model": "Qwen/Qwen3.6-35B-A3B",
+    "output_format": "json_answer",
+    "repair": {
+      "base_url": "http://127.0.0.1:8000/v1",
+      "cache": {
+        "enabled": true,
+        "namespace": "stage1_scoped_modal_profile_advice_repair_v168_qwen36_no_think_build4k_repair",
+        "path": "outputs/cache/qwen36_no_think_build4k_answer_repair_v176_cross_route_profile_advice.sqlite"
+      },
+      "chat_template_kwargs": {
+        "enable_thinking": false
+      },
+      "cross_route_profile_advice_abstention_information_needs": [
+        "fact_lookup",
+        "list_count"
+      ],
+      "enable_cross_route_profile_advice_abstention_trigger": true,
+      "enable_lifecycle_ledger": true,
+      "enable_lifecycle_slot_trigger": false,
+      "enable_modal_abstention_trigger": true,
+      "enable_profile_advice_abstention_trigger": true,
+      "enable_profile_preference_trigger": false,
+      "enable_short_list_trigger": false,
+      "enable_source_grounded_modal_inference_trigger": true,
+      "enable_source_grounded_temporal_calculation_trigger": true,
+      "enable_temporal_conflict_trigger": false,
+      "enable_uncertain_trigger": true,
+      "enabled": true,
+      "information_needs": [
+        "current_state",
+        "fact_lookup",
+        "profile_preference",
+        "temporal_lookup",
+        "list_count"
+      ],
+      "max_context_chars": 14000,
+      "max_input_tokens": 131072,
+      "max_output_tokens": 16384,
+      "max_row_text_chars": 700,
+      "max_tokens": 16384,
+      "modal_abstention_information_needs": [
+        "current_state"
+      ],
+      "mode": "openai_compatible",
+      "model": "Qwen/Qwen3.6-35B-A3B",
+      "output_format": "json_answer",
+      "source_grounded_modal_inference_information_needs": [
+        "fact_lookup",
+        "profile_preference"
+      ],
+      "source_grounded_modal_min_support_items": 2,
+      "source_grounded_temporal_calculation_information_needs": [
+        "current_state",
+        "fact_lookup",
+        "temporal_lookup"
+      ],
+      "source_grounded_temporal_calculation_min_support_items": 1,
+      "temperature": 0,
+      "timeout": 600,
+      "uncertain_min_support_items": 0,
+      "uncertain_trigger_information_needs": [
+        "current_state"
+      ]
+    },
+    "temperature": 0,
+    "timeout": 600
+  },
+  "build_memory": {
+    "base_url": "http://127.0.0.1:8000/v1",
+    "cache": {
+      "enabled": true,
+      "namespace": "stage1_spacing_profile_v102_qwen36_no_think_build4k_cold",
+      "path": "outputs/cache/qwen36_no_think_build4k_memory_v102.sqlite"
+    },
+    "chat_template_kwargs": {
+      "enable_thinking": false
+    },
+    "drop_query_stopwords": true,
+    "enabled": true,
+    "include_superseded": false,
+    "include_superseded_information_needs": [
+      "temporal_lookup",
+      "list_count",
+      "profile_preference",
+      "current_state"
+    ],
+    "max_chars_per_turn": 500,
+    "max_records_per_chunk": 20,
+    "max_sources_per_record": 4,
+    "max_tokens": 4096,
+    "max_turns_per_chunk": 80,
+    "mode": "openai_compatible",
+    "model": "Qwen/Qwen3.6-35B-A3B",
+    "temperature": 0,
+    "timeout": 900,
+    "top_k": 20
+  },
+  "compiler": {
+    "answer_style": "concise",
+    "evidence_order": "retrieval",
+    "evidence_report_contract": true,
+    "evidence_report_information_needs": [
+      "current_state",
+      "fact_lookup",
+      "list_count",
+      "profile_preference",
+      "temporal_lookup"
+    ],
+    "evidence_report_max_items": 8,
+    "evidence_row_labels": false,
+    "final_answer_checklist": false,
+    "max_evidence_chars": 18000,
+    "max_evidence_items": 60,
+    "max_memory_records": 0,
+    "memory_layout": "flat",
+    "memory_order": "retrieval",
+    "operation_workpad": false,
+    "prompt_mode": "external_naive",
+    "route_guidance": false,
+    "route_overrides": {
+      "current_state": {
+        "evidence_order": "memory_source_interleave",
+        "grounded_inference_contract": true,
+        "grounded_inference_gate": "modal_only",
+        "source_anchor_keep": 32,
+        "source_anchor_memory_rows": 4,
+        "source_anchor_per_session": 1,
+        "source_anchor_session_rows": 0
+      },
+      "fact_lookup": {
+        "grounded_inference_contract": true,
+        "grounded_inference_gate": "modal_only"
+      },
+      "profile_preference": {
+        "evidence_order": "memory_source_interleave",
+        "grounded_inference_contract": true,
+        "grounded_inference_gate": "modal_only",
+        "source_anchor_keep": 32,
+        "source_anchor_memory_rows": 4,
+        "source_anchor_per_session": 1,
+        "source_anchor_session_rows": 0
+      },
+      "temporal_lookup": {
+        "max_evidence_chars": 18000,
+        "max_evidence_items": 40
+      }
+    },
+    "row_text_mode": "full",
+    "structured_answer_contract": false,
+    "structured_guide": true,
+    "structured_guide_disabled_signals": [
+      "personalized_recommendation"
+    ],
+    "structured_guide_include_memory": false,
+    "structured_guide_include_rows": true,
+    "structured_guide_max_rows": 12,
+    "temporal_event_contract": true,
+    "temporal_grounding": false,
+    "temporal_hints": false,
+    "temporal_text_normalization": true,
+    "temporal_workpad": true,
+    "temporal_workpad_max_pairs": 12,
+    "temporal_workpad_max_rows": 12,
+    "temporal_workpad_scope": "route"
+  },
+  "description": "V176 inherits v175's temporal operand arithmetic repair and adds a narrow cross-route profile/advice abstention repair trigger. It catches advice, recommendation, suggestion, or decision-support questions that were routed as fact_lookup/list_count, where the draft refused and prediction-time evidence_report contains at least one source-backed personalized anchor. The verifier reuses the no-new-names profile advice rules: it may answer with source-backed criteria, option types, or constraints, but must not invent specific external names. No labels, judge output, benchmark tags, sample ids, test feedback, or sample-level rules are used.",
+  "name": "stage1_cross_route_profile_advice_repair_v176_qwen36_no_think_build4k_cached",
+  "retrieval": {
+    "dense": {
+      "base_url": "http://127.0.0.1:8001/v1",
+      "batch_size": 32,
+      "cache": {
+        "enabled": true,
+        "namespace": "Qwen/Qwen3-Embedding-0.6B",
+        "path": "outputs/cache/qwen3_embedding.sqlite"
+      },
+      "document_text_mode": "external_naive",
+      "enabled": true,
+      "lexical_protect_top_n": 0,
+      "model": "Qwen/Qwen3-Embedding-0.6B",
+      "protect_top_n": 48,
+      "query_text_mode": "external_naive",
+      "rrf_k": 60,
+      "timeout": 120,
+      "top_k": 60
+    },
+    "drop_query_stopwords": true,
+    "granularity_profiles": [
+      {
+        "compiler": {
+          "memory_context_newlines_after_blocks": 4
+        },
+        "max_avg_turn_chars": 299.999,
+        "name": "short_turn_v96_spacing"
+      },
+      {
+        "answer_finalizer": {
+          "enable_missing_detail": true,
+          "enabled": true,
+          "mode": "source_grounded_consistency_guard"
+        },
+        "compiler": {
+          "max_evidence_chars": 18000,
+          "max_evidence_items": 40,
+          "operation_workpad": true,
+          "operation_workpad_information_needs": [
+            "list_count",
+            "temporal_lookup"
+          ],
+          "personalized_advice_contract": true,
+          "temporal_event_contract": false,
+          "update_conflict_guide": true,
+          "update_conflict_guide_information_needs": [
+            "current_state",
+            "fact_lookup"
+          ],
+          "update_conflict_guide_max_rows": 6,
+          "update_conflict_guide_snippet_chars": 180
+        },
+        "min_avg_turn_chars": 300,
+        "name": "long_turn_precision",
+        "retrieval": {
+          "dense_protect_top_n": 32,
+          "dense_top_k": 40,
+          "lexical_protect_top_n": 0,
+          "max_top_k": 40,
+          "top_k": 40
+        },
+        "route": {
+          "enable_broad_list_patterns": false
+        },
+        "selected_context": {
+          "enabled": true,
+          "information_needs": [
+            "profile_preference",
+            "current_state"
+          ],
+          "max_center_chars": 260,
+          "max_neighbor_chars": 140,
+          "max_rows": 4,
+          "require_anaphora": true,
+          "require_question_reference": true,
+          "window_after": 1,
+          "window_before": 1
+        }
+      }
+    ],
+    "lexical": {
+      "enabled": true
+    },
+    "max_top_k": 60,
+    "neighbor_order": "hit_priority",
+    "neighbor_window": 0,
+    "route_overrides": {
+      "temporal_lookup": {
+        "dense_protect_top_n": 32,
+        "dense_top_k": 40,
+        "lexical_protect_top_n": 0,
+        "max_top_k": 40,
+        "top_k": 40
+      }
+    },
+    "score_threshold": 0,
+    "selected_context": {
+      "enabled": true,
+      "information_needs": [
+        "fact_lookup",
+        "list_count",
+        "profile_preference"
+      ],
+      "max_center_chars": 320,
+      "max_neighbor_chars": 180,
+      "max_rows": 6,
+      "require_anaphora": true,
+      "route_overrides": {
+        "temporal_lookup": {
+          "enabled": true,
+          "information_needs": [
+            "temporal_lookup"
+          ],
+          "max_center_chars": 260,
+          "max_neighbor_chars": 140,
+          "max_rows": 4,
+          "require_anaphora": true,
+          "window_after": 1,
+          "window_before": 1
+        }
+      },
+      "window_after": 2,
+      "window_before": 1
+    },
+    "top_k": 60
+  },
+  "route": {
+    "enable_broad_list_patterns": true,
+    "enable_recommendation_profile_patterns": true,
+    "temporal_priority_over_recent": false
+  }
+}

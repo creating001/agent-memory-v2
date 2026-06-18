@@ -2325,6 +2325,80 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertNotIn("profile_advice_abstention_review", fact_route_reasons)
         self.assertNotIn("profile_advice_abstention_review", non_advice_reasons)
 
+    def test_answer_repair_cross_route_profile_advice_trigger_is_narrow(self) -> None:
+        raw_supported = json.dumps(
+            {
+                "content": json.dumps(
+                    {
+                        "evidence_report": [
+                            {
+                                "status": "support",
+                                "slot": "bedroom style preference",
+                                "value": "mid-century modern bedroom dresser",
+                                "reason": "The user is looking for bedroom furniture inspiration in this style.",
+                            }
+                        ]
+                    }
+                )
+            }
+        )
+        fact_advice_reasons = repair_trigger_reasons(
+            question="I was thinking about rearranging my bedroom. Any tips?",
+            route_information_need="fact_lookup",
+            draft_answer="There is not enough information.",
+            raw_response=raw_supported,
+            enable_uncertain_trigger=False,
+            enable_short_list_trigger=False,
+            enable_temporal_conflict_trigger=False,
+            enable_cross_route_profile_advice_abstention_trigger=True,
+        )
+        list_advice_reasons = repair_trigger_reasons(
+            question="I've got guests coming over, any cocktail suggestions?",
+            route_information_need="list_count",
+            draft_answer="There is not enough information.",
+            raw_response=raw_supported,
+            enable_uncertain_trigger=False,
+            enable_short_list_trigger=False,
+            enable_temporal_conflict_trigger=False,
+            enable_cross_route_profile_advice_abstention_trigger=True,
+        )
+        unsupported_reasons = repair_trigger_reasons(
+            question="I was thinking about rearranging my bedroom. Any tips?",
+            route_information_need="fact_lookup",
+            draft_answer="There is not enough information.",
+            raw_response=json.dumps({"content": json.dumps({"evidence_report": []})}),
+            enable_uncertain_trigger=False,
+            enable_short_list_trigger=False,
+            enable_temporal_conflict_trigger=False,
+            enable_cross_route_profile_advice_abstention_trigger=True,
+        )
+        external_name_reasons = repair_trigger_reasons(
+            question="What is a Star Wars book that Tim might enjoy?",
+            route_information_need="fact_lookup",
+            draft_answer="There is not enough information.",
+            raw_response=raw_supported,
+            enable_uncertain_trigger=False,
+            enable_short_list_trigger=False,
+            enable_temporal_conflict_trigger=False,
+            enable_cross_route_profile_advice_abstention_trigger=True,
+        )
+        disabled_reasons = repair_trigger_reasons(
+            question="I was thinking about rearranging my bedroom. Any tips?",
+            route_information_need="fact_lookup",
+            draft_answer="There is not enough information.",
+            raw_response=raw_supported,
+            enable_uncertain_trigger=False,
+            enable_short_list_trigger=False,
+            enable_temporal_conflict_trigger=False,
+            enable_cross_route_profile_advice_abstention_trigger=False,
+        )
+
+        self.assertIn("profile_advice_abstention_review", fact_advice_reasons)
+        self.assertIn("profile_advice_abstention_review", list_advice_reasons)
+        self.assertNotIn("profile_advice_abstention_review", unsupported_reasons)
+        self.assertNotIn("profile_advice_abstention_review", external_name_reasons)
+        self.assertNotIn("profile_advice_abstention_review", disabled_reasons)
+
     def test_answer_repair_modal_abstention_trigger_is_opt_in(self) -> None:
         disabled_reasons = repair_trigger_reasons(
             question="Would Alex enjoy the book club?",
@@ -2763,6 +2837,49 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertIn("Do not write parenthetical examples", prompt)
         self.assertIn("generic subfields", prompt)
         self.assertNotIn("same-domain anchors", generic_prompt)
+
+    def test_answer_repair_prompt_adds_cross_route_profile_advice_rules(
+        self,
+    ) -> None:
+        context = CompiledContext(
+            question="I was thinking about rearranging my bedroom. Any tips?",
+            question_time="2026-01-01",
+            route=RouteResult(information_need="fact_lookup", signals=()),
+            evidence_rows=(
+                EvidenceRow(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="Alex wants a mid-century modern dresser for the bedroom.",
+                    timestamp="2025-12-31",
+                    retrieval_rank=1,
+                    retrieval_score=1.0,
+                ),
+            ),
+            prompt="original prompt",
+            context_chars=0,
+        )
+        draft = AnswerResult(
+            answer="There is not enough information.",
+            model="draft",
+            token_usage=TokenUsage(query_tokens=3),
+            raw_response=json.dumps({"content": '{"answer":"unknown"}'}),
+        )
+
+        prompt, _ = build_repair_prompt(
+            compiled=context,
+            draft=draft,
+            reasons=("profile_advice_abstention_review",),
+            max_context_chars=1000,
+            max_row_text_chars=200,
+        )
+
+        self.assertIn("extract user-specific anchors", prompt)
+        self.assertIn("same-domain anchors", prompt)
+        self.assertIn("no-new-names rule", prompt)
+        self.assertIn("generic subfields", prompt)
+        self.assertIn("Alex wants a mid-century modern dresser", prompt)
 
     def test_answer_repair_prompt_adds_current_state_duration_rules(self) -> None:
         context = CompiledContext(

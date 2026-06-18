@@ -916,6 +916,21 @@ class Stage1Pipeline:
                 "enable_profile_advice_abstention_trigger", False
             )
         )
+        self._answer_repair_enable_cross_route_profile_advice_abstention_trigger = (
+            bool(
+                answer_repair_config.get(
+                    "enable_cross_route_profile_advice_abstention_trigger",
+                    False,
+                )
+            )
+        )
+        self._answer_repair_cross_route_profile_advice_abstention_information_needs = (
+            _tuple_config(
+                answer_repair_config.get(
+                    "cross_route_profile_advice_abstention_information_needs"
+                )
+            )
+        )
         self._answer_repair_enable_modal_abstention_trigger = bool(
             answer_repair_config.get("enable_modal_abstention_trigger", False)
         )
@@ -991,6 +1006,12 @@ class Stage1Pipeline:
             ),
             "enable_profile_advice_abstention_trigger": (
                 self._answer_repair_enable_profile_advice_abstention_trigger
+            ),
+            "enable_cross_route_profile_advice_abstention_trigger": (
+                self._answer_repair_enable_cross_route_profile_advice_abstention_trigger
+            ),
+            "cross_route_profile_advice_abstention_information_needs": (
+                self._answer_repair_cross_route_profile_advice_abstention_information_needs
             ),
             "enable_modal_abstention_trigger": (
                 self._answer_repair_enable_modal_abstention_trigger
@@ -1440,6 +1461,14 @@ class Stage1Pipeline:
             ),
             enable_profile_advice_abstention_trigger=(
                 self._answer_repair_enable_profile_advice_abstention_trigger
+            ),
+            enable_cross_route_profile_advice_abstention_trigger=(
+                self._answer_repair_enable_cross_route_profile_advice_abstention_trigger
+                and (
+                    not self._answer_repair_cross_route_profile_advice_abstention_information_needs
+                    or route.information_need
+                    in self._answer_repair_cross_route_profile_advice_abstention_information_needs
+                )
             ),
             enable_modal_abstention_trigger=(
                 self._answer_repair_enable_modal_abstention_trigger

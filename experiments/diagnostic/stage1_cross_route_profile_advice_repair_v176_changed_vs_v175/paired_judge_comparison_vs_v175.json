@@ -1,0 +1,39 @@
+{
+  "parent": "v175",
+  "candidate": "v176",
+  "clean_note": "Offline judge reads labels only after prediction; no judge/gold/sample-id signal is used in prediction logic.",
+  "benchmarks": {
+    "longmemeval_s_full": {
+      "answer_diff": "2/500",
+      "changed_strict_lenient": {
+        "v175": "0/2 strict, 0/2 lenient",
+        "v176": "1/2 strict, 2/2 lenient"
+      },
+      "patched_full": {
+        "strict_correct": 417,
+        "lenient_correct": 423,
+        "n": 500,
+        "strict_accuracy": 0.834,
+        "lenient_accuracy": 0.846
+      },
+      "changed_keys": [
+        "39f2adfa686f1fa663896c83",
+        "676f08cb0b1213adf24077d5"
+      ]
+    },
+    "locomo_non_adversarial_full": {
+      "answer_diff": "0/1540",
+      "patched_full": {
+        "strict_correct": 1221,
+        "lenient_correct": 1260,
+        "n": 1540,
+        "strict_accuracy": 0.7928571428571428,
+        "lenient_accuracy": 0.8181818181818182
+      }
+    }
+  },
+  "paths": {
+    "lme_v175_dual": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_cross_route_profile_advice_repair_v176_changed_vs_v175/lme_v175_dual_judge.json",
+    "lme_v176_dual": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_cross_route_profile_advice_repair_v176_changed_vs_v175/lme_v176_dual_judge.json"
+  }
+}

@@ -125,9 +125,15 @@ _LIFECYCLE_ADVICE_QUESTION = re.compile(
     re.IGNORECASE,
 )
 _PROFILE_ADVICE_ABSTENTION_QUESTION = re.compile(
-    r"\b(recommend|recommendation|suggest|suggestion|advice|ideas?|options?|"
-    r"resources?|activities|where\s+can\s+i|what\s+can\s+i|what\s+should|"
+    r"\b(recommend|recommendation|suggest|suggestions?|advice|ideas?|options?|"
+    r"resources?|activities|tips?|where\s+can\s+i|what\s+can\s+i|what\s+should|"
     r"should\s+i|should\s+we|help\s+me\s+(?:choose|pick|decide))\b",
+    re.IGNORECASE,
+)
+_CROSS_ROUTE_PROFILE_ADVICE_BLOCKED_QUESTION = re.compile(
+    r"\b(?:which|what)\b[^?]{0,120}\b(?:company|state|states|composer|"
+    r"shop|store|book|movie|show|restaurant|venue|product|brand)\b|"
+    r"\b(?:specific|exact|name of|called)\b",
     re.IGNORECASE,
 )
 _LIFECYCLE_ORDER_OR_COLLECTION_QUESTION = re.compile(
@@ -277,6 +283,7 @@ def maybe_repair_answer(
     enable_temporal_conflict_trigger: bool,
     enable_profile_preference_trigger: bool,
     enable_profile_advice_abstention_trigger: bool,
+    enable_cross_route_profile_advice_abstention_trigger: bool,
     enable_modal_abstention_trigger: bool,
     enable_source_grounded_modal_inference_trigger: bool,
     enable_source_grounded_temporal_calculation_trigger: bool,
@@ -308,6 +315,9 @@ def maybe_repair_answer(
         enable_profile_preference_trigger=enable_profile_preference_trigger,
         enable_profile_advice_abstention_trigger=(
             enable_profile_advice_abstention_trigger
+        ),
+        enable_cross_route_profile_advice_abstention_trigger=(
+            enable_cross_route_profile_advice_abstention_trigger
         ),
         enable_modal_abstention_trigger=enable_modal_abstention_trigger,
         enable_source_grounded_modal_inference_trigger=(
@@ -396,6 +406,7 @@ def repair_trigger_reasons(
     enable_temporal_conflict_trigger: bool,
     enable_profile_preference_trigger: bool = False,
     enable_profile_advice_abstention_trigger: bool = False,
+    enable_cross_route_profile_advice_abstention_trigger: bool = False,
     enable_modal_abstention_trigger: bool = False,
     enable_source_grounded_modal_inference_trigger: bool = False,
     enable_source_grounded_temporal_calculation_trigger: bool = False,
@@ -419,6 +430,16 @@ def repair_trigger_reasons(
         and route_information_need == "profile_preference"
         and surface_refusal_signal
         and _PROFILE_ADVICE_ABSTENTION_QUESTION.search(question or "")
+    ):
+        reasons.append("profile_advice_abstention_review")
+
+    if (
+        enable_cross_route_profile_advice_abstention_trigger
+        and route_information_need in {"fact_lookup", "list_count"}
+        and surface_refusal_signal
+        and _PROFILE_ADVICE_ABSTENTION_QUESTION.search(question or "")
+        and not _CROSS_ROUTE_PROFILE_ADVICE_BLOCKED_QUESTION.search(question or "")
+        and _support_item_count(payload) >= 1
     ):
         reasons.append("profile_advice_abstention_review")
 
@@ -571,7 +592,10 @@ def _profile_preference_repair_rules(
     *,
     reasons: tuple[str, ...],
 ) -> list[str]:
-    if compiled.route.information_need != "profile_preference":
+    if (
+        compiled.route.information_need != "profile_preference"
+        and "profile_advice_abstention_review" not in reasons
+    ):
         return []
     lines = [
         "8. For preference, advice, or recommendation questions, extract user-specific anchors from Memory Context: preferences, dislikes, constraints, owned tools/resources, current setup, prior successful experiences, current problems, and stated goals.",

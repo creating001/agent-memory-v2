@@ -6,13 +6,14 @@
 
 | 用途 | 配置 | 状态 |
 |---|---|---|
-| 后续新实验默认配置 | `stage1_temporal_operand_arithmetic_repair_v175_qwen36_no_think_build4k_cached.json` | 当前本地 v175 LTS。继承 v173，并新增窄 source-grounded temporal/age/duration operand arithmetic repair；LongMemEval-S paired-delta derived strict/lenient `0.832000 / 0.842000`，LoCoMo `0.792857 / 0.818182`。 |
+| 后续新实验默认配置 | `stage1_cross_route_profile_advice_repair_v176_qwen36_no_think_build4k_cached.json` | 当前本地 v176 LTS。继承 v175，并新增窄 cross-route profile/advice repair；LongMemEval-S paired-delta derived strict/lenient `0.834000 / 0.846000`，LoCoMo `0.792857 / 0.818182`。 |
 
 ## 保留对照
 
 | 配置 | 作用 |
 |---|---|
-| `stage1_temporal_operand_arithmetic_repair_v175_qwen36_no_think_build4k_cached.json` | 当前 LTS；source-grounded repair 只在窄 temporal/age/duration 拒答且操作数齐全时允许 verifier 做简单算术，LME `0.832000 / 0.842000`，LoCoMo `0.792857 / 0.818182`。 |
+| `stage1_cross_route_profile_advice_repair_v176_qwen36_no_think_build4k_cached.json` | 当前 LTS；错路由 advice/fact/list 拒答可进入 no-new-names profile advice verifier，LME `0.834000 / 0.846000`，LoCoMo `0.792857 / 0.818182`。 |
+| `stage1_temporal_operand_arithmetic_repair_v175_qwen36_no_think_build4k_cached.json` | v176 父 LTS；source-grounded repair 只在窄 temporal/age/duration 拒答且操作数齐全时允许 verifier 做简单算术，LME `0.832000 / 0.842000`，LoCoMo `0.792857 / 0.818182`。 |
 | `stage1_source_grounded_modal_inference_repair_v173_qwen36_no_think_build4k_cached.json` | v175 父 LTS；source-grounded repair 只在 modal yes/no 拒答且 support anchors 足够时调用 verifier，LME `0.830000 / 0.840000`，LoCoMo `0.792208 / 0.817532`。 |
 | `stage1_source_grounded_temporal_calculation_repair_v174_qwen36_no_think_build4k_cached.json` | v174 no-op 诊断；temporal/age/duration source-grounded repair gate clean 但 full answer diff 为 0，保留为 #4/#5 verifier 提示词教训。 |
 | `stage1_profile_preference_value_guard_v172_qwen36_no_think_build4k_cached.json` | v173 父 LTS；source-grounded finalizer 在拒答且唯一非含糊 preference support value 时保真 profile preference 值，LME `0.830000 / 0.840000`，LoCoMo `0.790909 / 0.816234`。 |
@@ -40,8 +41,8 @@
 
 | Benchmark | 配置 | 结果 | 用途 |
 |---|---|---:|---|
-| LongMemEval-S full | `stage1_temporal_operand_arithmetic_repair_v175_qwen36_no_think_build4k_cached.json` | strict `0.832000` / lenient `0.842000` | 当前 LTS；v175 vs v173 changed-answer paired judge `0/1 -> 1/1`。 |
-| LoCoMo non-adversarial full | `stage1_temporal_operand_arithmetic_repair_v175_qwen36_no_think_build4k_cached.json` | strict `0.792857` / lenient `0.818182` | 当前 LTS；v175 vs v173 changed-answer paired judge `0/1 -> 1/1`。 |
+| LongMemEval-S full | `stage1_cross_route_profile_advice_repair_v176_qwen36_no_think_build4k_cached.json` | strict `0.834000` / lenient `0.846000` | 当前 LTS；v176 vs v175 changed-answer paired judge strict `0/2 -> 1/2`、lenient `0/2 -> 2/2`。 |
+| LoCoMo non-adversarial full | `stage1_cross_route_profile_advice_repair_v176_qwen36_no_think_build4k_cached.json` | strict `0.792857` / lenient `0.818182` | 当前 LTS；v176 vs v175 answer diff `0/1540`。 |
 
 ## 关键 Baseline
 
@@ -61,7 +62,7 @@
 
 - 当前主线是 `Qwen/Qwen3.6-35B-A3B` no-thinking；只有显式带 `qwen36_no_think_build4k` 的配置才参与当前 LTS 对比。
 - 新方法必须另起版本；若 answer prompt 或 repair/verifier prompt 改变，必须另起对应 cache path/namespace。若只改 source-grounded finalizer/postprocess 且 answer raw response 不变，可显式复用父 answer cache，并在记录中说明。
-- v175 复用 v102 build-memory cache、v158 base answer cache，并用 v174 repair cache 预种 v175 repair cache；新增 temporal operand arithmetic prompt 只让 temporal repair miss/write，避免旧 repair 重跑造成不可比表面漂移。
+- v176 复用 v102 build-memory cache、v158 base answer cache，并用 v175 repair cache 预种 v176 repair cache；新增 cross-route profile advice trigger 只让新增 advice repair miss/write，避免旧 repair 重跑造成不可比表面漂移。
 - cache 命中只能减少重复 API 调用，不能改变逻辑 token 统计。正式记录仍报告逻辑 cold-build/query token。
 - 不得使用 gold answer、judge output、benchmark 标签、sample id、test feedback 或样本级规则构造配置、cache、prediction、retrieval、compiler、answer 或 repair。
 
