@@ -517,6 +517,19 @@ class Stage1Pipeline:
             temporal_workpad_max_pairs=int(
                 compiler_config.get("temporal_workpad_max_pairs", 12)
             ),
+            event_timeline=bool(compiler_config.get("event_timeline", False)),
+            event_timeline_information_needs=_tuple_config(
+                compiler_config.get(
+                    "event_timeline_information_needs",
+                    ("current_state", "list_count", "temporal_lookup"),
+                )
+            ),
+            event_timeline_max_rows=int(
+                compiler_config.get("event_timeline_max_rows", 12)
+            ),
+            event_timeline_snippet_chars=int(
+                compiler_config.get("event_timeline_snippet_chars", 180)
+            ),
             structured_guide=bool(compiler_config.get("structured_guide", False)),
             structured_guide_max_rows=int(
                 compiler_config.get("structured_guide_max_rows", 12)
@@ -3635,6 +3648,19 @@ def _compiler_trace_config(
         "temporal_workpad_max_pairs": int(
             compiler_config.get("temporal_workpad_max_pairs", 12)
         ),
+        "event_timeline": bool(compiler_config.get("event_timeline", False)),
+        "event_timeline_information_needs": _tuple_config(
+            compiler_config.get(
+                "event_timeline_information_needs",
+                ("current_state", "list_count", "temporal_lookup"),
+            )
+        ),
+        "event_timeline_max_rows": int(
+            compiler_config.get("event_timeline_max_rows", 12)
+        ),
+        "event_timeline_snippet_chars": int(
+            compiler_config.get("event_timeline_snippet_chars", 180)
+        ),
         "structured_guide": bool(compiler_config.get("structured_guide", False)),
         "structured_guide_max_rows": int(
             compiler_config.get("structured_guide_max_rows", 12)
@@ -3822,6 +3848,19 @@ def _configured_compiler(compiler_config: Mapping[str, Any]) -> EvidenceCompiler
         ),
         temporal_workpad_max_pairs=int(
             compiler_config.get("temporal_workpad_max_pairs", 12)
+        ),
+        event_timeline=bool(compiler_config.get("event_timeline", False)),
+        event_timeline_information_needs=_tuple_config(
+            compiler_config.get(
+                "event_timeline_information_needs",
+                ("current_state", "list_count", "temporal_lookup"),
+            )
+        ),
+        event_timeline_max_rows=int(
+            compiler_config.get("event_timeline_max_rows", 12)
+        ),
+        event_timeline_snippet_chars=int(
+            compiler_config.get("event_timeline_snippet_chars", 180)
         ),
         structured_guide=bool(compiler_config.get("structured_guide", False)),
         structured_guide_max_rows=int(

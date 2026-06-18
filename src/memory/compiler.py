@@ -204,6 +204,14 @@ class EvidenceCompiler:
         temporal_workpad_scope: str = "route",
         temporal_workpad_max_rows: int = 10,
         temporal_workpad_max_pairs: int = 12,
+        event_timeline: bool = False,
+        event_timeline_information_needs: tuple[str, ...] = (
+            "current_state",
+            "list_count",
+            "temporal_lookup",
+        ),
+        event_timeline_max_rows: int = 12,
+        event_timeline_snippet_chars: int = 180,
         structured_guide: bool = False,
         structured_guide_max_rows: int = 12,
         structured_guide_include_rows: bool = True,
@@ -307,6 +315,13 @@ class EvidenceCompiler:
         self._temporal_workpad_scope = temporal_workpad_scope
         self._temporal_workpad_max_rows = max(1, temporal_workpad_max_rows)
         self._temporal_workpad_max_pairs = max(0, temporal_workpad_max_pairs)
+        self._event_timeline = bool(event_timeline)
+        self._event_timeline_information_needs = _validate_information_needs(
+            event_timeline_information_needs,
+            field_name="event_timeline_information_needs",
+        )
+        self._event_timeline_max_rows = max(2, int(event_timeline_max_rows))
+        self._event_timeline_snippet_chars = max(80, int(event_timeline_snippet_chars))
         self._structured_guide = structured_guide
         self._structured_guide_max_rows = max(1, structured_guide_max_rows)
         self._structured_guide_include_rows = structured_guide_include_rows
@@ -562,6 +577,13 @@ class EvidenceCompiler:
             temporal_workpad_scope=self._temporal_workpad_scope,
             temporal_workpad_max_rows=self._temporal_workpad_max_rows,
             temporal_workpad_max_pairs=self._temporal_workpad_max_pairs,
+            event_timeline=(
+                self._event_timeline
+                and route.information_need in self._event_timeline_information_needs
+                and _asks_chronological_order(question)
+            ),
+            event_timeline_max_rows=self._event_timeline_max_rows,
+            event_timeline_snippet_chars=self._event_timeline_snippet_chars,
             structured_guide=(
                 self._structured_guide
                 and not set(route.signals).intersection(
@@ -770,6 +792,10 @@ class EvidenceCompiler:
             "structured_guide_memory_hints": self._structured_guide_memory_hints,
             "structured_guide_max_rows": self._structured_guide_max_rows,
             "temporal_order_contract": self._temporal_order_contract,
+            "event_timeline": self._event_timeline,
+            "event_timeline_information_needs": self._event_timeline_information_needs,
+            "event_timeline_max_rows": self._event_timeline_max_rows,
+            "event_timeline_snippet_chars": self._event_timeline_snippet_chars,
         }
         settings.update(self._route_overrides.get(route.information_need, {}))
         return settings
@@ -2171,6 +2197,9 @@ def _build_prompt(
     temporal_workpad_scope: str,
     temporal_workpad_max_rows: int,
     temporal_workpad_max_pairs: int,
+    event_timeline: bool,
+    event_timeline_max_rows: int,
+    event_timeline_snippet_chars: int,
     structured_guide: bool,
     structured_guide_max_rows: int,
     structured_guide_include_rows: bool,
@@ -2251,6 +2280,9 @@ def _build_prompt(
             temporal_workpad_scope=temporal_workpad_scope,
             temporal_workpad_max_rows=temporal_workpad_max_rows,
             temporal_workpad_max_pairs=temporal_workpad_max_pairs,
+            event_timeline=event_timeline,
+            event_timeline_max_rows=event_timeline_max_rows,
+            event_timeline_snippet_chars=event_timeline_snippet_chars,
             structured_guide=structured_guide,
             structured_guide_max_rows=structured_guide_max_rows,
             structured_guide_include_rows=structured_guide_include_rows,
@@ -2449,6 +2481,9 @@ def _build_external_naive_prompt(
     temporal_workpad_scope: str,
     temporal_workpad_max_rows: int,
     temporal_workpad_max_pairs: int,
+    event_timeline: bool,
+    event_timeline_max_rows: int,
+    event_timeline_snippet_chars: int,
     structured_guide: bool,
     structured_guide_max_rows: int,
     structured_guide_include_rows: bool,
@@ -2511,6 +2546,18 @@ def _build_external_naive_prompt(
         )
         if temporal_aid_lines:
             temporal_aid = "\n".join(["", "Temporal Aid:", *temporal_aid_lines, ""])
+    event_timeline_block = ""
+    if event_timeline:
+        event_timeline_lines = _external_event_timeline_lines(
+            question=question,
+            rows=rows,
+            max_rows=event_timeline_max_rows,
+            snippet_chars=event_timeline_snippet_chars,
+        )
+        if event_timeline_lines:
+            event_timeline_block = "\n".join(
+                ["", "Source Event Timeline:", *event_timeline_lines, ""]
+            )
     structured_guide_block = ""
     if structured_guide:
         guide_lines = _external_structured_guide_lines(
@@ -2614,6 +2661,10 @@ def _build_external_naive_prompt(
     if temporal_aid:
         rules.append(
             "Use Temporal Aid only to interpret row dates and relative time phrases in the memory context; it is not independent evidence."
+        )
+    if event_timeline_block:
+        rules.append(
+            "Use Source Event Timeline only as a source-backed index into cited Memory Context rows; it is not independent evidence."
         )
     personalized_advice_block = ""
     if personalized_advice_contract:
@@ -2774,6 +2825,7 @@ def _build_external_naive_prompt(
             profile_activation_guide_block,
             memory_state_guide_block,
             update_conflict_guide_block,
+            event_timeline_block,
             operation_workpad_block,
             personalized_advice_block,
             grounded_inference_block,
@@ -4051,6 +4103,246 @@ def _single_line(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+def _external_event_timeline_lines(
+    *,
+    question: str,
+    rows: tuple[EvidenceRow, ...],
+    max_rows: int,
+    snippet_chars: int,
+) -> list[str]:
+    candidates = _event_timeline_candidate_rows(
+        question=question,
+        rows=rows,
+        snippet_chars=snippet_chars,
+    )
+    if len(candidates) < 2:
+        return []
+
+    selected = sorted(
+        candidates,
+        key=lambda item: (-int(item["score"]), int(item["memory_index"])),
+    )[: max(2, max_rows)]
+    timeline = sorted(selected, key=_event_timeline_sort_key)
+
+    lines = [
+        "Use this as a compact index into Memory Context rows for order/timeline questions; verify final facts in the cited rows.",
+        "- time_kind exact_today/explicit_date is stronger than vague_relative_recent. A vague 'recently' near a row date is not a strict before/after fact for another same-date event unless the row text says so.",
+        "- mention_time_only means the row date is only when the memory was written; do not treat it as the event time without row-text support.",
+        "- timeline_candidates:",
+    ]
+    for item in timeline:
+        matched = ", ".join(item["matched_terms"]) or "none"
+        markers = "; ".join(item["markers"]) or "none"
+        lines.append(
+            f"  - Memory {item['memory_index']}: mention_time={item['mention_time']} "
+            f"time_kind={item['time_kind']} event_time={item['event_time']} "
+            f"matched_terms={matched} markers={markers} text={item['snippet']}"
+        )
+    order = " -> ".join(
+        f"Memory {item['memory_index']}({item['event_time']}, {item['time_kind']})"
+        for item in timeline
+    )
+    lines.append(f"- tentative_order_by_best_available_event_time: {order}")
+    return lines
+
+
+def _event_timeline_candidate_rows(
+    *,
+    question: str,
+    rows: tuple[EvidenceRow, ...],
+    snippet_chars: int,
+) -> list[dict[str, object]]:
+    question_terms = _content_terms(question)
+    candidates: list[dict[str, object]] = []
+    for index, row in enumerate(rows, start=1):
+        row_date = _parse_date(row.timestamp)
+        if row_date is None:
+            continue
+        markers = _event_time_markers(row.text, row_date)
+        matched_terms = tuple(
+            sorted(question_terms.intersection(_content_terms(row.text)))
+        )[:8]
+        if not markers and not matched_terms:
+            continue
+        primary = markers[0] if markers else _mention_time_marker(row_date)
+        snippet = _single_line(row.text)
+        if len(snippet) > snippet_chars:
+            snippet = (snippet[: max(0, snippet_chars - 3)].rstrip() + "...")[
+                :snippet_chars
+            ]
+        marker_text = tuple(
+            f'{marker["kind"]}: phrase="{marker["phrase"]}" event_time="{marker["value"]}"'
+            for marker in markers
+        )
+        retrieval_bonus = 1 if row.retrieval_rank is not None else 0
+        candidates.append(
+            {
+                "event_sort_date": primary["sort_date"],
+                "event_time": primary["value"],
+                "index": index,
+                "markers": marker_text,
+                "matched_terms": matched_terms,
+                "memory_index": index,
+                "mention_time": row_date.isoformat(),
+                "precision_rank": primary["precision_rank"],
+                "role": row.role,
+                "score": len(matched_terms) + retrieval_bonus + (2 * len(markers)),
+                "snippet": snippet,
+                "time_kind": primary["kind"],
+            }
+        )
+    return candidates
+
+
+def _event_time_markers(text: str, row_date: date) -> tuple[dict[str, object], ...]:
+    markers: list[dict[str, object]] = []
+    seen: set[tuple[str, str]] = set()
+
+    def add_marker(
+        *,
+        phrase: str,
+        value: str,
+        kind: str,
+        sort_date: date | None,
+        precision_rank: int,
+    ) -> None:
+        key = (phrase.lower(), value)
+        if key in seen:
+            return
+        seen.add(key)
+        markers.append(
+            {
+                "kind": kind,
+                "phrase": phrase,
+                "precision_rank": precision_rank,
+                "sort_date": sort_date or row_date,
+                "value": value,
+            }
+        )
+
+    for phrase, normalized in _explicit_date_mentions(text, row_date):
+        add_marker(
+            phrase=phrase,
+            value=normalized,
+            kind="explicit_date",
+            sort_date=_parse_date(normalized),
+            precision_rank=0,
+        )
+    for phrase, normalized in _relative_time_values(text, row_date):
+        kind = "exact_today" if phrase.lower() == "today" else "relative_phrase"
+        add_marker(
+            phrase=phrase,
+            value=normalized,
+            kind=kind,
+            sort_date=_parse_date(normalized),
+            precision_rank=0 if kind == "exact_today" else 1,
+        )
+    for phrase in _vague_recent_phrases(text):
+        add_marker(
+            phrase=phrase,
+            value=f"near_or_before {row_date.isoformat()}",
+            kind="vague_relative_recent",
+            sort_date=row_date,
+            precision_rank=2,
+        )
+    markers.sort(
+        key=lambda marker: (
+            marker["sort_date"],
+            int(marker["precision_rank"]),
+            str(marker["phrase"]),
+        )
+    )
+    return tuple(markers)
+
+
+def _mention_time_marker(row_date: date) -> dict[str, object]:
+    return {
+        "kind": "mention_time_only",
+        "phrase": "row date",
+        "precision_rank": 3,
+        "sort_date": row_date,
+        "value": row_date.isoformat(),
+    }
+
+
+def _event_timeline_sort_key(item: dict[str, object]) -> tuple[date, int, int]:
+    sort_date = item["event_sort_date"]
+    if not isinstance(sort_date, date):
+        sort_date = _parse_date(str(sort_date)) or date.max
+    return (
+        sort_date,
+        int(item["precision_rank"]),
+        int(item["memory_index"]),
+    )
+
+
+def _explicit_date_mentions(text: str, row_date: date) -> tuple[tuple[str, str], ...]:
+    mentions: list[tuple[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+
+    def add(phrase: str, parsed: date | None) -> None:
+        if parsed is None:
+            return
+        value = parsed.isoformat()
+        key = (phrase.lower(), value)
+        if key in seen:
+            return
+        seen.add(key)
+        mentions.append((phrase, value))
+
+    for match in re.finditer(
+        r"\b(?P<year>\d{4})[-/](?P<month>\d{1,2})[-/](?P<day>\d{1,2})\b",
+        text,
+    ):
+        add(
+            match.group(0),
+            _date_from_parts(
+                int(match.group("year")),
+                int(match.group("month")),
+                int(match.group("day")),
+            ),
+        )
+    month_names = (
+        "January|February|March|April|May|June|July|August|September|"
+        "October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sept|Sep|"
+        "Oct|Nov|Dec"
+    )
+    for match in re.finditer(
+        rf"\b(?P<month>{month_names})\s+"
+        r"(?P<day>\d{1,2})(?:st|nd|rd|th)?(?:,\s*(?P<year>\d{4}))?\b",
+        text,
+        re.IGNORECASE,
+    ):
+        month = _month_number(match.group("month"))
+        if month is None:
+            continue
+        year = int(match.group("year") or row_date.year)
+        add(match.group(0), _date_from_parts(year, month, int(match.group("day"))))
+    for match in re.finditer(
+        rf"\b(?P<day>\d{{1,2}})(?:st|nd|rd|th)?\s+"
+        rf"(?P<month>{month_names})(?:,\s*(?P<year>\d{{4}}))?\b",
+        text,
+        re.IGNORECASE,
+    ):
+        month = _month_number(match.group("month"))
+        if month is None:
+            continue
+        year = int(match.group("year") or row_date.year)
+        add(match.group(0), _date_from_parts(year, month, int(match.group("day"))))
+    return tuple(mentions)
+
+
+def _vague_recent_phrases(text: str) -> tuple[str, ...]:
+    phrases: list[str] = []
+    for match in re.finditer(
+        r"\b(?:recently|not long ago|a while ago|the other day)\b",
+        text,
+        re.IGNORECASE,
+    ):
+        phrases.append(match.group(0))
+    return tuple(phrases)
+
+
 def _external_temporal_aid_lines(
     *,
     question: str,
@@ -4723,6 +5015,27 @@ def _asks_order(question: str) -> bool:
             question.lower(),
         )
     )
+
+
+def _asks_chronological_order(question: str) -> bool:
+    lowered = question.lower()
+    has_order_phrase = bool(
+        re.search(
+            r"\b(?:what(?:'s|\s+is)\s+the\s+order|in\s+what\s+order|"
+            r"order\s+of|chronological(?:ly| order)?|timeline|sequence|"
+            r"first\s+to\s+last|last\s+to\s+first|earliest\s+to\s+latest|"
+            r"latest\s+to\s+earliest|starting\s+from\s+the\s+earliest)\b",
+            lowered,
+        )
+    )
+    has_time_direction = bool(
+        re.search(
+            r"\b(?:earliest|latest|oldest|newest|first|last|chronological|"
+            r"before|after)\b",
+            lowered,
+        )
+    )
+    return has_order_phrase and has_time_direction
 
 
 def _pairwise_temporal_gaps(

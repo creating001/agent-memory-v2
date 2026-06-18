@@ -740,6 +740,18 @@ def main() -> int:
             "temporal_workpad_max_pairs": config.get("compiler", {}).get(
                 "temporal_workpad_max_pairs", 12
             ),
+            "event_timeline": config.get("compiler", {}).get(
+                "event_timeline", False
+            ),
+            "event_timeline_information_needs": config.get("compiler", {}).get(
+                "event_timeline_information_needs"
+            ),
+            "event_timeline_max_rows": config.get("compiler", {}).get(
+                "event_timeline_max_rows", 12
+            ),
+            "event_timeline_snippet_chars": config.get("compiler", {}).get(
+                "event_timeline_snippet_chars", 180
+            ),
             "structured_guide": config.get("compiler", {}).get(
                 "structured_guide", False
             ),
@@ -1457,6 +1469,10 @@ def _write_summary(
         f"- temporal_workpad_scope: {metrics['compiler']['temporal_workpad_scope']}",
         f"- temporal_workpad_max_rows: {metrics['compiler']['temporal_workpad_max_rows']}",
         f"- temporal_workpad_max_pairs: {metrics['compiler']['temporal_workpad_max_pairs']}",
+        f"- event_timeline: {metrics['compiler']['event_timeline']}",
+        f"- event_timeline_information_needs: {metrics['compiler']['event_timeline_information_needs']}",
+        f"- event_timeline_max_rows: {metrics['compiler']['event_timeline_max_rows']}",
+        f"- event_timeline_snippet_chars: {metrics['compiler']['event_timeline_snippet_chars']}",
         f"- operation_workpad_question_gate: {metrics['compiler']['operation_workpad_question_gate']}",
         f"- personalized_advice_contract: {metrics['compiler']['personalized_advice_contract']}",
         f"- personalized_advice_contract_applied: {metrics['compiler']['personalized_advice_contract_applied']}",
@@ -1636,6 +1652,10 @@ def _write_diagnosis(
         f"- temporal_workpad_scope: {metrics['compiler']['temporal_workpad_scope']}",
         f"- temporal_workpad_max_rows: {metrics['compiler']['temporal_workpad_max_rows']}",
         f"- temporal_workpad_max_pairs: {metrics['compiler']['temporal_workpad_max_pairs']}",
+        f"- event_timeline: {metrics['compiler']['event_timeline']}",
+        f"- event_timeline_information_needs: {metrics['compiler']['event_timeline_information_needs']}",
+        f"- event_timeline_max_rows: {metrics['compiler']['event_timeline_max_rows']}",
+        f"- event_timeline_snippet_chars: {metrics['compiler']['event_timeline_snippet_chars']}",
         f"- operation_workpad_question_gate: {metrics['compiler']['operation_workpad_question_gate']}",
         f"- personalized_advice_contract: {metrics['compiler']['personalized_advice_contract']}",
         f"- personalized_advice_contract_applied: {metrics['compiler']['personalized_advice_contract_applied']}",

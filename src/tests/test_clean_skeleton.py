@@ -5938,6 +5938,87 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertNotIn('"mention_time": "Memory Date or empty"', compiled.prompt)
         self.assertNotIn("event_time_candidates", compiled.prompt)
 
+    def test_event_timeline_marks_vague_recent_as_low_precision(self) -> None:
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text="I visited the Science Museum today.",
+                timestamp="2023-01-15",
+            ),
+            Turn(
+                source_id="s1:t1",
+                session_id="s1",
+                turn_index=1,
+                role="user",
+                text="I recently attended a lecture at the Museum of Contemporary Art.",
+                timestamp="2023-01-15",
+            ),
+            Turn(
+                source_id="s2:t0",
+                session_id="s2",
+                turn_index=0,
+                role="user",
+                text="I saw the exhibit at the Metropolitan Museum on February 10th.",
+                timestamp="2023-02-10",
+            ),
+        )
+        baseline = EvidenceCompiler(
+            max_evidence_items=3,
+            max_evidence_chars=5000,
+            prompt_mode="external_naive",
+            event_timeline=False,
+        ).compile(
+            question="What is the order of the museums I visited from earliest to latest?",
+            question_time=None,
+            route=RouteResult(information_need="current_state", signals=()),
+            hits=(),
+            evidence_turns=turns,
+        )
+        compiled = EvidenceCompiler(
+            max_evidence_items=3,
+            max_evidence_chars=5000,
+            prompt_mode="external_naive",
+            event_timeline=True,
+            event_timeline_information_needs=("current_state",),
+            event_timeline_max_rows=5,
+            event_timeline_snippet_chars=120,
+        ).compile(
+            question="What is the order of the museums I visited from earliest to latest?",
+            question_time=None,
+            route=RouteResult(information_need="current_state", signals=()),
+            hits=(),
+            evidence_turns=turns,
+        )
+        choice_question = EvidenceCompiler(
+            max_evidence_items=3,
+            max_evidence_chars=5000,
+            prompt_mode="external_naive",
+            event_timeline=True,
+            event_timeline_information_needs=("current_state",),
+        ).compile(
+            question="Which museum did I visit first before moving?",
+            question_time=None,
+            route=RouteResult(information_need="current_state", signals=()),
+            hits=(),
+            evidence_turns=turns,
+        )
+
+        self.assertNotIn("Source Event Timeline:", baseline.prompt)
+        self.assertIn("Source Event Timeline:", compiled.prompt)
+        self.assertIn("time_kind=exact_today", compiled.prompt)
+        self.assertIn("time_kind=vague_relative_recent", compiled.prompt)
+        self.assertIn("not a strict before/after fact", compiled.prompt)
+        self.assertLess(
+            compiled.prompt.index("Memory 1(2023-01-15, exact_today)"),
+            compiled.prompt.index(
+                "Memory 2(near_or_before 2023-01-15, vague_relative_recent)"
+            ),
+        )
+        self.assertNotIn("Source Event Timeline:", choice_question.prompt)
+
     def test_evidence_labels_role_snippets_and_final_checklist_are_added(self) -> None:
         config = {
             "retrieval": {"top_k": 2, "max_top_k": 2, "neighbor_window": 0},
