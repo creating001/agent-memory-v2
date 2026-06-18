@@ -48,6 +48,40 @@ from common.schemas import (
 from memory.store import RawEvidenceStore
 
 
+_LIFECYCLE_MEMORY_TYPES = frozenset(
+    {"fact", "preference", "profile", "relationship", "state"}
+)
+_LIFECYCLE_TERM_PATTERN = re.compile(r"[A-Za-z0-9_]+")
+_LIFECYCLE_TERM_STOPWORDS = frozenset(
+    {
+        "about",
+        "after",
+        "again",
+        "been",
+        "before",
+        "current",
+        "currently",
+        "does",
+        "have",
+        "latest",
+        "most",
+        "recent",
+        "still",
+        "that",
+        "the",
+        "their",
+        "there",
+        "this",
+        "what",
+        "when",
+        "where",
+        "which",
+        "with",
+        "your",
+    }
+)
+
+
 class Stage1Pipeline:
     """Minimal, clean, ablation-friendly memory pipeline."""
 
@@ -1258,6 +1292,13 @@ class Stage1Pipeline:
             evidence_turns=evidence_turns,
             memory_records=compiler_memory_records,
         )
+        memory_lifecycle_manifest = _memory_lifecycle_manifest(
+            question=request.question,
+            route=route,
+            built_memory_records=built_memory.records,
+            compiler_memory_records=compiler_memory_records,
+            evidence_rows=compiled.evidence_rows,
+        )
         answer_cache_before = _answer_cache_stats(self._answerer)
         draft_answer = self._answerer.answer(compiled)
         answer_cache_after = _answer_cache_stats(self._answerer)
@@ -1312,6 +1353,7 @@ class Stage1Pipeline:
                 "build_memory": built_memory.to_dict(),
                 "build_memory_config": self._build_memory_trace_config,
                 "build_memory_source_alignment": source_alignment,
+                "memory_lifecycle_manifest": memory_lifecycle_manifest,
                 "route": route.to_dict(),
                 "heuristic_route": heuristic_route.to_dict(),
                 "route_config": self._route_trace_config,
@@ -2130,6 +2172,207 @@ def _dedupe_memory_records(records: tuple[Any, ...]) -> tuple[Any, ...]:
         seen.add(memory_id)
         result.append(record)
     return tuple(result)
+
+
+def _memory_lifecycle_manifest(
+    *,
+    question: str,
+    route: RouteResult,
+    built_memory_records: tuple[Any, ...],
+    compiler_memory_records: tuple[Any, ...],
+    evidence_rows: tuple[Any, ...],
+) -> dict[str, Any]:
+    """Trace-only lifecycle view over source-linked build memory.
+
+    This manifest is deliberately not fed back into retrieval, compiler, answer,
+    or repair. It makes typed-memory lifecycle state auditable without changing
+    prediction behavior.
+    """
+
+    evidence_source_ids = {str(row.source_id) for row in evidence_rows}
+    question_terms = _lifecycle_terms(question)
+    built_stats = _memory_lifecycle_record_stats(
+        built_memory_records,
+        evidence_source_ids=evidence_source_ids,
+    )
+    activated_stats = _memory_lifecycle_record_stats(
+        compiler_memory_records,
+        evidence_source_ids=evidence_source_ids,
+    )
+    built_slot_items = _memory_lifecycle_slots(
+        built_memory_records,
+        question_terms=question_terms,
+        evidence_source_ids=evidence_source_ids,
+    )
+    activated_slot_items = _memory_lifecycle_slots(
+        compiler_memory_records,
+        question_terms=question_terms,
+        evidence_source_ids=evidence_source_ids,
+    )
+    conflict_slots = sum(1 for item in built_slot_items if item["has_conflict"])
+    visible_slots = sum(
+        1 for item in built_slot_items if item["visible_source_count"] > 0
+    )
+    activated_conflict_slots = sum(
+        1 for item in activated_slot_items if item["has_conflict"]
+    )
+    activated_visible_slots = sum(
+        1 for item in activated_slot_items if item["visible_source_count"] > 0
+    )
+    return {
+        "enabled": True,
+        "trace_only": True,
+        "information_need": route.information_need,
+        "built_records": built_stats,
+        "activated_records": activated_stats,
+        "slot_count": len(built_slot_items),
+        "visible_slot_count": visible_slots,
+        "conflict_slot_count": conflict_slots,
+        "slots": built_slot_items[:8],
+        "activated_slot_count": len(activated_slot_items),
+        "activated_visible_slot_count": activated_visible_slots,
+        "activated_conflict_slot_count": activated_conflict_slots,
+        "activated_slots": activated_slot_items[:8],
+        "note": (
+            "Trace-only source-backed lifecycle manifest; not used by prediction "
+            "modules."
+        ),
+    }
+
+
+def _memory_lifecycle_record_stats(
+    records: tuple[Any, ...],
+    *,
+    evidence_source_ids: set[str],
+) -> dict[str, Any]:
+    by_type: dict[str, int] = {}
+    status_counts: dict[str, int] = {}
+    source_linked = 0
+    visible_source_linked = 0
+    lifecycle_records = 0
+    for record in records:
+        memory_type = str(getattr(record, "memory_type", "") or "unknown")
+        status = str(getattr(record, "status", "") or "active")
+        by_type[memory_type] = by_type.get(memory_type, 0) + 1
+        status_counts[status] = status_counts.get(status, 0) + 1
+        source_ids = tuple(
+            str(source_id) for source_id in getattr(record, "source_ids", ())
+        )
+        if source_ids:
+            source_linked += 1
+        if any(source_id in evidence_source_ids for source_id in source_ids):
+            visible_source_linked += 1
+        if memory_type in _LIFECYCLE_MEMORY_TYPES:
+            lifecycle_records += 1
+    return {
+        "total": len(records),
+        "lifecycle_total": lifecycle_records,
+        "by_type": dict(sorted(by_type.items())),
+        "status_counts": dict(sorted(status_counts.items())),
+        "source_linked": source_linked,
+        "visible_source_linked": visible_source_linked,
+    }
+
+
+def _memory_lifecycle_slots(
+    records: tuple[Any, ...],
+    *,
+    question_terms: frozenset[str],
+    evidence_source_ids: set[str],
+) -> list[dict[str, Any]]:
+    grouped: dict[tuple[str, str, str], list[Any]] = {}
+    for record in records:
+        memory_type = str(getattr(record, "memory_type", "") or "unknown")
+        if memory_type not in _LIFECYCLE_MEMORY_TYPES:
+            continue
+        subject = _lifecycle_field(getattr(record, "subject", ""))
+        predicate = _lifecycle_field(getattr(record, "predicate", ""))
+        if not subject and not predicate:
+            continue
+        grouped.setdefault((memory_type, subject, predicate), []).append(record)
+
+    slots: list[dict[str, Any]] = []
+    for (memory_type, subject, predicate), slot_records in grouped.items():
+        active_values: list[str] = []
+        superseded_values: list[str] = []
+        source_ids: set[str] = set()
+        visible_source_ids: set[str] = set()
+        statuses: dict[str, int] = {}
+        matched_terms: set[str] = set()
+        for record in slot_records:
+            status = str(getattr(record, "status", "") or "active")
+            statuses[status] = statuses.get(status, 0) + 1
+            value = _lifecycle_field(
+                getattr(record, "value", "") or getattr(record, "text", "")
+            )
+            if value:
+                if status == "superseded":
+                    superseded_values.append(value)
+                else:
+                    active_values.append(value)
+            for source_id in getattr(record, "source_ids", ()):
+                source_id_text = str(source_id)
+                source_ids.add(source_id_text)
+                if source_id_text in evidence_source_ids:
+                    visible_source_ids.add(source_id_text)
+            matched_terms.update(
+                question_terms.intersection(
+                    _lifecycle_terms(
+                        " ".join(
+                            str(part)
+                            for part in (
+                                getattr(record, "subject", ""),
+                                getattr(record, "predicate", ""),
+                                getattr(record, "value", ""),
+                                getattr(record, "text", ""),
+                            )
+                            if part
+                        )
+                    )
+                )
+            )
+        distinct_values = set(active_values).union(superseded_values)
+        has_conflict = len(distinct_values) > 1 or bool(superseded_values)
+        slots.append(
+            {
+                "memory_type": memory_type,
+                "subject": subject,
+                "predicate": predicate,
+                "record_count": len(slot_records),
+                "status_counts": dict(sorted(statuses.items())),
+                "active_values": sorted(set(active_values))[:4],
+                "superseded_values": sorted(set(superseded_values))[:4],
+                "source_count": len(source_ids),
+                "visible_source_count": len(visible_source_ids),
+                "has_conflict": has_conflict,
+                "question_overlap_terms": sorted(matched_terms)[:8],
+            }
+        )
+    slots.sort(
+        key=lambda item: (
+            not item["has_conflict"],
+            -len(item["question_overlap_terms"]),
+            -item["visible_source_count"],
+            item["memory_type"],
+            item["subject"],
+            item["predicate"],
+        )
+    )
+    return slots
+
+
+def _lifecycle_field(value: Any) -> str:
+    return " ".join(str(value or "").strip().split())
+
+
+def _lifecycle_terms(text: str) -> frozenset[str]:
+    terms = []
+    for match in _LIFECYCLE_TERM_PATTERN.finditer(text or ""):
+        term = match.group(0).lower()
+        if len(term) < 3 or term in _LIFECYCLE_TERM_STOPWORDS:
+            continue
+        terms.append(term)
+    return frozenset(terms)
 
 
 def _memory_slot_chain_applies(

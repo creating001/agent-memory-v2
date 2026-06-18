@@ -43,6 +43,7 @@ from memory.pipeline import (
     Stage1Pipeline,
     _align_build_memory_sources,
     _compiler_memory_records,
+    _memory_lifecycle_manifest,
     _memory_slot_chain_source_hits,
     _memory_records_by_source,
     _neighbor_turns_for_rerank,
@@ -156,6 +157,7 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertTrue(rows)
         self.assertTrue(all(row["source_id"] for row in rows))
         self.assertEqual(result["trace"]["token_cost"]["query_tokens"], 0)
+        self.assertTrue(result["trace"]["memory_lifecycle_manifest"]["trace_only"])
 
     def test_pipeline_can_disable_lexical_retrieval(self) -> None:
         config = {
@@ -1326,6 +1328,55 @@ class CleanSkeletonTest(unittest.TestCase):
             [record.memory_id for record in combined],
             ["mem-retrieval", "mem-row"],
         )
+
+    def test_memory_lifecycle_manifest_is_trace_only_and_source_grounded(self) -> None:
+        old_record = MemoryRecord(
+            memory_id="old-location",
+            memory_type="state",
+            text="Alex lived in Austin.",
+            source_ids=("s1:t0",),
+            subject="Alex",
+            predicate="home city",
+            value="Austin",
+            status="superseded",
+        )
+        active_record = MemoryRecord(
+            memory_id="active-location",
+            memory_type="state",
+            text="Alex now lives in Seattle.",
+            source_ids=("s2:t0",),
+            subject="Alex",
+            predicate="home city",
+            value="Seattle",
+            status="active",
+        )
+        manifest = _memory_lifecycle_manifest(
+            question="Where does Alex currently live?",
+            route=RouteResult("current_state", ("current_state",)),
+            built_memory_records=(old_record, active_record),
+            compiler_memory_records=(old_record, active_record),
+            evidence_rows=(
+                EvidenceRow(
+                    source_id="s2:t0",
+                    session_id="s2",
+                    turn_index=0,
+                    role="user",
+                    text="I now live in Seattle.",
+                    timestamp=None,
+                    retrieval_rank=None,
+                    retrieval_score=None,
+                ),
+            ),
+        )
+
+        self.assertTrue(manifest["trace_only"])
+        self.assertEqual(manifest["built_records"]["total"], 2)
+        self.assertEqual(manifest["activated_records"]["visible_source_linked"], 1)
+        self.assertEqual(manifest["conflict_slot_count"], 1)
+        self.assertEqual(manifest["activated_conflict_slot_count"], 1)
+        self.assertEqual(manifest["slots"][0]["active_values"], ["Seattle"])
+        self.assertEqual(manifest["slots"][0]["superseded_values"], ["Austin"])
+        self.assertEqual(manifest["activated_slots"][0]["active_values"], ["Seattle"])
 
     def test_memory_slot_chain_source_hits_expand_active_and_superseded_sources(self) -> None:
         old_record = MemoryRecord(

@@ -1,0 +1,31 @@
+{
+  "benchmark": "locomo",
+  "clean_assertions": [
+    "Prediction loader rejects gold/reference/target answers.",
+    "Prediction loader rejects judge outputs and benchmark labels.",
+    "Prediction loader rejects sample ids, qids, and row indices.",
+    "record_key is copied only by the runner and is not passed into pipeline modules.",
+    "Derived context rows always retain raw source_id back-links.",
+    "Build-stage typed memory is created only from raw dialogue turns and visible metadata."
+  ],
+  "config_path": "/data/home_new/wujinqi/agent-memory/configs/stage1_memory_lifecycle_manifest_v162_qwen36_no_think_build4k_cached.json",
+  "created_at_utc": "2026-06-18T18:54:43+00:00",
+  "experiment_dir": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_memory_lifecycle_manifest_v162_locomo_nonadv_full",
+  "experiment_kind": "diagnostic",
+  "git": {
+    "commit": "7800c5f7bc760f23b587f8566987bb3ca76af4b7",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "M src/memory/pipeline.py\n M src/tests/test_clean_skeleton.py\n?? configs/stage1_memory_lifecycle_manifest_v162_qwen36_no_think_build4k_cached.json\n?? experiments/diagnostic/stage1_memory_lifecycle_manifest_v162_lme_s_full/\n?? experiments/diagnostic/stage1_memory_lifecycle_manifest_v162_lme_smoke5/"
+  },
+  "input_path": "/data/home_new/wujinqi/agent-memory/outputs/prepare_locomo_non_adversarial/prediction_input.jsonl",
+  "output_path": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_memory_lifecycle_manifest_v162_locomo_nonadv_full/predictions.jsonl",
+  "outputs": {
+    "predictions": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_memory_lifecycle_manifest_v162_locomo_nonadv_full/predictions.jsonl",
+    "traces": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_memory_lifecycle_manifest_v162_locomo_nonadv_full/traces.jsonl"
+  },
+  "run_id": "stage1_memory_lifecycle_manifest_v162_locomo_nonadv_full",
+  "subset": "non_adversarial_full",
+  "trace_path": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_memory_lifecycle_manifest_v162_locomo_nonadv_full/traces.jsonl"
+}

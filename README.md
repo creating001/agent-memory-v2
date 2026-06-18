@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_narrow_question_gated_selected_context_v158_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_memory_lifecycle_manifest_v162_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v158 local LTS | 说明 |
+| Benchmark | 当前 v162 local LTS | 说明 |
 |---|---:|---|
-| LongMemEval-S full | strict/lenient `0.822000 / 0.834000` | v158 vs v154 仅 `2/500` 条答案变化，changed-answer paired dual judge strict/lenient 均持平；沿用 v154 full 计数：`411/500` strict，`417/500` lenient。 |
-| LoCoMo non-adversarial full | strict/lenient `0.789610 / 0.815584` | v158 与 v154 answer diff `0/1540`，沿用 v154/v151/v127 full dual judge：`1216/1540` strict，`1256/1540` lenient。 |
+| LongMemEval-S full | strict/lenient `0.822000 / 0.834000` | v162 与 v158 answer diff `0/500`，answer cache `500/500` 命中；沿用 v158/v154 full dual judge 计数：`411/500` strict，`417/500` lenient。 |
+| LoCoMo non-adversarial full | strict/lenient `0.789610 / 0.815584` | v162 与 v158 answer diff `0/1540`，answer cache `1540/1540` 命中；沿用 v158/v154/v151/v127 full dual judge 计数：`1216/1540` strict，`1256/1540` lenient。 |
 
-v158 的 LTS 理由：继承 v154 的 current-state lifecycle ledger，并把长 turn selected-context 从“一刀切禁用”改成更通用的 question-gated local context policy。只有问题本身包含明确局部指代时，长 turn profile 才展开同 session 邻近原文；普通关系从句里的 bare `that` 不触发。该改动降低 #3 selected-context 长/短 turn heuristic 风险，accuracy 不降。#1 granularity/profile、#2 top-k/context noise/rerank，以及更完整的 #5 lifecycle/conflict/update 管理仍是优先待办。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_narrow_question_gated_selected_context_v158_scope_summary.md`。
+v162 的 LTS 理由：继承 v158 的 answer/retrieval/compiler/repair 行为，并新增 trace-only source-backed memory lifecycle manifest，同时审计 build memory 和本次 query activated memory 的 slot、conflict、source visibility 与 question overlap。该信息不进入 retrieval、compiler、answer 或 repair，因此 accuracy 与 v158 完全一致；它降低 #5 memory lifecycle/state/conflict/query-time reasoning 的诊断和治理风险，但还不是 #5 的最终答案。#1 granularity/profile、#2 top-k/context noise/rerank，以及把 lifecycle manifest 安全转化为预测收益仍是优先待办。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_memory_lifecycle_manifest_v162_scope_summary.md`。
 
 ## 目录
 
