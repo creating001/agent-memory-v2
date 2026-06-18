@@ -1,0 +1,13 @@
+{
+  "benchmark": "longmemeval",
+  "subset": "profile_preference",
+  "parent_lts": "stage1_memory_lifecycle_manifest_v162_qwen36_no_think_build4k_cached",
+  "candidate": "stage1_surface_profile_advice_repair_v165_qwen36_no_think_build4k_cached",
+  "n_profile_examples": 15,
+  "n_changed_answers": 0,
+  "repair_triggered": 4,
+  "repair_applied": 0,
+  "repair_query_tokens": 18061,
+  "decision": "no_op_do_not_promote_lts",
+  "reason": "V165 fixes v164 over-repair by requiring a surface refusal, but it changes no answers and adds repair cost; accuracy is inherited from v162 on this slice."
+}

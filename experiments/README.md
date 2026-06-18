@@ -26,7 +26,7 @@
 
 | 优先级 | 项目 | 当前状态 | 下一步 |
 |---:|---|---|---|
-| 1 | #5 memory lifecycle/state/conflict/query-time reasoning | v154 已把 source-backed lifecycle ledger 放进窄 current-state repair；v162 新增 trace-only build/activated lifecycle manifest；v163 profile activation guide 因过度 abstain 失败；v164 profile repair 因触发过宽失败 | 用 v162 manifest 切 badcase，优先做 answer-slot-aware verifier / lifecycle activation；profile/advice repair 只能修表面拒答，不能覆盖已可用答案 |
+| 1 | #5 memory lifecycle/state/conflict/query-time reasoning | v154 已把 source-backed lifecycle ledger 放进窄 current-state repair；v162 新增 trace-only build/activated lifecycle manifest；v163 profile activation guide 因过度 abstain 失败；v164 profile repair 因触发过宽失败；v165 表面拒答限定后 no-op | 用 v162 manifest 切 badcase，优先做 answer-slot-aware verifier / lifecycle activation；profile/advice 下一步转向 evidence coverage，而不是继续调 repair prompt |
 | 2 | #2 top-k/context noise/rerank | v129/v134/v140/v152 说明简单裁剪、tail snippet 或 list-count rerank pruning 会伤 accuracy；当前 query context 仍偏长 | 转向 coverage-preserving route-aware context organization：先保留覆盖证据，再做 grouping/dedup/aggregation table |
 | 3 | #1 granularity/profile + #3 selected context | v158 已把 long-turn selected context 从一刀切禁用改成 narrow question-gated policy；granularity profile 仍基于 avg-turn chars | 继续重做更通用的 context organization，逐步减少 avg-turn profile 依赖 |
 | 4 | src cleanup | 已有多轮兼容分支，`repair.py`、compiler、pipeline 仍会继续变复杂 | 每个阶段结束后做小范围清理，删已确认无用的兼容代码，不删仍有消融价值的模块 |
@@ -53,6 +53,7 @@
 
 | 配置 | 原因 |
 |---|---|
+| `stage1_surface_profile_advice_repair_v165_qwen36_no_think_build4k_cached.json` | 修复 v164 过宽触发，LME profile answer diff `0/15`，但触发 `4` 次 repair、增加 `18061` repair query tokens 且无收益；不升 LTS。 |
 | `stage1_profile_advice_abstention_repair_v164_qwen36_no_think_build4k_cached.json` | clean 的 profile/advice abstention repair 触发过宽，错误修掉一条原本正确的 LME profile answer；changed subset strict/lenient `1/1 -> 0/1`、`1/1 -> 0/1`，不升 LTS。 |
 | `stage1_profile_memory_activation_v163_qwen36_no_think_build4k_cached.json` | clean 的 profile memory activation guide 只使用可见 source-backed typed memory，但 LME profile changed subset strict/lenient `3/9 -> 2/9`、`4/9 -> 3/9`；主要失败是把 source-grounding 变成过度 abstain，不升 LTS。 |
 | `stage1_current_state_only_conflict_guide_v161_qwen36_no_think_build4k_cached.json` | 移除 fact_lookup 上过宽 conflict guide，query/context 降低且 row set 不变，但 LME fact changed subset strict `23/39 -> 22/39`，lenient 持平；不升 LTS。 |
@@ -78,6 +79,9 @@
 
 | 路径 | 内容 |
 |---|---|
+| `diagnostic/stage1_surface_profile_advice_repair_v165_scope_summary.md` | v165 no-op 诊断：表面拒答限定修复 v164 误修，但 LME profile answer diff `0/15` 且增加 repair cost |
+| `diagnostic/stage1_surface_profile_advice_repair_v165_lme_changed_vs_v162/metrics.json` | v165 vs v162 LME profile answer diff 指标快照 |
+| `diagnostic/stage1_surface_profile_advice_repair_v165_lme_profile_preference/` | v165 LME profile-preference diagnostic run artifacts |
 | `diagnostic/stage1_profile_advice_abstention_repair_v164_scope_summary.md` | v164 负向诊断：profile/advice repair 误修正确答案，LME profile changed subset strict/lenient `-1/-1` |
 | `diagnostic/stage1_profile_advice_abstention_repair_v164_lme_changed_vs_v162/metrics.json` | v164 vs v162 LME profile changed-answer paired dual judge 指标快照 |
 | `diagnostic/stage1_profile_advice_abstention_repair_v164_lme_profile_preference/` | v164 LME profile-preference diagnostic run artifacts |

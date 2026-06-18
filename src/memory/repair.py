@@ -322,6 +322,7 @@ def repair_trigger_reasons(
     payload = _draft_payload(raw_response)
     reasons: list[str] = []
     uncertain_signal = _has_uncertain_signal(draft_answer, payload)
+    surface_refusal_signal = bool(_INSUFFICIENT_ANSWER.search(draft_answer or ""))
 
     if (
         enable_profile_preference_trigger
@@ -332,7 +333,7 @@ def repair_trigger_reasons(
     if (
         enable_profile_advice_abstention_trigger
         and route_information_need == "profile_preference"
-        and uncertain_signal
+        and surface_refusal_signal
         and _PROFILE_ADVICE_ABSTENTION_QUESTION.search(question or "")
     ):
         reasons.append("profile_advice_abstention_review")

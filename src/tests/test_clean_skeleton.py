@@ -2278,6 +2278,22 @@ class CleanSkeletonTest(unittest.TestCase):
             enable_temporal_conflict_trigger=False,
             enable_profile_advice_abstention_trigger=True,
         )
+        raw_payload_only_reasons = repair_trigger_reasons(
+            question="Can you suggest some useful accessories for my phone?",
+            route_information_need="profile_preference",
+            draft_answer="A case and screen protector would fit your phone needs.",
+            raw_response=json.dumps(
+                {
+                    "content": json.dumps(
+                        {"sufficient": False, "answer": "unknown"}
+                    )
+                }
+            ),
+            enable_uncertain_trigger=False,
+            enable_short_list_trigger=False,
+            enable_temporal_conflict_trigger=False,
+            enable_profile_advice_abstention_trigger=True,
+        )
         fact_route_reasons = repair_trigger_reasons(
             question="Can you suggest some useful accessories for my phone?",
             route_information_need="fact_lookup",
@@ -2302,6 +2318,9 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertIn("profile_advice_abstention_review", enabled_reasons)
         self.assertNotIn(
             "profile_advice_abstention_review", non_abstention_reasons
+        )
+        self.assertNotIn(
+            "profile_advice_abstention_review", raw_payload_only_reasons
         )
         self.assertNotIn("profile_advice_abstention_review", fact_route_reasons)
         self.assertNotIn("profile_advice_abstention_review", non_advice_reasons)
