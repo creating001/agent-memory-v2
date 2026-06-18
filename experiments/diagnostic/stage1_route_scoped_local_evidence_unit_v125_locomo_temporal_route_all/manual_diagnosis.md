@@ -49,12 +49,18 @@ Runner metrics:
 - Answer finalizer applied: `0`
 - Answer changed vs V116 same subset: `127/338`
 
-V116 same-subset dual flash baseline from the existing full judge:
+Fresh paired dual flash judge on the same 338 temporal keys:
 
-- strict `260/338 = 0.769231`
-- lenient `267/338 = 0.789941`
+| predictions | strict | lenient | strict correct | lenient correct |
+|---|---:|---:|---:|---:|
+| V116 same subset | `0.772189` | `0.786982` | `261/338` | `266/338` |
+| V125 temporal subset | `0.792899` | `0.813609` | `268/338` | `275/338` |
 
-Dual flash judge for V125 was not run in this environment because no `DEEPSEEK_API_KEY` or other `DEEPSEEK*` environment variable is available.
+Paired judge gain/loss:
+
+- strict `19/12`, net `+7`
+- lenient `19/10`, net `+9`
+- comparison and changed records: `experiments/diagnostic/stage1_route_scoped_local_evidence_unit_v125_locomo_temporal_route_all/paired_judge_comparison_vs_v116.json`
 
 Lexical metrics only, not the method-selection metric:
 
@@ -135,31 +141,8 @@ Evidence so far:
 
 - clean/general scope check passed: non-temporal prompts and evidence rows are unchanged in dry-run
 - cost is acceptable for LoCoMo: full cached avg query tokens `6058.560`, slightly over the 6K normal target but far below the 8K diagnostic threshold
-- lexical metrics are positive on temporal subset and route-only full merge
-- primary dual `deepseek-v4-flash` judge is missing, so accuracy is unproven
+- lexical metrics are positive on temporal subset and route-only full merge, but remain diagnostic only
+- primary paired temporal dual judge is positive: strict `+7`, lenient `+9`
+- full route-only dual judge is strict-positive but lenient-marginal against current v116 LTS; see `experiments/diagnostic/stage1_route_scoped_local_evidence_unit_v125_locomo_nonadv_full_route_only_merge/manual_diagnosis.md`
 
-Next temporal judge command when `DEEPSEEK_API_KEY` is available:
-
-```bash
-python scripts/judge_predictions_dual_deepseek.py \
-  --predictions outputs/diagnostic/stage1_route_scoped_local_evidence_unit_v125_locomo_temporal_route_all/predictions.jsonl \
-  --labels outputs/prepare_locomo_non_adversarial/labels.jsonl \
-  --output experiments/diagnostic/stage1_route_scoped_local_evidence_unit_v125_locomo_temporal_route_all/deepseek_dual_judge.json \
-  --benchmark locomo \
-  --workers 8 \
-  --progress-every 50
-```
-
-Preferred full route-only judge command:
-
-```bash
-python scripts/judge_predictions_dual_deepseek.py \
-  --predictions outputs/diagnostic/stage1_route_scoped_local_evidence_unit_v125_locomo_nonadv_full_route_only_merge/predictions.jsonl \
-  --labels outputs/prepare_locomo_non_adversarial/labels.jsonl \
-  --output experiments/diagnostic/stage1_route_scoped_local_evidence_unit_v125_locomo_nonadv_full_route_only_merge/deepseek_dual_judge.json \
-  --benchmark locomo \
-  --workers 8 \
-  --progress-every 50
-```
-
-If temporal and route-only full dual judge are positive, then run a clean formal full prediction/judge before considering promotion.
+Next step: run LME compatibility/dry-run and inspect temporal gain/loss badcases before considering a formal full run. V125 is not a new LTS yet because LTS requires fewer risk points and better full dual judge accuracy across the target benchmarks.

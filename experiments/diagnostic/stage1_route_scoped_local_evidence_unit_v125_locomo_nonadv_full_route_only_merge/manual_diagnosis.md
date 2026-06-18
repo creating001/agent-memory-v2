@@ -22,6 +22,8 @@ The merge key set comes from prediction-time route traces only. No labels, judge
 - Predictions: `outputs/diagnostic/stage1_route_scoped_local_evidence_unit_v125_locomo_nonadv_full_route_only_merge/predictions.jsonl`
 - Manifest: `experiments/diagnostic/stage1_route_scoped_local_evidence_unit_v125_locomo_nonadv_full_route_only_merge/manifest.json`
 - Lexical metrics: `experiments/diagnostic/stage1_route_scoped_local_evidence_unit_v125_locomo_nonadv_full_route_only_merge/lexical_metrics.json`
+- Dual judge: `experiments/diagnostic/stage1_route_scoped_local_evidence_unit_v125_locomo_nonadv_full_route_only_merge/deepseek_dual_judge.json`
+- Judge comparison vs V116 LTS: `experiments/diagnostic/stage1_route_scoped_local_evidence_unit_v125_locomo_nonadv_full_route_only_merge/deepseek_judge_comparison_vs_v116_lts.json`
 
 Reproduction command:
 
@@ -67,18 +69,23 @@ Lexical metrics only, not the method-selection metric:
 | V125 route-only merge | `0.242857` | `0.535470` | `0.481605` |
 | V125 full cached with parser repair confound | `0.242857` | `0.535751` | `0.481794` |
 
+## Dual Judge
+
+Dual `deepseek-v4-flash` judge on the route-only full merge:
+
+| predictions | strict | lenient | strict correct | lenient correct |
+|---|---:|---:|---:|---:|
+| V116 current LTS full | `0.779221` | `0.807143` | `1200/1540` | `1243/1540` |
+| V125 route-only merge | `0.789610` | `0.807792` | `1216/1540` | `1244/1540` |
+
+This full diagnostic is strict-positive but lenient-marginal:
+
+- strict delta: `+16/1540`, accuracy `+0.010390`
+- lenient delta: `+1/1540`, accuracy `+0.000649`
+- temporal subset paired judge is stronger evidence for the route change itself: strict `+7`, lenient `+9` on the changed temporal keys
+
 ## Decision
 
-Use this route-only merge as the preferred full diagnostic artifact for later dual `deepseek-v4-flash` judge, because it isolates V125 temporal selected-context behavior. The earlier full cached artifact remains useful for parser-guard diagnostics but is not a pure V125 route-only result.
+Keep V125 as a promising diagnostic candidate, not an LTS replacement yet.
 
-When `DEEPSEEK_API_KEY` is available, run:
-
-```bash
-python scripts/judge_predictions_dual_deepseek.py \
-  --predictions outputs/diagnostic/stage1_route_scoped_local_evidence_unit_v125_locomo_nonadv_full_route_only_merge/predictions.jsonl \
-  --labels outputs/prepare_locomo_non_adversarial/labels.jsonl \
-  --output experiments/diagnostic/stage1_route_scoped_local_evidence_unit_v125_locomo_nonadv_full_route_only_merge/deepseek_dual_judge.json \
-  --benchmark locomo \
-  --workers 8 \
-  --progress-every 50
-```
+The route-only full merge improves strict accuracy and barely improves lenient accuracy. Because the LTS rule requires both fewer risk points and better full dual judge accuracy across target benchmarks, the next step is LME compatibility plus badcase analysis. If LME is neutral or positive and temporal losses are explainable, run a clean formal full prediction/judge before considering promotion.

@@ -67,7 +67,7 @@
 - 已实现改造：新增 `selected_context.max_center_chars`。selected context 现在可以按每条 retrieved turn 判断：只有中心 turn 不太长、且有指代/上下文依赖时补邻居。这样长文本样本中的短指代行仍可补上下文，短文本样本中的长中心行也会跳过。
 - v122 dry-run：继承 v121，只移除 long-turn profile 的 `selected_context.enabled=false`。LME full 编译诊断显示 selected_context 会应用到 `317/500`，avg context chars `+528.594`，avg evidence rows `-2.738`，changed evidence row count `308/500`。结论是不跑 full answer：直接把 short-turn selected context 搬到 long-turn 场景会大范围改变 prompt 并压缩 raw evidence 覆盖。后续应把 profile 改成更通用的 token-budget / evidence-density policy，而不是扩大邻域窗口。
 - v124 dry-run：继承 v121，在 short-turn policy 中加入 `temporal_lookup` 并把 `max_rows` 提到 `10`。LoCoMo full 编译诊断显示 changed `1536/1540`，selected_context applied `1536` vs v116 `1198`，avg context chars `+2101.65`，avg evidence rows `-5.008`。结论是不跑 full answer：全局 local evidence unit 太宽，会影响 fact/list/profile 并压缩 raw rows；下一步改为 `temporal_lookup` route-scoped 小窗口。
-- v125 dry-run/answer 诊断：新增 `retrieval.selected_context.route_overrides.temporal_lookup`，只在 temporal route 加小窗口 local evidence unit。LoCoMo full dry-run 显示只改变 temporal prompt `338/338`，非 temporal route prompt 全部不变，evidence row ids `0/1540` 改变；temporal avg context chars `+1688.524`。temporal route-all answer 诊断 lexical exact/F1/BLEU1 从 v116 `0.186391/0.468985/0.436853` 到 v125 `0.215976/0.505710/0.471056`，exact gain/loss `13/3`。但当前环境缺少 `DEEPSEEK_API_KEY`，v125 dual flash 主指标未跑，因此只能保留为待 judge 候选。
+- v125 dry-run/answer/judge 诊断：新增 `retrieval.selected_context.route_overrides.temporal_lookup`，只在 temporal route 加小窗口 local evidence unit。LoCoMo full dry-run 显示只改变 temporal prompt `338/338`，非 temporal route prompt 全部不变，evidence row ids `0/1540` 改变；temporal avg context chars `+1688.524`。temporal paired dual judge strict/lenient 从 v116 `0.772189/0.786982` 到 v125 `0.792899/0.813609`，净 strict `+7`、lenient `+9`。full route-only strict/lenient 从 v116 LTS `0.779221/0.807143` 到 v125 `0.789610/0.807792`，strict 正向但 lenient 仅 `+1/1540`。结论：保留为 promising diagnostic，需 LME compatibility 和 badcase 分析，不能直接升 LTS。
 - v128 dry-run/answer 诊断：继承 v127，只在 `long_turn_precision` profile 的 `profile_preference/current_state` 路由启用已有 per-row selected-context policy，用 route + anaphora/center-length 替代全 profile disable。LME 只改变 `37/500` prompts，fact/list/temporal 不变；LoCoMo changed prompt/rows/context 为 `0/1540`。LME changed-prompt answer 诊断 exact 持平 `0.351351`，F1/BLEU1 小幅上升，但 avg query tokens `6480.730` 超 6K normal target；full route-only exact 也持平 `0.428000`。结论：这是 clean 的结构证据，说明可以把 v122 的宽影响收窄，但没有 accuracy gain，不升级、不优先 judge。
 
 4. Mechanical finalizer 风险
@@ -918,8 +918,10 @@ answer 诊断：
 - Avg build/query tokens `60931.935 / 5395.908`。
 - Build cache hit/miss/write `2680/0/0`；answer cache hit/miss/write `1/337/337`。
 - Answer changed vs v116 temporal subset `127/338`；finalizer applied `0`。
-- V116 same-subset existing dual flash baseline：strict/lenient `0.769231 / 0.789941`。
-- V125 paired dual flash 主指标仍待补。
+- Fresh paired dual flash on the same 338 temporal keys：
+  - V116 strict/lenient `0.772189 / 0.786982`，`261/338` strict correct、`266/338` lenient correct。
+  - V125 strict/lenient `0.792899 / 0.813609`，`268/338` strict correct、`275/338` lenient correct。
+  - Paired gain/loss：strict `19/12`，lenient `19/10`，净 strict `+7`、lenient `+9`。
 - 辅助 lexical exact/F1/BLEU1：v116 temporal subset `0.186391 / 0.468985 / 0.436853`，v125 `0.215976 / 0.505710 / 0.471056`；exact gain/loss `13/3`。
 
 full cached artifact：
@@ -939,8 +941,9 @@ route-only full merge：
 - 相对 v116 changed answer `127/1540`，全部是 `temporal_lookup`。
 - Exact gain/loss `13/3`。
 - Full lexical exact/F1/BLEU1：v116 `0.236364 / 0.527409 / 0.474098`，v125 route-only merge `0.242857 / 0.535470 / 0.481605`。
+- Full route-only dual judge：v116 current LTS strict/lenient `0.779221 / 0.807143`，v125 route-only merge `0.789610 / 0.807792`；strict `+16/1540`，lenient `+1/1540`。
 
-结论：v125 通过 scope/cost 诊断，且辅助 lexical 正向；但 primary dual `deepseek-v4-flash` accuracy 缺失，不能升级 LTS。补 temporal 和 route-only full judge 后再决定是否跑/合并 full formal。
+结论：v125 通过 scope/cost 诊断，LoCoMo temporal paired judge 明确正向，full route-only strict 正向但 lenient 只小幅 `+1/1540`。它是当前更强的 promising diagnostic candidate，但不能直接升级 LTS；下一步必须做 LME compatibility 和 temporal gain/loss badcase 分析，确认风险点减少且 target benchmarks 不退步后再跑 clean formal full。
 
 ## v133/v134 diagnostic result: fact tail text budget
 
