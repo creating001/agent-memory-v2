@@ -61,6 +61,7 @@ Paired judge gain/loss:
 - strict `19/12`, net `+7`
 - lenient `19/10`, net `+9`
 - comparison and changed records: `experiments/diagnostic/stage1_route_scoped_local_evidence_unit_v125_locomo_temporal_route_all/paired_judge_comparison_vs_v116.json`
+- badcase analysis: `experiments/diagnostic/stage1_route_scoped_local_evidence_unit_v125_locomo_temporal_route_all/temporal_gain_loss_badcase_analysis.md`
 
 Lexical metrics only, not the method-selection metric:
 
@@ -146,4 +147,6 @@ Evidence so far:
 - full route-only dual judge is strict-positive but lenient-marginal against current v116 LTS; see `experiments/diagnostic/stage1_route_scoped_local_evidence_unit_v125_locomo_nonadv_full_route_only_merge/manual_diagnosis.md`
 - LME compiler compatibility passed in null-answer dry-run: `0/500` prompt changes, `0/500` evidence-row changes, route unchanged, avg context delta `0.0`; see `experiments/diagnostic/stage1_route_scoped_local_evidence_unit_v125_lme_dry/manual_diagnosis.md`
 
-Next step: inspect temporal gain/loss badcases and prove answer/finalizer compatibility on LongMemEval before considering a formal full run. V125 is not a new LTS yet because LTS requires fewer risk points and better full dual judge accuracy across the target benchmarks.
+Badcase analysis shows that gains come from resolving temporal anaphora and event-vs-mention-time anchors, while losses come from over-shifted relative dates, false insufficiency, contradictory answer wrappers, and a small number of long-output outliers.
+
+Next step: design a narrower temporal local-context policy and prove answer/finalizer compatibility on LongMemEval before considering a formal full run. V125 is not a new LTS yet because LTS requires fewer risk points and better full dual judge accuracy across the target benchmarks.

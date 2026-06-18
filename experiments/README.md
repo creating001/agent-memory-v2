@@ -25,7 +25,7 @@
 
 | 优先级 | 项目 | 当前状态 | 下一步 |
 |---:|---|---|---|
-| 1 | `v125` temporal local evidence unit | Temporal subset paired judge strict/lenient `0.772189/0.786982 -> 0.792899/0.813609`；full route-only strict/lenient `0.779221/0.807143 -> 0.789610/0.807792`；LME compiler dry-run `0/500` prompt/row change | 做 temporal badcase 分析和 LME answer/finalizer compatibility；若不退步再跑 clean formal full |
+| 1 | `v125` temporal local evidence unit | Temporal subset paired judge strict/lenient `0.772189/0.786982 -> 0.792899/0.813609`；full route-only strict/lenient `0.779221/0.807143 -> 0.789610/0.807792`；LME compiler dry-run `0/500` prompt/row change；badcase 显示收益来自时间锚点，损失来自过度推断/拒答/矛盾表述 | 设计更窄 temporal local-context policy，并补 LME answer/finalizer compatibility |
 | 2 | `v126` profile/current memory source interleave | LoCoMo profile/current route-all exact `0.320000 -> 0.360000`；full route-only exact 高于 v125 | 补 paired dual judge；若 LME judge 不正向则停止 |
 | 3 | `v127` superseded source chain | LME full route-only lexical exact `0.426000 -> 0.428000`；LoCoMo exact 持平、F1/BLEU 小升 | 补 paired dual judge，并重点看 update/profile badcase |
 | 4 | `v129` route-scoped char budget | LME/LoCoMo full route-only lexical 小正向；LoCoMo changed-subset query 仍 `6112.337` | 作为 token-budget 对照保留；优先级低于 evidence organization 候选 |
@@ -35,7 +35,7 @@
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
 | `configs/stage1_route_scoped_fact_profile_state_budget_v129_qwen36_no_think_build4k_cached.json` | token-budget | LME full route-only exact `0.428000 -> 0.430000`；LoCoMo `0.244156 -> 0.245455` | Narrow positive diagnostic；作为 v134 父对照 |
-| `configs/stage1_route_scoped_local_evidence_unit_v125_qwen36_no_think_build4k_cached.json` | temporal context | 只改变 LoCoMo temporal prompts `338/338`；temporal paired dual judge strict/lenient `0.772189/0.786982 -> 0.792899/0.813609`；full route-only strict/lenient `0.779221/0.807143 -> 0.789610/0.807792`；LME compiler dry-run `0/500` prompt/row change | Promising diagnostic；需 temporal badcase 和 LME answer/finalizer compatibility，未升 LTS |
+| `configs/stage1_route_scoped_local_evidence_unit_v125_qwen36_no_think_build4k_cached.json` | temporal context | 只改变 LoCoMo temporal prompts `338/338`；temporal paired dual judge strict/lenient `0.772189/0.786982 -> 0.792899/0.813609`；full route-only strict/lenient `0.779221/0.807143 -> 0.789610/0.807792`；LME compiler dry-run `0/500` prompt/row change | Promising diagnostic；badcase 已完成，需更窄 policy 和 LME answer/finalizer compatibility，未升 LTS |
 | `configs/stage1_memory_source_interleave_v126_qwen36_no_think_build4k_cached.json` | memory organization | LoCoMo profile/current exact `0.320000 -> 0.360000`；LME exact 持平但 F1/BLEU 轻降 | Narrow diagnostic；待 judge |
 | `configs/stage1_superseded_source_chain_v127_qwen36_no_think_build4k_cached.json` | memory/state chain | LME full route-only exact `0.426000 -> 0.428000`；LoCoMo exact 持平、F1/BLEU 小升 | Narrow diagnostic；待 judge |
 | `configs/stage1_source_grounded_guard_v121_qwen36_no_think_build4k_cached.json` | clean/general cleanup | 收窄 broad mechanical finalizer 为 source-grounded consistency guard；不宣称提分 | 保留为风险收敛改动 |
@@ -104,6 +104,7 @@
 | `diagnostic/stage1_fact_tail_filter_preserve_order_v132_summary.md` | v132 hard row pruning 负向诊断 |
 | `diagnostic/stage1_route_scoped_fact_profile_state_budget_v129_summary.md` | v129 route-scoped char budget 诊断 |
 | `diagnostic/stage1_route_scoped_local_evidence_unit_v125_lme_dry/` | v125 LongMemEval compiler compatibility dry-run |
+| `diagnostic/stage1_route_scoped_local_evidence_unit_v125_locomo_temporal_route_all/temporal_gain_loss_badcase_analysis.md` | v125 temporal paired judge gain/loss badcase 分析 |
 | `diagnostic/stage1_long_profile_profile_state_selected_context_v128_summary.md` | v128 selected-context generalization 审计 |
 | `diagnostic/stage1_superseded_source_chain_v127_summary.md` | v127 superseded source chain 诊断 |
 | `diagnostic/stage1_memory_source_interleave_v126_profile_state_summary.md` | v126 profile/current source interleave 诊断 |

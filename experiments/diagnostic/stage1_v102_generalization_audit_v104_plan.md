@@ -67,7 +67,7 @@
 - 已实现改造：新增 `selected_context.max_center_chars`。selected context 现在可以按每条 retrieved turn 判断：只有中心 turn 不太长、且有指代/上下文依赖时补邻居。这样长文本样本中的短指代行仍可补上下文，短文本样本中的长中心行也会跳过。
 - v122 dry-run：继承 v121，只移除 long-turn profile 的 `selected_context.enabled=false`。LME full 编译诊断显示 selected_context 会应用到 `317/500`，avg context chars `+528.594`，avg evidence rows `-2.738`，changed evidence row count `308/500`。结论是不跑 full answer：直接把 short-turn selected context 搬到 long-turn 场景会大范围改变 prompt 并压缩 raw evidence 覆盖。后续应把 profile 改成更通用的 token-budget / evidence-density policy，而不是扩大邻域窗口。
 - v124 dry-run：继承 v121，在 short-turn policy 中加入 `temporal_lookup` 并把 `max_rows` 提到 `10`。LoCoMo full 编译诊断显示 changed `1536/1540`，selected_context applied `1536` vs v116 `1198`，avg context chars `+2101.65`，avg evidence rows `-5.008`。结论是不跑 full answer：全局 local evidence unit 太宽，会影响 fact/list/profile 并压缩 raw rows；下一步改为 `temporal_lookup` route-scoped 小窗口。
-- v125 dry-run/answer/judge 诊断：新增 `retrieval.selected_context.route_overrides.temporal_lookup`，只在 temporal route 加小窗口 local evidence unit。LoCoMo full dry-run 显示只改变 temporal prompt `338/338`，非 temporal route prompt 全部不变，evidence row ids `0/1540` 改变；temporal avg context chars `+1688.524`。temporal paired dual judge strict/lenient 从 v116 `0.772189/0.786982` 到 v125 `0.792899/0.813609`，净 strict `+7`、lenient `+9`。full route-only strict/lenient 从 v116 LTS `0.779221/0.807143` 到 v125 `0.789610/0.807792`，strict 正向但 lenient 仅 `+1/1540`。LME null-answer compiler compatibility 显示 `0/500` prompt changes、`0/500` evidence-row changes、route unchanged、avg context delta `0.0`；但 v125 finalizer 继承 v121 `source_grounded_consistency_guard`，仍需 answer/finalizer compatibility 或 formal full run。结论：保留为 promising diagnostic，需 temporal badcase 分析和 LME answer/finalizer 证明，不能直接升 LTS。
+- v125 dry-run/answer/judge 诊断：新增 `retrieval.selected_context.route_overrides.temporal_lookup`，只在 temporal route 加小窗口 local evidence unit。LoCoMo full dry-run 显示只改变 temporal prompt `338/338`，非 temporal route prompt 全部不变，evidence row ids `0/1540` 改变；temporal avg context chars `+1688.524`。temporal paired dual judge strict/lenient 从 v116 `0.772189/0.786982` 到 v125 `0.792899/0.813609`，净 strict `+7`、lenient `+9`。full route-only strict/lenient 从 v116 LTS `0.779221/0.807143` 到 v125 `0.789610/0.807792`，strict 正向但 lenient 仅 `+1/1540`。LME null-answer compiler compatibility 显示 `0/500` prompt changes、`0/500` evidence-row changes、route unchanged、avg context delta `0.0`。Badcase 显示收益来自 temporal anaphora / event-vs-mention-time anchors，损失来自过度相对时间推断、false insufficiency、矛盾 answer wrapper 和少数长输出 outlier；但 v125 finalizer 继承 v121 `source_grounded_consistency_guard`，仍需 answer/finalizer compatibility 或 formal full run。结论：保留为 promising diagnostic，下一步做更窄 temporal local-context policy 和 LME answer/finalizer 证明，不能直接升 LTS。
 - v128 dry-run/answer 诊断：继承 v127，只在 `long_turn_precision` profile 的 `profile_preference/current_state` 路由启用已有 per-row selected-context policy，用 route + anaphora/center-length 替代全 profile disable。LME 只改变 `37/500` prompts，fact/list/temporal 不变；LoCoMo changed prompt/rows/context 为 `0/1540`。LME changed-prompt answer 诊断 exact 持平 `0.351351`，F1/BLEU1 小幅上升，但 avg query tokens `6480.730` 超 6K normal target；full route-only exact 也持平 `0.428000`。结论：这是 clean 的结构证据，说明可以把 v122 的宽影响收窄，但没有 accuracy gain，不升级、不优先 judge。
 
 4. Mechanical finalizer 风险
@@ -953,6 +953,16 @@ LME compatibility dry-run：
 - 边界：v125 继承 v121 `source_grounded_consistency_guard`，v116 LTS 使用 `structured_evidence_mechanical`；dry-run 未证明 answer/finalizer compatibility。
 
 结论：v125 通过 scope/cost 诊断，LoCoMo temporal paired judge 明确正向，full route-only strict 正向但 lenient 只小幅 `+1/1540`，并且 LME compiler compatibility 已通过。它是当前更强的 promising diagnostic candidate，但不能直接升级 LTS；下一步必须做 temporal gain/loss badcase 分析和 LME answer/finalizer compatibility，确认风险点减少且 target benchmarks 不退步后再跑 clean formal full。
+
+temporal gain/loss badcase：
+
+- 记录：`experiments/diagnostic/stage1_route_scoped_local_evidence_unit_v125_locomo_temporal_route_all/temporal_gain_loss_badcase_analysis.md`。
+- Changed answers `132/338`。
+- Lenient changed-answer buckets：both correct `76`，both wrong `27`，gain `19`，loss `10`；同答案 judge variance lenient gain/loss 各 `1`，净为 `0`。
+- Gain pattern：local context 给短 turn 补时间锚点、指代 antecedent 和 event-vs-mention-time 区分。
+- Loss pattern：local context 会导致 false insufficiency、relative-time over-shift、duration arithmetic regression、以及类似 `Two weekends after ... (June 11-12)` 的矛盾表述。
+- Cost pattern：changed-answer loss 子集 V125 avg query `7699.900`，有 `2` 条超 `8K` outlier，最高 `21404`；temporal 全集 avg query `5395.908` 仍在 6K normal target 内。
+- 决策：不扩宽 local context。下一候选应做 self-containedness gate / evidence-density scoring，只在邻居确实补时间锚点、实体指代或 antecedent 时 materialize，并加入通用 answer consistency 约束，避免矛盾 wrapper。
 
 ## v133/v134 diagnostic result: fact tail text budget
 
