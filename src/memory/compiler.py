@@ -388,6 +388,7 @@ class EvidenceCompiler:
             "memory_aware",
             "source_anchor_coverage",
             "memory_source_interleave",
+            "memory_version_chain_interleave",
             "memory_tail_filter_preserve_order",
         }:
             raise ValueError(f"Unsupported evidence_order: {evidence_order}")
@@ -795,6 +796,7 @@ def _validate_route_overrides(
                 "memory_aware",
                 "source_anchor_coverage",
                 "memory_source_interleave",
+                "memory_version_chain_interleave",
                 "memory_tail_filter_preserve_order",
             }:
                 raise ValueError(f"Unsupported evidence_order: {evidence_order}")
@@ -930,6 +932,7 @@ def _order_rows(
         "memory_aware",
         "source_anchor_coverage",
         "memory_source_interleave",
+        "memory_version_chain_interleave",
         "memory_tail_filter_preserve_order",
     }:
         raise ValueError(f"Unsupported evidence_order: {evidence_order}")
@@ -948,6 +951,17 @@ def _order_rows(
         )
     if evidence_order == "memory_source_interleave":
         return _memory_source_interleave_order(
+            rows,
+            question_terms=question_terms,
+            route=route,
+            memory_records=memory_records,
+            anchor_keep=source_anchor_keep,
+            memory_rows=source_anchor_memory_rows,
+            per_session=source_anchor_per_session,
+            session_rows=source_anchor_session_rows,
+        )
+    if evidence_order == "memory_version_chain_interleave":
+        return _memory_version_chain_interleave_order(
             rows,
             question_terms=question_terms,
             route=route,
@@ -1069,6 +1083,212 @@ def _memory_source_interleave_order(
     for row in rows:
         add(row)
     return tuple(selected)
+
+
+def _memory_version_chain_interleave_order(
+    rows: tuple[EvidenceRow, ...],
+    *,
+    question_terms: frozenset[str],
+    route: RouteResult,
+    memory_records: tuple[MemoryRecord, ...],
+    anchor_keep: int,
+    memory_rows: int,
+    per_session: int,
+    session_rows: int,
+) -> tuple[EvidenceRow, ...]:
+    if not rows or not memory_records:
+        return rows
+
+    row_by_source = {row.source_id: row for row in rows}
+    chains = _visible_version_chains(
+        memory_records,
+        row_by_source=row_by_source,
+        question_terms=question_terms,
+        route=route,
+    )
+    if not chains:
+        return _memory_source_interleave_order(
+            rows,
+            question_terms=question_terms,
+            route=route,
+            memory_records=memory_records,
+            anchor_keep=anchor_keep,
+            memory_rows=memory_rows,
+            per_session=per_session,
+            session_rows=session_rows,
+        )
+
+    selected: list[EvidenceRow] = []
+    seen: set[str] = set()
+    memory_anchor_sessions: list[str] = []
+    memory_session_counts: dict[str, int] = {}
+
+    def add(row: EvidenceRow, *, memory_anchor: bool = False) -> bool:
+        if row.source_id in seen:
+            return False
+        seen.add(row.source_id)
+        selected.append(row)
+        if memory_anchor and row.session_id not in memory_anchor_sessions:
+            memory_anchor_sessions.append(row.session_id)
+        return True
+
+    for row in rows[:anchor_keep]:
+        add(row)
+
+    added_memory_rows = 0
+    for chain in chains:
+        for source_id in chain["source_ids"]:
+            row = row_by_source.get(source_id)
+            if row is None:
+                continue
+            if (
+                per_session > 0
+                and memory_session_counts.get(row.session_id, 0) >= per_session
+            ):
+                continue
+            if add(row, memory_anchor=True):
+                memory_session_counts[row.session_id] = (
+                    memory_session_counts.get(row.session_id, 0) + 1
+                )
+                added_memory_rows += 1
+                if memory_rows > 0 and added_memory_rows >= memory_rows:
+                    break
+        if memory_rows > 0 and added_memory_rows >= memory_rows:
+            break
+
+    if session_rows > 0:
+        session_counts: dict[str, int] = {}
+        for session_id in memory_anchor_sessions:
+            for row in rows:
+                if row.session_id != session_id:
+                    continue
+                if session_counts.get(session_id, 0) >= session_rows:
+                    break
+                if add(row):
+                    session_counts[session_id] = session_counts.get(session_id, 0) + 1
+
+    for row in rows:
+        add(row)
+    return tuple(selected)
+
+
+def _visible_version_chains(
+    memory_records: tuple[MemoryRecord, ...],
+    *,
+    row_by_source: Mapping[str, EvidenceRow],
+    question_terms: frozenset[str],
+    route: RouteResult,
+) -> tuple[dict[str, Any], ...]:
+    groups: dict[tuple[str, str, str], list[tuple[int, MemoryRecord]]] = {}
+    for index, record in enumerate(memory_records):
+        key = _version_chain_key(record, route)
+        if key is None:
+            continue
+        if not any(source_id in row_by_source for source_id in record.source_ids):
+            continue
+        groups.setdefault(key, []).append((index, record))
+
+    chains: list[dict[str, Any]] = []
+    for records_with_index in groups.values():
+        if len(records_with_index) <= 1:
+            continue
+        values = {
+            _normalize_memory_value(record)
+            for _index, record in records_with_index
+            if _normalize_memory_value(record)
+        }
+        statuses = {record.status for _index, record in records_with_index}
+        if len(values) <= 1 and "superseded" not in statuses:
+            continue
+
+        ordered_records = sorted(
+            records_with_index,
+            key=lambda item: _version_record_sort_key(item[0], item[1], route),
+        )
+        source_ids: list[str] = []
+        for _index, record in ordered_records:
+            for source_id in record.source_ids:
+                if source_id not in row_by_source or source_id in source_ids:
+                    continue
+                source_ids.append(source_id)
+        if not source_ids:
+            continue
+
+        score = max(
+            _version_record_score(record, question_terms=question_terms, route=route)
+            for _index, record in records_with_index
+        )
+        first_rank = min(
+            (
+                row_by_source[source_id].retrieval_rank
+                for source_id in source_ids
+                if row_by_source[source_id].retrieval_rank is not None
+            ),
+            default=1_000_000,
+        )
+        chains.append(
+            {
+                "score": score,
+                "first_rank": first_rank,
+                "source_ids": tuple(source_ids),
+            }
+        )
+
+    return tuple(
+        sorted(
+            chains,
+            key=lambda chain: (
+                -chain["score"],
+                chain["first_rank"],
+                chain["source_ids"],
+            ),
+        )
+    )
+
+
+def _version_chain_key(
+    record: MemoryRecord,
+    route: RouteResult,
+) -> tuple[str, str, str] | None:
+    if route.information_need not in {"current_state", "profile_preference"}:
+        return None
+    if record.memory_type not in {"state", "profile", "preference", "relationship"}:
+        return None
+    subject = _normalize_version_text(record.subject)
+    predicate = _normalize_version_text(record.predicate)
+    if not subject or not predicate:
+        return None
+    return (record.memory_type, subject, predicate)
+
+
+def _version_record_sort_key(
+    index: int,
+    record: MemoryRecord,
+    route: RouteResult,
+) -> tuple[int, str, int]:
+    status_rank = 0 if record.status == "active" else 1
+    time_key = _memory_timestamp_sort_key(record.valid_from or record.timestamp, route)
+    return (status_rank, time_key, index)
+
+
+def _version_record_score(
+    record: MemoryRecord,
+    *,
+    question_terms: frozenset[str],
+    route: RouteResult,
+) -> float:
+    record_terms = _content_terms(record.search_text)
+    overlap = len(question_terms.intersection(record_terms))
+    status_bonus = 0.4 if record.status == "active" else 0.15
+    return overlap + _memory_type_bonus(record, route) + status_bonus
+
+
+def _normalize_memory_value(record: MemoryRecord) -> str:
+    return _normalize_version_text(record.value or record.text)
+
+
+def _normalize_version_text(value: str) -> str:
+    return " ".join(str(value).lower().strip().split())
 
 
 def _source_anchor_coverage_order(

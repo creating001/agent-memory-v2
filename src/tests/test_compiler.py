@@ -259,6 +259,110 @@ class CompilerTest(unittest.TestCase):
         self.assertNotIn("Managed Memory State Guide:", compiled.prompt)
         self.assertNotIn("jasmine tea", compiled.prompt)
 
+    def test_memory_version_chain_interleave_groups_active_and_superseded_source_rows(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=5,
+            max_evidence_chars=8000,
+            prompt_mode="external_naive",
+            max_memory_records=0,
+            route_overrides={
+                "current_state": {
+                    "evidence_order": "memory_version_chain_interleave",
+                    "source_anchor_keep": 1,
+                    "source_anchor_memory_rows": 3,
+                }
+            },
+        )
+
+        turns_by_id = {
+            "s1:t0": Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text="We talked about unrelated moving logistics.",
+                timestamp="2024-01-01",
+            ),
+            "s1:t1": Turn(
+                source_id="s1:t1",
+                session_id="s1",
+                turn_index=1,
+                role="user",
+                text="I live in Austin.",
+                timestamp="2024-01-02",
+            ),
+            "s1:t2": Turn(
+                source_id="s1:t2",
+                session_id="s1",
+                turn_index=2,
+                role="user",
+                text="The weather was rainy.",
+                timestamp="2024-01-03",
+            ),
+            "s1:t3": Turn(
+                source_id="s1:t3",
+                session_id="s1",
+                turn_index=3,
+                role="user",
+                text="I moved to Seattle last month.",
+                timestamp="2024-04-01",
+            ),
+            "s1:t4": Turn(
+                source_id="s1:t4",
+                session_id="s1",
+                turn_index=4,
+                role="assistant",
+                text="General advice about moving.",
+                timestamp="2024-04-02",
+            ),
+        }
+        evidence_order = ("s1:t0", "s1:t2", "s1:t4", "s1:t1", "s1:t3")
+
+        compiled = compiler.compile(
+            question="Where does Alex live now?",
+            question_time=None,
+            route=RouteResult("current_state", ("current_state",)),
+            hits=tuple(
+                RetrievalHit(source_id, 1.0 / (rank + 1), rank + 1, "test")
+                for rank, source_id in enumerate(evidence_order)
+            ),
+            evidence_turns=tuple(turns_by_id[source_id] for source_id in evidence_order),
+            memory_records=(
+                MemoryRecord(
+                    memory_id="old",
+                    memory_type="state",
+                    text="Alex lives in Austin.",
+                    source_ids=("s1:t1",),
+                    subject="Alex",
+                    predicate="lives_in",
+                    value="Austin",
+                    timestamp="2024-01-02",
+                    status="superseded",
+                    superseded_by="new",
+                ),
+                MemoryRecord(
+                    memory_id="new",
+                    memory_type="state",
+                    text="Alex lives in Seattle.",
+                    source_ids=("s1:t3",),
+                    subject="Alex",
+                    predicate="lives_in",
+                    value="Seattle",
+                    timestamp="2024-04-01",
+                    status="active",
+                ),
+            ),
+        )
+
+        self.assertEqual(
+            [row.source_id for row in compiled.evidence_rows],
+            ["s1:t0", "s1:t3", "s1:t1", "s1:t2", "s1:t4"],
+        )
+        self.assertNotIn("Managed Memory State Guide:", compiled.prompt)
+        self.assertNotIn("value=Seattle", compiled.prompt)
+        self.assertIn("I moved to Seattle last month.", compiled.prompt)
+        self.assertIn("I live in Austin.", compiled.prompt)
+
     def test_candidate_guide_includes_only_source_linked_memory_hints(self) -> None:
         compiler = EvidenceCompiler(
             max_evidence_items=4,
