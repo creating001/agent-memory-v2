@@ -67,6 +67,11 @@ class Stage1Pipeline:
         if self._config.get("question_analysis", {}).get("enabled", False):
             raise ValueError("question_analysis is retired; use heuristic route")
         compiler_config = self._config.get("compiler", {})
+        compiler_context_pressure_config = compiler_config.get(
+            "context_pressure", {}
+        )
+        if not isinstance(compiler_context_pressure_config, Mapping):
+            raise ValueError("compiler.context_pressure must be an object")
         answer_config = self._config.get("answer", {})
         answer_finalizer_config = answer_config.get("finalizer", {})
         answer_repair_config = answer_config.get("repair", {})
@@ -595,6 +600,28 @@ class Stage1Pipeline:
         self._compiler_memory_record_source = _validate_memory_record_source(
             str(compiler_config.get("memory_record_source", "retrieval"))
         )
+        self._compiler_context_pressure_enabled = bool(
+            compiler_context_pressure_config.get("enabled", False)
+        )
+        self._compiler_context_pressure_max_headroom_chars = int(
+            compiler_context_pressure_config.get("max_headroom_chars", 0)
+        )
+        self._compiler_context_pressure_overrides = _dict_config(
+            compiler_context_pressure_config.get("compiler") or {}
+        )
+        self._compiler_context_pressure_compiler = _configured_compiler(
+            _merged_config(
+                compiler_config,
+                self._compiler_context_pressure_overrides,
+            )
+        )
+        self._compiler_context_pressure_trace_config = _compiler_trace_config(
+            _merged_config(
+                compiler_config,
+                self._compiler_context_pressure_overrides,
+            ),
+            memory_record_source=self._compiler_memory_record_source,
+        )
         self._compiler_trace_config = _compiler_trace_config(
             compiler_config,
             memory_record_source=self._compiler_memory_record_source,
@@ -602,6 +629,27 @@ class Stage1Pipeline:
         self._granularity_compilers = {
             profile["name"]: _configured_compiler(
                 _merged_config(compiler_config, profile["compiler"])
+            )
+            for profile in self._granularity_profiles
+            if profile.get("compiler")
+        }
+        self._granularity_context_pressure_compilers = {
+            profile["name"]: _configured_compiler(
+                _merged_config(
+                    _merged_config(compiler_config, profile["compiler"]),
+                    self._compiler_context_pressure_overrides,
+                )
+            )
+            for profile in self._granularity_profiles
+            if profile.get("compiler")
+        }
+        self._granularity_context_pressure_trace_configs = {
+            profile["name"]: _compiler_trace_config(
+                _merged_config(
+                    _merged_config(compiler_config, profile["compiler"]),
+                    self._compiler_context_pressure_overrides,
+                ),
+                memory_record_source=self._compiler_memory_record_source,
             )
             for profile in self._granularity_profiles
             if profile.get("compiler")
@@ -1059,6 +1107,29 @@ class Stage1Pipeline:
             str(profile_name),
             self._compiler,
         )
+        compiler_trace_config = self._granularity_compiler_trace_configs.get(
+            str(profile_name),
+            self._compiler_trace_config,
+        )
+        compiler_context_pressure = _compiler_context_pressure_trace(
+            enabled=self._compiler_context_pressure_enabled,
+            max_headroom_chars=(
+                self._compiler_context_pressure_max_headroom_chars
+            ),
+            overrides=self._compiler_context_pressure_overrides,
+            context_budget_trace=context_budget_trace,
+        )
+        if compiler_context_pressure["applied"]:
+            compiler = self._granularity_context_pressure_compilers.get(
+                str(profile_name),
+                self._compiler_context_pressure_compiler,
+            )
+            compiler_trace_config = (
+                self._granularity_context_pressure_trace_configs.get(
+                    str(profile_name),
+                    self._compiler_context_pressure_trace_config,
+                )
+            )
         compiled = compiler.compile(
             question=request.question,
             question_time=request.question_time,
@@ -1109,10 +1180,6 @@ class Stage1Pipeline:
                 token_usage=answer.token_usage,
                 raw_response=answer.raw_response,
             )
-        compiler_trace_config = self._granularity_compiler_trace_configs.get(
-            str(profile_name),
-            self._compiler_trace_config,
-        )
         token_usage = built_memory.token_usage + answer.token_usage
         return {
             "answer": answer.answer,
@@ -1335,6 +1402,7 @@ class Stage1Pipeline:
                 },
                 "compiled_context": compiled.to_dict(),
                 "compiler": compiler_trace_config,
+                "compiler_context_pressure": compiler_context_pressure,
                 "answer_cache": _answer_cache_delta(
                     answer_cache_before,
                     answer_cache_after,
@@ -2106,6 +2174,41 @@ def _selected_context_budget_gate(
     trace["budget_gate_allowed"] = False
     trace["budget_gate_reason"] = "insufficient_headroom"
     return False, trace
+
+
+def _compiler_context_pressure_trace(
+    *,
+    enabled: bool,
+    max_headroom_chars: int,
+    overrides: Mapping[str, Any],
+    context_budget_trace: Mapping[str, Any],
+) -> dict[str, Any]:
+    threshold = max(0, int(max_headroom_chars))
+    trace: dict[str, Any] = {
+        "enabled": enabled,
+        "applied": False,
+        "reason": "disabled" if not enabled else "not_under_pressure",
+        "max_headroom_chars": threshold,
+        "headroom_chars": None,
+        "context_budget_estimated_chars": (
+            context_budget_trace.get("estimated_chars")
+        ),
+        "context_budget_max_chars": context_budget_trace.get("max_chars"),
+        "compiler_overrides": dict(overrides),
+    }
+    if not enabled:
+        return trace
+    if not context_budget_trace.get("applied"):
+        trace["reason"] = "no_context_budget"
+        return trace
+    max_chars = int(context_budget_trace.get("max_chars") or 0)
+    estimated_chars = int(context_budget_trace.get("estimated_chars") or 0)
+    headroom = max_chars - estimated_chars
+    trace["headroom_chars"] = headroom
+    if headroom <= threshold:
+        trace["applied"] = True
+        trace["reason"] = "low_headroom"
+    return trace
 
 
 def _embedding_cache_stats(client: object) -> dict[str, int] | None:

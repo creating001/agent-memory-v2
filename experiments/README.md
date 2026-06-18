@@ -25,7 +25,7 @@
 
 | 优先级 | 项目 | 当前状态 | 下一步 |
 |---:|---|---|---|
-| 1 | #1 granularity/profile generalization + #2/#3 context budget | v138 已移除 average-turn granularity profile，并进一步收紧 query-time raw context budget | 先看 dry-run 是否同时清除 profile 分支、降低长上下文 context chars，并保留短上下文 selected_context，再决定是否跑正式 judge |
+| 1 | #1 granularity/profile generalization + #2/#3 context pressure | v139 已移除 average-turn granularity profile，并用 query-time pressure 同时控制 retrieval、selected_context 和 compiler | 先看 dry-run 是否降低长上下文 context chars、保留短上下文 selected_context，再决定是否跑正式 judge |
 | 2 | #5 memory management/state/conflict/query-time reasoning | v127/v136 仍主要把 typed memory 用作 source-backed retrieval/organization signal | 下一轮应探索更主动的 memory build/management/update/conflict 机制，不能只继续堆 source-order 小变体 |
 | 3 | src cleanup | 已删除无用 scoped evidence 分支；`repair.py` 暂保留为 verifier/guardrail 资产 | 后续随实验节奏继续删确认无用的兼容代码，不删仍有消融或守护价值的模块 |
 
@@ -34,7 +34,7 @@
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
 | `configs/stage1_superseded_source_chain_v127_qwen36_no_think_build4k_cached.json` | current LTS | 继承 v125；v126 LoCoMo profile/current `+4/+4`、LME `-1/-1`，v127 changed prompts LME `+2/+2`、LoCoMo `+1/+2`；aggregate LME strict/lenient `0.814000/0.836000`，LoCoMo `0.792857/0.811688` | 当前本地 LTS；降低 #5，并继承 #4/#3 风险收敛；#1/#2 保留为优先风险 |
-| `configs/stage1_tighter_context_budget_v138_qwen36_no_think_build4k_cached.json` | diagnostic candidate | 继承 v137 no-profile + selected_context headroom gate，并把 raw context budget 收到 `16000` chars / `protect_top_n=20` / `min_hits=16` | 目标是降低 #1/#2/#3；尚未跑 full dual judge，不能按性能晋升 LTS |
+| `configs/stage1_context_pressure_compiler_v139_qwen36_no_think_build4k_cached.json` | diagnostic candidate | 继承 v138 no-profile/retrieval budget/selected_context gate，并新增低 headroom compiler pressure cap `36` rows / `16000` chars | 目标是降低 #1/#2/#3；尚未跑 full dual judge，不能按性能晋升 LTS |
 | `configs/stage1_route_scoped_local_evidence_unit_v125_qwen36_no_think_build4k_cached.json` | previous LTS | LoCoMo temporal paired dual judge strict/lenient `0.772189/0.786982 -> 0.792899/0.813609`；full route-only strict/lenient `0.789610/0.807792`；LME 兼容继承 v116 `0.812000/0.834000` | 被 v127 替代：v127 在保持 clean/source-backed 机制的同时降低 #5 build-memory organization 风险并提升 inherited aggregate |
 | `configs/stage1_route_scoped_fact_profile_state_budget_v129_qwen36_no_think_build4k_cached.json` | token-budget | LME full route-only exact `0.428000 -> 0.430000`；LoCoMo `0.244156 -> 0.245455` | Narrow positive diagnostic；作为 v134 父对照 |
 | `configs/stage1_memory_source_interleave_v126_qwen36_no_think_build4k_cached.json` | memory organization | LoCoMo profile/current paired dual `+4/+4`，LME profile/current `-1/-1` | 被 v127 继承和修正；保留为 ablation |
@@ -49,7 +49,7 @@
 | 配置 | 原因 |
 |---|---|
 | `stage1_temporal_local_evidence_signal_gate_v135_qwen36_no_think_build4k_cached.json` | 对 `temporal_lookup` neighbor 做硬 signal gate，scope clean 但 paired dual judge 负向。Prompt-changed-only merge vs v125：strict/lenient `0.792899/0.813609 -> 0.781065/0.798817`，净 strict `-4`、lenient `-5`；典型损失是删掉弱词面但关键的相邻时间锚，导致信息不足或错年/错日期 |
-| `stage1_query_context_budget_v136_qwen36_no_think_build4k_cached.json` / `stage1_budget_aware_selected_context_v137_qwen36_no_think_build4k_cached.json` | v136 no-profile + context_budget 方向正确，但 LME selected_context 重新打开 `478/500`，avg context chars `20779.668`；v137 selected_context 降到 `32/500`，但 avg context chars 仍为 `20244.338`，#2 仍未真正下降 |
+| `stage1_query_context_budget_v136_qwen36_no_think_build4k_cached.json` / `stage1_budget_aware_selected_context_v137_qwen36_no_think_build4k_cached.json` / `stage1_tighter_context_budget_v138_qwen36_no_think_build4k_cached.json` | v136 no-profile + context_budget 方向正确但 LME selected_context 重新打开；v137 修掉 selected_context 膨胀但 avg context chars 仍为 `20244.338`；v138 raw estimate 降到 `15292.94`，但 compiler/context chars 仍未降 |
 | `stage1_fact_tail_snippet_budget_v134_qwen36_no_think_build4k_cached.json` | token 降低但 paired dual judge 负向；LoCoMo fact subset strict/lenient `0.819728/0.833333 -> 0.807256/0.824263`，净 strict `-11`、lenient `-8` |
 | `stage1_fact_tail_snippet_budget_v133_qwen36_no_think_build4k_cached.json` | 过保守；LoCoMo fact avg context 只降 `8.552` chars，full avg context 只降 `4.898` chars |
 | `stage1_fact_tail_filter_preserve_order_v132_qwen36_no_think_build4k_cached.json` | hard row pruning 虽降 query 到 `5115.770`，但 LoCoMo fact exact `0.249433 -> 0.241497`，full exact `0.245455 -> 0.240909` |

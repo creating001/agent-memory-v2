@@ -57,6 +57,9 @@ def main() -> int:
     total_context_chars = 0
     total_update_conflict_guide_applied = 0
     total_personalized_advice_contract_applied = 0
+    total_compiler_context_pressure_applied = 0
+    total_compiler_context_pressure_headroom = 0
+    total_compiler_context_pressure_headroom_count = 0
     total_embedding_tokens = 0
     total_effective_top_k = 0
     total_effective_dense_top_k = 0
@@ -142,6 +145,15 @@ def main() -> int:
             total_update_conflict_guide_applied += 1
         if "Personalized Advice Discipline:" in prompt_text:
             total_personalized_advice_contract_applied += 1
+        compiler_context_pressure = result["trace"].get(
+            "compiler_context_pressure"
+        ) or {}
+        if compiler_context_pressure.get("applied"):
+            total_compiler_context_pressure_applied += 1
+        pressure_headroom = compiler_context_pressure.get("headroom_chars")
+        if pressure_headroom is not None:
+            total_compiler_context_pressure_headroom += int(pressure_headroom)
+            total_compiler_context_pressure_headroom_count += 1
         retrieval_trace = result["trace"]["retrieval"]
         total_embedding_tokens += int(retrieval_trace.get("embedding_tokens") or 0)
         total_effective_top_k += int(retrieval_trace.get("top_k") or 0)
@@ -764,6 +776,26 @@ def main() -> int:
             "personalized_advice_contract_applied": (
                 total_personalized_advice_contract_applied
             ),
+            "context_pressure_enabled": config.get("compiler", {})
+            .get("context_pressure", {})
+            .get("enabled", False),
+            "context_pressure_max_headroom_chars": config.get("compiler", {})
+            .get("context_pressure", {})
+            .get("max_headroom_chars"),
+            "context_pressure_overrides": config.get("compiler", {})
+            .get("context_pressure", {})
+            .get("compiler"),
+            "context_pressure_applied_count": (
+                total_compiler_context_pressure_applied
+            ),
+            "context_pressure_applied_rate": _safe_average(
+                total_compiler_context_pressure_applied,
+                sample_count,
+            ),
+            "avg_context_pressure_headroom_chars": _safe_average(
+                total_compiler_context_pressure_headroom,
+                total_compiler_context_pressure_headroom_count,
+            ),
             "current_state_update_contract": config.get("compiler", {}).get(
                 "current_state_update_contract", False
             ),
@@ -1277,6 +1309,12 @@ def _write_summary(
         f"- operation_workpad_question_gate: {metrics['compiler']['operation_workpad_question_gate']}",
         f"- personalized_advice_contract: {metrics['compiler']['personalized_advice_contract']}",
         f"- personalized_advice_contract_applied: {metrics['compiler']['personalized_advice_contract_applied']}",
+        f"- context_pressure_enabled: {metrics['compiler']['context_pressure_enabled']}",
+        f"- context_pressure_max_headroom_chars: {metrics['compiler']['context_pressure_max_headroom_chars']}",
+        f"- context_pressure_overrides: {metrics['compiler']['context_pressure_overrides']}",
+        f"- context_pressure_applied_count: {metrics['compiler']['context_pressure_applied_count']}",
+        f"- context_pressure_applied_rate: {metrics['compiler']['context_pressure_applied_rate']}",
+        f"- avg_context_pressure_headroom_chars: {metrics['compiler']['avg_context_pressure_headroom_chars']}",
         f"- structured_guide: {metrics['compiler']['structured_guide']}",
         f"- structured_guide_max_rows: {metrics['compiler']['structured_guide_max_rows']}",
         f"- structured_guide_include_rows: {metrics['compiler']['structured_guide_include_rows']}",
@@ -1439,6 +1477,10 @@ def _write_diagnosis(
         f"- operation_workpad_question_gate: {metrics['compiler']['operation_workpad_question_gate']}",
         f"- personalized_advice_contract: {metrics['compiler']['personalized_advice_contract']}",
         f"- personalized_advice_contract_applied: {metrics['compiler']['personalized_advice_contract_applied']}",
+        f"- context_pressure_enabled: {metrics['compiler']['context_pressure_enabled']}",
+        f"- context_pressure_applied_count: {metrics['compiler']['context_pressure_applied_count']}",
+        f"- context_pressure_applied_rate: {metrics['compiler']['context_pressure_applied_rate']}",
+        f"- avg_context_pressure_headroom_chars: {metrics['compiler']['avg_context_pressure_headroom_chars']}",
         f"- structured_guide: {metrics['compiler']['structured_guide']}",
         f"- structured_guide_max_rows: {metrics['compiler']['structured_guide_max_rows']}",
         f"- structured_guide_include_rows: {metrics['compiler']['structured_guide_include_rows']}",

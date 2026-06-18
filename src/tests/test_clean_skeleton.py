@@ -807,6 +807,68 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual(selected_context["materialized_count"], 0)
         self.assertEqual(row["text"], "that target alpha beta")
 
+    def test_compiler_context_pressure_tightens_evidence_budget(self) -> None:
+        config = {
+            "retrieval": {
+                "top_k": 3,
+                "max_top_k": 3,
+                "neighbor_window": 0,
+                "context_budget": {
+                    "enabled": True,
+                    "max_chars": 30,
+                    "min_hits": 1,
+                    "protect_top_n": 1,
+                },
+            },
+            "compiler": {
+                "max_evidence_items": 3,
+                "max_evidence_chars": 4000,
+                "context_pressure": {
+                    "enabled": True,
+                    "max_headroom_chars": 10,
+                    "compiler": {
+                        "max_evidence_items": 1,
+                        "max_evidence_chars": 4000,
+                    },
+                },
+            },
+            "answer": {"fallback_answer": "unknown"},
+        }
+        request = PredictionRequest(
+            question="target",
+            turns=(
+                Turn(
+                    source_id="a",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="target " + "a" * 28,
+                ),
+                Turn(
+                    source_id="b",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="target beta",
+                ),
+                Turn(
+                    source_id="c",
+                    session_id="s1",
+                    turn_index=2,
+                    role="user",
+                    text="target gamma",
+                ),
+            ),
+        )
+
+        result = Stage1Pipeline(config).predict(request)
+        pressure = result["trace"]["compiler_context_pressure"]
+        rows = result["trace"]["compiled_context"]["evidence_rows"]
+
+        self.assertTrue(pressure["applied"])
+        self.assertEqual(pressure["reason"], "low_headroom")
+        self.assertEqual(len(rows), 1)
+
     def test_pipeline_rerank_expands_candidate_pool_and_reorders_hits(self) -> None:
         config = {
             "retrieval": {
