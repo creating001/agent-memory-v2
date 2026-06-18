@@ -25,7 +25,7 @@
 
 | 优先级 | 项目 | 当前状态 | 下一步 |
 |---:|---|---|---|
-| 1 | #5 memory lifecycle/state/conflict/query-time reasoning | v144 source-backed version-chain row ordering 比 v142 guide 更 clean，但 formal LME `0.812/0.840` mixed、LoCoMo `0.785714/0.811688` 低于 fresh v127，不升 LTS | 下一版不要只重排行；优先把 state/version chain 用到 clean retrieval/candidate expansion 和 query-time state reasoning |
+| 1 | #5 memory lifecycle/state/conflict/query-time reasoning | v145 已把 state/version slot chain 前移到 retrieval-time clean candidate expansion；compile scope 窄：LME slot-chain `16/500`、LoCoMo `34/1540`，context 基本不变 | 跑 formal answer + dual judge；只有 full accuracy 和风险同时可接受才升 LTS |
 | 2 | #1 granularity/profile generalization + #2/#3 context pressure | v140 清除 profile 分支并降低 LME avg context chars 到 `18940.848`，但 LME strict/lenient `0.794/0.826` 低于 v127 | 重做 retrieval/context organization，避免 v139/v140 这种损覆盖的 compiler pressure |
 | 3 | src cleanup | `src` 审计显示暂无可整模块删除的 tracked 代码；`repair.py`、rerank、turn-window 和 guide 逻辑仍有消融或 guardrail 价值 | 后续随实验节奏拆小 `compiler.py` / `pipeline.py`，删除确认无用的兼容分支，不删仍有验证价值的模块 |
 
@@ -105,6 +105,7 @@
 | `diagnostic/stage1_superseded_source_chain_v127_summary.md` | v127 superseded source chain 诊断 |
 | `diagnostic/stage1_memory_source_interleave_v126_profile_state_summary.md` | v126 profile/current source interleave 诊断 |
 | `diagnostic/stage1_scoped_memory_state_guide_v142_badcase_summary.md` | v142 formal 后 LoCoMo gain/loss 聚合和 #5 下一步约束 |
+| `diagnostic/stage1_memory_slot_chain_v145_scope_summary.md` | v145 retrieval-time memory slot chain scope 结论：触发范围窄、成本基本不变，进入 formal |
 | `diagnostic/stage1_memory_version_chain_v144_scope_summary.md` | v144 source-backed version-chain row ordering scope/formal 结论：结构更 clean，但 accuracy 不升 LTS |
 | `diagnostic/stage1_global_update_conflict_v143_scope_probe_summary.md` | v143 方向 probe：全局 update/conflict guide 对 LoCoMo 为 no-op，未成正式版本 |
 | `diagnostic/src_cleanup_audit_20260618.md` | v142 后 src 清理审计：确认暂无可安全删除的整模块 |
