@@ -530,6 +530,24 @@ class Stage1Pipeline:
             event_timeline_snippet_chars=int(
                 compiler_config.get("event_timeline_snippet_chars", 180)
             ),
+            event_time_candidate_manifest=bool(
+                compiler_config.get("event_time_candidate_manifest", False)
+            ),
+            event_time_candidate_manifest_information_needs=_tuple_config(
+                compiler_config.get(
+                    "event_time_candidate_manifest_information_needs",
+                    ("current_state", "list_count", "temporal_lookup"),
+                )
+            ),
+            event_time_candidate_manifest_max_rows=int(
+                compiler_config.get("event_time_candidate_manifest_max_rows", 12)
+            ),
+            event_time_candidate_manifest_snippet_chars=int(
+                compiler_config.get("event_time_candidate_manifest_snippet_chars", 160)
+            ),
+            event_time_candidate_manifest_question_gate=bool(
+                compiler_config.get("event_time_candidate_manifest_question_gate", True)
+            ),
             structured_guide=bool(compiler_config.get("structured_guide", False)),
             structured_guide_max_rows=int(
                 compiler_config.get("structured_guide_max_rows", 12)
@@ -3661,6 +3679,24 @@ def _compiler_trace_config(
         "event_timeline_snippet_chars": int(
             compiler_config.get("event_timeline_snippet_chars", 180)
         ),
+        "event_time_candidate_manifest": bool(
+            compiler_config.get("event_time_candidate_manifest", False)
+        ),
+        "event_time_candidate_manifest_information_needs": _tuple_config(
+            compiler_config.get(
+                "event_time_candidate_manifest_information_needs",
+                ("current_state", "list_count", "temporal_lookup"),
+            )
+        ),
+        "event_time_candidate_manifest_max_rows": int(
+            compiler_config.get("event_time_candidate_manifest_max_rows", 12)
+        ),
+        "event_time_candidate_manifest_question_gate": bool(
+            compiler_config.get("event_time_candidate_manifest_question_gate", True)
+        ),
+        "event_time_candidate_manifest_snippet_chars": int(
+            compiler_config.get("event_time_candidate_manifest_snippet_chars", 160)
+        ),
         "structured_guide": bool(compiler_config.get("structured_guide", False)),
         "structured_guide_max_rows": int(
             compiler_config.get("structured_guide_max_rows", 12)
@@ -3861,6 +3897,24 @@ def _configured_compiler(compiler_config: Mapping[str, Any]) -> EvidenceCompiler
         ),
         event_timeline_snippet_chars=int(
             compiler_config.get("event_timeline_snippet_chars", 180)
+        ),
+        event_time_candidate_manifest=bool(
+            compiler_config.get("event_time_candidate_manifest", False)
+        ),
+        event_time_candidate_manifest_information_needs=_tuple_config(
+            compiler_config.get(
+                "event_time_candidate_manifest_information_needs",
+                ("current_state", "list_count", "temporal_lookup"),
+            )
+        ),
+        event_time_candidate_manifest_max_rows=int(
+            compiler_config.get("event_time_candidate_manifest_max_rows", 12)
+        ),
+        event_time_candidate_manifest_snippet_chars=int(
+            compiler_config.get("event_time_candidate_manifest_snippet_chars", 160)
+        ),
+        event_time_candidate_manifest_question_gate=bool(
+            compiler_config.get("event_time_candidate_manifest_question_gate", True)
         ),
         structured_guide=bool(compiler_config.get("structured_guide", False)),
         structured_guide_max_rows=int(

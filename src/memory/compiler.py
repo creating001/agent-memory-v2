@@ -212,6 +212,15 @@ class EvidenceCompiler:
         ),
         event_timeline_max_rows: int = 12,
         event_timeline_snippet_chars: int = 180,
+        event_time_candidate_manifest: bool = False,
+        event_time_candidate_manifest_information_needs: tuple[str, ...] = (
+            "current_state",
+            "list_count",
+            "temporal_lookup",
+        ),
+        event_time_candidate_manifest_max_rows: int = 12,
+        event_time_candidate_manifest_snippet_chars: int = 160,
+        event_time_candidate_manifest_question_gate: bool = True,
         structured_guide: bool = False,
         structured_guide_max_rows: int = 12,
         structured_guide_include_rows: bool = True,
@@ -322,6 +331,22 @@ class EvidenceCompiler:
         )
         self._event_timeline_max_rows = max(2, int(event_timeline_max_rows))
         self._event_timeline_snippet_chars = max(80, int(event_timeline_snippet_chars))
+        self._event_time_candidate_manifest = bool(event_time_candidate_manifest)
+        self._event_time_candidate_manifest_information_needs = (
+            _validate_information_needs(
+                event_time_candidate_manifest_information_needs,
+                field_name="event_time_candidate_manifest_information_needs",
+            )
+        )
+        self._event_time_candidate_manifest_max_rows = max(
+            2, int(event_time_candidate_manifest_max_rows)
+        )
+        self._event_time_candidate_manifest_snippet_chars = max(
+            80, int(event_time_candidate_manifest_snippet_chars)
+        )
+        self._event_time_candidate_manifest_question_gate = bool(
+            event_time_candidate_manifest_question_gate
+        )
         self._structured_guide = structured_guide
         self._structured_guide_max_rows = max(1, structured_guide_max_rows)
         self._structured_guide_include_rows = structured_guide_include_rows
@@ -717,6 +742,21 @@ class EvidenceCompiler:
             ),
             prompt_mode=self._prompt_mode,
         )
+        diagnostics: dict[str, Any] = {}
+        if self._event_time_candidate_manifest:
+            diagnostics["event_time_candidate_manifest"] = (
+                _event_time_candidate_manifest(
+                    question=question,
+                    route=route,
+                    rows=laid_out_rows,
+                    information_needs=(
+                        self._event_time_candidate_manifest_information_needs
+                    ),
+                    max_rows=self._event_time_candidate_manifest_max_rows,
+                    snippet_chars=self._event_time_candidate_manifest_snippet_chars,
+                    question_gate=self._event_time_candidate_manifest_question_gate,
+                )
+            )
         return CompiledContext(
             question=question,
             question_time=question_time,
@@ -725,6 +765,7 @@ class EvidenceCompiler:
             prompt=prompt,
             context_chars=len(prompt),
             memory_records=tuple(selected_memory_records),
+            diagnostics=diagnostics,
         )
 
     def _settings_for_route(self, route: RouteResult) -> dict[str, Any]:
@@ -796,6 +837,19 @@ class EvidenceCompiler:
             "event_timeline_information_needs": self._event_timeline_information_needs,
             "event_timeline_max_rows": self._event_timeline_max_rows,
             "event_timeline_snippet_chars": self._event_timeline_snippet_chars,
+            "event_time_candidate_manifest": self._event_time_candidate_manifest,
+            "event_time_candidate_manifest_information_needs": (
+                self._event_time_candidate_manifest_information_needs
+            ),
+            "event_time_candidate_manifest_max_rows": (
+                self._event_time_candidate_manifest_max_rows
+            ),
+            "event_time_candidate_manifest_question_gate": (
+                self._event_time_candidate_manifest_question_gate
+            ),
+            "event_time_candidate_manifest_snippet_chars": (
+                self._event_time_candidate_manifest_snippet_chars
+            ),
         }
         settings.update(self._route_overrides.get(route.information_need, {}))
         return settings
@@ -4146,6 +4200,290 @@ def _external_event_timeline_lines(
     return lines
 
 
+def _event_time_candidate_manifest(
+    *,
+    question: str,
+    route: RouteResult,
+    rows: tuple[EvidenceRow, ...],
+    information_needs: tuple[str, ...],
+    max_rows: int,
+    snippet_chars: int,
+    question_gate: bool,
+) -> dict[str, object]:
+    base: dict[str, object] = {
+        "enabled": True,
+        "trace_only": True,
+        "applied": False,
+        "information_need": route.information_need,
+        "question_gate": question_gate,
+        "items": [],
+        "conflict_groups": [],
+        "safe_order_available": False,
+        "safe_order_source_ids": [],
+        "safe_order_blocked_reason": "not_applied",
+        "clean_note": (
+            "Trace-only source-backed event-time candidate manifest. It is not "
+            "included in the answer prompt, retrieval, repair, finalizer, or cache key."
+        ),
+    }
+    if route.information_need not in information_needs:
+        return {**base, "reason": "information_need_not_enabled"}
+    if question_gate and not _asks_event_time_candidate_manifest(question, route):
+        return {**base, "reason": "question_gate_not_matched"}
+
+    candidates = _event_timeline_candidate_rows(
+        question=question,
+        rows=rows,
+        snippet_chars=snippet_chars,
+    )
+    if len(candidates) < 2:
+        return {
+            **base,
+            "reason": "fewer_than_two_source_backed_time_candidates",
+            "n_candidates": len(candidates),
+        }
+
+    selected = sorted(
+        candidates,
+        key=lambda item: (-int(item["score"]), int(item["memory_index"])),
+    )[: max(2, max_rows)]
+    ordered = sorted(selected, key=lambda item: int(item["memory_index"]))
+    conflict_groups = _event_time_candidate_conflict_groups(selected)
+    safe_order = _event_time_candidate_safe_order(selected, conflict_groups)
+
+    items: list[dict[str, object]] = []
+    for item in ordered:
+        markers = tuple(str(marker) for marker in item.get("markers", ()))
+        matched_terms = tuple(str(term) for term in item.get("matched_terms", ()))
+        inclusion_reasons = []
+        if markers:
+            inclusion_reasons.append("event_time_marker")
+        if matched_terms:
+            inclusion_reasons.append("question_overlap")
+        items.append(
+            {
+                "source_id": str(item["source_id"]),
+                "memory_index": int(item["memory_index"]),
+                "dedup_key": str(item["slot_key"]),
+                "mention_time": str(item["mention_time"]),
+                "event_time": str(item["event_time"]),
+                "time_kind": str(item["time_kind"]),
+                "time_precision_rank": int(item["precision_rank"]),
+                "role": str(item["role"]),
+                "matched_terms": matched_terms,
+                "markers": markers,
+                "snippet": str(item["snippet"]),
+                "included": True,
+                "inclusion_reason": "+".join(inclusion_reasons) or "source_row",
+            }
+        )
+
+    return {
+        **base,
+        "applied": True,
+        "reason": "source_backed_event_time_candidates",
+        "n_candidates": len(candidates),
+        "n_selected": len(selected),
+        "dedup_key_count": len({str(item["slot_key"]) for item in selected}),
+        "items": items,
+        "conflict_groups": conflict_groups,
+        "safe_order_available": bool(safe_order["available"]),
+        "safe_order_source_ids": safe_order["source_ids"],
+        "safe_order_blocked_reason": safe_order["blocked_reason"],
+    }
+
+
+def _asks_event_time_candidate_manifest(question: str, route: RouteResult) -> bool:
+    text = question or ""
+    lowered = text.lower()
+    if re.search(
+        r"\b("
+        r"when|date|time|timeline|chronological|chronologically|sequence|"
+        r"order|first|last|earliest|latest|before|after|since|until|"
+        r"current|currently|now|still|recent|recently|most\s+recent|"
+        r"how\s+long|duration"
+        r")\b",
+        lowered,
+    ):
+        return True
+    if route.information_need == "temporal_lookup":
+        return True
+    return bool(
+        re.search(
+            r"(什么时候|哪天|日期|顺序|先后|最早|最晚|之前|之后|最新|现在|目前)",
+            text,
+        )
+    )
+
+
+def _event_time_candidate_conflict_groups(
+    items: list[dict[str, object]],
+) -> list[dict[str, object]]:
+    groups: dict[str, list[dict[str, object]]] = {}
+    for item in items:
+        groups.setdefault(str(item["slot_key"]), []).append(item)
+
+    conflicts: list[dict[str, object]] = []
+    high_confidence = {"exact_today", "explicit_date", "relative_phrase"}
+    for slot_key, group in sorted(groups.items()):
+        if len(group) <= 1:
+            continue
+        high_times = sorted(
+            {
+                str(item["event_time"])
+                for item in group
+                if str(item["time_kind"]) in high_confidence
+            }
+        )
+        kinds = sorted({str(item["time_kind"]) for item in group})
+        if len(high_times) > 1:
+            conflict_type = "event_time_conflict"
+        elif any(
+            kind in {"vague_relative_recent", "mention_time_only"} for kind in kinds
+        ):
+            conflict_type = "duplicate_with_low_precision_time"
+        else:
+            continue
+        conflicts.append(
+            {
+                "dedup_key": slot_key,
+                "type": conflict_type,
+                "source_ids": tuple(str(item["source_id"]) for item in group),
+                "event_times": tuple(
+                    sorted({str(item["event_time"]) for item in group})
+                ),
+                "time_kinds": tuple(kinds),
+            }
+        )
+    return conflicts
+
+
+def _event_time_candidate_safe_order(
+    items: list[dict[str, object]],
+    conflict_groups: list[dict[str, object]],
+) -> dict[str, object]:
+    high_confidence = {"exact_today", "explicit_date", "relative_phrase"}
+    if conflict_groups:
+        return {
+            "available": False,
+            "source_ids": [],
+            "blocked_reason": "dedup_or_time_conflict",
+        }
+    if len(items) < 2:
+        return {
+            "available": False,
+            "source_ids": [],
+            "blocked_reason": "fewer_than_two_candidates",
+        }
+    if any(str(item["time_kind"]) not in high_confidence for item in items):
+        return {
+            "available": False,
+            "source_ids": [],
+            "blocked_reason": "low_precision_event_time_present",
+        }
+    slot_keys = [str(item["slot_key"]) for item in items]
+    if len(set(slot_keys)) != len(slot_keys):
+        return {
+            "available": False,
+            "source_ids": [],
+            "blocked_reason": "duplicate_answer_slot",
+        }
+    ordered = sorted(items, key=_event_timeline_sort_key)
+    return {
+        "available": True,
+        "source_ids": [str(item["source_id"]) for item in ordered],
+        "blocked_reason": "",
+    }
+
+
+_EVENT_SLOT_WEAK_TERMS = frozenset(
+    {
+        "after",
+        "ago",
+        "before",
+        "chronological",
+        "chronologically",
+        "current",
+        "currently",
+        "date",
+        "did",
+        "during",
+        "earlier",
+        "earliest",
+        "event",
+        "events",
+        "first",
+        "happened",
+        "latest",
+        "last",
+        "later",
+        "mention",
+        "month",
+        "months",
+        "most",
+        "now",
+        "order",
+        "recent",
+        "recently",
+        "sequence",
+        "since",
+        "still",
+        "then",
+        "time",
+        "timeline",
+        "today",
+        "visited",
+        "week",
+        "weeks",
+        "when",
+        "year",
+        "years",
+    }
+)
+
+
+def _event_candidate_slot_key(
+    *,
+    question_terms: frozenset[str],
+    row_text: str,
+    source_id: str,
+) -> str:
+    row_terms = _content_terms(row_text).difference(_EVENT_SLOT_WEAK_TERMS)
+    matched_terms = tuple(
+        sorted(
+            question_terms.intersection(row_terms).difference(_EVENT_SLOT_WEAK_TERMS)
+        )
+    )[:6]
+    if matched_terms:
+        return "q:" + "|".join(matched_terms)
+
+    proper_phrases = _proper_phrase_signatures(row_text)
+    if proper_phrases:
+        return "phrase:" + proper_phrases[0]
+
+    fallback_terms = tuple(sorted(row_terms))[:6]
+    if fallback_terms:
+        return "terms:" + "|".join(fallback_terms)
+    return f"source:{source_id}"
+
+
+def _proper_phrase_signatures(text: str) -> tuple[str, ...]:
+    phrases: list[str] = []
+    seen: set[str] = set()
+    pattern = re.compile(
+        r"\b[A-Z][A-Za-z0-9'&.-]+(?:\s+(?:of|the|and|for|at|in|"
+        r"[A-Z][A-Za-z0-9'&.-]+)){1,6}"
+    )
+    for match in pattern.finditer(text):
+        phrase = _normalize_version_text(match.group(0))
+        if phrase in {"i remember", "i recently"}:
+            continue
+        if phrase and phrase not in seen:
+            seen.add(phrase)
+            phrases.append(phrase)
+    return tuple(phrases)
+
+
 def _event_timeline_candidate_rows(
     *,
     question: str,
@@ -4159,8 +4497,9 @@ def _event_timeline_candidate_rows(
         if row_date is None:
             continue
         markers = _event_time_markers(row.text, row_date)
+        row_terms = _content_terms(row.text)
         matched_terms = tuple(
-            sorted(question_terms.intersection(_content_terms(row.text)))
+            sorted(question_terms.intersection(row_terms))
         )[:8]
         if not markers and not matched_terms:
             continue
@@ -4187,6 +4526,12 @@ def _event_timeline_candidate_rows(
                 "precision_rank": primary["precision_rank"],
                 "role": row.role,
                 "score": len(matched_terms) + retrieval_bonus + (2 * len(markers)),
+                "slot_key": _event_candidate_slot_key(
+                    question_terms=question_terms,
+                    row_text=row.text,
+                    source_id=row.source_id,
+                ),
+                "source_id": row.source_id,
                 "snippet": snippet,
                 "time_kind": primary["kind"],
             }

@@ -57,6 +57,9 @@ def main() -> int:
     total_context_chars = 0
     total_update_conflict_guide_applied = 0
     total_personalized_advice_contract_applied = 0
+    total_event_time_candidate_manifest_applied = 0
+    total_event_time_candidate_manifest_items = 0
+    total_event_time_candidate_manifest_safe_order = 0
     total_compiler_context_pressure_applied = 0
     total_compiler_context_pressure_headroom = 0
     total_compiler_context_pressure_headroom_count = 0
@@ -148,6 +151,17 @@ def main() -> int:
             total_update_conflict_guide_applied += 1
         if "Personalized Advice Discipline:" in prompt_text:
             total_personalized_advice_contract_applied += 1
+        event_time_manifest = (
+            (compiled.get("diagnostics") or {}).get("event_time_candidate_manifest")
+            or {}
+        )
+        if event_time_manifest.get("applied"):
+            total_event_time_candidate_manifest_applied += 1
+            total_event_time_candidate_manifest_items += len(
+                event_time_manifest.get("items") or []
+            )
+            if event_time_manifest.get("safe_order_available"):
+                total_event_time_candidate_manifest_safe_order += 1
         compiler_context_pressure = result["trace"].get(
             "compiler_context_pressure"
         ) or {}
@@ -751,6 +765,35 @@ def main() -> int:
             ),
             "event_timeline_snippet_chars": config.get("compiler", {}).get(
                 "event_timeline_snippet_chars", 180
+            ),
+            "event_time_candidate_manifest": config.get("compiler", {}).get(
+                "event_time_candidate_manifest", False
+            ),
+            "event_time_candidate_manifest_information_needs": config.get(
+                "compiler", {}
+            ).get("event_time_candidate_manifest_information_needs"),
+            "event_time_candidate_manifest_max_rows": config.get("compiler", {}).get(
+                "event_time_candidate_manifest_max_rows", 12
+            ),
+            "event_time_candidate_manifest_question_gate": config.get(
+                "compiler", {}
+            ).get("event_time_candidate_manifest_question_gate", True),
+            "event_time_candidate_manifest_snippet_chars": config.get(
+                "compiler", {}
+            ).get("event_time_candidate_manifest_snippet_chars", 160),
+            "event_time_candidate_manifest_applied_count": (
+                total_event_time_candidate_manifest_applied
+            ),
+            "event_time_candidate_manifest_applied_rate": _safe_average(
+                total_event_time_candidate_manifest_applied,
+                sample_count,
+            ),
+            "avg_event_time_candidate_manifest_items": _safe_average(
+                total_event_time_candidate_manifest_items,
+                total_event_time_candidate_manifest_applied,
+            ),
+            "event_time_candidate_manifest_safe_order_count": (
+                total_event_time_candidate_manifest_safe_order
             ),
             "structured_guide": config.get("compiler", {}).get(
                 "structured_guide", False
@@ -1473,6 +1516,15 @@ def _write_summary(
         f"- event_timeline_information_needs: {metrics['compiler']['event_timeline_information_needs']}",
         f"- event_timeline_max_rows: {metrics['compiler']['event_timeline_max_rows']}",
         f"- event_timeline_snippet_chars: {metrics['compiler']['event_timeline_snippet_chars']}",
+        f"- event_time_candidate_manifest: {metrics['compiler']['event_time_candidate_manifest']}",
+        f"- event_time_candidate_manifest_information_needs: {metrics['compiler']['event_time_candidate_manifest_information_needs']}",
+        f"- event_time_candidate_manifest_max_rows: {metrics['compiler']['event_time_candidate_manifest_max_rows']}",
+        f"- event_time_candidate_manifest_question_gate: {metrics['compiler']['event_time_candidate_manifest_question_gate']}",
+        f"- event_time_candidate_manifest_snippet_chars: {metrics['compiler']['event_time_candidate_manifest_snippet_chars']}",
+        f"- event_time_candidate_manifest_applied_count: {metrics['compiler']['event_time_candidate_manifest_applied_count']}",
+        f"- event_time_candidate_manifest_applied_rate: {metrics['compiler']['event_time_candidate_manifest_applied_rate']}",
+        f"- avg_event_time_candidate_manifest_items: {metrics['compiler']['avg_event_time_candidate_manifest_items']}",
+        f"- event_time_candidate_manifest_safe_order_count: {metrics['compiler']['event_time_candidate_manifest_safe_order_count']}",
         f"- operation_workpad_question_gate: {metrics['compiler']['operation_workpad_question_gate']}",
         f"- personalized_advice_contract: {metrics['compiler']['personalized_advice_contract']}",
         f"- personalized_advice_contract_applied: {metrics['compiler']['personalized_advice_contract_applied']}",

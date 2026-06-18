@@ -491,6 +491,108 @@ class CompilerTest(unittest.TestCase):
         self.assertIn("Charlotte's Web", compiled.prompt)
         self.assertNotIn("Nothing is Impossible", compiled.prompt)
 
+    def test_event_time_candidate_manifest_blocks_low_precision_order(self) -> None:
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text="I visited the Science Museum today.",
+                timestamp="2023-01-15",
+            ),
+            Turn(
+                source_id="s1:t1",
+                session_id="s1",
+                turn_index=1,
+                role="user",
+                text="I recently attended a lecture at the Museum of Contemporary Art.",
+                timestamp="2023-01-15",
+            ),
+        )
+        baseline = EvidenceCompiler(
+            max_evidence_items=2,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+        ).compile(
+            question="What is the chronological order of the museums I visited?",
+            question_time=None,
+            route=RouteResult("current_state", ()),
+            hits=(),
+            evidence_turns=turns,
+        )
+        compiled = EvidenceCompiler(
+            max_evidence_items=2,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            event_time_candidate_manifest=True,
+            event_time_candidate_manifest_information_needs=("current_state",),
+        ).compile(
+            question="What is the chronological order of the museums I visited?",
+            question_time=None,
+            route=RouteResult("current_state", ()),
+            hits=(),
+            evidence_turns=turns,
+        )
+
+        self.assertEqual(compiled.prompt, baseline.prompt)
+        self.assertNotIn("event_time_candidate_manifest", compiled.prompt)
+        manifest = compiled.to_dict()["diagnostics"]["event_time_candidate_manifest"]
+        self.assertTrue(manifest["applied"])
+        self.assertFalse(manifest["safe_order_available"])
+        self.assertEqual(
+            manifest["safe_order_blocked_reason"],
+            "low_precision_event_time_present",
+        )
+        self.assertEqual(len(manifest["items"]), 2)
+        time_kinds = {item["time_kind"] for item in manifest["items"]}
+        self.assertIn("vague_relative_recent", time_kinds)
+        self.assertNotIn("gold answer", manifest["clean_note"])
+        self.assertNotIn("judge output", manifest["clean_note"])
+
+    def test_event_time_candidate_manifest_safe_order_needs_precise_slots(
+        self,
+    ) -> None:
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text="I visited the Science Museum on January 15.",
+                timestamp="2023-01-20",
+            ),
+            Turn(
+                source_id="s2:t0",
+                session_id="s2",
+                turn_index=0,
+                role="user",
+                text="I toured the Metropolitan Museum on February 10.",
+                timestamp="2023-02-12",
+            ),
+        )
+
+        compiled = EvidenceCompiler(
+            max_evidence_items=2,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            event_time_candidate_manifest=True,
+            event_time_candidate_manifest_information_needs=("temporal_lookup",),
+        ).compile(
+            question="What is the order of the museums I visited?",
+            question_time=None,
+            route=RouteResult("temporal_lookup", ("temporal",)),
+            hits=(),
+            evidence_turns=turns,
+        )
+
+        manifest = compiled.to_dict()["diagnostics"]["event_time_candidate_manifest"]
+        self.assertTrue(manifest["applied"])
+        self.assertTrue(manifest["safe_order_available"])
+        self.assertEqual(manifest["safe_order_source_ids"], ["s1:t0", "s2:t0"])
+        self.assertEqual(manifest["conflict_groups"], [])
+        self.assertNotIn("Source Event Timeline:", compiled.prompt)
+
     def test_memory_tail_filter_preserves_retrieval_order(self) -> None:
         compiler = EvidenceCompiler(
             max_evidence_items=10,
