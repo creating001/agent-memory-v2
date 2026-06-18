@@ -1,0 +1,43 @@
+{
+  "parent": "v176",
+  "candidate": "v179",
+  "n_changed_answers": 3,
+  "old_strict_correct": 1,
+  "new_strict_correct": 0,
+  "old_lenient_correct": 1,
+  "new_lenient_correct": 0,
+  "strict_delta": -1,
+  "lenient_delta": -1,
+  "records": [
+    {
+      "record_key": "040a4510206229039b25c860",
+      "old_strict": false,
+      "new_strict": false,
+      "old_lenient": false,
+      "new_lenient": false,
+      "strict_delta": 0,
+      "lenient_delta": 0,
+      "group": "temporal-reasoning"
+    },
+    {
+      "record_key": "a3e4c89a8fdf800fa3b2676f",
+      "old_strict": true,
+      "new_strict": false,
+      "old_lenient": true,
+      "new_lenient": false,
+      "strict_delta": -1,
+      "lenient_delta": -1,
+      "group": "temporal-reasoning"
+    },
+    {
+      "record_key": "f42847e71c4d486a8c6c7c0b",
+      "old_strict": false,
+      "new_strict": false,
+      "old_lenient": false,
+      "new_lenient": false,
+      "strict_delta": 0,
+      "lenient_delta": 0,
+      "group": "temporal-reasoning"
+    }
+  ]
+}
