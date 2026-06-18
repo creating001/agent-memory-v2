@@ -1,0 +1,144 @@
+{
+  "benchmark": "locomo",
+  "by_group": {
+    "3": {
+      "judge_1_correct": 1,
+      "judge_2_correct": 1,
+      "judge_agreement": 1.0,
+      "lenient_accuracy": 1.0,
+      "lenient_accuracy_both_valid": 1.0,
+      "lenient_correct": 1,
+      "n_any_invalid": 0,
+      "n_both_valid": 1,
+      "n_joined": 1,
+      "strict_accuracy": 1.0,
+      "strict_accuracy_both_valid": 1.0,
+      "strict_correct": 1
+    },
+    "4": {
+      "judge_1_correct": 0,
+      "judge_2_correct": 0,
+      "judge_agreement": 1.0,
+      "lenient_accuracy": 0.0,
+      "lenient_accuracy_both_valid": 0.0,
+      "lenient_correct": 0,
+      "n_any_invalid": 0,
+      "n_both_valid": 1,
+      "n_joined": 1,
+      "strict_accuracy": 0.0,
+      "strict_accuracy_both_valid": 0.0,
+      "strict_correct": 0
+    }
+  },
+  "clean_note": "Dual flash judge is an offline evaluation-only aggregation. It reads gold labels after prediction and must not feed prediction, retrieval, compiler, answer, verifier, or cache construction.",
+  "created_at_utc": "2026-06-18T15:59:09+00:00",
+  "git": {
+    "commit": "dd8f18f7b7c8f2115dc0aec41e2ec5329e22c716",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "M src/memory/repair.py\n M src/tests/test_clean_skeleton.py\n?? configs/stage1_selective_source_repair_v150_qwen36_no_think_build4k_cached.json\n?? experiments/diagnostic/stage1_selective_source_repair_v150_lme_changed_answers/\n?? experiments/diagnostic/stage1_selective_source_repair_v150_lme_s_full/\n?? experiments/diagnostic/stage1_selective_source_repair_v150_locomo_changed_answers/\n?? experiments/diagnostic/stage1_selective_source_repair_v150_locomo_nonadv_full/"
+  },
+  "judge_models": {
+    "flash_1": "deepseek-v4-flash",
+    "flash_2": "deepseek-v4-flash"
+  },
+  "judge_outputs": {
+    "flash_1": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_selective_source_repair_v150_locomo_changed_answers/v150_changed_deepseek_judge_flash_1.json",
+    "flash_2": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_selective_source_repair_v150_locomo_changed_answers/v150_changed_deepseek_judge_flash_2.json"
+  },
+  "judge_request_body_options": {
+    "flash_1": {},
+    "flash_2": {}
+  },
+  "judge_thinking": {
+    "flash_1": null,
+    "flash_2": null
+  },
+  "labels": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_selective_source_repair_v150_locomo_changed_answers/labels.jsonl",
+  "metrics": {
+    "judge_1_correct": 1,
+    "judge_1_name": "flash_1",
+    "judge_2_correct": 1,
+    "judge_2_name": "flash_2",
+    "judge_agreement": 1.0,
+    "lenient_accuracy": 0.5,
+    "lenient_accuracy_both_valid": 0.5,
+    "lenient_correct": 1,
+    "n_any_invalid": 0,
+    "n_both_valid": 2,
+    "n_joined": 2,
+    "n_judge_1_judgments": 2,
+    "n_judge_2_judgments": 2,
+    "n_missing_judge_1": 0,
+    "n_missing_judge_2": 0,
+    "strict_accuracy": 0.5,
+    "strict_accuracy_both_valid": 0.5,
+    "strict_correct": 1
+  },
+  "predictions": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_selective_source_repair_v150_locomo_changed_answers/v150_changed_predictions.jsonl",
+  "records": [
+    {
+      "both_valid": true,
+      "group": "3",
+      "judge_1_correct": true,
+      "judge_1_label": "CORRECT",
+      "judge_1_name": "flash_1",
+      "judge_1_valid": true,
+      "judge_2_correct": true,
+      "judge_2_label": "CORRECT",
+      "judge_2_name": "flash_2",
+      "judge_2_valid": true,
+      "lenient_correct": true,
+      "record_key": "076e0ce5f5d89aac0a37b3e3",
+      "strict_correct": true
+    },
+    {
+      "both_valid": true,
+      "group": "4",
+      "judge_1_correct": false,
+      "judge_1_label": "WRONG",
+      "judge_1_name": "flash_1",
+      "judge_1_valid": true,
+      "judge_2_correct": false,
+      "judge_2_label": "WRONG",
+      "judge_2_name": "flash_2",
+      "judge_2_valid": true,
+      "lenient_correct": false,
+      "record_key": "1b8d739b406d9f1624266d4b",
+      "strict_correct": false
+    }
+  ],
+  "single_judge_metrics": {
+    "flash_1": {
+      "accuracy": 0.5,
+      "n_invalid": 0,
+      "n_judgments": 2,
+      "n_valid": 2
+    },
+    "flash_2": {
+      "accuracy": 0.5,
+      "n_invalid": 0,
+      "n_judgments": 2,
+      "n_valid": 2
+    }
+  },
+  "temperature": 0.0,
+  "usage": {
+    "flash_1": {
+      "completion_tokens": 146,
+      "prompt_tokens": 772,
+      "total_tokens": 918
+    },
+    "flash_2": {
+      "completion_tokens": 157,
+      "prompt_tokens": 772,
+      "total_tokens": 929
+    },
+    "total": {
+      "completion_tokens": 303,
+      "prompt_tokens": 1544,
+      "total_tokens": 1847
+    }
+  }
+}

@@ -1,0 +1,110 @@
+{
+  "created_at_utc": "2026-06-18T16:01:05.675491+00:00",
+  "benchmark": "longmemeval",
+  "candidate": "v150 selective source repair",
+  "base_lts": "v127 superseded source chain",
+  "decision_signal": "non_negative_changed_answer_paired_dual_judge",
+  "clean_note": "Predictions were produced before judging. Judge outputs and labels are used only for offline evaluation and are not consumed by retrieval, compiler, answer, verifier, cache construction, or configuration.",
+  "git": {
+    "commit": "dd8f18f7b7c8f2115dc0aec41e2ec5329e22c716",
+    "dirty": true,
+    "status_short": "M src/memory/repair.py\n M src/tests/test_clean_skeleton.py\n?? configs/stage1_selective_source_repair_v150_qwen36_no_think_build4k_cached.json\n?? experiments/diagnostic/stage1_selective_source_repair_v150_lme_changed_answers/\n?? experiments/diagnostic/stage1_selective_source_repair_v150_lme_s_full/\n?? experiments/diagnostic/stage1_selective_source_repair_v150_locomo_changed_answers/\n?? experiments/diagnostic/stage1_selective_source_repair_v150_locomo_nonadv_full/"
+  },
+  "changed_answer_subset": {
+    "n_changed": 2,
+    "changed_keys": [
+      "5110d0ed1a7cb0fefd131e4d",
+      "a1e403c5b6ee9c67eceee109"
+    ],
+    "v127": {
+      "n": 2,
+      "strict_correct": 1,
+      "lenient_correct": 1,
+      "strict_accuracy": 0.5,
+      "lenient_accuracy": 0.5
+    },
+    "v150": {
+      "n": 2,
+      "strict_correct": 1,
+      "lenient_correct": 2,
+      "strict_accuracy": 0.5,
+      "lenient_accuracy": 1.0
+    },
+    "delta": {
+      "strict_correct": 0,
+      "lenient_correct": 1,
+      "strict_accuracy": 0.0,
+      "lenient_accuracy": 0.5
+    },
+    "per_record": [
+      {
+        "record_key": "5110d0ed1a7cb0fefd131e4d",
+        "group": "single-session-preference",
+        "v127_strict_correct": true,
+        "v127_lenient_correct": true,
+        "v150_strict_correct": false,
+        "v150_lenient_correct": true,
+        "strict_delta": -1,
+        "lenient_delta": 0,
+        "v127_judges": [
+          "CORRECT",
+          "CORRECT"
+        ],
+        "v150_judges": [
+          "CORRECT",
+          "WRONG"
+        ]
+      },
+      {
+        "record_key": "a1e403c5b6ee9c67eceee109",
+        "group": "multi-session",
+        "v127_strict_correct": false,
+        "v127_lenient_correct": false,
+        "v150_strict_correct": true,
+        "v150_lenient_correct": true,
+        "strict_delta": 1,
+        "lenient_delta": 1,
+        "v127_judges": [
+          "WRONG",
+          "WRONG"
+        ],
+        "v150_judges": [
+          "CORRECT",
+          "CORRECT"
+        ]
+      }
+    ]
+  },
+  "derived_full_dual_judge": {
+    "method": "v127 fresh full dual judge records with changed-answer records replaced by v150 changed subset dual judge records; unchanged predictions were byte-equivalent after answer normalization.",
+    "v127_fresh_full": {
+      "n": 500,
+      "strict_correct": 410,
+      "lenient_correct": 416,
+      "strict_accuracy": 0.82,
+      "lenient_accuracy": 0.832
+    },
+    "v150_paired_delta_derived_full": {
+      "n": 500,
+      "strict_correct": 410,
+      "lenient_correct": 417,
+      "strict_accuracy": 0.82,
+      "lenient_accuracy": 0.834
+    },
+    "delta": {
+      "strict_correct": 0,
+      "lenient_correct": 1,
+      "strict_accuracy": 0.0,
+      "lenient_accuracy": 0.002
+    }
+  },
+  "artifacts": {
+    "v127_full_dual_judge": "experiments/formal/stage1_superseded_source_chain_v127_lme_s_full_fresh/deepseek_dual_judge.json",
+    "v127_changed_dual_judge": "experiments/diagnostic/stage1_selective_source_repair_v150_lme_changed_answers/v127_changed_deepseek_dual_judge.json",
+    "v150_changed_dual_judge": "experiments/diagnostic/stage1_selective_source_repair_v150_lme_changed_answers/v150_changed_deepseek_dual_judge.json",
+    "changed_answers": "outputs/diagnostic/stage1_selective_source_repair_v150_lme_changed_answers/changed_answers.jsonl",
+    "labels": "outputs/diagnostic/stage1_selective_source_repair_v150_lme_changed_answers/labels.jsonl",
+    "v127_changed_predictions": "outputs/diagnostic/stage1_selective_source_repair_v150_lme_changed_answers/v127_changed_predictions.jsonl",
+    "v150_changed_predictions": "outputs/diagnostic/stage1_selective_source_repair_v150_lme_changed_answers/v150_changed_predictions.jsonl"
+  }
+}

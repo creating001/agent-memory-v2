@@ -267,6 +267,7 @@ def build_repair_prompt(
             "5. For temporal questions, separate Memory Date from event time; answer the event/state time requested by the question.",
             "6. For current/latest questions, compare older and newer directly relevant evidence before revising.",
             "7. If evidence remains insufficient, keep or revise to a concise insufficient-information answer.",
+            *_current_state_repair_rules(compiled),
             *_profile_preference_repair_rules(compiled),
             *_modal_abstention_repair_rules(reasons),
             "Return only valid JSON.",
@@ -280,6 +281,16 @@ def build_repair_prompt(
         ]
     )
     return prompt, context_chars
+
+
+def _current_state_repair_rules(compiled: CompiledContext) -> list[str]:
+    if compiled.route.information_need != "current_state":
+        return []
+    return [
+        "8. For current-state duration or tenure questions, you may compute a simple date or duration answer from directly relevant raw rows and Question Time; do not require the final duration to be stated verbatim.",
+        "9. For current/previous state questions, revise only from raw rows that match the asked entity and state relation; do not use topically related but different state slots.",
+        "10. If raw rows support both previous and current values and the question asks for both, include both instead of collapsing to one value.",
+    ]
 
 
 def _profile_preference_repair_rules(compiled: CompiledContext) -> list[str]:
