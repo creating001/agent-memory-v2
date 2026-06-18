@@ -1,0 +1,29 @@
+{
+  "benchmark": "locomo",
+  "subset": "non_adversarial_full_changed_answers",
+  "parent_lts": "stage1_memory_lifecycle_manifest_v162_qwen36_no_think_build4k_cached",
+  "candidate": "stage1_no_new_names_profile_advice_repair_v167_qwen36_no_think_build4k_cached",
+  "n_changed_answers": 1,
+  "v162": {
+    "strict_correct": 0,
+    "lenient_correct": 0,
+    "n_both_valid": 1
+  },
+  "v167": {
+    "strict_correct": 0,
+    "lenient_correct": 0,
+    "n_both_valid": 1
+  },
+  "patched_full": {
+    "strict_correct": 1216,
+    "lenient_correct": 1256,
+    "total": 1540,
+    "strict_accuracy": 0.7896103896103897,
+    "lenient_accuracy": 0.8155844155844156
+  },
+  "judge_usage": {
+    "v162_total_tokens": 878,
+    "v167_total_tokens": 895
+  },
+  "decision": "accuracy_neutral_but_modal_profile_overreach"
+}

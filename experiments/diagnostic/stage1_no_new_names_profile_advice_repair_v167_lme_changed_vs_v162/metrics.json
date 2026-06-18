@@ -1,0 +1,29 @@
+{
+  "benchmark": "longmemeval",
+  "subset": "s_full_changed_answers",
+  "parent_lts": "stage1_memory_lifecycle_manifest_v162_qwen36_no_think_build4k_cached",
+  "candidate": "stage1_no_new_names_profile_advice_repair_v167_qwen36_no_think_build4k_cached",
+  "n_changed_answers": 2,
+  "v162": {
+    "strict_correct": 0,
+    "lenient_correct": 0,
+    "n_both_valid": 2
+  },
+  "v167": {
+    "strict_correct": 2,
+    "lenient_correct": 2,
+    "n_both_valid": 2
+  },
+  "patched_full": {
+    "strict_correct": 413,
+    "lenient_correct": 419,
+    "total": 500,
+    "strict_accuracy": 0.826,
+    "lenient_accuracy": 0.838
+  },
+  "judge_usage": {
+    "v162_total_tokens": 1656,
+    "v167_total_tokens": 2202
+  },
+  "decision": "positive_but_not_lts_pending_modal_scope_fix"
+}

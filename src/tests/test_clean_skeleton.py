@@ -2498,6 +2498,8 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertIn("same-domain anchors", prompt)
         self.assertIn("search criteria", prompt)
         self.assertIn("do not invent live facts", prompt)
+        self.assertIn("Do not write parenthetical examples", prompt)
+        self.assertIn("generic subfields", prompt)
         self.assertNotIn("same-domain anchors", generic_prompt)
 
     def test_answer_repair_prompt_adds_current_state_duration_rules(self) -> None:

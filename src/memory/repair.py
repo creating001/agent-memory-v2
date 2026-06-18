@@ -478,7 +478,9 @@ def _profile_preference_repair_rules(
                 "16. Same-domain anchors may transfer across equivalent decision domains such as a prior hotel feature preference to another hotel search, a prior recipe or baking experiment to related baking advice, or a prior research-topic request to publication/conference search criteria.",
                 "17. Do not transfer anchors across unrelated domains; a trivia topic, isolated game clue, or one-off unrelated event is not enough to personalize a show, product, venue, or activity recommendation.",
                 "18. For recent, current, upcoming, or local requests, do not invent live facts; if no named current item is in Memory Context, give grounded search criteria or event/publication types and say that no specific current name is supported.",
-                "19. Avoid leading with an insufficient-information refusal when a criteria/type answer is supported; lead with the supported preference-aligned answer and include uncertainty only as a qualifier.",
+                "19. Do not write parenthetical examples, 'such as ...', 'e.g.', or any named conference, journal, paper, venue, platform, product, show, movie, event, organization, or brand unless that exact name appears in the Question or Memory Context.",
+                "20. For publication, conference, resource, venue, or event searches, use generic subfields, criteria, and search phrases only when no exact names are supported.",
+                "21. Avoid leading with an insufficient-information refusal when a criteria/type answer is supported; lead with the supported preference-aligned answer and include uncertainty only as a qualifier.",
             ]
         )
     return lines
