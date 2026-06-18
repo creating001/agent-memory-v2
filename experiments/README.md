@@ -25,7 +25,7 @@
 
 | 优先级 | 项目 | 当前状态 | 下一步 |
 |---:|---|---|---|
-| 1 | #1 granularity/profile generalization + #2/#3 context pressure | v140 已把 compiler pressure 限定到 question-derived `current_state/fact_lookup`，保护 list/temporal/profile 覆盖 | 先跑 dry-run；若 context/token 和覆盖形态合理，再跑 actual answer + dual judge |
+| 1 | #1 granularity/profile generalization + #2/#3 context pressure | v140 dry-run 已清除 profile 分支，LME avg context chars `18940.848`，并保护 list/temporal/profile 覆盖 | 下一步跑 LME actual answer + dual judge；若不负向，再跑 LoCoMo |
 | 2 | #5 memory management/state/conflict/query-time reasoning | v127/v136 仍主要把 typed memory 用作 source-backed retrieval/organization signal | 下一轮应探索更主动的 memory build/management/update/conflict 机制，不能只继续堆 source-order 小变体 |
 | 3 | src cleanup | 已删除无用 scoped evidence 分支；`repair.py` 暂保留为 verifier/guardrail 资产 | 后续随实验节奏继续删确认无用的兼容代码，不删仍有消融或守护价值的模块 |
 
@@ -34,7 +34,7 @@
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
 | `configs/stage1_superseded_source_chain_v127_qwen36_no_think_build4k_cached.json` | current LTS | 继承 v125；v126 LoCoMo profile/current `+4/+4`、LME `-1/-1`，v127 changed prompts LME `+2/+2`、LoCoMo `+1/+2`；aggregate LME strict/lenient `0.814000/0.836000`，LoCoMo `0.792857/0.811688` | 当前本地 LTS；降低 #5，并继承 #4/#3 风险收敛；#1/#2 保留为优先风险 |
-| `configs/stage1_route_gated_context_pressure_v140_qwen36_no_think_build4k_cached.json` | diagnostic candidate | v139 的 route-gated 修正：只对 `current_state/fact_lookup` 低 headroom 启用 compiler pressure，保护 `list_count/temporal_lookup/profile_preference` | 待 dry-run；未评测前不能升 LTS |
+| `configs/stage1_route_gated_context_pressure_v140_qwen36_no_think_build4k_cached.json` | diagnostic candidate | LME profile `None=500/500`，avg context chars `18940.848`；LoCoMo pressure `0/1540`，selected_context `1536/1540` | 待 LME actual + dual judge；未评测前不能升 LTS |
 | `configs/stage1_route_scoped_local_evidence_unit_v125_qwen36_no_think_build4k_cached.json` | previous LTS | LoCoMo temporal paired dual judge strict/lenient `0.772189/0.786982 -> 0.792899/0.813609`；full route-only strict/lenient `0.789610/0.807792`；LME 兼容继承 v116 `0.812000/0.834000` | 被 v127 替代：v127 在保持 clean/source-backed 机制的同时降低 #5 build-memory organization 风险并提升 inherited aggregate |
 | `configs/stage1_route_scoped_fact_profile_state_budget_v129_qwen36_no_think_build4k_cached.json` | token-budget | LME full route-only exact `0.428000 -> 0.430000`；LoCoMo `0.244156 -> 0.245455` | Narrow positive diagnostic；作为 v134 父对照 |
 | `configs/stage1_memory_source_interleave_v126_qwen36_no_think_build4k_cached.json` | memory organization | LoCoMo profile/current paired dual `+4/+4`，LME profile/current `-1/-1` | 被 v127 继承和修正；保留为 ablation |
