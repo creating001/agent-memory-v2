@@ -96,6 +96,10 @@ ROUTE_OVERRIDE_KEYS = {
     "max_evidence_chars",
     "max_evidence_items",
     "max_row_text_chars",
+    "memory_state_guide",
+    "memory_state_guide_include_superseded",
+    "memory_state_guide_max_records",
+    "memory_state_guide_value_chars",
     "row_text_mode",
     "tail_max_row_text_chars",
     "tail_row_text_after_rank",
@@ -226,6 +230,15 @@ class EvidenceCompiler:
         ),
         update_conflict_guide_max_rows: int = 6,
         update_conflict_guide_snippet_chars: int = 180,
+        memory_state_guide: bool = False,
+        memory_state_guide_information_needs: tuple[str, ...] = (
+            "current_state",
+            "fact_lookup",
+            "profile_preference",
+        ),
+        memory_state_guide_max_records: int = 8,
+        memory_state_guide_value_chars: int = 120,
+        memory_state_guide_include_superseded: bool = True,
         operation_workpad: bool = False,
         operation_workpad_information_needs: tuple[str, ...] = (
             DEFAULT_STRUCTURED_ANSWER_CONTRACT_NEEDS
@@ -335,6 +348,20 @@ class EvidenceCompiler:
         )
         self._update_conflict_guide_snippet_chars = max(
             80, int(update_conflict_guide_snippet_chars)
+        )
+        self._memory_state_guide = bool(memory_state_guide)
+        self._memory_state_guide_information_needs = _validate_information_needs(
+            memory_state_guide_information_needs,
+            field_name="memory_state_guide_information_needs",
+        )
+        self._memory_state_guide_max_records = max(
+            1, int(memory_state_guide_max_records)
+        )
+        self._memory_state_guide_value_chars = max(
+            40, int(memory_state_guide_value_chars)
+        )
+        self._memory_state_guide_include_superseded = bool(
+            memory_state_guide_include_superseded
         )
         self._operation_workpad = operation_workpad
         self._operation_workpad_information_needs = _validate_information_needs(
@@ -550,6 +577,19 @@ class EvidenceCompiler:
             update_conflict_guide_snippet_chars=route_settings[
                 "update_conflict_guide_snippet_chars"
             ],
+            memory_state_guide=(
+                route_settings["memory_state_guide"]
+                and route.information_need in self._memory_state_guide_information_needs
+            ),
+            memory_state_guide_max_records=route_settings[
+                "memory_state_guide_max_records"
+            ],
+            memory_state_guide_value_chars=route_settings[
+                "memory_state_guide_value_chars"
+            ],
+            memory_state_guide_include_superseded=route_settings[
+                "memory_state_guide_include_superseded"
+            ],
             evidence_report_max_items=self._evidence_report_max_items,
             evidence_report_detail=route_settings["evidence_report_detail"],
             operation_workpad=(
@@ -620,6 +660,12 @@ class EvidenceCompiler:
             "update_conflict_guide_max_rows": self._update_conflict_guide_max_rows,
             "update_conflict_guide_snippet_chars": (
                 self._update_conflict_guide_snippet_chars
+            ),
+            "memory_state_guide": self._memory_state_guide,
+            "memory_state_guide_max_records": self._memory_state_guide_max_records,
+            "memory_state_guide_value_chars": self._memory_state_guide_value_chars,
+            "memory_state_guide_include_superseded": (
+                self._memory_state_guide_include_superseded
             ),
             "evidence_row_labels": self._evidence_row_labels,
             "context_layout": self._context_layout,
@@ -798,6 +844,22 @@ def _validate_route_overrides(
         if "update_conflict_guide_snippet_chars" in raw_overrides:
             overrides["update_conflict_guide_snippet_chars"] = max(
                 80, int(raw_overrides["update_conflict_guide_snippet_chars"])
+            )
+        if "memory_state_guide" in raw_overrides:
+            overrides["memory_state_guide"] = bool(
+                raw_overrides["memory_state_guide"]
+            )
+        if "memory_state_guide_max_records" in raw_overrides:
+            overrides["memory_state_guide_max_records"] = max(
+                1, int(raw_overrides["memory_state_guide_max_records"])
+            )
+        if "memory_state_guide_value_chars" in raw_overrides:
+            overrides["memory_state_guide_value_chars"] = max(
+                40, int(raw_overrides["memory_state_guide_value_chars"])
+            )
+        if "memory_state_guide_include_superseded" in raw_overrides:
+            overrides["memory_state_guide_include_superseded"] = bool(
+                raw_overrides["memory_state_guide_include_superseded"]
             )
         if "evidence_row_labels" in raw_overrides:
             overrides["evidence_row_labels"] = bool(
@@ -1508,6 +1570,10 @@ def _build_prompt(
     update_conflict_guide: bool,
     update_conflict_guide_max_rows: int,
     update_conflict_guide_snippet_chars: int,
+    memory_state_guide: bool,
+    memory_state_guide_max_records: int,
+    memory_state_guide_value_chars: int,
+    memory_state_guide_include_superseded: bool,
     evidence_report_max_items: int,
     evidence_report_detail: bool,
     operation_workpad: bool,
@@ -1586,6 +1652,12 @@ def _build_prompt(
             update_conflict_guide_max_rows=update_conflict_guide_max_rows,
             update_conflict_guide_snippet_chars=(
                 update_conflict_guide_snippet_chars
+            ),
+            memory_state_guide=memory_state_guide,
+            memory_state_guide_max_records=memory_state_guide_max_records,
+            memory_state_guide_value_chars=memory_state_guide_value_chars,
+            memory_state_guide_include_superseded=(
+                memory_state_guide_include_superseded
             ),
             evidence_report_max_items=evidence_report_max_items,
             evidence_report_detail=evidence_report_detail,
@@ -1770,6 +1842,10 @@ def _build_external_naive_prompt(
     update_conflict_guide: bool,
     update_conflict_guide_max_rows: int,
     update_conflict_guide_snippet_chars: int,
+    memory_state_guide: bool,
+    memory_state_guide_max_records: int,
+    memory_state_guide_value_chars: int,
+    memory_state_guide_include_superseded: bool,
     evidence_report_max_items: int,
     evidence_report_detail: bool,
     operation_workpad: bool,
@@ -1842,6 +1918,21 @@ def _build_external_naive_prompt(
             candidate_guide_block = "\n".join(
                 ["", "Candidate Evidence Map:", *candidate_lines, ""]
             )
+    memory_state_guide_block = ""
+    if memory_state_guide:
+        memory_state_lines = _external_memory_state_guide_lines(
+            question=question,
+            route=route,
+            rows=rows,
+            memory_records=memory_records,
+            max_records=memory_state_guide_max_records,
+            max_value_chars=memory_state_guide_value_chars,
+            include_superseded=memory_state_guide_include_superseded,
+        )
+        if memory_state_lines:
+            memory_state_guide_block = "\n".join(
+                ["", "Managed Memory State Guide:", *memory_state_lines, ""]
+            )
     update_conflict_guide_block = ""
     if update_conflict_guide:
         update_conflict_lines = _external_update_conflict_guide_lines(
@@ -1863,6 +1954,10 @@ def _build_external_naive_prompt(
     if candidate_guide_block:
         rules.append(
             "Use Candidate Evidence Map only as a compact index into Memory Context; it is not independent evidence."
+        )
+    if memory_state_guide_block:
+        rules.append(
+            "Use Managed Memory State Guide only as a state/conflict index into cited Memory Context rows; it is not independent evidence."
         )
     if update_conflict_guide_block:
         rules.append(
@@ -2028,6 +2123,7 @@ def _build_external_naive_prompt(
         for block in (
             structured_guide_block,
             candidate_guide_block,
+            memory_state_guide_block,
             update_conflict_guide_block,
             operation_workpad_block,
             personalized_advice_block,
@@ -2360,6 +2456,146 @@ def _external_memory_guide_lines(
             fields.append(f"value={_truncate_text(_single_line(record.value), 120)}")
         lines.append(f"  - {' | '.join(fields)}: {text}")
     return lines
+
+
+def _external_memory_state_guide_lines(
+    *,
+    question: str,
+    route: RouteResult,
+    rows: tuple[EvidenceRow, ...],
+    memory_records: tuple[MemoryRecord, ...],
+    max_records: int,
+    max_value_chars: int,
+    include_superseded: bool,
+) -> list[str]:
+    """Compact managed-memory state view grounded in visible raw rows."""
+
+    if not rows or not memory_records or max_records <= 0:
+        return []
+
+    source_to_memory_index = {
+        row.source_id: index for index, row in enumerate(rows, start=1)
+    }
+    question_terms = _content_terms(question)
+    candidates: list[tuple[float, int, MemoryRecord, tuple[str, ...]]] = []
+    for ordinal, record in enumerate(memory_records):
+        if record.status != "active" and not include_superseded:
+            continue
+        source_labels = _memory_record_source_labels(record, source_to_memory_index)
+        if not source_labels:
+            continue
+        score = _memory_state_record_score(
+            record,
+            question_terms=question_terms,
+            route=route,
+        )
+        if score <= 0:
+            continue
+        candidates.append((score, -ordinal, record, source_labels))
+
+    if not candidates:
+        return []
+
+    candidates.sort(reverse=True)
+    selected = candidates[:max_records]
+    selected.sort(
+        key=lambda item: (
+            _memory_state_slot_key(item[2]),
+            0 if item[2].status == "active" else 1,
+            item[2].timestamp or "",
+            item[1],
+        )
+    )
+    has_superseded = any(record.status == "superseded" for _, _, record, _ in selected)
+
+    lines = [
+        "Use this managed-memory view to locate current, historical, and conflicting state candidates; verify every final fact in the cited raw Memory Context rows.",
+        "- active means the build-stage manager kept this record as the latest candidate for its subject/predicate; superseded means an older conflicting candidate.",
+    ]
+    if has_superseded:
+        lines.append(
+            "- For current/latest questions, compare active and superseded candidates against the cited rows; for previous/original/before questions, the superseded row may be the requested historical value."
+        )
+    lines.append("- records:")
+    for _, _, record, source_labels in selected:
+        fields = [
+            f"type={record.memory_type}",
+            f"status={record.status or 'active'}",
+        ]
+        if record.subject:
+            fields.append(
+                f"subject={_truncate_text(_single_line(record.subject), 60)}"
+            )
+        if record.predicate:
+            fields.append(
+                f"predicate={_truncate_text(_single_line(record.predicate), 60)}"
+            )
+        value = record.value or record.text
+        if value:
+            fields.append(
+                f"value={_truncate_text(_single_line(value), max_value_chars)}"
+            )
+        time_value = (
+            record.event_time
+            or record.valid_from
+            or record.mention_time
+            or record.timestamp
+            or "unknown"
+        )
+        fields.append(f"time={_single_line(time_value)}")
+        fields.append(f"valid_to={record.valid_to or 'open'}")
+        if record.superseded_by:
+            fields.append(f"superseded_by={record.superseded_by}")
+        fields.append(f"sources={', '.join(source_labels[:6])}")
+        lines.append(f"  - {' | '.join(fields)}")
+    return lines
+
+
+def _memory_record_source_labels(
+    record: MemoryRecord,
+    source_to_memory_index: Mapping[str, int],
+) -> tuple[str, ...]:
+    labels = []
+    for source_id in record.source_ids:
+        memory_index = source_to_memory_index.get(source_id)
+        if memory_index is not None:
+            labels.append(f"Memory {memory_index}")
+    return tuple(dict.fromkeys(labels))
+
+
+def _memory_state_record_score(
+    record: MemoryRecord,
+    *,
+    question_terms: frozenset[str],
+    route: RouteResult,
+) -> float:
+    basis_terms = _content_terms(_memory_record_hint_basis(record))
+    overlap = len(question_terms.intersection(basis_terms))
+    type_match = _memory_type_matches_route(record.memory_type, route)
+    score = float(overlap * 2)
+    if type_match:
+        score += 2.0
+    if record.status == "active":
+        score += 0.5
+    elif record.status == "superseded" and route.information_need in {
+        "current_state",
+        "fact_lookup",
+        "profile_preference",
+    }:
+        score += 0.25
+    if record.subject or record.predicate or record.value:
+        score += 0.5
+    if overlap == 0 and not type_match:
+        return 0.0
+    return score
+
+
+def _memory_state_slot_key(record: MemoryRecord) -> tuple[str, str, str]:
+    return (
+        (record.memory_type or "").lower(),
+        _single_line(record.subject).lower(),
+        _single_line(record.predicate).lower(),
+    )
 
 
 def _external_candidate_guide_lines(

@@ -761,6 +761,21 @@ def main() -> int:
                 "update_conflict_guide_snippet_chars", 180
             ),
             "update_conflict_guide_applied": total_update_conflict_guide_applied,
+            "memory_state_guide": config.get("compiler", {}).get(
+                "memory_state_guide", False
+            ),
+            "memory_state_guide_information_needs": config.get(
+                "compiler", {}
+            ).get("memory_state_guide_information_needs"),
+            "memory_state_guide_max_records": config.get("compiler", {}).get(
+                "memory_state_guide_max_records", 8
+            ),
+            "memory_state_guide_value_chars": config.get("compiler", {}).get(
+                "memory_state_guide_value_chars", 120
+            ),
+            "memory_state_guide_include_superseded": config.get(
+                "compiler", {}
+            ).get("memory_state_guide_include_superseded", True),
             "operation_workpad": config.get("compiler", {}).get(
                 "operation_workpad", False
             ),
@@ -1342,6 +1357,11 @@ def _write_summary(
         f"- update_conflict_guide_max_rows: {metrics['compiler']['update_conflict_guide_max_rows']}",
         f"- update_conflict_guide_snippet_chars: {metrics['compiler']['update_conflict_guide_snippet_chars']}",
         f"- update_conflict_guide_applied: {metrics['compiler']['update_conflict_guide_applied']}",
+        f"- memory_state_guide: {metrics['compiler']['memory_state_guide']}",
+        f"- memory_state_guide_information_needs: {metrics['compiler']['memory_state_guide_information_needs']}",
+        f"- memory_state_guide_max_records: {metrics['compiler']['memory_state_guide_max_records']}",
+        f"- memory_state_guide_value_chars: {metrics['compiler']['memory_state_guide_value_chars']}",
+        f"- memory_state_guide_include_superseded: {metrics['compiler']['memory_state_guide_include_superseded']}",
         f"- current_state_update_contract: {metrics['compiler']['current_state_update_contract']}",
         f"- dialogue_inference_contract: {metrics['compiler']['dialogue_inference_contract']}",
         f"- temporal_order_contract: {metrics['compiler']['temporal_order_contract']}",

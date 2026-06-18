@@ -536,6 +536,24 @@ class Stage1Pipeline:
             update_conflict_guide_snippet_chars=int(
                 compiler_config.get("update_conflict_guide_snippet_chars", 180)
             ),
+            memory_state_guide=bool(
+                compiler_config.get("memory_state_guide", False)
+            ),
+            memory_state_guide_information_needs=_tuple_config(
+                compiler_config.get(
+                    "memory_state_guide_information_needs",
+                    ("current_state", "fact_lookup", "profile_preference"),
+                )
+            ),
+            memory_state_guide_max_records=int(
+                compiler_config.get("memory_state_guide_max_records", 8)
+            ),
+            memory_state_guide_value_chars=int(
+                compiler_config.get("memory_state_guide_value_chars", 120)
+            ),
+            memory_state_guide_include_superseded=bool(
+                compiler_config.get("memory_state_guide_include_superseded", True)
+            ),
             operation_workpad=bool(compiler_config.get("operation_workpad", False)),
             operation_workpad_information_needs=_tuple_config(
                 compiler_config.get(
@@ -2595,6 +2613,22 @@ def _compiler_trace_config(
         "update_conflict_guide_snippet_chars": int(
             compiler_config.get("update_conflict_guide_snippet_chars", 180)
         ),
+        "memory_state_guide": bool(compiler_config.get("memory_state_guide", False)),
+        "memory_state_guide_information_needs": _tuple_config(
+            compiler_config.get(
+                "memory_state_guide_information_needs",
+                ("current_state", "fact_lookup", "profile_preference"),
+            )
+        ),
+        "memory_state_guide_max_records": int(
+            compiler_config.get("memory_state_guide_max_records", 8)
+        ),
+        "memory_state_guide_value_chars": int(
+            compiler_config.get("memory_state_guide_value_chars", 120)
+        ),
+        "memory_state_guide_include_superseded": bool(
+            compiler_config.get("memory_state_guide_include_superseded", True)
+        ),
         "operation_workpad": bool(compiler_config.get("operation_workpad", False)),
         "operation_workpad_information_needs": _tuple_config(
             compiler_config.get(
@@ -2760,6 +2794,22 @@ def _configured_compiler(compiler_config: Mapping[str, Any]) -> EvidenceCompiler
         ),
         update_conflict_guide_snippet_chars=int(
             compiler_config.get("update_conflict_guide_snippet_chars", 180)
+        ),
+        memory_state_guide=bool(compiler_config.get("memory_state_guide", False)),
+        memory_state_guide_information_needs=_tuple_config(
+            compiler_config.get(
+                "memory_state_guide_information_needs",
+                ("current_state", "fact_lookup", "profile_preference"),
+            )
+        ),
+        memory_state_guide_max_records=int(
+            compiler_config.get("memory_state_guide_max_records", 8)
+        ),
+        memory_state_guide_value_chars=int(
+            compiler_config.get("memory_state_guide_value_chars", 120)
+        ),
+        memory_state_guide_include_superseded=bool(
+            compiler_config.get("memory_state_guide_include_superseded", True)
         ),
         operation_workpad=bool(compiler_config.get("operation_workpad", False)),
         operation_workpad_information_needs=_tuple_config(
