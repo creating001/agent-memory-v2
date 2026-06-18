@@ -1290,6 +1290,177 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual(trace["chains"][0]["source_ids"], ("s1:t1", "s1:t0"))
         self.assertNotIn("s1:t2", trace["chains"][0]["source_ids"])
 
+    def test_memory_slot_chain_query_scope_current_adds_active_source_only(self) -> None:
+        old_record = MemoryRecord(
+            memory_id="old",
+            memory_type="state",
+            text="Alex lives in Austin.",
+            source_ids=("s1:t0",),
+            subject="Alex",
+            predicate="lives_in",
+            value="Austin",
+            timestamp="2024-01-01",
+            status="superseded",
+            superseded_by="new",
+        )
+        new_record = MemoryRecord(
+            memory_id="new",
+            memory_type="state",
+            text="Alex lives in Seattle.",
+            source_ids=("s1:t1",),
+            subject="Alex",
+            predicate="lives_in",
+            value="Seattle",
+            timestamp="2024-05-01",
+            status="active",
+        )
+
+        hits, trace = _memory_slot_chain_source_hits(
+            memory_hits=(MemoryHit(record=old_record, score=2.0, rank=1),),
+            built_memory_records=(old_record, new_record),
+            route=RouteResult("current_state", ("current_state",)),
+            question="Where does Alex live now?",
+            available_source_ids={"s1:t0", "s1:t1"},
+            max_chains=2,
+            max_sources_per_chain=4,
+            memory_types=("state",),
+            question_scope_gate=True,
+            source_policy="query_scope",
+        )
+
+        self.assertTrue(trace["applied"])
+        self.assertEqual(trace["question_scope"], "current")
+        self.assertEqual([hit.source_id for hit in hits], ["s1:t1"])
+        self.assertEqual(trace["chains"][0]["source_ids"], ("s1:t1",))
+
+    def test_memory_slot_chain_query_scope_gate_skips_unspecified_question(self) -> None:
+        old_record = MemoryRecord(
+            memory_id="old",
+            memory_type="preference",
+            text="Alex prefers chocolate cake.",
+            source_ids=("s1:t0",),
+            subject="Alex",
+            predicate="prefers",
+            value="chocolate cake",
+            timestamp="2024-01-01",
+            status="superseded",
+            superseded_by="new",
+        )
+        new_record = MemoryRecord(
+            memory_id="new",
+            memory_type="preference",
+            text="Alex prefers lemon tart.",
+            source_ids=("s1:t1",),
+            subject="Alex",
+            predicate="prefers",
+            value="lemon tart",
+            timestamp="2024-05-01",
+            status="active",
+        )
+
+        hits, trace = _memory_slot_chain_source_hits(
+            memory_hits=(MemoryHit(record=old_record, score=2.0, rank=1),),
+            built_memory_records=(old_record, new_record),
+            route=RouteResult("profile_preference", ("profile_or_preference",)),
+            question="What dessert does Alex prefer?",
+            available_source_ids={"s1:t0", "s1:t1"},
+            max_chains=2,
+            max_sources_per_chain=4,
+            memory_types=("preference",),
+            question_scope_gate=True,
+            source_policy="query_scope",
+        )
+
+        self.assertFalse(trace["applied"])
+        self.assertEqual(trace["question_scope"], "unspecified")
+        self.assertEqual(trace["skipped_reason"], "question_scope_unspecified")
+        self.assertEqual(hits, ())
+
+    def test_memory_slot_chain_query_scope_requires_slot_overlap_beyond_subject(self) -> None:
+        old_record = MemoryRecord(
+            memory_id="old",
+            memory_type="profile",
+            text="Andrew volunteered at an animal shelter.",
+            source_ids=("s1:t0",),
+            subject="Andrew",
+            predicate="volunteers_at",
+            value="animal shelter",
+            timestamp="2024-01-01",
+            status="superseded",
+            superseded_by="new",
+        )
+        new_record = MemoryRecord(
+            memory_id="new",
+            memory_type="profile",
+            text="Andrew owns a dog named Toby.",
+            source_ids=("s1:t1",),
+            subject="Andrew",
+            predicate="owns",
+            value="dog named Toby",
+            timestamp="2024-05-01",
+            status="active",
+        )
+
+        hits, trace = _memory_slot_chain_source_hits(
+            memory_hits=(MemoryHit(record=old_record, score=2.0, rank=1),),
+            built_memory_records=(old_record, new_record),
+            route=RouteResult("current_state", ("current_state",)),
+            question="How does Andrew feel about his current work?",
+            available_source_ids={"s1:t0", "s1:t1"},
+            max_chains=2,
+            max_sources_per_chain=4,
+            memory_types=("profile",),
+            question_scope_gate=True,
+            source_policy="query_scope",
+        )
+
+        self.assertFalse(trace["applied"])
+        self.assertEqual(hits, ())
+
+    def test_memory_slot_chain_query_scope_ignores_temporal_operation_terms(self) -> None:
+        old_record = MemoryRecord(
+            memory_id="old",
+            memory_type="state",
+            text="The user was considering a 50GB monthly phone plan.",
+            source_ids=("s1:t0",),
+            subject="user",
+            predicate="has",
+            value="50GB monthly phone plan",
+            timestamp="2024-01-01",
+            status="superseded",
+            superseded_by="new",
+        )
+        new_record = MemoryRecord(
+            memory_id="new",
+            memory_type="state",
+            text="The user chose a 200GB monthly phone plan.",
+            source_ids=("s1:t1",),
+            subject="user",
+            predicate="has",
+            value="200GB monthly phone plan",
+            timestamp="2024-05-01",
+            status="active",
+        )
+
+        hits, trace = _memory_slot_chain_source_hits(
+            memory_hits=(MemoryHit(record=old_record, score=2.0, rank=1),),
+            built_memory_records=(old_record, new_record),
+            route=RouteResult("current_state", ("current_state",)),
+            question=(
+                "What is the order of the three sports events I participated "
+                "in during the past month, from earliest to latest?"
+            ),
+            available_source_ids={"s1:t0", "s1:t1"},
+            max_chains=2,
+            max_sources_per_chain=4,
+            memory_types=("state",),
+            question_scope_gate=True,
+            source_policy="query_scope",
+        )
+
+        self.assertFalse(trace["applied"])
+        self.assertEqual(hits, ())
+
     def test_pipeline_memory_slot_chain_can_supply_raw_rows_without_lexical_or_dense(self) -> None:
         old_record = MemoryRecord(
             memory_id="old",

@@ -205,6 +205,16 @@ class Stage1Pipeline:
                 ("preference", "profile", "relationship", "state"),
             )
         )
+        self._memory_slot_chain_question_scope_gate = bool(
+            memory_slot_chain_config.get("question_scope_gate", False)
+        )
+        self._memory_slot_chain_source_policy = str(
+            memory_slot_chain_config.get("source_policy", "all")
+        )
+        if self._memory_slot_chain_source_policy not in {"all", "query_scope"}:
+            raise ValueError(
+                "retrieval.memory_slot_chain.source_policy must be all or query_scope"
+            )
         self._dense_enabled = bool(dense_config.get("enabled", False))
         self._dense_top_k = int(dense_config.get("top_k", self._base_top_k))
         self._dense_batch_size = int(dense_config.get("batch_size", 32))
@@ -958,6 +968,8 @@ class Stage1Pipeline:
             max_chains=self._memory_slot_chain_max_chains,
             max_sources_per_chain=self._memory_slot_chain_max_sources_per_chain,
             memory_types=self._memory_slot_chain_memory_types,
+            question_scope_gate=self._memory_slot_chain_question_scope_gate,
+            source_policy=self._memory_slot_chain_source_policy,
         )
         build_memory_include_superseded = (
             self._build_memory_include_superseded
@@ -989,6 +1001,7 @@ class Stage1Pipeline:
                 ) = _memory_slot_chain_source_hits(
                     memory_hits=memory_hits,
                     built_memory_records=built_memory.records,
+                    question=request.question,
                     route=route,
                     available_source_ids={turn.source_id for turn in store.turns},
                     max_chains=self._memory_slot_chain_max_chains,
@@ -996,6 +1009,8 @@ class Stage1Pipeline:
                         self._memory_slot_chain_max_sources_per_chain
                     ),
                     memory_types=self._memory_slot_chain_memory_types,
+                    question_scope_gate=self._memory_slot_chain_question_scope_gate,
+                    source_policy=self._memory_slot_chain_source_policy,
                 )
         turn_window_hits = ()
         turn_window_source_hits = ()
@@ -1402,10 +1417,22 @@ class Stage1Pipeline:
                     "memory_slot_chain_memory_types": (
                         self._memory_slot_chain_memory_types
                     ),
+                    "memory_slot_chain_question_scope_gate": (
+                        self._memory_slot_chain_question_scope_gate
+                    ),
+                    "memory_slot_chain_source_policy": (
+                        self._memory_slot_chain_source_policy
+                    ),
+                    "memory_slot_chain_question_scope": memory_slot_chain_trace[
+                        "question_scope"
+                    ],
                     "memory_slot_chain_source_hits": [
                         hit.to_dict() for hit in memory_slot_chain_source_hits
                     ],
                     "memory_slot_chain_chains": memory_slot_chain_trace["chains"],
+                    "memory_slot_chain_skipped_reason": memory_slot_chain_trace[
+                        "skipped_reason"
+                    ],
                     "dense_hits": [hit.to_dict() for hit in dense_hits],
                     "turn_window_hits": [
                         hit.to_dict() for hit in turn_window_hits
@@ -2096,6 +2123,10 @@ def _disabled_memory_slot_chain_trace(
     max_chains: int,
     max_sources_per_chain: int,
     memory_types: tuple[str, ...],
+    question_scope_gate: bool = False,
+    source_policy: str = "all",
+    question_scope: str = "unspecified",
+    skipped_reason: str = "",
 ) -> dict[str, Any]:
     return {
         "enabled": enabled,
@@ -2104,6 +2135,10 @@ def _disabled_memory_slot_chain_trace(
         "max_chains": max_chains,
         "max_sources_per_chain": max_sources_per_chain,
         "memory_types": memory_types,
+        "question_scope_gate": question_scope_gate,
+        "source_policy": source_policy,
+        "question_scope": question_scope,
+        "skipped_reason": skipped_reason,
         "chains": [],
     }
 
@@ -2117,14 +2152,27 @@ def _memory_slot_chain_source_hits(
     max_chains: int,
     max_sources_per_chain: int,
     memory_types: tuple[str, ...],
+    question: str = "",
+    question_scope_gate: bool = False,
+    source_policy: str = "all",
 ) -> tuple[tuple[RetrievalHit, ...], dict[str, Any]]:
+    question_scope = _memory_slot_chain_question_scope(question)
+    question_terms = _memory_slot_chain_question_terms(question)
     trace = _disabled_memory_slot_chain_trace(
         enabled=True,
         information_needs=(route.information_need,),
         max_chains=max_chains,
         max_sources_per_chain=max_sources_per_chain,
         memory_types=memory_types,
+        question_scope_gate=question_scope_gate,
+        source_policy=source_policy,
+        question_scope=question_scope,
     )
+    if question_scope_gate and question_scope == "unspecified":
+        return (), {
+            **trace,
+            "skipped_reason": "question_scope_unspecified",
+        }
     if not memory_hits or not built_memory_records:
         return (), trace
 
@@ -2156,6 +2204,9 @@ def _memory_slot_chain_source_hits(
             records,
             available_source_ids=available_source_ids,
             max_sources=max_sources_per_chain,
+            question_scope=question_scope,
+            question_terms=question_terms,
+            source_policy=source_policy,
         )
         if not source_ids:
             continue
@@ -2172,6 +2223,8 @@ def _memory_slot_chain_source_hits(
                     "predicate": key[2],
                 },
                 "matched_memory_id": str(getattr(record, "memory_id", "")),
+                "question_scope": question_scope,
+                "source_policy": source_policy,
                 "memory_ids": chain_memory_ids,
                 "statuses": chain_statuses,
                 "source_ids": source_ids,
@@ -2257,11 +2310,21 @@ def _memory_slot_chain_sources(
     *,
     available_source_ids: set[str],
     max_sources: int,
+    question_scope: str = "unspecified",
+    question_terms: frozenset[str] = frozenset(),
+    source_policy: str = "all",
 ) -> tuple[str, ...]:
     if max_sources <= 0:
         return ()
     selected: list[str] = []
-    for record in sorted(records, key=_memory_slot_chain_record_sort_key):
+    ordered_records = sorted(records, key=_memory_slot_chain_record_sort_key)
+    if source_policy == "query_scope":
+        ordered_records = _query_scoped_memory_slot_chain_records(
+            tuple(ordered_records),
+            question_scope=question_scope,
+            question_terms=question_terms,
+        )
+    for record in ordered_records:
         for source_id in tuple(getattr(record, "source_ids", ()) or ()):
             source_id = str(source_id)
             if source_id not in available_source_ids or source_id in selected:
@@ -2270,6 +2333,198 @@ def _memory_slot_chain_sources(
             if len(selected) >= max_sources:
                 return tuple(selected)
     return tuple(selected)
+
+
+def _query_scoped_memory_slot_chain_records(
+    records: tuple[Any, ...],
+    *,
+    question_scope: str,
+    question_terms: frozenset[str],
+) -> list[Any]:
+    matched_records = [
+        record
+        for record in records
+        if _memory_slot_chain_record_matches_question(record, question_terms)
+    ]
+    if question_scope == "current":
+        return [
+            record
+            for record in matched_records
+            if str(getattr(record, "status", "active") or "active") == "active"
+        ]
+    if question_scope == "historical":
+        return [
+            record
+            for record in matched_records
+            if str(getattr(record, "status", "active") or "active") != "active"
+        ]
+    return list(matched_records)
+
+
+def _memory_slot_chain_question_scope(question: str) -> str:
+    lowered = question.lower()
+    current = bool(
+        re.search(
+            r"\b(current|currently|latest|most recent|recently|recent|now|"
+            r"today|still|as of|these days|at present|present)\b",
+            lowered,
+        )
+        or re.search(r"(当前|现在|目前|最新|最近|今天|仍然)", question)
+    )
+    historical = bool(
+        re.search(
+            r"\b(previous|previously|former|formerly|original|originally|"
+            r"initial|initially|earlier|prior|before|used to|old)\b",
+            lowered,
+        )
+        or re.search(r"(之前|以前|原来|原本|最初|过去|曾经|上次)", question)
+    )
+    change = bool(
+        re.search(
+            r"\b(changed|updated|switched|moved|became|no longer|instead|"
+            r"correction|corrected|actually)\b",
+            lowered,
+        )
+        or re.search(r"(更新|改变|变化|换成|搬到|变成|不再|纠正|其实)", question)
+    )
+    if change or (current and historical):
+        return "change"
+    if current:
+        return "current"
+    if historical:
+        return "historical"
+    return "unspecified"
+
+
+def _memory_slot_chain_record_matches_question(
+    record: Any,
+    question_terms: frozenset[str],
+) -> bool:
+    if not question_terms:
+        return False
+    subject_terms = _memory_slot_chain_text_terms(
+        str(getattr(record, "subject", "") or "")
+    )
+    scoped_question_terms = question_terms.difference(subject_terms)
+    if not scoped_question_terms:
+        return False
+    record_terms = _memory_slot_chain_text_terms(
+        " ".join(
+            str(part)
+            for part in (
+                getattr(record, "predicate", "") or "",
+                getattr(record, "value", "") or "",
+                getattr(record, "text", "") or "",
+                " ".join(tuple(getattr(record, "entities", ()) or ())),
+            )
+            if part
+        )
+    ).difference(subject_terms)
+    return bool(scoped_question_terms.intersection(record_terms))
+
+
+def _memory_slot_chain_question_terms(question: str) -> frozenset[str]:
+    weak_terms = {
+        "a",
+        "about",
+        "after",
+        "all",
+        "an",
+        "and",
+        "any",
+        "are",
+        "as",
+        "at",
+        "be",
+        "been",
+        "before",
+        "could",
+        "current",
+        "currently",
+        "did",
+        "do",
+        "does",
+        "day",
+        "days",
+        "earliest",
+        "event",
+        "events",
+        "for",
+        "from",
+        "had",
+        "has",
+        "have",
+        "her",
+        "his",
+        "how",
+        "i",
+        "in",
+        "is",
+        "it",
+        "latest",
+        "long",
+        "me",
+        "month",
+        "months",
+        "most",
+        "my",
+        "now",
+        "of",
+        "on",
+        "or",
+        "order",
+        "our",
+        "participated",
+        "past",
+        "previous",
+        "recent",
+        "recently",
+        "remind",
+        "still",
+        "the",
+        "their",
+        "they",
+        "to",
+        "today",
+        "was",
+        "were",
+        "week",
+        "weeks",
+        "what",
+        "when",
+        "where",
+        "which",
+        "who",
+        "whom",
+        "why",
+        "would",
+        "year",
+        "years",
+        "you",
+        "your",
+    }
+    return frozenset(_memory_slot_chain_text_terms(question).difference(weak_terms))
+
+
+def _memory_slot_chain_text_terms(value: str) -> set[str]:
+    normalized = re.sub(r"[_/\\-]+", " ", value.lower())
+    terms: set[str] = set()
+    for token in re.findall(r"[a-z0-9]+", normalized):
+        if len(token) <= 1:
+            continue
+        terms.add(token)
+        if token.endswith("ves") and len(token) > 4:
+            terms.add(token[:-1])
+        if token.endswith("ies") and len(token) > 4:
+            terms.add(token[:-3] + "y")
+        if token.endswith("ed") and len(token) > 4:
+            terms.add(token[:-1])
+            terms.add(token[:-2])
+        if token.endswith("ing") and len(token) > 5:
+            terms.add(token[:-3])
+        if token.endswith("s") and len(token) > 3:
+            terms.add(token[:-1])
+    return terms
 
 
 def _memory_slot_chain_record_sort_key(record: Any) -> tuple[int, str, str]:
