@@ -4,7 +4,7 @@
 
 ## 1. 核心目标
 
-本项目的真实目标是构建一个优秀的 Agent Memory 系统，并在 LongMemEval 和 LoCoMo 上用正确率体现它的优势。框架、模块和具体方法都服务于这个目标，不应反过来限制方法探索。
+本项目目标是构建一个通用、clean、且具有方法创新性的 Agent Memory 系统，并在 LongMemEval-S full 和 LoCoMo non-adversarial full 上用 judge accuracy 验证效果。核心不是固定某个现成框架，也不是为 benchmark 编写专门规则，而是在严格 clean setting 和成本约束下，系统性探索长期记忆的 build、management、retrieval、context organization 和 answer 机制。我们希望方法不仅能取得更高性能，还能体现本项目在长期记忆建模上的独特思考，形成一套更可靠、更可解释、性能更强、更具泛化能力的 Agent Memory 框架。框架、模块和具体方法都服务于这个目标，不应反过来限制方法探索。
 
 核心要求：
 - **clean**：不能使用 gold answer、judge output、benchmark 标签、sample id、test feedback 或样本级规则。
@@ -12,7 +12,6 @@
 - **通用**：不能只为某个 benchmark 写专门捷径，要能解释为真实 agent memory 系统中的合理机制。
 - **可消融**：每个新增模块都应能关闭，方便判断收益来自哪里。
 - **可追溯**：正式实验必须记录 commit、配置、token 成本、输出路径和诊断。
-- **可持续迭代**：允许从简单系统逐步演进到 typed memory、temporal memory、profile/event memory、graph memory、verifier 或 agentic retrieval 等。
 
 因此，本项目不是要证明某个固定 skeleton 永远正确，而是要围绕“长期记忆管理能力”持续提升：写入阶段如何沉淀有用 memory，查询阶段如何激活相关 memory，回答阶段如何稳定使用 memory，评测阶段如何定位错误并迭代。
 
