@@ -663,6 +663,118 @@ class CompilerTest(unittest.TestCase):
         self.assertIn("s2:t0", science_group["source_ids"])
         self.assertIn(science_group["best_source_id"], {"s1:t0", "s2:t0"})
 
+    def test_event_time_candidate_map_includes_only_clear_target_event_time(
+        self,
+    ) -> None:
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text="The sunrise mural happened on May 8.",
+                timestamp="2023-05-09",
+            ),
+            Turn(
+                source_id="s2:t0",
+                session_id="s2",
+                turn_index=0,
+                role="user",
+                text="The blue mural happened on June 2.",
+                timestamp="2023-06-03",
+            ),
+        )
+
+        compiled = EvidenceCompiler(
+            max_evidence_items=2,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            event_time_candidate_map=True,
+        ).compile(
+            question="When did the sunrise mural happen?",
+            question_time=None,
+            route=RouteResult("temporal_lookup", ("temporal",)),
+            hits=(),
+            evidence_turns=turns,
+        )
+
+        self.assertIn("Event-Time Candidate Map:", compiled.prompt)
+        self.assertIn("Memory 1: event_time=2023-05-08", compiled.prompt)
+        self.assertIn("matched_terms=mural, sunrise", compiled.prompt)
+        self.assertIn("not independent evidence", compiled.prompt)
+        self.assertNotIn("event_time=2023-06-02", compiled.prompt)
+
+    def test_event_time_candidate_map_blocks_duration_questions(self) -> None:
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text="The sunrise mural happened on May 8.",
+                timestamp="2023-05-09",
+            ),
+            Turn(
+                source_id="s2:t0",
+                session_id="s2",
+                turn_index=0,
+                role="user",
+                text="The pottery class happened on June 2.",
+                timestamp="2023-06-03",
+            ),
+        )
+
+        compiled = EvidenceCompiler(
+            max_evidence_items=2,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            event_time_candidate_map=True,
+        ).compile(
+            question="How long after the sunrise mural did the pottery class happen?",
+            question_time=None,
+            route=RouteResult("temporal_lookup", ("temporal",)),
+            hits=(),
+            evidence_turns=turns,
+        )
+
+        self.assertNotIn("Event-Time Candidate Map:", compiled.prompt)
+
+    def test_event_time_candidate_map_blocks_ambiguous_top_times(self) -> None:
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text="The sunrise mural happened on May 8.",
+                timestamp="2023-05-09",
+            ),
+            Turn(
+                source_id="s2:t0",
+                session_id="s2",
+                turn_index=0,
+                role="user",
+                text="The pottery class happened on June 2.",
+                timestamp="2023-06-03",
+            ),
+        )
+
+        compiled = EvidenceCompiler(
+            max_evidence_items=2,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            event_time_candidate_map=True,
+            event_time_candidate_map_min_coverage=0.5,
+        ).compile(
+            question="When did the sunrise mural or pottery class happen?",
+            question_time=None,
+            route=RouteResult("temporal_lookup", ("temporal",)),
+            hits=(),
+            evidence_turns=turns,
+        )
+
+        self.assertNotIn("Event-Time Candidate Map:", compiled.prompt)
+
     def test_memory_tail_filter_preserves_retrieval_order(self) -> None:
         compiler = EvidenceCompiler(
             max_evidence_items=10,

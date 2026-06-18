@@ -62,6 +62,7 @@ def main() -> int:
     total_event_time_candidate_manifest_groups = 0
     total_event_time_candidate_manifest_conflict_groups = 0
     total_event_time_candidate_manifest_safe_order = 0
+    total_event_time_candidate_map_applied = 0
     total_compiler_context_pressure_applied = 0
     total_compiler_context_pressure_headroom = 0
     total_compiler_context_pressure_headroom_count = 0
@@ -153,6 +154,8 @@ def main() -> int:
             total_update_conflict_guide_applied += 1
         if "Personalized Advice Discipline:" in prompt_text:
             total_personalized_advice_contract_applied += 1
+        if "Event-Time Candidate Map:" in prompt_text:
+            total_event_time_candidate_map_applied += 1
         event_time_manifest = (
             (compiled.get("diagnostics") or {}).get("event_time_candidate_manifest")
             or {}
@@ -794,6 +797,31 @@ def main() -> int:
             "event_time_candidate_manifest_snippet_chars": config.get(
                 "compiler", {}
             ).get("event_time_candidate_manifest_snippet_chars", 160),
+            "event_time_candidate_map": config.get("compiler", {}).get(
+                "event_time_candidate_map", False
+            ),
+            "event_time_candidate_map_information_needs": config.get(
+                "compiler", {}
+            ).get("event_time_candidate_map_information_needs"),
+            "event_time_candidate_map_max_groups": config.get("compiler", {}).get(
+                "event_time_candidate_map_max_groups", 1
+            ),
+            "event_time_candidate_map_snippet_chars": config.get("compiler", {}).get(
+                "event_time_candidate_map_snippet_chars", 140
+            ),
+            "event_time_candidate_map_min_terms": config.get("compiler", {}).get(
+                "event_time_candidate_map_min_terms", 2
+            ),
+            "event_time_candidate_map_min_coverage": config.get("compiler", {}).get(
+                "event_time_candidate_map_min_coverage", 0.6
+            ),
+            "event_time_candidate_map_applied_count": (
+                total_event_time_candidate_map_applied
+            ),
+            "event_time_candidate_map_applied_rate": _safe_average(
+                total_event_time_candidate_map_applied,
+                sample_count,
+            ),
             "event_time_candidate_manifest_applied_count": (
                 total_event_time_candidate_manifest_applied
             ),
@@ -1544,6 +1572,14 @@ def _write_summary(
         f"- event_time_candidate_manifest_grouped_view: {metrics['compiler']['event_time_candidate_manifest_grouped_view']}",
         f"- event_time_candidate_manifest_max_groups: {metrics['compiler']['event_time_candidate_manifest_max_groups']}",
         f"- event_time_candidate_manifest_snippet_chars: {metrics['compiler']['event_time_candidate_manifest_snippet_chars']}",
+        f"- event_time_candidate_map: {metrics['compiler']['event_time_candidate_map']}",
+        f"- event_time_candidate_map_information_needs: {metrics['compiler']['event_time_candidate_map_information_needs']}",
+        f"- event_time_candidate_map_max_groups: {metrics['compiler']['event_time_candidate_map_max_groups']}",
+        f"- event_time_candidate_map_snippet_chars: {metrics['compiler']['event_time_candidate_map_snippet_chars']}",
+        f"- event_time_candidate_map_min_terms: {metrics['compiler']['event_time_candidate_map_min_terms']}",
+        f"- event_time_candidate_map_min_coverage: {metrics['compiler']['event_time_candidate_map_min_coverage']}",
+        f"- event_time_candidate_map_applied_count: {metrics['compiler']['event_time_candidate_map_applied_count']}",
+        f"- event_time_candidate_map_applied_rate: {metrics['compiler']['event_time_candidate_map_applied_rate']}",
         f"- event_time_candidate_manifest_applied_count: {metrics['compiler']['event_time_candidate_manifest_applied_count']}",
         f"- event_time_candidate_manifest_applied_rate: {metrics['compiler']['event_time_candidate_manifest_applied_rate']}",
         f"- avg_event_time_candidate_manifest_items: {metrics['compiler']['avg_event_time_candidate_manifest_items']}",

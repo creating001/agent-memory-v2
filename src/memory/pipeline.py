@@ -556,6 +556,27 @@ class Stage1Pipeline:
             event_time_candidate_manifest_max_groups=int(
                 compiler_config.get("event_time_candidate_manifest_max_groups", 8)
             ),
+            event_time_candidate_map=bool(
+                compiler_config.get("event_time_candidate_map", False)
+            ),
+            event_time_candidate_map_information_needs=_tuple_config(
+                compiler_config.get(
+                    "event_time_candidate_map_information_needs",
+                    ("temporal_lookup",),
+                )
+            ),
+            event_time_candidate_map_max_groups=int(
+                compiler_config.get("event_time_candidate_map_max_groups", 1)
+            ),
+            event_time_candidate_map_snippet_chars=int(
+                compiler_config.get("event_time_candidate_map_snippet_chars", 140)
+            ),
+            event_time_candidate_map_min_terms=int(
+                compiler_config.get("event_time_candidate_map_min_terms", 2)
+            ),
+            event_time_candidate_map_min_coverage=float(
+                compiler_config.get("event_time_candidate_map_min_coverage", 0.6)
+            ),
             structured_guide=bool(compiler_config.get("structured_guide", False)),
             structured_guide_max_rows=int(
                 compiler_config.get("structured_guide_max_rows", 12)
@@ -3711,6 +3732,27 @@ def _compiler_trace_config(
         "event_time_candidate_manifest_max_groups": int(
             compiler_config.get("event_time_candidate_manifest_max_groups", 8)
         ),
+        "event_time_candidate_map": bool(
+            compiler_config.get("event_time_candidate_map", False)
+        ),
+        "event_time_candidate_map_information_needs": _tuple_config(
+            compiler_config.get(
+                "event_time_candidate_map_information_needs",
+                ("temporal_lookup",),
+            )
+        ),
+        "event_time_candidate_map_max_groups": int(
+            compiler_config.get("event_time_candidate_map_max_groups", 1)
+        ),
+        "event_time_candidate_map_snippet_chars": int(
+            compiler_config.get("event_time_candidate_map_snippet_chars", 140)
+        ),
+        "event_time_candidate_map_min_terms": int(
+            compiler_config.get("event_time_candidate_map_min_terms", 2)
+        ),
+        "event_time_candidate_map_min_coverage": float(
+            compiler_config.get("event_time_candidate_map_min_coverage", 0.6)
+        ),
         "structured_guide": bool(compiler_config.get("structured_guide", False)),
         "structured_guide_max_rows": int(
             compiler_config.get("structured_guide_max_rows", 12)
@@ -3935,6 +3977,27 @@ def _configured_compiler(compiler_config: Mapping[str, Any]) -> EvidenceCompiler
         ),
         event_time_candidate_manifest_max_groups=int(
             compiler_config.get("event_time_candidate_manifest_max_groups", 8)
+        ),
+        event_time_candidate_map=bool(
+            compiler_config.get("event_time_candidate_map", False)
+        ),
+        event_time_candidate_map_information_needs=_tuple_config(
+            compiler_config.get(
+                "event_time_candidate_map_information_needs",
+                ("temporal_lookup",),
+            )
+        ),
+        event_time_candidate_map_max_groups=int(
+            compiler_config.get("event_time_candidate_map_max_groups", 1)
+        ),
+        event_time_candidate_map_snippet_chars=int(
+            compiler_config.get("event_time_candidate_map_snippet_chars", 140)
+        ),
+        event_time_candidate_map_min_terms=int(
+            compiler_config.get("event_time_candidate_map_min_terms", 2)
+        ),
+        event_time_candidate_map_min_coverage=float(
+            compiler_config.get("event_time_candidate_map_min_coverage", 0.6)
         ),
         structured_guide=bool(compiler_config.get("structured_guide", False)),
         structured_guide_max_rows=int(

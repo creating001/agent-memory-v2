@@ -86,6 +86,11 @@ ROUTE_OVERRIDE_KEYS = {
     "context_layout",
     "current_state_update_contract",
     "dialogue_inference_contract",
+    "event_time_candidate_map",
+    "event_time_candidate_map_max_groups",
+    "event_time_candidate_map_min_coverage",
+    "event_time_candidate_map_min_terms",
+    "event_time_candidate_map_snippet_chars",
     "evidence_order",
     "evidence_report_detail",
     "evidence_row_labels",
@@ -223,6 +228,14 @@ class EvidenceCompiler:
         event_time_candidate_manifest_question_gate: bool = True,
         event_time_candidate_manifest_grouped_view: bool = False,
         event_time_candidate_manifest_max_groups: int = 8,
+        event_time_candidate_map: bool = False,
+        event_time_candidate_map_information_needs: tuple[str, ...] = (
+            "temporal_lookup",
+        ),
+        event_time_candidate_map_max_groups: int = 1,
+        event_time_candidate_map_snippet_chars: int = 140,
+        event_time_candidate_map_min_terms: int = 2,
+        event_time_candidate_map_min_coverage: float = 0.6,
         structured_guide: bool = False,
         structured_guide_max_rows: int = 12,
         structured_guide_include_rows: bool = True,
@@ -354,6 +367,23 @@ class EvidenceCompiler:
         )
         self._event_time_candidate_manifest_max_groups = max(
             1, int(event_time_candidate_manifest_max_groups)
+        )
+        self._event_time_candidate_map = bool(event_time_candidate_map)
+        self._event_time_candidate_map_information_needs = _validate_information_needs(
+            event_time_candidate_map_information_needs,
+            field_name="event_time_candidate_map_information_needs",
+        )
+        self._event_time_candidate_map_max_groups = max(
+            1, int(event_time_candidate_map_max_groups)
+        )
+        self._event_time_candidate_map_snippet_chars = max(
+            80, int(event_time_candidate_map_snippet_chars)
+        )
+        self._event_time_candidate_map_min_terms = max(
+            1, int(event_time_candidate_map_min_terms)
+        )
+        self._event_time_candidate_map_min_coverage = min(
+            1.0, max(0.0, float(event_time_candidate_map_min_coverage))
         )
         self._structured_guide = structured_guide
         self._structured_guide_max_rows = max(1, structured_guide_max_rows)
@@ -617,6 +647,24 @@ class EvidenceCompiler:
             ),
             event_timeline_max_rows=self._event_timeline_max_rows,
             event_timeline_snippet_chars=self._event_timeline_snippet_chars,
+            event_time_candidate_map=(
+                route_settings["event_time_candidate_map"]
+                and route.information_need
+                in self._event_time_candidate_map_information_needs
+                and _asks_event_time_candidate_map(question, route)
+            ),
+            event_time_candidate_map_max_groups=route_settings[
+                "event_time_candidate_map_max_groups"
+            ],
+            event_time_candidate_map_snippet_chars=route_settings[
+                "event_time_candidate_map_snippet_chars"
+            ],
+            event_time_candidate_map_min_terms=route_settings[
+                "event_time_candidate_map_min_terms"
+            ],
+            event_time_candidate_map_min_coverage=route_settings[
+                "event_time_candidate_map_min_coverage"
+            ],
             structured_guide=(
                 self._structured_guide
                 and not set(route.signals).intersection(
@@ -816,6 +864,19 @@ class EvidenceCompiler:
             "dialogue_inference_contract": self._dialogue_inference_contract,
             "evidence_order": self._evidence_order,
             "evidence_report_detail": self._evidence_report_detail,
+            "event_time_candidate_map": self._event_time_candidate_map,
+            "event_time_candidate_map_max_groups": (
+                self._event_time_candidate_map_max_groups
+            ),
+            "event_time_candidate_map_snippet_chars": (
+                self._event_time_candidate_map_snippet_chars
+            ),
+            "event_time_candidate_map_min_terms": (
+                self._event_time_candidate_map_min_terms
+            ),
+            "event_time_candidate_map_min_coverage": (
+                self._event_time_candidate_map_min_coverage
+            ),
             "final_answer_checklist": self._final_answer_checklist,
             "grounded_inference_contract": self._grounded_inference_contract,
             "grounded_inference_gate": self._grounded_inference_gate,
@@ -969,6 +1030,27 @@ def _validate_route_overrides(
         if "evidence_report_detail" in raw_overrides:
             overrides["evidence_report_detail"] = bool(
                 raw_overrides["evidence_report_detail"]
+            )
+        if "event_time_candidate_map" in raw_overrides:
+            overrides["event_time_candidate_map"] = bool(
+                raw_overrides["event_time_candidate_map"]
+            )
+        if "event_time_candidate_map_max_groups" in raw_overrides:
+            overrides["event_time_candidate_map_max_groups"] = max(
+                1, int(raw_overrides["event_time_candidate_map_max_groups"])
+            )
+        if "event_time_candidate_map_snippet_chars" in raw_overrides:
+            overrides["event_time_candidate_map_snippet_chars"] = max(
+                80, int(raw_overrides["event_time_candidate_map_snippet_chars"])
+            )
+        if "event_time_candidate_map_min_terms" in raw_overrides:
+            overrides["event_time_candidate_map_min_terms"] = max(
+                1, int(raw_overrides["event_time_candidate_map_min_terms"])
+            )
+        if "event_time_candidate_map_min_coverage" in raw_overrides:
+            overrides["event_time_candidate_map_min_coverage"] = min(
+                1.0,
+                max(0.0, float(raw_overrides["event_time_candidate_map_min_coverage"])),
             )
         if "candidate_guide" in raw_overrides:
             overrides["candidate_guide"] = bool(raw_overrides["candidate_guide"])
@@ -2270,6 +2352,11 @@ def _build_prompt(
     event_timeline: bool,
     event_timeline_max_rows: int,
     event_timeline_snippet_chars: int,
+    event_time_candidate_map: bool,
+    event_time_candidate_map_max_groups: int,
+    event_time_candidate_map_snippet_chars: int,
+    event_time_candidate_map_min_terms: int,
+    event_time_candidate_map_min_coverage: float,
     structured_guide: bool,
     structured_guide_max_rows: int,
     structured_guide_include_rows: bool,
@@ -2353,6 +2440,15 @@ def _build_prompt(
             event_timeline=event_timeline,
             event_timeline_max_rows=event_timeline_max_rows,
             event_timeline_snippet_chars=event_timeline_snippet_chars,
+            event_time_candidate_map=event_time_candidate_map,
+            event_time_candidate_map_max_groups=event_time_candidate_map_max_groups,
+            event_time_candidate_map_snippet_chars=(
+                event_time_candidate_map_snippet_chars
+            ),
+            event_time_candidate_map_min_terms=event_time_candidate_map_min_terms,
+            event_time_candidate_map_min_coverage=(
+                event_time_candidate_map_min_coverage
+            ),
             structured_guide=structured_guide,
             structured_guide_max_rows=structured_guide_max_rows,
             structured_guide_include_rows=structured_guide_include_rows,
@@ -2554,6 +2650,11 @@ def _build_external_naive_prompt(
     event_timeline: bool,
     event_timeline_max_rows: int,
     event_timeline_snippet_chars: int,
+    event_time_candidate_map: bool,
+    event_time_candidate_map_max_groups: int,
+    event_time_candidate_map_snippet_chars: int,
+    event_time_candidate_map_min_terms: int,
+    event_time_candidate_map_min_coverage: float,
     structured_guide: bool,
     structured_guide_max_rows: int,
     structured_guide_include_rows: bool,
@@ -2627,6 +2728,25 @@ def _build_external_naive_prompt(
         if event_timeline_lines:
             event_timeline_block = "\n".join(
                 ["", "Source Event Timeline:", *event_timeline_lines, ""]
+            )
+    event_time_candidate_map_block = ""
+    if event_time_candidate_map:
+        event_time_candidate_map_lines = _external_event_time_candidate_map_lines(
+            question=question,
+            rows=rows,
+            max_groups=event_time_candidate_map_max_groups,
+            snippet_chars=event_time_candidate_map_snippet_chars,
+            min_terms=event_time_candidate_map_min_terms,
+            min_coverage=event_time_candidate_map_min_coverage,
+        )
+        if event_time_candidate_map_lines:
+            event_time_candidate_map_block = "\n".join(
+                [
+                    "",
+                    "Event-Time Candidate Map:",
+                    *event_time_candidate_map_lines,
+                    "",
+                ]
             )
     structured_guide_block = ""
     if structured_guide:
@@ -2735,6 +2855,10 @@ def _build_external_naive_prompt(
     if event_timeline_block:
         rules.append(
             "Use Source Event Timeline only as a source-backed index into cited Memory Context rows; it is not independent evidence."
+        )
+    if event_time_candidate_map_block:
+        rules.append(
+            "Use Event-Time Candidate Map only as a high-confidence source-backed index into cited Memory Context rows; it is not independent evidence."
         )
     personalized_advice_block = ""
     if personalized_advice_contract:
@@ -2891,6 +3015,7 @@ def _build_external_naive_prompt(
         block
         for block in (
             structured_guide_block,
+            event_time_candidate_map_block,
             candidate_guide_block,
             profile_activation_guide_block,
             memory_state_guide_block,
@@ -4214,6 +4339,163 @@ def _external_event_timeline_lines(
     )
     lines.append(f"- tentative_order_by_best_available_event_time: {order}")
     return lines
+
+
+def _external_event_time_candidate_map_lines(
+    *,
+    question: str,
+    rows: tuple[EvidenceRow, ...],
+    max_groups: int,
+    snippet_chars: int,
+    min_terms: int,
+    min_coverage: float,
+) -> list[str]:
+    candidates = _event_timeline_candidate_rows(
+        question=question,
+        rows=rows,
+        snippet_chars=snippet_chars,
+    )
+    if len(candidates) < 1:
+        return []
+
+    selected = sorted(
+        candidates,
+        key=lambda item: (-int(item["score"]), int(item["memory_index"])),
+    )[: max(2, max_groups * 8)]
+    conflict_groups = _event_time_candidate_conflict_groups(selected)
+    groups = _event_time_candidate_groups(
+        selected,
+        conflict_groups=conflict_groups,
+        max_groups=max(1, max_groups * 8),
+    )
+    target_terms = _event_time_candidate_map_target_terms(question)
+    if not target_terms:
+        return []
+
+    high_confidence_resolutions = {
+        "high_confidence_single",
+        "high_confidence_duplicate_same_time",
+    }
+    item_by_source_id = {str(item["source_id"]): item for item in selected}
+    candidates_for_prompt: list[dict[str, object]] = []
+    for group in groups:
+        if group.get("conflict_type"):
+            continue
+        if str(group.get("resolution")) not in high_confidence_resolutions:
+            continue
+        dedup_key = str(group.get("dedup_key") or "")
+        if not dedup_key.startswith("q:"):
+            continue
+        key_terms = frozenset(dedup_key[2:].split("|")).difference(
+            _EVENT_SLOT_WEAK_TERMS
+        )
+        matched_terms = tuple(sorted(key_terms.intersection(target_terms)))
+        if len(matched_terms) < min_terms:
+            continue
+        coverage = len(matched_terms) / max(1, len(target_terms))
+        if coverage < min_coverage:
+            continue
+        best = item_by_source_id.get(str(group.get("best_source_id") or ""))
+        if best is None:
+            continue
+        candidates_for_prompt.append(
+            {
+                "coverage": coverage,
+                "matched_terms": matched_terms,
+                "group": group,
+                "item": best,
+            }
+        )
+
+    if not candidates_for_prompt:
+        return []
+
+    candidates_for_prompt.sort(
+        key=lambda item: (
+            -float(item["coverage"]),
+            -len(item["matched_terms"]),
+            int(item["item"]["memory_index"]),
+        )
+    )
+    best_coverage = float(candidates_for_prompt[0]["coverage"])
+    top = [
+        item
+        for item in candidates_for_prompt
+        if abs(float(item["coverage"]) - best_coverage) < 1e-9
+    ]
+    top_times = {str(item["group"]["best_event_time"]) for item in top}
+    if len(top_times) > 1:
+        return []
+    selected_for_prompt = top[:max_groups]
+
+    lines = [
+        "Use this narrow map only to locate the likely target event-time row; verify the final answer in Memory Context.",
+        "- Only high-confidence q-slot groups with no event-time conflict and strong question-term coverage are shown.",
+        "- Omitted rows may be low precision, conflicted, or less specific to the question.",
+        "- target_event_time_candidates:",
+    ]
+    for entry in selected_for_prompt:
+        item = entry["item"]
+        group = entry["group"]
+        matched = ", ".join(entry["matched_terms"]) or "none"
+        source_labels = []
+        for source_id in group.get("high_confidence_source_ids") or ():
+            source_item = item_by_source_id.get(str(source_id))
+            if source_item is None:
+                continue
+            source_labels.append(f"Memory {source_item['memory_index']}")
+        source_text = ", ".join(dict.fromkeys(source_labels)) or (
+            f"Memory {item['memory_index']}"
+        )
+        markers = "; ".join(str(marker) for marker in item.get("markers") or ())
+        lines.append(
+            f"  - {source_text}: event_time={group['best_event_time']} "
+            f"time_kind={group['best_time_kind']} matched_terms={matched} "
+            f"coverage={float(entry['coverage']):.3f} markers={markers or 'none'} "
+            f"text=\"{item['snippet']}\""
+        )
+    return lines
+
+
+def _asks_event_time_candidate_map(question: str, route: RouteResult) -> bool:
+    if route.information_need != "temporal_lookup":
+        return False
+    lowered = question.lower()
+    if re.search(
+        r"\b(how\s+long|duration|order|ordered|sequence|first|last|"
+        r"earliest|latest|before|after|since|until)\b",
+        lowered,
+    ):
+        return False
+    return bool(
+        re.search(
+            r"\b(when|what\s+date|which\s+date|which\s+day|what\s+day|"
+            r"what\s+time)\b",
+            lowered,
+        )
+        or re.search(r"(什么时候|哪天|日期|几点|什么时间)", question)
+    )
+
+
+def _event_time_candidate_map_target_terms(question: str) -> frozenset[str]:
+    extra_weak_terms = {
+        "date",
+        "day",
+        "did",
+        "does",
+        "event",
+        "happen",
+        "happened",
+        "is",
+        "time",
+        "was",
+        "were",
+    }
+    return frozenset(
+        term
+        for term in _content_terms(question).difference(_EVENT_SLOT_WEAK_TERMS)
+        if term not in extra_weak_terms and len(term) > 1
+    )
 
 
 def _event_time_candidate_manifest(
