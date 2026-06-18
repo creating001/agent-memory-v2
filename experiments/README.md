@@ -60,6 +60,7 @@
 | 配置 | 原因 |
 |---|---|
 | `v170 broad evidence_report list completion simulation` | 只凭 answer 短和 support values 多来补列表会过宽；会误展开 sum/order/current-state/二选一问题，窄门控仍触发 `65` 条且包含明显过包含风险；不实现、不升 LTS。 |
+| `stage1_source_grounded_temporal_calculation_repair_v174_qwen36_no_think_build4k_cached.json` | 窄 source-grounded temporal/age/duration repair gate 是 clean 的，但 LME/LoCoMo full answer diff 均为 `0`，同时新增 repair miss/write `2+2`；安全但无收益，不升 LTS。下一步应保留 gate，强化“端点齐全即可计算、不要求答案短语原文出现”的 verifier 指令。 |
 | `stage1_no_new_names_profile_advice_repair_v167_qwen36_no_think_build4k_cached.json` | LME full patched strict/lenient `0.826/0.838`（`+2/+2`），LoCoMo 持平；但 LoCoMo 有一条 profile modal wrong->wrong，无收益且有 overreach 风险；v168 已收窄并替代。 |
 | `stage1_same_domain_profile_advice_repair_v166_qwen36_no_think_build4k_cached.json` | LME profile changed subset strict/lenient `0/3 -> 3/3` 正向，但一条 answer 引入 Memory Context 未支持的 `MICCAI/IPMI` 会议名；因 no-new-names clean 风险不升 LTS。 |
 | `stage1_surface_profile_advice_repair_v165_qwen36_no_think_build4k_cached.json` | 修复 v164 过宽触发，LME profile answer diff `0/15`，但触发 `4` 次 repair、增加 `18061` repair query tokens 且无收益；不升 LTS。 |
@@ -88,6 +89,9 @@
 
 | 路径 | 内容 |
 |---|---|
+| `diagnostic/stage1_source_grounded_temporal_calculation_repair_v174_scope_summary.md` | v174 诊断：source-grounded temporal/age/duration verifier gate clean 但 full answer diff `0/500`、`0/1540`，新增 repair 成本，不升 LTS |
+| `diagnostic/stage1_source_grounded_temporal_calculation_repair_v174_lme_s_full/` | v174 LME full cached prediction run artifacts |
+| `diagnostic/stage1_source_grounded_temporal_calculation_repair_v174_locomo_nonadv_full/` | v174 LoCoMo full cached prediction run artifacts |
 | `diagnostic/stage1_source_grounded_modal_inference_repair_v173_scope_summary.md` | v173 LTS 晋升：LME answer diff `0/500`，LoCoMo changed-answer paired dual judge `0/2 -> 2/2`，source-grounded modal yes/no verifier |
 | `diagnostic/stage1_source_grounded_modal_inference_repair_v173_changed_vs_v172/` | v173 vs v172 changed-answer paired dual judge，LoCoMo strict/lenient `0/2 -> 2/2` |
 | `diagnostic/stage1_source_grounded_modal_inference_repair_v173_lme_s_full/` | v173 LME full cached prediction run artifacts |

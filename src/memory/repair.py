@@ -70,6 +70,45 @@ _SOURCE_GROUNDED_MODAL_SUPPORT_ANCHOR = re.compile(
     r"accident|support(?:ed)?|help(?:ed|ful)?|important|connection)\b",
     re.IGNORECASE,
 )
+_SOURCE_GROUNDED_TEMPORAL_CALC_QUESTION = re.compile(
+    r"\b(?:how\s+many\s+(?:days|weeks|months|years)|how\s+long|how\s+old)\b|"
+    r"\b(?:days|weeks|months|years)\s+(?:ago|before|after|between)\b",
+    re.IGNORECASE,
+)
+_SOURCE_GROUNDED_TEMPORAL_CALC_BLOCKED_QUESTION = re.compile(
+    r"\band\s+how\s+many\b|"
+    r"\bwhat\s+(?:schools?|items|events|activities|places|people|persons|"
+    r"books|songs|movies|artists|bands|projects|purchases|trips|visits)\b|"
+    r"\b(?:which|what)\b[^?]{0,120}\b(?:first|earlier|later|before|after)\b|"
+    r"\bdid\b[^?]{0,160}\bor\s+not\b|"
+    r"\b(?:recommend|recommendation|suggest|suggestion|advice|good\s+idea|"
+    r"should|gift|shop|book|company|national\s+park|store|restaurant|"
+    r"venue|product|brand)\b",
+    re.IGNORECASE,
+)
+_SOURCE_GROUNDED_TEMPORAL_DATE = re.compile(
+    r"\b\d{4}[/-]\d{1,2}[/-]\d{1,2}\b|"
+    r"\b(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|"
+    r"jul(?:y)?|aug(?:ust)?|sep(?:t|tember)?|oct(?:ober)?|nov(?:ember)?|"
+    r"dec(?:ember)?)\s+\d{1,2},?\s+\d{4}\b|"
+    r"\b\d{1,2}\s+(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|"
+    r"jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t|tember)?|oct(?:ober)?|"
+    r"nov(?:ember)?|dec(?:ember)?),?\s+\d{4}\b|"
+    r"\b(?:event_time|mention_time)\b[^,;|]{0,40}\b\d{4}\b|"
+    r"\b(?:in|since|from|on|by|around|about|approx(?:imately)?)\s+\d{4}\b",
+    re.IGNORECASE,
+)
+_SOURCE_GROUNDED_TEMPORAL_DURATION = re.compile(
+    r"\b\d+(?:\.\d+)?\s*(?:days?|weeks?|months?|years?|yrs?|mos?)\b|"
+    r"\b(?:few|couple|several|nearly|about|around|almost)\s+"
+    r"(?:days?|weeks?|months?|years?)\b",
+    re.IGNORECASE,
+)
+_SOURCE_GROUNDED_TEMPORAL_AGE = re.compile(
+    r"\b(?:current_?age|age(?:d)?)\b[^,;|]{0,20}\b\d{1,3}\b|"
+    r"\b\d{1,3}\s*(?:years?\s+old|yo)\b",
+    re.IGNORECASE,
+)
 _CURRENT_STATE_LIFECYCLE_QUESTION = re.compile(
     r"\b(current|currently|now|still|latest|most\s+recent|previous|previously|"
     r"before|after|since|how\s+long|duration|tenure|status|changed|compared)\b",
@@ -240,8 +279,10 @@ def maybe_repair_answer(
     enable_profile_advice_abstention_trigger: bool,
     enable_modal_abstention_trigger: bool,
     enable_source_grounded_modal_inference_trigger: bool,
+    enable_source_grounded_temporal_calculation_trigger: bool,
     uncertain_min_support_items: int,
     source_grounded_modal_min_support_items: int,
+    source_grounded_temporal_calculation_min_support_items: int,
     max_context_chars: int,
     max_row_text_chars: int,
     enable_lifecycle_ledger: bool = False,
@@ -272,9 +313,15 @@ def maybe_repair_answer(
         enable_source_grounded_modal_inference_trigger=(
             enable_source_grounded_modal_inference_trigger
         ),
+        enable_source_grounded_temporal_calculation_trigger=(
+            enable_source_grounded_temporal_calculation_trigger
+        ),
         uncertain_min_support_items=uncertain_min_support_items,
         source_grounded_modal_min_support_items=(
             source_grounded_modal_min_support_items
+        ),
+        source_grounded_temporal_calculation_min_support_items=(
+            source_grounded_temporal_calculation_min_support_items
         ),
     )
     if enable_lifecycle_slot_trigger:
@@ -351,8 +398,10 @@ def repair_trigger_reasons(
     enable_profile_advice_abstention_trigger: bool = False,
     enable_modal_abstention_trigger: bool = False,
     enable_source_grounded_modal_inference_trigger: bool = False,
+    enable_source_grounded_temporal_calculation_trigger: bool = False,
     uncertain_min_support_items: int = 0,
     source_grounded_modal_min_support_items: int = 2,
+    source_grounded_temporal_calculation_min_support_items: int = 1,
 ) -> tuple[str, ...]:
     payload = _draft_payload(raw_response)
     reasons: list[str] = []
@@ -391,6 +440,20 @@ def repair_trigger_reasons(
         )
     ):
         reasons.append("source_grounded_modal_inference_review")
+
+    if (
+        enable_source_grounded_temporal_calculation_trigger
+        and _source_grounded_temporal_calculation_applies(
+            question=question,
+            route_information_need=route_information_need,
+            draft_answer=draft_answer,
+            payload=payload,
+            min_support_items=(
+                source_grounded_temporal_calculation_min_support_items
+            ),
+        )
+    ):
+        reasons.append("source_grounded_temporal_calculation_review")
 
     if enable_uncertain_trigger:
         if uncertain_signal and _support_item_count(payload) >= max(
@@ -479,6 +542,7 @@ def build_repair_prompt(
             *_current_state_repair_rules(compiled),
             *_profile_preference_repair_rules(compiled, reasons=reasons),
             *_modal_abstention_repair_rules(reasons),
+            *_temporal_calculation_repair_rules(reasons),
             "Return only valid JSON.",
             "",
             "Output JSON:",
@@ -544,6 +608,17 @@ def _modal_abstention_repair_rules(reasons: tuple[str, ...]) -> list[str]:
         "16. Do not keep an insufficient-information refusal merely because the context lacks an exact verbatim answer; use the user's stated preferences, actions, constraints, outcomes, and self-descriptions as anchors.",
         "17. Keep or revise to insufficient information when anchors are absent, conflicting, or only topically related.",
         "18. For sensitive traits or statuses such as identity, religion, health, finances, or politics, do not infer from stereotypes; require explicit self-description or concrete behavior in Memory Context and use uncertainty qualifiers.",
+    ]
+
+
+def _temporal_calculation_repair_rules(reasons: tuple[str, ...]) -> list[str]:
+    if "source_grounded_temporal_calculation_review" not in reasons:
+        return []
+    return [
+        "15. For this temporal, age, or duration review, simple arithmetic is allowed only over directly supported dates, durations, ages, event_time, mention_time, time_phrase, and Question Time.",
+        "16. Do not revise when any endpoint, age, duration, entity match, or requested event/state is missing, ambiguous, conflicting, or only topically related.",
+        "17. Preserve the unit requested by the question when possible; use approximate wording only when Memory Context gives approximate dates, approximate durations, or incomplete date precision.",
+        "18. For multi-part, list, choice, or external-name questions, keep or revise to insufficient information unless Memory Context fully supports every requested part.",
     ]
 
 
@@ -813,6 +888,93 @@ def _source_grounded_modal_inference_applies(
     if len(support_items) < max(0, int(min_support_items)):
         return False
     return _has_source_grounded_modal_anchor(support_items)
+
+
+def _source_grounded_temporal_calculation_applies(
+    *,
+    question: str,
+    route_information_need: str,
+    draft_answer: str,
+    payload: dict[str, Any],
+    min_support_items: int,
+) -> bool:
+    if route_information_need not in {"current_state", "fact_lookup", "temporal_lookup"}:
+        return False
+    text = question or ""
+    if not _INSUFFICIENT_ANSWER.search(draft_answer or ""):
+        return False
+    if not _SOURCE_GROUNDED_TEMPORAL_CALC_QUESTION.search(text):
+        return False
+    if _SOURCE_GROUNDED_TEMPORAL_CALC_BLOCKED_QUESTION.search(text):
+        return False
+    missing = str(payload.get("missing") or "")
+    if re.search(r"\bnot\s+(?:yet\s+)?completed\b", missing, re.IGNORECASE):
+        return False
+    support_items = _support_items(payload)
+    if len(support_items) < max(0, int(min_support_items)):
+        return False
+    counts = _source_grounded_temporal_operand_counts(support_items)
+    if counts["items"] <= 0:
+        return False
+    lowered = text.lower()
+    if "how old" in lowered:
+        return counts["age"] >= 1 and counts["duration"] >= 1
+    if re.search(r"\bhow\s+many\s+(?:days|weeks|months|years)\s+ago\b", lowered):
+        return counts["endpoint_date"] >= 1
+    return counts["items"] >= 2 and (
+        counts["endpoint_date"] >= 2
+        or (counts["endpoint_date"] >= 1 and counts["duration"] >= 1)
+        or counts["duration"] >= 2
+    )
+
+
+def _source_grounded_temporal_operand_counts(
+    support_items: tuple[dict[str, Any], ...],
+) -> dict[str, int]:
+    counts = {"items": 0, "date": 0, "endpoint_date": 0, "duration": 0, "age": 0}
+    for item in support_items:
+        text = " ".join(
+            str(item.get(field) or "")
+            for field in (
+                "slot",
+                "value",
+                "reason",
+                "event_time",
+                "mention_time",
+                "time_phrase",
+            )
+        )
+        has_date = bool(_SOURCE_GROUNDED_TEMPORAL_DATE.search(text))
+        has_endpoint_date = _has_source_grounded_temporal_endpoint_date(item)
+        has_duration = bool(_SOURCE_GROUNDED_TEMPORAL_DURATION.search(text))
+        has_age = bool(_SOURCE_GROUNDED_TEMPORAL_AGE.search(text))
+        if has_date or has_duration or has_age:
+            counts["items"] += 1
+        if has_date:
+            counts["date"] += 1
+        if has_endpoint_date:
+            counts["endpoint_date"] += 1
+        if has_duration:
+            counts["duration"] += 1
+        if has_age:
+            counts["age"] += 1
+    return counts
+
+
+def _has_source_grounded_temporal_endpoint_date(item: dict[str, Any]) -> bool:
+    event_time = str(item.get("event_time") or "").strip()
+    if event_time and not re.search(
+        r"\b(?:unknown|empty|n/?a|not\s+provided|not\s+specified)\b",
+        event_time,
+        re.IGNORECASE,
+    ):
+        if _SOURCE_GROUNDED_TEMPORAL_DATE.search(event_time):
+            return True
+    for field in ("value", "reason"):
+        text = str(item.get(field) or "")
+        if _SOURCE_GROUNDED_TEMPORAL_DATE.search(text):
+            return True
+    return False
 
 
 def _support_items(payload: dict[str, Any]) -> tuple[dict[str, Any], ...]:

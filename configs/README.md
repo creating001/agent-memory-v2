@@ -13,6 +13,7 @@
 | 配置 | 作用 |
 |---|---|
 | `stage1_source_grounded_modal_inference_repair_v173_qwen36_no_think_build4k_cached.json` | 当前 LTS；source-grounded repair 只在 modal yes/no 拒答且 support anchors 足够时调用 verifier，LME `0.830000 / 0.840000`，LoCoMo `0.792208 / 0.817532`。 |
+| `stage1_source_grounded_temporal_calculation_repair_v174_qwen36_no_think_build4k_cached.json` | v174 no-op 诊断；temporal/age/duration source-grounded repair gate clean 但 full answer diff 为 0，保留为 #4/#5 verifier 提示词教训。 |
 | `stage1_profile_preference_value_guard_v172_qwen36_no_think_build4k_cached.json` | v173 父 LTS；source-grounded finalizer 在拒答且唯一非含糊 preference support value 时保真 profile preference 值，LME `0.830000 / 0.840000`，LoCoMo `0.790909 / 0.816234`。 |
 | `stage1_lifecycle_slot_specificity_guard_v171_qwen36_no_think_build4k_cached.json` | v172 父 LTS；source-grounded finalizer 保真 previous/current occupation/role 等 lifecycle slot 的唯一具体 support value，LME `0.830000 / 0.840000`，LoCoMo `0.790260 / 0.815584`。 |
 | `stage1_source_value_specificity_guard_v170_qwen36_no_think_build4k_cached.json` | v171 父 LTS；source-grounded finalizer 保真短答丢失的唯一 support value specificity，LME `0.828000 / 0.838000`，LoCoMo `0.790260 / 0.815584`。 |

@@ -2488,6 +2488,153 @@ class CleanSkeletonTest(unittest.TestCase):
             "source_grounded_modal_inference_review", sensitive_reasons
         )
 
+    def test_answer_repair_source_grounded_temporal_calculation_trigger_is_narrow(
+        self,
+    ) -> None:
+        raw_started_date = json.dumps(
+            {
+                "content": json.dumps(
+                    {
+                        "evidence_report": [
+                            {
+                                "status": "support",
+                                "slot": "cashback app start date",
+                                "value": "2023/04/16",
+                                "reason": "The memory says Alex started using the app on this date.",
+                            }
+                        ]
+                    }
+                )
+            }
+        )
+        weeks_ago_reasons = repair_trigger_reasons(
+            question="How many weeks ago did I start using the cashback app?",
+            route_information_need="fact_lookup",
+            draft_answer="The provided information is not enough.",
+            raw_response=raw_started_date,
+            enable_uncertain_trigger=False,
+            enable_short_list_trigger=False,
+            enable_temporal_conflict_trigger=False,
+            enable_source_grounded_temporal_calculation_trigger=True,
+        )
+
+        raw_age_duration = json.dumps(
+            {
+                "content": json.dumps(
+                    {
+                        "evidence_report": [
+                            {
+                                "status": "support",
+                                "slot": "current_age",
+                                "value": "32",
+                                "reason": "Alex is currently age 32.",
+                            },
+                            {
+                                "status": "support",
+                                "slot": "duration_in_us",
+                                "value": "5 years",
+                                "reason": "Alex has lived in the United States for 5 years.",
+                            },
+                        ]
+                    }
+                )
+            }
+        )
+        age_reasons = repair_trigger_reasons(
+            question="How old was I when I moved to the United States?",
+            route_information_need="current_state",
+            draft_answer="The provided information is not enough.",
+            raw_response=raw_age_duration,
+            enable_uncertain_trigger=False,
+            enable_short_list_trigger=False,
+            enable_temporal_conflict_trigger=False,
+            enable_source_grounded_temporal_calculation_trigger=True,
+        )
+
+        raw_two_dates = json.dumps(
+            {
+                "content": json.dumps(
+                    {
+                        "evidence_report": [
+                            {
+                                "status": "support",
+                                "slot": "started practice",
+                                "event_time": "2022-07-22",
+                                "value": "started chess practice",
+                            },
+                            {
+                                "status": "support",
+                                "slot": "won tournament",
+                                "event_time": "2022-11-05",
+                                "value": "won the tournament",
+                            },
+                        ]
+                    }
+                )
+            }
+        )
+        duration_reasons = repair_trigger_reasons(
+            question="How long did John practice chess before winning?",
+            route_information_need="temporal_lookup",
+            draft_answer="The provided information is not enough.",
+            raw_response=raw_two_dates,
+            enable_uncertain_trigger=False,
+            enable_short_list_trigger=False,
+            enable_temporal_conflict_trigger=False,
+            enable_source_grounded_temporal_calculation_trigger=True,
+        )
+
+        multi_part_reasons = repair_trigger_reasons(
+            question=(
+                "What schools did John play basketball in and how many years "
+                "did he play?"
+            ),
+            route_information_need="temporal_lookup",
+            draft_answer="The provided information is not enough.",
+            raw_response=raw_two_dates,
+            enable_uncertain_trigger=False,
+            enable_short_list_trigger=False,
+            enable_temporal_conflict_trigger=False,
+            enable_source_grounded_temporal_calculation_trigger=True,
+        )
+        choice_reasons = repair_trigger_reasons(
+            question="Which project did I start first before moving?",
+            route_information_need="fact_lookup",
+            draft_answer="The provided information is not enough.",
+            raw_response=raw_two_dates,
+            enable_uncertain_trigger=False,
+            enable_short_list_trigger=False,
+            enable_temporal_conflict_trigger=False,
+            enable_source_grounded_temporal_calculation_trigger=True,
+        )
+        unsupported_reasons = repair_trigger_reasons(
+            question="How long did Alex practice chess before winning?",
+            route_information_need="temporal_lookup",
+            draft_answer="The provided information is not enough.",
+            raw_response=json.dumps({"content": json.dumps({"evidence_report": []})}),
+            enable_uncertain_trigger=False,
+            enable_short_list_trigger=False,
+            enable_temporal_conflict_trigger=False,
+            enable_source_grounded_temporal_calculation_trigger=True,
+        )
+
+        self.assertIn(
+            "source_grounded_temporal_calculation_review", weeks_ago_reasons
+        )
+        self.assertIn("source_grounded_temporal_calculation_review", age_reasons)
+        self.assertIn(
+            "source_grounded_temporal_calculation_review", duration_reasons
+        )
+        self.assertNotIn(
+            "source_grounded_temporal_calculation_review", multi_part_reasons
+        )
+        self.assertNotIn(
+            "source_grounded_temporal_calculation_review", choice_reasons
+        )
+        self.assertNotIn(
+            "source_grounded_temporal_calculation_review", unsupported_reasons
+        )
+
     def test_answer_repair_prompt_uses_runtime_context_and_draft(self) -> None:
         context = CompiledContext(
             question="What tea does Alex prefer?",
@@ -2899,6 +3046,47 @@ class CleanSkeletonTest(unittest.TestCase):
                 self.assertIn(
                     "Alex says she likes quiet weekend reading groups.", prompt
                 )
+
+    def test_answer_repair_prompt_adds_temporal_calculation_rules(self) -> None:
+        context = CompiledContext(
+            question="How many weeks ago did Alex start using the cashback app?",
+            question_time="2023-05-06",
+            route=RouteResult(information_need="fact_lookup", signals=()),
+            evidence_rows=(
+                EvidenceRow(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="Alex started using the cashback app on 2023/04/16.",
+                    timestamp="2023-04-16",
+                    retrieval_rank=1,
+                    retrieval_score=1.0,
+                ),
+            ),
+            prompt="original prompt",
+            context_chars=0,
+        )
+        draft = AnswerResult(
+            answer="There is not enough information.",
+            model="draft",
+            token_usage=TokenUsage(query_tokens=3),
+            raw_response=json.dumps({"content": '{"answer":"unknown"}'}),
+        )
+
+        prompt, _ = build_repair_prompt(
+            compiled=context,
+            draft=draft,
+            reasons=("source_grounded_temporal_calculation_review",),
+            max_context_chars=1000,
+            max_row_text_chars=200,
+        )
+
+        self.assertIn("temporal, age, or duration review", prompt)
+        self.assertIn("directly supported dates", prompt)
+        self.assertIn("Question Time", prompt)
+        self.assertIn("missing, ambiguous, conflicting", prompt)
+        self.assertIn("Alex started using the cashback app on 2023/04/16.", prompt)
 
     def test_raw_response_content_extracts_answerer_content(self) -> None:
         raw_response = json.dumps(
