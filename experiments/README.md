@@ -25,7 +25,7 @@
 
 | 优先级 | 项目 | 当前状态 | 下一步 |
 |---:|---|---|---|
-| 1 | #5 memory lifecycle/state/conflict/query-time reasoning | v145 slot-chain formal 负向；v146 加 lifecycle scope + slot-overlap gate 后相对 v127 为 no-op，不跑 formal | 下一版不要只靠同 slot 扩展；需要更有用的 as-of/current/historical state interpretation、conflict-chain pruning 和 answer-slot-aware source selection |
+| 1 | #5 memory lifecycle/state/conflict/query-time reasoning | v145 slot-chain formal 负向；v146 加 lifecycle scope + slot-overlap gate 后相对 v127 为 no-op；v147 global temporal-priority 在 changed-answer judge 上负向 | 下一版不要做全局 temporal/current priority；需要 source-backed as-of state interpretation、conflict-chain pruning 和 answer-slot-aware raw source selection |
 | 2 | #1 granularity/profile generalization + #2/#3 context pressure | v140 清除 profile 分支并降低 LME avg context chars 到 `18940.848`，但 LME strict/lenient `0.794/0.826` 低于 v127 | 重做 retrieval/context organization，避免 v139/v140 这种损覆盖的 compiler pressure |
 | 3 | src cleanup | `src` 审计显示暂无可整模块删除的 tracked 代码；`repair.py`、rerank、turn-window 和 guide 逻辑仍有消融或 guardrail 价值 | 后续随实验节奏拆小 `compiler.py` / `pipeline.py`，删除确认无用的兼容分支，不删仍有验证价值的模块 |
 
@@ -47,6 +47,7 @@
 
 | 配置 | 原因 |
 |---|---|
+| `stage1_temporal_scope_priority_v147_qwen36_no_think_build4k_cached.json` | 继承 v127，仅打开 `route.temporal_priority_over_recent=true`，试图降低 temporal/current route 歧义。Compile scope 很小：LME route changed `9/500`、LoCoMo `1/1540`；full cached prediction：LME answer changed `6/500`、LoCoMo `0/1540`。LME changed-answer paired dual judge 从 v127 `5/6` strict/lenient 降到 v147 `3/6`，不升 LTS。结论：#5 需要 answer-slot-aware as-of state/source selection，不能做全局 temporal priority。 |
 | `stage1_scoped_state_source_activation_v146_qwen36_no_think_build4k_cached.json` | v146 把 v145 的 retrieval-time slot-chain 收窄为 lifecycle-scope + predicate/value/text overlap gate；typed memory 仍只做 source-backed activation，reader 只看 raw rows。Compile-only：LME slot-chain `1/500`、LoCoMo `0/1540`；相对 v127 prompt/row-set changes 均为 `0`，因此不跑 formal、不升 LTS。 |
 | `stage1_memory_slot_chain_v145_qwen36_no_think_build4k_cached.json` | source-backed retrieval-time slot-chain expansion 只在 `current_state/profile_preference` 触发，typed memory text 不作为 reader evidence。Compile scope 窄：LME slot-chain `16/500`、LoCoMo `34/1540`，context 基本不变。但 full dual judge：LME strict/lenient `0.814000/0.830000`，LoCoMo `0.785065/0.808442`；均低于 fresh v127，且 paired changed subset vs v127 为 LME strict/lenient `-2/-2`、LoCoMo `-2/-1`，不升 LTS。 |
 | `stage1_memory_version_chain_v144_qwen36_no_think_build4k_cached.json` | source-backed version-chain row ordering 只改 `current_state/profile_preference`，不把 typed memory text 当 reader evidence。Compile scope 合理：LME changed `31/500`、LoCoMo changed `50/1540`，几乎不增 context。但 full dual judge：LME strict/lenient `0.812000/0.840000`，LoCoMo `0.785714/0.811688`；LoCoMo 低于 fresh v127 `0.789610/0.815584`，不升 LTS。保留为 #5 state/version ablation。 |
@@ -95,6 +96,7 @@
 
 | 文档/目录 | 作用 |
 |---|---|
+| `diagnostic/stage1_temporal_scope_priority_v147_scope_summary.md` | v147 temporal/current route-priority scope probe：changed-answer paired judge 负向，拒绝并给出 #5 下一步 |
 | `diagnostic/stage1_scoped_state_source_activation_v146_scope_summary.md` | v146 query-scoped source activation：更 clean 但相对 v127 no-op，不跑 formal |
 | `diagnostic/stage1_fact_tail_snippet_budget_v134_summary.md` | v133/v134 tail text budget 诊断 |
 | `diagnostic/stage1_temporal_local_evidence_signal_gate_v135_analysis/` | v135 dry-run scope comparison and decision notes |
