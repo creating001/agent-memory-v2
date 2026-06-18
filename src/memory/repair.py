@@ -86,6 +86,16 @@ _SOURCE_GROUNDED_TEMPORAL_CALC_BLOCKED_QUESTION = re.compile(
     r"venue|product|brand)\b",
     re.IGNORECASE,
 )
+_SOURCE_GROUNDED_TEMPORAL_ORDER_QUESTION = re.compile(
+    r"\b(?:what(?:'s|\s+is)\s+the\s+order|in\s+what\s+order|order\s+of|"
+    r"chronological\s+order|chronologically|timeline|sequence)\b",
+    re.IGNORECASE,
+)
+_SOURCE_GROUNDED_TEMPORAL_ORDER_DIRECTION = re.compile(
+    r"\b(?:earliest|latest|oldest|newest|first|last|before|after|"
+    r"chronological(?:ly)?)\b",
+    re.IGNORECASE,
+)
 _SOURCE_GROUNDED_TEMPORAL_DATE = re.compile(
     r"\b\d{4}[/-]\d{1,2}[/-]\d{1,2}\b|"
     r"\b(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|"
@@ -287,9 +297,11 @@ def maybe_repair_answer(
     enable_modal_abstention_trigger: bool,
     enable_source_grounded_modal_inference_trigger: bool,
     enable_source_grounded_temporal_calculation_trigger: bool,
+    enable_source_grounded_temporal_order_trigger: bool,
     uncertain_min_support_items: int,
     source_grounded_modal_min_support_items: int,
     source_grounded_temporal_calculation_min_support_items: int,
+    source_grounded_temporal_order_min_support_items: int,
     max_context_chars: int,
     max_row_text_chars: int,
     enable_lifecycle_ledger: bool = False,
@@ -326,12 +338,18 @@ def maybe_repair_answer(
         enable_source_grounded_temporal_calculation_trigger=(
             enable_source_grounded_temporal_calculation_trigger
         ),
+        enable_source_grounded_temporal_order_trigger=(
+            enable_source_grounded_temporal_order_trigger
+        ),
         uncertain_min_support_items=uncertain_min_support_items,
         source_grounded_modal_min_support_items=(
             source_grounded_modal_min_support_items
         ),
         source_grounded_temporal_calculation_min_support_items=(
             source_grounded_temporal_calculation_min_support_items
+        ),
+        source_grounded_temporal_order_min_support_items=(
+            source_grounded_temporal_order_min_support_items
         ),
     )
     if enable_lifecycle_slot_trigger:
@@ -410,9 +428,11 @@ def repair_trigger_reasons(
     enable_modal_abstention_trigger: bool = False,
     enable_source_grounded_modal_inference_trigger: bool = False,
     enable_source_grounded_temporal_calculation_trigger: bool = False,
+    enable_source_grounded_temporal_order_trigger: bool = False,
     uncertain_min_support_items: int = 0,
     source_grounded_modal_min_support_items: int = 2,
     source_grounded_temporal_calculation_min_support_items: int = 1,
+    source_grounded_temporal_order_min_support_items: int = 3,
 ) -> tuple[str, ...]:
     payload = _draft_payload(raw_response)
     reasons: list[str] = []
@@ -475,6 +495,18 @@ def repair_trigger_reasons(
         )
     ):
         reasons.append("source_grounded_temporal_calculation_review")
+
+    if (
+        enable_source_grounded_temporal_order_trigger
+        and _source_grounded_temporal_order_applies(
+            question=question,
+            route_information_need=route_information_need,
+            draft_answer=draft_answer,
+            payload=payload,
+            min_support_items=source_grounded_temporal_order_min_support_items,
+        )
+    ):
+        reasons.append("source_grounded_temporal_order_review")
 
     if enable_uncertain_trigger:
         if uncertain_signal and _support_item_count(payload) >= max(
@@ -564,6 +596,7 @@ def build_repair_prompt(
             *_profile_preference_repair_rules(compiled, reasons=reasons),
             *_modal_abstention_repair_rules(reasons),
             *_temporal_calculation_repair_rules(reasons),
+            *_temporal_order_repair_rules(reasons),
             "Return only valid JSON.",
             "",
             "Output JSON:",
@@ -645,6 +678,17 @@ def _temporal_calculation_repair_rules(reasons: tuple[str, ...]) -> list[str]:
         "18. Preserve the unit requested by the question when possible; use approximate wording such as about, nearly, or approximately when the result is non-integer, date precision is incomplete, or Memory Context gives approximate dates/durations.",
         "19. Keep or revise to insufficient information when any endpoint, age, duration, entity match, or requested event/state is missing, ambiguous, conflicting, unknown, empty, N/A, or only topically related.",
         "20. For multi-part, list, choice, or external-name questions, keep or revise to insufficient information unless Memory Context fully supports every requested part.",
+    ]
+
+
+def _temporal_order_repair_rules(reasons: tuple[str, ...]) -> list[str]:
+    if "source_grounded_temporal_order_review" not in reasons:
+        return []
+    return [
+        "15. For this temporal order review, build one row per distinct in-scope item or event from Draft Answer JSON and Memory Context, then sort by the event time requested by the question.",
+        "16. Do not sort by Memory number, retrieval rank, mention order, or recency. Use Memory Date only when the same row explicitly says the event happened today or gives a relative phrase anchored to that row.",
+        "17. Include all and only distinct in-scope items with source-backed event dates. If a required item has no supported event date or dates conflict, keep or revise to insufficient information instead of guessing.",
+        "18. For ties on the same supported date, keep a source-supported stable order and include dates when they help expose the tie or justify the ordering.",
     ]
 
 
@@ -954,6 +998,41 @@ def _source_grounded_temporal_calculation_applies(
     )
 
 
+def _source_grounded_temporal_order_applies(
+    *,
+    question: str,
+    route_information_need: str,
+    draft_answer: str,
+    payload: dict[str, Any],
+    min_support_items: int,
+) -> bool:
+    if route_information_need not in {
+        "current_state",
+        "fact_lookup",
+        "list_count",
+        "temporal_lookup",
+    }:
+        return False
+    text = question or ""
+    if not _SOURCE_GROUNDED_TEMPORAL_ORDER_QUESTION.search(text):
+        return False
+    if not _SOURCE_GROUNDED_TEMPORAL_ORDER_DIRECTION.search(text):
+        return False
+    answer_type = str(payload.get("answer_type") or "").strip().lower()
+    if answer_type not in {"order", "list"}:
+        return False
+    if _INSUFFICIENT_ANSWER.search(draft_answer or ""):
+        return False
+    support_items = _support_items(payload)
+    required = max(2, int(min_support_items))
+    dated_items = tuple(
+        item for item in support_items if _has_source_grounded_temporal_endpoint_date(item)
+    )
+    if len(dated_items) < required:
+        return False
+    return len(_support_item_date_values(dated_items)) >= 2
+
+
 def _source_grounded_temporal_operand_counts(
     support_items: tuple[dict[str, Any], ...],
 ) -> dict[str, int]:
@@ -1001,6 +1080,18 @@ def _has_source_grounded_temporal_endpoint_date(item: dict[str, Any]) -> bool:
         if _SOURCE_GROUNDED_TEMPORAL_DATE.search(text):
             return True
     return False
+
+
+def _support_item_date_values(
+    support_items: tuple[dict[str, Any], ...],
+) -> set[str]:
+    values: set[str] = set()
+    for item in support_items:
+        for field in ("event_time", "value", "reason"):
+            text = str(item.get(field) or "")
+            for match in _SOURCE_GROUNDED_TEMPORAL_DATE.finditer(text):
+                values.add(match.group(0).lower())
+    return values
 
 
 def _support_items(payload: dict[str, Any]) -> tuple[dict[str, Any], ...]:

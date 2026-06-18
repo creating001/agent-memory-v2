@@ -1126,11 +1126,48 @@ def _answer_metrics(config: dict[str, Any]) -> dict[str, Any]:
         "repair_enable_profile_advice_abstention_trigger": repair_config.get(
             "enable_profile_advice_abstention_trigger", False
         ),
+        "repair_enable_cross_route_profile_advice_abstention_trigger": repair_config.get(
+            "enable_cross_route_profile_advice_abstention_trigger", False
+        ),
+        "repair_cross_route_profile_advice_abstention_information_needs": (
+            repair_config.get("cross_route_profile_advice_abstention_information_needs")
+        ),
         "repair_enable_modal_abstention_trigger": repair_config.get(
             "enable_modal_abstention_trigger", False
         ),
         "repair_modal_abstention_information_needs": repair_config.get(
             "modal_abstention_information_needs"
+        ),
+        "repair_enable_source_grounded_modal_inference_trigger": repair_config.get(
+            "enable_source_grounded_modal_inference_trigger", False
+        ),
+        "repair_source_grounded_modal_inference_information_needs": repair_config.get(
+            "source_grounded_modal_inference_information_needs"
+        ),
+        "repair_source_grounded_modal_min_support_items": repair_config.get(
+            "source_grounded_modal_min_support_items", 2
+        ),
+        "repair_enable_source_grounded_temporal_calculation_trigger": (
+            repair_config.get(
+                "enable_source_grounded_temporal_calculation_trigger", False
+            )
+        ),
+        "repair_source_grounded_temporal_calculation_information_needs": (
+            repair_config.get("source_grounded_temporal_calculation_information_needs")
+        ),
+        "repair_source_grounded_temporal_calculation_min_support_items": (
+            repair_config.get(
+                "source_grounded_temporal_calculation_min_support_items", 1
+            )
+        ),
+        "repair_enable_source_grounded_temporal_order_trigger": repair_config.get(
+            "enable_source_grounded_temporal_order_trigger", False
+        ),
+        "repair_source_grounded_temporal_order_information_needs": repair_config.get(
+            "source_grounded_temporal_order_information_needs"
+        ),
+        "repair_source_grounded_temporal_order_min_support_items": repair_config.get(
+            "source_grounded_temporal_order_min_support_items", 3
         ),
         "repair_max_context_chars": repair_config.get("max_context_chars", 14000),
         "repair_max_row_text_chars": repair_config.get("max_row_text_chars", 700),
@@ -1375,8 +1412,19 @@ def _write_summary(
         f"- answer_repair_enable_temporal_conflict_trigger: {metrics['answer']['repair_enable_temporal_conflict_trigger']}",
         f"- answer_repair_enable_profile_preference_trigger: {metrics['answer'].get('repair_enable_profile_preference_trigger', False)}",
         f"- answer_repair_enable_profile_advice_abstention_trigger: {metrics['answer'].get('repair_enable_profile_advice_abstention_trigger', False)}",
+        f"- answer_repair_enable_cross_route_profile_advice_abstention_trigger: {metrics['answer'].get('repair_enable_cross_route_profile_advice_abstention_trigger', False)}",
+        f"- answer_repair_cross_route_profile_advice_abstention_information_needs: {metrics['answer'].get('repair_cross_route_profile_advice_abstention_information_needs')}",
         f"- answer_repair_enable_modal_abstention_trigger: {metrics['answer'].get('repair_enable_modal_abstention_trigger', False)}",
         f"- answer_repair_modal_abstention_information_needs: {metrics['answer'].get('repair_modal_abstention_information_needs')}",
+        f"- answer_repair_enable_source_grounded_modal_inference_trigger: {metrics['answer'].get('repair_enable_source_grounded_modal_inference_trigger', False)}",
+        f"- answer_repair_source_grounded_modal_inference_information_needs: {metrics['answer'].get('repair_source_grounded_modal_inference_information_needs')}",
+        f"- answer_repair_source_grounded_modal_min_support_items: {metrics['answer'].get('repair_source_grounded_modal_min_support_items')}",
+        f"- answer_repair_enable_source_grounded_temporal_calculation_trigger: {metrics['answer'].get('repair_enable_source_grounded_temporal_calculation_trigger', False)}",
+        f"- answer_repair_source_grounded_temporal_calculation_information_needs: {metrics['answer'].get('repair_source_grounded_temporal_calculation_information_needs')}",
+        f"- answer_repair_source_grounded_temporal_calculation_min_support_items: {metrics['answer'].get('repair_source_grounded_temporal_calculation_min_support_items')}",
+        f"- answer_repair_enable_source_grounded_temporal_order_trigger: {metrics['answer'].get('repair_enable_source_grounded_temporal_order_trigger', False)}",
+        f"- answer_repair_source_grounded_temporal_order_information_needs: {metrics['answer'].get('repair_source_grounded_temporal_order_information_needs')}",
+        f"- answer_repair_source_grounded_temporal_order_min_support_items: {metrics['answer'].get('repair_source_grounded_temporal_order_min_support_items')}",
         f"- answer_repair_max_context_chars: {metrics['answer']['repair_max_context_chars']}",
         f"- answer_repair_max_row_text_chars: {metrics['answer']['repair_max_row_text_chars']}",
         f"- answer_repair_cache_enabled: {metrics['answer']['repair_cache_enabled']}",
@@ -1660,8 +1708,19 @@ def _write_diagnosis(
         f"- answer_repair_uncertain_trigger_information_needs: {metrics['answer']['repair_uncertain_trigger_information_needs']}",
         f"- answer_repair_enable_profile_preference_trigger: {metrics['answer'].get('repair_enable_profile_preference_trigger', False)}",
         f"- answer_repair_enable_profile_advice_abstention_trigger: {metrics['answer'].get('repair_enable_profile_advice_abstention_trigger', False)}",
+        f"- answer_repair_enable_cross_route_profile_advice_abstention_trigger: {metrics['answer'].get('repair_enable_cross_route_profile_advice_abstention_trigger', False)}",
+        f"- answer_repair_cross_route_profile_advice_abstention_information_needs: {metrics['answer'].get('repair_cross_route_profile_advice_abstention_information_needs')}",
         f"- answer_repair_enable_modal_abstention_trigger: {metrics['answer'].get('repair_enable_modal_abstention_trigger', False)}",
         f"- answer_repair_modal_abstention_information_needs: {metrics['answer'].get('repair_modal_abstention_information_needs')}",
+        f"- answer_repair_enable_source_grounded_modal_inference_trigger: {metrics['answer'].get('repair_enable_source_grounded_modal_inference_trigger', False)}",
+        f"- answer_repair_source_grounded_modal_inference_information_needs: {metrics['answer'].get('repair_source_grounded_modal_inference_information_needs')}",
+        f"- answer_repair_source_grounded_modal_min_support_items: {metrics['answer'].get('repair_source_grounded_modal_min_support_items')}",
+        f"- answer_repair_enable_source_grounded_temporal_calculation_trigger: {metrics['answer'].get('repair_enable_source_grounded_temporal_calculation_trigger', False)}",
+        f"- answer_repair_source_grounded_temporal_calculation_information_needs: {metrics['answer'].get('repair_source_grounded_temporal_calculation_information_needs')}",
+        f"- answer_repair_source_grounded_temporal_calculation_min_support_items: {metrics['answer'].get('repair_source_grounded_temporal_calculation_min_support_items')}",
+        f"- answer_repair_enable_source_grounded_temporal_order_trigger: {metrics['answer'].get('repair_enable_source_grounded_temporal_order_trigger', False)}",
+        f"- answer_repair_source_grounded_temporal_order_information_needs: {metrics['answer'].get('repair_source_grounded_temporal_order_information_needs')}",
+        f"- answer_repair_source_grounded_temporal_order_min_support_items: {metrics['answer'].get('repair_source_grounded_temporal_order_min_support_items')}",
         f"- answer_repair_triggered_count: {metrics['answer']['repair_triggered_count']}",
         f"- answer_repair_triggered_rate: {metrics['answer']['repair_triggered_rate']}",
         f"- answer_repair_applied_count: {metrics['answer']['repair_applied_count']}",

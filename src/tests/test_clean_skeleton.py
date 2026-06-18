@@ -2809,6 +2809,138 @@ class CleanSkeletonTest(unittest.TestCase):
             "source_grounded_temporal_calculation_review", unsupported_reasons
         )
 
+    def test_answer_repair_source_grounded_temporal_order_trigger_is_narrow(
+        self,
+    ) -> None:
+        raw_order = json.dumps(
+            {
+                "content": json.dumps(
+                    {
+                        "sufficient": True,
+                        "answer_type": "order",
+                        "evidence_report": [
+                            {
+                                "status": "support",
+                                "slot": "visit_date",
+                                "event_time": "2024-01-10",
+                                "value": "visited the archive",
+                            },
+                            {
+                                "status": "support",
+                                "slot": "visit_date",
+                                "event_time": "2024-02-15",
+                                "value": "visited the studio",
+                            },
+                            {
+                                "status": "support",
+                                "slot": "visit_date",
+                                "event_time": "2024-03-20",
+                                "value": "visited the lab",
+                            },
+                        ],
+                    }
+                )
+            }
+        )
+        supported_reasons = repair_trigger_reasons(
+            question="What is the order of the places I visited from earliest to latest?",
+            route_information_need="current_state",
+            draft_answer="1. the studio, 2. the archive, 3. the lab",
+            raw_response=raw_order,
+            enable_uncertain_trigger=False,
+            enable_short_list_trigger=False,
+            enable_temporal_conflict_trigger=False,
+            enable_source_grounded_temporal_order_trigger=True,
+        )
+        disabled_reasons = repair_trigger_reasons(
+            question="What is the order of the places I visited from earliest to latest?",
+            route_information_need="current_state",
+            draft_answer="1. the studio, 2. the archive, 3. the lab",
+            raw_response=raw_order,
+            enable_uncertain_trigger=False,
+            enable_short_list_trigger=False,
+            enable_temporal_conflict_trigger=False,
+            enable_source_grounded_temporal_order_trigger=False,
+        )
+        choice_reasons = repair_trigger_reasons(
+            question="Which place did I visit first before the lab?",
+            route_information_need="current_state",
+            draft_answer="the studio",
+            raw_response=raw_order,
+            enable_uncertain_trigger=False,
+            enable_short_list_trigger=False,
+            enable_temporal_conflict_trigger=False,
+            enable_source_grounded_temporal_order_trigger=True,
+        )
+        weak_support_reasons = repair_trigger_reasons(
+            question="What is the order of the places I visited from earliest to latest?",
+            route_information_need="current_state",
+            draft_answer="1. the archive, 2. the studio",
+            raw_response=json.dumps(
+                {
+                    "content": json.dumps(
+                        {
+                            "sufficient": True,
+                            "answer_type": "order",
+                            "evidence_report": [
+                                {
+                                    "status": "support",
+                                    "event_time": "2024-01-10",
+                                    "value": "visited the archive",
+                                },
+                                {
+                                    "status": "support",
+                                    "event_time": "2024-02-15",
+                                    "value": "visited the studio",
+                                },
+                            ],
+                        }
+                    )
+                }
+            ),
+            enable_uncertain_trigger=False,
+            enable_short_list_trigger=False,
+            enable_temporal_conflict_trigger=False,
+            enable_source_grounded_temporal_order_trigger=True,
+        )
+        fact_answer_reasons = repair_trigger_reasons(
+            question="What is the order of the places I visited from earliest to latest?",
+            route_information_need="current_state",
+            draft_answer="the archive",
+            raw_response=json.dumps(
+                {"content": json.dumps({"answer_type": "fact"})}
+            ),
+            enable_uncertain_trigger=False,
+            enable_short_list_trigger=False,
+            enable_temporal_conflict_trigger=False,
+            enable_source_grounded_temporal_order_trigger=True,
+        )
+        refusal_reasons = repair_trigger_reasons(
+            question="What is the order of the places I visited from earliest to latest?",
+            route_information_need="current_state",
+            draft_answer="The provided information is not enough.",
+            raw_response=raw_order,
+            enable_uncertain_trigger=False,
+            enable_short_list_trigger=False,
+            enable_temporal_conflict_trigger=False,
+            enable_source_grounded_temporal_order_trigger=True,
+        )
+
+        self.assertIn(
+            "source_grounded_temporal_order_review", supported_reasons
+        )
+        self.assertNotIn(
+            "source_grounded_temporal_order_review", disabled_reasons
+        )
+        self.assertNotIn("source_grounded_temporal_order_review", choice_reasons)
+        self.assertNotIn(
+            "source_grounded_temporal_order_review", weak_support_reasons
+        )
+        self.assertNotIn(
+            "source_grounded_temporal_order_review", fact_answer_reasons
+        )
+        self.assertNotIn("source_grounded_temporal_order_review", refusal_reasons)
+
     def test_answer_repair_prompt_uses_runtime_context_and_draft(self) -> None:
         context = CompiledContext(
             question="What tea does Alex prefer?",
@@ -3307,6 +3439,56 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertIn("Question Time", prompt)
         self.assertIn("missing, ambiguous, conflicting, unknown", prompt)
         self.assertIn("Alex started using the cashback app on 2023/04/16.", prompt)
+
+    def test_answer_repair_prompt_adds_temporal_order_rules(self) -> None:
+        context = CompiledContext(
+            question="What is the order of the places I visited from earliest to latest?",
+            question_time="2024-04-01",
+            route=RouteResult(information_need="current_state", signals=()),
+            evidence_rows=(
+                EvidenceRow(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="I visited the archive on 2024-01-10.",
+                    timestamp="2024-01-10",
+                    retrieval_rank=1,
+                    retrieval_score=1.0,
+                ),
+                EvidenceRow(
+                    source_id="s2:t1",
+                    session_id="s2",
+                    turn_index=1,
+                    role="user",
+                    text="I visited the studio on 2024-02-15.",
+                    timestamp="2024-02-15",
+                    retrieval_rank=2,
+                    retrieval_score=0.9,
+                ),
+            ),
+            prompt="original prompt",
+            context_chars=0,
+        )
+        draft = AnswerResult(
+            answer="1. studio, 2. archive",
+            model="draft",
+            token_usage=TokenUsage(query_tokens=3),
+            raw_response=json.dumps({"content": '{"answer_type":"order"}'}),
+        )
+
+        prompt, _ = build_repair_prompt(
+            compiled=context,
+            draft=draft,
+            reasons=("source_grounded_temporal_order_review",),
+            max_context_chars=1000,
+            max_row_text_chars=200,
+        )
+
+        self.assertIn("temporal order review", prompt)
+        self.assertIn("Do not sort by Memory number", prompt)
+        self.assertIn("source-backed event dates", prompt)
+        self.assertIn("I visited the archive on 2024-01-10.", prompt)
 
     def test_raw_response_content_extracts_answerer_content(self) -> None:
         raw_response = json.dumps(

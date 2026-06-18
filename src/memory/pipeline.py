@@ -969,6 +969,18 @@ class Stage1Pipeline:
                 )
             )
         )
+        self._answer_repair_enable_source_grounded_temporal_order_trigger = bool(
+            answer_repair_config.get(
+                "enable_source_grounded_temporal_order_trigger", False
+            )
+        )
+        self._answer_repair_source_grounded_temporal_order_information_needs = (
+            _tuple_config(
+                answer_repair_config.get(
+                    "source_grounded_temporal_order_information_needs"
+                )
+            )
+        )
         self._answer_repair_enable_lifecycle_ledger = bool(
             answer_repair_config.get("enable_lifecycle_ledger", False)
         )
@@ -986,6 +998,11 @@ class Stage1Pipeline:
                 answer_repair_config.get(
                     "source_grounded_temporal_calculation_min_support_items", 1
                 )
+            )
+        )
+        self._answer_repair_source_grounded_temporal_order_min_support_items = int(
+            answer_repair_config.get(
+                "source_grounded_temporal_order_min_support_items", 3
             )
         )
         self._answer_repair_max_context_chars = int(
@@ -1039,6 +1056,12 @@ class Stage1Pipeline:
             "source_grounded_temporal_calculation_information_needs": (
                 self._answer_repair_source_grounded_temporal_calculation_information_needs
             ),
+            "enable_source_grounded_temporal_order_trigger": (
+                self._answer_repair_enable_source_grounded_temporal_order_trigger
+            ),
+            "source_grounded_temporal_order_information_needs": (
+                self._answer_repair_source_grounded_temporal_order_information_needs
+            ),
             "enable_lifecycle_ledger": (
                 self._answer_repair_enable_lifecycle_ledger
             ),
@@ -1053,6 +1076,9 @@ class Stage1Pipeline:
             ),
             "source_grounded_temporal_calculation_min_support_items": (
                 self._answer_repair_source_grounded_temporal_calculation_min_support_items
+            ),
+            "source_grounded_temporal_order_min_support_items": (
+                self._answer_repair_source_grounded_temporal_order_min_support_items
             ),
             "max_context_chars": self._answer_repair_max_context_chars,
             "max_row_text_chars": self._answer_repair_max_row_text_chars,
@@ -1505,6 +1531,14 @@ class Stage1Pipeline:
                     in self._answer_repair_source_grounded_temporal_calculation_information_needs
                 )
             ),
+            enable_source_grounded_temporal_order_trigger=(
+                self._answer_repair_enable_source_grounded_temporal_order_trigger
+                and (
+                    not self._answer_repair_source_grounded_temporal_order_information_needs
+                    or route.information_need
+                    in self._answer_repair_source_grounded_temporal_order_information_needs
+                )
+            ),
             uncertain_min_support_items=(
                 self._answer_repair_uncertain_min_support_items
             ),
@@ -1513,6 +1547,9 @@ class Stage1Pipeline:
             ),
             source_grounded_temporal_calculation_min_support_items=(
                 self._answer_repair_source_grounded_temporal_calculation_min_support_items
+            ),
+            source_grounded_temporal_order_min_support_items=(
+                self._answer_repair_source_grounded_temporal_order_min_support_items
             ),
             max_context_chars=self._answer_repair_max_context_chars,
             max_row_text_chars=self._answer_repair_max_row_text_chars,
