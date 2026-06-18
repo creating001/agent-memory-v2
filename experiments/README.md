@@ -9,9 +9,9 @@
 | 当前 LTS 配置 | `configs/stage1_superseded_source_chain_v127_qwen36_no_think_build4k_cached.json` |
 | Backbone | `Qwen/Qwen3.6-35B-A3B` answer/build，`chat_template_kwargs.enable_thinking=false` |
 | 方法 | V127 superseded source chain；继承 v125 route-scoped temporal local evidence unit 和 v121 source-grounded guard，并在 profile/current routes 用 build-memory source backpointers 组织 active/superseded update chain。Typed memory text 不作为 reader evidence。 |
-| LongMemEval-S full | inherited route-only strict/lenient `0.814000 / 0.836000`；v116 full dual judge + v126 profile/current delta `-1/-1` + v127 changed-prompt delta `+2/+2`，不是新的 full answer/judge rerun |
-| LoCoMo non-adversarial full | route-only strict/lenient `0.792857 / 0.811688`；v125 full route-only dual judge + v126 profile/current delta `+4/+4` + v127 changed-prompt delta `+1/+2` |
-| 状态 | 当前本地 qwen3.6 no-thinking LTS。按 goal 五项风险审计，v127 继承 #4/#3 风险收敛，并新增降低 #5 中的 memory organization/update-chain 风险；#5 更完整的 memory lifecycle、state/conflict handling 和 query-time memory reasoning 仍未解决，#1 granularity/profile 和 #2 top-k/context noise/rerank 也仍未解决。 |
+| LongMemEval-S full | fresh full dual judge strict/lenient `0.820000 / 0.832000`；`410/500` strict，`416/500` lenient |
+| LoCoMo non-adversarial full | fresh full dual judge strict/lenient `0.789610 / 0.815584`；`1216/1540` strict，`1256/1540` lenient |
+| 状态 | 当前本地 qwen3.6 no-thinking LTS。按 goal 五项风险审计，v127 继承 #4/#3 风险收敛，并降低 #5 中的 source-backed memory organization/update-chain 风险；#5 更完整的 lifecycle、state/version/conflict handling、query-time memory reasoning 仍未解决，#1 granularity/profile 和 #2 top-k/context noise/rerank 也仍未解决。 |
 
 ## 口径说明
 
@@ -25,16 +25,16 @@
 
 | 优先级 | 项目 | 当前状态 | 下一步 |
 |---:|---|---|---|
-| 1 | #5 memory management/state/conflict/query-time reasoning | v142 scoped state guide 在 LME full strict/lenient `0.816/0.836`，但 LoCoMo full `0.784416/0.806494` 低于 v127 LTS `0.792857/0.811688`，不升 LTS | 下一版不要只加 guide；优先做 clean 的 conflict/as-of state、version chain retrieval 和 query-time memory reasoning |
+| 1 | #5 memory lifecycle/state/conflict/query-time reasoning | v142 scoped state guide 在 LME full strict/lenient `0.816/0.836`，但 LoCoMo full `0.784416/0.806494` 低于 v127 fresh `0.789610/0.815584`，不升 LTS | 下一版不要只加 guide；优先做 clean 的 conflict/as-of state、version chain retrieval、state summarization 和 query-time memory reasoning |
 | 2 | #1 granularity/profile generalization + #2/#3 context pressure | v140 清除 profile 分支并降低 LME avg context chars 到 `18940.848`，但 LME strict/lenient `0.794/0.826` 低于 v127 | 重做 retrieval/context organization，避免 v139/v140 这种损覆盖的 compiler pressure |
-| 3 | src cleanup | 已删除无用 scoped evidence 分支；`repair.py` 暂保留为 verifier/guardrail 资产 | 后续随实验节奏继续删确认无用的兼容代码，不删仍有消融或守护价值的模块 |
+| 3 | src cleanup | `src` 审计显示暂无可整模块删除的 tracked 代码；`repair.py`、rerank、turn-window 和 guide 逻辑仍有消融或 guardrail 价值 | 后续随实验节奏拆小 `compiler.py` / `pipeline.py`，删除确认无用的兼容分支，不删仍有验证价值的模块 |
 
 ## 保留候选
 
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
-| `configs/stage1_superseded_source_chain_v127_qwen36_no_think_build4k_cached.json` | current LTS | 继承 v125；v126 LoCoMo profile/current `+4/+4`、LME `-1/-1`，v127 changed prompts LME `+2/+2`、LoCoMo `+1/+2`；aggregate LME strict/lenient `0.814000/0.836000`，LoCoMo `0.792857/0.811688` | 当前本地 LTS；降低 #5，并继承 #4/#3 风险收敛；#1/#2 保留为优先风险 |
-| `configs/stage1_route_scoped_local_evidence_unit_v125_qwen36_no_think_build4k_cached.json` | previous LTS | LoCoMo temporal paired dual judge strict/lenient `0.772189/0.786982 -> 0.792899/0.813609`；full route-only strict/lenient `0.789610/0.807792`；LME 兼容继承 v116 `0.812000/0.834000` | 被 v127 替代：v127 在保持 clean/source-backed 机制的同时降低 #5 build-memory organization 风险并提升 inherited aggregate |
+| `configs/stage1_superseded_source_chain_v127_qwen36_no_think_build4k_cached.json` | current LTS | fresh full dual judge：LME strict/lenient `0.820000/0.832000`，LoCoMo `0.789610/0.815584` | 当前本地 LTS；降低 #5 的 source-backed update organization 风险，并继承 #4/#3 风险收敛；#5 broad lifecycle/state/conflict/reasoning、#1/#2 保留为优先风险 |
+| `configs/stage1_route_scoped_local_evidence_unit_v125_qwen36_no_think_build4k_cached.json` | previous LTS | LoCoMo temporal paired dual judge strict/lenient `0.772189/0.786982 -> 0.792899/0.813609`；full route-only strict/lenient `0.789610/0.807792`；LME 兼容继承 v116 `0.812000/0.834000` | 被 v127 替代：v127 在保持 clean/source-backed 机制的同时降低 #5 build-memory organization 风险，后续 fresh full 结果确认当前 LTS 口径 |
 | `configs/stage1_route_scoped_fact_profile_state_budget_v129_qwen36_no_think_build4k_cached.json` | token-budget | LME full route-only exact `0.428000 -> 0.430000`；LoCoMo `0.244156 -> 0.245455` | Narrow positive diagnostic；作为 v134 父对照 |
 | `configs/stage1_memory_source_interleave_v126_qwen36_no_think_build4k_cached.json` | memory organization | LoCoMo profile/current paired dual `+4/+4`，LME profile/current `-1/-1` | 被 v127 继承和修正；保留为 ablation |
 | `configs/stage1_source_grounded_guard_v121_qwen36_no_think_build4k_cached.json` | clean/general cleanup | 收窄 broad mechanical finalizer 为 source-grounded consistency guard；不宣称提分 | 保留为风险收敛改动 |
@@ -47,30 +47,22 @@
 
 | 配置 | 原因 |
 |---|---|
-| `stage1_scoped_memory_state_guide_v142_qwen36_no_think_build4k_cached.json` | scoped state guide 比 v141 收窄，LME full dual strict/lenient `0.816/0.836`，较 v127 LME aggregate `0.814/0.836` strict 小幅正向；但 LoCoMo full dual `0.784416/0.806494` 低于当前 v127 LTS `0.792857/0.811688`。结论：作为 #5 阶段性诊断保留，不升统一 LTS；下一步做更完整的 conflict/as-of state 和 query-time memory reasoning。 |
+| `stage1_scoped_memory_state_guide_v142_qwen36_no_think_build4k_cached.json` | scoped state guide 比 v141 收窄。相对 fresh v127，LME strict `408/500` 低于 `410/500`、lenient `418/500` 高于 `416/500`，但 LoCoMo strict/lenient `1208/1540` / `1242/1540` 均低于 v127 `1216/1540` / `1256/1540`。结论：作为 #5 阶段性诊断保留，不升统一 LTS；下一步做更完整的 conflict/as-of state、version chain 和 query-time memory reasoning。 |
 | `stage1_memory_state_guide_v141_qwen36_no_think_build4k_cached.json` | #5 方向正确但 dry-run scope 太宽：source-linked state guide 在 LME `218/500`、LoCoMo `932/1540` prompts 出现，avg context chars `20436.048/18313.279`；主要被 fact_lookup 大面积触发，暂不 formal，下一版收窄 |
-| `stage1_route_gated_context_pressure_v140_qwen36_no_think_build4k_cached.json` | route-gated 修正比 v139 略恢复，LME full dual strict/lenient `0.790/0.818 -> 0.794/0.826`，且 profile 分支清零、avg context chars 降到 `18940.848`；但仍低于 v127 LTS `0.814/0.836`，multi-session strict/lenient 只有 `0.714/0.759`，不跑 LoCoMo，不升 LTS |
+| `stage1_route_gated_context_pressure_v140_qwen36_no_think_build4k_cached.json` | route-gated 修正比 v139 略恢复，LME full dual strict/lenient `0.790/0.818 -> 0.794/0.826`，且 profile 分支清零、avg context chars 降到 `18940.848`；但仍低于 fresh v127 LME `0.820/0.832`，multi-session strict/lenient 只有 `0.714/0.759`，不跑 LoCoMo，不升 LTS |
 | `stage1_temporal_local_evidence_signal_gate_v135_qwen36_no_think_build4k_cached.json` | 对 `temporal_lookup` neighbor 做硬 signal gate，scope clean 但 paired dual judge 负向。Prompt-changed-only merge vs v125：strict/lenient `0.792899/0.813609 -> 0.781065/0.798817`，净 strict `-4`、lenient `-5`；典型损失是删掉弱词面但关键的相邻时间锚，导致信息不足或错年/错日期 |
 | `stage1_query_context_budget_v136_qwen36_no_think_build4k_cached.json` / `stage1_budget_aware_selected_context_v137_qwen36_no_think_build4k_cached.json` / `stage1_tighter_context_budget_v138_qwen36_no_think_build4k_cached.json` | v136 no-profile + context_budget 方向正确但 LME selected_context 重新打开；v137 修掉 selected_context 膨胀但 avg context chars 仍为 `20244.338`；v138 raw estimate 降到 `15292.94`，但 compiler/context chars 仍未降 |
-| `stage1_context_pressure_compiler_v139_qwen36_no_think_build4k_cached.json` | dry-run 降低 LME context chars 到 `17601.658`，但 LME full dual judge strict/lenient 只有 `0.790/0.818`，低于 v127 LTS `0.814/0.836`；by-type 诊断显示 multi-session 明显受损 |
+| `stage1_context_pressure_compiler_v139_qwen36_no_think_build4k_cached.json` | dry-run 降低 LME context chars 到 `17601.658`，但 LME full dual judge strict/lenient 只有 `0.790/0.818`，低于 fresh v127 LME `0.820/0.832`；by-type 诊断显示 multi-session 明显受损 |
 | `stage1_fact_tail_snippet_budget_v134_qwen36_no_think_build4k_cached.json` | token 降低但 paired dual judge 负向；LoCoMo fact subset strict/lenient `0.819728/0.833333 -> 0.807256/0.824263`，净 strict `-11`、lenient `-8` |
-| `stage1_fact_tail_snippet_budget_v133_qwen36_no_think_build4k_cached.json` | 过保守；LoCoMo fact avg context 只降 `8.552` chars，full avg context 只降 `4.898` chars |
 | `stage1_fact_tail_filter_preserve_order_v132_qwen36_no_think_build4k_cached.json` | hard row pruning 虽降 query 到 `5115.770`，但 LoCoMo fact exact `0.249433 -> 0.241497`，full exact `0.245455 -> 0.240909` |
 | `stage1_long_profile_profile_state_selected_context_v128_qwen36_no_think_build4k_cached.json` | 不是 accuracy candidate；changed subset avg query `6480.730`，只作审计证据 |
-| `stage1_local_evidence_unit_v124_qwen36_no_think_build4k_cached.json` | LoCoMo changed `1536/1540`，avg context `+2101.65`，过宽 |
-| `stage1_aggregation_contract_v123_qwen36_no_think_build4k_cached.json` | LME list_count strict/lenient `0.848739/0.873950 -> 0.815126/0.840336` |
-| `stage1_per_row_selected_context_v122_qwen36_no_think_build4k_cached.json` | LME selected_context applied `317/500`，大范围改变 prompt 并压缩 raw evidence rows |
-| `stage1_rerank_filter_v120_qwen36_no_think_build4k_cached.json` | list/count tail filtering 降 token 但损 coverage；LME/LoCoMo route-all 均负向 |
-| `stage1_evidence_unit_rerank_v112_qwen36_no_think_build4k_cached.json` | LME strict/lenient `0.810000/0.828000`，低于 v102/v110/v116 |
-| `stage1_modal_abstention_repair_v111_qwen36_no_think_build4k_cached.json` | LME strict 升但 lenient 降：`0.812000/0.834000 -> 0.816000/0.828000` |
-| `stage1_context_guard_v104_qwen36_no_think_build4k_cached.json` | LME single flash `0.790000`，avg query `7367.622`，过预算且负向 |
 
 ## 历史 LTS
 
 | 配置 | LTS 期间关键结果 | 替代原因 |
 |---|---|---|
 | `configs/stage1_extended_selected_context_v116_qwen36_no_think_build4k_cached.json` | LME strict/lenient `0.812000/0.834000`；LoCoMo strict/lenient `0.779221/0.807143` | 被 v125 替代：v125 继承 LME 兼容证据，降低 #4 mechanical finalizer 风险，部分降低 #3 selected-context heuristic 风险，并提升 LoCoMo temporal paired judge 与 full route-only strict。 |
-| `configs/stage1_route_scoped_local_evidence_unit_v125_qwen36_no_think_build4k_cached.json` | LME inherited strict/lenient `0.812000/0.834000`；LoCoMo route-only strict/lenient `0.789610/0.807792` | 被 v127 替代：v127 继承 v125 的 #4/#3 风险收敛，并加入 source-backed active/superseded memory organization，降低 #5，inherited aggregate 双 benchmark 正向。 |
+| `configs/stage1_route_scoped_local_evidence_unit_v125_qwen36_no_think_build4k_cached.json` | LME inherited strict/lenient `0.812000/0.834000`；LoCoMo route-only strict/lenient `0.789610/0.807792` | 被 v127 替代：v127 继承 v125 的 #4/#3 风险收敛，并加入 source-backed active/superseded memory organization；fresh full v127 作为当前 LTS 口径。 |
 | `configs/stage1_spacing_profile_v102_qwen36_no_think_build4k_cached.json` | LME strict/lenient `0.814000/0.830000`；LoCoMo strict/lenient `0.776623/0.798052` | 被 v116 替代：v116 保持 LME 达标，并把 LoCoMo lenient 推到 baseline target 以上。 |
 
 ## 关键 Formal Run
@@ -79,10 +71,12 @@
 
 | run | 作用 |
 |---|---|
-| `stage1_extended_selected_context_v116_qwen36_no_think_build4k_lme_s_full_aeac792` | 当前 LME split best；strict/lenient `0.812000/0.834000` |
-| `stage1_extended_selected_context_v116_qwen36_no_think_build4k_locomo_nonadv_full_aeac792` | 当前 LoCoMo split best；strict/lenient `0.779221/0.807143` |
-| `stage1_scoped_memory_state_guide_v142_lme_s_full` | v142 #5 scoped state guide formal；strict/lenient `0.816000/0.836000`，LME 单侧正向 |
-| `stage1_scoped_memory_state_guide_v142_locomo_nonadv_full` | v142 #5 scoped state guide formal；strict/lenient `0.784416/0.806494`，低于 v127 LTS，故不升 LTS |
+| `stage1_superseded_source_chain_v127_lme_s_full_fresh` | 当前 LTS fresh full；strict/lenient `0.820000/0.832000` |
+| `stage1_superseded_source_chain_v127_locomo_nonadv_full_fresh` | 当前 LTS fresh full；strict/lenient `0.789610/0.815584` |
+| `stage1_scoped_memory_state_guide_v142_lme_s_full` | v142 #5 scoped state guide formal；strict/lenient `0.816000/0.836000` |
+| `stage1_scoped_memory_state_guide_v142_locomo_nonadv_full` | v142 #5 scoped state guide formal；strict/lenient `0.784416/0.806494`，低于 fresh v127，故不升 LTS |
+| `stage1_extended_selected_context_v116_qwen36_no_think_build4k_lme_s_full_aeac792` | previous LTS；strict/lenient `0.812000/0.834000` |
+| `stage1_extended_selected_context_v116_qwen36_no_think_build4k_locomo_nonadv_full_aeac792` | previous LTS；strict/lenient `0.779221/0.807143` |
 | `stage1_spacing_profile_v102_qwen36_no_think_build4k_lme_s_full_4fc01c0` | qwen3.6 no-thinking v102 LME 对照 |
 | `stage1_spacing_profile_v102_qwen36_no_think_build4k_locomo_nonadv_full_1526d1c` | qwen3.6 no-thinking v102 LoCoMo 对照 |
 | `stage1_naive_rag_top40_external_lme_s_full_224aa42` | clean naive RAG LME baseline |

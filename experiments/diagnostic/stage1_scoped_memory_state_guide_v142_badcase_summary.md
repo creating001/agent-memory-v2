@@ -10,10 +10,10 @@ This diagnosis uses completed prediction traces and offline dual judge records o
 
 | Benchmark | strict | lenient | Decision |
 |---|---:|---:|---|
-| LongMemEval-S full | `408/500 = 0.816000` | `418/500 = 0.836000` | LME side acceptable vs current v127 aggregate `0.814000 / 0.836000` |
-| LoCoMo non-adversarial full | `1208/1540 = 0.784416` | `1242/1540 = 0.806494` | not promoted; below current v127 aggregate `0.792857 / 0.811688` |
+| LongMemEval-S full | `408/500 = 0.816000` | `418/500 = 0.836000` | mixed vs fresh v127 `410/500 = 0.820000` strict and `416/500 = 0.832000` lenient |
+| LoCoMo non-adversarial full | `1208/1540 = 0.784416` | `1242/1540 = 0.806494` | not promoted; below fresh v127 `1216/1540 = 0.789610` strict and `1256/1540 = 0.815584` lenient |
 
-Important caveat: v127 LTS values are inherited route-only aggregates, not a fresh full formal rerun. V142 is a fresh full formal run. For current local LTS policy, v142 still should not replace v127 because it does not beat the published LTS metric.
+V142 should not replace v127 as unified LTS: it is only mixed on LongMemEval-S and clearly negative on LoCoMo under the same fresh full dual judge protocol.
 
 ## V142 vs V116 LoCoMo Outcome Delta
 
