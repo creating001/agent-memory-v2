@@ -740,6 +740,73 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertNotIn("long", hit_ids)
         self.assertNotIn("long", row_ids)
 
+    def test_selected_context_respects_context_budget_headroom(self) -> None:
+        config = {
+            "retrieval": {
+                "top_k": 1,
+                "max_top_k": 1,
+                "neighbor_window": 0,
+                "context_budget": {
+                    "enabled": True,
+                    "max_chars": 30,
+                    "min_hits": 1,
+                    "protect_top_n": 1,
+                },
+                "selected_context": {
+                    "enabled": True,
+                    "window_before": 1,
+                    "window_after": 1,
+                    "max_rows": 2,
+                    "max_neighbor_chars": 120,
+                    "max_center_chars": 120,
+                    "require_anaphora": True,
+                    "min_context_budget_headroom_chars": 20,
+                    "information_needs": ["fact_lookup"],
+                },
+            },
+            "compiler": {"max_evidence_items": 1, "max_evidence_chars": 4000},
+            "answer": {"fallback_answer": "unknown"},
+        }
+        request = PredictionRequest(
+            question="target alpha beta",
+            turns=(
+                Turn(
+                    source_id="before",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="before row with useful context",
+                ),
+                Turn(
+                    source_id="anchor",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="that target alpha beta",
+                ),
+                Turn(
+                    source_id="after",
+                    session_id="s1",
+                    turn_index=2,
+                    role="assistant",
+                    text="after row with useful context",
+                ),
+            ),
+        )
+
+        result = Stage1Pipeline(config).predict(request)
+        selected_context = result["trace"]["retrieval"]["selected_context"]
+        row = result["trace"]["compiled_context"]["evidence_rows"][0]
+
+        self.assertTrue(selected_context["budget_gate_applied"])
+        self.assertFalse(selected_context["budget_gate_allowed"])
+        self.assertEqual(
+            selected_context["budget_gate_reason"], "insufficient_headroom"
+        )
+        self.assertFalse(selected_context["applied"])
+        self.assertEqual(selected_context["materialized_count"], 0)
+        self.assertEqual(row["text"], "that target alpha beta")
+
     def test_pipeline_rerank_expands_candidate_pool_and_reorders_hits(self) -> None:
         config = {
             "retrieval": {

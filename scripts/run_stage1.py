@@ -67,6 +67,10 @@ def main() -> int:
     total_selected_context_applied = 0
     total_selected_context_materialized = 0
     total_selected_context_skipped_long_center = 0
+    total_selected_context_budget_gate_applied = 0
+    total_selected_context_budget_gate_blocked = 0
+    total_selected_context_budget_gate_headroom = 0
+    total_selected_context_budget_gate_headroom_count = 0
     total_rerank_applied = 0
     total_rerank_candidate_count = 0
     total_rerank_returned_count = 0
@@ -160,6 +164,14 @@ def main() -> int:
         total_selected_context_skipped_long_center += int(
             selected_context.get("skipped_long_center_count") or 0
         )
+        if selected_context.get("budget_gate_applied"):
+            total_selected_context_budget_gate_applied += 1
+            if not selected_context.get("budget_gate_allowed"):
+                total_selected_context_budget_gate_blocked += 1
+        budget_headroom = selected_context.get("context_budget_headroom_chars")
+        if budget_headroom is not None:
+            total_selected_context_budget_gate_headroom += int(budget_headroom)
+            total_selected_context_budget_gate_headroom_count += 1
         if retrieval_trace.get("rerank_applied"):
             total_rerank_applied += 1
         total_rerank_candidate_count += int(
@@ -399,9 +411,24 @@ def main() -> int:
             "selected_context_require_anaphora": config.get("retrieval", {})
             .get("selected_context", {})
             .get("require_anaphora"),
+            "selected_context_min_context_budget_headroom_chars": config.get(
+                "retrieval", {}
+            )
+            .get("selected_context", {})
+            .get("min_context_budget_headroom_chars"),
             "selected_context_applied_count": total_selected_context_applied,
             "selected_context_applied_rate": _safe_average(
                 total_selected_context_applied, sample_count
+            ),
+            "selected_context_budget_gate_applied_count": (
+                total_selected_context_budget_gate_applied
+            ),
+            "selected_context_budget_gate_blocked_count": (
+                total_selected_context_budget_gate_blocked
+            ),
+            "avg_selected_context_budget_gate_headroom_chars": _safe_average(
+                total_selected_context_budget_gate_headroom,
+                total_selected_context_budget_gate_headroom_count,
             ),
             "avg_selected_context_materialized_rows": _safe_average(
                 total_selected_context_materialized, sample_count
@@ -1141,8 +1168,12 @@ def _write_summary(
         f"- selected_context_max_center_chars: {metrics['retrieval']['selected_context_max_center_chars']}",
         f"- selected_context_information_needs: {metrics['retrieval']['selected_context_information_needs']}",
         f"- selected_context_require_anaphora: {metrics['retrieval']['selected_context_require_anaphora']}",
+        f"- selected_context_min_context_budget_headroom_chars: {metrics['retrieval']['selected_context_min_context_budget_headroom_chars']}",
         f"- selected_context_applied_count: {metrics['retrieval']['selected_context_applied_count']}",
         f"- selected_context_applied_rate: {metrics['retrieval']['selected_context_applied_rate']}",
+        f"- selected_context_budget_gate_applied_count: {metrics['retrieval']['selected_context_budget_gate_applied_count']}",
+        f"- selected_context_budget_gate_blocked_count: {metrics['retrieval']['selected_context_budget_gate_blocked_count']}",
+        f"- avg_selected_context_budget_gate_headroom_chars: {metrics['retrieval']['avg_selected_context_budget_gate_headroom_chars']}",
         f"- avg_selected_context_materialized_rows: {metrics['retrieval']['avg_selected_context_materialized_rows']}",
         f"- avg_selected_context_skipped_long_center_rows: {metrics['retrieval']['avg_selected_context_skipped_long_center_rows']}",
         f"- rerank_enabled: {metrics['retrieval']['rerank_enabled']}",
@@ -1360,6 +1391,9 @@ def _write_diagnosis(
         f"- selected_context_enabled: {metrics['retrieval']['selected_context_enabled']}",
         f"- selected_context_applied_count: {metrics['retrieval']['selected_context_applied_count']}",
         f"- selected_context_applied_rate: {metrics['retrieval']['selected_context_applied_rate']}",
+        f"- selected_context_budget_gate_applied_count: {metrics['retrieval']['selected_context_budget_gate_applied_count']}",
+        f"- selected_context_budget_gate_blocked_count: {metrics['retrieval']['selected_context_budget_gate_blocked_count']}",
+        f"- avg_selected_context_budget_gate_headroom_chars: {metrics['retrieval']['avg_selected_context_budget_gate_headroom_chars']}",
         f"- avg_selected_context_materialized_rows: {metrics['retrieval']['avg_selected_context_materialized_rows']}",
         f"- avg_selected_context_skipped_long_center_rows: {metrics['retrieval']['avg_selected_context_skipped_long_center_rows']}",
         f"- rerank_enabled: {metrics['retrieval']['rerank_enabled']}",

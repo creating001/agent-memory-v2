@@ -240,6 +240,9 @@ class Stage1Pipeline:
         self._selected_context_require_anaphora = bool(
             selected_context_config.get("require_anaphora", True)
         )
+        self._selected_context_min_context_budget_headroom_chars = int(
+            selected_context_config.get("min_context_budget_headroom_chars", 0)
+        )
         self._selected_context_information_needs = _tuple_config(
             selected_context_config.get("information_needs")
         )
@@ -256,6 +259,9 @@ class Stage1Pipeline:
             "max_neighbor_chars": self._selected_context_max_neighbor_chars,
             "max_center_chars": self._selected_context_max_center_chars,
             "require_anaphora": self._selected_context_require_anaphora,
+            "min_context_budget_headroom_chars": (
+                self._selected_context_min_context_budget_headroom_chars
+            ),
             "information_needs": self._selected_context_information_needs,
             "route_overrides": self._selected_context_route_overrides,
         }
@@ -1016,11 +1022,20 @@ class Stage1Pipeline:
             granularity_profile,
             route,
         )
+        selected_context_enabled, selected_context_budget_gate = (
+            _selected_context_budget_gate(
+                enabled=selected_context_settings["enabled"],
+                min_context_budget_headroom_chars=selected_context_settings[
+                    "min_context_budget_headroom_chars"
+                ],
+                context_budget_trace=context_budget_trace,
+            )
+        )
         evidence_turns, selected_context = _materialize_selected_context(
             store=store,
             turns=evidence_turns,
             route=route,
-            enabled=selected_context_settings["enabled"],
+            enabled=selected_context_enabled,
             information_needs=selected_context_settings["information_needs"],
             window_before=selected_context_settings["window_before"],
             window_after=selected_context_settings["window_after"],
@@ -1029,6 +1044,7 @@ class Stage1Pipeline:
             max_center_chars=selected_context_settings["max_center_chars"],
             require_anaphora=selected_context_settings["require_anaphora"],
         )
+        selected_context.update(selected_context_budget_gate)
         selected_context["granularity_profile"] = granularity_profile
         selected_context["route_override"] = selected_context_settings.get(
             "route_override"
@@ -1391,6 +1407,9 @@ class Stage1Pipeline:
             "max_neighbor_chars": self._selected_context_max_neighbor_chars,
             "max_center_chars": self._selected_context_max_center_chars,
             "require_anaphora": self._selected_context_require_anaphora,
+            "min_context_budget_headroom_chars": (
+                self._selected_context_min_context_budget_headroom_chars
+            ),
             "information_needs": self._selected_context_information_needs,
         }
         route_override = self._selected_context_route_overrides.get(
@@ -2045,6 +2064,50 @@ def _apply_context_budget(
     }
 
 
+def _selected_context_budget_gate(
+    *,
+    enabled: bool,
+    min_context_budget_headroom_chars: int,
+    context_budget_trace: Mapping[str, Any],
+) -> tuple[bool, dict[str, Any]]:
+    threshold = max(0, min_context_budget_headroom_chars)
+    trace: dict[str, Any] = {
+        "budget_gate_enabled": threshold > 0,
+        "budget_gate_applied": False,
+        "budget_gate_allowed": enabled,
+        "budget_gate_reason": "selected_context_disabled"
+        if not enabled
+        else "gate_disabled",
+        "min_context_budget_headroom_chars": threshold,
+        "context_budget_headroom_chars": None,
+        "context_budget_estimated_chars": (
+            context_budget_trace.get("estimated_chars")
+        ),
+        "context_budget_max_chars": context_budget_trace.get("max_chars"),
+    }
+    if not enabled:
+        return False, trace
+    if threshold <= 0:
+        trace["budget_gate_allowed"] = True
+        return True, trace
+    if not context_budget_trace.get("applied"):
+        trace["budget_gate_allowed"] = True
+        trace["budget_gate_reason"] = "no_context_budget"
+        return True, trace
+    max_chars = int(context_budget_trace.get("max_chars") or 0)
+    estimated_chars = int(context_budget_trace.get("estimated_chars") or 0)
+    headroom = max_chars - estimated_chars
+    trace["context_budget_headroom_chars"] = headroom
+    trace["budget_gate_applied"] = True
+    if headroom >= threshold:
+        trace["budget_gate_allowed"] = True
+        trace["budget_gate_reason"] = "enough_headroom"
+        return True, trace
+    trace["budget_gate_allowed"] = False
+    trace["budget_gate_reason"] = "insufficient_headroom"
+    return False, trace
+
+
 def _embedding_cache_stats(client: object) -> dict[str, int] | None:
     stats_method = getattr(client, "stats", None)
     if stats_method is None:
@@ -2241,6 +2304,7 @@ SELECTED_CONTEXT_OVERRIDE_KEYS = {
     "max_rows",
     "max_neighbor_chars",
     "max_center_chars",
+    "min_context_budget_headroom_chars",
     "require_anaphora",
     "information_needs",
 }
@@ -2825,6 +2889,7 @@ def _normalized_selected_context_override(
             "max_rows",
             "max_neighbor_chars",
             "max_center_chars",
+            "min_context_budget_headroom_chars",
         }:
             result[key] = int(value)
         elif key == "information_needs":
