@@ -26,7 +26,7 @@
 
 | 优先级 | 项目 | 当前状态 | 下一步 |
 |---:|---|---|---|
-| 1 | #5 memory lifecycle/state/conflict/query-time reasoning | v176 增加了 cross-route profile/advice activation；v175/v173/v172/v171 已让 temporal arithmetic、modal、profile preference 和 occupation/role lifecycle slot 能参与 source-backed verifier/finalizer；更广泛 state/update/conflict reasoning 仍薄 | 扩展到 answer-slot-aware lifecycle/update/conflict verifier，必须保持 source-backed typed memory 只做激活/索引 |
+| 1 | #5 memory lifecycle/state/conflict/query-time reasoning | v176 增加了 cross-route profile/advice activation；v175/v173/v172/v171 已让 temporal arithmetic、modal、profile preference 和 occupation/role lifecycle slot 能参与 source-backed verifier/finalizer；v178 说明 temporal-order verifier 不能强扭 source-backed relative-time 解释；更广泛 state/update/conflict reasoning 仍薄 | 转向 source-backed event timeline table：item/event、source row、event_time、time_precision、relative anchor、conflict/uncertainty；typed memory 只做激活/组织，不用 gold/judge 定序 |
 | 2 | #2 top-k/context noise/rerank | v129/v134/v140/v152 说明简单裁剪、tail snippet 或 list-count rerank pruning 会伤 accuracy；当前 query context 仍偏长 | 转向 coverage-preserving route-aware context organization：先保留覆盖证据，再做 grouping/dedup/aggregation table |
 | 3 | #1 granularity/profile + #3 selected context | v177 说明 row-length + center-row anaphora 的 selected-context gate 仍过宽；granularity profile 仍基于 avg-turn chars，v158 narrow question-gated policy 仍是较稳边界 | 继续重做更通用的 context organization；selected-context 不能只靠中心行 anaphora 扩邻居，优先做 question-side local reference 或 source-backed candidate map |
 | 4 | src cleanup | 已有多轮兼容分支，`repair.py`、compiler、pipeline 仍会继续变复杂 | 每个阶段结束后做小范围清理，删已确认无用的兼容代码，不删仍有消融价值的模块 |
@@ -61,6 +61,7 @@
 
 | 配置 | 原因 |
 |---|---|
+| `stage1_source_grounded_temporal_order_repair_v178_qwen36_no_think_build4k_cached.json` | clean 的 temporal-order verifier 触发很窄：v176 trace 上 LME `4/500`、LoCoMo `0/1540`；4 条 clean probe repair triggered `4/4` 但 applied `0/4`、answer diff `0/4`，新增 `27233` repair query tokens；目标坏例的 visible evidence 将 MoCA 解释为 `before 2023-01-15`，强行改成 gold 顺序会违反 clean，不升 LTS、不跑 full。 |
 | `stage1_row_length_selected_context_gate_v177_qwen36_no_think_build4k_cached.json` | clean 的 row-local selected-context gate 试图减少 avg-turn profile 依赖，但 LME selected-context 从 `3/500` 扩到 `37/500`，answer diff `15/500`，changed-answer dual judge strict/lenient `12/15 -> 7/15`，avg query tokens `6291.590 -> 6318.580`；不升 LTS，不跑 LoCoMo。 |
 | `v170 broad evidence_report list completion simulation` | 只凭 answer 短和 support values 多来补列表会过宽；会误展开 sum/order/current-state/二选一问题，窄门控仍触发 `65` 条且包含明显过包含风险；不实现、不升 LTS。 |
 | `stage1_source_grounded_temporal_calculation_repair_v174_qwen36_no_think_build4k_cached.json` | 窄 source-grounded temporal/age/duration repair gate 是 clean 的，但 LME/LoCoMo full answer diff 均为 `0`，同时新增 repair miss/write `2+2`；安全但无收益，不升 LTS。下一步应保留 gate，强化“端点齐全即可计算、不要求答案短语原文出现”的 verifier 指令。 |
@@ -93,6 +94,8 @@
 | 路径 | 内容 |
 |---|---|
 | `diagnostic/stage1_row_length_selected_context_gate_v177_scope_summary.md` | v177 负向结论：row-length selected-context gate 过宽，LME changed-answer dual judge strict/lenient `12/15 -> 7/15`，LTS 仍为 v176 |
+| `diagnostic/stage1_source_grounded_temporal_order_repair_v178_scope_summary.md` | v178 负向结论：temporal-order repair 触发窄但 `0/4` applied，目标坏例不能在 clean source-grounded setting 下强行改成 gold 顺序 |
+| `diagnostic/stage1_source_grounded_temporal_order_repair_v178_trigger_probe/` | v178 4-row trigger probe；repair triggered `4/4`、applied `0/4`、answer diff `0/4` |
 | `diagnostic/stage1_row_length_selected_context_gate_v177_changed_vs_v176/` | v177 vs v176 LME changed-answer paired dual judge |
 | `diagnostic/stage1_row_length_selected_context_gate_v177_lme_s_full/` | v177 LME full cached prediction run artifacts；LoCoMo 未跑，因为 LME 负向且 query tokens 上升 |
 | `diagnostic/stage1_cross_route_profile_advice_repair_v176_scope_summary.md` | v176 LTS 晋升：LME changed-answer paired dual judge strict `0/2 -> 1/2`、lenient `0/2 -> 2/2`，LoCoMo answer diff `0/1540` |
