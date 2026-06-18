@@ -221,6 +221,8 @@ class EvidenceCompiler:
         event_time_candidate_manifest_max_rows: int = 12,
         event_time_candidate_manifest_snippet_chars: int = 160,
         event_time_candidate_manifest_question_gate: bool = True,
+        event_time_candidate_manifest_grouped_view: bool = False,
+        event_time_candidate_manifest_max_groups: int = 8,
         structured_guide: bool = False,
         structured_guide_max_rows: int = 12,
         structured_guide_include_rows: bool = True,
@@ -346,6 +348,12 @@ class EvidenceCompiler:
         )
         self._event_time_candidate_manifest_question_gate = bool(
             event_time_candidate_manifest_question_gate
+        )
+        self._event_time_candidate_manifest_grouped_view = bool(
+            event_time_candidate_manifest_grouped_view
+        )
+        self._event_time_candidate_manifest_max_groups = max(
+            1, int(event_time_candidate_manifest_max_groups)
         )
         self._structured_guide = structured_guide
         self._structured_guide_max_rows = max(1, structured_guide_max_rows)
@@ -755,6 +763,8 @@ class EvidenceCompiler:
                     max_rows=self._event_time_candidate_manifest_max_rows,
                     snippet_chars=self._event_time_candidate_manifest_snippet_chars,
                     question_gate=self._event_time_candidate_manifest_question_gate,
+                    grouped_view=self._event_time_candidate_manifest_grouped_view,
+                    max_groups=self._event_time_candidate_manifest_max_groups,
                 )
             )
         return CompiledContext(
@@ -849,6 +859,12 @@ class EvidenceCompiler:
             ),
             "event_time_candidate_manifest_snippet_chars": (
                 self._event_time_candidate_manifest_snippet_chars
+            ),
+            "event_time_candidate_manifest_grouped_view": (
+                self._event_time_candidate_manifest_grouped_view
+            ),
+            "event_time_candidate_manifest_max_groups": (
+                self._event_time_candidate_manifest_max_groups
             ),
         }
         settings.update(self._route_overrides.get(route.information_need, {}))
@@ -4209,6 +4225,8 @@ def _event_time_candidate_manifest(
     max_rows: int,
     snippet_chars: int,
     question_gate: bool,
+    grouped_view: bool,
+    max_groups: int,
 ) -> dict[str, object]:
     base: dict[str, object] = {
         "enabled": True,
@@ -4217,6 +4235,8 @@ def _event_time_candidate_manifest(
         "information_need": route.information_need,
         "question_gate": question_gate,
         "items": [],
+        "candidate_groups": [],
+        "grouped_view": grouped_view,
         "conflict_groups": [],
         "safe_order_available": False,
         "safe_order_source_ids": [],
@@ -4250,6 +4270,15 @@ def _event_time_candidate_manifest(
     ordered = sorted(selected, key=lambda item: int(item["memory_index"]))
     conflict_groups = _event_time_candidate_conflict_groups(selected)
     safe_order = _event_time_candidate_safe_order(selected, conflict_groups)
+    candidate_groups = (
+        _event_time_candidate_groups(
+            selected,
+            conflict_groups=conflict_groups,
+            max_groups=max_groups,
+        )
+        if grouped_view
+        else []
+    )
 
     items: list[dict[str, object]] = []
     for item in ordered:
@@ -4286,6 +4315,8 @@ def _event_time_candidate_manifest(
         "n_selected": len(selected),
         "dedup_key_count": len({str(item["slot_key"]) for item in selected}),
         "items": items,
+        "candidate_groups": candidate_groups,
+        "candidate_group_count": len(candidate_groups),
         "conflict_groups": conflict_groups,
         "safe_order_available": bool(safe_order["available"]),
         "safe_order_source_ids": safe_order["source_ids"],
@@ -4394,6 +4425,81 @@ def _event_time_candidate_safe_order(
         "source_ids": [str(item["source_id"]) for item in ordered],
         "blocked_reason": "",
     }
+
+
+def _event_time_candidate_groups(
+    items: list[dict[str, object]],
+    *,
+    conflict_groups: list[dict[str, object]],
+    max_groups: int,
+) -> list[dict[str, object]]:
+    """Group event-time candidates by source-backed answer slot."""
+
+    conflict_by_key = {
+        str(group["dedup_key"]): str(group["type"]) for group in conflict_groups
+    }
+    grouped: dict[str, list[dict[str, object]]] = {}
+    for item in items:
+        grouped.setdefault(str(item["slot_key"]), []).append(item)
+
+    high_confidence = {"exact_today", "explicit_date", "relative_phrase"}
+    rows: list[dict[str, object]] = []
+    for slot_key, group in grouped.items():
+        ordered = sorted(group, key=lambda item: int(item["memory_index"]))
+        high_items = [
+            item for item in ordered if str(item["time_kind"]) in high_confidence
+        ]
+        best_pool = high_items or ordered
+        best = sorted(
+            best_pool,
+            key=lambda item: (
+                int(item["precision_rank"]),
+                -int(item["score"]),
+                int(item["memory_index"]),
+            ),
+        )[0]
+        conflict_type = conflict_by_key.get(slot_key, "")
+        if conflict_type:
+            resolution = conflict_type
+        elif len(ordered) == 1 and high_items:
+            resolution = "high_confidence_single"
+        elif len(ordered) == 1:
+            resolution = "low_precision_single"
+        elif len(high_items) == len(ordered):
+            resolution = "high_confidence_duplicate_same_time"
+        else:
+            resolution = "low_precision_duplicate"
+
+        rows.append(
+            {
+                "dedup_key": slot_key,
+                "source_ids": tuple(str(item["source_id"]) for item in ordered),
+                "high_confidence_source_ids": tuple(
+                    str(item["source_id"]) for item in high_items
+                ),
+                "event_times": tuple(
+                    dict.fromkeys(str(item["event_time"]) for item in ordered)
+                ),
+                "time_kinds": tuple(
+                    sorted({str(item["time_kind"]) for item in ordered})
+                ),
+                "best_source_id": str(best["source_id"]),
+                "best_event_time": str(best["event_time"]),
+                "best_time_kind": str(best["time_kind"]),
+                "conflict_type": conflict_type,
+                "resolution": resolution,
+                "candidate_count": len(ordered),
+            }
+        )
+
+    rows.sort(
+        key=lambda item: (
+            1 if item["conflict_type"] else 0,
+            -int(item["candidate_count"]),
+            str(item["dedup_key"]),
+        )
+    )
+    return rows[:max_groups]
 
 
 _EVENT_SLOT_WEAK_TERMS = frozenset(

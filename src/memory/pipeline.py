@@ -548,6 +548,14 @@ class Stage1Pipeline:
             event_time_candidate_manifest_question_gate=bool(
                 compiler_config.get("event_time_candidate_manifest_question_gate", True)
             ),
+            event_time_candidate_manifest_grouped_view=bool(
+                compiler_config.get(
+                    "event_time_candidate_manifest_grouped_view", False
+                )
+            ),
+            event_time_candidate_manifest_max_groups=int(
+                compiler_config.get("event_time_candidate_manifest_max_groups", 8)
+            ),
             structured_guide=bool(compiler_config.get("structured_guide", False)),
             structured_guide_max_rows=int(
                 compiler_config.get("structured_guide_max_rows", 12)
@@ -3697,6 +3705,12 @@ def _compiler_trace_config(
         "event_time_candidate_manifest_snippet_chars": int(
             compiler_config.get("event_time_candidate_manifest_snippet_chars", 160)
         ),
+        "event_time_candidate_manifest_grouped_view": bool(
+            compiler_config.get("event_time_candidate_manifest_grouped_view", False)
+        ),
+        "event_time_candidate_manifest_max_groups": int(
+            compiler_config.get("event_time_candidate_manifest_max_groups", 8)
+        ),
         "structured_guide": bool(compiler_config.get("structured_guide", False)),
         "structured_guide_max_rows": int(
             compiler_config.get("structured_guide_max_rows", 12)
@@ -3915,6 +3929,12 @@ def _configured_compiler(compiler_config: Mapping[str, Any]) -> EvidenceCompiler
         ),
         event_time_candidate_manifest_question_gate=bool(
             compiler_config.get("event_time_candidate_manifest_question_gate", True)
+        ),
+        event_time_candidate_manifest_grouped_view=bool(
+            compiler_config.get("event_time_candidate_manifest_grouped_view", False)
+        ),
+        event_time_candidate_manifest_max_groups=int(
+            compiler_config.get("event_time_candidate_manifest_max_groups", 8)
         ),
         structured_guide=bool(compiler_config.get("structured_guide", False)),
         structured_guide_max_rows=int(

@@ -579,7 +579,7 @@ class CompilerTest(unittest.TestCase):
             event_time_candidate_manifest=True,
             event_time_candidate_manifest_information_needs=("temporal_lookup",),
         ).compile(
-            question="What is the order of the museums I visited?",
+            question="When did I visit the Science Museum?",
             question_time=None,
             route=RouteResult("temporal_lookup", ("temporal",)),
             hits=(),
@@ -592,6 +592,76 @@ class CompilerTest(unittest.TestCase):
         self.assertEqual(manifest["safe_order_source_ids"], ["s1:t0", "s2:t0"])
         self.assertEqual(manifest["conflict_groups"], [])
         self.assertNotIn("Source Event Timeline:", compiled.prompt)
+
+    def test_event_time_candidate_manifest_grouped_view_is_trace_only(self) -> None:
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text="I visited the Science Museum on January 15.",
+                timestamp="2023-01-20",
+            ),
+            Turn(
+                source_id="s2:t0",
+                session_id="s2",
+                turn_index=0,
+                role="user",
+                text="I visited the Science Museum on February 10.",
+                timestamp="2023-02-12",
+            ),
+            Turn(
+                source_id="s3:t0",
+                session_id="s3",
+                turn_index=0,
+                role="user",
+                text="I toured the Metropolitan Museum on March 3.",
+                timestamp="2023-03-04",
+            ),
+        )
+        baseline = EvidenceCompiler(
+            max_evidence_items=3,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            event_time_candidate_manifest=True,
+            event_time_candidate_manifest_information_needs=("temporal_lookup",),
+        ).compile(
+            question="When did I visit the Science Museum?",
+            question_time=None,
+            route=RouteResult("temporal_lookup", ("temporal",)),
+            hits=(),
+            evidence_turns=turns,
+        )
+        compiled = EvidenceCompiler(
+            max_evidence_items=3,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            event_time_candidate_manifest=True,
+            event_time_candidate_manifest_information_needs=("temporal_lookup",),
+            event_time_candidate_manifest_grouped_view=True,
+        ).compile(
+            question="When did I visit the Science Museum?",
+            question_time=None,
+            route=RouteResult("temporal_lookup", ("temporal",)),
+            hits=(),
+            evidence_turns=turns,
+        )
+
+        self.assertEqual(compiled.prompt, baseline.prompt)
+        self.assertNotIn("candidate_groups", compiled.prompt)
+        manifest = compiled.to_dict()["diagnostics"]["event_time_candidate_manifest"]
+        groups = manifest["candidate_groups"]
+        self.assertTrue(manifest["grouped_view"])
+        self.assertGreaterEqual(len(groups), 2)
+        science_group = next(
+            group for group in groups if "science" in group["dedup_key"]
+        )
+        self.assertEqual(science_group["conflict_type"], "event_time_conflict")
+        self.assertEqual(science_group["candidate_count"], 2)
+        self.assertIn("s1:t0", science_group["source_ids"])
+        self.assertIn("s2:t0", science_group["source_ids"])
+        self.assertIn(science_group["best_source_id"], {"s1:t0", "s2:t0"})
 
     def test_memory_tail_filter_preserves_retrieval_order(self) -> None:
         compiler = EvidenceCompiler(
