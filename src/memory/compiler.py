@@ -389,6 +389,7 @@ class EvidenceCompiler:
             "source_anchor_coverage",
             "memory_source_interleave",
             "memory_version_chain_interleave",
+            "scoped_memory_version_chain_interleave",
             "memory_tail_filter_preserve_order",
         }:
             raise ValueError(f"Unsupported evidence_order: {evidence_order}")
@@ -797,6 +798,7 @@ def _validate_route_overrides(
                 "source_anchor_coverage",
                 "memory_source_interleave",
                 "memory_version_chain_interleave",
+                "scoped_memory_version_chain_interleave",
                 "memory_tail_filter_preserve_order",
             }:
                 raise ValueError(f"Unsupported evidence_order: {evidence_order}")
@@ -933,6 +935,7 @@ def _order_rows(
         "source_anchor_coverage",
         "memory_source_interleave",
         "memory_version_chain_interleave",
+        "scoped_memory_version_chain_interleave",
         "memory_tail_filter_preserve_order",
     }:
         raise ValueError(f"Unsupported evidence_order: {evidence_order}")
@@ -963,6 +966,18 @@ def _order_rows(
     if evidence_order == "memory_version_chain_interleave":
         return _memory_version_chain_interleave_order(
             rows,
+            question_terms=question_terms,
+            route=route,
+            memory_records=memory_records,
+            anchor_keep=source_anchor_keep,
+            memory_rows=source_anchor_memory_rows,
+            per_session=source_anchor_per_session,
+            session_rows=source_anchor_session_rows,
+        )
+    if evidence_order == "scoped_memory_version_chain_interleave":
+        return _scoped_memory_version_chain_interleave_order(
+            rows,
+            question=question,
             question_terms=question_terms,
             route=route,
             memory_records=memory_records,
@@ -1172,6 +1187,86 @@ def _memory_version_chain_interleave_order(
     return tuple(selected)
 
 
+def _scoped_memory_version_chain_interleave_order(
+    rows: tuple[EvidenceRow, ...],
+    *,
+    question: str,
+    question_terms: frozenset[str],
+    route: RouteResult,
+    memory_records: tuple[MemoryRecord, ...],
+    anchor_keep: int,
+    memory_rows: int,
+    per_session: int,
+    session_rows: int,
+) -> tuple[EvidenceRow, ...]:
+    if not rows or not memory_records:
+        return rows
+
+    row_by_source = {row.source_id: row for row in rows}
+    chains = _visible_scoped_version_chains(
+        memory_records,
+        row_by_source=row_by_source,
+        question=question,
+        question_terms=question_terms,
+        route=route,
+    )
+    if not chains:
+        return rows
+
+    selected: list[EvidenceRow] = []
+    seen: set[str] = set()
+    memory_anchor_sessions: list[str] = []
+    memory_session_counts: dict[str, int] = {}
+
+    def add(row: EvidenceRow, *, memory_anchor: bool = False) -> bool:
+        if row.source_id in seen:
+            return False
+        seen.add(row.source_id)
+        selected.append(row)
+        if memory_anchor and row.session_id not in memory_anchor_sessions:
+            memory_anchor_sessions.append(row.session_id)
+        return True
+
+    for row in rows[:anchor_keep]:
+        add(row)
+
+    added_memory_rows = 0
+    for chain in chains:
+        for source_id in chain["source_ids"]:
+            row = row_by_source.get(source_id)
+            if row is None:
+                continue
+            if (
+                per_session > 0
+                and memory_session_counts.get(row.session_id, 0) >= per_session
+            ):
+                continue
+            if add(row, memory_anchor=True):
+                memory_session_counts[row.session_id] = (
+                    memory_session_counts.get(row.session_id, 0) + 1
+                )
+                added_memory_rows += 1
+                if memory_rows > 0 and added_memory_rows >= memory_rows:
+                    break
+        if memory_rows > 0 and added_memory_rows >= memory_rows:
+            break
+
+    if session_rows > 0:
+        session_counts: dict[str, int] = {}
+        for session_id in memory_anchor_sessions:
+            for row in rows:
+                if row.session_id != session_id:
+                    continue
+                if session_counts.get(session_id, 0) >= session_rows:
+                    break
+                if add(row):
+                    session_counts[session_id] = session_counts.get(session_id, 0) + 1
+
+    for row in rows:
+        add(row)
+    return tuple(selected)
+
+
 def _visible_version_chains(
     memory_records: tuple[MemoryRecord, ...],
     *,
@@ -1246,6 +1341,118 @@ def _visible_version_chains(
     )
 
 
+def _visible_scoped_version_chains(
+    memory_records: tuple[MemoryRecord, ...],
+    *,
+    row_by_source: Mapping[str, EvidenceRow],
+    question: str,
+    question_terms: frozenset[str],
+    route: RouteResult,
+) -> tuple[dict[str, Any], ...]:
+    question_scope = _scoped_version_question_scope(question)
+    if question_scope == "unspecified":
+        return ()
+    scoped_question_terms = _scoped_version_question_terms(question)
+    if not scoped_question_terms:
+        return ()
+
+    groups: dict[tuple[str, str, str], list[tuple[int, MemoryRecord]]] = {}
+    for index, record in enumerate(memory_records):
+        key = _version_chain_key(record, route)
+        if key is None:
+            continue
+        if not any(source_id in row_by_source for source_id in record.source_ids):
+            continue
+        groups.setdefault(key, []).append((index, record))
+
+    chains: list[dict[str, Any]] = []
+    for records_with_index in groups.values():
+        if not _has_version_change(records_with_index):
+            continue
+        matching_records = tuple(
+            (index, record)
+            for index, record in records_with_index
+            if _version_record_matches_question(record, scoped_question_terms)
+        )
+        if not matching_records:
+            continue
+
+        scoped_records = tuple(
+            (index, record)
+            for index, record in records_with_index
+            if _version_record_in_question_scope(record, question_scope)
+        )
+        if not scoped_records:
+            continue
+
+        ordered_records = sorted(
+            scoped_records,
+            key=lambda item: _scoped_version_record_sort_key(
+                item[0],
+                item[1],
+                question_scope=question_scope,
+                route=route,
+            ),
+        )
+        source_ids: list[str] = []
+        for _index, record in ordered_records:
+            for source_id in record.source_ids:
+                if source_id not in row_by_source or source_id in source_ids:
+                    continue
+                source_ids.append(source_id)
+        if not source_ids:
+            continue
+
+        score = max(
+            _version_record_score(
+                record,
+                question_terms=question_terms,
+                route=route,
+            )
+            for _index, record in matching_records
+        )
+        first_rank = min(
+            (
+                row_by_source[source_id].retrieval_rank
+                for source_id in source_ids
+                if row_by_source[source_id].retrieval_rank is not None
+            ),
+            default=1_000_000,
+        )
+        chains.append(
+            {
+                "score": score,
+                "first_rank": first_rank,
+                "source_ids": tuple(source_ids),
+            }
+        )
+
+    return tuple(
+        sorted(
+            chains,
+            key=lambda chain: (
+                -chain["score"],
+                chain["first_rank"],
+                chain["source_ids"],
+            ),
+        )
+    )
+
+
+def _has_version_change(
+    records_with_index: tuple[tuple[int, MemoryRecord], ...] | list[tuple[int, MemoryRecord]],
+) -> bool:
+    if len(records_with_index) <= 1:
+        return False
+    values = {
+        _normalize_memory_value(record)
+        for _index, record in records_with_index
+        if _normalize_memory_value(record)
+    }
+    statuses = {record.status for _index, record in records_with_index}
+    return len(values) > 1 or "superseded" in statuses
+
+
 def _version_chain_key(
     record: MemoryRecord,
     route: RouteResult,
@@ -1271,6 +1478,22 @@ def _version_record_sort_key(
     return (status_rank, time_key, index)
 
 
+def _scoped_version_record_sort_key(
+    index: int,
+    record: MemoryRecord,
+    *,
+    question_scope: str,
+    route: RouteResult,
+) -> tuple[int, str, int]:
+    status = str(record.status or "active")
+    if question_scope == "historical":
+        status_rank = 0 if status != "active" else 1
+    else:
+        status_rank = 0 if status == "active" else 1
+    time_key = _memory_timestamp_sort_key(record.valid_from or record.timestamp, route)
+    return (status_rank, time_key, index)
+
+
 def _version_record_score(
     record: MemoryRecord,
     *,
@@ -1289,6 +1512,118 @@ def _normalize_memory_value(record: MemoryRecord) -> str:
 
 def _normalize_version_text(value: str) -> str:
     return " ".join(str(value).lower().strip().split())
+
+
+def _scoped_version_question_scope(question: str) -> str:
+    lowered = question.lower()
+    current = bool(
+        re.search(
+            r"\b(current|currently|latest|most recent|recently|recent|now|"
+            r"today|still|as of|these days|at present|present)\b",
+            lowered,
+        )
+        or re.search(r"(当前|现在|目前|最新|最近|今天|仍然)", question)
+    )
+    historical = bool(
+        re.search(
+            r"\b(previous|previously|former|formerly|original|originally|"
+            r"initial|initially|earlier|prior|before|used to|old)\b",
+            lowered,
+        )
+        or re.search(r"(之前|以前|原来|原本|最初|过去|曾经|上次)", question)
+    )
+    change = bool(
+        re.search(
+            r"\b(changed|updated|switched|moved|became|no longer|instead|"
+            r"correction|corrected|actually)\b",
+            lowered,
+        )
+        or re.search(r"(更新|改变|变化|换成|搬到|变成|不再|纠正|其实)", question)
+    )
+    if change or (current and historical):
+        return "change"
+    if current:
+        return "current"
+    if historical:
+        return "historical"
+    return "unspecified"
+
+
+def _scoped_version_question_terms(question: str) -> frozenset[str]:
+    weak_terms = {
+        "after",
+        "ago",
+        "before",
+        "current",
+        "currently",
+        "day",
+        "days",
+        "duration",
+        "earlier",
+        "earliest",
+        "former",
+        "latest",
+        "long",
+        "month",
+        "months",
+        "most",
+        "now",
+        "old",
+        "order",
+        "original",
+        "past",
+        "present",
+        "previous",
+        "previously",
+        "prior",
+        "recent",
+        "recently",
+        "started",
+        "still",
+        "today",
+        "used",
+        "week",
+        "weeks",
+        "year",
+        "years",
+    }
+    return frozenset(_content_terms(question).difference(weak_terms))
+
+
+def _version_record_matches_question(
+    record: MemoryRecord,
+    question_terms: frozenset[str],
+) -> bool:
+    if not question_terms:
+        return False
+    subject_terms = _content_terms(record.subject)
+    scoped_question_terms = question_terms.difference(subject_terms)
+    if not scoped_question_terms:
+        return False
+    record_text = " ".join(
+        part
+        for part in (
+            record.predicate,
+            record.value,
+            record.text,
+            " ".join(record.entities),
+        )
+        if part
+    )
+    record_terms = _content_terms(record_text).difference(subject_terms)
+    return bool(scoped_question_terms.intersection(record_terms))
+
+
+def _version_record_in_question_scope(
+    record: MemoryRecord,
+    question_scope: str,
+) -> bool:
+    status = str(record.status or "active")
+    if question_scope == "current":
+        return status == "active"
+    if question_scope == "historical":
+        return status != "active"
+    return question_scope == "change"
 
 
 def _source_anchor_coverage_order(

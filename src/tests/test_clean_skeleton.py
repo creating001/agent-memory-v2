@@ -4720,6 +4720,230 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual(compiled.memory_records, ())
         self.assertNotIn("The user prefers almond flour", compiled.prompt)
 
+    def test_scoped_memory_version_chain_prefers_active_current_source(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=4,
+            max_evidence_chars=4000,
+            evidence_order="scoped_memory_version_chain_interleave",
+            source_anchor_keep=1,
+            source_anchor_memory_rows=2,
+            source_anchor_per_session=0,
+            max_memory_records=0,
+        )
+        route = RouteResult(information_need="current_state", signals=())
+        old_memory = MemoryRecord(
+            memory_id="m_old",
+            memory_type="state",
+            text="The user used to live in Shibuya.",
+            source_ids=("s2:t0",),
+            subject="user",
+            predicate="live location",
+            value="Shibuya",
+            status="superseded",
+        )
+        active_memory = MemoryRecord(
+            memory_id="m_active",
+            memory_type="state",
+            text="The user currently lives in Harajuku.",
+            source_ids=("s3:t0",),
+            subject="user",
+            predicate="live location",
+            value="Harajuku",
+            status="active",
+        )
+
+        compiled = compiler.compile(
+            question="Where do I currently live?",
+            question_time=None,
+            route=route,
+            hits=(
+                RetrievalHit("s1:t0", 1.0, 1, "dense_embedding"),
+                RetrievalHit("s2:t0", 0.8, 2, "build_memory_bm25"),
+                RetrievalHit("s3:t0", 0.7, 3, "build_memory_bm25"),
+            ),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="I asked about apartment paperwork.",
+                ),
+                Turn(
+                    source_id="s2:t0",
+                    session_id="s2",
+                    turn_index=0,
+                    role="user",
+                    text="I used to live in Shibuya.",
+                    timestamp="2024-01-10",
+                ),
+                Turn(
+                    source_id="s3:t0",
+                    session_id="s3",
+                    turn_index=0,
+                    role="user",
+                    text="I currently live in Harajuku.",
+                    timestamp="2024-05-10",
+                ),
+            ),
+            memory_records=(old_memory, active_memory),
+        )
+
+        self.assertEqual(
+            [row.source_id for row in compiled.evidence_rows],
+            ["s1:t0", "s3:t0", "s2:t0"],
+        )
+        self.assertEqual(compiled.memory_records, ())
+        self.assertNotIn("The user currently lives in Harajuku", compiled.prompt)
+
+    def test_scoped_memory_version_chain_prefers_superseded_historical_source(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=4,
+            max_evidence_chars=4000,
+            evidence_order="scoped_memory_version_chain_interleave",
+            source_anchor_keep=1,
+            source_anchor_memory_rows=2,
+            source_anchor_per_session=0,
+            max_memory_records=0,
+        )
+        route = RouteResult(information_need="current_state", signals=())
+        old_memory = MemoryRecord(
+            memory_id="m_old",
+            memory_type="state",
+            text="The user previously lived in Shibuya.",
+            source_ids=("s2:t0",),
+            subject="user",
+            predicate="live location",
+            value="Shibuya",
+            status="superseded",
+        )
+        active_memory = MemoryRecord(
+            memory_id="m_active",
+            memory_type="state",
+            text="The user currently lives in Harajuku.",
+            source_ids=("s3:t0",),
+            subject="user",
+            predicate="live location",
+            value="Harajuku",
+            status="active",
+        )
+
+        compiled = compiler.compile(
+            question="Where did I previously live?",
+            question_time=None,
+            route=route,
+            hits=(
+                RetrievalHit("s1:t0", 1.0, 1, "dense_embedding"),
+                RetrievalHit("s3:t0", 0.8, 2, "build_memory_bm25"),
+                RetrievalHit("s2:t0", 0.7, 3, "build_memory_bm25"),
+            ),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="I asked about apartment paperwork.",
+                ),
+                Turn(
+                    source_id="s3:t0",
+                    session_id="s3",
+                    turn_index=0,
+                    role="user",
+                    text="I currently live in Harajuku.",
+                    timestamp="2024-05-10",
+                ),
+                Turn(
+                    source_id="s2:t0",
+                    session_id="s2",
+                    turn_index=0,
+                    role="user",
+                    text="I previously lived in Shibuya.",
+                    timestamp="2024-01-10",
+                ),
+            ),
+            memory_records=(active_memory, old_memory),
+        )
+
+        self.assertEqual(
+            [row.source_id for row in compiled.evidence_rows],
+            ["s1:t0", "s2:t0", "s3:t0"],
+        )
+        self.assertEqual(compiled.memory_records, ())
+        self.assertNotIn("The user previously lived in Shibuya", compiled.prompt)
+
+    def test_scoped_memory_version_chain_ignores_unmatched_slot(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=4,
+            max_evidence_chars=4000,
+            evidence_order="scoped_memory_version_chain_interleave",
+            source_anchor_keep=1,
+            source_anchor_memory_rows=2,
+            source_anchor_per_session=0,
+            max_memory_records=0,
+        )
+        route = RouteResult(information_need="current_state", signals=())
+        old_memory = MemoryRecord(
+            memory_id="m_old",
+            memory_type="state",
+            text="The user used to live in Shibuya.",
+            source_ids=("s2:t0",),
+            subject="user",
+            predicate="live location",
+            value="Shibuya",
+            status="superseded",
+        )
+        active_memory = MemoryRecord(
+            memory_id="m_active",
+            memory_type="state",
+            text="The user currently lives in Harajuku.",
+            source_ids=("s3:t0",),
+            subject="user",
+            predicate="live location",
+            value="Harajuku",
+            status="active",
+        )
+
+        compiled = compiler.compile(
+            question="What is my current favorite dessert?",
+            question_time=None,
+            route=route,
+            hits=(
+                RetrievalHit("s1:t0", 1.0, 1, "dense_embedding"),
+                RetrievalHit("s2:t0", 0.8, 2, "build_memory_bm25"),
+                RetrievalHit("s3:t0", 0.7, 3, "build_memory_bm25"),
+            ),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="I love lemon tart.",
+                ),
+                Turn(
+                    source_id="s2:t0",
+                    session_id="s2",
+                    turn_index=0,
+                    role="user",
+                    text="I used to live in Shibuya.",
+                ),
+                Turn(
+                    source_id="s3:t0",
+                    session_id="s3",
+                    turn_index=0,
+                    role="user",
+                    text="I currently live in Harajuku.",
+                ),
+            ),
+            memory_records=(old_memory, active_memory),
+        )
+
+        self.assertEqual(
+            [row.source_id for row in compiled.evidence_rows],
+            ["s1:t0", "s2:t0", "s3:t0"],
+        )
+
     def test_source_anchor_coverage_without_memory_preserves_order(self) -> None:
         compiler = EvidenceCompiler(
             max_evidence_items=2,

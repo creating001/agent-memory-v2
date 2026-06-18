@@ -1,0 +1,469 @@
+{
+  "candidate": "stage1_scoped_version_chain_interleave_v148_qwen36_no_think_build4k_cached",
+  "parent": "stage1_superseded_source_chain_v127_qwen36_no_think_build4k_cached",
+  "benchmark": "locomo",
+  "decision": "rejected_not_lts",
+  "clean_note": "Offline paired judge only; labels/judge are not used by prediction. Prediction uses question text, dialogue-derived memory, source backpointers, raw Memory Context, and prediction-time route only.",
+  "v127_metrics": {
+    "judge_1_correct": 13,
+    "judge_1_name": "flash_1",
+    "judge_2_correct": 13,
+    "judge_2_name": "flash_2",
+    "judge_agreement": 1.0,
+    "lenient_accuracy": 0.7222222222222222,
+    "lenient_accuracy_both_valid": 0.7222222222222222,
+    "lenient_correct": 13,
+    "n_any_invalid": 0,
+    "n_both_valid": 18,
+    "n_joined": 18,
+    "n_judge_1_judgments": 18,
+    "n_judge_2_judgments": 18,
+    "n_missing_judge_1": 0,
+    "n_missing_judge_2": 0,
+    "strict_accuracy": 0.7222222222222222,
+    "strict_accuracy_both_valid": 0.7222222222222222,
+    "strict_correct": 13
+  },
+  "v148_metrics": {
+    "judge_1_correct": 13,
+    "judge_1_name": "flash_1",
+    "judge_2_correct": 13,
+    "judge_2_name": "flash_2",
+    "judge_agreement": 1.0,
+    "lenient_accuracy": 0.7222222222222222,
+    "lenient_accuracy_both_valid": 0.7222222222222222,
+    "lenient_correct": 13,
+    "n_any_invalid": 0,
+    "n_both_valid": 18,
+    "n_joined": 18,
+    "n_judge_1_judgments": 18,
+    "n_judge_2_judgments": 18,
+    "n_missing_judge_1": 0,
+    "n_missing_judge_2": 0,
+    "strict_accuracy": 0.7222222222222222,
+    "strict_accuracy_both_valid": 0.7222222222222222,
+    "strict_correct": 13
+  },
+  "delta": {
+    "strict_correct": 0,
+    "lenient_correct": 0,
+    "strict_accuracy": 0.0,
+    "lenient_accuracy": 0.0
+  },
+  "records": [
+    {
+      "record_key": "6b6d09d7e82567bbb2a34cf0",
+      "question": "What do Melanie's kids like?",
+      "gold_answer": "dinosaurs, nature",
+      "question_type": null,
+      "category": 1,
+      "v127_answer": "Melanie's kids like pottery workshops, the dinosaur exhibit (learning about animals), camping trips (roasting marshmallows), the beach, and painting.",
+      "v148_answer": "Melanie's kids like pottery workshops, visiting the dinosaur exhibit (learning about animals), painting, going to the beach, camping (roasting marshmallows and telling stories), exploring parks, and playing games.",
+      "v127_strict_correct": true,
+      "v127_lenient_correct": true,
+      "v148_strict_correct": true,
+      "v148_lenient_correct": true,
+      "strict_delta": 0,
+      "lenient_delta": 0,
+      "v127_flash_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "v148_flash_labels": [
+        "CORRECT",
+        "CORRECT"
+      ]
+    },
+    {
+      "record_key": "98204abce8fdb37acb9681af",
+      "question": "What did Mel and her kids paint in their latest project in July 2023?",
+      "gold_answer": "a sunset with a palm tree",
+      "question_type": null,
+      "category": 4,
+      "v127_answer": "Nature-inspired subjects, specifically lovely flowers.",
+      "v148_answer": "Nature-inspired paintings, specifically featuring flowers.",
+      "v127_strict_correct": false,
+      "v127_lenient_correct": false,
+      "v148_strict_correct": false,
+      "v148_lenient_correct": false,
+      "strict_delta": 0,
+      "lenient_delta": 0,
+      "v127_flash_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "v148_flash_labels": [
+        "WRONG",
+        "WRONG"
+      ]
+    },
+    {
+      "record_key": "1d01a737157bc23e5d932a62",
+      "question": "What Jon thinks the ideal dance studio should look like?",
+      "gold_answer": "By the water, with natural light and Marley flooring",
+      "question_type": null,
+      "category": 1,
+      "v127_answer": "Jon thinks the ideal dance studio should be located by the water (with a view), in a downtown area for easy access, feature natural light, and have Marley flooring with enough bounce for safe dancing.",
+      "v148_answer": "Jon thinks the ideal dance studio should be located by the water and downtown for easy access, feature great natural light, and have Marley flooring that provides enough bounce for safety while being grippy and durable.",
+      "v127_strict_correct": true,
+      "v127_lenient_correct": true,
+      "v148_strict_correct": true,
+      "v148_lenient_correct": true,
+      "strict_delta": 0,
+      "lenient_delta": 0,
+      "v127_flash_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "v148_flash_labels": [
+        "CORRECT",
+        "CORRECT"
+      ]
+    },
+    {
+      "record_key": "2ed676ce96ff18e4e6c10754",
+      "question": "What did Maria say it was like being at the waterfall in Oregon?",
+      "gold_answer": "Like being in a fairy tale",
+      "question_type": null,
+      "category": 4,
+      "v127_answer": "Maria said she felt like she was in a fairy tale, that the water sounded calming, the surroundings were beautiful, and it was truly magical.",
+      "v148_answer": "Maria said it felt like being in a fairy tale, with calming water sounds and beautiful surroundings, describing it as truly magical.",
+      "v127_strict_correct": true,
+      "v127_lenient_correct": true,
+      "v148_strict_correct": true,
+      "v148_lenient_correct": true,
+      "strict_delta": 0,
+      "lenient_delta": 0,
+      "v127_flash_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "v148_flash_labels": [
+        "CORRECT",
+        "CORRECT"
+      ]
+    },
+    {
+      "record_key": "93ac58586be43efe5ffed648",
+      "question": "How often does John get to see sunsets like the one he shared with Maria?",
+      "gold_answer": "At least once a week",
+      "question_type": null,
+      "category": 4,
+      "v127_answer": "at least once a week",
+      "v148_answer": "At least once a week",
+      "v127_strict_correct": true,
+      "v127_lenient_correct": true,
+      "v148_strict_correct": true,
+      "v148_lenient_correct": true,
+      "strict_delta": 0,
+      "lenient_delta": 0,
+      "v127_flash_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "v148_flash_labels": [
+        "CORRECT",
+        "CORRECT"
+      ]
+    },
+    {
+      "record_key": "ddf916b77c5bce5ec5e24d3e",
+      "question": "What is one of Joanna's favorite movies?",
+      "gold_answer": "\"Eternal Sunshineof the Spotless Mind\"",
+      "question_type": null,
+      "category": 4,
+      "v127_answer": "The provided information is not enough to identify the specific title of one of Joanna's favorite movies.",
+      "v148_answer": "The provided information is not enough.",
+      "v127_strict_correct": false,
+      "v127_lenient_correct": false,
+      "v148_strict_correct": false,
+      "v148_lenient_correct": false,
+      "strict_delta": 0,
+      "lenient_delta": 0,
+      "v127_flash_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "v148_flash_labels": [
+        "WRONG",
+        "WRONG"
+      ]
+    },
+    {
+      "record_key": "40fd9962de0b1cb712e6bf39",
+      "question": "What is Nate's favorite book series about?",
+      "gold_answer": "dragons",
+      "question_type": null,
+      "category": 4,
+      "v127_answer": "Nate's favorite book series is about adventures, magic, great characters, world building, and battles.",
+      "v148_answer": "It is about adventures, magic, great characters, world building, and battles.",
+      "v127_strict_correct": false,
+      "v127_lenient_correct": false,
+      "v148_strict_correct": false,
+      "v148_lenient_correct": false,
+      "strict_delta": 0,
+      "lenient_delta": 0,
+      "v127_flash_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "v148_flash_labels": [
+        "WRONG",
+        "WRONG"
+      ]
+    },
+    {
+      "record_key": "348efb7e44a8722f2b50358a",
+      "question": "What is Nate's favorite video game?",
+      "gold_answer": "Xenoblade Chronicles",
+      "question_type": null,
+      "category": 4,
+      "v127_answer": "Xeonoblade Chronicles",
+      "v148_answer": "The provided information is not enough.",
+      "v127_strict_correct": true,
+      "v127_lenient_correct": true,
+      "v148_strict_correct": false,
+      "v148_lenient_correct": false,
+      "strict_delta": -1,
+      "lenient_delta": -1,
+      "v127_flash_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "v148_flash_labels": [
+        "WRONG",
+        "WRONG"
+      ]
+    },
+    {
+      "record_key": "c2502269932a17656749fc9d",
+      "question": "What is Nate's favorite genre of movies?",
+      "gold_answer": "Fantasy and sci-fi",
+      "question_type": null,
+      "category": 4,
+      "v127_answer": "Action, sci-fi, fantasy, and classics",
+      "v148_answer": "Action, sci-fi, and fantasy",
+      "v127_strict_correct": true,
+      "v127_lenient_correct": true,
+      "v148_strict_correct": true,
+      "v148_lenient_correct": true,
+      "strict_delta": 0,
+      "lenient_delta": 0,
+      "v127_flash_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "v148_flash_labels": [
+        "CORRECT",
+        "CORRECT"
+      ]
+    },
+    {
+      "record_key": "3ad8a4fdaf1eb02ceb3d6dd2",
+      "question": "What is Nate's favorite dish from the cooking show he hosted?",
+      "gold_answer": "Coconut milk ice cream",
+      "question_type": null,
+      "category": 4,
+      "v127_answer": "Coconut milk ice cream",
+      "v148_answer": "Coconut milk ice cream and dairy-free chocolate mousse",
+      "v127_strict_correct": true,
+      "v127_lenient_correct": true,
+      "v148_strict_correct": true,
+      "v148_lenient_correct": true,
+      "strict_delta": 0,
+      "lenient_delta": 0,
+      "v127_flash_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "v148_flash_labels": [
+        "CORRECT",
+        "CORRECT"
+      ]
+    },
+    {
+      "record_key": "2b1d0889d0514a9b279d4c28",
+      "question": "What does Joanna recommend to make a living room comfy like hers?",
+      "gold_answer": "couch for multiple people, fluffy blanket, lights that can be dimmed",
+      "question_type": null,
+      "category": 4,
+      "v127_answer": "Joanna recommends getting a couch that can sit multiple people and is really fluffy, investing in a blanket with a little bit of weight, and adding lights that can be dimmed.",
+      "v148_answer": "Joanna recommends getting a fluffy couch that can sit multiple people, a blanket with a little bit of weight to it, and some lights that can be dimmed.",
+      "v127_strict_correct": true,
+      "v127_lenient_correct": true,
+      "v148_strict_correct": true,
+      "v148_lenient_correct": true,
+      "strict_delta": 0,
+      "lenient_delta": 0,
+      "v127_flash_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "v148_flash_labels": [
+        "CORRECT",
+        "CORRECT"
+      ]
+    },
+    {
+      "record_key": "fe9b30e7b837ec09e8c7236a",
+      "question": "What does John like about Lebron James?",
+      "gold_answer": "His heart, determination, skills, and leadership.",
+      "question_type": null,
+      "category": 1,
+      "v127_answer": "John likes LeBron James's skills, leadership, work ethic, dedication to the game, determination, heart, and finds him chill.",
+      "v148_answer": "John likes LeBron James's skills, leadership, work ethic, dedication, determination, and heart.",
+      "v127_strict_correct": true,
+      "v127_lenient_correct": true,
+      "v148_strict_correct": true,
+      "v148_lenient_correct": true,
+      "strict_delta": 0,
+      "lenient_delta": 0,
+      "v127_flash_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "v148_flash_labels": [
+        "CORRECT",
+        "CORRECT"
+      ]
+    },
+    {
+      "record_key": "248dc7e8afba0342c3efaedb",
+      "question": "Why does John like Aragorn from Lord of the Rings?",
+      "gold_answer": "brave, selfless, down-to-earth attitude",
+      "question_type": null,
+      "category": 4,
+      "v127_answer": "John likes Aragorn because he is a brave, selfless, and down-to-earth leader who puts others first, never gives up, stands up for justice, and grows significantly throughout the story.",
+      "v148_answer": "John likes Aragorn because he is a great leader who puts others first, is brave, selfless, down-to-earth, never gives up, and always stands up for justice.",
+      "v127_strict_correct": true,
+      "v127_lenient_correct": true,
+      "v148_strict_correct": true,
+      "v148_lenient_correct": true,
+      "strict_delta": 0,
+      "lenient_delta": 0,
+      "v127_flash_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "v148_flash_labels": [
+        "CORRECT",
+        "CORRECT"
+      ]
+    },
+    {
+      "record_key": "491549a097b7e902b5ae0a31",
+      "question": "How does Andrew feel about his current work?",
+      "gold_answer": "Stressful",
+      "question_type": null,
+      "category": 1,
+      "v127_answer": "Andrew feels that his work is tough, stressful, and piling up, which negatively impacts his work-life balance and ability to find peace.",
+      "v148_answer": "Andrew feels that his current work is tough, stressful, and challenging, which has made it difficult to maintain a work-life balance and enjoy his outdoor hobbies.",
+      "v127_strict_correct": true,
+      "v127_lenient_correct": true,
+      "v148_strict_correct": true,
+      "v148_lenient_correct": true,
+      "strict_delta": 0,
+      "lenient_delta": 0,
+      "v127_flash_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "v148_flash_labels": [
+        "CORRECT",
+        "CORRECT"
+      ]
+    },
+    {
+      "record_key": "9d706fdbac17028f653f49c5",
+      "question": "What do Andrew and Buddy like doing on walks?",
+      "gold_answer": "Checking out new hiking trails",
+      "question_type": null,
+      "category": 4,
+      "v127_answer": "Andrew and Buddy like doing walks, specifically checking out new hiking trails.",
+      "v148_answer": "They like doing walks (and checking out new hiking trails).",
+      "v127_strict_correct": true,
+      "v127_lenient_correct": true,
+      "v148_strict_correct": true,
+      "v148_lenient_correct": true,
+      "strict_delta": 0,
+      "lenient_delta": 0,
+      "v127_flash_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "v148_flash_labels": [
+        "CORRECT",
+        "CORRECT"
+      ]
+    },
+    {
+      "record_key": "acb046df4203ccbe1c58823c",
+      "question": "What are John and James' favorite games?",
+      "gold_answer": "John's favorite game is CS:GO, and James's is Apex Legends.",
+      "question_type": null,
+      "category": 1,
+      "v127_answer": "James's and clarify John's status",
+      "v148_answer": "The provided information is not enough.",
+      "v127_strict_correct": false,
+      "v127_lenient_correct": false,
+      "v148_strict_correct": false,
+      "v148_lenient_correct": false,
+      "strict_delta": 0,
+      "lenient_delta": 0,
+      "v127_flash_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "v148_flash_labels": [
+        "WRONG",
+        "WRONG"
+      ]
+    },
+    {
+      "record_key": "6658015006384a53816e150c",
+      "question": "What is Evan's favorite food?",
+      "gold_answer": "Ginger snaps",
+      "question_type": null,
+      "category": 1,
+      "v127_answer": "The provided information is not enough.",
+      "v148_answer": "ginger snaps",
+      "v127_strict_correct": false,
+      "v127_lenient_correct": false,
+      "v148_strict_correct": true,
+      "v148_lenient_correct": true,
+      "strict_delta": 1,
+      "lenient_delta": 1,
+      "v127_flash_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "v148_flash_labels": [
+        "CORRECT",
+        "CORRECT"
+      ]
+    },
+    {
+      "record_key": "076e0ce5f5d89aac0a37b3e3",
+      "question": "Would Dave prefer working on a Dodge Charger or a Subaru Forester?",
+      "gold_answer": "Dodge Charger",
+      "question_type": null,
+      "category": 3,
+      "v127_answer": "Likely the Dodge Charger, as Dave is obsessed with classic muscle cars and has no stated interest in SUVs.",
+      "v148_answer": "Likely the Dodge Charger, as Dave is obsessed with classic cars and muscle cars, whereas the Subaru Forester is a modern SUV not mentioned or aligned with his stated preferences.",
+      "v127_strict_correct": true,
+      "v127_lenient_correct": true,
+      "v148_strict_correct": true,
+      "v148_lenient_correct": true,
+      "strict_delta": 0,
+      "lenient_delta": 0,
+      "v127_flash_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "v148_flash_labels": [
+        "CORRECT",
+        "CORRECT"
+      ]
+    }
+  ]
+}
