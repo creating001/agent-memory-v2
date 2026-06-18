@@ -279,6 +279,9 @@ class Stage1Pipeline:
         self._selected_context_require_anaphora = bool(
             selected_context_config.get("require_anaphora", True)
         )
+        self._selected_context_require_question_reference = bool(
+            selected_context_config.get("require_question_reference", False)
+        )
         self._selected_context_min_context_budget_headroom_chars = int(
             selected_context_config.get("min_context_budget_headroom_chars", 0)
         )
@@ -298,6 +301,9 @@ class Stage1Pipeline:
             "max_neighbor_chars": self._selected_context_max_neighbor_chars,
             "max_center_chars": self._selected_context_max_center_chars,
             "require_anaphora": self._selected_context_require_anaphora,
+            "require_question_reference": (
+                self._selected_context_require_question_reference
+            ),
             "min_context_budget_headroom_chars": (
                 self._selected_context_min_context_budget_headroom_chars
             ),
@@ -1197,6 +1203,10 @@ class Stage1Pipeline:
             max_neighbor_chars=selected_context_settings["max_neighbor_chars"],
             max_center_chars=selected_context_settings["max_center_chars"],
             require_anaphora=selected_context_settings["require_anaphora"],
+            question=request.question,
+            require_question_reference=selected_context_settings[
+                "require_question_reference"
+            ],
         )
         selected_context.update(selected_context_budget_gate)
         selected_context["granularity_profile"] = granularity_profile
@@ -1619,6 +1629,9 @@ class Stage1Pipeline:
             "max_neighbor_chars": self._selected_context_max_neighbor_chars,
             "max_center_chars": self._selected_context_max_center_chars,
             "require_anaphora": self._selected_context_require_anaphora,
+            "require_question_reference": (
+                self._selected_context_require_question_reference
+            ),
             "min_context_budget_headroom_chars": (
                 self._selected_context_min_context_budget_headroom_chars
             ),
@@ -2848,6 +2861,15 @@ SELECTED_CONTEXT_ANAPHORA_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+SELECTED_CONTEXT_QUESTION_REFERENCE_PATTERN = re.compile(
+    r"\b("
+    r"that|these|those|it|they|them|there|here|same|such|"
+    r"else|other|previously|earlier|later|then|mentioned|above"
+    r")\b|"
+    r"\bwhat\s+else\b|\bwhich\s+one\b|\bthe\s+(?:former|latter)\b",
+    re.IGNORECASE,
+)
+
 def _materialize_selected_context(
     *,
     store: RawEvidenceStore,
@@ -2861,6 +2883,8 @@ def _materialize_selected_context(
     max_neighbor_chars: int,
     max_center_chars: int,
     require_anaphora: bool,
+    question: str,
+    require_question_reference: bool,
 ) -> tuple[tuple[Turn, ...], dict[str, Any]]:
     trace: dict[str, Any] = {
         "enabled": enabled,
@@ -2872,6 +2896,9 @@ def _materialize_selected_context(
         "max_neighbor_chars": max_neighbor_chars,
         "max_center_chars": max_center_chars,
         "require_anaphora": require_anaphora,
+        "require_question_reference": require_question_reference,
+        "question_reference": False,
+        "skip_reason": None,
         "eligible": False,
         "materialized_count": 0,
         "materialized_source_ids": [],
@@ -2879,11 +2906,21 @@ def _materialize_selected_context(
         "skipped_long_center_source_ids": [],
     }
     if not enabled or not turns:
+        trace["skip_reason"] = "disabled_or_empty"
         return turns, trace
     if information_needs and route.information_need not in information_needs:
+        trace["skip_reason"] = "route_not_enabled"
+        return turns, trace
+    question_reference = bool(
+        SELECTED_CONTEXT_QUESTION_REFERENCE_PATTERN.search(question or "")
+    )
+    trace["question_reference"] = question_reference
+    if require_question_reference and not question_reference:
+        trace["skip_reason"] = "question_reference_required"
         return turns, trace
 
     trace["eligible"] = True
+    trace["skip_reason"] = None
     row_limit = max_rows if max_rows > 0 else len(turns)
     before = max(0, window_before)
     after = max(0, window_after)
@@ -2999,6 +3036,7 @@ SELECTED_CONTEXT_OVERRIDE_KEYS = {
     "max_center_chars",
     "min_context_budget_headroom_chars",
     "require_anaphora",
+    "require_question_reference",
     "information_needs",
 }
 
@@ -3606,7 +3644,7 @@ def _normalized_selected_context_override(
 ) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for key, value in raw.items():
-        if key in {"enabled", "require_anaphora"}:
+        if key in {"enabled", "require_anaphora", "require_question_reference"}:
             result[key] = bool(value)
         elif key in {
             "window_before",

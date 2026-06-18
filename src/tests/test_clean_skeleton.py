@@ -337,6 +337,80 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertIn("Nothing is Impossible", prompt)
         self.assertNotIn("question_type", prompt)
 
+    def test_selected_context_can_require_question_reference(self) -> None:
+        config = {
+            "retrieval": {
+                "top_k": 2,
+                "max_top_k": 2,
+                "neighbor_window": 0,
+                "selected_context": {
+                    "enabled": True,
+                    "window_before": 1,
+                    "window_after": 0,
+                    "max_rows": 2,
+                    "max_neighbor_chars": 80,
+                    "require_anaphora": True,
+                    "require_question_reference": True,
+                    "information_needs": ["fact_lookup"],
+                },
+            },
+            "compiler": {
+                "prompt_mode": "external_naive",
+                "max_evidence_items": 2,
+                "max_evidence_chars": 4000,
+            },
+            "answer": {"fallback_answer": "unknown"},
+        }
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text='Alex read "Nothing is Impossible" last year.',
+            ),
+            Turn(
+                source_id="s1:t1",
+                session_id="s1",
+                turn_index=1,
+                role="assistant",
+                text="This book inspired Alex to keep training.",
+            ),
+        )
+
+        plain_result = Stage1Pipeline(config).predict(
+            PredictionRequest(question="What inspired Alex?", turns=turns)
+        )
+        plain_trace = plain_result["trace"]["retrieval"]["selected_context"]
+        plain_row_text = "\n".join(
+            row["text"]
+            for row in plain_result["trace"]["compiled_context"]["evidence_rows"]
+        )
+
+        self.assertFalse(plain_trace["applied"])
+        self.assertFalse(plain_trace["question_reference"])
+        self.assertEqual(plain_trace["skip_reason"], "question_reference_required")
+        self.assertNotIn("Local dialogue context from the same session", plain_row_text)
+
+        referenced_result = Stage1Pipeline(config).predict(
+            PredictionRequest(
+                question="What else inspired Alex about that book?",
+                turns=turns,
+            )
+        )
+        referenced_trace = referenced_result["trace"]["retrieval"]["selected_context"]
+        referenced_row_text = "\n".join(
+            row["text"]
+            for row in referenced_result["trace"]["compiled_context"]["evidence_rows"]
+        )
+
+        self.assertTrue(referenced_trace["applied"])
+        self.assertTrue(referenced_trace["question_reference"])
+        self.assertIn(
+            "Local dialogue context from the same session",
+            referenced_row_text,
+        )
+
     def test_selected_context_route_override_is_scoped(self) -> None:
         config = {
             "retrieval": {

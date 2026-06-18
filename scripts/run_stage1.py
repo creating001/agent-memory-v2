@@ -449,6 +449,11 @@ def main() -> int:
             "selected_context_require_anaphora": config.get("retrieval", {})
             .get("selected_context", {})
             .get("require_anaphora"),
+            "selected_context_require_question_reference": config.get(
+                "retrieval", {}
+            )
+            .get("selected_context", {})
+            .get("require_question_reference"),
             "selected_context_min_context_budget_headroom_chars": config.get(
                 "retrieval", {}
             )
@@ -1244,6 +1249,7 @@ def _write_summary(
         f"- selected_context_max_center_chars: {metrics['retrieval']['selected_context_max_center_chars']}",
         f"- selected_context_information_needs: {metrics['retrieval']['selected_context_information_needs']}",
         f"- selected_context_require_anaphora: {metrics['retrieval']['selected_context_require_anaphora']}",
+        f"- selected_context_require_question_reference: {metrics['retrieval']['selected_context_require_question_reference']}",
         f"- selected_context_min_context_budget_headroom_chars: {metrics['retrieval']['selected_context_min_context_budget_headroom_chars']}",
         f"- selected_context_applied_count: {metrics['retrieval']['selected_context_applied_count']}",
         f"- selected_context_applied_rate: {metrics['retrieval']['selected_context_applied_rate']}",
