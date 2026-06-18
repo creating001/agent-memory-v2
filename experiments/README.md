@@ -52,6 +52,7 @@
 
 | 配置 | 原因 |
 |---|---|
+| `stage1_current_state_only_conflict_guide_v161_qwen36_no_think_build4k_cached.json` | 移除 fact_lookup 上过宽 conflict guide，query/context 降低且 row set 不变，但 LME fact changed subset strict `23/39 -> 22/39`，lenient 持平；不升 LTS。 |
 | `stage1_fixed_set_fact_source_interleave_v160_qwen36_no_think_build4k_cached.json` | 修复 v159 evidence-set drift，final row set changed `0/183`，但 LME fact changed subset strict `28/49 -> 27/49`，lenient 持平；不升 LTS。 |
 | `stage1_fact_source_interleave_v159_qwen36_no_think_build4k_cached.json` | source-backed fact row ordering clean 但过宽；LME fact changed subset strict/lenient `28/46 -> 26/46`、`30/46 -> 28/46`，且 ordering-before-truncation 导致 final row set changed `24/183`。 |
 | `stage1_question_gated_selected_context_v157_qwen36_no_think_build4k_cached.json` | question-level gate 明显收窄 v156 触发面，但 LME changed subset strict `3/5 -> 2/5`、lenient `4/5 -> 4/5`；bare `that` 误触发，需继续收窄。 |
@@ -77,6 +78,7 @@
 | `diagnostic/stage1_narrow_question_gated_selected_context_v158_scope_summary.md` | v158 LTS 晋升：narrow question-gated selected context，LME answer diff `2/500` 且 paired judge 持平，LoCoMo diff `0/1540` |
 | `diagnostic/stage1_narrow_question_gated_selected_context_v158_lme_s_full/` | v158 LME full cached prediction run artifacts |
 | `diagnostic/stage1_narrow_question_gated_selected_context_v158_locomo_nonadv_full/` | v158 LoCoMo full cached prediction run artifacts |
+| `diagnostic/stage1_current_state_only_conflict_guide_v161_scope_summary.md` | v161 负向诊断：fact conflict guide 移除降成本但 LME changed subset strict `-1` |
 | `diagnostic/stage1_fixed_set_fact_source_interleave_v160_scope_summary.md` | v160 负向诊断：fixed-set source-backed fact ordering 保住 evidence set，但 LME changed subset strict `-1` |
 | `diagnostic/stage1_fact_source_interleave_v159_scope_summary.md` | v159 负向诊断：fact_lookup source-backed interleave 改变 final evidence set，LME changed subset strict/lenient `-2/-2` |
 | `diagnostic/stage1_question_gated_selected_context_v157_scope_summary.md` | v157 question-level selected-context gate 诊断：selected-context `6/500`，answer diff `5/500`，paired judge strict `-1`、lenient `0`，需收窄 bare `that` |
