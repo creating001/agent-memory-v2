@@ -25,7 +25,7 @@
 
 | 优先级 | 项目 | 当前状态 | 下一步 |
 |---:|---|---|---|
-| 1 | `v135` narrower temporal local-context policy | 对应风险 #3。v125 已部分收窄 selected context，但 badcase 仍有过度推断/拒答/长输出 | 在 v125 LTS 上做 evidence-density/self-containedness gate |
+| 1 | `v135` temporal local evidence signal gate | 对应风险 #3。已实现 generic neighbor signal gate：邻居需提供 temporal marker、question-term overlap 或 center-term overlap | 跑 LoCoMo temporal/full dry-run；若 scope/cost 正常再补 paired dual judge |
 | 2 | `v126` profile/current memory source interleave | 对应风险 #5。LoCoMo profile/current route-all exact `0.320000 -> 0.360000` | 补 paired dual judge；若 LME judge 不正向则停止 |
 | 3 | `v127` superseded source chain | 对应风险 #5。LME lexical exact `0.426000 -> 0.428000`；LoCoMo exact 持平、F1/BLEU 小升 | 补 paired dual judge，并重点看 update/profile badcase |
 | 4 | `v129` route-scoped char budget / rerank 后续 | 对应风险 #2。v129 lexical 小正向但 token 收益有限；v134 judge 负向已拒绝 | 保留为 token-budget 对照，下一步不能只靠截断省 token |
@@ -35,6 +35,7 @@
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
 | `configs/stage1_route_scoped_local_evidence_unit_v125_qwen36_no_think_build4k_cached.json` | current LTS | LoCoMo temporal paired dual judge strict/lenient `0.772189/0.786982 -> 0.792899/0.813609`；full route-only strict/lenient `0.779221/0.807143 -> 0.789610/0.807792`；LME compiler dry-run `0/500` prompt/row change；v121 guard smoke 与 v116 finalizer-applied 8 条输出一致 | 当前本地 LTS；降低 #4，部分降低 #3；#1/#2/#5 保留为优先风险 |
+| `configs/stage1_temporal_local_evidence_signal_gate_v135_qwen36_no_think_build4k_cached.json` | selected-context risk #3 | 继承 v125，只给 `temporal_lookup` local evidence unit 加 neighbor signal gate；外部参考 xMemory/source-expansion 思路，只在邻居能补 source-backed signal 时展开 | 待 dry-run/judge；不是 LTS |
 | `configs/stage1_route_scoped_fact_profile_state_budget_v129_qwen36_no_think_build4k_cached.json` | token-budget | LME full route-only exact `0.428000 -> 0.430000`；LoCoMo `0.244156 -> 0.245455` | Narrow positive diagnostic；作为 v134 父对照 |
 | `configs/stage1_memory_source_interleave_v126_qwen36_no_think_build4k_cached.json` | memory organization | LoCoMo profile/current exact `0.320000 -> 0.360000`；LME exact 持平但 F1/BLEU 轻降 | Narrow diagnostic；待 judge |
 | `configs/stage1_superseded_source_chain_v127_qwen36_no_think_build4k_cached.json` | memory/state chain | LME full route-only exact `0.426000 -> 0.428000`；LoCoMo exact 持平、F1/BLEU 小升 | Narrow diagnostic；待 judge |

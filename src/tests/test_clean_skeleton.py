@@ -412,6 +412,132 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertFalse(fact_trace["applied"])
         self.assertIsNone(fact_trace["route_override"])
 
+    def test_selected_context_neighbor_signal_gate_keeps_temporal_anchor(self) -> None:
+        config = {
+            "retrieval": {
+                "top_k": 2,
+                "max_top_k": 2,
+                "neighbor_window": 0,
+                "selected_context": {
+                    "enabled": False,
+                    "route_overrides": {
+                        "temporal_lookup": {
+                            "enabled": True,
+                            "window_before": 1,
+                            "window_after": 0,
+                            "max_rows": 1,
+                            "max_neighbor_chars": 80,
+                            "require_anaphora": True,
+                            "require_neighbor_signal": True,
+                            "min_neighbor_signal_score": 1,
+                            "neighbor_overlap_min_terms": 1,
+                            "information_needs": ["temporal_lookup"],
+                        }
+                    },
+                },
+            },
+            "compiler": {
+                "prompt_mode": "external_naive",
+                "max_evidence_items": 2,
+                "max_evidence_chars": 4000,
+            },
+            "answer": {"fallback_answer": "unknown"},
+        }
+        request = PredictionRequest(
+            question="When did Alex buy tickets?",
+            turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="The museum visit happened on Monday.",
+                ),
+                Turn(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="assistant",
+                    text="That was the day Alex bought tickets.",
+                ),
+            ),
+        )
+
+        result = Stage1Pipeline(config).predict(request)
+        trace = result["trace"]["retrieval"]["selected_context"]
+        row_text = "\n".join(
+            row["text"] for row in result["trace"]["compiled_context"]["evidence_rows"]
+        )
+
+        self.assertTrue(trace["applied"])
+        self.assertEqual(trace["materialized_source_ids"], ["s1:t1"])
+        self.assertEqual(trace["materialized_neighbor_source_ids"], ["s1:t0"])
+        self.assertIn("Local dialogue context from the same session", row_text)
+        self.assertIn("Monday", row_text)
+
+    def test_selected_context_neighbor_signal_gate_skips_low_signal_neighbor(self) -> None:
+        config = {
+            "retrieval": {
+                "top_k": 2,
+                "max_top_k": 2,
+                "neighbor_window": 0,
+                "selected_context": {
+                    "enabled": False,
+                    "route_overrides": {
+                        "temporal_lookup": {
+                            "enabled": True,
+                            "window_before": 1,
+                            "window_after": 0,
+                            "max_rows": 1,
+                            "max_neighbor_chars": 80,
+                            "require_anaphora": True,
+                            "require_neighbor_signal": True,
+                            "min_neighbor_signal_score": 1,
+                            "neighbor_overlap_min_terms": 1,
+                            "information_needs": ["temporal_lookup"],
+                        }
+                    },
+                },
+            },
+            "compiler": {
+                "prompt_mode": "external_naive",
+                "max_evidence_items": 2,
+                "max_evidence_chars": 4000,
+            },
+            "answer": {"fallback_answer": "unknown"},
+        }
+        request = PredictionRequest(
+            question="When did Alex visit the museum?",
+            turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Morgan talked about coffee at work.",
+                ),
+                Turn(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="assistant",
+                    text="That museum visit was exciting.",
+                ),
+            ),
+        )
+
+        result = Stage1Pipeline(config).predict(request)
+        trace = result["trace"]["retrieval"]["selected_context"]
+        row_text = "\n".join(
+            row["text"] for row in result["trace"]["compiled_context"]["evidence_rows"]
+        )
+
+        self.assertFalse(trace["applied"])
+        self.assertEqual(trace["materialized_count"], 0)
+        self.assertEqual(trace["skipped_low_signal_neighbor_count"], 1)
+        self.assertEqual(trace["skipped_low_signal_neighbor_source_ids"], ["s1:t0"])
+        self.assertNotIn("Local dialogue context from the same session", row_text)
+
     def test_grounded_inference_contract_is_question_gated(self) -> None:
         compiler = EvidenceCompiler(
             max_evidence_items=2,
