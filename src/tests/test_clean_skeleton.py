@@ -392,6 +392,19 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual(plain_trace["skip_reason"], "question_reference_required")
         self.assertNotIn("Local dialogue context from the same session", plain_row_text)
 
+        relative_that_result = Stage1Pipeline(config).predict(
+            PredictionRequest(
+                question="What detail that would help Alex?",
+                turns=turns,
+            )
+        )
+        relative_that_trace = relative_that_result["trace"]["retrieval"][
+            "selected_context"
+        ]
+
+        self.assertFalse(relative_that_trace["applied"])
+        self.assertFalse(relative_that_trace["question_reference"])
+
         referenced_result = Stage1Pipeline(config).predict(
             PredictionRequest(
                 question="What else inspired Alex about that book?",

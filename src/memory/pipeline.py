@@ -2863,10 +2863,12 @@ SELECTED_CONTEXT_ANAPHORA_PATTERN = re.compile(
 
 SELECTED_CONTEXT_QUESTION_REFERENCE_PATTERN = re.compile(
     r"\b("
-    r"that|these|those|it|they|them|there|here|same|such|"
+    r"these|those|it|they|them|there|here|same|such|"
     r"else|other|previously|earlier|later|then|mentioned|above"
     r")\b|"
-    r"\bwhat\s+else\b|\bwhich\s+one\b|\bthe\s+(?:former|latter)\b",
+    r"\bwhat\s+else\b|\bwhich\s+one\b|"
+    r"\bthat\s+(?:one|same|thing|topic|conversation|event|option)\b|"
+    r"\bthe\s+(?:former|latter)\b",
     re.IGNORECASE,
 )
 

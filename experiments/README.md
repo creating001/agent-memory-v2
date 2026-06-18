@@ -6,14 +6,14 @@
 
 | 项目 | 结果 |
 |---|---|
-| 当前 LTS 配置 | `configs/stage1_current_state_lifecycle_ledger_v154_qwen36_no_think_build4k_cached.json` |
+| 当前 LTS 配置 | `configs/stage1_narrow_question_gated_selected_context_v158_qwen36_no_think_build4k_cached.json` |
 | Backbone | `Qwen/Qwen3.6-35B-A3B` answer/build，`chat_template_kwargs.enable_thinking=false` |
-| 方法 | V154 current-state lifecycle ledger：继承 v151 的窄 current-state source repair，在 repair prompt 内加入 source-backed lifecycle ledger；ledger 只索引同一份 raw Memory Context，不作为二手 evidence。 |
+| 方法 | V158 narrow question-gated selected context：继承 v154 lifecycle ledger，并把 long-turn selected context 从一刀切禁用改成问题级局部指代触发；bare relative-clause `that` 不触发。 |
 | LongMemEval-S full | paired-delta derived dual judge strict/lenient `0.822000 / 0.834000`；`411/500` strict，`417/500` lenient |
-| LoCoMo non-adversarial full | v154 与 v151 answer-normalized 等价，strict/lenient `0.789610 / 0.815584`；`1216/1540` strict，`1256/1540` lenient |
-| 状态 | 当前本地 qwen3.6 no-thinking LTS。相对 v151，v154 不扩大触发面、不降 accuracy，并降低 #5 lifecycle/update reasoning 的可审计性风险；#1 granularity/profile、#2 top-k/context noise/rerank、更完整的 #5 memory management 仍未解决。 |
+| LoCoMo non-adversarial full | v158 与 v154 answer diff `0/1540`，strict/lenient `0.789610 / 0.815584`；`1216/1540` strict，`1256/1540` lenient |
+| 状态 | 当前本地 qwen3.6 no-thinking LTS。相对 v154，v158 不降 accuracy，并降低 #3 selected-context 长/短 turn heuristic 风险；#1 granularity/profile、#2 top-k/context noise/rerank、更完整的 #5 memory management 仍未解决。 |
 
-`paired-delta derived` 的含义：v154 预测与 v151 只有少量答案变化，未变化答案沿用 v151/v127 full dual judge records，变化答案单独跑 paired dual judge 后替换计数。若论文级最终汇报需要完全独立 run，再对 LTS 配置重跑 fresh full judge。
+`paired-delta derived` 的含义：新版本只改少量答案，未变化答案沿用父 LTS full dual judge records，变化答案单独跑 paired dual judge 后替换计数。若论文级最终汇报需要完全独立 run，再对 LTS 配置重跑 fresh full judge。
 
 ## 口径说明
 
@@ -28,14 +28,15 @@
 |---:|---|---|---|
 | 1 | #5 memory lifecycle/state/conflict/query-time reasoning | v154 已把 source-backed lifecycle ledger 放进窄 current-state repair；typed memory 仍不直接替代 raw evidence | 继续做 answer-slot-aware verifier / lifecycle ledger，逐步扩到更多可安全识别的 state/update 槽位 |
 | 2 | #2 top-k/context noise/rerank | v129/v134/v140/v152 说明简单裁剪、tail snippet 或 list-count rerank pruning 会伤 accuracy；当前 query context 仍偏长 | 转向 coverage-preserving route-aware context organization：先保留覆盖证据，再做 grouping/dedup/aggregation table |
-| 3 | #1 granularity/profile + #3 selected context | v157 的 question-level gate 把 v156 的大幅负向收窄到 lenient 持平，但 bare `that` 仍会误触发 relative-clause recommendation | 收窄 question-reference detector，避免普通关系从句触发 selected context |
+| 3 | #1 granularity/profile + #3 selected context | v158 已把 long-turn selected context 从一刀切禁用改成 narrow question-gated policy；granularity profile 仍基于 avg-turn chars | 继续重做更通用的 context organization，逐步减少 avg-turn profile 依赖 |
 | 4 | src cleanup | 已有多轮兼容分支，`repair.py`、compiler、pipeline 仍会继续变复杂 | 每个阶段结束后做小范围清理，删已确认无用的兼容代码，不删仍有消融价值的模块 |
 
 ## 保留候选
 
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
-| `configs/stage1_current_state_lifecycle_ledger_v154_qwen36_no_think_build4k_cached.json` | current LTS | LME strict/lenient `0.822000/0.834000`，LoCoMo `0.789610/0.815584`；changed-answer paired judge vs v151 持平 | 当前 LTS；比 v151 增加 source-backed lifecycle ledger，风险更低且 accuracy 不降 |
+| `configs/stage1_narrow_question_gated_selected_context_v158_qwen36_no_think_build4k_cached.json` | current LTS | LME strict/lenient `0.822000/0.834000`，LoCoMo `0.789610/0.815584`；v158 vs v154 changed-answer paired judge 持平 | 当前 LTS；比 v154 降低 #3 long-turn selected-context blanket-disable 风险且 accuracy 不降 |
+| `configs/stage1_current_state_lifecycle_ledger_v154_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.822000/0.834000`，LoCoMo `0.789610/0.815584`；changed-answer paired judge vs v151 持平 | 被 v158 替代；仍是 #5 lifecycle ledger 父对照 |
 | `configs/stage1_current_state_source_repair_v151_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.822000/0.834000`，LoCoMo `0.789610/0.815584`；changed-answer paired judge vs v150 正向/持平 | 被 v154 替代；仍是窄 source repair 父对照 |
 | `configs/stage1_selective_source_repair_v150_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.820000/0.834000`，LoCoMo `0.789610/0.815584` | 被 v151 替代：profile repair 过度改写一条 LME recommendation，v151 移除该风险并提升 LME strict |
 | `configs/stage1_superseded_source_chain_v127_qwen36_no_think_build4k_cached.json` | previous LTS | fresh full dual judge：LME `0.820000/0.832000`，LoCoMo `0.789610/0.815584` | 被 v150/v151 替代；仍是 source-backed update organization 父对照 |
@@ -71,6 +72,9 @@
 
 | 路径 | 内容 |
 |---|---|
+| `diagnostic/stage1_narrow_question_gated_selected_context_v158_scope_summary.md` | v158 LTS 晋升：narrow question-gated selected context，LME answer diff `2/500` 且 paired judge 持平，LoCoMo diff `0/1540` |
+| `diagnostic/stage1_narrow_question_gated_selected_context_v158_lme_s_full/` | v158 LME full cached prediction run artifacts |
+| `diagnostic/stage1_narrow_question_gated_selected_context_v158_locomo_nonadv_full/` | v158 LoCoMo full cached prediction run artifacts |
 | `diagnostic/stage1_question_gated_selected_context_v157_scope_summary.md` | v157 question-level selected-context gate 诊断：selected-context `6/500`，answer diff `5/500`，paired judge strict `-1`、lenient `0`，需收窄 bare `that` |
 | `diagnostic/stage1_long_profile_route_selected_context_v156_scope_summary.md` | v156 route-scoped selected-context 负向诊断：answer diff `17/500`，paired judge strict/lenient `-4/-5`，下一步转 question-level gate |
 | `diagnostic/stage1_current_state_lifecycle_slot_trigger_v155_scope_summary.md` | v155 lifecycle-slot trigger 诊断：answer diff 0 但 token 增加，不升 LTS |
