@@ -1,0 +1,31 @@
+{
+  "artifacts": {
+    "lme_changed_judge": "experiments/diagnostic/stage1_current_state_update_contract_v153_lme_changed_vs_v151/",
+    "lme_predictions": "outputs/diagnostic/stage1_current_state_update_contract_v153_lme_s_full/",
+    "locomo_changed_judge": "experiments/diagnostic/stage1_current_state_update_contract_v153_locomo_changed_vs_v151/",
+    "locomo_predictions": "outputs/diagnostic/stage1_current_state_update_contract_v153_locomo_nonadv_full/"
+  },
+  "base_lts": "v151",
+  "clean_note": "Prediction uses question text and raw Memory Context only for the new contract; no gold answers, judge output, benchmark labels, sample ids, row indices, test feedback, or sample-level shortcuts are used.",
+  "config": "configs/stage1_current_state_update_contract_v153_qwen36_no_think_build4k_cached.json",
+  "decision": "rejected_not_lts",
+  "lme": {
+    "avg_query_tokens": 6169.376,
+    "changed_answers": 10,
+    "contract_prompts": 22,
+    "delta_lenient_correct": -4,
+    "delta_strict_correct": -4,
+    "derived_v153_lenient_accuracy": 0.826,
+    "derived_v153_lenient_correct": 413,
+    "derived_v153_strict_accuracy": 0.814,
+    "derived_v153_strict_correct": 407,
+    "v151_changed_lenient_correct": 9,
+    "v151_changed_strict_correct": 9,
+    "v151_full_lenient_correct": 417,
+    "v151_full_strict_correct": 411,
+    "v153_changed_lenient_correct": 5,
+    "v153_changed_strict_correct": 5
+  },
+  "method": "Enable current_state_update_contract only for current_state prompts; no retrieval, selected-context, row-ordering, typed-memory exposure, answer model, or repair-scope changes.",
+  "version": "v153"
+}

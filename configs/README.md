@@ -25,6 +25,7 @@
 | `stage1_memory_version_chain_v144_qwen36_no_think_build4k_cached.json` | #5 source-backed version-chain row ordering 负向/混合对照。 |
 | `stage1_memory_slot_chain_v145_qwen36_no_think_build4k_cached.json` | #5 retrieval-time slot-chain 负向对照。 |
 | `stage1_answer_slot_checklist_v149_qwen36_no_think_build4k_cached.json` | v150 的直接负向父思路；broad checklist 过度拒答。 |
+| `stage1_current_state_update_contract_v153_qwen36_no_think_build4k_cached.json` | #5 prompt-only current-state update discipline 负向对照；提示下一步要做 slot/ledger/verifier 而非加宽 reader 规则。 |
 
 ## 当前 Split Best
 
