@@ -25,7 +25,7 @@
 
 | 优先级 | 项目 | 当前状态 | 下一步 |
 |---:|---|---|---|
-| 1 | #5 memory lifecycle/state/conflict/query-time reasoning | v145 已把 state/version slot chain 前移到 retrieval-time clean candidate expansion；compile scope 窄：LME slot-chain `16/500`、LoCoMo `34/1540`，context 基本不变 | 跑 formal answer + dual judge；只有 full accuracy 和风险同时可接受才升 LTS |
+| 1 | #5 memory lifecycle/state/conflict/query-time reasoning | v145 retrieval-time slot-chain 比 v144 更接近真正 memory management，但 formal LME `0.814/0.830`、LoCoMo `0.785065/0.808442` 均低于 fresh v127，不升 LTS | 下一版不要只靠同 slot 扩展；需要更稳的 state scope 判断、conflict resolution 和 candidate pruning，避免把相关但非答案状态拉高 |
 | 2 | #1 granularity/profile generalization + #2/#3 context pressure | v140 清除 profile 分支并降低 LME avg context chars 到 `18940.848`，但 LME strict/lenient `0.794/0.826` 低于 v127 | 重做 retrieval/context organization，避免 v139/v140 这种损覆盖的 compiler pressure |
 | 3 | src cleanup | `src` 审计显示暂无可整模块删除的 tracked 代码；`repair.py`、rerank、turn-window 和 guide 逻辑仍有消融或 guardrail 价值 | 后续随实验节奏拆小 `compiler.py` / `pipeline.py`，删除确认无用的兼容分支，不删仍有验证价值的模块 |
 
@@ -47,6 +47,7 @@
 
 | 配置 | 原因 |
 |---|---|
+| `stage1_memory_slot_chain_v145_qwen36_no_think_build4k_cached.json` | source-backed retrieval-time slot-chain expansion 只在 `current_state/profile_preference` 触发，typed memory text 不作为 reader evidence。Compile scope 窄：LME slot-chain `16/500`、LoCoMo `34/1540`，context 基本不变。但 full dual judge：LME strict/lenient `0.814000/0.830000`，LoCoMo `0.785065/0.808442`；均低于 fresh v127，且 paired changed subset vs v127 为 LME strict/lenient `-2/-2`、LoCoMo `-2/-1`，不升 LTS。 |
 | `stage1_memory_version_chain_v144_qwen36_no_think_build4k_cached.json` | source-backed version-chain row ordering 只改 `current_state/profile_preference`，不把 typed memory text 当 reader evidence。Compile scope 合理：LME changed `31/500`、LoCoMo changed `50/1540`，几乎不增 context。但 full dual judge：LME strict/lenient `0.812000/0.840000`，LoCoMo `0.785714/0.811688`；LoCoMo 低于 fresh v127 `0.789610/0.815584`，不升 LTS。保留为 #5 state/version ablation。 |
 | `stage1_scoped_memory_state_guide_v142_qwen36_no_think_build4k_cached.json` | scoped state guide 比 v141 收窄。相对 fresh v127，LME strict `408/500` 低于 `410/500`、lenient `418/500` 高于 `416/500`，但 LoCoMo strict/lenient `1208/1540` / `1242/1540` 均低于 v127 `1216/1540` / `1256/1540`。结论：作为 #5 阶段性诊断保留，不升统一 LTS；下一步做更完整的 conflict/as-of state、version chain 和 query-time memory reasoning。 |
 | `stage1_memory_state_guide_v141_qwen36_no_think_build4k_cached.json` | #5 方向正确但 dry-run scope 太宽：source-linked state guide 在 LME `218/500`、LoCoMo `932/1540` prompts 出现，avg context chars `20436.048/18313.279`；主要被 fact_lookup 大面积触发，暂不 formal，下一版收窄 |
@@ -74,6 +75,8 @@
 |---|---|
 | `stage1_superseded_source_chain_v127_lme_s_full_fresh` | 当前 LTS fresh full；strict/lenient `0.820000/0.832000` |
 | `stage1_superseded_source_chain_v127_locomo_nonadv_full_fresh` | 当前 LTS fresh full；strict/lenient `0.789610/0.815584` |
+| `stage1_memory_slot_chain_v145_lme_s_full` | v145 #5 retrieval-time slot-chain formal；strict/lenient `0.814000/0.830000`，低于 fresh v127，故不升 LTS |
+| `stage1_memory_slot_chain_v145_locomo_nonadv_full` | v145 #5 retrieval-time slot-chain formal；strict/lenient `0.785065/0.808442`，低于 fresh v127，故不升 LTS |
 | `stage1_memory_version_chain_v144_lme_s_full` | v144 #5 source-backed version-chain row ordering formal；strict/lenient `0.812000/0.840000`，mixed vs v127 |
 | `stage1_memory_version_chain_v144_locomo_nonadv_full` | v144 #5 source-backed version-chain row ordering formal；strict/lenient `0.785714/0.811688`，低于 fresh v127，故不升 LTS |
 | `stage1_scoped_memory_state_guide_v142_lme_s_full` | v142 #5 scoped state guide formal；strict/lenient `0.816000/0.836000` |
@@ -105,7 +108,7 @@
 | `diagnostic/stage1_superseded_source_chain_v127_summary.md` | v127 superseded source chain 诊断 |
 | `diagnostic/stage1_memory_source_interleave_v126_profile_state_summary.md` | v126 profile/current source interleave 诊断 |
 | `diagnostic/stage1_scoped_memory_state_guide_v142_badcase_summary.md` | v142 formal 后 LoCoMo gain/loss 聚合和 #5 下一步约束 |
-| `diagnostic/stage1_memory_slot_chain_v145_scope_summary.md` | v145 retrieval-time memory slot chain scope 结论：触发范围窄、成本基本不变，进入 formal |
+| `diagnostic/stage1_memory_slot_chain_v145_scope_summary.md` | v145 retrieval-time memory slot chain scope/formal 结论：结构更 clean，但 accuracy 不升 LTS |
 | `diagnostic/stage1_memory_version_chain_v144_scope_summary.md` | v144 source-backed version-chain row ordering scope/formal 结论：结构更 clean，但 accuracy 不升 LTS |
 | `diagnostic/stage1_global_update_conflict_v143_scope_probe_summary.md` | v143 方向 probe：全局 update/conflict guide 对 LoCoMo 为 no-op，未成正式版本 |
 | `diagnostic/src_cleanup_audit_20260618.md` | v142 后 src 清理审计：确认暂无可安全删除的整模块 |

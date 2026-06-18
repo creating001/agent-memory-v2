@@ -37,13 +37,24 @@ Compared with v144 compile:
 - LME adds `11/500` prompt/order changes and `9/500` row-set changes.
 - LoCoMo adds `29/1540` prompt/order changes and `29/1540` row-set changes.
 
-## Decision
+## Formal Result
 
-Compile scope is narrow and cost-neutral enough to proceed to formal answer + dual `deepseek-v4-flash` judge. Do not promote before full judge accuracy is available.
+| Benchmark | strict | lenient | LTS decision |
+|---|---:|---:|---|
+| LongMemEval-S full | `407/500 = 0.814000` | `415/500 = 0.830000` | below fresh v127 `410/500` strict and `416/500` lenient |
+| LoCoMo non-adversarial full | `1209/1540 = 0.785065` | `1245/1540 = 0.808442` | below fresh v127 `1216/1540` strict and `1256/1540` lenient |
+
+Paired changed-prompt subset vs fresh v127:
+- LME strict net `-2`, lenient net `-2`.
+- LoCoMo strict net `-2`, lenient net `-1`.
+
+Conclusion: v145 is a cleaner #5 ablation than row-only v144 because it uses typed memory as source-backed retrieval-time slot-chain activation, but the formal accuracy is negative. Keep v127 as current LTS.
 
 ## Outputs
 
 - LME compile traces: `outputs/diagnostic/stage1_memory_slot_chain_v145_lme_s_full_compile/traces.jsonl`
 - LME compile experiment record: `experiments/diagnostic/stage1_memory_slot_chain_v145_lme_s_full_compile/`
+- LME formal judge: `experiments/formal/stage1_memory_slot_chain_v145_lme_s_full/deepseek_dual_judge.json`
 - LoCoMo compile traces: `outputs/diagnostic/stage1_memory_slot_chain_v145_locomo_nonadv_full_compile/traces.jsonl`
 - LoCoMo compile experiment record: `experiments/diagnostic/stage1_memory_slot_chain_v145_locomo_nonadv_full_compile/`
+- LoCoMo formal judge: `experiments/formal/stage1_memory_slot_chain_v145_locomo_nonadv_full/deepseek_dual_judge.json`
