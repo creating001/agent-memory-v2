@@ -2453,6 +2453,53 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertIn("unless that exact name appears verbatim", prompt)
         self.assertIn("Alex wants a lightweight laptop for travel.", prompt)
 
+    def test_answer_repair_prompt_adds_surface_profile_advice_rules(self) -> None:
+        context = CompiledContext(
+            question="Can you suggest a hotel for my upcoming trip?",
+            question_time="2026-01-01",
+            route=RouteResult(information_need="profile_preference", signals=()),
+            evidence_rows=(
+                EvidenceRow(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="Alex likes hotels with city views and rooftop pools.",
+                    timestamp="2025-12-31",
+                    retrieval_rank=1,
+                    retrieval_score=1.0,
+                ),
+            ),
+            prompt="original prompt",
+            context_chars=0,
+        )
+        draft = AnswerResult(
+            answer="There is not enough information.",
+            model="draft",
+            token_usage=TokenUsage(query_tokens=3),
+            raw_response=json.dumps({"content": '{"answer":"unknown"}'}),
+        )
+
+        prompt, _ = build_repair_prompt(
+            compiled=context,
+            draft=draft,
+            reasons=("profile_advice_abstention_review",),
+            max_context_chars=1000,
+            max_row_text_chars=200,
+        )
+        generic_prompt, _ = build_repair_prompt(
+            compiled=context,
+            draft=draft,
+            reasons=("profile_preference_review",),
+            max_context_chars=1000,
+            max_row_text_chars=200,
+        )
+
+        self.assertIn("same-domain anchors", prompt)
+        self.assertIn("search criteria", prompt)
+        self.assertIn("do not invent live facts", prompt)
+        self.assertNotIn("same-domain anchors", generic_prompt)
+
     def test_answer_repair_prompt_adds_current_state_duration_rules(self) -> None:
         context = CompiledContext(
             question="How long has Alex been in the current role?",

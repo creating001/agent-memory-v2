@@ -430,7 +430,7 @@ def build_repair_prompt(
             "6. For current/latest questions, compare older and newer directly relevant evidence before revising.",
             "7. If evidence remains insufficient, keep or revise to a concise insufficient-information answer.",
             *_current_state_repair_rules(compiled),
-            *_profile_preference_repair_rules(compiled),
+            *_profile_preference_repair_rules(compiled, reasons=reasons),
             *_modal_abstention_repair_rules(reasons),
             "Return only valid JSON.",
             "",
@@ -455,10 +455,14 @@ def _current_state_repair_rules(compiled: CompiledContext) -> list[str]:
     ]
 
 
-def _profile_preference_repair_rules(compiled: CompiledContext) -> list[str]:
+def _profile_preference_repair_rules(
+    compiled: CompiledContext,
+    *,
+    reasons: tuple[str, ...],
+) -> list[str]:
     if compiled.route.information_need != "profile_preference":
         return []
-    return [
+    lines = [
         "8. For preference, advice, or recommendation questions, extract user-specific anchors from Memory Context: preferences, dislikes, constraints, owned tools/resources, current setup, prior successful experiences, current problems, and stated goals.",
         "9. If the draft refused but Memory Context has relevant anchors, revise to a tailored answer using those anchors instead of generic advice.",
         "10. If the exact requested named option is not in Memory Context, answer with the type, criteria, or constraints the user would likely prefer; do not invent unsupported specific names.",
@@ -467,6 +471,17 @@ def _profile_preference_repair_rules(compiled: CompiledContext) -> list[str]:
         "13. If no exact named option is present, answer with preference type, selection criteria, or constraints only.",
         "14. Include the key personalized constraint or reason in the final answer when needed for the answer to satisfy the request.",
     ]
+    if "profile_advice_abstention_review" in reasons:
+        lines.extend(
+            [
+                "15. For this surface-refusal review, do not require the exact target instance, city, date, or named option to appear when Memory Context gives same-domain anchors; provide preference-aligned criteria, option types, or search terms instead.",
+                "16. Same-domain anchors may transfer across equivalent decision domains such as a prior hotel feature preference to another hotel search, a prior recipe or baking experiment to related baking advice, or a prior research-topic request to publication/conference search criteria.",
+                "17. Do not transfer anchors across unrelated domains; a trivia topic, isolated game clue, or one-off unrelated event is not enough to personalize a show, product, venue, or activity recommendation.",
+                "18. For recent, current, upcoming, or local requests, do not invent live facts; if no named current item is in Memory Context, give grounded search criteria or event/publication types and say that no specific current name is supported.",
+                "19. Avoid leading with an insufficient-information refusal when a criteria/type answer is supported; lead with the supported preference-aligned answer and include uncertainty only as a qualifier.",
+            ]
+        )
+    return lines
 
 
 def _modal_abstention_repair_rules(reasons: tuple[str, ...]) -> list[str]:

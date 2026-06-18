@@ -1,0 +1,51 @@
+{
+  "benchmark": "longmemeval",
+  "subset": "profile_preference_changed_answers",
+  "parent_lts": "stage1_memory_lifecycle_manifest_v162_qwen36_no_think_build4k_cached",
+  "candidate": "stage1_same_domain_profile_advice_repair_v166_qwen36_no_think_build4k_cached",
+  "n_changed_answers": 3,
+  "judge": {
+    "model": "deepseek-v4-flash",
+    "runs": 2,
+    "temperature": 0,
+    "thinking": "default"
+  },
+  "v162": {
+    "strict_correct": 0,
+    "lenient_correct": 0,
+    "strict_accuracy": 0.0,
+    "lenient_accuracy": 0.0,
+    "judge_agreement": 1.0,
+    "n_both_valid": 3,
+    "usage": {
+      "prompt_tokens": 1128,
+      "completion_tokens": 1106,
+      "total_tokens": 2234
+    },
+    "outputs": {
+      "dual_judge": "outputs/diagnostic/stage1_same_domain_profile_advice_repair_v166_lme_changed_vs_v162/v162_dual_judge.json",
+      "flash_1": "outputs/diagnostic/stage1_same_domain_profile_advice_repair_v166_lme_changed_vs_v162/v162_deepseek_judge_flash_1.json",
+      "flash_2": "outputs/diagnostic/stage1_same_domain_profile_advice_repair_v166_lme_changed_vs_v162/v162_deepseek_judge_flash_2.json"
+    }
+  },
+  "v166": {
+    "strict_correct": 3,
+    "lenient_correct": 3,
+    "strict_accuracy": 1.0,
+    "lenient_accuracy": 1.0,
+    "judge_agreement": 1.0,
+    "n_both_valid": 3,
+    "usage": {
+      "prompt_tokens": 1330,
+      "completion_tokens": 1002,
+      "total_tokens": 2332
+    },
+    "outputs": {
+      "dual_judge": "outputs/diagnostic/stage1_same_domain_profile_advice_repair_v166_lme_changed_vs_v162/v166_dual_judge.json",
+      "flash_1": "outputs/diagnostic/stage1_same_domain_profile_advice_repair_v166_lme_changed_vs_v162/v166_deepseek_judge_flash_1.json",
+      "flash_2": "outputs/diagnostic/stage1_same_domain_profile_advice_repair_v166_lme_changed_vs_v162/v166_deepseek_judge_flash_2.json"
+    }
+  },
+  "decision": "accuracy_positive_but_reject_for_clean_no_new_names",
+  "reason": "V166 improves all three changed LongMemEval profile answers, but one repaired answer introduced unsupported conference names not present in Memory Context."
+}
