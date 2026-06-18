@@ -823,6 +823,12 @@ class Stage1Pipeline:
                 False,
             )
         )
+        self._answer_finalizer_enable_source_value_specificity_preservation = bool(
+            answer_finalizer_config.get(
+                "enable_source_value_specificity_preservation",
+                False,
+            )
+        )
         self._answer_finalizer_trace_config = {
             "enabled": self._answer_finalizer_enabled,
             "mode": self._answer_finalizer_mode,
@@ -856,6 +862,9 @@ class Stage1Pipeline:
             ),
             "enable_numeric_slot_label_preservation": (
                 self._answer_finalizer_enable_numeric_slot_label_preservation
+            ),
+            "enable_source_value_specificity_preservation": (
+                self._answer_finalizer_enable_source_value_specificity_preservation
             ),
         }
         self._answer_finalizer_profile_settings = {
@@ -1890,6 +1899,12 @@ class Stage1Pipeline:
                 ),
                 enable_numeric_slot_label_preservation=bool(
                     settings.get("enable_numeric_slot_label_preservation", False)
+                ),
+                enable_source_value_specificity_preservation=bool(
+                    settings.get(
+                        "enable_source_value_specificity_preservation",
+                        False,
+                    )
                 ),
             )
         if mode != "structured_evidence_mechanical":
@@ -3838,6 +3853,9 @@ def _answer_finalizer_settings_from_config(
         ),
         "enable_numeric_slot_label_preservation": bool(
             config.get("enable_numeric_slot_label_preservation", False)
+        ),
+        "enable_source_value_specificity_preservation": bool(
+            config.get("enable_source_value_specificity_preservation", False)
         ),
     }
 

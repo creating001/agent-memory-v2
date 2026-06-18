@@ -2967,6 +2967,96 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual(finalization.reason, "source_grounded_guard_consistent")
         self.assertEqual(finalization.answer, "100")
 
+    def test_source_grounded_guard_preserves_specific_support_value(self) -> None:
+        content = json.dumps(
+            {
+                "sufficient": True,
+                "answer_type": "fact",
+                "evidence_report": [
+                    {
+                        "status": "support",
+                        "slot": "test",
+                        "value": "military aptitude test",
+                        "reason": "John took the military aptitude test more than once.",
+                    },
+                ],
+                "answer": "aptitude test",
+            }
+        )
+        raw_response = json.dumps({"content": content})
+
+        finalization = guard_source_grounded_answer(
+            question="What test has John taken multiple times?",
+            draft_answer="aptitude test",
+            raw_response=raw_response,
+            enable_source_value_specificity_preservation=True,
+        )
+
+        self.assertTrue(finalization.applied)
+        self.assertEqual(
+            finalization.reason, "source_value_specificity_preservation"
+        )
+        self.assertEqual(finalization.answer, "military aptitude test")
+
+    def test_source_grounded_guard_does_not_expand_or_question(self) -> None:
+        content = json.dumps(
+            {
+                "sufficient": True,
+                "answer_type": "fact",
+                "evidence_report": [
+                    {
+                        "status": "support",
+                        "slot": "country",
+                        "value": "Japan (Tokyo)",
+                    },
+                ],
+                "answer": "Japan",
+            }
+        )
+        raw_response = json.dumps({"content": content})
+
+        finalization = guard_source_grounded_answer(
+            question="Which country did Calvin pick, Japan or the United States?",
+            draft_answer="Japan",
+            raw_response=raw_response,
+            enable_source_value_specificity_preservation=True,
+        )
+
+        self.assertFalse(finalization.applied)
+        self.assertEqual(finalization.answer, "Japan")
+
+    def test_source_grounded_guard_requires_unique_specific_support_value(self) -> None:
+        content = json.dumps(
+            {
+                "sufficient": True,
+                "answer_type": "fact",
+                "evidence_report": [
+                    {
+                        "status": "support",
+                        "slot": "activity",
+                        "value": "painting classes",
+                    },
+                    {
+                        "status": "support",
+                        "slot": "activity",
+                        "value": "painting session",
+                    },
+                ],
+                "answer": "painting",
+            }
+        )
+        raw_response = json.dumps({"content": content})
+
+        finalization = guard_source_grounded_answer(
+            question="Which activity did Evan mention?",
+            draft_answer="painting",
+            raw_response=raw_response,
+            enable_source_value_specificity_preservation=True,
+        )
+
+        self.assertFalse(finalization.applied)
+        self.assertEqual(finalization.answer, "painting")
+
     def test_evidence_report_count_increment_finalizer_is_explicit(self) -> None:
         content = json.dumps(
             {

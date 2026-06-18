@@ -1,0 +1,22 @@
+{
+  "candidate": "source_value_specificity_guard_v170",
+  "summary": [
+    {
+      "benchmark": "longmemeval",
+      "count": 1,
+      "dataset": "lme",
+      "routes": {
+        "fact_lookup": 1
+      }
+    },
+    {
+      "benchmark": "locomo",
+      "count": 8,
+      "dataset": "locomo",
+      "routes": {
+        "fact_lookup": 3,
+        "list_count": 5
+      }
+    }
+  ]
+}

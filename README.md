@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_numeric_slot_label_guard_v169_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_source_value_specificity_guard_v170_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v169 local LTS | 说明 |
+| Benchmark | 当前 v170 local LTS | 说明 |
 |---|---:|---|
-| LongMemEval-S full | strict/lenient `0.828000 / 0.838000` | v169 与 v168 answer diff `1/500`；changed-answer dual judge strict `0/1 -> 1/1`、lenient `1/1 -> 1/1`，patched full `414/500` strict、`419/500` lenient。 |
-| LoCoMo non-adversarial full | strict/lenient `0.789610 / 0.815584` | v169 与 v168 answer diff `0/1540`；继承 full dual judge `1216/1540` strict、`1256/1540` lenient。 |
+| LongMemEval-S full | strict/lenient `0.828000 / 0.838000` | v170 与 v169 answer diff `0/500`；继承 patched full `414/500` strict、`419/500` lenient。 |
+| LoCoMo non-adversarial full | strict/lenient `0.790260 / 0.815584` | v170 与 v169 answer diff `8/1540`；changed-answer dual judge strict `6/8 -> 7/8`、lenient `7/8 -> 7/8`，patched full `1217/1540` strict、`1256/1540` lenient。 |
 
-v169 的 LTS 理由：继承 v168 的 source-backed lifecycle/profile-advice repair，并新增默认关闭、窄触发的 numeric slot label guard。它只在非 count 问题中，把 answer 模型已支持的裸数字 level 槽位保真为 `level N`，不计算新值、不读 gold/judge/sample id/test feedback。它降低 #4 answer surface slot-loss 风险，并把 LME strict 提升 1 条；#1 granularity/profile、#2 top-k/context noise/rerank、#3 selected-context 泛化、以及更广泛 #5 lifecycle/update/conflict reasoning 仍是优先待办。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_numeric_slot_label_guard_v169_scope_summary.md`。
+v170 的 LTS 理由：继承 v169 的 source-backed lifecycle/profile-advice repair 和 numeric slot label guard，并新增默认关闭、窄触发的 source value specificity guard。它只在最终短答是唯一 support `value` 的子串时，保留更具体的 source-backed value，不计算新值、不合并多条证据、不读 gold/judge/sample id/test feedback。它进一步降低 #4 answer surface specificity loss 风险，并把 LoCoMo strict 提升 1 条；#1 granularity/profile、#2 top-k/context noise/rerank、#3 selected-context 泛化、以及更广泛 #5 lifecycle/update/conflict reasoning 仍是优先待办。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_source_value_specificity_guard_v170_scope_summary.md`。
 
 ## 目录
 

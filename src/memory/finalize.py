@@ -88,6 +88,28 @@ _BARE_NUMERIC_ANSWER = re.compile(
     re.IGNORECASE,
 )
 _LEVEL_SLOT = re.compile(r"\blevel\b", re.IGNORECASE)
+_SOURCE_VALUE_SPECIFICITY_BAD_QUESTION = re.compile(
+    r"\b(how many|how much|how long|total|sum|average|difference|when|"
+    r"what date|what time|before|after|first|most recently|mostly recently|"
+    r"previous|current|latest)\b|\bor\b",
+    re.IGNORECASE,
+)
+_SOURCE_VALUE_SPECIFICITY_VAGUE = re.compile(
+    r"\b(user|assistant|question|asks?|request|recommended|suggested|same|"
+    r"yes|no|not|unknown|unclear|unspecified|various|several|multiple|"
+    r"thing|things|event|activity|activities|place|places|item|items|"
+    r"topic|topics|general|context|relevant|support|evidence|memory)\b",
+    re.IGNORECASE,
+)
+_SOURCE_VALUE_SPECIFICITY_BAD_ANSWER_TYPES = frozenset(
+    {"count", "date", "duration", "number", "money", "sum", "average", "order"}
+)
+_SOURCE_VALUE_SPECIFICITY_STOPWORDS = frozenset(
+    "the a an and or of to for in on at with from by about into their his her "
+    "my your our its is are was were be been being has have had did do does "
+    "would could should can may might will as that this these those i you he "
+    "she they we it".split()
+)
 _NUMBER = re.compile(r"(?<![A-Za-z])([0-9][0-9,]*(?:\.[0-9]+)?)(?![A-Za-z])")
 _MONEY = re.compile(
     r"(?:\$\s*([0-9][0-9,]*(?:\.[0-9]+)?)|"
@@ -276,6 +298,7 @@ def guard_source_grounded_answer(
     raw_response: str | None,
     enable_missing_detail: bool = False,
     enable_numeric_slot_label_preservation: bool = False,
+    enable_source_value_specificity_preservation: bool = False,
 ) -> AnswerFinalization:
     """Generic source-grounded guardrail that never computes a new answer.
 
@@ -315,6 +338,14 @@ def guard_source_grounded_answer(
         )
         if labeled is not None:
             return labeled
+    if enable_source_value_specificity_preservation:
+        specific = _finalize_source_value_specificity_preservation(
+            question=question,
+            draft_answer=draft_answer,
+            payload=payload,
+        )
+        if specific is not None:
+            return specific
     return _noop(draft_answer, "source_grounded_guard_consistent")
 
 
@@ -458,6 +489,125 @@ def _finalize_numeric_slot_label_preservation(
         evidence_item_count=len(matches),
         expected_value=answer,
     )
+
+
+def _finalize_source_value_specificity_preservation(
+    *,
+    question: str,
+    draft_answer: str,
+    payload: dict[str, Any],
+) -> AnswerFinalization | None:
+    """Replace a short answer with its unique more-specific support value."""
+
+    if _answer_is_insufficient(draft_answer):
+        return None
+    if _SOURCE_VALUE_SPECIFICITY_BAD_QUESTION.search(question):
+        return None
+    answer_type = str(payload.get("answer_type") or "").strip().lower()
+    if answer_type in _SOURCE_VALUE_SPECIFICITY_BAD_ANSWER_TYPES:
+        return None
+    report = payload.get("evidence_report")
+    if not isinstance(report, list):
+        return None
+
+    candidates: list[str] = []
+    for item in report:
+        if not isinstance(item, dict):
+            continue
+        if str(item.get("status") or "").strip().lower() != "support":
+            continue
+        value = _source_value_specificity_candidate_value(item)
+        if _is_source_value_specificity_candidate(
+            question=question,
+            draft_answer=draft_answer,
+            candidate=value,
+        ):
+            candidates.append(value)
+
+    unique_candidates: list[str] = []
+    seen: set[str] = set()
+    for candidate in candidates:
+        key = _clean_key(candidate)
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        unique_candidates.append(candidate)
+    if len(unique_candidates) != 1:
+        return None
+
+    answer = unique_candidates[0]
+    return AnswerFinalization(
+        answer=answer,
+        before=draft_answer,
+        applied=True,
+        reason="source_value_specificity_preservation",
+        evidence_item_count=1,
+        expected_value=answer,
+    )
+
+
+def _source_value_specificity_candidate_value(item: dict[str, Any]) -> str:
+    for field in ("value", "canonical_item", "item"):
+        value = item.get(field)
+        if value is not None and str(value).strip():
+            return _compact_label(str(value))
+    return ""
+
+
+def _is_source_value_specificity_candidate(
+    *,
+    question: str,
+    draft_answer: str,
+    candidate: str,
+) -> bool:
+    if not candidate or candidate == draft_answer:
+        return False
+    if len(candidate) > 100 or len(draft_answer) > 70:
+        return False
+    if "," in candidate or ";" in candidate or " / " in candidate:
+        return False
+    if _SOURCE_VALUE_SPECIFICITY_BAD_QUESTION.search(question):
+        return False
+    if _SOURCE_VALUE_SPECIFICITY_VAGUE.search(candidate):
+        return False
+    if _extract_plain_value(candidate) is not None and len(_specificity_terms(candidate)) <= 3:
+        return False
+    if _answer_item_count(draft_answer) > 1:
+        return False
+
+    answer_key = _clean_key(draft_answer)
+    candidate_key = _clean_key(candidate)
+    if not answer_key or not candidate_key or answer_key == candidate_key:
+        return False
+    padded_candidate = f" {candidate_key} "
+    if f" {answer_key} " not in padded_candidate:
+        return False
+
+    answer_terms = set(_specificity_terms(draft_answer))
+    candidate_terms = set(_specificity_terms(candidate))
+    if not 1 <= len(answer_terms) <= 6:
+        return False
+    if not 2 <= len(candidate_terms) <= 10:
+        return False
+    return bool(candidate_terms - answer_terms)
+
+
+def _specificity_terms(text: str) -> list[str]:
+    return [
+        term
+        for term in _clean_key(text).split()
+        if term and term not in _SOURCE_VALUE_SPECIFICITY_STOPWORDS
+    ]
+
+
+def _answer_item_count(answer: str) -> int:
+    text = re.sub(r"^\s*\d+\s*[:\-]\s*", "", answer.strip())
+    parts = [
+        part.strip(" .:;-")
+        for part in re.split(r"\s*(?:,|;|\n|\band\b|\s+/\s+)\s*", text)
+        if part.strip(" .:;-")
+    ]
+    return len(parts)
 
 
 def _compact_missing_detail(text: str) -> str:

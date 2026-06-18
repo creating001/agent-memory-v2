@@ -6,12 +6,12 @@
 
 | 项目 | 结果 |
 |---|---|
-| 当前 LTS 配置 | `configs/stage1_numeric_slot_label_guard_v169_qwen36_no_think_build4k_cached.json` |
+| 当前 LTS 配置 | `configs/stage1_source_value_specificity_guard_v170_qwen36_no_think_build4k_cached.json` |
 | Backbone | `Qwen/Qwen3.6-35B-A3B` answer/build，`chat_template_kwargs.enable_thinking=false` |
-| 方法 | V169 numeric slot label guard：继承 v168 scoped profile/advice repair，在 source-grounded finalizer 中只对非 count 的裸数字 `level` 槽位做 answer-surface 保真。 |
-| LongMemEval-S full | v169 与 v168 answer diff `1/500`，paired dual judge strict `0/1 -> 1/1`、lenient `1/1 -> 1/1`；patched full `0.828000 / 0.838000`，`414/500` strict，`419/500` lenient |
-| LoCoMo non-adversarial full | v169 与 v168 answer diff `0/1540`，继承 dual judge strict/lenient `0.789610 / 0.815584`；`1216/1540` strict，`1256/1540` lenient |
-| 状态 | 当前本地 qwen3.6 no-thinking LTS。相对 v168，v169 降低 #4 answer-surface slot-loss 风险并提升 LME strict；#1 granularity/profile、#2 top-k/context noise/rerank、#3 selected-context 泛化和更广泛 #5 lifecycle/update/conflict reasoning 仍未解决。 |
+| 方法 | V170 source value specificity guard：继承 v169，并在 source-grounded finalizer 中只把短答扩展为唯一 support `value` 的更具体 source-backed 表达。 |
+| LongMemEval-S full | v170 与 v169 answer diff `0/500`，继承 patched full `0.828000 / 0.838000`，`414/500` strict，`419/500` lenient |
+| LoCoMo non-adversarial full | v170 与 v169 answer diff `8/1540`，changed-answer paired dual judge strict `6/8 -> 7/8`、lenient `7/8 -> 7/8`；patched full `0.790260 / 0.815584`，`1217/1540` strict，`1256/1540` lenient |
+| 状态 | 当前本地 qwen3.6 no-thinking LTS。相对 v169，v170 降低 #4 answer-surface specificity loss 风险并提升 LoCoMo strict；#1 granularity/profile、#2 top-k/context noise/rerank、#3 selected-context 泛化和更广泛 #5 lifecycle/update/conflict reasoning 仍未解决。 |
 
 `paired-delta derived` 的含义：新版本只改少量答案，未变化答案沿用父 LTS full dual judge records，变化答案单独跑 paired dual judge 后替换计数。若新版本与父 LTS answer-identical，则可继承父 LTS judge records，但必须记录 full answer diff、cache hit/miss 和输出路径。若论文级最终汇报需要完全独立 run，再对 LTS 配置重跑 fresh full judge。
 
@@ -26,7 +26,7 @@
 
 | 优先级 | 项目 | 当前状态 | 下一步 |
 |---:|---|---|---|
-| 1 | #5 memory lifecycle/state/conflict/query-time reasoning | v168 已修 profile/advice 表面拒答，v169 只修 answer-surface level slot；更广泛 state/update/conflict reasoning 仍薄 | 扩展到 answer-slot-aware lifecycle/update/conflict verifier，必须保持 source-backed typed memory 只做激活/索引 |
+| 1 | #5 memory lifecycle/state/conflict/query-time reasoning | v170 让 structured evidence_report 参与短答 specificity 保真，但更广泛 state/update/conflict reasoning 仍薄 | 扩展到 answer-slot-aware lifecycle/update/conflict verifier，必须保持 source-backed typed memory 只做激活/索引 |
 | 2 | #2 top-k/context noise/rerank | v129/v134/v140/v152 说明简单裁剪、tail snippet 或 list-count rerank pruning 会伤 accuracy；当前 query context 仍偏长 | 转向 coverage-preserving route-aware context organization：先保留覆盖证据，再做 grouping/dedup/aggregation table |
 | 3 | #1 granularity/profile + #3 selected context | v158 已把 long-turn selected context 从一刀切禁用改成 narrow question-gated policy；granularity profile 仍基于 avg-turn chars | 继续重做更通用的 context organization，逐步减少 avg-turn profile 依赖 |
 | 4 | src cleanup | 已有多轮兼容分支，`repair.py`、compiler、pipeline 仍会继续变复杂 | 每个阶段结束后做小范围清理，删已确认无用的兼容代码，不删仍有消融价值的模块 |
@@ -35,7 +35,8 @@
 
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
-| `configs/stage1_numeric_slot_label_guard_v169_qwen36_no_think_build4k_cached.json` | current LTS | LME strict/lenient `0.828000/0.838000`，LoCoMo `0.789610/0.815584`；v169 vs v168 answer diff `1/500`、`0/1540` | 当前 LTS；比 v168 降低 #4 answer-surface slot-loss 风险且 LME strict 提升 |
+| `configs/stage1_source_value_specificity_guard_v170_qwen36_no_think_build4k_cached.json` | current LTS | LME strict/lenient `0.828000/0.838000`，LoCoMo `0.790260/0.815584`；v170 vs v169 answer diff `0/500`、`8/1540` | 当前 LTS；比 v169 降低 #4 answer-surface specificity loss 风险且 LoCoMo strict 提升 |
+| `configs/stage1_numeric_slot_label_guard_v169_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.828000/0.838000`，LoCoMo `0.789610/0.815584`；v169 vs v168 answer diff `1/500`、`0/1540` | 被 v170 替代；仍是 #4 numeric slot label 父对照 |
 | `configs/stage1_scoped_modal_profile_advice_repair_v168_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.826000/0.838000`，LoCoMo `0.789610/0.815584`；v168 vs v162 answer diff `2/500`、`0/1540` | 被 v169 替代；仍是 #5 profile/advice query-time memory reasoning 父对照 |
 | `configs/stage1_memory_lifecycle_manifest_v162_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.822000/0.834000`，LoCoMo `0.789610/0.815584`；v162 vs v158 answer diff `0/500`、`0/1540` | 被 v168 替代；仍是 lifecycle/conflict/query activation manifest 父对照 |
 | `configs/stage1_narrow_question_gated_selected_context_v158_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.822000/0.834000`，LoCoMo `0.789610/0.815584`；v158 vs v154 changed-answer paired judge 持平 | 被 v162 替代；仍是 #3 long-turn selected-context blanket-disable 风险收敛证据 |
@@ -55,6 +56,7 @@
 
 | 配置 | 原因 |
 |---|---|
+| `v170 broad evidence_report list completion simulation` | 只凭 answer 短和 support values 多来补列表会过宽；会误展开 sum/order/current-state/二选一问题，窄门控仍触发 `65` 条且包含明显过包含风险；不实现、不升 LTS。 |
 | `stage1_no_new_names_profile_advice_repair_v167_qwen36_no_think_build4k_cached.json` | LME full patched strict/lenient `0.826/0.838`（`+2/+2`），LoCoMo 持平；但 LoCoMo 有一条 profile modal wrong->wrong，无收益且有 overreach 风险；v168 已收窄并替代。 |
 | `stage1_same_domain_profile_advice_repair_v166_qwen36_no_think_build4k_cached.json` | LME profile changed subset strict/lenient `0/3 -> 3/3` 正向，但一条 answer 引入 Memory Context 未支持的 `MICCAI/IPMI` 会议名；因 no-new-names clean 风险不升 LTS。 |
 | `stage1_surface_profile_advice_repair_v165_qwen36_no_think_build4k_cached.json` | 修复 v164 过宽触发，LME profile answer diff `0/15`，但触发 `4` 次 repair、增加 `18061` repair query tokens 且无收益；不升 LTS。 |
@@ -83,6 +85,10 @@
 
 | 路径 | 内容 |
 |---|---|
+| `diagnostic/stage1_source_value_specificity_guard_v170_scope_summary.md` | v170 LTS 晋升：LoCoMo full strict `+1`、lenient 持平，LME answer diff `0/500`，短答 source value specificity 保真 |
+| `diagnostic/stage1_source_value_specificity_guard_v170_changed_vs_v169/` | v170 vs v169 changed-answer paired dual judge，LoCoMo strict `6/8 -> 7/8`，lenient `7/8 -> 7/8` |
+| `diagnostic/stage1_source_value_specificity_guard_v170_lme_s_full/` | v170 LME full cached prediction run artifacts |
+| `diagnostic/stage1_source_value_specificity_guard_v170_locomo_nonadv_full/` | v170 LoCoMo full cached prediction run artifacts |
 | `diagnostic/stage1_numeric_slot_label_guard_v169_scope_summary.md` | v169 LTS 晋升：LME full strict `+1`、lenient 持平，LoCoMo answer diff `0/1540`，裸数字 level 槽位保真 |
 | `diagnostic/stage1_numeric_slot_label_guard_v169_lme_changed_vs_v168/v169_dual_judge.json` | v169 vs v168 LME changed-answer paired dual judge，strict `0/1 -> 1/1` |
 | `diagnostic/stage1_numeric_slot_label_guard_v169_lme_s_full/` | v169 LME full cached prediction run artifacts |
