@@ -13,7 +13,7 @@
 | LongMemEval-S full | strict/lenient `0.814000 / 0.836000` | inherited route-only aggregate：v116 full dual judge + v126 profile/current delta `-1/-1` + v127 changed-prompt delta `+2/+2`，不是新的 full rerun。 |
 | LoCoMo non-adversarial full | strict/lenient `0.792857 / 0.811688` | route-only aggregate：v125 full route-only dual judge + v126 profile/current delta `+4/+4` + v127 changed-prompt delta `+1/+2`。 |
 
-v127 的 LTS 理由：继承 v125 对 #4 mechanical finalizer 和 #3 selected-context heuristic 的风险收敛，并新增 source-backed memory source interleave + superseded/update chain，降低 goal 风险 #5 build-memory organization。#1 granularity/profile 和 #2 top-k/context noise/rerank 仍是优先待办。详细证据见 `experiments/README.md`、`experiments/diagnostic/stage1_memory_source_interleave_v126_profile_state_summary.md` 和 `experiments/diagnostic/stage1_superseded_source_chain_v127_summary.md`。
+v127 的 LTS 理由：继承 v125 对 #4 mechanical finalizer 和 #3 selected-context heuristic 的风险收敛，并新增 source-backed memory source interleave + superseded/update chain，降低 #5 中的 memory organization/update-chain 风险。#5 更完整的 memory lifecycle、state/conflict handling 和 query-time memory reasoning 仍未解决；#1 granularity/profile 和 #2 top-k/context noise/rerank 也仍是优先待办。详细证据见 `experiments/README.md`、`experiments/diagnostic/stage1_memory_source_interleave_v126_profile_state_summary.md` 和 `experiments/diagnostic/stage1_superseded_source_chain_v127_summary.md`。
 
 ## 目录
 
