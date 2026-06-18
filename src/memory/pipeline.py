@@ -248,15 +248,6 @@ class Stage1Pipeline:
         self._selected_context_require_anaphora = bool(
             selected_context_config.get("require_anaphora", True)
         )
-        self._selected_context_require_neighbor_signal = bool(
-            selected_context_config.get("require_neighbor_signal", False)
-        )
-        self._selected_context_min_neighbor_signal_score = int(
-            selected_context_config.get("min_neighbor_signal_score", 1)
-        )
-        self._selected_context_neighbor_overlap_min_terms = int(
-            selected_context_config.get("neighbor_overlap_min_terms", 1)
-        )
         self._selected_context_information_needs = _tuple_config(
             selected_context_config.get("information_needs")
         )
@@ -273,9 +264,6 @@ class Stage1Pipeline:
             "max_neighbor_chars": self._selected_context_max_neighbor_chars,
             "max_center_chars": self._selected_context_max_center_chars,
             "require_anaphora": self._selected_context_require_anaphora,
-            "require_neighbor_signal": self._selected_context_require_neighbor_signal,
-            "min_neighbor_signal_score": self._selected_context_min_neighbor_signal_score,
-            "neighbor_overlap_min_terms": self._selected_context_neighbor_overlap_min_terms,
             "information_needs": self._selected_context_information_needs,
             "route_overrides": self._selected_context_route_overrides,
         }
@@ -1056,16 +1044,6 @@ class Stage1Pipeline:
             max_neighbor_chars=selected_context_settings["max_neighbor_chars"],
             max_center_chars=selected_context_settings["max_center_chars"],
             require_anaphora=selected_context_settings["require_anaphora"],
-            require_neighbor_signal=selected_context_settings[
-                "require_neighbor_signal"
-            ],
-            min_neighbor_signal_score=selected_context_settings[
-                "min_neighbor_signal_score"
-            ],
-            neighbor_overlap_min_terms=selected_context_settings[
-                "neighbor_overlap_min_terms"
-            ],
-            question=request.question,
         )
         selected_context["granularity_profile"] = granularity_profile
         selected_context["route_override"] = selected_context_settings.get(
@@ -1486,9 +1464,6 @@ class Stage1Pipeline:
             "max_neighbor_chars": self._selected_context_max_neighbor_chars,
             "max_center_chars": self._selected_context_max_center_chars,
             "require_anaphora": self._selected_context_require_anaphora,
-            "require_neighbor_signal": self._selected_context_require_neighbor_signal,
-            "min_neighbor_signal_score": self._selected_context_min_neighbor_signal_score,
-            "neighbor_overlap_min_terms": self._selected_context_neighbor_overlap_min_terms,
             "information_needs": self._selected_context_information_needs,
         }
         route_override = self._selected_context_route_overrides.get(
@@ -2092,54 +2067,6 @@ SELECTED_CONTEXT_ANAPHORA_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
-SELECTED_CONTEXT_TEMPORAL_SIGNAL_PATTERN = re.compile(
-    r"\b("
-    r"monday|tuesday|wednesday|thursday|friday|saturday|sunday|"
-    r"january|february|march|april|may|june|july|august|september|"
-    r"october|november|december|"
-    r"today|tomorrow|yesterday|tonight|weekend|weekday|morning|afternoon|"
-    r"evening|night|week|month|year|day|hour|minute|"
-    r"last|next|previous|following|before|after|ago|until|since|during"
-    r")\b|"
-    r"\b\d{4}-\d{1,2}-\d{1,2}\b|"
-    r"\b\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?\b|"
-    r"\b\d{4}\b",
-    re.IGNORECASE,
-)
-
-SELECTED_CONTEXT_TOKEN_PATTERN = re.compile(
-    r"[a-z0-9][a-z0-9'-]{2,}", re.IGNORECASE
-)
-SELECTED_CONTEXT_STOPWORDS = frozenset(
-    {
-        "about",
-        "after",
-        "again",
-        "also",
-        "before",
-        "could",
-        "from",
-        "have",
-        "many",
-        "more",
-        "much",
-        "that",
-        "the",
-        "their",
-        "there",
-        "they",
-        "this",
-        "when",
-        "where",
-        "which",
-        "while",
-        "with",
-        "what",
-        "would",
-    }
-)
-
-
 def _materialize_selected_context(
     *,
     store: RawEvidenceStore,
@@ -2153,10 +2080,6 @@ def _materialize_selected_context(
     max_neighbor_chars: int,
     max_center_chars: int,
     require_anaphora: bool,
-    require_neighbor_signal: bool,
-    min_neighbor_signal_score: int,
-    neighbor_overlap_min_terms: int,
-    question: str,
 ) -> tuple[tuple[Turn, ...], dict[str, Any]]:
     trace: dict[str, Any] = {
         "enabled": enabled,
@@ -2168,17 +2091,11 @@ def _materialize_selected_context(
         "max_neighbor_chars": max_neighbor_chars,
         "max_center_chars": max_center_chars,
         "require_anaphora": require_anaphora,
-        "require_neighbor_signal": require_neighbor_signal,
-        "min_neighbor_signal_score": min_neighbor_signal_score,
-        "neighbor_overlap_min_terms": neighbor_overlap_min_terms,
         "eligible": False,
         "materialized_count": 0,
         "materialized_source_ids": [],
-        "materialized_neighbor_source_ids": [],
         "skipped_long_center_count": 0,
         "skipped_long_center_source_ids": [],
-        "skipped_low_signal_neighbor_count": 0,
-        "skipped_low_signal_neighbor_source_ids": [],
     }
     if not enabled or not turns:
         return turns, trace
@@ -2190,17 +2107,11 @@ def _materialize_selected_context(
     before = max(0, window_before)
     after = max(0, window_after)
     neighbor_chars = max(40, max_neighbor_chars)
-    min_signal = max(1, min_neighbor_signal_score)
-    min_overlap = max(1, neighbor_overlap_min_terms)
-    question_terms = _selected_context_signal_terms(question)
     materialized_ids: list[str] = []
-    materialized_neighbor_ids: list[str] = []
     materialized_turns: list[Turn] = []
     skipped_long_center_ids: list[str] = []
-    skipped_low_signal_neighbor_ids: list[str] = []
 
     for turn in turns:
-        center_terms = _selected_context_signal_terms(turn.text)
         if max_center_chars > 0 and len(turn.text) > max_center_chars:
             skipped_long_center_ids.append(turn.source_id)
             materialized_turns.append(turn)
@@ -2211,21 +2122,12 @@ def _materialize_selected_context(
         ):
             materialized_turns.append(turn)
             continue
-        context_text, context_trace = _selected_context_text(
+        context_text = _selected_context_text(
             store=store,
             turn=turn,
-            question_terms=question_terms,
-            center_terms=center_terms,
             window_before=before,
             window_after=after,
             max_neighbor_chars=neighbor_chars,
-            require_neighbor_signal=require_neighbor_signal,
-            min_neighbor_signal_score=min_signal,
-            neighbor_overlap_min_terms=min_overlap,
-        )
-        materialized_neighbor_ids.extend(context_trace["selected_neighbor_source_ids"])
-        skipped_low_signal_neighbor_ids.extend(
-            context_trace["skipped_low_signal_neighbor_source_ids"]
         )
         if context_text == turn.text:
             materialized_turns.append(turn)
@@ -2235,11 +2137,8 @@ def _materialize_selected_context(
 
     trace["materialized_count"] = len(materialized_ids)
     trace["materialized_source_ids"] = materialized_ids
-    trace["materialized_neighbor_source_ids"] = materialized_neighbor_ids
     trace["skipped_long_center_count"] = len(skipped_long_center_ids)
     trace["skipped_long_center_source_ids"] = skipped_long_center_ids
-    trace["skipped_low_signal_neighbor_count"] = len(skipped_low_signal_neighbor_ids)
-    trace["skipped_low_signal_neighbor_source_ids"] = skipped_low_signal_neighbor_ids
     trace["applied"] = bool(materialized_ids)
     return tuple(materialized_turns), trace
 
@@ -2248,81 +2147,34 @@ def _selected_context_text(
     *,
     store: RawEvidenceStore,
     turn: Turn,
-    question_terms: set[str],
-    center_terms: set[str],
     window_before: int,
     window_after: int,
     max_neighbor_chars: int,
-    require_neighbor_signal: bool,
-    min_neighbor_signal_score: int,
-    neighbor_overlap_min_terms: int,
-) -> tuple[str, dict[str, Any]]:
-    trace = {
-        "selected_neighbor_source_ids": [],
-        "skipped_low_signal_neighbor_source_ids": [],
-    }
+) -> str:
     session_turns = store.session_turns(turn.session_id)
     positions = {
         candidate.source_id: index for index, candidate in enumerate(session_turns)
     }
     position = positions.get(turn.source_id)
     if position is None:
-        return turn.text, trace
+        return turn.text
     start = max(0, position - window_before)
     end = min(len(session_turns), position + window_after + 1)
     neighbors = session_turns[start:end]
     if len(neighbors) <= 1:
-        return turn.text, trace
+        return turn.text
 
     lines = ["Local dialogue context from the same session:"]
     for neighbor in neighbors:
         label = "selected turn" if neighbor.source_id == turn.source_id else "nearby turn"
         text = neighbor.text
         if neighbor.source_id != turn.source_id:
-            signal_score = _selected_context_neighbor_signal_score(
-                neighbor=neighbor,
-                question_terms=question_terms,
-                center_terms=center_terms,
-                neighbor_overlap_min_terms=neighbor_overlap_min_terms,
-            )
-            if require_neighbor_signal and signal_score < min_neighbor_signal_score:
-                trace["skipped_low_signal_neighbor_source_ids"].append(
-                    neighbor.source_id
-                )
-                continue
-            trace["selected_neighbor_source_ids"].append(neighbor.source_id)
             text = _truncate_text(text, max_neighbor_chars)
         timestamp = f" ({neighbor.timestamp})" if neighbor.timestamp else ""
         lines.append(f"- {label}{timestamp} | {neighbor.role}: {text}")
     if len(lines) <= 2:
-        return turn.text, trace
-    return "\n".join(lines), trace
-
-
-def _selected_context_neighbor_signal_score(
-    *,
-    neighbor: Turn,
-    question_terms: set[str],
-    center_terms: set[str],
-    neighbor_overlap_min_terms: int,
-) -> int:
-    score = 0
-    if SELECTED_CONTEXT_TEMPORAL_SIGNAL_PATTERN.search(neighbor.text):
-        score += 1
-    neighbor_terms = _selected_context_signal_terms(neighbor.text)
-    if len(question_terms.intersection(neighbor_terms)) >= neighbor_overlap_min_terms:
-        score += 1
-    if len(center_terms.intersection(neighbor_terms)) >= neighbor_overlap_min_terms:
-        score += 1
-    return score
-
-
-def _selected_context_signal_terms(text: str) -> set[str]:
-    return {
-        token.lower()
-        for token in SELECTED_CONTEXT_TOKEN_PATTERN.findall(text)
-        if token.lower() not in SELECTED_CONTEXT_STOPWORDS
-    }
+        return turn.text
+    return "\n".join(lines)
 
 
 def _truncate_text(text: str, max_chars: int) -> str:
@@ -2365,9 +2217,6 @@ SELECTED_CONTEXT_OVERRIDE_KEYS = {
     "max_neighbor_chars",
     "max_center_chars",
     "require_anaphora",
-    "require_neighbor_signal",
-    "min_neighbor_signal_score",
-    "neighbor_overlap_min_terms",
     "information_needs",
 }
 
@@ -2943,7 +2792,7 @@ def _normalized_selected_context_override(
 ) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for key, value in raw.items():
-        if key in {"enabled", "require_anaphora", "require_neighbor_signal"}:
+        if key in {"enabled", "require_anaphora"}:
             result[key] = bool(value)
         elif key in {
             "window_before",
@@ -2951,8 +2800,6 @@ def _normalized_selected_context_override(
             "max_rows",
             "max_neighbor_chars",
             "max_center_chars",
-            "min_neighbor_signal_score",
-            "neighbor_overlap_min_terms",
         }:
             result[key] = int(value)
         elif key == "information_needs":

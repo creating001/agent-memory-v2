@@ -7,7 +7,6 @@
 | 用途 | 配置 | 状态 |
 |---|---|---|
 | 后续新实验默认配置 | `stage1_superseded_source_chain_v127_qwen36_no_think_build4k_cached.json` | 当前本地 v127 LTS + `Qwen/Qwen3.6-35B-A3B` answer/build backbone；请求级 `chat_template_kwargs.enable_thinking=false`。继承 v125 route-scoped temporal local evidence unit 和 v121 source-grounded guard，并在 `profile_preference/current_state` routes 用 build-memory source backpointers 组织 active/superseded update chain；typed memory text 不作为 reader evidence。按 goal 五项风险审计：继承 #4 mechanical finalizer 和 #3 selected-context heuristic 风险收敛，并降低 #5 build-memory organization；#1 granularity/profile、#2 top-k/context noise 仍未解决。LongMemEval-S inherited route-only strict/lenient `0.814000 / 0.836000`，LoCoMo route-only strict/lenient `0.792857 / 0.811688`。 |
-| 已拒绝 selected-context 诊断 | `stage1_temporal_local_evidence_signal_gate_v135_qwen36_no_think_build4k_cached.json` | 继承 v125 LTS，只在 `temporal_lookup` selected-context materialization 前加入 generic neighbor signal gate；邻居必须提供 temporal marker、question-term overlap 或 center-term overlap。LoCoMo dry-run scope clean：只改 temporal prompts `189/338`，evidence row ids `0` change，跳过 low-signal neighbors `339`；LME dry-run `0/500` prompt/row change。但 prompt-changed-only merge vs v125 paired dual judge 负向：strict/lenient `0.792899/0.813609 -> 0.781065/0.798817`，拒绝为 LTS。 |
 | 已拒绝 token-budget 诊断 | `stage1_fact_tail_snippet_budget_v134_qwen36_no_think_build4k_cached.json` | 继承 v129/v133，只在 `fact_lookup` 对直接检索 rank `>40` 的 raw rows 使用 `query_snippet`，`tail_max_row_text_chars=100`；row selection 仍按未压缩文本预算，保证不因压缩额外纳入 row。LME dry-run `0/500` prompt/row change；LoCoMo fact route row set `0` change，avg context chars `17637.014 -> 17025.604`，changed-subset avg query `5910.726`。但 paired dual flash judge 对同 882 fact keys 负向：V129 strict/lenient `0.819728 / 0.833333`，V134 `0.807256 / 0.824263`，拒绝为 LTS 候选。 |
 | token-budget 诊断候选 | `stage1_route_scoped_fact_profile_state_budget_v129_qwen36_no_think_build4k_cached.json` | 继承 v127，只给 `fact_lookup` / `profile_preference` / `current_state` 加 compiler route budget `max_evidence_chars=17000`，不改 retrieval top-k，不碰 `temporal_lookup` / `list_count`。LME full route-only lexical exact/F1/BLEU1 `0.428000/0.633744/0.589603 -> 0.430000/0.636173/0.592207`；LoCoMo `0.244156/0.537674/0.483784 -> 0.245455/0.538048/0.483962`。收益小且 LoCoMo changed-subset query 仍为 `6112.337`，不能升级 LTS。 |
 | 已拒绝 token-budget 诊断 | `stage1_fact_tail_snippet_budget_v133_qwen36_no_think_build4k_cached.json` | 继承 v129，只在 `fact_lookup` 对 rank `>40` direct hits 使用 320-char query snippet。LME dry-run不变；LoCoMo fact changed prompt `207/882`、row set `0` change，但 fact avg context 只降 `8.552` chars，full avg context 只降 `4.898` chars，过保守，拒绝。 |
@@ -95,6 +94,7 @@
 - `stage1_uncertain_repair_v92_cached.json`
 - `stage1_list_aggregation_v93_lme_cached.json`
 - `stage1_list_aggregation_v93_locomo_cached.json`
+- `stage1_temporal_local_evidence_signal_gate_v135_qwen36_no_think_build4k_cached.json`
 
 ## 使用规则
 
