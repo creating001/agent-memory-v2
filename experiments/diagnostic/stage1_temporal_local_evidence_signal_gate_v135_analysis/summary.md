@@ -34,9 +34,13 @@ Additional LoCoMo scope:
 
 ## Decision
 
-Dry-run scope is clean and route-contained, but the average context reduction is modest. V135 should not be promoted from dry-run evidence alone.
+Dry-run scope is clean and route-contained, but the average context reduction is modest. The follow-up LoCoMo `temporal_lookup` route-all answer + paired dual `deepseek-v4-flash` judge is negative after isolating unchanged prompts:
 
-Next step: run LoCoMo `temporal_lookup` route-all answer + paired dual `deepseek-v4-flash` judge. If accuracy is positive, or stays effectively flat while the risk #3 evidence is cleaner, v135 can replace v125 as LTS. If the judge is negative, downgrade v135 and stop adding variants before reviewing badcases.
+- v125 temporal subset strict/lenient: `0.792899 / 0.813609`;
+- v135 prompt-changed-only merge strict/lenient: `0.781065 / 0.798817`;
+- paired delta: strict `-4`, lenient `-5`.
+
+Reject v135 as an LTS candidate. The useful conclusion is negative: a hard neighbor signal gate can remove weak lexical but important adjacent time anchors, increasing false insufficiency and wrong-date answers. Future risk #3 work should prefer soft scoring/rerank or answer-side attribution over hard neighbor deletion.
 
 ## Outputs
 
@@ -44,3 +48,4 @@ Next step: run LoCoMo `temporal_lookup` route-all answer + paired dual `deepseek
 - LME dry traces: `outputs/diagnostic/stage1_temporal_local_evidence_signal_gate_v135_lme_dry/traces.jsonl`
 - LoCoMo comparison: `experiments/diagnostic/stage1_temporal_local_evidence_signal_gate_v135_analysis/locomo_vs_v125_trace_comparison.json`
 - LME comparison: `experiments/diagnostic/stage1_temporal_local_evidence_signal_gate_v135_analysis/lme_vs_v125_trace_comparison.json`
+- Temporal judge diagnosis: `experiments/diagnostic/stage1_temporal_local_evidence_signal_gate_v135_locomo_temporal_route_all/manual_diagnosis.md`

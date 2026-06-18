@@ -25,16 +25,16 @@
 
 | 优先级 | 项目 | 当前状态 | 下一步 |
 |---:|---|---|---|
-| 1 | `v135` temporal local evidence signal gate | 对应风险 #3。LoCoMo dry-run 只改 `temporal_lookup` prompts `189/338`，row ids `0` change；LME dry-run `0/500` change | 跑 LoCoMo temporal answer + paired dual judge；正向或性能不掉且风险下降则考虑新 LTS，否则降级 |
-| 2 | #5 memory organization/update chain | 合并处理 `v126` profile/current source interleave 与 `v127` superseded source chain；目前只有 lexical 诊断正向/持平证据 | 做一个成对 judge 决策批次；若 judge 不正向，停止堆新配置，先回到 badcase |
-| 3 | #2 context noise/rerank/budget | `v129` 是保留 token-budget 对照，`v134` 已因 paired dual judge 负向拒绝 | 等 #3/#5 当前项收敛后再做；下一版必须证明 coverage 不掉，不能只靠截断省 token |
+| 1 | #5 memory organization/update chain | 合并处理 `v126` profile/current source interleave 与 `v127` superseded source chain；目前只有 lexical 诊断正向/持平证据 | 做一个成对 judge 决策批次；若 judge 不正向，停止堆新配置，先回到 badcase |
+| 2 | #2 context noise/rerank/budget | `v129` 是保留 token-budget 对照，`v134` 已因 paired dual judge 负向拒绝 | 下一版必须证明 coverage 不掉，不能只靠截断省 token |
+| 3 | #1 granularity/profile generalization | v125 仍继承历史 short/long profile 分支，存在 design-for-benchmark 风险 | 结合 src cleanup 做 profile/compatibility audit，先删无用兼容路径，再定新实验 |
 
 ## 保留候选
 
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
 | `configs/stage1_route_scoped_local_evidence_unit_v125_qwen36_no_think_build4k_cached.json` | current LTS | LoCoMo temporal paired dual judge strict/lenient `0.772189/0.786982 -> 0.792899/0.813609`；full route-only strict/lenient `0.779221/0.807143 -> 0.789610/0.807792`；LME compiler dry-run `0/500` prompt/row change；v121 guard smoke 与 v116 finalizer-applied 8 条输出一致 | 当前本地 LTS；降低 #4，部分降低 #3；#1/#2/#5 保留为优先风险 |
-| `configs/stage1_temporal_local_evidence_signal_gate_v135_qwen36_no_think_build4k_cached.json` | selected-context risk #3 | 继承 v125，只给 `temporal_lookup` local evidence unit 加 neighbor signal gate；外部参考 xMemory/source-expansion 思路，只在邻居能补 source-backed signal 时展开 | 待 dry-run/judge；不是 LTS |
+| `configs/stage1_temporal_local_evidence_signal_gate_v135_qwen36_no_think_build4k_cached.json` | selected-context risk #3 | LoCoMo dry-run scope clean：只改 temporal prompts `189/338`、row ids `0` change；但 prompt-changed-only dual judge 负向 | 已拒绝为 LTS；保留为“硬过滤邻居会伤 recall”的反例 |
 | `configs/stage1_route_scoped_fact_profile_state_budget_v129_qwen36_no_think_build4k_cached.json` | token-budget | LME full route-only exact `0.428000 -> 0.430000`；LoCoMo `0.244156 -> 0.245455` | Narrow positive diagnostic；作为 v134 父对照 |
 | `configs/stage1_memory_source_interleave_v126_qwen36_no_think_build4k_cached.json` | memory organization | LoCoMo profile/current exact `0.320000 -> 0.360000`；LME exact 持平但 F1/BLEU 轻降 | Narrow diagnostic；待 judge |
 | `configs/stage1_superseded_source_chain_v127_qwen36_no_think_build4k_cached.json` | memory/state chain | LME full route-only exact `0.426000 -> 0.428000`；LoCoMo exact 持平、F1/BLEU 小升 | Narrow diagnostic；待 judge |
@@ -48,6 +48,7 @@
 
 | 配置 | 原因 |
 |---|---|
+| `stage1_temporal_local_evidence_signal_gate_v135_qwen36_no_think_build4k_cached.json` | 对 `temporal_lookup` neighbor 做硬 signal gate，scope clean 但 paired dual judge 负向。Prompt-changed-only merge vs v125：strict/lenient `0.792899/0.813609 -> 0.781065/0.798817`，净 strict `-4`、lenient `-5`；典型损失是删掉弱词面但关键的相邻时间锚，导致信息不足或错年/错日期 |
 | `stage1_fact_tail_snippet_budget_v134_qwen36_no_think_build4k_cached.json` | token 降低但 paired dual judge 负向；LoCoMo fact subset strict/lenient `0.819728/0.833333 -> 0.807256/0.824263`，净 strict `-11`、lenient `-8` |
 | `stage1_fact_tail_snippet_budget_v133_qwen36_no_think_build4k_cached.json` | 过保守；LoCoMo fact avg context 只降 `8.552` chars，full avg context 只降 `4.898` chars |
 | `stage1_fact_tail_filter_preserve_order_v132_qwen36_no_think_build4k_cached.json` | hard row pruning 虽降 query 到 `5115.770`，但 LoCoMo fact exact `0.249433 -> 0.241497`，full exact `0.245455 -> 0.240909` |
@@ -88,6 +89,7 @@
 |---|---|
 | `diagnostic/stage1_fact_tail_snippet_budget_v134_summary.md` | v133/v134 tail text budget 诊断 |
 | `diagnostic/stage1_temporal_local_evidence_signal_gate_v135_analysis/` | v135 dry-run scope comparison and decision notes |
+| `diagnostic/stage1_temporal_local_evidence_signal_gate_v135_locomo_temporal_route_all/manual_diagnosis.md` | v135 temporal paired judge rejection diagnosis |
 | `diagnostic/stage1_fact_tail_filter_preserve_order_v132_summary.md` | v132 hard row pruning 负向诊断 |
 | `diagnostic/stage1_route_scoped_fact_profile_state_budget_v129_summary.md` | v129 route-scoped char budget 诊断 |
 | `diagnostic/stage1_route_scoped_local_evidence_unit_v125_lme_dry/` | v125 LongMemEval compiler compatibility dry-run |

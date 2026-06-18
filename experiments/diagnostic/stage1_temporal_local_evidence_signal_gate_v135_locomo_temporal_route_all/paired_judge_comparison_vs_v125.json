@@ -1,0 +1,2033 @@
+{
+  "comparison": "v135 temporal local evidence signal gate vs v125 same 338 temporal keys",
+  "created_at_utc": "2026-06-18T08:31:47.601700+00:00",
+  "decision": "pending_manual_review",
+  "clean_note": "Offline judge comparison reads gold labels only after prediction and must not be consumed by prediction, retrieval, compiler, answer, verifier, or cache construction.",
+  "metrics": {
+    "v125": {
+      "n_joined": 338,
+      "strict_accuracy": 0.7928994082840237,
+      "strict_correct": 268,
+      "lenient_accuracy": 0.8136094674556213,
+      "lenient_correct": 275,
+      "judge_agreement": 0.9792899408284024
+    },
+    "v135": {
+      "n_joined": 338,
+      "strict_accuracy": 0.7928994082840237,
+      "strict_correct": 268,
+      "lenient_accuracy": 0.8076923076923077,
+      "lenient_correct": 273,
+      "judge_agreement": 0.985207100591716
+    }
+  },
+  "deltas": {
+    "strict_accuracy_delta": 0.0,
+    "strict_correct_delta": 0,
+    "lenient_accuracy_delta": -0.00591715976331364,
+    "lenient_correct_delta": -2,
+    "paired": {
+      "strict_correct": {
+        "changed": 20,
+        "gain": 10,
+        "loss": 10,
+        "net": 0,
+        "same_correct": 258,
+        "same_wrong": 60,
+        "gain_keys": [
+          "29062293b858f1d8ee8aeb1c",
+          "2d713815b276c677ed453021",
+          "6a00dae1ee0cf6a0b4b91a43",
+          "6a4b3513a2918f903e26cbd8",
+          "8136581d7bea1c09edbcc155",
+          "87543d72182d6fa818c255ee",
+          "a2bb910b4213ede487db3d75",
+          "a9b26389e6675bf930f8698f",
+          "b2c319ba424529f3ce6630b5",
+          "d3caff82978f72025a9ee1c8"
+        ],
+        "loss_keys": [
+          "077dc113032925d7209f2c6a",
+          "24392fb9beec5fb96a24a747",
+          "507a52cbe63da61337791db9",
+          "77c7c748922005d1ca6e8229",
+          "a34933caa17660fa4c47d00a",
+          "ab43e3d44c74bef52cd14f1a",
+          "d013f7462c33367c10cbdf90",
+          "e1684220d528011b42524be4",
+          "ed9f56184e168c4fc79622ef",
+          "fd6de094822579ef6391673e"
+        ]
+      },
+      "lenient_correct": {
+        "changed": 20,
+        "gain": 9,
+        "loss": 11,
+        "net": -2,
+        "same_correct": 264,
+        "same_wrong": 54,
+        "gain_keys": [
+          "29062293b858f1d8ee8aeb1c",
+          "5bf0deb1a330d0a5e24d167b",
+          "6a00dae1ee0cf6a0b4b91a43",
+          "6a4b3513a2918f903e26cbd8",
+          "8136581d7bea1c09edbcc155",
+          "9cf318b670f691001c321cf5",
+          "a2bb910b4213ede487db3d75",
+          "a9b26389e6675bf930f8698f",
+          "b2c319ba424529f3ce6630b5"
+        ],
+        "loss_keys": [
+          "077dc113032925d7209f2c6a",
+          "13e81c6186b5c1d6d3910c7d",
+          "24392fb9beec5fb96a24a747",
+          "507a52cbe63da61337791db9",
+          "77c7c748922005d1ca6e8229",
+          "a34933caa17660fa4c47d00a",
+          "ab43e3d44c74bef52cd14f1a",
+          "d013f7462c33367c10cbdf90",
+          "e1684220d528011b42524be4",
+          "e6c4e6d5cd1c8c08fd427371",
+          "ed9f56184e168c4fc79622ef"
+        ]
+      }
+    }
+  },
+  "by_group_delta": {
+    "1": {
+      "n_joined": 10,
+      "strict_accuracy_baseline": 0.5,
+      "strict_accuracy_candidate": 0.6,
+      "strict_correct_delta": 1,
+      "lenient_accuracy_baseline": 0.6,
+      "lenient_accuracy_candidate": 0.7,
+      "lenient_correct_delta": 1
+    },
+    "2": {
+      "n_joined": 281,
+      "strict_accuracy_baseline": 0.7864768683274022,
+      "strict_accuracy_candidate": 0.7829181494661922,
+      "strict_correct_delta": -1,
+      "lenient_accuracy_baseline": 0.8078291814946619,
+      "lenient_accuracy_candidate": 0.7935943060498221,
+      "lenient_correct_delta": -4
+    },
+    "3": {
+      "n_joined": 1,
+      "strict_accuracy_baseline": 1.0,
+      "strict_accuracy_candidate": 1.0,
+      "strict_correct_delta": 0,
+      "lenient_accuracy_baseline": 1.0,
+      "lenient_accuracy_candidate": 1.0,
+      "lenient_correct_delta": 0
+    },
+    "4": {
+      "n_joined": 46,
+      "strict_accuracy_baseline": 0.8913043478260869,
+      "strict_accuracy_candidate": 0.8913043478260869,
+      "strict_correct_delta": 0,
+      "lenient_accuracy_baseline": 0.8913043478260869,
+      "lenient_accuracy_candidate": 0.9130434782608695,
+      "lenient_correct_delta": 1
+    }
+  },
+  "changed_records": [
+    {
+      "record_key": "00314c7eed1f53455d0d7bb6",
+      "category": 1,
+      "question": "What schools did John play basketball in and how many years was he with his team during high school?",
+      "gold_answer": "Middle school, high school, and college and he was with his high school team for 4 years.",
+      "answer_changed": true,
+      "baseline_answer": "The provided information is not enough to answer the question fully; while John played basketball in high school for four years, the specific school names are not mentioned.",
+      "candidate_answer": "John played basketball in high school (specific school names not provided) and was with his team for 4 years.",
+      "baseline_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": false,
+      "candidate_lenient_correct": false
+    },
+    {
+      "record_key": "0255475f807b14908f063d2b",
+      "category": 2,
+      "question": "When did Andrew adopt Scout?",
+      "gold_answer": "few days before November 2023",
+      "answer_changed": true,
+      "baseline_answer": "The provided information is not enough to determine when Andrew adopted Scout.",
+      "candidate_answer": "The provided information is not enough to determine the exact date Andrew adopted Scout.",
+      "baseline_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": false,
+      "candidate_lenient_correct": false
+    },
+    {
+      "record_key": "05a2fa4682ace156a523b92c",
+      "category": 2,
+      "question": "When did Caroline meet up with her friends, family, and mentors?",
+      "gold_answer": "The week before 9 June 2023",
+      "answer_changed": true,
+      "baseline_answer": "Between 2023-06-02 and 2023-06-08",
+      "candidate_answer": "2023-06-02 to 2023-06-08",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "077dc113032925d7209f2c6a",
+      "category": 2,
+      "question": "When did John go on a camping trip with Max?",
+      "gold_answer": "The summer of 2022",
+      "answer_changed": true,
+      "baseline_answer": "Summer 2022",
+      "candidate_answer": "Summer 2023",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": false
+    },
+    {
+      "record_key": "13e81c6186b5c1d6d3910c7d",
+      "category": 2,
+      "question": "When did Dave start his car maintenance shop?",
+      "gold_answer": "May 1, 2023",
+      "answer_changed": true,
+      "baseline_answer": "Dave started his car maintenance shop in early May 2023, specifically around May 1, 2023, or the week of May 9-15, 2023.",
+      "candidate_answer": "Between May 9 and May 15, 2023 (specifically announced as 'last week' on May 16, 2023)",
+      "baseline_judge_labels": [
+        "WRONG",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": false
+    },
+    {
+      "record_key": "146487c67925ca15d9b78d68",
+      "category": 1,
+      "question": "Which of James's family members have visited him in the last year?",
+      "gold_answer": "mother, sister",
+      "answer_changed": true,
+      "baseline_answer": "His mother and his sister.",
+      "candidate_answer": "James's mother and sister.",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "15a51d953a9956839e73debe",
+      "category": 2,
+      "question": "When did John organize a basketball camp for kids?",
+      "gold_answer": "summer 2023",
+      "answer_changed": true,
+      "baseline_answer": "Summer 2023",
+      "candidate_answer": "2023",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "16d70285e40a99b09091bd7a",
+      "category": 2,
+      "question": "How many weeks passed between Maria adopting Coco and Shadow?",
+      "gold_answer": "two weeks",
+      "answer_changed": true,
+      "baseline_answer": "1 week",
+      "candidate_answer": "The provided information is not enough to determine the exact number of weeks.",
+      "baseline_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": false,
+      "candidate_lenient_correct": false
+    },
+    {
+      "record_key": "16deb4ea88f02d24cebea5a6",
+      "category": 2,
+      "question": "When did Deborah lead a meditation session during the sunset?",
+      "gold_answer": "week before 16 August, 2023",
+      "answer_changed": true,
+      "baseline_answer": "Last week (approximately August 9-15, 2023)",
+      "candidate_answer": "Between 2023-08-09 and 2023-08-15",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "1a8ae9155974d90b66d6cc08",
+      "category": 4,
+      "question": "How long does Audrey typically walk her dogs for?",
+      "gold_answer": "about an hour",
+      "answer_changed": true,
+      "baseline_answer": "about an hour",
+      "candidate_answer": "About an hour",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "1e7b13b0f1cc58614c2927eb",
+      "category": 2,
+      "question": "When did Andrew start his new job as a financial analyst?",
+      "gold_answer": "The week before March 27, 2023",
+      "answer_changed": true,
+      "baseline_answer": "Last week (between March 20 and March 26, 2023)",
+      "candidate_answer": "Between March 20, 2023, and March 26, 2023",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "21f5a526bb7978490a1feb58",
+      "category": 2,
+      "question": "Which year did Evan start taking care of his health seriously?",
+      "gold_answer": "2021",
+      "answer_changed": true,
+      "baseline_answer": "The provided information is not enough.",
+      "candidate_answer": "2022",
+      "baseline_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": false,
+      "candidate_lenient_correct": false
+    },
+    {
+      "record_key": "24203406fb6753de476196c5",
+      "category": 2,
+      "question": "When did Nate win a lot of money in a video game tournament?",
+      "gold_answer": "September 2022",
+      "answer_changed": true,
+      "baseline_answer": "Between September 29, 2022, and October 5, 2022",
+      "candidate_answer": "Last week (2022-09-29 to 2022-10-05)",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "24392fb9beec5fb96a24a747",
+      "category": 2,
+      "question": "When did Evan and Sam decide to paint together?",
+      "gold_answer": "Saturday after 11 September, 2023.",
+      "answer_changed": true,
+      "baseline_answer": "2023-09-16",
+      "candidate_answer": "2023-09-11",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": false
+    },
+    {
+      "record_key": "2726a17928daef593183a90f",
+      "category": 2,
+      "question": "When did Caroline give a speech at a school?",
+      "gold_answer": "The week before 9 June 2023",
+      "answer_changed": true,
+      "baseline_answer": "Between June 2 and June 8, 2023",
+      "candidate_answer": "Between June 2, 2023, and June 8, 2023",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "29062293b858f1d8ee8aeb1c",
+      "category": 2,
+      "question": "When did John take a road trip to the Pacific Northwest?",
+      "gold_answer": "2022",
+      "answer_changed": true,
+      "baseline_answer": "The provided information does not specify the exact date, but John mentioned exploring the Pacific Northwest in a conversation on April 10, 2023.",
+      "candidate_answer": "2022",
+      "baseline_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": false,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "2c130a8e1d7d329ea5a6a10c",
+      "category": 2,
+      "question": "When did John join the online support group?",
+      "gold_answer": "The week before 1 January 2023",
+      "answer_changed": true,
+      "baseline_answer": "2022-12-25 to 2022-12-31",
+      "candidate_answer": "Between December 25, 2022, and December 31, 2022",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "2d713815b276c677ed453021",
+      "category": 2,
+      "question": "When did Dave see Aerosmith perform live?",
+      "gold_answer": "on the weekend before March 26, 2023",
+      "answer_changed": true,
+      "baseline_answer": "2023-03-25",
+      "candidate_answer": "2023-03-18 to 2023-03-19",
+      "baseline_judge_labels": [
+        "WRONG",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "3a479b20a8c6599fbafe092f",
+      "category": 2,
+      "question": "When did Deborah go to a yoga retreat near her mom's place?",
+      "gold_answer": "a week before 24 August,2023",
+      "answer_changed": true,
+      "baseline_answer": "2023-08-17 to 2023-08-23",
+      "candidate_answer": "Between August 17, 2023, and August 23, 2023",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "3b2437e5c0d47d130241d482",
+      "category": 2,
+      "question": "When did Gina open her online clothing store?",
+      "gold_answer": "16 March, 2023",
+      "answer_changed": true,
+      "baseline_answer": "16 March 2023",
+      "candidate_answer": "2023-03-16",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "3b44153bfc1143bc0f8403d6",
+      "category": 2,
+      "question": "When did Maria adopt Shadow?",
+      "gold_answer": "The week before 13 August 2023",
+      "answer_changed": true,
+      "baseline_answer": "Between August 6 and August 12, 2023",
+      "candidate_answer": "Between 2023-08-06 and 2023-08-12",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "3d88ee203e38e595c9f8da22",
+      "category": 2,
+      "question": "When was Jon in Rome?",
+      "gold_answer": "June 2023",
+      "answer_changed": true,
+      "baseline_answer": "Between 2023-06-12 and 2023-06-18",
+      "candidate_answer": "2023-06-12 to 2023-06-18",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "3e26534fc250c849054de445",
+      "category": 2,
+      "question": "When did Dave find the car he repaired and started sharing in his blog?",
+      "gold_answer": "last week of October 2023",
+      "answer_changed": true,
+      "baseline_answer": "Last week (relative to November 2, 2023, i.e., late October 2023)",
+      "candidate_answer": "Between October 26 and November 1, 2023",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "4aa828f745c5ba99e3335367",
+      "category": 4,
+      "question": "What projects is Jolene planning for next year?",
+      "gold_answer": "developing renewable energy finding ways to supply clean water to those with limited access",
+      "answer_changed": true,
+      "baseline_answer": "Jolene is planning to work on projects that make a real difference to communities, specifically sustainable initiatives, innovative solutions for environmental issues (such as renewable energy/solar), and social causes. She is also considering organizing workshops with local schools.",
+      "candidate_answer": "Jolene plans to work on sustainable initiatives, innovative solutions for environmental issues, and social causes. Specifically, she is focused on developing renewable energy (solar) projects and has a prototype for aerial surveillance. She also plans to organize workshops with local schools.",
+      "baseline_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": false,
+      "candidate_lenient_correct": false
+    },
+    {
+      "record_key": "4bf3e660f1a003a651600a61",
+      "category": 2,
+      "question": "How long has it been since Andrew adopted his first pet, as of November 2023?",
+      "gold_answer": "4 months",
+      "answer_changed": true,
+      "baseline_answer": "About 4 to 5 months (from July 11, 2023, to November 2023)",
+      "candidate_answer": "Approximately 4 to 5 months",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "4eae255052f8d5abdaf0412f",
+      "category": 2,
+      "question": "How long did it take for James to complete his Witcher-inspired game?",
+      "gold_answer": "six months",
+      "answer_changed": true,
+      "baseline_answer": "The provided information is not enough.",
+      "candidate_answer": "The provided information is not enough to determine how long it took.",
+      "baseline_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": false,
+      "candidate_lenient_correct": false
+    },
+    {
+      "record_key": "4eddce6b0a39cd33be4eda94",
+      "category": 2,
+      "question": "How long did Dave's work on the Ford Mustang take?",
+      "gold_answer": "nearly two months",
+      "answer_changed": true,
+      "baseline_answer": "The provided information is not enough to determine how long Dave's work on the Ford Mustang took.",
+      "candidate_answer": "The provided information is not enough to determine the total duration of work on the Ford Mustang.",
+      "baseline_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": false,
+      "candidate_lenient_correct": false
+    },
+    {
+      "record_key": "507a52cbe63da61337791db9",
+      "category": 2,
+      "question": "When is Joanna going to make Nate's ice cream for her family?",
+      "gold_answer": "The weekend of 24June, 2022.",
+      "answer_changed": true,
+      "baseline_answer": "Joanna is going to make it for her family this weekend, which is June 25-26, 2022.",
+      "candidate_answer": "The provided information is not enough.",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": false
+    },
+    {
+      "record_key": "5104dee78fc3520362494400",
+      "category": 2,
+      "question": "When was John's old area hit with a flood?",
+      "gold_answer": "The week before 7 July 2023",
+      "answer_changed": true,
+      "baseline_answer": "Last week (relative to July 7, 2023, i.e., between June 30 and July 6, 2023)",
+      "candidate_answer": "Last week (between June 30 and July 6, 2023)",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "5a0b7712f6042551e6f32a2c",
+      "category": 2,
+      "question": "When did John and his programming friends host an online programming competition?",
+      "gold_answer": "Last week before 13 October 2022.",
+      "answer_changed": true,
+      "baseline_answer": "Between October 6, 2022, and October 12, 2022",
+      "candidate_answer": "Between October 6 and October 12, 2022",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "5bf0deb1a330d0a5e24d167b",
+      "category": 4,
+      "question": "When did Jolene buy her pet snake?",
+      "gold_answer": "A year ago",
+      "answer_changed": false,
+      "baseline_answer": "2022-01-27",
+      "candidate_answer": "2022-01-27",
+      "baseline_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "WRONG"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": false,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "5c7b12bfda618558601ec310",
+      "category": 2,
+      "question": "When did Audrey get into an accident in the park?",
+      "gold_answer": "between October 19 and 24, 2023",
+      "answer_changed": true,
+      "baseline_answer": "Between 2023-10-17 and 2023-10-23",
+      "candidate_answer": "Between October 17, 2023, and October 23, 2023",
+      "baseline_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": false,
+      "candidate_lenient_correct": false
+    },
+    {
+      "record_key": "63b8f0dedd4408969cea528a",
+      "category": 4,
+      "question": "What did John do to help his community last year in his hometown?",
+      "gold_answer": "Helped renovate a rundown community center.",
+      "answer_changed": true,
+      "baseline_answer": "He helped renovate a rundown community center.",
+      "candidate_answer": "He helped renovate a rundown community center back home.",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "64ccbca34393f15f728ae73a",
+      "category": 2,
+      "question": "When did James meet Samantha?",
+      "gold_answer": "August 9, 2022",
+      "answer_changed": true,
+      "baseline_answer": "The provided information is not enough.",
+      "candidate_answer": "2022-08-10",
+      "baseline_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": false,
+      "candidate_lenient_correct": false
+    },
+    {
+      "record_key": "6553ec28484e4a9f2d6d3cd6",
+      "category": 2,
+      "question": "When did Nate get purple hair?",
+      "gold_answer": "The week before 15April, 2022.",
+      "answer_changed": true,
+      "baseline_answer": "Between April 8 and April 14, 2022",
+      "candidate_answer": "Between April 8, 2022, and April 14, 2022",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "680eb63683a121f0f6246294",
+      "category": 2,
+      "question": "When did Caroline join a new activist group?",
+      "gold_answer": "The Tuesday before 20 July 2023",
+      "answer_changed": true,
+      "baseline_answer": "18 July 2023",
+      "candidate_answer": "2023-07-18",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "6a00dae1ee0cf6a0b4b91a43",
+      "category": 1,
+      "question": "When did Melanie go on a hike after the roadtrip?",
+      "gold_answer": "19 October 2023",
+      "answer_changed": true,
+      "baseline_answer": "the date",
+      "candidate_answer": "2023-10-19",
+      "baseline_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": false,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "6a4b3513a2918f903e26cbd8",
+      "category": 2,
+      "question": "After how many weeks did Tim reconnect with the fellow Harry Potter fan from California?",
+      "gold_answer": "three weeks",
+      "answer_changed": true,
+      "baseline_answer": "4 weeks",
+      "candidate_answer": "Approximately 3 to 4 weeks",
+      "baseline_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": false,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "6b6df7abe351a653723df424",
+      "category": 2,
+      "question": "When did Maria start volunteering at the homeless shelter?",
+      "gold_answer": "Around August 2022",
+      "answer_changed": true,
+      "baseline_answer": "August 3, 2022",
+      "candidate_answer": "2022-08-03",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "6f19a729612b9f8befb379e1",
+      "category": 4,
+      "question": "What did Joanna find in old notebooks last week that prompted her to reflect on her progress as a writer?",
+      "gold_answer": "early writings",
+      "answer_changed": true,
+      "baseline_answer": "Her early writings",
+      "candidate_answer": "old notebooks with her early writings",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "70925b7db53780ee823952b3",
+      "category": 2,
+      "question": "When did Audrey make muffins for herself?",
+      "gold_answer": "The week of April 3rd to 9th",
+      "answer_changed": true,
+      "baseline_answer": "Between April 9 and April 15, 2023",
+      "candidate_answer": "Between April 9, 2023, and April 15, 2023",
+      "baseline_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": false,
+      "candidate_lenient_correct": false
+    },
+    {
+      "record_key": "77c7c748922005d1ca6e8229",
+      "category": 2,
+      "question": "When did Gina get accepted for the design internship?",
+      "gold_answer": "27 May, 2023",
+      "answer_changed": true,
+      "baseline_answer": "2023-05-27",
+      "candidate_answer": "The provided information is not enough.",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": false
+    },
+    {
+      "record_key": "78bef3da91c3e03f52d1406c",
+      "category": 2,
+      "question": "When did Calvin's place get flooded in Tokyo?",
+      "gold_answer": "On a week before 16 May, 2023",
+      "answer_changed": true,
+      "baseline_answer": "The week prior to May 16, 2023 (approximately May 9-15, 2023)",
+      "candidate_answer": "May 2023 (specifically the week prior to May 16, 2023)",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "8136581d7bea1c09edbcc155",
+      "category": 2,
+      "question": "When did Deborah go to an art show with Anna?",
+      "gold_answer": "on 9 April, 2023",
+      "answer_changed": true,
+      "baseline_answer": "The provided information is not enough to confirm when Deborah went to an art show with Anna.",
+      "candidate_answer": "2023-04-09",
+      "baseline_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": false,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "87543d72182d6fa818c255ee",
+      "category": 2,
+      "question": "When did Caroline encounter people on a hike and have a negative experience?",
+      "gold_answer": "The week before 25 August 2023",
+      "answer_changed": false,
+      "baseline_answer": "2023-08-17",
+      "candidate_answer": "2023-08-17",
+      "baseline_judge_labels": [
+        "WRONG",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "879a1f1155b41d297e80abeb",
+      "category": 4,
+      "question": "What projects is Jolene planning for next year?",
+      "gold_answer": "developing renewable energy finding ways to supply clean water to those with limited access",
+      "answer_changed": true,
+      "baseline_answer": "The provided information is not enough.",
+      "candidate_answer": "Jolene is planning to work on developing renewable energy (like solar) and sustainable initiatives/innovative solutions for environmental issues.",
+      "baseline_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": false,
+      "candidate_lenient_correct": false
+    },
+    {
+      "record_key": "8dbcd5b7a0801152992523e1",
+      "category": 2,
+      "question": "When did James start playing Civilization VI?",
+      "gold_answer": "March 2022",
+      "answer_changed": true,
+      "baseline_answer": "Approximately one month before April 29, 2022 (around late March 2022)",
+      "candidate_answer": "Late March 2022 (approximately March 29, 2022)",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "9430723540cb6a08eb8ed24d",
+      "category": 2,
+      "question": "When did Evan have his sudden heart palpitation incident that really shocked him up?",
+      "gold_answer": "first week of June 2023",
+      "answer_changed": true,
+      "baseline_answer": "Between May 30, 2023, and June 5, 2023",
+      "candidate_answer": "2023-05-30 to 2023-06-05",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "94f28aa885a637eda8161eff",
+      "category": 2,
+      "question": "When did Gina start being recognized by fashion editors?",
+      "gold_answer": "July 2023",
+      "answer_changed": true,
+      "baseline_answer": "Between July 2, 2023, and July 8, 2023",
+      "candidate_answer": "Between July 2 and July 8, 2023",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "959fd1aea9d4cb5ea2aa1888",
+      "category": 2,
+      "question": "When did John get his degree?",
+      "gold_answer": "The week before 2 April 2023",
+      "answer_changed": true,
+      "baseline_answer": "John got his degree last week relative to April 2, 2023 (approximately between March 26 and April 1, 2023).",
+      "candidate_answer": "Between March 26, 2023, and April 1, 2023",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "95fd3249462dc7b1499cb5e6",
+      "category": 2,
+      "question": "How many months lapsed between Sam's first and second doctor's appointment?",
+      "gold_answer": "three months",
+      "answer_changed": true,
+      "baseline_answer": "approximately 4.5 months",
+      "candidate_answer": "Approximately 4 months",
+      "baseline_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": false,
+      "candidate_lenient_correct": false
+    },
+    {
+      "record_key": "9633f51fac4067266e00aa7e",
+      "category": 2,
+      "question": "When did John participate in a 5K charity run?",
+      "gold_answer": "first weekend of August 2023",
+      "answer_changed": true,
+      "baseline_answer": "Last weekend relative to August 9, 2023 (approximately August 5-6, 2023)",
+      "candidate_answer": "2023-08-05 to 2023-08-06",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "9748405e4eeefe3cc1d5339c",
+      "category": 2,
+      "question": "When is Melanie's daughter's birthday?",
+      "gold_answer": "13 August",
+      "answer_changed": true,
+      "baseline_answer": "The provided information is not enough to determine the exact date of Melanie's daughter's birthday, only that it was celebrated on August 13, 2023.",
+      "candidate_answer": "August 13, 2023",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "98947ef370bf38d0f42dc8f9",
+      "category": 2,
+      "question": "When did Jolene buy her pet Seraphim?",
+      "gold_answer": "in 2022",
+      "answer_changed": true,
+      "baseline_answer": "2022-01-27",
+      "candidate_answer": "2022",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "9b3fd2dcbb9a1b9e52e39df0",
+      "category": 1,
+      "question": "What time management techniques do Deborah and Jolene use?",
+      "gold_answer": "the Pomodoro Technique - 25 minutes work and 5-minute break, scheduler or to-do list, The Eisenhower Matrix, bullet journal",
+      "answer_changed": true,
+      "baseline_answer": "Deborah uses breaking tasks into smaller pieces, setting goals, using planners/schedulers, and prioritizing important/urgent tasks. Jolene uses the Pomodoro Technique and a bullet journal.",
+      "candidate_answer": "Deborah uses breaking tasks into smaller pieces, setting goals, using planners/schedulers, and prioritizing important/urgent tasks. Jolene uses the Pomodoro Technique, a bullet journal, yoga, and meditation.",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "9cf318b670f691001c321cf5",
+      "category": 2,
+      "question": "When did James adopt Ned?",
+      "gold_answer": "first week of April 2022",
+      "answer_changed": false,
+      "baseline_answer": "Between April 5, 2022, and April 11, 2022",
+      "candidate_answer": "Between April 5, 2022, and April 11, 2022",
+      "baseline_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "WRONG"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": false,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "9ef88ae46473730cc9529c03",
+      "category": 2,
+      "question": "When was Joanna's second movie script shown on the big screens?",
+      "gold_answer": "The Sunday before 25October, 2022.",
+      "answer_changed": true,
+      "baseline_answer": "2022-06-04",
+      "candidate_answer": "The provided information is not enough.",
+      "baseline_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": false,
+      "candidate_lenient_correct": false
+    },
+    {
+      "record_key": "a2bb910b4213ede487db3d75",
+      "category": 2,
+      "question": "When did James and his family visit Mark and Josh?",
+      "gold_answer": "November 7, 2022",
+      "answer_changed": true,
+      "baseline_answer": "The provided information is not enough.",
+      "candidate_answer": "2022-11-07",
+      "baseline_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": false,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "a34933caa17660fa4c47d00a",
+      "category": 2,
+      "question": "How long did James and Samantha date for before deciding to move in together?",
+      "gold_answer": "nearly three months",
+      "answer_changed": true,
+      "baseline_answer": "Approximately 2 months and 28 days (from September 3, 2022, to October 31, 2022)",
+      "candidate_answer": "Approximately 2 months (from September 3, 2022, to October 31, 2022)",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": false
+    },
+    {
+      "record_key": "a6cfd515216076d41919e3e8",
+      "category": 2,
+      "question": "How long did Jolene work on the robotics project given to her by her Professor?",
+      "gold_answer": "four months",
+      "answer_changed": true,
+      "baseline_answer": "Approximately 4 months (from February 1, 2023, to May 2023)",
+      "candidate_answer": "Approximately 4 months (from February 2023 to May 2023)",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "a70b0312fd6ebd5900123430",
+      "category": 2,
+      "question": "How long did it take for Joanna to finish writing her book?",
+      "gold_answer": "four months",
+      "answer_changed": true,
+      "baseline_answer": "Joanna finished writing her book the week of September 29 to October 5, 2022.",
+      "candidate_answer": "Approximately 3 months (from mid-July to early October 2022)",
+      "baseline_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": false,
+      "candidate_lenient_correct": false
+    },
+    {
+      "record_key": "a7c747c2077ccc9164566cff",
+      "category": 2,
+      "question": "When did Calvin book flight tickets to Boston?",
+      "gold_answer": "last week of August 2023",
+      "answer_changed": true,
+      "baseline_answer": "Between 2023-08-26 and 2023-09-01",
+      "candidate_answer": "Between August 26, 2023, and September 1, 2023",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "a9b26389e6675bf930f8698f",
+      "category": 2,
+      "question": "Which country was Jolene located in during the last week of August 2023?",
+      "gold_answer": "Brazil",
+      "answer_changed": true,
+      "baseline_answer": "The provided information is not enough.",
+      "candidate_answer": "Brazil",
+      "baseline_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": false,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "ab43e3d44c74bef52cd14f1a",
+      "category": 2,
+      "question": "When did Caroline go to a pride parade during the summer?",
+      "gold_answer": "The week before 3 July 2023",
+      "answer_changed": true,
+      "baseline_answer": "Caroline went to a pride parade from June 26 to July 2, 2023, and on August 11, 2023.",
+      "candidate_answer": "the August 11 date as it is a specific day",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": false
+    },
+    {
+      "record_key": "b0c14fe47c56ddd85cbcd9ea",
+      "category": 2,
+      "question": "Where was Tim in the week before 16 November 2023?",
+      "gold_answer": "UK",
+      "answer_changed": true,
+      "baseline_answer": "The provided information is not enough.",
+      "candidate_answer": "He was swamped with exams.",
+      "baseline_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": false,
+      "candidate_lenient_correct": false
+    },
+    {
+      "record_key": "b25eec70060cd32185b2718b",
+      "category": 2,
+      "question": "How many days did James plan to spend on his trip in Canada?",
+      "gold_answer": "19 days",
+      "answer_changed": true,
+      "baseline_answer": "9 days",
+      "candidate_answer": "10 days",
+      "baseline_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": false,
+      "candidate_lenient_correct": false
+    },
+    {
+      "record_key": "b2c319ba424529f3ce6630b5",
+      "category": 2,
+      "question": "When did Deborah start the yoga class in the neighborhood?",
+      "gold_answer": "Friday before 13 March, 2023",
+      "answer_changed": true,
+      "baseline_answer": "2023-03-13",
+      "candidate_answer": "Recently before March 13, 2023",
+      "baseline_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": false,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "b70158294ab4fcbe84ac9269",
+      "category": 1,
+      "question": "How long did it take for Jon to open his studio?",
+      "gold_answer": "six months",
+      "answer_changed": true,
+      "baseline_answer": "Approximately 5 months (from January 19, 2023, to June 20, 2023)",
+      "candidate_answer": "The provided information is not enough.",
+      "baseline_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": false,
+      "candidate_lenient_correct": false
+    },
+    {
+      "record_key": "b780f7395eaa76bf0a98367c",
+      "category": 2,
+      "question": "When did Calvin buy his second Ferrari?",
+      "gold_answer": "first week of October 2023",
+      "answer_changed": true,
+      "baseline_answer": "Between October 8 and October 14, 2023",
+      "candidate_answer": "The provided information is not enough.",
+      "baseline_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": false,
+      "candidate_lenient_correct": false
+    },
+    {
+      "record_key": "b9bfc86a5dc55edfa9fd58b2",
+      "category": 4,
+      "question": "When did James plan to return from his trip to Toronto and Vancouver?",
+      "gold_answer": "July 20",
+      "answer_changed": true,
+      "baseline_answer": "July 20, 2022",
+      "candidate_answer": "July 20",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "bb35d800fdf29f80d0d341c0",
+      "category": 2,
+      "question": "When did Joanna plan on going to Nate's to watch him play with his turtles?",
+      "gold_answer": "10 November, 2022",
+      "answer_changed": true,
+      "baseline_answer": "2022-11-09",
+      "candidate_answer": "2022-11-05",
+      "baseline_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": false,
+      "candidate_lenient_correct": false
+    },
+    {
+      "record_key": "bd2d9a275c6c650313559683",
+      "category": 2,
+      "question": "When did Joanna first watch \"Eternal Sunshine of the Spotless Mind?",
+      "gold_answer": "2019",
+      "answer_changed": true,
+      "baseline_answer": "2019-01-21",
+      "candidate_answer": "Around 3 years ago from January 21, 2022 (approximately January 2019)",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "bf6f596ccc8166c48f94ed8c",
+      "category": 4,
+      "question": "For how long has Jolene had Seraphim as a pet?",
+      "gold_answer": "one year",
+      "answer_changed": true,
+      "baseline_answer": "1 year",
+      "candidate_answer": "Approximately 1 year (since 2022)",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "c582c346a1d61d3a78d8021a",
+      "category": 4,
+      "question": "When did Jolene's parents give her first console?",
+      "gold_answer": "when she was 10",
+      "answer_changed": true,
+      "baseline_answer": "When she was 10",
+      "candidate_answer": "When she was 10 years old",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "d013f7462c33367c10cbdf90",
+      "category": 2,
+      "question": "When did John resume playing drums in his adulthood?",
+      "gold_answer": "February 2022",
+      "answer_changed": true,
+      "baseline_answer": "February 2022",
+      "candidate_answer": "The provided information is not enough.",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": false
+    },
+    {
+      "record_key": "d3caff82978f72025a9ee1c8",
+      "category": 2,
+      "question": "When was the last photo of Deborah and Karlie taken?",
+      "gold_answer": "in summer 2022",
+      "answer_changed": false,
+      "baseline_answer": "2022",
+      "candidate_answer": "2022",
+      "baseline_judge_labels": [
+        "WRONG",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "d43e47707f69f9fa8ff2f48e",
+      "category": 2,
+      "question": "When did Joanna share her book with her writers group?",
+      "gold_answer": "The week before 22August, 2022.",
+      "answer_changed": true,
+      "baseline_answer": "Between August 15, 2022 and August 21, 2022",
+      "candidate_answer": "Between August 15, 2022, and August 21, 2022",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "de598b06198927e040889247",
+      "category": 2,
+      "question": "How many months passed between Andrew adopting Toby and Buddy?",
+      "gold_answer": "three months",
+      "answer_changed": true,
+      "baseline_answer": "3 months",
+      "candidate_answer": "Approximately 3 months",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "e1684220d528011b42524be4",
+      "category": 2,
+      "question": "When did Deborah`s mother pass away?",
+      "gold_answer": "a few years before 2023",
+      "answer_changed": true,
+      "baseline_answer": "The provided information is not enough to determine the exact date; Deborah stated her mother passed away 'a few years ago' relative to January 2023.",
+      "candidate_answer": "The provided information is not enough to determine the exact date.",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": false
+    },
+    {
+      "record_key": "e1f02c7aeacde4d1faa96570",
+      "category": 1,
+      "question": "When did John get an ankle injury in 2023?",
+      "gold_answer": "around November 16, 2023",
+      "answer_changed": true,
+      "baseline_answer": "The provided information is not enough.",
+      "candidate_answer": "Last season",
+      "baseline_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": false,
+      "candidate_lenient_correct": false
+    },
+    {
+      "record_key": "e6c4e6d5cd1c8c08fd427371",
+      "category": 2,
+      "question": "When did John and his gaming friends organize the charity tournament?",
+      "gold_answer": "On the night of October 30 to 31, 2022",
+      "answer_changed": true,
+      "baseline_answer": "October 30, 2022",
+      "candidate_answer": "2022-05-08",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": false
+    },
+    {
+      "record_key": "e99622339c0a77d3f4af64fd",
+      "category": 2,
+      "question": "When did Caroline join a mentorship program?",
+      "gold_answer": "The weekend before 17 July 2023",
+      "answer_changed": true,
+      "baseline_answer": "Last weekend (July 15-16, 2023)",
+      "candidate_answer": "2023-07-15 to 2023-07-16",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "ed9f56184e168c4fc79622ef",
+      "category": 2,
+      "question": "When did Calvin first travel to Tokyo?",
+      "gold_answer": "between 26 March and 20 April 2023",
+      "answer_changed": true,
+      "baseline_answer": "April 2023",
+      "candidate_answer": "May 2023. The 'never been' memories are likely errors. I will answer May 2023. Specifically, late May 2023",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": false
+    },
+    {
+      "record_key": "ee4554535f96113668f3d5d8",
+      "category": 2,
+      "question": "When did Sam first go to the doctor and find out he had a weight problem?",
+      "gold_answer": "A few days before May 24, 2023.",
+      "answer_changed": true,
+      "baseline_answer": "Approximately May 21-23, 2023 (a few days before May 24, 2023)",
+      "candidate_answer": "Late May 2023 (specifically a few days before May 24, 2023)",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "f253780520da547188758aa2",
+      "category": 2,
+      "question": "When did Evan start taking painting classes?",
+      "gold_answer": "Few days before 19 August, 2023.",
+      "answer_changed": true,
+      "baseline_answer": "Around August 16, 2023 (a few days before August 19, 2023)",
+      "candidate_answer": "A few days before August 19, 2023 (approximately mid-August 2023)",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "f2f4d77eee321806befb532d",
+      "category": 2,
+      "question": "How long did John practice chess for before winning the chess tournament?",
+      "gold_answer": "nearly four months",
+      "answer_changed": true,
+      "baseline_answer": "The provided information is not enough.",
+      "candidate_answer": "the duration",
+      "baseline_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": false,
+      "candidate_lenient_correct": false
+    },
+    {
+      "record_key": "f5850f38fdd2cd2e8e2a670c",
+      "category": 4,
+      "question": "When did Jolene's parents give her first console?",
+      "gold_answer": "when she was 10",
+      "answer_changed": true,
+      "baseline_answer": "When she was 10",
+      "candidate_answer": "When she was 10 years old",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "f8d03370353c87cc32194726",
+      "category": 2,
+      "question": "When did Jolene lose a lot of progress in her work?",
+      "gold_answer": "last week of July 2023",
+      "answer_changed": true,
+      "baseline_answer": "Last week (relative to August 1, 2023, i.e., late July 2023)",
+      "candidate_answer": "Last week relative to August 1, 2023 (July 25-31, 2023)",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "fd6de094822579ef6391673e",
+      "category": 2,
+      "question": "When did Caroline apply to adoption agencies?",
+      "gold_answer": "The week of 23 August 2023",
+      "answer_changed": false,
+      "baseline_answer": "23 August, 2023",
+      "candidate_answer": "23 August, 2023",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "WRONG",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "ffe7dce315ef4bebd9a9ba14",
+      "category": 2,
+      "question": "When did Evan finish the painting that's hanging in the exhibit?",
+      "gold_answer": "few days before 17 December, 2023.",
+      "answer_changed": true,
+      "baseline_answer": "2023-12-14",
+      "candidate_answer": "A few days before December 17, 2023",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    }
+  ],
+  "paths": {
+    "baseline_dual_judge": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_route_scoped_local_evidence_unit_v125_locomo_temporal_route_all/deepseek_dual_judge.json",
+    "candidate_dual_judge": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_temporal_local_evidence_signal_gate_v135_locomo_temporal_route_all/deepseek_dual_judge.json",
+    "baseline_predictions": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_route_scoped_local_evidence_unit_v125_locomo_temporal_route_all/predictions.jsonl",
+    "candidate_predictions": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_temporal_local_evidence_signal_gate_v135_locomo_temporal_route_all/predictions.jsonl",
+    "labels": "/data/home_new/wujinqi/agent-memory/outputs/prepare_locomo_non_adversarial/labels.jsonl"
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "clean_note": "This script is offline-only. Its outputs must not be read by prediction, retrieval, compiler, answer, or verifier modules.",
+  "created_at_utc": "2026-06-18T08:28:23+00:00",
+  "git": {
+    "commit": "b0f62567226c3ec12519d04ae7bfb93521af4b03",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "?? experiments/diagnostic/stage1_temporal_local_evidence_signal_gate_v135_locomo_temporal_route_all/"
+  },
+  "labels": "/data/home_new/wujinqi/agent-memory/outputs/prepare_locomo_non_adversarial/labels.jsonl",
+  "metrics": {
+    "accuracy_exact": 0.21005917159763313,
+    "bleu_unigram": 0.47142506036532666,
+    "by_type": {
+      "1": {
+        "accuracy_exact": 0.2,
+        "n": 10
+      },
+      "2": {
+        "accuracy_exact": 0.17437722419928825,
+        "n": 281
+      },
+      "3": {
+        "accuracy_exact": 0.0,
+        "n": 1
+      },
+      "4": {
+        "accuracy_exact": 0.43478260869565216,
+        "n": 46
+      }
+    },
+    "f1": 0.5053512838022887,
+    "metrics_note": "Offline lexical metrics only. Judge-based benchmark accuracy should be computed in a separate offline step and must not feed prediction.",
+    "n_joined": 338,
+    "n_labels": 1540,
+    "n_missing_gold": 0,
+    "n_predictions": 338
+  },
+  "predictions": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_temporal_local_evidence_signal_gate_v135_locomo_temporal_route_all/predictions.jsonl"
+}
