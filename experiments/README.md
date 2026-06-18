@@ -108,6 +108,7 @@
 | `diagnostic/stage1_superseded_source_chain_v127_summary.md` | v127 superseded source chain 诊断 |
 | `diagnostic/stage1_memory_source_interleave_v126_profile_state_summary.md` | v126 profile/current source interleave 诊断 |
 | `diagnostic/stage1_scoped_memory_state_guide_v142_badcase_summary.md` | v142 formal 后 LoCoMo gain/loss 聚合和 #5 下一步约束 |
+| `diagnostic/src_cleanup_audit_20260618.md` | v142 后 src 清理审计：确认暂无可安全删除的整模块 |
 | `diagnostic/stage1_build_memory_usage_trace_audit_v126_plan.md` | build memory 使用方式审计 |
 | `diagnostic/stage1_v102_generalization_audit_v104_plan.md` | v102 generalization 风险与 v104-v134 累积诊断日志 |
 | `diagnostic/judge_protocol_audit_20260617.md` | dual `deepseek-v4-flash` judge 协议审计 |
