@@ -73,10 +73,10 @@ The `selected_context_changed_count=161` comes from trace/config state: V125 rec
 
 This dry-run proves only LongMemEval retrieval/compiler prompt compatibility.
 
-It does not prove answer/finalizer compatibility. V125 inherits the V121 `source_grounded_consistency_guard`, while the current V116 LTS uses the older `structured_evidence_mechanical` finalizer. V116 LongMemEval formal metrics had finalizer applied on `8/500` records. V121 has a focused smoke check for those 8 finalizer-applied records, but V125 still needs either a clean full answer/judge run or an explicit answer/finalizer compatibility check before LTS promotion.
+It does not prove a new full LongMemEval answer/judge result. V125 inherits the V121 `source_grounded_consistency_guard`, while the previous V116 LTS used the older `structured_evidence_mechanical` finalizer. V116 LongMemEval formal metrics had finalizer applied on `8/500` records, and V121 has a focused smoke check showing identical predictions on those 8 records.
 
 ## Decision
 
-V125 remains a promising diagnostic candidate, not a new LTS.
+The LME compiler compatibility risk is cleared: V125 changes `0/500` prompts and `0/500` evidence row sets on LongMemEval.
 
-The LME compiler compatibility risk is cleared: V125 changes `0/500` prompts and `0/500` evidence row sets on LongMemEval. The next required work is temporal gain/loss badcase analysis on LoCoMo plus answer/finalizer compatibility or formal full evaluation before any LTS decision.
+This dry-run is now used as compatibility evidence for the V125 local LTS promotion, not as a new full LME rerun. The promotion decision is recorded in `experiments/diagnostic/stage1_route_scoped_local_evidence_unit_v125_lts_promotion.md`: V125 lowers goal risk #4 and partially lowers goal risk #3, while LME metrics are inherited from V116 by compatibility evidence.

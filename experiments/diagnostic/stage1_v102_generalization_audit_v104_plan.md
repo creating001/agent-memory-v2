@@ -67,7 +67,7 @@
 - 已实现改造：新增 `selected_context.max_center_chars`。selected context 现在可以按每条 retrieved turn 判断：只有中心 turn 不太长、且有指代/上下文依赖时补邻居。这样长文本样本中的短指代行仍可补上下文，短文本样本中的长中心行也会跳过。
 - v122 dry-run：继承 v121，只移除 long-turn profile 的 `selected_context.enabled=false`。LME full 编译诊断显示 selected_context 会应用到 `317/500`，avg context chars `+528.594`，avg evidence rows `-2.738`，changed evidence row count `308/500`。结论是不跑 full answer：直接把 short-turn selected context 搬到 long-turn 场景会大范围改变 prompt 并压缩 raw evidence 覆盖。后续应把 profile 改成更通用的 token-budget / evidence-density policy，而不是扩大邻域窗口。
 - v124 dry-run：继承 v121，在 short-turn policy 中加入 `temporal_lookup` 并把 `max_rows` 提到 `10`。LoCoMo full 编译诊断显示 changed `1536/1540`，selected_context applied `1536` vs v116 `1198`，avg context chars `+2101.65`，avg evidence rows `-5.008`。结论是不跑 full answer：全局 local evidence unit 太宽，会影响 fact/list/profile 并压缩 raw rows；下一步改为 `temporal_lookup` route-scoped 小窗口。
-- v125 dry-run/answer/judge 诊断：新增 `retrieval.selected_context.route_overrides.temporal_lookup`，只在 temporal route 加小窗口 local evidence unit。LoCoMo full dry-run 显示只改变 temporal prompt `338/338`，非 temporal route prompt 全部不变，evidence row ids `0/1540` 改变；temporal avg context chars `+1688.524`。temporal paired dual judge strict/lenient 从 v116 `0.772189/0.786982` 到 v125 `0.792899/0.813609`，净 strict `+7`、lenient `+9`。full route-only strict/lenient 从 v116 LTS `0.779221/0.807143` 到 v125 `0.789610/0.807792`，strict 正向但 lenient 仅 `+1/1540`。LME null-answer compiler compatibility 显示 `0/500` prompt changes、`0/500` evidence-row changes、route unchanged、avg context delta `0.0`。Badcase 显示收益来自 temporal anaphora / event-vs-mention-time anchors，损失来自过度相对时间推断、false insufficiency、矛盾 answer wrapper 和少数长输出 outlier；但 v125 finalizer 继承 v121 `source_grounded_consistency_guard`，仍需 answer/finalizer compatibility 或 formal full run。结论：保留为 promising diagnostic，下一步做更窄 temporal local-context policy 和 LME answer/finalizer 证明，不能直接升 LTS。
+- v125 dry-run/answer/judge 诊断：新增 `retrieval.selected_context.route_overrides.temporal_lookup`，只在 temporal route 加小窗口 local evidence unit。LoCoMo full dry-run 显示只改变 temporal prompt `338/338`，非 temporal route prompt 全部不变，evidence row ids `0/1540` 改变；temporal avg context chars `+1688.524`。temporal paired dual judge strict/lenient 从 v116 `0.772189/0.786982` 到 v125 `0.792899/0.813609`，净 strict `+7`、lenient `+9`。full route-only strict/lenient 从 v116 LTS `0.779221/0.807143` 到 v125 `0.789610/0.807792`，strict 正向但 lenient 仅 `+1/1540`。LME null-answer compiler compatibility 显示 `0/500` prompt changes、`0/500` evidence-row changes、route unchanged、avg context delta `0.0`；这不是新的 full LME answer/judge rerun，而是 LME 兼容性继承证据。Badcase 显示收益来自 temporal anaphora / event-vs-mention-time anchors，损失来自过度相对时间推断、false insufficiency、矛盾 answer wrapper 和少数长输出 outlier。按更新后的本地 LTS 口径，风险指 goal 五项风险，风险减少本身可触发 LTS，性能提升是强加分项但不是硬前提；v125 明确降低 #4 mechanical finalizer 风险，并部分降低 #3 selected-context heuristic 风险，同时有 LoCoMo temporal paired/full route-only dual judge 正向证据，因此提升为当前本地 LTS。#1 granularity/profile、#2 top-k/context noise、#5 build-memory organization 仍未解决。下一步从 v125 出发做更窄 temporal local-context policy。
 - v128 dry-run/answer 诊断：继承 v127，只在 `long_turn_precision` profile 的 `profile_preference/current_state` 路由启用已有 per-row selected-context policy，用 route + anaphora/center-length 替代全 profile disable。LME 只改变 `37/500` prompts，fact/list/temporal 不变；LoCoMo changed prompt/rows/context 为 `0/1540`。LME changed-prompt answer 诊断 exact 持平 `0.351351`，F1/BLEU1 小幅上升，但 avg query tokens `6480.730` 超 6K normal target；full route-only exact 也持平 `0.428000`。结论：这是 clean 的结构证据，说明可以把 v122 的宽影响收窄，但没有 accuracy gain，不升级、不优先 judge。
 
 4. Mechanical finalizer 风险
@@ -952,7 +952,7 @@ LME compatibility dry-run：
 - `selected_context_changed_count=161` 只是 trace/config 状态差异：v125 记录 temporal route override 可用，而 LME temporal records 仍全部未 apply，因此 prompt/row/context 无影响。
 - 边界：v125 继承 v121 `source_grounded_consistency_guard`，v116 LTS 使用 `structured_evidence_mechanical`；dry-run 未证明 answer/finalizer compatibility。
 
-结论：v125 通过 scope/cost 诊断，LoCoMo temporal paired judge 明确正向，full route-only strict 正向但 lenient 只小幅 `+1/1540`，并且 LME compiler compatibility 已通过。它是当前更强的 promising diagnostic candidate，但不能直接升级 LTS；下一步必须做 temporal gain/loss badcase 分析和 LME answer/finalizer compatibility，确认风险点减少且 target benchmarks 不退步后再跑 clean formal full。
+结论：v125 通过 scope/cost 诊断，LoCoMo temporal paired judge 明确正向，full route-only strict 正向但 lenient 只小幅 `+1/1540`，并且 LME compiler compatibility 已通过。按更新后的本地 LTS 规则，goal 五项风险中的任一/若干项实质下降可以作为升级 LTS 的充分理由，性能提升是强加分项；v125 降低 #4 mechanical finalizer 风险、部分降低 #3 selected-context heuristic 风险，并带来 LoCoMo 正向，因此提升为当前本地 LTS。#1/#2/#5 仍是优先风险。
 
 temporal gain/loss badcase：
 
@@ -963,6 +963,14 @@ temporal gain/loss badcase：
 - Loss pattern：local context 会导致 false insufficiency、relative-time over-shift、duration arithmetic regression、以及类似 `Two weekends after ... (June 11-12)` 的矛盾表述。
 - Cost pattern：changed-answer loss 子集 V125 avg query `7699.900`，有 `2` 条超 `8K` outlier，最高 `21404`；temporal 全集 avg query `5395.908` 仍在 6K normal target 内。
 - 决策：不扩宽 local context。下一候选应做 self-containedness gate / evidence-density scoring，只在邻居确实补时间锚点、实体指代或 antecedent 时 materialize，并加入通用 answer consistency 约束，避免矛盾 wrapper。
+
+LTS promotion：
+
+- 记录：`experiments/diagnostic/stage1_route_scoped_local_evidence_unit_v125_lts_promotion.md`。
+- 当前本地 LTS 配置：`configs/stage1_route_scoped_local_evidence_unit_v125_qwen36_no_think_build4k_cached.json`。
+- 晋升理由：风险优先。v125 继承 v121 source-grounded guard，降低 goal 风险 #4；temporal local evidence unit 只作用于 `temporal_lookup`，部分降低 goal 风险 #3；同时 LoCoMo temporal paired dual judge 和 full route-only strict 均正向。
+- 未解决项：#1 granularity/profile、#2 top-k/context noise/rerank、#5 build-memory organization/update/conflict/query-time reasoning 仍保留为后续优先待办。
+- LME 口径：不是新的 full LME answer rerun，而是通过 `0/500` prompt/row compatibility 与 v121 finalizer-applied 8 条一致性继承 v116 LME strict/lenient `0.812000 / 0.834000`。
 
 ## v133/v134 diagnostic result: fact tail text budget
 

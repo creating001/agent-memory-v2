@@ -86,8 +86,9 @@ This full diagnostic is strict-positive but lenient-marginal:
 
 ## Decision
 
-Keep V125 as a promising diagnostic candidate, not an LTS replacement yet.
+This diagnostic established the LoCoMo full route-only metric for V125. The metric is strict-positive and lenient-marginal relative to V116:
 
-The route-only full merge improves strict accuracy and barely improves lenient accuracy. LME compiler compatibility passed in null-answer dry-run with `0/500` prompt changes and `0/500` evidence-row changes, but answer/finalizer compatibility is not yet proven because V125 inherits the V121 `source_grounded_consistency_guard` while V116 LTS used `structured_evidence_mechanical`.
+- strict delta: `+16/1540`
+- lenient delta: `+1/1540`
 
-Because the LTS rule requires both fewer risk points and better full dual judge accuracy across target benchmarks, the next step is temporal gain/loss badcase analysis plus LongMemEval answer/finalizer compatibility or a clean formal full run before considering promotion.
+The original diagnostic conclusion treated V125 as a promising candidate only, because the earlier LTS rule required stronger full benchmark proof before promotion. That conclusion is superseded by `experiments/diagnostic/stage1_route_scoped_local_evidence_unit_v125_lts_promotion.md`: under the updated local LTS rule, one or more of the five goal risks can justify promotion if unresolved risks are documented. V125 is now the current local LTS because it lowers goal risk #4, partially lowers goal risk #3, and has positive LoCoMo dual-judge evidence. LongMemEval remains inherited by compatibility evidence, not by a new full answer/judge rerun.

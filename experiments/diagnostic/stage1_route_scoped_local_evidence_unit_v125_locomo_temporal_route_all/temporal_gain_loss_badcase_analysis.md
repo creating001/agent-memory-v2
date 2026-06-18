@@ -101,7 +101,7 @@ These failures are not caused by changed row ids. They are reader behavior trigg
 
 ## Decision
 
-Keep V125 as a promising diagnostic candidate, not LTS.
+This badcase analysis is now part of the V125 local LTS evidence. The earlier "not LTS" conclusion is superseded by `experiments/diagnostic/stage1_route_scoped_local_evidence_unit_v125_lts_promotion.md`: V125 lowers goal risk #4 and partially lowers goal risk #3, while this document records why #3 remains only partially reduced.
 
 The gain pattern is real and general: local source-backed context helps temporal questions resolve anaphora, relative dates, and event-vs-mention-time ambiguity. The loss pattern is also real: a fixed four-row temporal local context can make the reader over-infer weekends/durations, over-refuse when an answer requires light inference, or produce contradictory natural-language wrappers.
 

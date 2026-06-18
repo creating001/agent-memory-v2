@@ -4,26 +4,16 @@
 
 核心不是固定某个框架，而是在严格 clean setting 和成本约束下，持续提升长期记忆的 build、management、retrieval、context organization 和 answer 能力。方法可以迭代替换，但不能使用 gold answer、judge output、benchmark 标签、sample id、test feedback 或样本级规则。
 
-## 当前默认配置
+## 当前 LTS 配置
 
-后续新实验默认使用 `configs/stage1_extended_selected_context_v116_qwen36_no_think_build4k_cached.json`：
+默认配置：`configs/stage1_route_scoped_local_evidence_unit_v125_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-- Answer / build LLM：`Qwen/Qwen3.6-35B-A3B`。
-- thinking：请求级 `chat_template_kwargs.enable_thinking=false`。
-- Answer 上限：`max_input_tokens=131072`，`max_output_tokens=16384`。
-- build 上限：`max_tokens=4096`，`max_records_per_chunk=20`。
+| Benchmark | 当前 v125 local LTS | 说明 |
+|---|---:|---|
+| LongMemEval-S full | strict/lenient `0.812000 / 0.834000` | 兼容性继承；v125 LME dry-run `0/500` prompt/row change，v121 guard 在 v116 finalizer-applied 8 条上输出一致，不是新的 full rerun。 |
+| LoCoMo non-adversarial full | strict/lenient `0.789610 / 0.807792` | route-only isolated artifact。 |
 
-当前默认 backbone 的主目录 v116 LTS 结果：
-
-- Backbone：`Qwen/Qwen3.6-35B-A3B` no-thinking（build/answer 均使用 `chat_template_kwargs.enable_thinking=false`）。
-- LongMemEval-S full：strict `406/500 = 0.812000`，lenient `417/500 = 0.834000`。
-- LoCoMo non-adversarial full：strict `1200/1540 = 0.779221`，lenient `1243/1540 = 0.807143`。
-- 两个 benchmark 使用同一套 clean v116 算法；按 dual flash lenient judge，LME 和 LoCoMo 均达到当前 baseline target，但仍未达到 minimum target。
-- V116 继承 v110 modal-only grounded inference，并把短 turn selected context 的后向邻域从 1 扩到 2、neighbor 文本预算从 120 提到 180；不改变 build、retrieval top-k、rerank、repair 或 answer backbone。
-- `v101` 及之前的结果默认是旧 `Qwen/Qwen3-30B-A3B-Instruct-2507` backbone；只有显式带 `qwen36_no_think_build4k` 的配置和 run 属于当前 qwen3.6 no-thinking backbone。
-- 结果入口见 `experiments/README.md`；预测和 trace 见 `outputs/formal/<run_id>/`。
-
-上一版 qwen3.6 no-thinking v102 LTS 结果为 LongMemEval-S strict/lenient `0.814000 / 0.830000`、LoCoMo strict/lenient `0.776623 / 0.798052`。v116 相比 v102 保持 LME 达标，并把 LoCoMo lenient 推到 `0.807143`。
+v125 的 LTS 理由：降低 goal 风险 #4 mechanical finalizer，并部分降低 #3 selected-context heuristic；#1 granularity/profile、#2 top-k/context noise/rerank、#5 build-memory organization 仍是优先待办。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_route_scoped_local_evidence_unit_v125_lts_promotion.md`。
 
 ## 目录
 

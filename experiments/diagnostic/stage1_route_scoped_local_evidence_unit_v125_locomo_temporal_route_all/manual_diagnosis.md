@@ -136,7 +136,7 @@ Route-only full lexical metrics only:
 
 ## Decision
 
-Keep V125 as a promising diagnostic candidate, not as LTS yet.
+This diagnostic established the V125 temporal-route gain/loss evidence. The original "not LTS yet" conclusion is superseded by `experiments/diagnostic/stage1_route_scoped_local_evidence_unit_v125_lts_promotion.md` after the local LTS rule was updated to allow promotion when one or more of the five goal risks are reduced and unresolved risks are documented.
 
 Evidence so far:
 
@@ -149,4 +149,4 @@ Evidence so far:
 
 Badcase analysis shows that gains come from resolving temporal anaphora and event-vs-mention-time anchors, while losses come from over-shifted relative dates, false insufficiency, contradictory answer wrappers, and a small number of long-output outliers.
 
-Next step: design a narrower temporal local-context policy and prove answer/finalizer compatibility on LongMemEval before considering a formal full run. V125 is not a new LTS yet because LTS requires fewer risk points and better full dual judge accuracy across the target benchmarks.
+Next step: design a narrower temporal local-context policy. V125 is now the current local LTS because it lowers goal risk #4 and partially lowers goal risk #3, but this diagnostic still shows why #3 is only partially reduced.
