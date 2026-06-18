@@ -1,0 +1,47 @@
+{
+  "parent": "v173",
+  "candidate": "v175",
+  "clean_note": "Offline judge reads labels only after prediction; no judge/gold/sample-id signal is used in prediction logic.",
+  "benchmarks": {
+    "longmemeval_s_full": {
+      "answer_diff": "1/500",
+      "changed_strict_lenient": {
+        "v173": "0/1",
+        "v175": "1/1"
+      },
+      "patched_full": {
+        "strict_correct": 416,
+        "lenient_correct": 421,
+        "n": 500,
+        "strict_accuracy": 0.832,
+        "lenient_accuracy": 0.842
+      },
+      "changed_keys": [
+        "15d167d1ad74265d5887e5b9"
+      ]
+    },
+    "locomo_non_adversarial_full": {
+      "answer_diff": "1/1540",
+      "changed_strict_lenient": {
+        "v173": "0/1",
+        "v175": "1/1"
+      },
+      "patched_full": {
+        "strict_correct": 1221,
+        "lenient_correct": 1260,
+        "n": 1540,
+        "strict_accuracy": 0.7928571428571428,
+        "lenient_accuracy": 0.8181818181818182
+      },
+      "changed_keys": [
+        "f2f4d77eee321806befb532d"
+      ]
+    }
+  },
+  "paths": {
+    "lme_v173_dual": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_temporal_operand_arithmetic_repair_v175_changed_vs_v173/lme_v173_dual_judge.json",
+    "lme_v175_dual": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_temporal_operand_arithmetic_repair_v175_changed_vs_v173/lme_v175_dual_judge.json",
+    "locomo_v173_dual": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_temporal_operand_arithmetic_repair_v175_changed_vs_v173/locomo_v173_dual_judge.json",
+    "locomo_v175_dual": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_temporal_operand_arithmetic_repair_v175_changed_vs_v173/locomo_v175_dual_judge.json"
+  }
+}

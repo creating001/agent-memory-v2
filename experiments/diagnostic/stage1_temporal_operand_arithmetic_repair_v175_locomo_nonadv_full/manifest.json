@@ -1,0 +1,31 @@
+{
+  "benchmark": "locomo",
+  "clean_assertions": [
+    "Prediction loader rejects gold/reference/target answers.",
+    "Prediction loader rejects judge outputs and benchmark labels.",
+    "Prediction loader rejects sample ids, qids, and row indices.",
+    "record_key is copied only by the runner and is not passed into pipeline modules.",
+    "Derived context rows always retain raw source_id back-links.",
+    "Build-stage typed memory is created only from raw dialogue turns and visible metadata."
+  ],
+  "config_path": "/data/home_new/wujinqi/agent-memory/configs/stage1_temporal_operand_arithmetic_repair_v175_qwen36_no_think_build4k_cached.json",
+  "created_at_utc": "2026-06-18T22:15:00+00:00",
+  "experiment_dir": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_temporal_operand_arithmetic_repair_v175_locomo_nonadv_full",
+  "experiment_kind": "diagnostic",
+  "git": {
+    "commit": "efd88e46f1ee54c3b838d15c3c809bc1c1cd4083",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "M src/memory/repair.py\n M src/tests/test_clean_skeleton.py\n?? configs/stage1_temporal_operand_arithmetic_repair_v175_qwen36_no_think_build4k_cached.json\n?? experiments/diagnostic/stage1_temporal_operand_arithmetic_repair_v175_lme_s_full/"
+  },
+  "input_path": "/data/home_new/wujinqi/agent-memory/outputs/prepare_locomo_non_adversarial/prediction_input.jsonl",
+  "output_path": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_temporal_operand_arithmetic_repair_v175_locomo_nonadv_full/predictions.jsonl",
+  "outputs": {
+    "predictions": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_temporal_operand_arithmetic_repair_v175_locomo_nonadv_full/predictions.jsonl",
+    "traces": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_temporal_operand_arithmetic_repair_v175_locomo_nonadv_full/traces.jsonl"
+  },
+  "run_id": "stage1_temporal_operand_arithmetic_repair_v175_locomo_nonadv_full",
+  "subset": "non_adversarial_full",
+  "trace_path": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_temporal_operand_arithmetic_repair_v175_locomo_nonadv_full/traces.jsonl"
+}

@@ -615,10 +615,12 @@ def _temporal_calculation_repair_rules(reasons: tuple[str, ...]) -> list[str]:
     if "source_grounded_temporal_calculation_review" not in reasons:
         return []
     return [
-        "15. For this temporal, age, or duration review, simple arithmetic is allowed only over directly supported dates, durations, ages, event_time, mention_time, time_phrase, and Question Time.",
-        "16. Do not revise when any endpoint, age, duration, entity match, or requested event/state is missing, ambiguous, conflicting, or only topically related.",
-        "17. Preserve the unit requested by the question when possible; use approximate wording only when Memory Context gives approximate dates, approximate durations, or incomplete date precision.",
-        "18. For multi-part, list, choice, or external-name questions, keep or revise to insufficient information unless Memory Context fully supports every requested part.",
+        "15. For this temporal, age, or duration review, do not require the final elapsed-time, age, or duration phrase to appear verbatim in Memory Context.",
+        "16. If all operands are directly supported, revise to the concise computed answer. Allowed computations are: Question Time minus a supported event date for 'ago' questions; current age minus a directly stated elapsed duration for age-at-event questions; later concrete endpoint minus earlier concrete endpoint for duration or before/after questions.",
+        "17. Use mention_time only to resolve an explicit relative time phrase in the same memory row; do not use mention_time by itself as an event endpoint.",
+        "18. Preserve the unit requested by the question when possible; use approximate wording such as about, nearly, or approximately when the result is non-integer, date precision is incomplete, or Memory Context gives approximate dates/durations.",
+        "19. Keep or revise to insufficient information when any endpoint, age, duration, entity match, or requested event/state is missing, ambiguous, conflicting, unknown, empty, N/A, or only topically related.",
+        "20. For multi-part, list, choice, or external-name questions, keep or revise to insufficient information unless Memory Context fully supports every requested part.",
     ]
 
 

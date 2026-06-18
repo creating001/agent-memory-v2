@@ -1,0 +1,59 @@
+{
+  "api_key_env": "DEEPSEEK_API_KEY",
+  "base_url": "https://api.deepseek.com",
+  "benchmark": "longmemeval",
+  "clean_note": "Offline judge reads gold labels only after prediction. This output must not be consumed by prediction, retrieval, compiler, answer, or verifier.",
+  "created_at_utc": "2026-06-18T22:16:02+00:00",
+  "dry_run": false,
+  "git": {
+    "commit": "efd88e46f1ee54c3b838d15c3c809bc1c1cd4083",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "M src/memory/repair.py\n M src/tests/test_clean_skeleton.py\n?? configs/stage1_temporal_operand_arithmetic_repair_v175_qwen36_no_think_build4k_cached.json\n?? experiments/diagnostic/stage1_temporal_operand_arithmetic_repair_v175_changed_vs_v173/\n?? experiments/diagnostic/stage1_temporal_operand_arithmetic_repair_v175_lme_s_full/\n?? experiments/diagnostic/stage1_temporal_operand_arithmetic_repair_v175_locomo_nonadv_full/"
+  },
+  "judgments": [
+    {
+      "label": "WRONG",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "564da56d49df8b44",
+      "question_type": "temporal-reasoning",
+      "raw_response": "no",
+      "record_key": "15d167d1ad74265d5887e5b9",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 63,
+        "completion_tokens_details": {
+          "reasoning_tokens": 61
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 125,
+        "prompt_tokens": 253,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "total_tokens": 316
+      }
+    }
+  ],
+  "labels": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_temporal_operand_arithmetic_repair_v175_changed_vs_v173/lme_labels.jsonl",
+  "metrics": {
+    "accuracy": 0.0,
+    "n_invalid": 0,
+    "n_judgments": 1,
+    "n_valid": 1
+  },
+  "model": "deepseek-v4-flash",
+  "partial_output": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_temporal_operand_arithmetic_repair_v175_changed_vs_v173/lme_v173_flash1.json.partial.jsonl",
+  "predictions": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_temporal_operand_arithmetic_repair_v175_changed_vs_v173/lme_v173_predictions.jsonl",
+  "request_body_options": {},
+  "temperature": 0.0,
+  "thinking": null,
+  "usage": {
+    "completion_tokens": 63,
+    "prompt_tokens": 253,
+    "total_tokens": 316
+  },
+  "workers": 2
+}

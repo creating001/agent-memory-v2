@@ -6,12 +6,12 @@
 
 | 项目 | 结果 |
 |---|---|
-| 当前 LTS 配置 | `configs/stage1_source_grounded_modal_inference_repair_v173_qwen36_no_think_build4k_cached.json` |
+| 当前 LTS 配置 | `configs/stage1_temporal_operand_arithmetic_repair_v175_qwen36_no_think_build4k_cached.json` |
 | Backbone | `Qwen/Qwen3.6-35B-A3B` answer/build，`chat_template_kwargs.enable_thinking=false` |
-| 方法 | V173 source-grounded modal inference repair：继承 v172，并在拒答、modal yes/no、非外部命名/推荐/列表/敏感归因，且 `evidence_report` 有 source-backed 动机/偏好/因果/情绪/结果锚点时调用 verifier。 |
-| LongMemEval-S full | v173 与 v172 answer diff `0/500`；继承 v172 patched full `0.830000 / 0.840000`，`415/500` strict，`420/500` lenient |
-| LoCoMo non-adversarial full | v173 与 v172 answer diff `2/1540`，changed-answer paired dual judge strict/lenient `0/2 -> 2/2`；patched full `0.792208 / 0.817532`，`1220/1540` strict，`1259/1540` lenient |
-| 状态 | 当前本地 qwen3.6 no-thinking LTS。v173 降低 #4 over-abstention/source-grounded verifier 风险和 #5 query-time memory reasoning 风险；#1 granularity/profile 泛化、#2 top-k/context noise/rerank、#3 selected-context 泛化和更广泛 #5 lifecycle/update/conflict management 仍未解决。 |
+| 方法 | V175 temporal operand arithmetic repair：继承 v173，并在拒答、窄 elapsed-time/age/duration 计算、非 multi-part/list/choice/external-name，且 `evidence_report` 有 source-backed 操作数时调用 verifier；端点齐全可计算，不要求结果短语原文出现。 |
+| LongMemEval-S full | v175 与 v173 answer diff `1/500`，changed-answer paired dual judge strict/lenient `0/1 -> 1/1`；patched full `0.832000 / 0.842000`，`416/500` strict，`421/500` lenient |
+| LoCoMo non-adversarial full | v175 与 v173 answer diff `1/1540`，changed-answer paired dual judge strict/lenient `0/1 -> 1/1`；patched full `0.792857 / 0.818182`，`1221/1540` strict，`1260/1540` lenient |
+| 状态 | 当前本地 qwen3.6 no-thinking LTS。v175 降低 #4 over-abstention/source-grounded verifier 风险和窄 #5 query-time memory arithmetic reasoning 风险；#1 granularity/profile 泛化、#2 top-k/context noise/rerank、#3 selected-context 泛化和更广泛 #5 lifecycle/update/conflict management 仍未解决。 |
 
 `paired-delta derived` 的含义：新版本只改少量答案，未变化答案沿用父 LTS full dual judge records，变化答案单独跑 paired dual judge 后替换计数。若新版本与父 LTS answer-identical，则可继承父 LTS judge records，但必须记录 full answer diff、cache hit/miss 和输出路径。若论文级最终汇报需要完全独立 run，再对 LTS 配置重跑 fresh full judge。
 
@@ -26,7 +26,7 @@
 
 | 优先级 | 项目 | 当前状态 | 下一步 |
 |---:|---|---|---|
-| 1 | #5 memory lifecycle/state/conflict/query-time reasoning | v173 增加了窄 source-grounded modal inference activation；v172/v171 已让 profile preference 和 occupation/role lifecycle slot 能参与 source-backed verifier/finalizer；更广泛 state/update/conflict reasoning 仍薄 | 扩展到 answer-slot-aware lifecycle/update/conflict verifier，必须保持 source-backed typed memory 只做激活/索引 |
+| 1 | #5 memory lifecycle/state/conflict/query-time reasoning | v175 增加了窄 source-grounded temporal operand arithmetic；v173/v172/v171 已让 modal、profile preference 和 occupation/role lifecycle slot 能参与 source-backed verifier/finalizer；更广泛 state/update/conflict reasoning 仍薄 | 扩展到 answer-slot-aware lifecycle/update/conflict verifier，必须保持 source-backed typed memory 只做激活/索引 |
 | 2 | #2 top-k/context noise/rerank | v129/v134/v140/v152 说明简单裁剪、tail snippet 或 list-count rerank pruning 会伤 accuracy；当前 query context 仍偏长 | 转向 coverage-preserving route-aware context organization：先保留覆盖证据，再做 grouping/dedup/aggregation table |
 | 3 | #1 granularity/profile + #3 selected context | v173 不改变 granularity/selected-context；granularity profile 仍基于 avg-turn chars，v158 已把 long-turn selected context 从一刀切禁用改成 narrow question-gated policy | 继续重做更通用的 context organization，逐步减少 avg-turn profile 依赖 |
 | 4 | src cleanup | 已有多轮兼容分支，`repair.py`、compiler、pipeline 仍会继续变复杂 | 每个阶段结束后做小范围清理，删已确认无用的兼容代码，不删仍有消融价值的模块 |
@@ -35,7 +35,8 @@
 
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
-| `configs/stage1_source_grounded_modal_inference_repair_v173_qwen36_no_think_build4k_cached.json` | current LTS | LME strict/lenient `0.830000/0.840000`，LoCoMo `0.792208/0.817532`；v173 vs v172 answer diff `0/500`、`2/1540` | 当前 LTS；降低 modal yes/no 拒答和 query-time memory reasoning 风险，LoCoMo strict/lenient `+2/+2` |
+| `configs/stage1_temporal_operand_arithmetic_repair_v175_qwen36_no_think_build4k_cached.json` | current LTS | LME strict/lenient `0.832000/0.842000`，LoCoMo `0.792857/0.818182`；v175 vs v173 answer diff `1/500`、`1/1540` | 当前 LTS；降低窄 temporal/age/duration 过度拒答和 query-time memory arithmetic reasoning 风险，LME/LoCoMo strict/lenient 各 `+1/+1` |
+| `configs/stage1_source_grounded_modal_inference_repair_v173_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.830000/0.840000`，LoCoMo `0.792208/0.817532`；v173 vs v172 answer diff `0/500`、`2/1540` | 被 v175 替代；仍是 modal yes/no 拒答和 query-time memory reasoning 父对照 |
 | `configs/stage1_profile_preference_value_guard_v172_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.830000/0.840000`，LoCoMo `0.790909/0.816234`；v172 vs v171 answer diff `0/500`、`1/1540` | 被 v173 替代；仍是 profile-preference value guard 父对照 |
 | `configs/stage1_lifecycle_slot_specificity_guard_v171_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.830000/0.840000`，LoCoMo `0.790260/0.815584`；v171 vs v170 answer diff `1/500`、`0/1540` | 被 v172 替代；仍是 occupation/role lifecycle-slot specificity 父对照 |
 | `configs/stage1_source_value_specificity_guard_v170_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.828000/0.838000`，LoCoMo `0.790260/0.815584`；v170 vs v169 answer diff `0/500`、`8/1540` | 被 v171 替代；仍是 #4 generic source value specificity 父对照 |
@@ -89,6 +90,10 @@
 
 | 路径 | 内容 |
 |---|---|
+| `diagnostic/stage1_temporal_operand_arithmetic_repair_v175_scope_summary.md` | v175 LTS 晋升：LME/LoCoMo changed-answer paired dual judge 均 `0/1 -> 1/1`，source-grounded temporal operand arithmetic verifier |
+| `diagnostic/stage1_temporal_operand_arithmetic_repair_v175_changed_vs_v173/` | v175 vs v173 changed-answer paired dual judge，LME/LoCoMo strict/lenient 各 `+1/+1` |
+| `diagnostic/stage1_temporal_operand_arithmetic_repair_v175_lme_s_full/` | v175 LME full cached prediction run artifacts |
+| `diagnostic/stage1_temporal_operand_arithmetic_repair_v175_locomo_nonadv_full/` | v175 LoCoMo full cached prediction run artifacts |
 | `diagnostic/stage1_source_grounded_temporal_calculation_repair_v174_scope_summary.md` | v174 诊断：source-grounded temporal/age/duration verifier gate clean 但 full answer diff `0/500`、`0/1540`，新增 repair 成本，不升 LTS |
 | `diagnostic/stage1_source_grounded_temporal_calculation_repair_v174_lme_s_full/` | v174 LME full cached prediction run artifacts |
 | `diagnostic/stage1_source_grounded_temporal_calculation_repair_v174_locomo_nonadv_full/` | v174 LoCoMo full cached prediction run artifacts |

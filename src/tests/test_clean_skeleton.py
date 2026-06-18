@@ -3083,9 +3083,12 @@ class CleanSkeletonTest(unittest.TestCase):
         )
 
         self.assertIn("temporal, age, or duration review", prompt)
-        self.assertIn("directly supported dates", prompt)
+        self.assertIn("do not require the final elapsed-time", prompt)
+        self.assertIn("If all operands are directly supported", prompt)
+        self.assertIn("Question Time minus a supported event date", prompt)
+        self.assertIn("Use mention_time only to resolve", prompt)
         self.assertIn("Question Time", prompt)
-        self.assertIn("missing, ambiguous, conflicting", prompt)
+        self.assertIn("missing, ambiguous, conflicting, unknown", prompt)
         self.assertIn("Alex started using the cashback app on 2023/04/16.", prompt)
 
     def test_raw_response_content_extracts_answerer_content(self) -> None:
