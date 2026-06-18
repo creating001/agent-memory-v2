@@ -1,0 +1,31 @@
+{
+  "benchmark": "longmemeval",
+  "clean_assertions": [
+    "Prediction loader rejects gold/reference/target answers.",
+    "Prediction loader rejects judge outputs and benchmark labels.",
+    "Prediction loader rejects sample ids, qids, and row indices.",
+    "record_key is copied only by the runner and is not passed into pipeline modules.",
+    "Derived context rows always retain raw source_id back-links.",
+    "Build-stage typed memory is created only from raw dialogue turns and visible metadata."
+  ],
+  "config_path": "/data/home_new/wujinqi/agent-memory/configs/stage1_fact_source_interleave_v159_qwen36_no_think_build4k_cached.json",
+  "created_at_utc": "2026-06-18T18:19:54+00:00",
+  "experiment_dir": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_fact_source_interleave_v159_lme_fact_lookup",
+  "experiment_kind": "diagnostic",
+  "git": {
+    "commit": "f2ad4315b0ae449efdc7f85db04fa4aad051c4ed",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "?? configs/stage1_fact_source_interleave_v159_qwen36_no_think_build4k_cached.json"
+  },
+  "input_path": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic_inputs/v159_fact_source_interleave/lme_fact_lookup.jsonl",
+  "output_path": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_fact_source_interleave_v159_lme_fact_lookup/predictions.jsonl",
+  "outputs": {
+    "predictions": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_fact_source_interleave_v159_lme_fact_lookup/predictions.jsonl",
+    "traces": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_fact_source_interleave_v159_lme_fact_lookup/traces.jsonl"
+  },
+  "run_id": "stage1_fact_source_interleave_v159_lme_fact_lookup",
+  "subset": "fact_lookup_route_all",
+  "trace_path": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_fact_source_interleave_v159_lme_fact_lookup/traces.jsonl"
+}
