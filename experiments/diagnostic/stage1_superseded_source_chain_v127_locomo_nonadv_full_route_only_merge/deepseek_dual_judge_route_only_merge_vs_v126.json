@@ -1,0 +1,40 @@
+{
+  "comparison": "v127 superseded source chain vs v126 route-only merge inherited full 24 LoCoMo changed-prompt keys",
+  "created_at_utc": "2026-06-18T08:42:37.632588+00:00",
+  "decision": "pending_manual_review",
+  "clean_note": "Full aggregate inherits the v126 full route-only aggregate and applies only v127 changed-prompt judge deltas. It is diagnostic and not a fresh full judge rerun.",
+  "merge_counts": {
+    "base_records": 1516,
+    "override_records": 24,
+    "total": 1540
+  },
+  "metrics": {
+    "v126_inherited_full": {
+      "n_joined": 1540,
+      "strict_correct": 1220,
+      "strict_accuracy": 0.7922077922077922,
+      "lenient_correct": 1248,
+      "lenient_accuracy": 0.8103896103896104
+    },
+    "v127_route_only_merge_inherited": {
+      "n_joined": 1540,
+      "strict_correct": 1221,
+      "strict_accuracy": 0.7928571428571428,
+      "lenient_correct": 1250,
+      "lenient_accuracy": 0.8116883116883117
+    }
+  },
+  "deltas": {
+    "strict_correct_delta": 1,
+    "strict_accuracy_delta": 0.0006493506493506494,
+    "lenient_correct_delta": 2,
+    "lenient_accuracy_delta": 0.0012987012987012987
+  },
+  "paths": {
+    "baseline_dual_judge": "/home/wujinqi/agent-memory/experiments/diagnostic/stage1_memory_source_interleave_v126_locomo_profile_state_route_all/deepseek_dual_judge.json",
+    "candidate_dual_judge": "/home/wujinqi/agent-memory/experiments/diagnostic/stage1_superseded_source_chain_v127_locomo_changed_prompts/v127_changed_prompt_subset_deepseek_dual_judge.json",
+    "baseline_predictions": "/home/wujinqi/agent-memory/outputs/diagnostic/stage1_superseded_source_chain_v127_locomo_changed_prompts/v126_changed_prompt_subset_predictions.jsonl",
+    "candidate_predictions": "/home/wujinqi/agent-memory/outputs/diagnostic/stage1_superseded_source_chain_v127_locomo_changed_prompts/v127_changed_prompt_subset_predictions.jsonl",
+    "labels": "/home/wujinqi/agent-memory/outputs/prepare_locomo_non_adversarial/labels.jsonl"
+  }
+}

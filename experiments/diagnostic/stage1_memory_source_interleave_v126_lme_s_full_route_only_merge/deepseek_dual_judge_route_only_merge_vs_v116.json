@@ -1,0 +1,40 @@
+{
+  "comparison": "v126 profile/current route-only merge vs v116 LongMemEval full inherited judge",
+  "created_at_utc": "2026-06-18T08:40:56.867251+00:00",
+  "decision": "pending_manual_review",
+  "clean_note": "Full aggregate uses v116 published full dual judge counts plus offline paired subset delta for the 37 profile/current records. This is a diagnostic inherited aggregate, not a fresh full LME judge rerun.",
+  "merge_counts": {
+    "base_records": 463,
+    "override_records": 37,
+    "total": 500
+  },
+  "metrics": {
+    "v116_inherited_full": {
+      "n_joined": 500,
+      "strict_correct": 406,
+      "strict_accuracy": 0.812,
+      "lenient_correct": 417,
+      "lenient_accuracy": 0.834
+    },
+    "v126_route_only_merge_inherited": {
+      "n_joined": 500,
+      "strict_correct": 405,
+      "strict_accuracy": 0.81,
+      "lenient_correct": 416,
+      "lenient_accuracy": 0.832
+    }
+  },
+  "deltas": {
+    "strict_correct_delta": -1,
+    "strict_accuracy_delta": -0.002,
+    "lenient_correct_delta": -1,
+    "lenient_accuracy_delta": -0.002
+  },
+  "paths": {
+    "baseline_dual_judge": "/home/wujinqi/agent-memory/experiments/diagnostic/stage1_memory_source_interleave_v126_lme_profile_state_route_all/v116_profile_state_subset_deepseek_dual_judge.json",
+    "candidate_dual_judge": "/home/wujinqi/agent-memory/experiments/diagnostic/stage1_memory_source_interleave_v126_lme_profile_state_route_all/v126_profile_state_subset_deepseek_dual_judge.json",
+    "baseline_predictions": "/home/wujinqi/agent-memory/outputs/diagnostic/stage1_memory_source_interleave_v126_lme_profile_state_route_all/v116_profile_state_subset_predictions.jsonl",
+    "candidate_predictions": "/home/wujinqi/agent-memory/outputs/diagnostic/stage1_memory_source_interleave_v126_lme_profile_state_route_all/predictions.jsonl",
+    "labels": "/home/wujinqi/agent-memory/outputs/prepare_longmemeval_s_cleaned/labels.jsonl"
+  }
+}

@@ -1,0 +1,151 @@
+{
+  "comparison": "v127 superseded source chain vs v126 same 5 LongMemEval changed-prompt keys",
+  "created_at_utc": "2026-06-18T08:42:37.626772+00:00",
+  "decision": "pending_manual_review",
+  "clean_note": "Offline judge comparison reads gold labels only after prediction and must not feed prediction, retrieval, compiler, answer, verifier, or cache construction.",
+  "metrics": {
+    "v126_same_subset": {
+      "n_joined": 5,
+      "strict_correct": 2,
+      "strict_accuracy": 0.4,
+      "lenient_correct": 2,
+      "lenient_accuracy": 0.4,
+      "judge_1_correct": 2,
+      "judge_2_correct": 2,
+      "judge_agreement": 1.0
+    },
+    "v127": {
+      "n_joined": 5,
+      "strict_correct": 4,
+      "strict_accuracy": 0.8,
+      "lenient_correct": 4,
+      "lenient_accuracy": 0.8,
+      "judge_1_correct": 4,
+      "judge_2_correct": 4,
+      "judge_agreement": 1.0
+    }
+  },
+  "deltas": {
+    "strict_accuracy_delta": 0.4,
+    "strict_correct_delta": 2,
+    "lenient_accuracy_delta": 0.4,
+    "lenient_correct_delta": 2,
+    "paired": {
+      "strict_correct": {
+        "changed": 2,
+        "gain": 2,
+        "loss": 0,
+        "net": 2,
+        "same_correct": 2,
+        "same_wrong": 1,
+        "gain_keys": [
+          "a3e4c89a8fdf800fa3b2676f",
+          "beb0a3bdb35a23a257132b5e"
+        ],
+        "loss_keys": []
+      },
+      "lenient_correct": {
+        "changed": 2,
+        "gain": 2,
+        "loss": 0,
+        "net": 2,
+        "same_correct": 2,
+        "same_wrong": 1,
+        "gain_keys": [
+          "a3e4c89a8fdf800fa3b2676f",
+          "beb0a3bdb35a23a257132b5e"
+        ],
+        "loss_keys": []
+      }
+    }
+  },
+  "changed_records": [
+    {
+      "record_key": "431c6d9ef160528ca54104f8",
+      "question": "Can you suggest a hotel for my upcoming trip to Miami?",
+      "gold_answer": "The user would prefer suggestions of hotels in Miami that offer great views, possibly of the ocean or the city skyline, and have unique features such as a rooftop pool or a hot tub on the balcony. They may not prefer suggestions of basic or budget hotels without these features.",
+      "answer_changed": true,
+      "baseline_answer": "The provided information is not enough to answer the question: No memory context contains information about hotels in Miami or travel plans to Miami",
+      "candidate_answer": "The provided information is not enough to answer the question: No memory context regarding Miami or hotels in Miami",
+      "baseline_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": false,
+      "candidate_lenient_correct": false
+    },
+    {
+      "record_key": "a3e4c89a8fdf800fa3b2676f",
+      "question": "What is the order of the three trips I took in the past three months, from earliest to latest?",
+      "gold_answer": "I went on a day hike to Muir Woods National Monument with my family, then I went on a road trip with friends to Big Sur and Monterey, and finally I started my solo camping trip to Yosemite National Park.",
+      "answer_changed": true,
+      "baseline_answer": "the two",
+      "candidate_answer": "1. Day hike to Muir Woods National Monument (March 10, 2023); 2. Road trip to Big Sur and Monterey (April 20, 2023); 3. Solo camping trip to Yosemite (April 20, 2023).",
+      "baseline_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": false,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "beb0a3bdb35a23a257132b5e",
+      "question": "Where did I go on my most recent family trip?",
+      "gold_answer": "Paris",
+      "answer_changed": true,
+      "baseline_answer": "Hawaii",
+      "candidate_answer": "Paris",
+      "baseline_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": false,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "cd06f284ad43094e95945ab4",
+      "question": "Can you recommend some resources where I can learn more about video editing?",
+      "gold_answer": "The user would prefer responses that suggest resources specifically tailored to Adobe Premiere Pro, especially those that delve into its advanced settings. They might not prefer general video editing resources or resources related to other video editing software.",
+      "answer_changed": true,
+      "baseline_answer": "Based on your interest in Adobe Premiere Pro, you can learn more through: 1) Adobe Premiere Pro's official documentation and tutorials; 2) YouTube channels like Premiere Bro, Video Copilot, and Adobe Creative Cloud; 3) Online courses on platforms like Udemy, LinkedIn Learning, and Skillshare; and 4) Communities and forums such as Reddit's r/premierepro and Adobe's Premiere Pro forum.",
+      "candidate_answer": "Based on your interest in Adobe Premiere Pro, recommended resources include: Adobe Premiere Pro's official documentation and tutorials; YouTube channels like Premiere Bro, Video Copilot, and Adobe Creative Cloud; online courses on platforms like Udemy, LinkedIn Learning, and Skillshare; and communities such as Reddit's r/premierepro and Adobe's Premiere Pro forum.",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    }
+  ],
+  "paths": {
+    "baseline_dual_judge": "/home/wujinqi/agent-memory/experiments/diagnostic/stage1_memory_source_interleave_v126_lme_profile_state_route_all/v126_profile_state_subset_deepseek_dual_judge.json",
+    "candidate_dual_judge": "/home/wujinqi/agent-memory/experiments/diagnostic/stage1_superseded_source_chain_v127_lme_changed_prompts/v127_changed_prompt_subset_deepseek_dual_judge.json",
+    "baseline_predictions": "/home/wujinqi/agent-memory/outputs/diagnostic/stage1_superseded_source_chain_v127_lme_changed_prompts/v126_changed_prompt_subset_predictions.jsonl",
+    "candidate_predictions": "/home/wujinqi/agent-memory/outputs/diagnostic/stage1_superseded_source_chain_v127_lme_changed_prompts/v127_changed_prompt_subset_predictions.jsonl",
+    "labels": "/home/wujinqi/agent-memory/outputs/prepare_longmemeval_s_cleaned/labels.jsonl"
+  }
+}

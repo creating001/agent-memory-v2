@@ -150,35 +150,16 @@ Full LongMemEval-S lexical metrics only:
 
 ## Decision
 
-Keep V126 as a narrow diagnostic candidate pending dual `deepseek-v4-flash` judge. Do not promote.
+V126 is a useful ablation but not the final LTS on its own.
 
-Reasoning:
+Dual `deepseek-v4-flash` judge results:
 
-- The profile/current-only scope is clean and small on both benchmarks.
-- LoCoMo auxiliary lexical metrics are positive.
-- LME exact is unchanged, but F1/BLEU decreased on both the small profile/current subset and the full route-only merge.
-- Primary judge is missing because the current environment has no `DEEPSEEK_API_KEY`.
+- LoCoMo profile/current same 50 keys: v125 strict/lenient `0.720000 / 0.720000`, v126 `0.800000 / 0.800000`, paired delta `+4 / +4`.
+- LongMemEval profile/current same 37 keys: v116 strict/lenient `0.648649 / 0.675676`, v126 `0.621622 / 0.648649`, paired delta `-1 / -1`.
 
-Next judge commands when the key is available:
+Conclusion: source-backed memory interleave is promising and clearly helps LoCoMo profile/current, but it has a small LME regression. V127 keeps the V126 mechanism and fixes it by adding active/superseded update-chain source backpointers, so V126 remains an ablation under the V127 LTS evidence chain.
 
-```bash
-python scripts/judge_predictions_dual_deepseek.py \
-  --predictions outputs/diagnostic/stage1_memory_source_interleave_v126_locomo_nonadv_full_route_only_merge/predictions.jsonl \
-  --labels outputs/prepare_locomo_non_adversarial/labels.jsonl \
-  --output experiments/diagnostic/stage1_memory_source_interleave_v126_locomo_nonadv_full_route_only_merge/deepseek_dual_judge.json \
-  --benchmark locomo \
-  --workers 8 \
-  --progress-every 50
-```
+Judge outputs:
 
-If the LoCoMo full judge is positive, run LME profile/current dual judge before considering a formal full run.
-
-```bash
-python scripts/judge_predictions_dual_deepseek.py \
-  --predictions outputs/diagnostic/stage1_memory_source_interleave_v126_lme_s_full_route_only_merge/predictions.jsonl \
-  --labels outputs/prepare_longmemeval_s_cleaned/labels.jsonl \
-  --output experiments/diagnostic/stage1_memory_source_interleave_v126_lme_s_full_route_only_merge/deepseek_dual_judge.json \
-  --benchmark longmemeval \
-  --workers 8 \
-  --progress-every 50
-```
+- LoCoMo paired judge: `experiments/diagnostic/stage1_memory_source_interleave_v126_locomo_profile_state_route_all/paired_judge_comparison_vs_v125.json`
+- LME paired judge: `experiments/diagnostic/stage1_memory_source_interleave_v126_lme_profile_state_route_all/paired_judge_comparison_vs_v116.json`

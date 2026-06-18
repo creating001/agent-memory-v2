@@ -1,0 +1,432 @@
+{
+  "comparison": "v126 profile/current memory source interleave vs v116 same 37 LongMemEval keys",
+  "created_at_utc": "2026-06-18T08:40:56.866715+00:00",
+  "decision": "pending_manual_review",
+  "clean_note": "Offline judge comparison reads gold labels only after prediction and must not feed prediction, retrieval, compiler, answer, verifier, or cache construction.",
+  "metrics": {
+    "v116_same_subset": {
+      "n_joined": 37,
+      "strict_correct": 24,
+      "strict_accuracy": 0.6486486486486487,
+      "lenient_correct": 25,
+      "lenient_accuracy": 0.6756756756756757,
+      "judge_1_correct": 25,
+      "judge_2_correct": 24,
+      "judge_agreement": 0.972972972972973
+    },
+    "v126": {
+      "n_joined": 37,
+      "strict_correct": 23,
+      "strict_accuracy": 0.6216216216216216,
+      "lenient_correct": 24,
+      "lenient_accuracy": 0.6486486486486487,
+      "judge_1_correct": 24,
+      "judge_2_correct": 23,
+      "judge_agreement": 0.972972972972973
+    }
+  },
+  "deltas": {
+    "strict_accuracy_delta": -0.027027027027027084,
+    "strict_correct_delta": -1,
+    "lenient_accuracy_delta": -0.027027027027026973,
+    "lenient_correct_delta": -1,
+    "paired": {
+      "strict_correct": {
+        "changed": 1,
+        "gain": 0,
+        "loss": 1,
+        "net": -1,
+        "same_correct": 23,
+        "same_wrong": 13,
+        "gain_keys": [],
+        "loss_keys": [
+          "f9ae007ab8a08057a78ba572"
+        ]
+      },
+      "lenient_correct": {
+        "changed": 3,
+        "gain": 1,
+        "loss": 2,
+        "net": -1,
+        "same_correct": 23,
+        "same_wrong": 11,
+        "gain_keys": [
+          "5110d0ed1a7cb0fefd131e4d"
+        ],
+        "loss_keys": [
+          "1d4fed4463c88e0a44c6281c",
+          "f9ae007ab8a08057a78ba572"
+        ]
+      }
+    }
+  },
+  "changed_records": [
+    {
+      "record_key": "08cccaf312a179d4f4b961d3",
+      "question": "I've been feeling like my chocolate chip cookies need something extra. Any advice?",
+      "gold_answer": "The user would prefer responses that build upon their previous experimentation with turbinado sugar, suggesting ingredients or techniques that complement its richer flavor. They might not prefer generic cookie-making advice or suggestions that don't take into account their existing use of turbinado sugar.",
+      "answer_changed": true,
+      "baseline_answer": "The provided information is not enough to answer the question: No memory context regarding chocolate chip cookies or specific advice for them",
+      "candidate_answer": "The provided information is not enough to answer the question: No memory context mentions chocolate chip cookies or provides specific advice for enhancing them",
+      "baseline_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": false,
+      "candidate_lenient_correct": false
+    },
+    {
+      "record_key": "0a537c6dfde0742723049ca4",
+      "question": "Can you suggest some accessories that would complement my current photography setup?",
+      "gold_answer": "The user would prefer suggestions of Sony-compatible accessories or high-quality photography gear that can enhance their photography experience. They may not prefer suggestions of other brands' equipment or low-quality gear.",
+      "answer_changed": true,
+      "baseline_answer": "Based on your Sony A7R IV setup, consider camera bags from brands like Think Tank Photo, Lowepro, F-Stop Gear, Peak Design, or MindShift Gear (Memory 12). You may also want cases or pouches for your Godox V1 flash (Memory 4), external battery packs for on-the-go charging (Memory 20), and a soft cloth with cleaning solution for your Sony 24-70mm f/2.8 lens (Memory 18). Additionally, you are considering the Gitzo GT3543LS tripod (Memory 7).",
+      "candidate_answer": "Based on your Sony A7R IV setup and recent interest in the Godox V1 flash and Gitzo tripod, consider these accessories: 1) A protective case or pouch for your flash (Memory 4). 2) External battery packs for on-the-go charging (Memory 20). 3) A new camera bag; compatible brands include Think Tank Photo, Lowepro, F-Stop Gear, Peak Design, and MindShift Gear (Memory 5, 12).",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "158692bc43ef28e0e43d991f",
+      "question": "Can you recommend some recent publications or conferences that I might find interesting?",
+      "gold_answer": "The user would prefer suggestions related to recent research papers, articles, or conferences that focus on artificial intelligence in healthcare, particularly those that involve deep learning for medical image analysis. They would not be interested in general AI topics or those unrelated to healthcare.",
+      "answer_changed": true,
+      "baseline_answer": "The provided information is not enough to answer the question: No specific named publications or conferences appear in the memory context that can be recommended as 'recent' or 'interesting' based on the user's history",
+      "candidate_answer": "The provided information is not enough to answer the question: No specific named publications or conferences are mentioned in the memory context",
+      "baseline_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": false,
+      "candidate_lenient_correct": false
+    },
+    {
+      "record_key": "1d4fed4463c88e0a44c6281c",
+      "question": "Can you suggest some activities that I can do in the evening?",
+      "gold_answer": "The user would prefer suggestions that involve relaxing activities that can be done in the evening, preferably before 9:30 pm. They would not prefer suggestions that involve using their phone or watching TV, as these activities have been affecting their sleep quality.",
+      "answer_changed": true,
+      "baseline_answer": "Based on your preference to wind down by 9:30 pm, you can try guided meditation sessions designed for sleep and relaxation. Specifically, you mentioned planning to try the \"Body Scan\" meditation by Insight Timer to help calm your mind and body before bed.",
+      "candidate_answer": "Based on your preference to wind down by 9:30 pm, you can engage in guided meditation for sleep and relaxation. Specifically, you mentioned trying the \"Body Scan\" meditation by Insight Timer tonight.",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": false
+    },
+    {
+      "record_key": "1f7723fca5c03dfc8ff0e0ca",
+      "question": "How long have I been working before I started my current job at Google?",
+      "gold_answer": "The information provided is not enough. From the information provided, You haven't started working at Google yet.",
+      "answer_changed": true,
+      "baseline_answer": "The provided information is not enough to answer the question: No memory context confirms the user works at Google or provides a start date for a position at Google",
+      "candidate_answer": "The provided information is not enough to answer the question: No information in the memory context indicates the user has worked at Google or provides a timeline for such employment",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "431c6d9ef160528ca54104f8",
+      "question": "Can you suggest a hotel for my upcoming trip to Miami?",
+      "gold_answer": "The user would prefer suggestions of hotels in Miami that offer great views, possibly of the ocean or the city skyline, and have unique features such as a rooftop pool or a hot tub on the balcony. They may not prefer suggestions of basic or budget hotels without these features.",
+      "answer_changed": true,
+      "baseline_answer": "The provided information is not enough to answer the question: No memory context contains information about Miami or hotels in Miami",
+      "candidate_answer": "The provided information is not enough to answer the question: No memory context contains information about hotels in Miami or travel plans to Miami",
+      "baseline_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": false,
+      "candidate_lenient_correct": false
+    },
+    {
+      "record_key": "5110d0ed1a7cb0fefd131e4d",
+      "question": "Can you recommend some interesting cultural events happening around me this weekend?",
+      "gold_answer": "The user would prefer responses that suggest cultural events where they can practice their language skills, particularly Spanish and French. They would also appreciate if the event has a focus on language learning resources. They would not prefer events that do not provide opportunities for language practice or cultural exchange.",
+      "answer_changed": true,
+      "baseline_answer": "The provided information is not enough to recommend specific cultural events happening this weekend. While you have expressed interest in language diversity and cultural exchange festivals, the context only offers general strategies (like checking Eventbrite, Meetup, or local language schools) to find such events, rather than listing specific upcoming ones.",
+      "candidate_answer": "Based on your interest in language diversity and cultural exchange (particularly French, Spanish, and African cultures), I recommend looking for **Language Festivals**, **International Festivals**, or **Heritage Month** celebrations in your area. You can find these by checking online event calendars like Eventbrite or Meetup for groups focused on language exchange and cultural diversity.",
+      "baseline_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "WRONG"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": false,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "5819961e927d864a6b8d3a21",
+      "question": "Can you suggest some useful accessories for my phone?",
+      "gold_answer": "The user would prefer suggestions of accessories that are compatible with an iPhone 13 Pro, such as high-quality screen protectors, durable cases, portable power banks, or phone wallet cases. They may not prefer suggestions of accessories that are not compatible with Apple products or do not enhance the functionality or protection of their phone.",
+      "answer_changed": true,
+      "baseline_answer": "Based on your iPhone 13 Pro, consider a high-quality wallet case (e.g., Nomad, Bellroy, or Spigen) for storage and protection, a screen protector to prevent scratches, and potentially a wireless charging power bank for convenient on-the-go charging.",
+      "candidate_answer": "Based on your interest in your iPhone 13 Pro, useful accessories include high-quality wallet cases (brands like Nomad, Bellroy, or Spigen), screen protectors, and portable power banks (including wireless charging options).",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "740d3b0bc662060a816e231f",
+      "question": "What is the order of the six museums I visited from earliest to latest?",
+      "gold_answer": "Science Museum, Museum of Contemporary Art, Metropolitan Museum of Art, Museum of History, Modern Art Museum, Natural History Museum",
+      "answer_changed": true,
+      "baseline_answer": "Science Museum, Metropolitan Museum of Art, Museum of History, Modern Art Museum, Natural History Museum, Museum of Contemporary Art",
+      "candidate_answer": "1. Science Museum, 2. Metropolitan Museum of Art, 3. Museum of History, 4. Modern Art Museum, 5. Natural History Museum, 6. Museum of Contemporary Art",
+      "baseline_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": false,
+      "candidate_lenient_correct": false
+    },
+    {
+      "record_key": "7933cff5854d25ce3c9e8901",
+      "question": "How long have I been living in my current apartment in Shinjuku?",
+      "gold_answer": "The information provided is not enough. You mentioned living in Harajuku but not Shinjuku.",
+      "answer_changed": true,
+      "baseline_answer": "The provided information is not enough to answer the question. The context indicates the user lives in Harajuku, not Shinjuku.",
+      "candidate_answer": "The provided information is not enough to determine how long you have been living in an apartment in Shinjuku, as the context indicates you live in Harajuku.",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "8b879add5b99d7c3de847de7",
+      "question": "Can you recommend a show or movie for me to watch tonight?",
+      "gold_answer": "The user would prefer recommendations for stand-up comedy specials on Netflix, especially those that are known for their storytelling. They may not prefer recommendations for other genres or platforms.",
+      "answer_changed": true,
+      "baseline_answer": "The provided information is not enough to recommend a specific named show or movie. Based on your interest in politics, conservative ideology, and the 20th century, you might look for historical dramas or political thrillers set in the 20th century that explore conservative viewpoints or historical political events.",
+      "candidate_answer": "The provided information is not enough to recommend a specific show or movie. Based on your interest in politics, conservative ideologies, and the 20th century, you might look for historical dramas or political thrillers set in that era with a conservative perspective.",
+      "baseline_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": false,
+      "candidate_lenient_correct": false
+    },
+    {
+      "record_key": "a1e403c5b6ee9c67eceee109",
+      "question": "How long have I been working in my current role?",
+      "gold_answer": "1 year and 5 months",
+      "answer_changed": true,
+      "baseline_answer": "The provided information is not enough to determine how long you have been in your current role.",
+      "candidate_answer": "The provided information is not enough to answer the question: The specific start date or duration of the current 'Senior Marketing Specialist' role is not provided in the memory context",
+      "baseline_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": false,
+      "candidate_lenient_correct": false
+    },
+    {
+      "record_key": "a3e4c89a8fdf800fa3b2676f",
+      "question": "What is the order of the three trips I took in the past three months, from earliest to latest?",
+      "gold_answer": "I went on a day hike to Muir Woods National Monument with my family, then I went on a road trip with friends to Big Sur and Monterey, and finally I started my solo camping trip to Yosemite National Park.",
+      "answer_changed": true,
+      "baseline_answer": "1. Solo camping trip to Yosemite, 2. Road trip to Big Sur and Monterey, 3. Trip to John Muir Wilderness",
+      "candidate_answer": "the two",
+      "baseline_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": false,
+      "candidate_lenient_correct": false
+    },
+    {
+      "record_key": "ba57c4f922001033e979f087",
+      "question": "How many engineers do I lead when I just started my new role as Senior Software Engineer? How many engineers do I lead now?",
+      "gold_answer": "When you just started your new role as Senior Software Engineer, you led 4 engineers. Now, you lead 5 engineers",
+      "answer_changed": true,
+      "baseline_answer": "When you started, you led 4 engineers. Currently, you lead 5 engineers.",
+      "candidate_answer": "You led 4 engineers when you started your new role, and you now lead 5 engineers.",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "cb96414dbbb017e56ece7a3f",
+      "question": "What is the order of the three sports events I participated in during the past month, from earliest to latest?",
+      "gold_answer": "I first completed the Spring Sprint Triathlon, then took part in the Midsummer 5K Run, and finally participated in the company's annual charity soccer tournament.",
+      "answer_changed": true,
+      "baseline_answer": "1. Spring Sprint Triathlon (2023/06/02), 2. Midsummer 5K Run (2023/06/10), 3. Charity Soccer Tournament (2023/06/17)",
+      "candidate_answer": "1. Spring Sprint Triathlon (2023-06-02), 2. Midsummer 5K Run (2023-06-10), 3. Charity Soccer Tournament (2023-06-17)",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "cd06f284ad43094e95945ab4",
+      "question": "Can you recommend some resources where I can learn more about video editing?",
+      "gold_answer": "The user would prefer responses that suggest resources specifically tailored to Adobe Premiere Pro, especially those that delve into its advanced settings. They might not prefer general video editing resources or resources related to other video editing software.",
+      "answer_changed": true,
+      "baseline_answer": "Based on your use of Adobe Premiere Pro, recommended resources include: Adobe Premiere Pro's official documentation and tutorials; YouTube channels like Premiere Bro, Video Copilot, and Adobe Creative Cloud; online courses on platforms like Udemy, LinkedIn Learning, and Skillshare; and communities such as Reddit's r/premierepro and Adobe's Premiere Pro forum.",
+      "candidate_answer": "Based on your interest in Adobe Premiere Pro, you can learn more through: 1) Adobe Premiere Pro's official documentation and tutorials; 2) YouTube channels like Premiere Bro, Video Copilot, and Adobe Creative Cloud; 3) Online courses on platforms like Udemy, LinkedIn Learning, and Skillshare; and 4) Communities and forums such as Reddit's r/premierepro and Adobe's Premiere Pro forum.",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "dadf0d7c77ff05ffc3f75b08",
+      "question": "Can you suggest some activities I can do during my commute to work?",
+      "gold_answer": "The user would prefer suggestions related to listening to new podcasts or audiobooks, especially the genre beyond true crime or self-improvement, such as history. They may not be interested in activities that require visual attention, such as reading or watching videos, as they are commuting. The user would not prefer general podcast topics such as true crime or self-improvement, as the user wants to explore other topics.",
+      "answer_changed": true,
+      "baseline_answer": "Based on your habits, you can continue listening to podcasts, which you already enjoy. Specifically, you have expressed interest in history podcasts, as well as true crime and self-improvement genres. This helps you stay productive and entertained while avoiding the chaos of the crowded bus on Mondays.",
+      "candidate_answer": "Based on your preferences, you can continue listening to podcasts, such as history, true crime, or self-improvement shows (like 'How I Built This'), which you already enjoy. To stay productive and avoid wasting time on email and social media, consider using this time for these audio activities or organizing your listening schedule for your 40-minute commute.",
+      "baseline_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": false,
+      "candidate_lenient_correct": false
+    },
+    {
+      "record_key": "f9ae007ab8a08057a78ba572",
+      "question": "I'm trying to decide whether to buy a NAS device now or wait. What do you think?",
+      "gold_answer": "The user would prefer responses that take into account their current home network storage capacity issues and recent reliance on external hard drives, highlighting the potential benefits of a NAS device in addressing these specific needs. They might not prefer responses that ignore their current storage challenges or fail to consider their recent tech upgrades and priorities. Preferred responses would utilize the user's previous mentions of storage capacity issues and tech investments to inform their decision.",
+      "answer_changed": true,
+      "baseline_answer": "Based on your current needs for expanding storage capacity and securing your data with features like encryption, it is advisable to buy a NAS now. The context highlights that a NAS offers better convenience and centralization than your current external hard drive setup. Specific beginner-friendly options like the Synology DiskStation DS218j or QNAP TS-231P are available, as well as more secure options like the Synology DS1819+ if security is your primary concern. There is no information in the context suggesting that waiting will yield better deals or necessary features.",
+      "candidate_answer": "The provided information is not enough to determine whether you should buy a NAS device now or wait, as there is no data on upcoming releases or price changes.",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": false
+    }
+  ],
+  "paths": {
+    "baseline_dual_judge": "/home/wujinqi/agent-memory/experiments/diagnostic/stage1_memory_source_interleave_v126_lme_profile_state_route_all/v116_profile_state_subset_deepseek_dual_judge.json",
+    "candidate_dual_judge": "/home/wujinqi/agent-memory/experiments/diagnostic/stage1_memory_source_interleave_v126_lme_profile_state_route_all/v126_profile_state_subset_deepseek_dual_judge.json",
+    "baseline_predictions": "/home/wujinqi/agent-memory/outputs/diagnostic/stage1_memory_source_interleave_v126_lme_profile_state_route_all/v116_profile_state_subset_predictions.jsonl",
+    "candidate_predictions": "/home/wujinqi/agent-memory/outputs/diagnostic/stage1_memory_source_interleave_v126_lme_profile_state_route_all/predictions.jsonl",
+    "labels": "/home/wujinqi/agent-memory/outputs/prepare_longmemeval_s_cleaned/labels.jsonl"
+  }
+}

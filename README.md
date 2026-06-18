@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_route_scoped_local_evidence_unit_v125_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_superseded_source_chain_v127_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v125 local LTS | 说明 |
+| Benchmark | 当前 v127 local LTS | 说明 |
 |---|---:|---|
-| LongMemEval-S full | strict/lenient `0.812000 / 0.834000` | 兼容性继承；v125 LME dry-run `0/500` prompt/row change，v121 guard 在 v116 finalizer-applied 8 条上输出一致，不是新的 full rerun。 |
-| LoCoMo non-adversarial full | strict/lenient `0.789610 / 0.807792` | route-only isolated artifact。 |
+| LongMemEval-S full | strict/lenient `0.814000 / 0.836000` | inherited route-only aggregate：v116 full dual judge + v126 profile/current delta `-1/-1` + v127 changed-prompt delta `+2/+2`，不是新的 full rerun。 |
+| LoCoMo non-adversarial full | strict/lenient `0.792857 / 0.811688` | route-only aggregate：v125 full route-only dual judge + v126 profile/current delta `+4/+4` + v127 changed-prompt delta `+1/+2`。 |
 
-v125 的 LTS 理由：降低 goal 风险 #4 mechanical finalizer，并部分降低 #3 selected-context heuristic；#1 granularity/profile、#2 top-k/context noise/rerank、#5 build-memory organization 仍是优先待办。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_route_scoped_local_evidence_unit_v125_lts_promotion.md`。
+v127 的 LTS 理由：继承 v125 对 #4 mechanical finalizer 和 #3 selected-context heuristic 的风险收敛，并新增 source-backed memory source interleave + superseded/update chain，降低 goal 风险 #5 build-memory organization。#1 granularity/profile 和 #2 top-k/context noise/rerank 仍是优先待办。详细证据见 `experiments/README.md`、`experiments/diagnostic/stage1_memory_source_interleave_v126_profile_state_summary.md` 和 `experiments/diagnostic/stage1_superseded_source_chain_v127_summary.md`。
 
 ## 目录
 

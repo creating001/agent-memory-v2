@@ -103,33 +103,21 @@ Full exact transitions:
 
 ## Decision
 
-Keep V127 as a narrow positive diagnostic candidate. Do not promote to LTS.
+Promote V127 as the current local LTS.
 
 Reasoning:
 
 - Clean/general risk is controlled: the change uses prediction-time route and source-linked memory records, not labels or sample-level rules.
-- The impact scope is small and intended: LME `5/500` prompts and LoCoMo `24/1540` prompts changed, all in profile/current routes.
-- Auxiliary lexical metrics are positive or neutral: LME full route-only exact gains `+1/500`; LoCoMo full route-only exact is unchanged with small F1/BLEU improvement.
-- Primary metric is still missing because the current environment has no `DEEPSEEK*` env. V127 should be judged after V125/V126 pending candidates, or alongside them if batching judge cost is acceptable.
+- The mechanism is method-level, not a benchmark shortcut: build-memory active/superseded records are used to organize raw source rows, while typed memory text still does not become reader evidence.
+- The impact scope is small and intended: LME `5/500` prompts and LoCoMo `24/1540` prompts changed from V126, all in profile/current routes.
+- Primary dual judge is positive on both changed subsets: LME strict/lenient delta `+2/+2`, LoCoMo delta `+1/+2`.
+- Inherited route-only aggregate is positive on both benchmarks: LME strict/lenient `0.814000 / 0.836000`; LoCoMo `0.792857 / 0.811688`.
 
-Next judge commands when the key is available:
+This reduces goal risk #5 build-memory organization/update chain while inheriting V125's #4 and partial #3 risk reductions. It does not solve #1 granularity/profile or #2 context noise/rerank.
 
-```bash
-python scripts/judge_predictions_dual_deepseek.py \
-  --predictions outputs/diagnostic/stage1_superseded_source_chain_v127_lme_s_full_route_only_merge/predictions.jsonl \
-  --labels outputs/prepare_longmemeval_s_cleaned/labels.jsonl \
-  --output experiments/diagnostic/stage1_superseded_source_chain_v127_lme_s_full_route_only_merge/deepseek_dual_judge.json \
-  --benchmark longmemeval \
-  --workers 8 \
-  --progress-every 50
-```
+Judge outputs:
 
-```bash
-python scripts/judge_predictions_dual_deepseek.py \
-  --predictions outputs/diagnostic/stage1_superseded_source_chain_v127_locomo_nonadv_full_route_only_merge/predictions.jsonl \
-  --labels outputs/prepare_locomo_non_adversarial/labels.jsonl \
-  --output experiments/diagnostic/stage1_superseded_source_chain_v127_locomo_nonadv_full_route_only_merge/deepseek_dual_judge.json \
-  --benchmark locomo \
-  --workers 8 \
-  --progress-every 50
-```
+- LME paired judge vs V126: `experiments/diagnostic/stage1_superseded_source_chain_v127_lme_changed_prompts/paired_judge_comparison_vs_v126.json`
+- LoCoMo paired judge vs V126: `experiments/diagnostic/stage1_superseded_source_chain_v127_locomo_changed_prompts/paired_judge_comparison_vs_v126.json`
+- LME inherited full aggregate: `experiments/diagnostic/stage1_superseded_source_chain_v127_lme_s_full_route_only_merge/deepseek_dual_judge_route_only_merge_vs_v126.json`
+- LoCoMo inherited full aggregate: `experiments/diagnostic/stage1_superseded_source_chain_v127_locomo_nonadv_full_route_only_merge/deepseek_dual_judge_route_only_merge_vs_v126.json`

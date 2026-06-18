@@ -1,0 +1,46 @@
+{
+  "comparison": "v126 profile/current route-only merge vs v125 LoCoMo full route-only judge",
+  "created_at_utc": "2026-06-18T08:38:06.805496+00:00",
+  "decision": "pending_manual_review",
+  "clean_note": "Merged judge aggregation uses v126 offline judgments only for the 50 profile/current override records and v125 offline judgments for unchanged records.",
+  "merge_counts": {
+    "base_records": 1490,
+    "override_records": 50,
+    "total": 1540
+  },
+  "metrics": {
+    "v125_full": {
+      "n_joined": 1540,
+      "strict_correct": 1216,
+      "strict_accuracy": 0.7896103896103897,
+      "lenient_correct": 1244,
+      "lenient_accuracy": 0.8077922077922078,
+      "judge_1_correct": 1228,
+      "judge_2_correct": 1232,
+      "judge_agreement": 0.9818181818181818
+    },
+    "v126_route_only_merge": {
+      "n_joined": 1540,
+      "strict_correct": 1220,
+      "strict_accuracy": 0.7922077922077922,
+      "lenient_correct": 1248,
+      "lenient_accuracy": 0.8103896103896104,
+      "judge_1_correct": 1232,
+      "judge_2_correct": 1236,
+      "judge_agreement": 0.9818181818181818
+    }
+  },
+  "deltas": {
+    "strict_accuracy_delta": 0.0025974025974025983,
+    "strict_correct_delta": 4,
+    "lenient_accuracy_delta": 0.0025974025974025983,
+    "lenient_correct_delta": 4
+  },
+  "paths": {
+    "baseline_dual_judge": "/home/wujinqi/agent-memory/experiments/diagnostic/stage1_route_scoped_local_evidence_unit_v125_locomo_nonadv_full_route_only_merge/deepseek_dual_judge.json",
+    "candidate_dual_judge": "/home/wujinqi/agent-memory/experiments/diagnostic/stage1_memory_source_interleave_v126_locomo_profile_state_route_all/deepseek_dual_judge.json",
+    "baseline_predictions": "/home/wujinqi/agent-memory/outputs/diagnostic/stage1_route_scoped_local_evidence_unit_v125_locomo_nonadv_full_route_only_merge/predictions.jsonl",
+    "candidate_predictions": "/home/wujinqi/agent-memory/outputs/diagnostic/stage1_memory_source_interleave_v126_locomo_profile_state_route_all/predictions.jsonl",
+    "labels": "/home/wujinqi/agent-memory/outputs/prepare_locomo_non_adversarial/labels.jsonl"
+  }
+}

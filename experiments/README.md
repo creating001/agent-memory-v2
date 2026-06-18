@@ -6,12 +6,12 @@
 
 | 项目 | 结果 |
 |---|---|
-| 当前 LTS 配置 | `configs/stage1_route_scoped_local_evidence_unit_v125_qwen36_no_think_build4k_cached.json` |
+| 当前 LTS 配置 | `configs/stage1_superseded_source_chain_v127_qwen36_no_think_build4k_cached.json` |
 | Backbone | `Qwen/Qwen3.6-35B-A3B` answer/build，`chat_template_kwargs.enable_thinking=false` |
-| 方法 | V125 route-scoped temporal local evidence unit；继承 v121 source-grounded guard 和 v116 selected-context 基础，只在 prediction-time `temporal_lookup` route materialize 小窗口 same-session local context |
-| LongMemEval-S full | strict/lenient `0.812000 / 0.834000`；兼容性继承，不是新的 full answer/judge rerun。证据：LME dry-run `0/500` prompt/row change，v121 guard 在 v116 finalizer-applied 8 条上输出一致 |
-| LoCoMo non-adversarial full | route-only isolated artifact strict/lenient `0.789610 / 0.807792` |
-| 状态 | 当前本地 qwen3.6 no-thinking LTS。按 goal 五项风险审计，v125 降低 #4 mechanical finalizer 风险，并部分降低 #3 selected-context heuristic 风险；#1/#2/#5 仍未解决。LME 以兼容性证据继承 v116。 |
+| 方法 | V127 superseded source chain；继承 v125 route-scoped temporal local evidence unit 和 v121 source-grounded guard，并在 profile/current routes 用 build-memory source backpointers 组织 active/superseded update chain。Typed memory text 不作为 reader evidence。 |
+| LongMemEval-S full | inherited route-only strict/lenient `0.814000 / 0.836000`；v116 full dual judge + v126 profile/current delta `-1/-1` + v127 changed-prompt delta `+2/+2`，不是新的 full answer/judge rerun |
+| LoCoMo non-adversarial full | route-only strict/lenient `0.792857 / 0.811688`；v125 full route-only dual judge + v126 profile/current delta `+4/+4` + v127 changed-prompt delta `+1/+2` |
+| 状态 | 当前本地 qwen3.6 no-thinking LTS。按 goal 五项风险审计，v127 继承 #4/#3 风险收敛，并新增降低 #5 build-memory organization/update chain 风险；#1 granularity/profile 和 #2 top-k/context noise/rerank 仍未解决。 |
 
 ## 口径说明
 
@@ -25,19 +25,19 @@
 
 | 优先级 | 项目 | 当前状态 | 下一步 |
 |---:|---|---|---|
-| 1 | #5 memory organization/update chain | 合并处理 `v126` profile/current source interleave 与 `v127` superseded source chain；目前只有 lexical 诊断正向/持平证据 | 做一个成对 judge 决策批次；若 judge 不正向，停止堆新配置，先回到 badcase |
-| 2 | #2 context noise/rerank/budget | `v129` 是保留 token-budget 对照，`v134` 已因 paired dual judge 负向拒绝 | 下一版必须证明 coverage 不掉，不能只靠截断省 token |
-| 3 | #1 granularity/profile generalization | v125 仍继承历史 short/long profile 分支，存在 design-for-benchmark 风险 | 结合 src cleanup 做 profile/compatibility audit，先删无用兼容路径，再定新实验 |
+| 1 | #2 context noise/rerank/budget | `v129` 是保留 token-budget 对照，`v134` 已因 paired dual judge 负向拒绝 | 下一版必须证明 coverage 不掉，不能只靠截断省 token |
+| 2 | #1 granularity/profile generalization | v127 仍继承历史 short/long profile 分支，存在 design-for-benchmark 风险 | 结合 src cleanup 做 profile/compatibility audit，先删无用兼容路径，再定新实验 |
+| 3 | #5 memory organization/update chain 后续 | v127 已把 active/superseded source chain 纳入 LTS，但只覆盖 profile/current routes | 后续只做 badcase-driven 扩展；不要继续堆 source-order 小变体 |
 
 ## 保留候选
 
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
-| `configs/stage1_route_scoped_local_evidence_unit_v125_qwen36_no_think_build4k_cached.json` | current LTS | LoCoMo temporal paired dual judge strict/lenient `0.772189/0.786982 -> 0.792899/0.813609`；full route-only strict/lenient `0.779221/0.807143 -> 0.789610/0.807792`；LME compiler dry-run `0/500` prompt/row change；v121 guard smoke 与 v116 finalizer-applied 8 条输出一致 | 当前本地 LTS；降低 #4，部分降低 #3；#1/#2/#5 保留为优先风险 |
+| `configs/stage1_superseded_source_chain_v127_qwen36_no_think_build4k_cached.json` | current LTS | 继承 v125；v126 LoCoMo profile/current `+4/+4`、LME `-1/-1`，v127 changed prompts LME `+2/+2`、LoCoMo `+1/+2`；aggregate LME strict/lenient `0.814000/0.836000`，LoCoMo `0.792857/0.811688` | 当前本地 LTS；降低 #5，并继承 #4/#3 风险收敛；#1/#2 保留为优先风险 |
+| `configs/stage1_route_scoped_local_evidence_unit_v125_qwen36_no_think_build4k_cached.json` | previous LTS | LoCoMo temporal paired dual judge strict/lenient `0.772189/0.786982 -> 0.792899/0.813609`；full route-only strict/lenient `0.789610/0.807792`；LME 兼容继承 v116 `0.812000/0.834000` | 被 v127 替代：v127 在保持 clean/source-backed 机制的同时降低 #5 build-memory organization 风险并提升 inherited aggregate |
 | `configs/stage1_temporal_local_evidence_signal_gate_v135_qwen36_no_think_build4k_cached.json` | selected-context risk #3 | LoCoMo dry-run scope clean：只改 temporal prompts `189/338`、row ids `0` change；但 prompt-changed-only dual judge 负向 | 已拒绝为 LTS；保留为“硬过滤邻居会伤 recall”的反例 |
 | `configs/stage1_route_scoped_fact_profile_state_budget_v129_qwen36_no_think_build4k_cached.json` | token-budget | LME full route-only exact `0.428000 -> 0.430000`；LoCoMo `0.244156 -> 0.245455` | Narrow positive diagnostic；作为 v134 父对照 |
-| `configs/stage1_memory_source_interleave_v126_qwen36_no_think_build4k_cached.json` | memory organization | LoCoMo profile/current exact `0.320000 -> 0.360000`；LME exact 持平但 F1/BLEU 轻降 | Narrow diagnostic；待 judge |
-| `configs/stage1_superseded_source_chain_v127_qwen36_no_think_build4k_cached.json` | memory/state chain | LME full route-only exact `0.426000 -> 0.428000`；LoCoMo exact 持平、F1/BLEU 小升 | Narrow diagnostic；待 judge |
+| `configs/stage1_memory_source_interleave_v126_qwen36_no_think_build4k_cached.json` | memory organization | LoCoMo profile/current paired dual `+4/+4`，LME profile/current `-1/-1` | 被 v127 继承和修正；保留为 ablation |
 | `configs/stage1_source_grounded_guard_v121_qwen36_no_think_build4k_cached.json` | clean/general cleanup | 收窄 broad mechanical finalizer 为 source-grounded consistency guard；不宣称提分 | 保留为风险收敛改动 |
 | `configs/stage1_long_profile_profile_state_selected_context_v128_qwen36_no_think_build4k_cached.json` | structure audit | LME profile/current prompt 只变 `37/500`，exact 持平；LoCoMo `0/1540` 变化 | 保留为 selected-context generalization 证据 |
 | `diagnostic/stage1_build_memory_usage_trace_audit_v126_plan.md` | memory audit | v116 LoCoMo `1539/1540` 有 memory hits 且有 memory-projected source 进入最终 rows | 结论：瓶颈是 source-backed evidence organization，不是完全没用 memory |
@@ -66,6 +66,7 @@
 | 配置 | LTS 期间关键结果 | 替代原因 |
 |---|---|---|
 | `configs/stage1_extended_selected_context_v116_qwen36_no_think_build4k_cached.json` | LME strict/lenient `0.812000/0.834000`；LoCoMo strict/lenient `0.779221/0.807143` | 被 v125 替代：v125 继承 LME 兼容证据，降低 #4 mechanical finalizer 风险，部分降低 #3 selected-context heuristic 风险，并提升 LoCoMo temporal paired judge 与 full route-only strict。 |
+| `configs/stage1_route_scoped_local_evidence_unit_v125_qwen36_no_think_build4k_cached.json` | LME inherited strict/lenient `0.812000/0.834000`；LoCoMo route-only strict/lenient `0.789610/0.807792` | 被 v127 替代：v127 继承 v125 的 #4/#3 风险收敛，并加入 source-backed active/superseded memory organization，降低 #5，inherited aggregate 双 benchmark 正向。 |
 | `configs/stage1_spacing_profile_v102_qwen36_no_think_build4k_cached.json` | LME strict/lenient `0.814000/0.830000`；LoCoMo strict/lenient `0.776623/0.798052` | 被 v116 替代：v116 保持 LME 达标，并把 LoCoMo lenient 推到 baseline target 以上。 |
 
 ## 关键 Formal Run
@@ -96,6 +97,7 @@
 | `diagnostic/stage1_route_scoped_local_evidence_unit_v125_locomo_temporal_route_all/temporal_gain_loss_badcase_analysis.md` | v125 temporal paired judge gain/loss badcase 分析 |
 | `diagnostic/stage1_route_scoped_local_evidence_unit_v125_locomo_nonadv_full_route_only_merge/` | v125 LoCoMo full route-only merge dual judge 指标 |
 | `diagnostic/stage1_route_scoped_local_evidence_unit_v125_lts_promotion.md` | v125 LTS 晋升决策记录 |
+| `diagnostic/stage1_superseded_source_chain_v127_lts_promotion.md` | v127 LTS 晋升决策记录 |
 | `diagnostic/stage1_long_profile_profile_state_selected_context_v128_summary.md` | v128 selected-context generalization 审计 |
 | `diagnostic/stage1_superseded_source_chain_v127_summary.md` | v127 superseded source chain 诊断 |
 | `diagnostic/stage1_memory_source_interleave_v126_profile_state_summary.md` | v126 profile/current source interleave 诊断 |

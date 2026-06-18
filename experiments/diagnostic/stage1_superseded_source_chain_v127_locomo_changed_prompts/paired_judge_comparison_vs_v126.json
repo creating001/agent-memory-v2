@@ -1,0 +1,293 @@
+{
+  "comparison": "v127 superseded source chain vs v126 same 24 LoCoMo changed-prompt keys",
+  "created_at_utc": "2026-06-18T08:42:37.632325+00:00",
+  "decision": "pending_manual_review",
+  "clean_note": "Offline judge comparison reads gold labels only after prediction and must not feed prediction, retrieval, compiler, answer, verifier, or cache construction.",
+  "metrics": {
+    "v126_same_subset": {
+      "n_joined": 24,
+      "strict_correct": 16,
+      "strict_accuracy": 0.6666666666666666,
+      "lenient_correct": 16,
+      "lenient_accuracy": 0.6666666666666666,
+      "judge_1_correct": 16,
+      "judge_2_correct": 16,
+      "judge_agreement": 1.0
+    },
+    "v127": {
+      "n_joined": 24,
+      "strict_correct": 17,
+      "strict_accuracy": 0.7083333333333334,
+      "lenient_correct": 18,
+      "lenient_accuracy": 0.75,
+      "judge_1_correct": 18,
+      "judge_2_correct": 17,
+      "judge_agreement": 0.9583333333333334
+    }
+  },
+  "deltas": {
+    "strict_accuracy_delta": 0.04166666666666674,
+    "strict_correct_delta": 1,
+    "lenient_accuracy_delta": 0.08333333333333337,
+    "lenient_correct_delta": 2,
+    "paired": {
+      "strict_correct": {
+        "changed": 3,
+        "gain": 2,
+        "loss": 1,
+        "net": 1,
+        "same_correct": 15,
+        "same_wrong": 6,
+        "gain_keys": [
+          "348efb7e44a8722f2b50358a",
+          "e9ab2e88d287f2949bce371b"
+        ],
+        "loss_keys": [
+          "bf6f9cf49299f1e3a177af4d"
+        ]
+      },
+      "lenient_correct": {
+        "changed": 2,
+        "gain": 2,
+        "loss": 0,
+        "net": 2,
+        "same_correct": 16,
+        "same_wrong": 6,
+        "gain_keys": [
+          "348efb7e44a8722f2b50358a",
+          "e9ab2e88d287f2949bce371b"
+        ],
+        "loss_keys": []
+      }
+    }
+  },
+  "changed_records": [
+    {
+      "record_key": "348efb7e44a8722f2b50358a",
+      "question": "What is Nate's favorite video game?",
+      "gold_answer": "Xenoblade Chronicles",
+      "answer_changed": true,
+      "baseline_answer": "CS:GO",
+      "candidate_answer": "Xeonoblade Chronicles",
+      "baseline_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": false,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "40fd9962de0b1cb712e6bf39",
+      "question": "What is Nate's favorite book series about?",
+      "gold_answer": "dragons",
+      "answer_changed": true,
+      "baseline_answer": "It is about adventures, magic, great characters, world building, and battles.",
+      "candidate_answer": "Nate's favorite book series is about adventures, magic, great characters, world building, and battles.",
+      "baseline_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": false,
+      "candidate_lenient_correct": false
+    },
+    {
+      "record_key": "491549a097b7e902b5ae0a31",
+      "question": "How does Andrew feel about his current work?",
+      "gold_answer": "Stressful",
+      "answer_changed": true,
+      "baseline_answer": "Andrew feels that his current work is tough, stressful, and challenging, which has made it difficult for him to maintain a work-life balance and engage in outdoor activities he enjoys.",
+      "candidate_answer": "Andrew feels that his work is tough, stressful, and piling up, which negatively impacts his work-life balance and ability to find peace.",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "6b6d09d7e82567bbb2a34cf0",
+      "question": "What do Melanie's kids like?",
+      "gold_answer": "dinosaurs, nature",
+      "answer_changed": true,
+      "baseline_answer": "Melanie's kids like pottery workshops, visiting the dinosaur exhibit (learning about animals), painting, going to the beach, camping (roasting marshmallows and telling stories), exploring and playing at the park, and playing games.",
+      "candidate_answer": "Melanie's kids like pottery workshops, the dinosaur exhibit (learning about animals), camping trips (roasting marshmallows), the beach, and painting.",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "93ac58586be43efe5ffed648",
+      "question": "How often does John get to see sunsets like the one he shared with Maria?",
+      "gold_answer": "At least once a week",
+      "answer_changed": true,
+      "baseline_answer": "At least once a week",
+      "candidate_answer": "at least once a week",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "98204abce8fdb37acb9681af",
+      "question": "What did Mel and her kids paint in their latest project in July 2023?",
+      "gold_answer": "a sunset with a palm tree",
+      "answer_changed": true,
+      "baseline_answer": "Nature-inspired paintings (specifically featuring flowers/nature)",
+      "candidate_answer": "Nature-inspired subjects, specifically lovely flowers.",
+      "baseline_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": false,
+      "candidate_lenient_correct": false
+    },
+    {
+      "record_key": "9d706fdbac17028f653f49c5",
+      "question": "What do Andrew and Buddy like doing on walks?",
+      "gold_answer": "Checking out new hiking trails",
+      "answer_changed": true,
+      "baseline_answer": "They like doing walks, specifically checking out new hiking trails.",
+      "candidate_answer": "Andrew and Buddy like doing walks, specifically checking out new hiking trails.",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "bf6f9cf49299f1e3a177af4d",
+      "question": "What are Nate's favorite desserts?",
+      "gold_answer": "coconut milk icecream, dairy-free chocolate cake with berries, chocolate and mixed-berry icecream, dairy-free chocolate mousse",
+      "answer_changed": false,
+      "baseline_answer": "Coconut milk ice cream and dairy-free chocolate mousse",
+      "candidate_answer": "Coconut milk ice cream and dairy-free chocolate mousse",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "WRONG"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "c2502269932a17656749fc9d",
+      "question": "What is Nate's favorite genre of movies?",
+      "gold_answer": "Fantasy and sci-fi",
+      "answer_changed": true,
+      "baseline_answer": "Action, sci-fi, and fantasy",
+      "candidate_answer": "Action, sci-fi, fantasy, and classics",
+      "baseline_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": true,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": true,
+      "candidate_lenient_correct": true
+    },
+    {
+      "record_key": "e96dd062be9b4822b3f9b7aa",
+      "question": "What fantasy movies does Tim like?",
+      "gold_answer": "Lord of the Rings, Harry Potter, and Star Wars.",
+      "answer_changed": true,
+      "baseline_answer": "Star Wars",
+      "candidate_answer": "Star Wars and Lord of the Rings",
+      "baseline_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": false,
+      "baseline_lenient_correct": false,
+      "candidate_lenient_correct": false
+    },
+    {
+      "record_key": "e9ab2e88d287f2949bce371b",
+      "question": "What are Jolene's favorite books?",
+      "gold_answer": "Sapiens, Avalanche by Neal Stephenson",
+      "answer_changed": false,
+      "baseline_answer": "Sapiens",
+      "candidate_answer": "Sapiens",
+      "baseline_judge_labels": [
+        "WRONG",
+        "WRONG"
+      ],
+      "candidate_judge_labels": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "baseline_strict_correct": false,
+      "candidate_strict_correct": true,
+      "baseline_lenient_correct": false,
+      "candidate_lenient_correct": true
+    }
+  ],
+  "paths": {
+    "baseline_dual_judge": "/home/wujinqi/agent-memory/experiments/diagnostic/stage1_memory_source_interleave_v126_locomo_profile_state_route_all/deepseek_dual_judge.json",
+    "candidate_dual_judge": "/home/wujinqi/agent-memory/experiments/diagnostic/stage1_superseded_source_chain_v127_locomo_changed_prompts/v127_changed_prompt_subset_deepseek_dual_judge.json",
+    "baseline_predictions": "/home/wujinqi/agent-memory/outputs/diagnostic/stage1_superseded_source_chain_v127_locomo_changed_prompts/v126_changed_prompt_subset_predictions.jsonl",
+    "candidate_predictions": "/home/wujinqi/agent-memory/outputs/diagnostic/stage1_superseded_source_chain_v127_locomo_changed_prompts/v127_changed_prompt_subset_predictions.jsonl",
+    "labels": "/home/wujinqi/agent-memory/outputs/prepare_locomo_non_adversarial/labels.jsonl"
+  }
+}
