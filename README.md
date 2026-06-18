@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_source_value_specificity_guard_v170_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_lifecycle_slot_specificity_guard_v171_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v170 local LTS | 说明 |
+| Benchmark | 当前 v171 local LTS | 说明 |
 |---|---:|---|
-| LongMemEval-S full | strict/lenient `0.828000 / 0.838000` | v170 与 v169 answer diff `0/500`；继承 patched full `414/500` strict、`419/500` lenient。 |
-| LoCoMo non-adversarial full | strict/lenient `0.790260 / 0.815584` | v170 与 v169 answer diff `8/1540`；changed-answer dual judge strict `6/8 -> 7/8`、lenient `7/8 -> 7/8`，patched full `1217/1540` strict、`1256/1540` lenient。 |
+| LongMemEval-S full | strict/lenient `0.830000 / 0.840000` | v171 与 v170 answer diff `1/500`；changed-answer dual judge strict/lenient `0/1 -> 1/1`，patched full `415/500` strict、`420/500` lenient。 |
+| LoCoMo non-adversarial full | strict/lenient `0.790260 / 0.815584` | v171 与 v170 answer diff `0/1540`；继承 v170 paired-delta derived `1217/1540` strict、`1256/1540` lenient。 |
 
-v170 的 LTS 理由：继承 v169 的 source-backed lifecycle/profile-advice repair 和 numeric slot label guard，并新增默认关闭、窄触发的 source value specificity guard。它只在最终短答是唯一 support `value` 的子串时，保留更具体的 source-backed value，不计算新值、不合并多条证据、不读 gold/judge/sample id/test feedback。它进一步降低 #4 answer surface specificity loss 风险，并把 LoCoMo strict 提升 1 条；#1 granularity/profile、#2 top-k/context noise/rerank、#3 selected-context 泛化、以及更广泛 #5 lifecycle/update/conflict reasoning 仍是优先待办。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_source_value_specificity_guard_v170_scope_summary.md`。
+v171 的 LTS 理由：继承 v170 的 source-backed repair、numeric slot label guard 和 source value specificity guard，并把 `previous/current occupation|role|job|position|title|career` 这类 lifecycle slot 问题从粗粒度 temporal 禁止门里放出来。它只在当前短答是唯一更具体 support `value` 的子串时保留 source-backed 完整槽值，不计算新值、不合并多条证据、不读 gold/judge/sample id/test feedback。它进一步降低 #4 answer surface specificity loss 和 #5 lifecycle-slot query-time reasoning 风险；#1 granularity/profile、#2 top-k/context noise/rerank、#3 selected-context 泛化和更广泛 #5 lifecycle/update/conflict reasoning 仍是优先待办。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_lifecycle_slot_specificity_guard_v171_scope_summary.md`。
 
 ## 目录
 

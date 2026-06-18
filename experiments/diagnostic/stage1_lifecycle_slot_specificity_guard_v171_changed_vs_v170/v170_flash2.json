@@ -1,0 +1,59 @@
+{
+  "api_key_env": "DEEPSEEK_API_KEY",
+  "base_url": "https://api.deepseek.com",
+  "benchmark": "longmemeval",
+  "clean_note": "Offline judge reads gold labels only after prediction. This output must not be consumed by prediction, retrieval, compiler, answer, or verifier.",
+  "created_at_utc": "2026-06-18T20:54:30+00:00",
+  "dry_run": false,
+  "git": {
+    "commit": "7e1af197226a963c5601c6ddfd5a4561cf628ad1",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "M src/memory/finalize.py\n M src/tests/test_clean_skeleton.py\n?? configs/stage1_lifecycle_slot_specificity_guard_v171_qwen36_no_think_build4k_cached.json\n?? experiments/diagnostic/stage1_lifecycle_slot_specificity_guard_v171_changed_vs_v170/\n?? experiments/diagnostic/stage1_lifecycle_slot_specificity_guard_v171_lme_s_full/\n?? experiments/diagnostic/stage1_lifecycle_slot_specificity_guard_v171_locomo_nonadv_full/"
+  },
+  "judgments": [
+    {
+      "label": "WRONG",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "040847ba21e00e9f",
+      "question_type": "single-session-user",
+      "raw_response": "no",
+      "record_key": "d4bfe0f95ae6b5d7a565a8c1",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 70,
+        "completion_tokens_details": {
+          "reasoning_tokens": 68
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 119,
+        "prompt_tokens": 119,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "total_tokens": 189
+      }
+    }
+  ],
+  "labels": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_lifecycle_slot_specificity_guard_v171_changed_vs_v170/labels.jsonl",
+  "metrics": {
+    "accuracy": 0.0,
+    "n_invalid": 0,
+    "n_judgments": 1,
+    "n_valid": 1
+  },
+  "model": "deepseek-v4-flash",
+  "partial_output": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_lifecycle_slot_specificity_guard_v171_changed_vs_v170/deepseek_judge_flash_2.json.partial.jsonl",
+  "predictions": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_lifecycle_slot_specificity_guard_v171_changed_vs_v170/v170_predictions.jsonl",
+  "request_body_options": {},
+  "temperature": 0.0,
+  "thinking": null,
+  "usage": {
+    "completion_tokens": 70,
+    "prompt_tokens": 119,
+    "total_tokens": 189
+  },
+  "workers": 2
+}

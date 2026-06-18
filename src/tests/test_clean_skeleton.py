@@ -3057,6 +3057,70 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertFalse(finalization.applied)
         self.assertEqual(finalization.answer, "painting")
 
+    def test_source_grounded_guard_allows_previous_occupation_specificity(self) -> None:
+        content = json.dumps(
+            {
+                "sufficient": True,
+                "answer_type": "fact",
+                "evidence_report": [
+                    {
+                        "status": "support",
+                        "slot": "previous occupation",
+                        "value": "marketing specialist at a small startup",
+                    },
+                    {
+                        "status": "support",
+                        "slot": "previous occupation",
+                        "value": "managing a team of interns at a startup",
+                    },
+                ],
+                "answer": "Marketing specialist",
+            }
+        )
+        raw_response = json.dumps({"content": content})
+
+        finalization = guard_source_grounded_answer(
+            question="What was my previous occupation?",
+            draft_answer="Marketing specialist",
+            raw_response=raw_response,
+            enable_source_value_specificity_preservation=True,
+        )
+
+        self.assertTrue(finalization.applied)
+        self.assertEqual(
+            finalization.reason, "source_value_specificity_preservation"
+        )
+        self.assertEqual(
+            finalization.answer, "marketing specialist at a small startup"
+        )
+
+    def test_source_grounded_guard_still_blocks_generic_previous_event(self) -> None:
+        content = json.dumps(
+            {
+                "sufficient": True,
+                "answer_type": "fact",
+                "evidence_report": [
+                    {
+                        "status": "support",
+                        "slot": "previous trip",
+                        "value": "Hawaii beach trip",
+                    }
+                ],
+                "answer": "Hawaii",
+            }
+        )
+        raw_response = json.dumps({"content": content})
+
+        finalization = guard_source_grounded_answer(
+            question="What was my previous trip?",
+            draft_answer="Hawaii",
+            raw_response=raw_response,
+            enable_source_value_specificity_preservation=True,
+        )
+
+        self.assertFalse(finalization.applied)
+        self.assertEqual(finalization.answer, "Hawaii")
+
     def test_evidence_report_count_increment_finalizer_is_explicit(self) -> None:
         content = json.dumps(
             {

@@ -94,6 +94,19 @@ _SOURCE_VALUE_SPECIFICITY_BAD_QUESTION = re.compile(
     r"previous|current|latest)\b|\bor\b",
     re.IGNORECASE,
 )
+_SOURCE_VALUE_SPECIFICITY_HARD_BAD_QUESTION = re.compile(
+    r"\b(how many|how much|how long|total|sum|average|difference|when|"
+    r"what date|what time|before|after|first|most recently|mostly recently|"
+    r"latest)\b|\bor\b",
+    re.IGNORECASE,
+)
+_SOURCE_VALUE_SPECIFICITY_LIFECYCLE_SLOT_QUESTION = re.compile(
+    r"\b(?:previous|current|currently|now|still)\b[^?]{0,80}\b"
+    r"(?:occupation|role|job|position|title|career)\b|"
+    r"\b(?:occupation|role|job|position|title|career)\b[^?]{0,80}\b"
+    r"(?:previous|current|currently|now|still)\b",
+    re.IGNORECASE,
+)
 _SOURCE_VALUE_SPECIFICITY_VAGUE = re.compile(
     r"\b(user|assistant|question|asks?|request|recommended|suggested|same|"
     r"yes|no|not|unknown|unclear|unspecified|various|several|multiple|"
@@ -501,7 +514,7 @@ def _finalize_source_value_specificity_preservation(
 
     if _answer_is_insufficient(draft_answer):
         return None
-    if _SOURCE_VALUE_SPECIFICITY_BAD_QUESTION.search(question):
+    if not _source_value_specificity_question_allowed(question):
         return None
     answer_type = str(payload.get("answer_type") or "").strip().lower()
     if answer_type in _SOURCE_VALUE_SPECIFICITY_BAD_ANSWER_TYPES:
@@ -566,7 +579,7 @@ def _is_source_value_specificity_candidate(
         return False
     if "," in candidate or ";" in candidate or " / " in candidate:
         return False
-    if _SOURCE_VALUE_SPECIFICITY_BAD_QUESTION.search(question):
+    if not _source_value_specificity_question_allowed(question):
         return False
     if _SOURCE_VALUE_SPECIFICITY_VAGUE.search(candidate):
         return False
@@ -590,6 +603,14 @@ def _is_source_value_specificity_candidate(
     if not 2 <= len(candidate_terms) <= 10:
         return False
     return bool(candidate_terms - answer_terms)
+
+
+def _source_value_specificity_question_allowed(question: str) -> bool:
+    if not _SOURCE_VALUE_SPECIFICITY_BAD_QUESTION.search(question):
+        return True
+    if _SOURCE_VALUE_SPECIFICITY_HARD_BAD_QUESTION.search(question):
+        return False
+    return bool(_SOURCE_VALUE_SPECIFICITY_LIFECYCLE_SLOT_QUESTION.search(question))
 
 
 def _specificity_terms(text: str) -> list[str]:

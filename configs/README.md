@@ -6,13 +6,14 @@
 
 | 用途 | 配置 | 状态 |
 |---|---|---|
-| 后续新实验默认配置 | `stage1_source_value_specificity_guard_v170_qwen36_no_think_build4k_cached.json` | 当前本地 v170 LTS。继承 v169，并新增窄触发 source-grounded source value specificity guard；LongMemEval-S paired-delta derived strict/lenient `0.828000 / 0.838000`，LoCoMo `0.790260 / 0.815584`。 |
+| 后续新实验默认配置 | `stage1_lifecycle_slot_specificity_guard_v171_qwen36_no_think_build4k_cached.json` | 当前本地 v171 LTS。继承 v170，并新增 previous/current occupation/role/job/title/career lifecycle-slot specificity guard；LongMemEval-S paired-delta derived strict/lenient `0.830000 / 0.840000`，LoCoMo `0.790260 / 0.815584`。 |
 
 ## 保留对照
 
 | 配置 | 作用 |
 |---|---|
-| `stage1_source_value_specificity_guard_v170_qwen36_no_think_build4k_cached.json` | 当前 LTS；source-grounded finalizer 保真短答丢失的唯一 support value specificity，LME `0.828000 / 0.838000`，LoCoMo `0.790260 / 0.815584`。 |
+| `stage1_lifecycle_slot_specificity_guard_v171_qwen36_no_think_build4k_cached.json` | 当前 LTS；source-grounded finalizer 保真 previous/current occupation/role 等 lifecycle slot 的唯一具体 support value，LME `0.830000 / 0.840000`，LoCoMo `0.790260 / 0.815584`。 |
+| `stage1_source_value_specificity_guard_v170_qwen36_no_think_build4k_cached.json` | v171 父 LTS；source-grounded finalizer 保真短答丢失的唯一 support value specificity，LME `0.828000 / 0.838000`，LoCoMo `0.790260 / 0.815584`。 |
 | `stage1_numeric_slot_label_guard_v169_qwen36_no_think_build4k_cached.json` | v170 父 LTS；source-grounded finalizer 只保真裸数字 `level` 槽位，LME `0.828000 / 0.838000`，LoCoMo `0.789610 / 0.815584`。 |
 | `stage1_scoped_modal_profile_advice_repair_v168_qwen36_no_think_build4k_cached.json` | v169 父 LTS；scoped profile/advice repair，LME `0.826000 / 0.838000`，LoCoMo `0.789610 / 0.815584`。 |
 | `stage1_memory_lifecycle_manifest_v162_qwen36_no_think_build4k_cached.json` | v168 父 LTS；trace-only lifecycle manifest，性能继承 v158。 |
@@ -35,8 +36,8 @@
 
 | Benchmark | 配置 | 结果 | 用途 |
 |---|---|---:|---|
-| LongMemEval-S full | `stage1_source_value_specificity_guard_v170_qwen36_no_think_build4k_cached.json` | strict `0.828000` / lenient `0.838000` | 当前 LTS；v170 与 v169 answer-normalized 等价。 |
-| LoCoMo non-adversarial full | `stage1_source_value_specificity_guard_v170_qwen36_no_think_build4k_cached.json` | strict `0.790260` / lenient `0.815584` | 当前 LTS；paired-delta derived dual judge。 |
+| LongMemEval-S full | `stage1_lifecycle_slot_specificity_guard_v171_qwen36_no_think_build4k_cached.json` | strict `0.830000` / lenient `0.840000` | 当前 LTS；v171 vs v170 changed-answer paired judge `0/1 -> 1/1`。 |
+| LoCoMo non-adversarial full | `stage1_lifecycle_slot_specificity_guard_v171_qwen36_no_think_build4k_cached.json` | strict `0.790260` / lenient `0.815584` | 当前 LTS；v171 与 v170 answer-identical。 |
 
 ## 关键 Baseline
 
@@ -56,7 +57,7 @@
 
 - 当前主线是 `Qwen/Qwen3.6-35B-A3B` no-thinking；只有显式带 `qwen36_no_think_build4k` 的配置才参与当前 LTS 对比。
 - 新方法必须另起版本；若 answer prompt 或 repair/verifier prompt 改变，必须另起对应 cache path/namespace。若只改 source-grounded finalizer/postprocess 且 answer raw response 不变，可显式复用父 answer cache，并在记录中说明。
-- v170 复用 v102 build-memory cache、v158 base answer cache 和 v168 repair cache，因为 build、answer prompt 与 repair prompt 均未变；改动只在 source-grounded finalizer。
+- v171 复用 v102 build-memory cache、v158 base answer cache 和 v168 repair cache，因为 build、answer prompt 与 repair prompt 均未变；改动只在 source-grounded finalizer。
 - cache 命中只能减少重复 API 调用，不能改变逻辑 token 统计。正式记录仍报告逻辑 cold-build/query token。
 - 不得使用 gold answer、judge output、benchmark 标签、sample id、test feedback 或样本级规则构造配置、cache、prediction、retrieval、compiler、answer 或 repair。
 

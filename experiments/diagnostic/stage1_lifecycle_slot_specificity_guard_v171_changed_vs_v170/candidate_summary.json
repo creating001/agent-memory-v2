@@ -1,0 +1,9 @@
+{
+  "changed_count": 1,
+  "clean_note": "Labels and judge are offline diagnostics only; prediction used no gold, judge output, benchmark labels, sample ids, or test feedback.",
+  "gold_answer": "Marketing specialist at a small startup",
+  "question": "What was my previous occupation?",
+  "record_key": "d4bfe0f95ae6b5d7a565a8c1",
+  "v170_answer": "Marketing specialist",
+  "v171_answer": "marketing specialist at a small startup"
+}
