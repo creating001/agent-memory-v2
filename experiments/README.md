@@ -28,7 +28,7 @@
 |---:|---|---|---|
 | 1 | #5 memory lifecycle/state/conflict/query-time reasoning | v154 已把 source-backed lifecycle ledger 放进窄 current-state repair；typed memory 仍不直接替代 raw evidence | 继续做 answer-slot-aware verifier / lifecycle ledger，逐步扩到更多可安全识别的 state/update 槽位 |
 | 2 | #2 top-k/context noise/rerank | v129/v134/v140/v152 说明简单裁剪、tail snippet 或 list-count rerank pruning 会伤 accuracy；当前 query context 仍偏长 | 转向 coverage-preserving route-aware context organization：先保留覆盖证据，再做 grouping/dedup/aggregation table |
-| 3 | #1 granularity/profile + #3 selected context | v128/v140 表明长短 turn/profile 分支仍有 generalization 风险 | 重做更通用的 context organization，避免 benchmark profile 或长短 turn 硬分支 |
+| 3 | #1 granularity/profile + #3 selected context | v156 证明只用 route + evidence-row anaphora 替代长 turn selected-context 禁用会伤 LME；问题级局部指代需求还没建模 | 做 question-level local-reference gate：只有问题本身需要邻近上下文时，长 turn 才展开 selected context |
 | 4 | src cleanup | 已有多轮兼容分支，`repair.py`、compiler、pipeline 仍会继续变复杂 | 每个阶段结束后做小范围清理，删已确认无用的兼容代码，不删仍有消融价值的模块 |
 
 ## 保留候选
@@ -51,6 +51,7 @@
 
 | 配置 | 原因 |
 |---|---|
+| `stage1_long_profile_route_selected_context_v156_qwen36_no_think_build4k_cached.json` | 结构上比长 turn 一刀切禁用更 clean，但 LME changed-answer paired judge 负向：strict `11/17 -> 7/17`，lenient `12/17 -> 7/17`；下一步需要 question-level local-reference gate。 |
 | `stage1_answer_slot_checklist_v149_qwen36_no_think_build4k_cached.json` | broad checklist 在 LME changed subset 明显负向：strict/lenient `13/21 -> 9/21`、`13/21 -> 10/21`；v150 已改成窄触发 verifier。 |
 | `stage1_current_state_lifecycle_slot_trigger_v155_qwen36_no_think_build4k_cached.json` | 触发门比 v154 更窄但额外 verifier 没有改变任何答案，LME/LoCoMo answer diff 均为 0，同时增加 query tokens；不升 LTS。 |
 | `stage1_current_state_update_contract_v153_qwen36_no_think_build4k_cached.json` | prompt-only current-state update discipline 在 LME changed subset 明显负向：strict/lenient `9/10 -> 5/10`，LoCoMo 持平；不升 LTS。 |
@@ -69,6 +70,7 @@
 
 | 路径 | 内容 |
 |---|---|
+| `diagnostic/stage1_long_profile_route_selected_context_v156_scope_summary.md` | v156 route-scoped selected-context 负向诊断：answer diff `17/500`，paired judge strict/lenient `-4/-5`，下一步转 question-level gate |
 | `diagnostic/stage1_current_state_lifecycle_slot_trigger_v155_scope_summary.md` | v155 lifecycle-slot trigger 诊断：answer diff 0 但 token 增加，不升 LTS |
 | `diagnostic/stage1_current_state_lifecycle_ledger_v154_scope_summary.md` | v154 LTS 晋升、changed-answer judge、坏 run 教训和 #5 风险结论 |
 | `diagnostic/stage1_current_state_lifecycle_ledger_v154_lme_s_full_r3/` | v154 LME full cached prediction run artifacts |
