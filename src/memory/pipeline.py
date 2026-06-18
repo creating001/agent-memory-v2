@@ -37,16 +37,6 @@ from memory.retrieval import (
     turn_window_hits_to_source_hits,
 )
 from memory.route import QuestionRouter
-from memory.scoped_evidence import (
-    ScopedEvidenceRun,
-    build_scoped_evidence_answer_prompt,
-    build_scoped_evidence_extraction_prompt,
-    disabled_scoped_evidence_run,
-    extract_evidence_json_text,
-    parsed_evidence_json,
-    scoped_evidence_answer_result,
-    should_apply_scoped_evidence,
-)
 from common.schemas import (
     AnswerResult,
     CompiledContext,
@@ -75,7 +65,6 @@ class Stage1Pipeline:
             raise ValueError("question_analysis is retired; use heuristic route")
         compiler_config = self._config.get("compiler", {})
         answer_config = self._config.get("answer", {})
-        scoped_evidence_config = self._config.get("scoped_evidence", {})
         answer_finalizer_config = answer_config.get("finalizer", {})
         answer_repair_config = answer_config.get("repair", {})
         self._router = QuestionRouter(
@@ -795,56 +784,6 @@ class Stage1Pipeline:
                 "cache_path": self._answer_repair_cache_path,
                 "cache_namespace": self._answer_repair_cache_namespace,
             }
-        self._scoped_evidence_enabled = bool(
-            scoped_evidence_config.get("enabled", False)
-        )
-        self._scoped_evidence_information_needs = _tuple_config(
-            scoped_evidence_config.get(
-                "information_needs",
-                ("list_count", "temporal_lookup"),
-            )
-        )
-        self._scoped_evidence_max_rows = int(
-            scoped_evidence_config.get("max_rows", 40)
-        )
-        self._scoped_evidence_max_row_chars = int(
-            scoped_evidence_config.get("max_row_chars", 360)
-        )
-        self._scoped_evidence_extractor = None
-        self._scoped_evidence_answerer = None
-        self._scoped_evidence_trace_config = {
-            "enabled": self._scoped_evidence_enabled,
-            "information_needs": self._scoped_evidence_information_needs,
-            "max_rows": self._scoped_evidence_max_rows,
-            "max_row_chars": self._scoped_evidence_max_row_chars,
-        }
-        if self._scoped_evidence_enabled:
-            scoped_mode = str(scoped_evidence_config.get("mode", answer_mode))
-            extractor_config = _scoped_evidence_stage_config(
-                answer_config=answer_config,
-                scoped_evidence_config=scoped_evidence_config,
-                stage="extractor",
-                output_format="text",
-            )
-            final_answer_config = _scoped_evidence_stage_config(
-                answer_config=answer_config,
-                scoped_evidence_config=scoped_evidence_config,
-                stage="answer",
-                output_format="json_answer",
-            )
-            self._scoped_evidence_extractor = _configured_answerer(
-                extractor_config,
-                answer_mode=str(extractor_config.get("mode", scoped_mode)),
-            )
-            self._scoped_evidence_answerer = _configured_answerer(
-                final_answer_config,
-                answer_mode=str(final_answer_config.get("mode", scoped_mode)),
-            )
-            self._scoped_evidence_trace_config = {
-                **self._scoped_evidence_trace_config,
-                "extractor": _answerer_trace_config(extractor_config),
-                "answer": _answerer_trace_config(final_answer_config),
-            }
 
     def predict(self, request: PredictionRequest) -> dict[str, Any]:
         store = RawEvidenceStore(request.turns)
@@ -1068,26 +1007,8 @@ class Stage1Pipeline:
             memory_records=compiler_memory_records,
         )
         answer_cache_before = _answer_cache_stats(self._answerer)
-        scoped_evidence = disabled_scoped_evidence_run(
-            enabled=self._scoped_evidence_enabled,
-            information_needs=self._scoped_evidence_information_needs,
-            max_rows=self._scoped_evidence_max_rows,
-            max_row_chars=self._scoped_evidence_max_row_chars,
-        )
-        if (
-            self._scoped_evidence_enabled
-            and self._scoped_evidence_extractor is not None
-            and self._scoped_evidence_answerer is not None
-            and should_apply_scoped_evidence(
-                compiled,
-                self._scoped_evidence_information_needs,
-            )
-        ):
-            draft_answer, scoped_evidence = self._answer_with_scoped_evidence(compiled)
-            answer_cache_after = _answer_cache_stats(self._answerer)
-        else:
-            draft_answer = self._answerer.answer(compiled)
-            answer_cache_after = _answer_cache_stats(self._answerer)
+        draft_answer = self._answerer.answer(compiled)
+        answer_cache_after = _answer_cache_stats(self._answerer)
         repair_cache_before = _answer_cache_stats(self._answer_repairer)
         answer_repair = maybe_repair_answer(
             answerer=self._answer_repairer,
@@ -1320,10 +1241,6 @@ class Stage1Pipeline:
                     answer_cache_before,
                     answer_cache_after,
                 ),
-                "scoped_evidence": {
-                    **self._scoped_evidence_trace_config,
-                    **scoped_evidence.to_dict(),
-                },
                 "answer_draft": draft_answer.to_dict(),
                 "answer_repair": {
                     **self._answer_repair_trace_config,
@@ -1342,78 +1259,6 @@ class Stage1Pipeline:
                 "token_cost": token_usage.to_dict(),
             },
         }
-
-    def _answer_with_scoped_evidence(
-        self,
-        compiled: CompiledContext,
-    ) -> tuple[AnswerResult, ScopedEvidenceRun]:
-        if (
-            self._scoped_evidence_extractor is None
-            or self._scoped_evidence_answerer is None
-        ):
-            raise RuntimeError("scoped evidence answerers are not configured")
-
-        extraction_prompt = build_scoped_evidence_extraction_prompt(
-            compiled,
-            max_rows=self._scoped_evidence_max_rows,
-            max_row_chars=self._scoped_evidence_max_row_chars,
-        )
-        extraction_context = CompiledContext(
-            question=compiled.question,
-            question_time=compiled.question_time,
-            route=compiled.route,
-            evidence_rows=compiled.evidence_rows,
-            prompt=extraction_prompt,
-            context_chars=len(extraction_prompt),
-            memory_records=compiled.memory_records,
-        )
-        extraction_cache_before = _answer_cache_stats(self._scoped_evidence_extractor)
-        extraction_result = self._scoped_evidence_extractor.answer(extraction_context)
-        extraction_cache_after = _answer_cache_stats(self._scoped_evidence_extractor)
-        evidence_json = extract_evidence_json_text(extraction_result.answer)
-
-        answer_prompt = build_scoped_evidence_answer_prompt(
-            compiled,
-            evidence_json=evidence_json,
-        )
-        answer_context = CompiledContext(
-            question=compiled.question,
-            question_time=compiled.question_time,
-            route=compiled.route,
-            evidence_rows=(),
-            prompt=answer_prompt,
-            context_chars=len(answer_prompt),
-            memory_records=(),
-        )
-        answer_cache_before = _answer_cache_stats(self._scoped_evidence_answerer)
-        final_result = self._scoped_evidence_answerer.answer(answer_context)
-        answer_cache_after = _answer_cache_stats(self._scoped_evidence_answerer)
-        answer = scoped_evidence_answer_result(
-            extraction_result=extraction_result,
-            final_result=final_result,
-        )
-        trace = ScopedEvidenceRun(
-            enabled=True,
-            applied=True,
-            information_needs=self._scoped_evidence_information_needs,
-            max_rows=self._scoped_evidence_max_rows,
-            max_row_chars=self._scoped_evidence_max_row_chars,
-            extraction_prompt_chars=len(extraction_prompt),
-            answer_prompt_chars=len(answer_prompt),
-            evidence_json_chars=len(evidence_json),
-            extraction={
-                "response": extraction_result.to_dict(),
-                "evidence_json": evidence_json,
-                "parsed_evidence": parsed_evidence_json(evidence_json),
-            },
-            answer={"response": final_result.to_dict()},
-            extraction_cache=_answer_cache_delta(
-                extraction_cache_before,
-                extraction_cache_after,
-            ),
-            answer_cache=_answer_cache_delta(answer_cache_before, answer_cache_after),
-        )
-        return answer, trace
 
     def _retrieval_settings_for_route(
         self,
@@ -2894,54 +2739,6 @@ def _repair_answer_config(
     return merged
 
 
-def _scoped_evidence_stage_config(
-    *,
-    answer_config: Mapping[str, Any],
-    scoped_evidence_config: Mapping[str, Any],
-    stage: str,
-    output_format: str,
-) -> dict[str, Any]:
-    inherited_keys = (
-        "mode",
-        "base_url",
-        "model",
-        "temperature",
-        "max_input_tokens",
-        "max_output_tokens",
-        "max_tokens",
-        "timeout",
-        "api_key_env",
-        "fallback_answer",
-    )
-    merged: dict[str, Any] = {
-        key: answer_config[key] for key in inherited_keys if key in answer_config
-    }
-    for key in inherited_keys:
-        if key in scoped_evidence_config:
-            merged[key] = scoped_evidence_config[key]
-
-    stage_config = scoped_evidence_config.get(stage, {})
-    if not isinstance(stage_config, Mapping):
-        raise ValueError(f"scoped_evidence.{stage} must be an object")
-    for key in (*inherited_keys, "output_format"):
-        if key in stage_config:
-            merged[key] = stage_config[key]
-    merged["output_format"] = str(stage_config.get("output_format", output_format))
-    if stage == "extractor":
-        merged["cache"] = stage_config.get(
-            "cache",
-            scoped_evidence_config.get("cache", {}),
-        )
-    elif stage == "answer":
-        merged["cache"] = stage_config.get(
-            "cache",
-            scoped_evidence_config.get("answer_cache", {}),
-        )
-    else:
-        raise ValueError(f"Unsupported scoped_evidence stage: {stage}")
-    return merged
-
-
 def _configured_answerer(
     answer_config: Mapping[str, Any],
     *,
@@ -2985,24 +2782,6 @@ def _configured_answerer(
             output_format=str(answer_config.get("output_format", "text")),
         )
     return answerer
-
-
-def _answerer_trace_config(answer_config: Mapping[str, Any]) -> dict[str, Any]:
-    answer_mode = str(answer_config.get("mode", "null_answerer"))
-    cache_config = answer_config.get("cache", {})
-    return {
-        "mode": answer_mode,
-        "model": answer_config.get("model"),
-        "base_url": answer_config.get("base_url"),
-        "temperature": answer_config.get("temperature"),
-        "max_input_tokens": answer_config.get("max_input_tokens"),
-        "max_output_tokens": _answer_max_output_tokens(answer_config),
-        "output_format": answer_config.get("output_format", "text"),
-        "chat_template_kwargs": answer_config.get("chat_template_kwargs"),
-        "cache_enabled": bool(cache_config.get("enabled", False)),
-        "cache_path": cache_config.get("path"),
-        "cache_namespace": _answer_cache_namespace(answer_config, answer_mode),
-    }
 
 
 def _optional_int(value: object) -> int | None:

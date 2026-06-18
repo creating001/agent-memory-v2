@@ -34,13 +34,6 @@ from memory.retrieval import (
     build_turn_window_documents,
     turn_window_hits_to_source_hits,
 )
-from memory.scoped_evidence import (
-    build_scoped_evidence_answer_prompt,
-    build_scoped_evidence_extraction_prompt,
-    extract_evidence_json_text,
-    scoped_evidence_answer_result,
-    should_apply_scoped_evidence,
-)
 from data.io import load_prediction_jsonl
 from memory.pipeline import (
     Stage1Pipeline,
@@ -855,96 +848,6 @@ class CleanSkeletonTest(unittest.TestCase):
 
         self.assertEqual(by_source["s1:t0"], (record,))
         self.assertEqual(by_source["s1:t1"], (record, other))
-
-    def test_scoped_evidence_is_disabled_by_default(self) -> None:
-        result = Stage1Pipeline(
-            {
-                "retrieval": {"top_k": 1, "max_top_k": 1},
-                "compiler": {"max_evidence_items": 1, "max_evidence_chars": 1000},
-                "answer": {"fallback_answer": "fallback"},
-            }
-        ).predict(
-            PredictionRequest(
-                question="How many teas does Alex like?",
-                turns=(
-                    Turn(
-                        source_id="s1:t0",
-                        session_id="s1",
-                        turn_index=0,
-                        role="user",
-                        text="Alex likes jasmine tea.",
-                    ),
-                ),
-            )
-        )
-
-        self.assertFalse(result["trace"]["scoped_evidence"]["enabled"])
-        self.assertFalse(result["trace"]["scoped_evidence"]["applied"])
-
-    def test_scoped_evidence_prompts_are_question_and_context_only(self) -> None:
-        context = CompiledContext(
-            question="How much did Alex spend on bike expenses?",
-            question_time="2024-01-10",
-            route=RouteResult("list_count", ("list_or_count",), 3),
-            evidence_rows=(
-                EvidenceRow(
-                    source_id="s1:t0",
-                    session_id="s1",
-                    turn_index=0,
-                    role="user",
-                    text="Alex bought a helmet for $120 and lights for $40.",
-                    timestamp="2024-01-05",
-                    retrieval_rank=1,
-                    retrieval_score=1.0,
-                ),
-            ),
-            prompt="unused",
-            context_chars=0,
-        )
-
-        extraction_prompt = build_scoped_evidence_extraction_prompt(
-            context,
-            max_rows=5,
-            max_row_chars=200,
-        )
-        evidence_json = extract_evidence_json_text(
-            'prefix {"sufficient": true, "included_items": []} suffix'
-        )
-        answer_prompt = build_scoped_evidence_answer_prompt(context, evidence_json)
-
-        self.assertTrue(should_apply_scoped_evidence(context, ("list_count",)))
-        self.assertIn("Alex bought a helmet", extraction_prompt)
-        self.assertIn("Source: s1:t0", extraction_prompt)
-        self.assertIn("Session: s1", extraction_prompt)
-        self.assertIn("Turn: 0", extraction_prompt)
-        self.assertIn('"included_items"', extraction_prompt)
-        self.assertIn('"sufficient": true', answer_prompt)
-        self.assertIn("Only answer with a bare count", answer_prompt)
-        self.assertNotIn("record_key", extraction_prompt)
-        self.assertNotIn("question_type", extraction_prompt)
-        self.assertNotIn("sample_id", extraction_prompt)
-
-    def test_scoped_evidence_answer_result_merges_query_tokens(self) -> None:
-        extraction = AnswerResult(
-            answer='{"sufficient": true}',
-            model="model",
-            token_usage=TokenUsage(query_tokens=11),
-        )
-        final = AnswerResult(
-            answer="160 dollars",
-            model="model",
-            token_usage=TokenUsage(query_tokens=13),
-            raw_response="raw",
-        )
-
-        merged = scoped_evidence_answer_result(
-            extraction_result=extraction,
-            final_result=final,
-        )
-
-        self.assertEqual(merged.answer, "160 dollars")
-        self.assertEqual(merged.token_usage.query_tokens, 24)
-        self.assertEqual(merged.raw_response, "raw")
 
     def test_retrieval_route_overrides_use_question_information_need(self) -> None:
         config = {
