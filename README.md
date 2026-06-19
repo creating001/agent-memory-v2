@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_guarded_tail_exchange_rerank_v229_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_source_backed_lifecycle_memory_repair_v230_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v229 local LTS | 说明 |
+| Benchmark | 当前 v230 local LTS | 说明 |
 |---|---:|---|
-| LongMemEval-S full | strict/lenient `0.834000 / 0.846000` | v229 与 v225 answer/prompt/evidence rows/retrieval hits diff `0/500`；rerank applied `0/500`；avg build/query tokens `85393.566 / 6637.83`。 |
-| LoCoMo non-adversarial full | strict/lenient `0.793506 / 0.818831` | v229 与 v225 answer diff `0/1540`，prompt/evidence/retrieval diff `2/1540`；guarded rerank applied `2/1540`，unsafe tail exchange skipped `880/1540`；avg build/query tokens `62015.57402597403 / 6100.992207792207`。 |
+| LongMemEval-S full | strict/lenient `0.834000 / 0.846000` | v230 与 v229 answer/prompt/evidence rows/retrieval hits diff `0/500`；source-backed state repair reason `4/500`，applied `0/500`；avg build/query tokens `85393.566 / 6682.852`。 |
+| LoCoMo non-adversarial full | strict/lenient `0.793506 / 0.818831` | v230 与 v229 answer/prompt/evidence rows/retrieval hits diff `0/1540`；source-backed state repair reason `2/1540`，applied `0/1540`；guarded rerank applied `2/1540`；avg build/query tokens `62015.57402597403 / 6108.888311688312`。 |
 
-v229 的 LTS 理由：继承 v225 的 full answer 和 judge accuracy，同时把 v228 过宽 fact/list rerank 收窄为 source/provenance-aware tail exchange。它只在 fact_lookup 的 rank 53-56 交换区无 memory-projected source、无同 session 邻接链、无问题词覆盖时调用 reranker；否则在 rerank 前回退原始 60 行。它小幅降低 #2 tail candidate/context noise 风险，并保留 v225 的 #5 State/Update Organization Ledger、v222 的 evidence pressure、v221 的 source-flow severity、v217 的 context organization ledger、v216 的 memory activation ledger、v211 的 context-pressure selector 和 v209 的保守 context-budget。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_guarded_tail_exchange_rerank_v229_scope_summary.md`。
+v230 的 LTS 理由：继承 v229 的 full answer 和 judge accuracy，同时把 v225 的 #5 trace-only State/Update Organization Ledger 推进一步到 source-backed typed-memory repair-time verifier。它只在 current_state 且问题显式询问 current/previous/now/how-long 状态、draft 有多个 support values、raw lifecycle rows 足够、typed memory ledger 与问题对齐且 source-backed 时触发 repair；typed memory 只作为 Memory Context 原文行索引，不独立作证据。代价是少量 query token 增加。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_source_backed_lifecycle_memory_repair_v230_scope_summary.md`。
 
 ## 目录
 
