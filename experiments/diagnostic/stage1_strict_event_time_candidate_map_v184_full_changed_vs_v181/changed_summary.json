@@ -1,0 +1,19 @@
+{
+  "changed": 2,
+  "rows": [
+    {
+      "record_key": "f32506eabf8b9384df950965",
+      "v181": "June 20, 2023",
+      "v184": "2023-06-20",
+      "gold_answer": "20 June, 2023",
+      "question": "When Jon is planning to open his dance studio?"
+    },
+    {
+      "record_key": "acae332af0e2a71091b4c697",
+      "v181": "2022-08-27 to 2022-08-28",
+      "v184": "2022-08-22",
+      "gold_answer": "The weekend of 22August, 2022.",
+      "question": "When did Nate take time off to chill with his pets?"
+    }
+  ]
+}

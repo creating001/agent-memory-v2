@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_grouped_event_time_candidate_manifest_v181_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_strict_event_time_candidate_map_v184_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v181 local LTS | 说明 |
+| Benchmark | 当前 v184 local LTS | 说明 |
 |---|---:|---|
-| LongMemEval-S full | strict/lenient `0.834000 / 0.846000` | v181 与 v180 answer diff `0/500`；answer cache `500/500` hits，性能继承 v180/v176。 |
-| LoCoMo non-adversarial full | strict/lenient `0.792857 / 0.818182` | v181 与 v180 answer diff `0/1540`；answer cache `1540/1540` hits，性能继承 v180/v176。 |
+| LongMemEval-S full | strict/lenient `0.834000 / 0.846000` | v184 与 v181 answer diff `0/500`；map applied `0/500`；answer cache `500/0/0`，性能继承 v181。 |
+| LoCoMo non-adversarial full | strict/lenient `0.793506 / 0.818831` | v184 与 v181 answer diff `2/1540`；map applied `3/1540`；changed-answer dual judge `1/2 -> 2/2`。 |
 
-v181 的 LTS 理由：继承 v180 的 answer/repair 行为，并把 trace-only event-time manifest 升级为按 answer slot 分组的管理视图，记录 source ids、高置信 source ids、event-time 集合、time kinds、冲突类型、best candidate 和 resolution。它只写入 `compiled_context.diagnostics`，不进入 prompt、retrieval、repair、finalizer 或 cache key。v181 继续降低 #5 event/state/time organization 与 conflict audit 风险；#1 granularity/profile 泛化、#2 top-k/context noise/rerank、#3 selected-context 泛化和更广泛 #5 prompt-safe candidate map 仍是优先待办。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_grouped_event_time_candidate_manifest_v181_scope_summary.md`。
+v184 的 LTS 理由：继承 v181 的 grouped event-time management view，并新增很窄的 prompt-side Event-Time Candidate Map。该 map 会先剥离 selected-context 包装时间，只允许 source-backed 的 `exact_today` / explicit event-date 候选进入 prompt，并用 v181 answer cache seeded 评估避免未变化样本的重生成噪声。v184 在 LoCoMo 全量上较 v181 strict/lenient 各提升 1 条，同时 LME 不变，进一步降低 #5 query-time activation 风险。残余风险是 `exact_today` 仍可能语义噪声，下一步优先继续收窄 activation 条件；#1、#2、#3 仍是后续重点。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_strict_event_time_candidate_map_v184_scope_summary.md`。
 
 ## 目录
 

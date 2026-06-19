@@ -6,12 +6,12 @@
 
 | 项目 | 结果 |
 |---|---|
-| 当前 LTS 配置 | `configs/stage1_grouped_event_time_candidate_manifest_v181_qwen36_no_think_build4k_cached.json` |
+| 当前 LTS 配置 | `configs/stage1_strict_event_time_candidate_map_v184_seeded_qwen36_no_think_build4k_cached.json` |
 | Backbone | `Qwen/Qwen3.6-35B-A3B` answer/build，`chat_template_kwargs.enable_thinking=false` |
-| 方法 | V181 trace-only grouped event-time candidate manifest：继承 v180 answer/repair 行为，只在 `compiled_context.diagnostics` 按 answer slot 分组记录 source ids、高置信 source ids、event-time 集合、time kinds、冲突类型、best candidate 和 resolution。 |
-| LongMemEval-S full | v181 与 v180 answer diff `0/500`，answer cache `500/500` hits；继承 v180/v176 full `0.834000 / 0.846000`，`417/500` strict，`423/500` lenient；manifest `234/500`，avg groups `7.363`，avg conflict groups `1.286`，safe order `0` |
-| LoCoMo non-adversarial full | v181 与 v180 answer diff `0/1540`，answer cache `1540/1540` hits；继承 v180/v176 full `0.792857 / 0.818182`，`1221/1540` strict，`1260/1540` lenient；manifest `356/1540`，avg groups `6.753`，avg conflict groups `1.761`，safe order `2` |
-| 状态 | 当前本地 qwen3.6 no-thinking LTS。v181 继续降低 #5 event/state/time organization 与 conflict audit 风险；#1 granularity/profile 泛化、#2 top-k/context noise/rerank、#3 selected-context 泛化和更广泛 #5 prompt-safe candidate map 仍未解决。 |
+| 方法 | V184 strict event-time candidate map：继承 v181 grouped event-time management view，并新增很窄的 prompt-side source-backed event-date activation；剥离 selected-context wrapper 时间，只允许 `exact_today` / explicit date 候选，禁用 time-of-day question activation。 |
+| LongMemEval-S full | v184 与 v181 answer diff `0/500`，map applied `0/500`，answer cache `500/0/0`；继承 v181 full `0.834000 / 0.846000`，`417/500` strict，`423/500` lenient |
+| LoCoMo non-adversarial full | v184 与 v181 answer diff `2/1540`，map applied `3/1540`，answer cache `1538/2/2`；changed-answer dual judge `1/2 -> 2/2`，derived full `0.793506 / 0.818831`，`1222/1540` strict，`1261/1540` lenient |
+| 状态 | 当前本地 qwen3.6 no-thinking LTS。v184 在不改变 LME 的前提下提升 LoCoMo `+1/+1`，并降低 #5 query-time activation 风险；残余风险是 `exact_today` map 仍可能语义噪声，下一步继续收窄 activation 或要求更强 slot/action coverage。 |
 
 `paired-delta derived` 的含义：新版本只改少量答案，未变化答案沿用父 LTS full dual judge records，变化答案单独跑 paired dual judge 后替换计数。若新版本与父 LTS answer-identical，则可继承父 LTS judge records，但必须记录 full answer diff、cache hit/miss 和输出路径。若论文级最终汇报需要完全独立 run，再对 LTS 配置重跑 fresh full judge。
 
@@ -26,7 +26,7 @@
 
 | 优先级 | 项目 | 当前状态 | 下一步 |
 |---:|---|---|---|
-| 1 | #5 memory lifecycle/state/conflict/query-time reasoning | v181 将 v180 flat event-time manifest 升级为 trace-only grouped candidate management view；v176 增加 cross-route profile/advice activation；v175/v173/v172/v171 已让 temporal arithmetic、modal、profile preference 和 occupation/role lifecycle slot 能参与 source-backed verifier/finalizer；v178/v179/v182 说明不能把时间线或 relative/event-time candidate 过强推入 prompt | 继续收窄 prompt-safe candidate map：剥离 selected-context 包装时间，只允许 explicit/exact event date，relative phrase 保留在 diagnostics |
+| 1 | #5 memory lifecycle/state/conflict/query-time reasoning | v184 已把 v181 grouped candidate management view 的一小部分接入 query-time activation，并避免 v182 的 relative/wrapper time 过强问题；但 `exact_today` 仍有 false-positive prompt-map 风险 | 继续收窄 `exact_today`：要求更强 question slot/action 覆盖，或把低置信候选退回 diagnostics-only |
 | 2 | #2 top-k/context noise/rerank | v129/v134/v140/v152 说明简单裁剪、tail snippet 或 list-count rerank pruning 会伤 accuracy；当前 query context 仍偏长 | 转向 coverage-preserving route-aware context organization：先保留覆盖证据，再做 grouping/dedup/aggregation table |
 | 3 | #1 granularity/profile + #3 selected context | v177 说明 row-length + center-row anaphora 的 selected-context gate 仍过宽；granularity profile 仍基于 avg-turn chars，v158 narrow question-gated policy 仍是较稳边界 | 继续重做更通用的 context organization；selected-context 不能只靠中心行 anaphora 扩邻居，优先做 question-side local reference 或 source-backed candidate map |
 | 4 | src cleanup | 已有多轮兼容分支，`repair.py`、compiler、pipeline 仍会继续变复杂 | 每个阶段结束后做小范围清理，删已确认无用的兼容代码，不删仍有消融价值的模块 |
@@ -35,7 +35,8 @@
 
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
-| `configs/stage1_grouped_event_time_candidate_manifest_v181_qwen36_no_think_build4k_cached.json` | current LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.792857/0.818182`；v181 vs v180 answer diff `0/500`、`0/1540` | 当前 LTS；trace-only grouped event-time manifest 降低 #5 organization/conflict audit 风险，性能继承 v180/v176 |
+| `configs/stage1_strict_event_time_candidate_map_v184_seeded_qwen36_no_think_build4k_cached.json` | current LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v184 vs v181 answer diff `0/500`、`2/1540` | 当前 LTS；严格 prompt-side event-time candidate map 降低 #5 query-time activation 风险，LoCoMo changed-answer dual judge `1/2 -> 2/2` |
+| `configs/stage1_grouped_event_time_candidate_manifest_v181_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.792857/0.818182`；v181 vs v180 answer diff `0/500`、`0/1540` | 被 v184 替代；trace-only grouped event-time manifest 降低 #5 organization/conflict audit 风险，性能继承 v180/v176 |
 | `configs/stage1_trace_event_time_candidate_manifest_v180_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.792857/0.818182`；v180 vs v176 answer diff `0/500`、`0/1540` | 被 v181 替代；仍是 flat event-time manifest 父对照 |
 | `configs/stage1_cross_route_profile_advice_repair_v176_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.792857/0.818182`；v176 vs v175 answer diff `2/500`、`0/1540` | 被 v180 替代；仍是 cross-route profile/advice repair 父对照，LME strict `+1`、lenient `+2` |
 | `configs/stage1_temporal_operand_arithmetic_repair_v175_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.832000/0.842000`，LoCoMo `0.792857/0.818182`；v175 vs v173 answer diff `1/500`、`1/1540` | 被 v176 替代；仍是 temporal/age/duration query-time arithmetic reasoning 父对照 |
@@ -97,103 +98,21 @@
 
 | 路径 | 内容 |
 |---|---|
-| `diagnostic/stage1_prompt_safe_event_time_candidate_map_v182_scope_summary.md` | v182 负向结论：LoCoMo changed-answer dual judge `17/17 -> 15/17`，LME 小 probe `0/1 -> 1/1`；不升 LTS，下一步收窄为 v183 |
-| `diagnostic/stage1_prompt_safe_event_time_candidate_map_v182_locomo_probe40/` | v182 LoCoMo likely-map probe；map applied `39/40`，answer diff `17/40`，avg query tokens `5459.425` |
-| `diagnostic/stage1_prompt_safe_event_time_candidate_map_v182_lme_probe2/` | v182 LME likely-map probe；map applied `2/2`，answer diff `1/2`，avg query tokens `14809.000` |
-| `diagnostic/stage1_prompt_safe_event_time_candidate_map_v182_changed_vs_v181/` | v182 vs v181 changed-answer dual judge artifacts |
-| `diagnostic/stage1_grouped_event_time_candidate_manifest_v181_scope_summary.md` | v181 LTS 晋升：trace-only grouped event-time candidate manifest，LME/LoCoMo answer diff 均为 0，性能继承 v180/v176 |
-| `diagnostic/stage1_grouped_event_time_candidate_manifest_v181_lme_s_full/` | v181 LME full cached trace run artifacts；manifest `234/500`，avg groups `7.363` |
-| `diagnostic/stage1_grouped_event_time_candidate_manifest_v181_locomo_nonadv_full/` | v181 LoCoMo full cached trace run artifacts；manifest `356/1540`，avg groups `6.753` |
-| `diagnostic/stage1_trace_event_time_candidate_manifest_v180_scope_summary.md` | v180 LTS 晋升：trace-only event-time candidate manifest，LME/LoCoMo answer diff 均为 0，性能继承 v176 |
-| `diagnostic/stage1_trace_event_time_candidate_manifest_v180_lme_s_full/` | v180 LME full cached trace run artifacts；manifest applied `234/500` |
-| `diagnostic/stage1_trace_event_time_candidate_manifest_v180_locomo_nonadv_full/` | v180 LoCoMo full cached trace run artifacts；manifest applied `356/1540` |
-| `diagnostic/stage1_event_timeline_context_v179_scope_summary.md` | v179 负向结论：Source Event Timeline 作为 prompt block 过强，changed-answer dual judge strict/lenient `1/3 -> 0/3` |
-| `diagnostic/stage1_event_timeline_context_v179_trigger_probe/` | v179 4-row trigger probe；answer diff `3/4` |
-| `diagnostic/stage1_event_timeline_context_v179_changed_vs_v176/` | v179 vs v176 changed-answer paired dual judge |
-| `diagnostic/stage1_row_length_selected_context_gate_v177_scope_summary.md` | v177 负向结论：row-length selected-context gate 过宽，LME changed-answer dual judge strict/lenient `12/15 -> 7/15`，LTS 仍为 v176 |
-| `diagnostic/stage1_source_grounded_temporal_order_repair_v178_scope_summary.md` | v178 负向结论：temporal-order repair 触发窄但 `0/4` applied，目标坏例不能在 clean source-grounded setting 下强行改成 gold 顺序 |
-| `diagnostic/stage1_source_grounded_temporal_order_repair_v178_trigger_probe/` | v178 4-row trigger probe；repair triggered `4/4`、applied `0/4`、answer diff `0/4` |
-| `diagnostic/stage1_row_length_selected_context_gate_v177_changed_vs_v176/` | v177 vs v176 LME changed-answer paired dual judge |
-| `diagnostic/stage1_row_length_selected_context_gate_v177_lme_s_full/` | v177 LME full cached prediction run artifacts；LoCoMo 未跑，因为 LME 负向且 query tokens 上升 |
-| `diagnostic/stage1_cross_route_profile_advice_repair_v176_scope_summary.md` | v176 LTS 晋升：LME changed-answer paired dual judge strict `0/2 -> 1/2`、lenient `0/2 -> 2/2`，LoCoMo answer diff `0/1540` |
-| `diagnostic/stage1_cross_route_profile_advice_repair_v176_changed_vs_v175/` | v176 vs v175 changed-answer paired dual judge |
-| `diagnostic/stage1_cross_route_profile_advice_repair_v176_lme_s_full/` | v176 LME full cached prediction run artifacts |
-| `diagnostic/stage1_cross_route_profile_advice_repair_v176_locomo_nonadv_full/` | v176 LoCoMo full cached prediction run artifacts |
-| `diagnostic/stage1_temporal_operand_arithmetic_repair_v175_scope_summary.md` | v175 LTS 晋升：LME/LoCoMo changed-answer paired dual judge 均 `0/1 -> 1/1`，source-grounded temporal operand arithmetic verifier |
-| `diagnostic/stage1_temporal_operand_arithmetic_repair_v175_changed_vs_v173/` | v175 vs v173 changed-answer paired dual judge，LME/LoCoMo strict/lenient 各 `+1/+1` |
-| `diagnostic/stage1_temporal_operand_arithmetic_repair_v175_lme_s_full/` | v175 LME full cached prediction run artifacts |
-| `diagnostic/stage1_temporal_operand_arithmetic_repair_v175_locomo_nonadv_full/` | v175 LoCoMo full cached prediction run artifacts |
-| `diagnostic/stage1_source_grounded_temporal_calculation_repair_v174_scope_summary.md` | v174 诊断：source-grounded temporal/age/duration verifier gate clean 但 full answer diff `0/500`、`0/1540`，新增 repair 成本，不升 LTS |
-| `diagnostic/stage1_source_grounded_temporal_calculation_repair_v174_lme_s_full/` | v174 LME full cached prediction run artifacts |
-| `diagnostic/stage1_source_grounded_temporal_calculation_repair_v174_locomo_nonadv_full/` | v174 LoCoMo full cached prediction run artifacts |
-| `diagnostic/stage1_source_grounded_modal_inference_repair_v173_scope_summary.md` | v173 LTS 晋升：LME answer diff `0/500`，LoCoMo changed-answer paired dual judge `0/2 -> 2/2`，source-grounded modal yes/no verifier |
-| `diagnostic/stage1_source_grounded_modal_inference_repair_v173_changed_vs_v172/` | v173 vs v172 changed-answer paired dual judge，LoCoMo strict/lenient `0/2 -> 2/2` |
-| `diagnostic/stage1_source_grounded_modal_inference_repair_v173_lme_s_full/` | v173 LME full cached prediction run artifacts |
-| `diagnostic/stage1_source_grounded_modal_inference_repair_v173_locomo_nonadv_full/` | v173 LoCoMo full cached prediction run artifacts |
-| `diagnostic/stage1_profile_preference_value_guard_v172_scope_summary.md` | v172 LTS 晋升：LME answer diff `0/500`，LoCoMo changed-answer paired dual judge `0/1 -> 1/1`，profile preference value source-backed 保真 |
-| `diagnostic/stage1_profile_preference_value_guard_v172_changed_vs_v171/` | v172 vs v171 changed-answer paired dual judge，LoCoMo strict/lenient `0/1 -> 1/1` |
-| `diagnostic/stage1_profile_preference_value_guard_v172_lme_s_full/` | v172 LME full cached prediction run artifacts |
-| `diagnostic/stage1_profile_preference_value_guard_v172_locomo_nonadv_full/` | v172 LoCoMo full cached prediction run artifacts |
-| `diagnostic/stage1_lifecycle_slot_specificity_guard_v171_scope_summary.md` | v171 LTS 晋升：LME full strict/lenient `+1/+1`，LoCoMo answer diff `0/1540`，previous/current occupation/role lifecycle-slot specificity 保真 |
-| `diagnostic/stage1_lifecycle_slot_specificity_guard_v171_changed_vs_v170/` | v171 vs v170 changed-answer paired dual judge，LME strict/lenient `0/1 -> 1/1` |
-| `diagnostic/stage1_lifecycle_slot_specificity_guard_v171_lme_s_full/` | v171 LME full cached prediction run artifacts |
-| `diagnostic/stage1_lifecycle_slot_specificity_guard_v171_locomo_nonadv_full/` | v171 LoCoMo full cached prediction run artifacts |
-| `diagnostic/stage1_source_value_specificity_guard_v170_scope_summary.md` | v170 LTS 晋升：LoCoMo full strict `+1`、lenient 持平，LME answer diff `0/500`，短答 source value specificity 保真 |
-| `diagnostic/stage1_source_value_specificity_guard_v170_changed_vs_v169/` | v170 vs v169 changed-answer paired dual judge，LoCoMo strict `6/8 -> 7/8`，lenient `7/8 -> 7/8` |
-| `diagnostic/stage1_source_value_specificity_guard_v170_lme_s_full/` | v170 LME full cached prediction run artifacts |
-| `diagnostic/stage1_source_value_specificity_guard_v170_locomo_nonadv_full/` | v170 LoCoMo full cached prediction run artifacts |
-| `diagnostic/stage1_numeric_slot_label_guard_v169_scope_summary.md` | v169 LTS 晋升：LME full strict `+1`、lenient 持平，LoCoMo answer diff `0/1540`，裸数字 level 槽位保真 |
-| `diagnostic/stage1_numeric_slot_label_guard_v169_lme_changed_vs_v168/v169_dual_judge.json` | v169 vs v168 LME changed-answer paired dual judge，strict `0/1 -> 1/1` |
-| `diagnostic/stage1_numeric_slot_label_guard_v169_lme_s_full/` | v169 LME full cached prediction run artifacts |
-| `diagnostic/stage1_numeric_slot_label_guard_v169_locomo_nonadv_full/` | v169 LoCoMo full cached prediction run artifacts |
-| `diagnostic/stage1_scoped_modal_profile_advice_repair_v168_scope_summary.md` | v168 LTS 晋升：LME full `+2/+2`，LoCoMo answer diff `0/1540`，profile modal overreach 已收窄 |
-| `diagnostic/stage1_scoped_modal_profile_advice_repair_v168_lme_changed_vs_v162/metrics.json` | v168 vs v162 LME full changed-answer paired dual judge 指标快照 |
-| `diagnostic/stage1_scoped_modal_profile_advice_repair_v168_lme_s_full/` | v168 LME full cached prediction run artifacts |
-| `diagnostic/stage1_scoped_modal_profile_advice_repair_v168_locomo_nonadv_full/` | v168 LoCoMo full cached prediction run artifacts |
-| `diagnostic/stage1_no_new_names_profile_advice_repair_v167_scope_summary.md` | v167 正向但待收窄：LME full `+2/+2`，LoCoMo 持平但 profile modal wrong->wrong |
-| `diagnostic/stage1_no_new_names_profile_advice_repair_v167_lme_changed_vs_v162/metrics.json` | v167 vs v162 LME full changed-answer paired dual judge 指标快照 |
-| `diagnostic/stage1_no_new_names_profile_advice_repair_v167_locomo_changed_vs_v162/metrics.json` | v167 vs v162 LoCoMo full changed-answer paired dual judge 指标快照 |
-| `diagnostic/stage1_no_new_names_profile_advice_repair_v167_lme_s_full/` | v167 LME full cached prediction run artifacts |
-| `diagnostic/stage1_no_new_names_profile_advice_repair_v167_locomo_nonadv_full/` | v167 LoCoMo full cached prediction run artifacts |
-| `diagnostic/stage1_same_domain_profile_advice_repair_v166_scope_summary.md` | v166 指标正向但 clean 风险诊断：LME profile changed subset strict/lenient `+3/+3`，但 unsupported names 不升 LTS |
-| `diagnostic/stage1_same_domain_profile_advice_repair_v166_lme_changed_vs_v162/metrics.json` | v166 vs v162 LME profile changed-answer paired dual judge 指标快照 |
-| `diagnostic/stage1_same_domain_profile_advice_repair_v166_lme_profile_preference/` | v166 LME profile-preference diagnostic run artifacts |
-| `diagnostic/stage1_surface_profile_advice_repair_v165_scope_summary.md` | v165 no-op 诊断：表面拒答限定修复 v164 误修，但 LME profile answer diff `0/15` 且增加 repair cost |
-| `diagnostic/stage1_surface_profile_advice_repair_v165_lme_changed_vs_v162/metrics.json` | v165 vs v162 LME profile answer diff 指标快照 |
-| `diagnostic/stage1_surface_profile_advice_repair_v165_lme_profile_preference/` | v165 LME profile-preference diagnostic run artifacts |
-| `diagnostic/stage1_profile_advice_abstention_repair_v164_scope_summary.md` | v164 负向诊断：profile/advice repair 误修正确答案，LME profile changed subset strict/lenient `-1/-1` |
-| `diagnostic/stage1_profile_advice_abstention_repair_v164_lme_changed_vs_v162/metrics.json` | v164 vs v162 LME profile changed-answer paired dual judge 指标快照 |
-| `diagnostic/stage1_profile_advice_abstention_repair_v164_lme_profile_preference/` | v164 LME profile-preference diagnostic run artifacts |
-| `diagnostic/stage1_profile_memory_activation_v163_scope_summary.md` | v163 负向诊断：source-backed profile activation guide 导致 LME profile changed subset strict/lenient `-1/-1`，不升 LTS |
-| `diagnostic/stage1_profile_memory_activation_v163_lme_changed_vs_v162/metrics.json` | v163 vs v162 LME profile changed-answer paired dual judge 指标快照 |
-| `diagnostic/stage1_profile_memory_activation_v163_lme_profile_preference/` | v163 LME profile-preference diagnostic run artifacts |
-| `diagnostic/stage1_memory_lifecycle_manifest_v162_scope_summary.md` | v162 LTS 晋升：trace-only lifecycle manifest，LME/LoCoMo answer diff 均为 0，性能继承 v158 |
-| `diagnostic/stage1_memory_lifecycle_manifest_v162_lme_s_full/` | v162 LME full cached trace run artifacts |
-| `diagnostic/stage1_memory_lifecycle_manifest_v162_locomo_nonadv_full/` | v162 LoCoMo full cached trace run artifacts |
-| `diagnostic/stage1_narrow_question_gated_selected_context_v158_scope_summary.md` | v158 LTS 晋升：narrow question-gated selected context，LME answer diff `2/500` 且 paired judge 持平，LoCoMo diff `0/1540` |
-| `diagnostic/stage1_narrow_question_gated_selected_context_v158_lme_s_full/` | v158 LME full cached prediction run artifacts |
-| `diagnostic/stage1_narrow_question_gated_selected_context_v158_locomo_nonadv_full/` | v158 LoCoMo full cached prediction run artifacts |
-| `diagnostic/stage1_current_state_only_conflict_guide_v161_scope_summary.md` | v161 负向诊断：fact conflict guide 移除降成本但 LME changed subset strict `-1` |
-| `diagnostic/stage1_fixed_set_fact_source_interleave_v160_scope_summary.md` | v160 负向诊断：fixed-set source-backed fact ordering 保住 evidence set，但 LME changed subset strict `-1` |
-| `diagnostic/stage1_fact_source_interleave_v159_scope_summary.md` | v159 负向诊断：fact_lookup source-backed interleave 改变 final evidence set，LME changed subset strict/lenient `-2/-2` |
-| `diagnostic/stage1_question_gated_selected_context_v157_scope_summary.md` | v157 question-level selected-context gate 诊断：selected-context `6/500`，answer diff `5/500`，paired judge strict `-1`、lenient `0`，需收窄 bare `that` |
-| `diagnostic/stage1_long_profile_route_selected_context_v156_scope_summary.md` | v156 route-scoped selected-context 负向诊断：answer diff `17/500`，paired judge strict/lenient `-4/-5`，下一步转 question-level gate |
-| `diagnostic/stage1_current_state_lifecycle_slot_trigger_v155_scope_summary.md` | v155 lifecycle-slot trigger 诊断：answer diff 0 但 token 增加，不升 LTS |
-| `diagnostic/stage1_current_state_lifecycle_ledger_v154_scope_summary.md` | v154 LTS 晋升、changed-answer judge、坏 run 教训和 #5 风险结论 |
-| `diagnostic/stage1_current_state_lifecycle_ledger_v154_lme_s_full_r3/` | v154 LME full cached prediction run artifacts |
-| `diagnostic/stage1_current_state_lifecycle_ledger_v154_locomo_nonadv_full_r3/` | v154 LoCoMo full cached prediction run artifacts |
-| `diagnostic/stage1_current_state_update_contract_v153_scope_summary.md` | v153 current-state prompt-only discipline 负向结论和 #5 下一步 |
-| `diagnostic/stage1_list_count_rerank_filter_v152_scope_summary.md` | v152 list-count rerank-filter 负向结论和 #2 下一步 |
-| `diagnostic/stage1_current_state_source_repair_v151_scope_summary.md` | v151 LTS 晋升、changed-answer judge、badcase 和风险结论 |
-| `diagnostic/stage1_current_state_source_repair_v151_lme_s_full/` | v151 LME full cached prediction run artifacts |
-| `diagnostic/stage1_current_state_source_repair_v151_locomo_nonadv_full/` | v151 LoCoMo full cached prediction run artifacts |
-| `diagnostic/stage1_current_state_source_repair_v151_lme_changed_vs_v150/` | LME v151 vs v150 changed-answer paired dual judge |
-| `diagnostic/stage1_current_state_source_repair_v151_locomo_changed_vs_v150/` | LoCoMo v151 vs v150 changed-answer paired dual judge |
-| `diagnostic/stage1_selective_source_repair_v150_scope_summary.md` | v150 LTS 晋升、changed-answer judge、badcase 和风险结论 |
-| `diagnostic/stage1_selective_source_repair_v150_lme_s_full/` | v150 LME full cached prediction run artifacts |
-| `diagnostic/stage1_selective_source_repair_v150_locomo_nonadv_full/` | v150 LoCoMo full cached prediction run artifacts |
-| `diagnostic/stage1_selective_source_repair_v150_lme_changed_answers/` | LME changed-answer paired dual judge |
-| `diagnostic/stage1_selective_source_repair_v150_locomo_changed_answers/` | LoCoMo changed-answer paired dual judge |
+| `diagnostic/stage1_strict_event_time_candidate_map_v184_scope_summary.md` | 当前 LTS 晋升结论、clean 说明、full 指标、changed-answer judge 和残余风险 |
+| `diagnostic/stage1_strict_event_time_candidate_map_v184_lme_s_full/` | v184 LME full；answer diff `0/500`，map applied `0/500`，继承 v181 judge |
+| `diagnostic/stage1_strict_event_time_candidate_map_v184_locomo_nonadv_full/` | v184 LoCoMo full；answer diff `2/1540`，map applied `3/1540` |
+| `diagnostic/stage1_strict_event_time_candidate_map_v184_full_changed_vs_v181/` | v184 vs v181 LoCoMo changed-answer dual judge；strict/lenient `1/2 -> 2/2` |
+| `diagnostic/stage1_strict_event_time_candidate_map_v184_probe_summary.md` | v184 seeded-cache probe；确认 prompt-identical rows 复用 v181 answer，避免重生成噪声 |
+| `diagnostic/stage1_prompt_safe_event_time_candidate_map_v182_scope_summary.md` | v182 负向结论：map 过宽，LoCoMo changed-answer dual judge `17/17 -> 15/17`，促成 v184 收窄 |
+| `diagnostic/stage1_grouped_event_time_candidate_manifest_v181_scope_summary.md` | v181 父 LTS；trace-only grouped event-time candidate manifest，LME/LoCoMo answer diff 均为 0 |
+| `diagnostic/stage1_trace_event_time_candidate_manifest_v180_scope_summary.md` | v180 父 LTS；trace-only event-time candidate manifest，性能继承 v176 |
+| `diagnostic/stage1_event_timeline_context_v179_scope_summary.md` | v179 负向教训：Source Event Timeline prompt block 过强 |
+| `diagnostic/stage1_source_grounded_temporal_order_repair_v178_scope_summary.md` | v178 负向教训：clean source-grounded temporal-order repair 触发窄但无改动 |
+| `diagnostic/stage1_row_length_selected_context_gate_v177_scope_summary.md` | v177 负向教训：row-length selected-context gate 过宽 |
+| `diagnostic/stage1_cross_route_profile_advice_repair_v176_scope_summary.md` | v176 父 LTS；cross-route profile/advice source-backed repair |
+| `diagnostic/stage1_temporal_operand_arithmetic_repair_v175_scope_summary.md` | v175 父 LTS；temporal/age/duration operand arithmetic verifier |
+| `diagnostic/stage1_source_grounded_modal_inference_repair_v173_scope_summary.md` | v173 父 LTS；modal yes/no source-grounded verifier |
+| `diagnostic/stage1_current_state_lifecycle_ledger_v154_scope_summary.md` | lifecycle ledger 关键父结论；更早历史从 git 和对应 experiment 目录追溯 |
 | `formal/stage1_superseded_source_chain_v127_lme_s_full_fresh/` | v127 fresh full dual judge parent records |
 | `formal/stage1_superseded_source_chain_v127_locomo_nonadv_full_fresh/` | v127 fresh full dual judge parent records |
 
