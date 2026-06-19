@@ -1,0 +1,37 @@
+{
+  "artifacts": {
+    "activation_probe": "experiments/diagnostic/stage1_temporal_source_grounded_selected_context_v195_activation_probe/",
+    "changed_judge": "experiments/diagnostic/stage1_temporal_source_grounded_selected_context_v195_changed_vs_v194/",
+    "changed_subset_outputs": "outputs/diagnostic/stage1_temporal_source_grounded_selected_context_v195_changed_vs_v194/",
+    "lme_full": "experiments/diagnostic/stage1_temporal_source_grounded_selected_context_v195_lme_s_full/",
+    "locomo_full": "experiments/diagnostic/stage1_temporal_source_grounded_selected_context_v195_locomo_nonadv_full/"
+  },
+  "base_lts": "v194",
+  "clean_note": "Prediction uses only question text, raw Memory Context, visible metadata, and build-stage memory. Offline judge reads labels only after prediction and is not used by prediction or cache construction.",
+  "config": "configs/stage1_temporal_source_grounded_selected_context_v195_seeded_qwen36_no_think_build4k_cached.json",
+  "decision": "rejected_not_lts",
+  "locomo": {
+    "answer_diff_vs_v194": 105,
+    "avg_query_tokens_v194": 6089.272077922078,
+    "avg_query_tokens_v195": 5996.2584415584415,
+    "delta_lenient_correct": -11,
+    "delta_strict_correct": -9,
+    "derived_v195_lenient_accuracy": 0.8116883116883117,
+    "derived_v195_lenient_correct": 1250,
+    "derived_v195_strict_accuracy": 0.7876623376623376,
+    "derived_v195_strict_correct": 1213,
+    "n_full": 1540,
+    "prompt_diff_vs_v194": 324,
+    "selected_context_applied_v194": 1536,
+    "selected_context_applied_v195": 1398,
+    "selected_context_rows_v194": 8540,
+    "selected_context_rows_v195": 7572,
+    "v194_changed_lenient_correct": 79,
+    "v194_changed_strict_correct": 76,
+    "v194_full_lenient_correct": 1261,
+    "v194_full_strict_correct": 1222,
+    "v195_changed_lenient_correct": 68,
+    "v195_changed_strict_correct": 67
+  },
+  "version": "v195"
+}

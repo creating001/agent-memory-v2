@@ -28,7 +28,7 @@
 |---:|---|---|---|
 | 1 | #5 memory lifecycle/state/conflict/query-time reasoning | v194 用窄 `mention_time_fallback` 修正一个 v193 audit 暴露的低覆盖 `exact_today` activation；full answer diff `0`，但仍有更广泛 lifecycle/conflict/query-time reasoning 可做 | 继续做 temporal conflict-aware activation 和 state/conflict memory；保留 typed/source-backed 线索，显式区分 mention_time、event phrase、wrapper 和 question slot |
 | 2 | #2 top-k/context noise/rerank | v129/v134/v140/v152 说明简单裁剪、tail snippet 或 list-count rerank pruning 会伤 accuracy；v192 说明宽 Candidate Evidence Map 也会伤 temporal accuracy | 做 coverage-preserving context organization，但避免通用候选列表过强；优先 trace/diagnostic 或窄门控，再进入 prompt |
-| 3 | #1 granularity/profile + #3 selected context | v177 说明 row-length + center-row anaphora 的 selected-context gate 仍过宽；granularity profile 仍基于 avg-turn chars，v158 narrow question-gated policy 仍是较稳边界 | 继续重做更通用的 context organization；selected-context 不能只靠中心行 anaphora 扩邻居，优先做 question-side local reference 或 source-backed candidate map |
+| 3 | #1 granularity/profile + #3 selected context | v177 说明 row-length + center-row anaphora 的 selected-context gate 仍过宽；v195 说明 temporal source-grounded self-reference hard gate 虽降 token/noise，但 LoCoMo changed-answer judge 明显负向；granularity profile 仍基于 avg-turn chars，v158 narrow question-gated policy 仍是较稳边界 | 继续重做更通用的 context organization；selected-context 不宜 hard block 大量 temporal 邻居，优先做 trace-only risk audit、question-side local reference 或更窄 conflict-aware activation |
 | 4 | src cleanup | 已有多轮兼容分支，`repair.py`、compiler、pipeline 仍会继续变复杂 | 每个阶段结束后做小范围清理，删已确认无用的兼容代码，不删仍有消融价值的模块 |
 
 ## 保留候选
@@ -67,6 +67,7 @@
 
 | 配置 | 原因 |
 |---|---|
+| `stage1_temporal_source_grounded_selected_context_v195_seeded_qwen36_no_think_build4k_cached.json` | v195 在 v194 上给 temporal selected-context 加 source-grounded self-reference hard gate；LoCoMo selected-context applied `1536 -> 1398`、avg query tokens `6089.272 -> 5996.258`，但 full answer diff `105/1540`，changed-answer dual judge 从 v194 `76/105` strict、`79/105` lenient 降到 v195 `67/105` strict、`68/105` lenient，derived LoCoMo full `0.787662/0.811688`，明显低于 v194，不升 LTS。 |
 | `stage1_candidate_evidence_map_v192_seeded_qwen36_no_think_build4k_cached.json` | v192 打开 temporal/list_count `Candidate Evidence Map`，但三条 risky activation probe 上 answer diff `2/3`；changed-answer dual judge 从 v191 `2/2` strict/lenient 降到 v192 `1/2`，Nate 行退回 `The weekend of August 27-28, 2022` 且两遍判错，不升 LTS。 |
 | `stage1_source_grounded_self_ref_selected_context_v190_seeded_qwen36_no_think_build4k_cached.json` | v190 用 source-grounded self-reference gate 收窄 temporal selected-context，Nate 行保留 `D19:9,D5:10`、John/James 行 selected-context `0`，但 Nate 答案仍退回 `2022-08-27 to 2022-08-28`，会丢 v184 LoCoMo `+1/+1`，不升 LTS；同时暴露 v187 weekend 解析全局污染重跑 v184 的复现风险。 |
 | `stage1_temporal_question_ref_selected_context_v189_seeded_qwen36_no_think_build4k_cached.json` | v189 将 temporal selected-context 加上 question-reference gate，三条 risky probe 中 selected-context `3/3 -> 0/3`、avg query tokens 降到 `4898.667`，但答案退回 v181/v186-v188 行为，会丢 v184 LoCoMo `+1/+1`，不升 LTS。 |
@@ -108,6 +109,10 @@
 
 | 路径 | 内容 |
 |---|---|
+| `diagnostic/stage1_temporal_source_grounded_selected_context_v195_changed_vs_v194/summary.md` | v195 负向结论：temporal selected-context hard gate 降低 context noise/token，但 LoCoMo changed-answer judge `76/105 -> 67/105` strict、`79/105 -> 68/105` lenient，不升 LTS |
+| `diagnostic/stage1_temporal_source_grounded_selected_context_v195_locomo_nonadv_full/` | v195 LoCoMo full；vs v194 prompt diff `324/1540`、answer diff `105/1540`、selected-context rows `8540 -> 7572` |
+| `diagnostic/stage1_temporal_source_grounded_selected_context_v195_lme_s_full/` | v195 LME full；vs v194 prompt diff `0/500`、answer diff `0/500` |
+| `diagnostic/stage1_temporal_source_grounded_selected_context_v195_activation_probe/` | v195 三条 risky activation probe；保住 Nate `2022-08-22`，阻断 John/James wrong-speaker selected-context，但 full changed-answer judge 负向 |
 | `diagnostic/stage1_temporal_mention_time_fallback_v194_scope_summary.md` | 当前 LTS 晋升结论：v194 窄 mention-time fallback，full answer diff 均为 0，性能继承 v193/v191/v184 |
 | `diagnostic/stage1_temporal_mention_time_fallback_v194_lme_s_full/` | v194 LME full；vs v193 prompt diff `0/500`、answer diff `0/500`、answer cache `500/0/0` |
 | `diagnostic/stage1_temporal_mention_time_fallback_v194_locomo_nonadv_full/` | v194 LoCoMo full；vs v193 prompt diff `1/1540`、answer diff `0/1540`、answer cache `1540/0/0` |
