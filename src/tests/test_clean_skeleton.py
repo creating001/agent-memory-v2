@@ -317,6 +317,82 @@ class CleanSkeletonTest(unittest.TestCase):
             selected_context_ledger["risk_details"][0]["source_id"], "s1:t1"
         )
 
+    def test_context_manifest_tracks_evidence_pressure(self) -> None:
+        turns = (
+            Turn("s1:t0", "s1", 0, "user", "Alex booked the cafe."),
+            Turn("s1:t1", "s1", 1, "assistant", "The cafe booking is for Tuesday."),
+            Turn("s2:t0", "s2", 0, "user", "Alex also mentioned tea."),
+        )
+        store = RawEvidenceStore(turns)
+        route = RouteResult("fact_lookup", ("fact",))
+        manifest = _context_manifest(
+            store=store,
+            route=route,
+            lexical_hits=(),
+            dense_hits=(),
+            memory_hits=(),
+            memory_source_hits=(),
+            memory_slot_chain_source_hits=(),
+            turn_window_source_hits=(),
+            pre_context_budget_hits=(),
+            retrieval_hits=(),
+            context_budget_trace={"applied": False},
+            context_budget_audit={},
+            evidence_turns=turns,
+            selected_context={
+                "materialized_source_ids": [],
+                "risk_audit": {"applied": False},
+            },
+            built_memory_records=(),
+            compiler_memory_records=(),
+            evidence_rows=(
+                EvidenceRow(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Alex booked the cafe.",
+                    timestamp=None,
+                    retrieval_rank=1,
+                    retrieval_score=1.0,
+                ),
+                EvidenceRow(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="assistant",
+                    text="The cafe booking is for Tuesday.",
+                    timestamp=None,
+                    retrieval_rank=33,
+                    retrieval_score=0.4,
+                ),
+                EvidenceRow(
+                    source_id="s2:t0",
+                    session_id="s2",
+                    turn_index=0,
+                    role="user",
+                    text="Alex also mentioned tea.",
+                    timestamp=None,
+                    retrieval_rank=41,
+                    retrieval_score=0.2,
+                ),
+            ),
+            compiled_context_chars=900,
+        )
+
+        pressure = manifest["context_organization"]["evidence_pressure"]
+        self.assertTrue(pressure["trace_only"])
+        self.assertEqual(pressure["row_count"], 3)
+        self.assertEqual(pressure["session_count"], 2)
+        self.assertEqual(pressure["max_rows_per_session"], 2)
+        self.assertEqual(pressure["adjacent_turn_pair_count"], 1)
+        self.assertEqual(pressure["tail_after_rank_32"]["row_count"], 2)
+        self.assertEqual(pressure["tail_after_rank_40"]["row_count"], 1)
+        self.assertEqual(
+            pressure["tail_after_rank_40"]["source_ids"],
+            ["s2:t0"],
+        )
+
     def test_pipeline_can_disable_lexical_retrieval(self) -> None:
         config = {
             "retrieval": {

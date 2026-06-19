@@ -3056,6 +3056,7 @@ def _context_manifest(
                 ),
             },
             "selected_context": selected_context_manifest,
+            "evidence_pressure": _evidence_pressure_manifest(evidence_rows),
             "clean_note": (
                 "Trace-only ledger for prompt-visible context organization. It "
                 "summarizes source-backed selected-context risk and context "
@@ -3066,6 +3067,90 @@ def _context_manifest(
             "Trace-only Context Manifest inspired by provenance-first memory "
             "systems. It summarizes already-selected sources and typed-memory "
             "activation; it does not alter prediction behavior."
+        ),
+    }
+
+
+def _evidence_pressure_manifest(evidence_rows: tuple[Any, ...]) -> dict[str, Any]:
+    """Summarize final evidence pressure without changing row selection.
+
+    Agent-memory retrieval often returns correlated dialogue spans rather than
+    independent documents. This trace-only ledger separates tail-rank pressure
+    from source/span concentration so future pruning or rerank experiments can
+    preserve raw evidence anchors and temporal neighbor chains.
+    """
+
+    row_count = len(evidence_rows)
+    total_chars = 0
+    session_counts: dict[str, int] = {}
+    turn_indices_by_session: dict[str, list[int]] = {}
+    tail_after_32 = {"row_count": 0, "char_count": 0, "source_ids": []}
+    tail_after_40 = {"row_count": 0, "char_count": 0, "source_ids": []}
+
+    for row in evidence_rows:
+        source_id = str(getattr(row, "source_id", "") or "")
+        session_id = str(getattr(row, "session_id", "") or "")
+        text = str(getattr(row, "text", "") or "")
+        total_chars += len(text)
+        if session_id:
+            session_counts[session_id] = session_counts.get(session_id, 0) + 1
+        turn_index = getattr(row, "turn_index", None)
+        if session_id and isinstance(turn_index, int):
+            turn_indices_by_session.setdefault(session_id, []).append(turn_index)
+        try:
+            rank = int(getattr(row, "retrieval_rank", 0) or 0)
+        except (TypeError, ValueError):
+            rank = 0
+        if rank > 32:
+            tail_after_32["row_count"] += 1
+            tail_after_32["char_count"] += len(text)
+            if len(tail_after_32["source_ids"]) < 16:
+                tail_after_32["source_ids"].append(source_id)
+        if rank > 40:
+            tail_after_40["row_count"] += 1
+            tail_after_40["char_count"] += len(text)
+            if len(tail_after_40["source_ids"]) < 16:
+                tail_after_40["source_ids"].append(source_id)
+
+    adjacent_pair_count = 0
+    adjacent_session_count = 0
+    for indices in turn_indices_by_session.values():
+        ordered = sorted(set(indices))
+        pairs = sum(1 for left, right in zip(ordered, ordered[1:]) if right == left + 1)
+        adjacent_pair_count += pairs
+        if pairs:
+            adjacent_session_count += 1
+
+    top_sessions = [
+        {"session_id": session_id, "row_count": count}
+        for session_id, count in sorted(
+            session_counts.items(),
+            key=lambda item: (-item[1], item[0]),
+        )[:8]
+    ]
+    max_rows_per_session = max(session_counts.values(), default=0)
+    concentration = (
+        max_rows_per_session / row_count
+        if row_count
+        else 0.0
+    )
+
+    return {
+        "trace_only": True,
+        "row_count": row_count,
+        "total_text_chars": total_chars,
+        "session_count": len(session_counts),
+        "max_rows_per_session": max_rows_per_session,
+        "max_session_row_share": concentration,
+        "top_sessions": top_sessions,
+        "adjacent_turn_pair_count": adjacent_pair_count,
+        "adjacent_turn_session_count": adjacent_session_count,
+        "tail_after_rank_32": tail_after_32,
+        "tail_after_rank_40": tail_after_40,
+        "clean_note": (
+            "Trace-only evidence pressure ledger inspired by xMemory "
+            "decoupling/aggregation and hybrid retrieval systems. It is not "
+            "used by prediction modules or cache keys."
         ),
     }
 
