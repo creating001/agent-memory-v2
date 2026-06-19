@@ -1,0 +1,59 @@
+{
+  "api_key_env": "DEEPSEEK_API_KEY",
+  "base_url": "https://api.deepseek.com",
+  "benchmark": "locomo",
+  "clean_note": "Offline judge reads gold labels only after prediction. This output must not be consumed by prediction, retrieval, compiler, answer, or verifier.",
+  "created_at_utc": "2026-06-19T20:05:41+00:00",
+  "dry_run": false,
+  "git": {
+    "commit": "a640f4de6bb9e16dc8f7f64b37a647c3b0b2839d",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "?? experiments/diagnostic/stage1_object_slot_tail_rescue_v250_full_changed_vs_v248/\n?? experiments/diagnostic/stage1_object_slot_tail_rescue_v250_lme_full/\n?? experiments/diagnostic/stage1_object_slot_tail_rescue_v250_locomo_full/"
+  },
+  "judgments": [
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "7751d5ee0ab97a36",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "27baf30e807665dacb4ec386",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 93,
+        "completion_tokens_details": {
+          "reasoning_tokens": 90
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 118,
+        "prompt_tokens": 374,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 467
+      }
+    }
+  ],
+  "labels": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_object_slot_tail_rescue_v250_full_changed_vs_v248/locomo_labels.jsonl",
+  "metrics": {
+    "accuracy": 1.0,
+    "n_invalid": 0,
+    "n_judgments": 1,
+    "n_valid": 1
+  },
+  "model": "deepseek-v4-flash",
+  "partial_output": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_object_slot_tail_rescue_v250_full_changed_vs_v248/locomo_v250_flash1.json.partial.jsonl",
+  "predictions": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_object_slot_tail_rescue_v250_full_changed_vs_v248/locomo_v250_changed_predictions.jsonl",
+  "request_body_options": {},
+  "temperature": 0.0,
+  "thinking": null,
+  "usage": {
+    "completion_tokens": 93,
+    "prompt_tokens": 374,
+    "total_tokens": 467
+  },
+  "workers": 1
+}
