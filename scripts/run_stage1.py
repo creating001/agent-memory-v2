@@ -121,6 +121,14 @@ def main() -> int:
     total_build_memory_cache_writes = 0
     total_build_memory_source_alignment_changed = 0
     total_build_memory_source_alignment_added = 0
+    build_memory_management_policy_counts: dict[str, int] = {}
+    build_memory_management_operation_counts: dict[str, int] = {}
+    build_memory_management_layer_counts: dict[str, int] = {}
+    build_memory_management_status_counts: dict[str, int] = {}
+    build_memory_management_type_counts: dict[str, int] = {}
+    total_build_memory_collection_retained = 0
+    total_build_memory_managed_lifecycle_slots = 0
+    total_build_memory_nonmanaged_multi_value_slots = 0
     total_memory_hits = 0
     total_memory_source_hits = 0
     total_memory_slot_chain_applied = 0
@@ -339,6 +347,38 @@ def main() -> int:
         total_build_memory_cache_hits += int(build_memory_cache.get("hits") or 0)
         total_build_memory_cache_misses += int(build_memory_cache.get("misses") or 0)
         total_build_memory_cache_writes += int(build_memory_cache.get("writes") or 0)
+        policy = build_memory.get("management_policy")
+        if policy:
+            build_memory_management_policy_counts[str(policy)] = (
+                build_memory_management_policy_counts.get(str(policy), 0) + 1
+            )
+        management = build_memory.get("management") or {}
+        operation_counts = management.get("operation_counts") or {}
+        _merge_int_counts(
+            build_memory_management_operation_counts,
+            operation_counts,
+        )
+        _merge_int_counts(
+            build_memory_management_layer_counts,
+            management.get("layer_counts") or {},
+        )
+        _merge_int_counts(
+            build_memory_management_status_counts,
+            management.get("status_counts") or {},
+        )
+        _merge_int_counts(
+            build_memory_management_type_counts,
+            management.get("type_counts") or {},
+        )
+        total_build_memory_collection_retained += int(
+            operation_counts.get("retain_collection_multi_value_slot") or 0
+        )
+        total_build_memory_managed_lifecycle_slots += int(
+            management.get("managed_lifecycle_slot_count") or 0
+        )
+        total_build_memory_nonmanaged_multi_value_slots += int(
+            management.get("nonmanaged_multi_value_slot_count") or 0
+        )
         source_alignment = result["trace"].get("build_memory_source_alignment") or {}
         total_build_memory_source_alignment_changed += int(
             source_alignment.get("records_changed") or 0
@@ -856,6 +896,35 @@ def main() -> int:
                 "prompt_profile", "typed_compact"
             ),
             "manage_facts": config.get("build_memory", {}).get("manage_facts", True),
+            "management_policy": config.get("build_memory", {}).get(
+                "management_policy"
+            ),
+            "management_policy_counts": build_memory_management_policy_counts,
+            "management_operation_counts": build_memory_management_operation_counts,
+            "management_layer_counts": build_memory_management_layer_counts,
+            "management_status_counts": build_memory_management_status_counts,
+            "management_type_counts": build_memory_management_type_counts,
+            "total_collection_retained_records": (
+                total_build_memory_collection_retained
+            ),
+            "avg_collection_retained_records": _safe_average(
+                total_build_memory_collection_retained,
+                sample_count,
+            ),
+            "total_managed_lifecycle_slots": (
+                total_build_memory_managed_lifecycle_slots
+            ),
+            "avg_managed_lifecycle_slots": _safe_average(
+                total_build_memory_managed_lifecycle_slots,
+                sample_count,
+            ),
+            "total_nonmanaged_multi_value_slots": (
+                total_build_memory_nonmanaged_multi_value_slots
+            ),
+            "avg_nonmanaged_multi_value_slots": _safe_average(
+                total_build_memory_nonmanaged_multi_value_slots,
+                sample_count,
+            ),
             "include_superseded": config.get("build_memory", {}).get(
                 "include_superseded", False
             ),
@@ -1425,6 +1494,11 @@ def _safe_average(total: int, count: int) -> float | None:
     return total / count
 
 
+def _merge_int_counts(target: dict[str, int], source: dict[str, Any]) -> None:
+    for key, value in source.items():
+        target[str(key)] = target.get(str(key), 0) + int(value or 0)
+
+
 def _answer_metrics(config: dict[str, Any]) -> dict[str, Any]:
     answer_config = config.get("answer", {})
     max_output_tokens = _answer_max_output_tokens(answer_config)
@@ -1663,6 +1737,13 @@ def _write_summary(
         f"- build_memory_temporal_fields: {metrics['build_memory']['temporal_fields']}",
         f"- build_memory_prompt_profile: {metrics['build_memory']['prompt_profile']}",
         f"- build_memory_manage_facts: {metrics['build_memory']['manage_facts']}",
+        f"- build_memory_management_policy: {metrics['build_memory']['management_policy']}",
+        f"- build_memory_management_policy_counts: {metrics['build_memory']['management_policy_counts']}",
+        f"- build_memory_management_operation_counts: {metrics['build_memory']['management_operation_counts']}",
+        f"- build_memory_management_layer_counts: {metrics['build_memory']['management_layer_counts']}",
+        f"- avg_build_memory_collection_retained_records: {metrics['build_memory']['avg_collection_retained_records']}",
+        f"- avg_build_memory_managed_lifecycle_slots: {metrics['build_memory']['avg_managed_lifecycle_slots']}",
+        f"- avg_build_memory_nonmanaged_multi_value_slots: {metrics['build_memory']['avg_nonmanaged_multi_value_slots']}",
         f"- build_memory_overlap_turns: {metrics['build_memory']['overlap_turns']}",
         f"- build_memory_chat_template_kwargs: {metrics['build_memory']['chat_template_kwargs']}",
         f"- build_memory_cache_enabled: {metrics['build_memory']['cache_enabled']}",
@@ -2010,6 +2091,13 @@ def _write_diagnosis(
         f"- build_memory_temporal_fields: {metrics['build_memory']['temporal_fields']}",
         f"- build_memory_prompt_profile: {metrics['build_memory']['prompt_profile']}",
         f"- build_memory_manage_facts: {metrics['build_memory']['manage_facts']}",
+        f"- build_memory_management_policy: {metrics['build_memory']['management_policy']}",
+        f"- build_memory_management_policy_counts: {metrics['build_memory']['management_policy_counts']}",
+        f"- build_memory_management_operation_counts: {metrics['build_memory']['management_operation_counts']}",
+        f"- build_memory_management_layer_counts: {metrics['build_memory']['management_layer_counts']}",
+        f"- avg_build_memory_collection_retained_records: {metrics['build_memory']['avg_collection_retained_records']}",
+        f"- avg_build_memory_managed_lifecycle_slots: {metrics['build_memory']['avg_managed_lifecycle_slots']}",
+        f"- avg_build_memory_nonmanaged_multi_value_slots: {metrics['build_memory']['avg_nonmanaged_multi_value_slots']}",
         f"- build_memory_overlap_turns: {metrics['build_memory']['overlap_turns']}",
         f"- build_memory_cache_hits: {metrics['build_memory']['cache_hits']}",
         f"- build_memory_cache_misses: {metrics['build_memory']['cache_misses']}",
