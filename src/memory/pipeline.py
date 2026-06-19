@@ -159,6 +159,17 @@ class Stage1Pipeline:
         self._retrieval_route_overrides = _validate_retrieval_route_overrides(
             retrieval_config.get("route_overrides") or {}
         )
+        self._retrieval_route_override_precedence = str(
+            retrieval_config.get("route_override_precedence", "after_profile")
+        )
+        if self._retrieval_route_override_precedence not in {
+            "after_profile",
+            "before_profile",
+        }:
+            raise ValueError(
+                "retrieval.route_override_precedence must be "
+                "'after_profile' or 'before_profile'"
+            )
         self._granularity_profiles = _validate_granularity_profiles(
             retrieval_config.get("granularity_profiles") or ()
         )
@@ -1999,6 +2010,9 @@ class Stage1Pipeline:
                     "base_top_k": self._base_top_k,
                     "max_top_k": self._max_top_k,
                     "route_overrides": self._retrieval_route_overrides,
+                    "route_override_precedence": (
+                        self._retrieval_route_override_precedence
+                    ),
                     "route_override": self._retrieval_route_overrides.get(
                         route.information_need, {}
                     ),
@@ -2279,9 +2293,18 @@ class Stage1Pipeline:
             "lexical_protect_top_n": self._lexical_protect_top_n,
             "dense_protect_top_n": self._dense_protect_top_n,
         }
-        if granularity_profile:
-            settings.update(granularity_profile.get("retrieval", {}))
-        settings.update(self._retrieval_route_overrides.get(route.information_need, {}))
+        route_override = self._retrieval_route_overrides.get(
+            route.information_need,
+            {},
+        )
+        if self._retrieval_route_override_precedence == "before_profile":
+            settings.update(route_override)
+            if granularity_profile:
+                settings.update(granularity_profile.get("retrieval", {}))
+        else:
+            if granularity_profile:
+                settings.update(granularity_profile.get("retrieval", {}))
+            settings.update(route_override)
         top_k = min(
             settings["top_k"] * route.retrieval_multiplier,
             settings["max_top_k"],

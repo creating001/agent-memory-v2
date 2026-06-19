@@ -2452,6 +2452,73 @@ class CleanSkeletonTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             Stage1Pipeline(config)
 
+    def test_retrieval_route_overrides_can_defer_to_granularity_profile(self) -> None:
+        config = {
+            "retrieval": {
+                "top_k": 6,
+                "max_top_k": 6,
+                "neighbor_window": 0,
+                "route_override_precedence": "before_profile",
+                "route_overrides": {
+                    "profile_preference": {
+                        "top_k": 4,
+                        "max_top_k": 4,
+                    }
+                },
+                "granularity_profiles": [
+                    {
+                        "name": "long_context_pressure",
+                        "min_total_chars": 1,
+                        "retrieval": {"top_k": 1, "max_top_k": 1},
+                    }
+                ],
+            },
+            "compiler": {"max_evidence_items": 10, "max_evidence_chars": 4000},
+            "answer": {"fallback_answer": "I do not know."},
+        }
+        result = Stage1Pipeline(config).predict(
+            PredictionRequest(
+                question="What does Alex like?",
+                turns=(
+                    Turn("s1:t0", "s1", 0, "user", "Alex likes tea."),
+                    Turn("s1:t1", "s1", 1, "user", "Alex likes jazz."),
+                ),
+            )
+        )
+
+        retrieval_trace = result["trace"]["retrieval"]
+        self.assertEqual(
+            result["trace"]["route"]["information_need"],
+            "profile_preference",
+        )
+        self.assertEqual(
+            retrieval_trace["route_override_precedence"],
+            "before_profile",
+        )
+        self.assertEqual(
+            retrieval_trace["granularity_profile"]["name"],
+            "long_context_pressure",
+        )
+        self.assertEqual(
+            retrieval_trace["route_override"],
+            {"max_top_k": 4, "top_k": 4},
+        )
+        self.assertEqual(retrieval_trace["top_k"], 1)
+
+    def test_retrieval_route_override_precedence_rejects_unknown_value(self) -> None:
+        config = {
+            "retrieval": {
+                "top_k": 1,
+                "max_top_k": 1,
+                "route_override_precedence": "benchmark_first",
+            },
+            "compiler": {"max_evidence_items": 1, "max_evidence_chars": 1000},
+            "answer": {"fallback_answer": "I do not know."},
+        }
+
+        with self.assertRaises(ValueError):
+            Stage1Pipeline(config)
+
     def test_compiler_memory_records_can_link_to_evidence_rows(self) -> None:
         row_record = MemoryRecord(
             memory_id="mem-row",

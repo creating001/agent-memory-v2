@@ -408,6 +408,10 @@ def main() -> int:
             "top_k": config.get("retrieval", {}).get("top_k"),
             "max_top_k": config.get("retrieval", {}).get("max_top_k"),
             "route_overrides": config.get("retrieval", {}).get("route_overrides") or {},
+            "route_override_precedence": config.get("retrieval", {}).get(
+                "route_override_precedence",
+                "after_profile",
+            ),
             "avg_effective_top_k": _safe_average(
                 total_effective_top_k, sample_count
             ),
@@ -1621,6 +1625,7 @@ def _write_summary(
         "- token_accounting_note: avg_build_tokens / avg_query_tokens exclude explicit reasoning tokens when the provider reports them; avg_*_total_tokens include visible plus think tokens.",
         f"- avg_compiled_evidence_items: {metrics['retrieval']['avg_compiled_evidence_items']}",
         f"- retrieval_route_overrides: {metrics['retrieval']['route_overrides']}",
+        f"- retrieval_route_override_precedence: {metrics['retrieval']['route_override_precedence']}",
         f"- avg_effective_top_k: {metrics['retrieval']['avg_effective_top_k']}",
         f"- avg_effective_dense_top_k: {metrics['retrieval']['avg_effective_dense_top_k']}",
         f"- avg_effective_dense_protect_top_n: {metrics['retrieval']['avg_effective_dense_protect_top_n']}",
@@ -1991,6 +1996,7 @@ def _write_diagnosis(
         f"- avg_query_total_tokens: {metrics['token_cost']['avg_query_total_tokens']}",
         "- token_accounting_note: avg_build_tokens / avg_query_tokens exclude explicit reasoning tokens when the provider reports them; avg_*_total_tokens include visible plus think tokens.",
         f"- retrieval_route_overrides: {metrics['retrieval']['route_overrides']}",
+        f"- retrieval_route_override_precedence: {metrics['retrieval']['route_override_precedence']}",
         f"- avg_effective_top_k: {metrics['retrieval']['avg_effective_top_k']}",
         f"- avg_effective_dense_top_k: {metrics['retrieval']['avg_effective_dense_top_k']}",
         f"- avg_effective_dense_protect_top_n: {metrics['retrieval']['avg_effective_dense_protect_top_n']}",
