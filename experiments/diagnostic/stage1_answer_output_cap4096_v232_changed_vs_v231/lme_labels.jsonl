@@ -1,0 +1,1 @@
+{"answer_session_ids": ["answer_ab603dd5_1", "answer_ab603dd5_2"], "benchmark": "longmemeval", "category": null, "gold_answer": "Five months ago", "question": "How many months ago did I book the Airbnb in San Francisco?", "question_type": "temporal-reasoning", "record_key": "8c6ec8aa7a13c8b4b8ec3d1a", "source_question_id": "982b5123", "subset": "s_cleaned"}

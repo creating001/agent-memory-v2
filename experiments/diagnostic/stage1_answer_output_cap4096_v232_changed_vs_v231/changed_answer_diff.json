@@ -1,0 +1,66 @@
+{
+  "lme": {
+    "changed_keys": [
+      "8c6ec8aa7a13c8b4b8ec3d1a"
+    ],
+    "count": 1,
+    "details": [
+      {
+        "category": null,
+        "gold_answer": "Five months ago",
+        "question": "How many months ago did I book the Airbnb in San Francisco?",
+        "question_type": "temporal-reasoning",
+        "record_key": "8c6ec8aa7a13c8b4b8ec3d1a",
+        "v231_answer": "5 months",
+        "v232_answer": "The provided information is not enough."
+      }
+    ],
+    "files": {
+      "labels": "experiments/diagnostic/stage1_answer_output_cap4096_v232_changed_vs_v231/lme_labels.jsonl",
+      "v231_predictions": "experiments/diagnostic/stage1_answer_output_cap4096_v232_changed_vs_v231/lme_v231_changed_predictions.jsonl",
+      "v232_predictions": "experiments/diagnostic/stage1_answer_output_cap4096_v232_changed_vs_v231/lme_v232_changed_predictions.jsonl"
+    }
+  },
+  "locomo": {
+    "changed_keys": [
+      "211056f99bbbef8b9615fb93",
+      "21f5a526bb7978490a1feb58",
+      "01ce76a2b43dbc8ed2465432"
+    ],
+    "count": 3,
+    "details": [
+      {
+        "category": 3,
+        "gold_answer": "filmmaker.",
+        "question": "What kind of job is Joanna beginning to preform the duties of because of her movie scripts?",
+        "question_type": null,
+        "record_key": "211056f99bbbef8b9615fb93",
+        "v231_answer": "**Director**",
+        "v232_answer": "Filmmaker (or Director)"
+      },
+      {
+        "category": 2,
+        "gold_answer": "2021",
+        "question": "Which year did Evan start taking care of his health seriously?",
+        "question_type": null,
+        "record_key": "21f5a526bb7978490a1feb58",
+        "v231_answer": "The provided information is not enough.",
+        "v232_answer": "2022"
+      },
+      {
+        "category": 1,
+        "gold_answer": "Dad",
+        "question": "Which of their family member do Calvin and Dave have nostalgic memories about?",
+        "question_type": null,
+        "record_key": "01ce76a2b43dbc8ed2465432",
+        "v231_answer": "insufficient",
+        "v232_answer": "Dave's dad"
+      }
+    ],
+    "files": {
+      "labels": "experiments/diagnostic/stage1_answer_output_cap4096_v232_changed_vs_v231/locomo_labels.jsonl",
+      "v231_predictions": "experiments/diagnostic/stage1_answer_output_cap4096_v232_changed_vs_v231/locomo_v231_changed_predictions.jsonl",
+      "v232_predictions": "experiments/diagnostic/stage1_answer_output_cap4096_v232_changed_vs_v231/locomo_v232_changed_predictions.jsonl"
+    }
+  }
+}
