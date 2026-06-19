@@ -27,7 +27,7 @@
 | 优先级 | 项目 | 当前状态 | 下一步 |
 |---:|---|---|---|
 | 1 | #2 top-k/context noise/rerank | v217 记录 prompt context chars、context-budget headroom/drop 与 selected-context source flow；v209/v211 已保守裁掉 LME tail retrieval candidates，v210/v215 证明机械压缩 prompt text 会伤 reader | 继续做 source/span 保真的 prompt-stable context organization 或 guarded rerank，目标是减少进入 prompt 的噪声和 token，而不是硬剪证据或单纯改写包装格式 |
-| 2 | #3 selected context | v217 将 LoCoMo selected-context risk rows `5841` 归因到 final evidence、typed-memory source 与 memory-projected retrieval；v218 全局 hard gate 和 v219 temporal-only hard gate 都降风险/token 但 changed judge 分别 `-5/-12`、`-4/-1` | 下一步不要硬删 prompt-visible local context，改做 source-flow scoring / rerank 或 risk-aware compiler 标注，只对 wrong-speaker、unsupported time binding 等强风险采取动作 |
+| 2 | #3 selected context | v217 将 LoCoMo selected-context risk rows `5841` 归因到 final evidence、typed-memory source 与 memory-projected retrieval；v218/v219 hard gate 和 v220 nearby timestamp removal 都降低局部风险或 token，但 changed judge 分别 `-5/-12`、`-4/-1`、`-4/-3` | 下一步不要直接改 prompt-visible selected-context wrapper，改做 trace-only source-flow scoring + guarded rerank / ordering，只在证据支持强时改变 source 顺序 |
 | 3 | #5 memory lifecycle/state/conflict/query-time reasoning | v216/v217 已把 typed-memory activation、memory-projected source、context budget、selected-context 和 final evidence rows 合入 trace-only Context Manifest；LME/LoCoMo manifest `500/500`、`1540/1540` | 从 audit 走向更通用的 state/update organization：保留 raw evidence first，typed memory 只做 source-backed activation；不把普通 event/preference 多值当 state conflict |
 | 4 | src cleanup | 已有多轮兼容分支，`repair.py`、compiler、pipeline 仍会继续变复杂 | 每个阶段结束后做小范围清理，删已确认无用的兼容代码，不删仍有消融价值的模块 |
 
@@ -85,6 +85,7 @@
 
 | 配置 | 原因 |
 |---|---|
+| `stage1_temporal_selected_context_center_timestamp_v220_seeded_qwen36_no_think_build4k_cached.json` | v220 不删除 local context，只在 temporal_lookup selected-context wrapper 中保留 center timestamp、去掉 nearby timestamp；LME prompt/answer diff `0/500`，LoCoMo avg query tokens `6095.268 -> 6048.208`，但 risk rows 仍为 `5841`，prompt diff `338/1540`、answer diff `99/1540`，changed-answer dual judge strict/lenient `63/99 -> 59/99`、`65/99 -> 62/99`，derived LoCoMo full `0.790909/0.816883` 低于 v217，不升 LTS。 |
 | `stage1_temporal_materialized_context_source_gate_v219_seeded_qwen36_no_think_build4k_cached.json` | v219 将 v218 的 materialized-context source gate 收窄到 temporal_lookup；LME prompt/answer diff `0/500`，LoCoMo risk rows `5841 -> 4932`、avg query tokens `6095.268 -> 6065.517`，但 prompt diff `322/1540`、answer diff `105/1540`，changed-answer dual judge strict/lenient `69/105 -> 65/105`、`69/105 -> 68/105`，derived LoCoMo full `0.790909/0.818182` 低于 v217，不升 LTS。 |
 | `stage1_materialized_context_source_gate_v218_seeded_qwen36_no_think_build4k_cached.json` | v218 的 materialized-context source gate 是 clean/general 的 source-flow hard gate；LME changed judge 持平 `1/1 -> 1/1`，LoCoMo avg query tokens `6095.268 -> 5739.079`、selected-context risk rows `5841 -> 0`，但 prompt diff `1480/1540`、answer diff `683/1540`，changed-answer dual judge strict/lenient `505/683 -> 500/683`、`527/683 -> 515/683`，derived LoCoMo full `0.790260/0.811039` 低于 v217，不升 LTS。下一步不能做过宽 prompt-visible hard gate，应做更细粒度 source-flow scoring/rerank。 |
 | `stage1_compact_selected_context_format_v215_seeded_qwen36_no_think_build4k_cached.json` | v215 用更短 selected-context wrapper 试图降低 #2 query token；LoCoMo probe200 avg query tokens `6142.005 -> 6017.23`，但 prompt diff `198/200`、evidence row ids diff `47/200`、answer diff `86/200`。token 节省不足以抵消 reader 行为漂移，不升 LTS、不跑 full/judge。 |
@@ -133,6 +134,9 @@
 
 | 路径 | 内容 |
 |---|---|
+| `diagnostic/stage1_temporal_selected_context_center_timestamp_v220_scope_summary.md` | v220 负向结论：保留 context 文本但移除 nearby timestamp 后 changed-answer judge `-4/-3`，不升 LTS |
+| `diagnostic/stage1_temporal_selected_context_center_timestamp_v220_lme_s_full/` | v220 LME full；prompt/answer/evidence/selected-context diff `0/500` |
+| `diagnostic/stage1_temporal_selected_context_center_timestamp_v220_locomo_nonadv_full/` | v220 LoCoMo full；answer diff `99/1540`，risk rows `5841`，avg query tokens `6048.207792207792` |
 | `diagnostic/stage1_temporal_materialized_context_source_gate_v219_scope_summary.md` | v219 负向结论：temporal-only hard gate 降低 selected-context risk/token，但 changed-answer judge `-4/-1`，不升 LTS |
 | `diagnostic/stage1_temporal_materialized_context_source_gate_v219_lme_s_full/` | v219 LME full；prompt/answer/evidence/selected-context diff `0/500` |
 | `diagnostic/stage1_temporal_materialized_context_source_gate_v219_locomo_nonadv_full/` | v219 LoCoMo full；answer diff `105/1540`，risk rows `4932`，avg query tokens `6065.516883116883` |
