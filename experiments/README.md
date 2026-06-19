@@ -26,7 +26,7 @@
 
 | 优先级 | 项目 | 当前状态 | 下一步 |
 |---:|---|---|---|
-| 1 | #2 top-k/context noise/rerank | v209/v211 用 `22000` chars + `32` anchors 实际裁掉 LME tail retrieval candidates且不改 prompt/answer；v210 说明机械 tail snippet 虽降 query tokens 但 judge 负向 | 继续做 source/span 保真的 prompt-stable context organization 或 guarded rerank，目标是减少进入 prompt 的噪声和 token，而不是硬剪证据 |
+| 1 | #2 top-k/context noise/rerank | v209/v211 用 `22000` chars + `32` anchors 实际裁掉 LME tail retrieval candidates且不改 prompt/answer；v210 tail snippet 和 v215 selected-context compact wrapper 都说明机械压缩 prompt text 会扰动 reader | 继续做 source/span 保真的 prompt-stable context organization 或 guarded rerank，目标是减少进入 prompt 的噪声和 token，而不是硬剪证据或单纯改写包装格式 |
 | 2 | #3 selected context | v214 使用 prompt-visible materialized row + normalized query/evidence terms 做 trace-only audit；LoCoMo audit applied `1493/1540`、risk rows `5841`，低于 v213 的 `6163` | 用 v214 剩余风险 rows 设计 source-backed mitigation；任何 prompt-visible gate 必须先做 changed-answer judge |
 | 3 | #5 memory lifecycle/state/conflict/query-time reasoning | v206 已把 prompt-visible guide 收窄为 source-backed、question-aligned、stateful-slot、active+superseded update pair；LME guide `1/500`，LoCoMo `0/1540`，v209 继承 | 扩展更通用的 state/update organization：保留 raw evidence first，typed memory 只做 source-backed activation；不把普通 event/preference 多值当 state conflict |
 | 4 | src cleanup | 已有多轮兼容分支，`repair.py`、compiler、pipeline 仍会继续变复杂 | 每个阶段结束后做小范围清理，删已确认无用的兼容代码，不删仍有消融价值的模块 |
@@ -83,6 +83,7 @@
 
 | 配置 | 原因 |
 |---|---|
+| `stage1_compact_selected_context_format_v215_seeded_qwen36_no_think_build4k_cached.json` | v215 用更短 selected-context wrapper 试图降低 #2 query token；LoCoMo probe200 avg query tokens `6142.005 -> 6017.23`，但 prompt diff `198/200`、evidence row ids diff `47/200`、answer diff `86/200`。token 节省不足以抵消 reader 行为漂移，不升 LTS、不跑 full/judge。 |
 | `stage1_role_aware_tail_snippet_v210_seeded_qwen36_no_think_build4k_cached.json` | v210 只压缩 rank `>32` tail row 的 prompt text，retrieval hits/evidence rows/source order 均不变，LME avg query tokens `6580.196 -> 6122.956`；但 answer diff `96/500`，changed-answer dual judge strict/lenient `55/96 -> 41/96`、`62/96 -> 53/96`，说明 row-set preserving tail snippet 仍会损伤 reader，不升 LTS、不跑 LoCoMo。 |
 | `stage1_guarded_context_budget_v208_seeded_qwen36_no_think_build4k_cached.json` | v208 把 v207 的 `16000` char / `32` anchor context-budget audit 改成真实 retrieval budget；LME answer diff `0/500` 但 prompt/evidence rows diff `1/500`，avg query tokens `6580.196 -> 6580.362`，LoCoMo dropped `0` 且完全 no-op；不升 LTS。后续改用更保守或动态 prompt-stable guard。 |
 | `stage1_conflict_gated_memory_state_guide_v203_seeded_qwen36_no_think_build4k_cached.json` | v203 首版 source-linked state guide 在 LME full 上 answer diff `10/500`、prompt diff `13/500`、evidence rows diff `11/500`；guide 触发 `3/500`，但把多次 museum/market/flight event 值误当 state conflict，同时 `memory_record_source=evidence_rows` 改变了原 current-state memory-aware evidence ordering。v204 已用 separate guide source 和 event-value exclusion 修正；v203 不升 LTS，不跑 LoCoMo full。 |
