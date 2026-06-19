@@ -43,6 +43,7 @@ from memory.pipeline import (
     Stage1Pipeline,
     _align_build_memory_sources,
     _compiler_memory_records,
+    _context_manifest,
     _memory_lifecycle_manifest,
     _memory_slot_chain_source_hits,
     _memory_records_by_source,
@@ -160,6 +161,118 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertTrue(all(row["source_id"] for row in rows))
         self.assertEqual(result["trace"]["token_cost"]["query_tokens"], 0)
         self.assertTrue(result["trace"]["memory_lifecycle_manifest"]["trace_only"])
+
+    def test_context_manifest_tracks_source_backed_memory_activation(self) -> None:
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text="Alex asked about tea.",
+            ),
+            Turn(
+                source_id="s1:t1",
+                session_id="s1",
+                turn_index=1,
+                role="assistant",
+                text="Alex prefers jasmine tea.",
+            ),
+            Turn(
+                source_id="s1:t2",
+                session_id="s1",
+                turn_index=2,
+                role="user",
+                text="Alex later bought coffee.",
+            ),
+        )
+        store = RawEvidenceStore(turns)
+        record = MemoryRecord(
+            memory_id="m1",
+            memory_type="preference",
+            text="Alex prefers jasmine tea.",
+            source_ids=("s1:t1", "s1:t2"),
+            subject="Alex",
+            predicate="prefers",
+            value="jasmine tea",
+        )
+        route = RouteResult("profile_preference", ("profile",))
+        manifest = _context_manifest(
+            store=store,
+            route=route,
+            lexical_hits=(
+                RetrievalHit(
+                    source_id="s1:t1",
+                    score=1.0,
+                    rank=1,
+                    retriever="lexical",
+                    matched_terms=("jasmine", "tea"),
+                ),
+            ),
+            dense_hits=(),
+            memory_hits=(MemoryHit(record=record, score=2.0, rank=1),),
+            memory_source_hits=(
+                RetrievalHit(
+                    source_id="s1:t2",
+                    score=2.0,
+                    rank=1,
+                    retriever="memory_source",
+                ),
+            ),
+            memory_slot_chain_source_hits=(),
+            turn_window_source_hits=(),
+            pre_context_budget_hits=(
+                RetrievalHit("s1:t1", 1.0, 1, "lexical"),
+                RetrievalHit("s1:t2", 2.0, 2, "memory_source"),
+            ),
+            retrieval_hits=(RetrievalHit("s1:t1", 1.0, 1, "lexical"),),
+            context_budget_trace={
+                "applied": True,
+                "dropped_count": 1,
+                "dropped_source_ids": ["s1:t2"],
+            },
+            context_budget_audit={"safe_for_current_prompt": True},
+            evidence_turns=(turns[1],),
+            selected_context={
+                "materialized_count": 1,
+                "materialized_source_ids": ["s1:t1"],
+            },
+            built_memory_records=(record,),
+            compiler_memory_records=(record,),
+            evidence_rows=(
+                EvidenceRow(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="assistant",
+                    text="Alex prefers jasmine tea.",
+                    timestamp=None,
+                    retrieval_rank=1,
+                    retrieval_score=1.0,
+                ),
+            ),
+        )
+
+        self.assertTrue(manifest["trace_only"])
+        self.assertEqual(manifest["information_need"], "profile_preference")
+        self.assertEqual(
+            manifest["source_flow"]["context_budget_dropped_source_ids"],
+            ["s1:t2"],
+        )
+        self.assertEqual(
+            manifest["typed_memory"]["retrieved"]["type_counts"],
+            {"preference": 1},
+        )
+        self.assertEqual(
+            manifest["typed_memory"]["compiler"]["visible_source_count"], 1
+        )
+        self.assertEqual(
+            manifest["coverage"]["final_evidence_from_typed_memory_source_count"],
+            1,
+        )
+        self.assertEqual(
+            manifest["coverage"]["selected_context_final_row_count"], 1
+        )
 
     def test_pipeline_can_disable_lexical_retrieval(self) -> None:
         config = {

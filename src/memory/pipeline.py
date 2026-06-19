@@ -1801,6 +1801,25 @@ class Stage1Pipeline:
                 evidence_rows=compiled.evidence_rows,
                 selected_context=selected_context,
             )
+        context_manifest = _context_manifest(
+            store=store,
+            route=route,
+            lexical_hits=lexical_hits,
+            dense_hits=dense_hits,
+            memory_hits=memory_hits,
+            memory_source_hits=memory_source_hits,
+            memory_slot_chain_source_hits=memory_slot_chain_source_hits,
+            turn_window_source_hits=turn_window_source_hits,
+            pre_context_budget_hits=pre_context_budget_hits,
+            retrieval_hits=hits,
+            context_budget_trace=context_budget_trace,
+            context_budget_audit=context_budget_audit,
+            evidence_turns=evidence_turns,
+            selected_context=selected_context,
+            built_memory_records=built_memory.records,
+            compiler_memory_records=compiler_memory_records,
+            evidence_rows=compiled.evidence_rows,
+        )
         answer_cache_before = _answer_cache_stats(self._answerer)
         draft_answer = self._answerer.answer(compiled)
         answer_cache_after = _answer_cache_stats(self._answerer)
@@ -1912,6 +1931,7 @@ class Stage1Pipeline:
                 "build_memory_config": self._build_memory_trace_config,
                 "build_memory_source_alignment": source_alignment,
                 "memory_lifecycle_manifest": memory_lifecycle_manifest,
+                "context_manifest": context_manifest,
                 "route": route.to_dict(),
                 "heuristic_route": heuristic_route.to_dict(),
                 "route_config": self._route_trace_config,
@@ -2834,6 +2854,234 @@ def _memory_lifecycle_manifest(
             "modules."
         ),
     }
+
+
+def _context_manifest(
+    *,
+    store: RawEvidenceStore,
+    route: RouteResult,
+    lexical_hits: tuple[Any, ...],
+    dense_hits: tuple[Any, ...],
+    memory_hits: tuple[Any, ...],
+    memory_source_hits: tuple[Any, ...],
+    memory_slot_chain_source_hits: tuple[Any, ...],
+    turn_window_source_hits: tuple[Any, ...],
+    pre_context_budget_hits: tuple[Any, ...],
+    retrieval_hits: tuple[Any, ...],
+    context_budget_trace: Mapping[str, Any],
+    context_budget_audit: Mapping[str, Any],
+    evidence_turns: tuple[Any, ...],
+    selected_context: Mapping[str, Any],
+    built_memory_records: tuple[Any, ...],
+    compiler_memory_records: tuple[Any, ...],
+    evidence_rows: tuple[Any, ...],
+) -> dict[str, Any]:
+    """Trace-only source flow manifest for memory/context organization.
+
+    The manifest is a compact, normalized view over fields already available in
+    the trace. It is intentionally not used by retrieval, compiler, answer,
+    repair, finalizer, or cache keys.
+    """
+
+    final_evidence_source_ids = _source_ids_from_rows(evidence_rows)
+    evidence_turn_source_ids = _source_ids_from_turns(evidence_turns)
+    selected_context_source_ids = _ordered_unique(
+        selected_context.get("materialized_source_ids") or ()
+    )
+    memory_projected_source_ids = _ordered_unique(
+        (
+            *_source_ids_from_hits(memory_source_hits),
+            *_source_ids_from_hits(memory_slot_chain_source_hits),
+        )
+    )
+    typed_memory_source_ids = _ordered_unique(
+        source_id
+        for record in compiler_memory_records
+        for source_id in getattr(record, "source_ids", ()) or ()
+    )
+    final_set = set(final_evidence_source_ids)
+    selected_set = set(selected_context_source_ids)
+    memory_projected_set = set(memory_projected_source_ids)
+    typed_memory_set = set(typed_memory_source_ids)
+    return {
+        "enabled": True,
+        "trace_only": True,
+        "information_need": route.information_need,
+        "store": store.manifest(),
+        "retrieval": {
+            "lexical_hit_count": len(lexical_hits),
+            "dense_hit_count": len(dense_hits),
+            "memory_hit_count": len(memory_hits),
+            "memory_projected_source_hit_count": len(memory_source_hits),
+            "memory_slot_chain_source_hit_count": len(
+                memory_slot_chain_source_hits
+            ),
+            "turn_window_source_hit_count": len(turn_window_source_hits),
+            "pre_context_budget_hit_count": len(pre_context_budget_hits),
+            "final_hit_count": len(retrieval_hits),
+            "context_budget_applied": bool(context_budget_trace.get("applied")),
+            "context_budget_dropped_count": int(
+                context_budget_trace.get("dropped_count") or 0
+            ),
+            "context_budget_safe_for_current_prompt": context_budget_audit.get(
+                "safe_for_current_prompt"
+            ),
+        },
+        "source_flow": {
+            "lexical_source_ids": _source_ids_from_hits(lexical_hits),
+            "dense_source_ids": _source_ids_from_hits(dense_hits),
+            "memory_projected_source_ids": memory_projected_source_ids,
+            "turn_window_source_ids": _source_ids_from_hits(
+                turn_window_source_hits
+            ),
+            "pre_context_budget_source_ids": _source_ids_from_hits(
+                pre_context_budget_hits
+            ),
+            "context_budget_dropped_source_ids": list(
+                context_budget_trace.get("dropped_source_ids") or ()
+            ),
+            "final_hit_source_ids": _source_ids_from_hits(retrieval_hits),
+            "evidence_turn_source_ids": evidence_turn_source_ids,
+            "final_evidence_source_ids": final_evidence_source_ids,
+            "selected_context_source_ids": selected_context_source_ids,
+        },
+        "typed_memory": {
+            "built": _memory_record_manifest(
+                built_memory_records,
+                final_evidence_source_ids=final_evidence_source_ids,
+            ),
+            "retrieved": _memory_hit_manifest(
+                memory_hits,
+                final_evidence_source_ids=final_evidence_source_ids,
+            ),
+            "compiler": _memory_record_manifest(
+                compiler_memory_records,
+                final_evidence_source_ids=final_evidence_source_ids,
+            ),
+        },
+        "coverage": {
+            "final_evidence_row_count": len(final_evidence_source_ids),
+            "evidence_turn_count": len(evidence_turn_source_ids),
+            "selected_context_final_row_count": len(final_set & selected_set),
+            "final_evidence_from_memory_projection_count": len(
+                final_set & memory_projected_set
+            ),
+            "final_evidence_from_typed_memory_source_count": len(
+                final_set & typed_memory_set
+            ),
+            "typed_memory_source_count": len(typed_memory_source_ids),
+            "selected_context_materialized_count": int(
+                selected_context.get("materialized_count") or 0
+            ),
+        },
+        "clean_note": (
+            "Trace-only Context Manifest inspired by provenance-first memory "
+            "systems. It summarizes already-selected sources and typed-memory "
+            "activation; it does not alter prediction behavior."
+        ),
+    }
+
+
+def _memory_hit_manifest(
+    memory_hits: tuple[Any, ...],
+    *,
+    final_evidence_source_ids: tuple[str, ...],
+) -> dict[str, Any]:
+    return _memory_record_manifest(
+        tuple(
+            record
+            for hit in memory_hits
+            for record in (getattr(hit, "record", None),)
+            if record is not None
+        ),
+        final_evidence_source_ids=final_evidence_source_ids,
+    )
+
+
+def _memory_record_manifest(
+    records: tuple[Any, ...],
+    *,
+    final_evidence_source_ids: tuple[str, ...],
+) -> dict[str, Any]:
+    final_set = set(final_evidence_source_ids)
+    type_counts: dict[str, int] = {}
+    status_counts: dict[str, int] = {}
+    source_ids: list[str] = []
+    visible_records = 0
+    items: list[dict[str, Any]] = []
+    for record in records:
+        memory_type = str(getattr(record, "memory_type", "unknown") or "unknown")
+        status = str(getattr(record, "status", "unknown") or "unknown")
+        type_counts[memory_type] = type_counts.get(memory_type, 0) + 1
+        status_counts[status] = status_counts.get(status, 0) + 1
+        record_source_ids = tuple(str(source_id) for source_id in (
+            getattr(record, "source_ids", ()) or ()
+        ))
+        source_ids.extend(record_source_ids)
+        visible_source_ids = tuple(
+            source_id for source_id in record_source_ids if source_id in final_set
+        )
+        if visible_source_ids:
+            visible_records += 1
+        if len(items) < 8:
+            items.append(
+                {
+                    "memory_id": str(getattr(record, "memory_id", "")),
+                    "memory_type": memory_type,
+                    "status": status,
+                    "source_ids": list(record_source_ids),
+                    "visible_source_ids": list(visible_source_ids),
+                }
+            )
+    unique_source_ids = _ordered_unique(source_ids)
+    return {
+        "record_count": len(records),
+        "type_counts": dict(sorted(type_counts.items())),
+        "status_counts": dict(sorted(status_counts.items())),
+        "source_count": len(unique_source_ids),
+        "visible_record_count": visible_records,
+        "visible_source_count": len(set(unique_source_ids) & final_set),
+        "records": items,
+    }
+
+
+def _source_ids_from_hits(hits: tuple[Any, ...]) -> tuple[str, ...]:
+    return _ordered_unique(
+        str(source_id)
+        for hit in hits
+        for source_id in (getattr(hit, "source_id", None),)
+        if source_id
+    )
+
+
+def _source_ids_from_turns(turns: tuple[Any, ...]) -> tuple[str, ...]:
+    return _ordered_unique(
+        str(source_id)
+        for turn in turns
+        for source_id in (getattr(turn, "source_id", None),)
+        if source_id
+    )
+
+
+def _source_ids_from_rows(rows: tuple[Any, ...]) -> tuple[str, ...]:
+    return _ordered_unique(
+        str(source_id)
+        for row in rows
+        for source_id in (getattr(row, "source_id", None),)
+        if source_id
+    )
+
+
+def _ordered_unique(values: Any) -> tuple[str, ...]:
+    result: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        text = str(value)
+        if not text or text in seen:
+            continue
+        seen.add(text)
+        result.append(text)
+    return tuple(result)
 
 
 def _memory_lifecycle_record_stats(
