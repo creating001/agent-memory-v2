@@ -619,6 +619,11 @@ class Stage1Pipeline:
                     "event_time_candidate_map_allow_time_of_day_questions", True
                 )
             ),
+            event_time_candidate_map_temporal_ambiguity_contract=bool(
+                compiler_config.get(
+                    "event_time_candidate_map_temporal_ambiguity_contract", False
+                )
+            ),
             structured_guide=bool(compiler_config.get("structured_guide", False)),
             structured_guide_max_rows=int(
                 compiler_config.get("structured_guide_max_rows", 12)
@@ -3829,6 +3834,11 @@ def _compiler_trace_config(
                 "event_time_candidate_map_allow_time_of_day_questions", True
             )
         ),
+        "event_time_candidate_map_temporal_ambiguity_contract": bool(
+            compiler_config.get(
+                "event_time_candidate_map_temporal_ambiguity_contract", False
+            )
+        ),
         "structured_guide": bool(compiler_config.get("structured_guide", False)),
         "structured_guide_max_rows": int(
             compiler_config.get("structured_guide_max_rows", 12)
@@ -4107,6 +4117,11 @@ def _configured_compiler(compiler_config: Mapping[str, Any]) -> EvidenceCompiler
         event_time_candidate_map_allow_time_of_day_questions=bool(
             compiler_config.get(
                 "event_time_candidate_map_allow_time_of_day_questions", True
+            )
+        ),
+        event_time_candidate_map_temporal_ambiguity_contract=bool(
+            compiler_config.get(
+                "event_time_candidate_map_temporal_ambiguity_contract", False
             )
         ),
         structured_guide=bool(compiler_config.get("structured_guide", False)),

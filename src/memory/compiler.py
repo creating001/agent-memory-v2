@@ -251,6 +251,7 @@ class EvidenceCompiler:
         event_time_candidate_map_exact_today_min_coverage: float | None = None,
         event_time_candidate_map_require_role_match: bool = False,
         event_time_candidate_map_allow_time_of_day_questions: bool = True,
+        event_time_candidate_map_temporal_ambiguity_contract: bool = False,
         structured_guide: bool = False,
         structured_guide_max_rows: int = 12,
         structured_guide_include_rows: bool = True,
@@ -428,6 +429,9 @@ class EvidenceCompiler:
         )
         self._event_time_candidate_map_allow_time_of_day_questions = bool(
             event_time_candidate_map_allow_time_of_day_questions
+        )
+        self._event_time_candidate_map_temporal_ambiguity_contract = bool(
+            event_time_candidate_map_temporal_ambiguity_contract
         )
         self._structured_guide = structured_guide
         self._structured_guide_max_rows = max(1, structured_guide_max_rows)
@@ -736,6 +740,9 @@ class EvidenceCompiler:
             event_time_candidate_map_require_role_match=route_settings[
                 "event_time_candidate_map_require_role_match"
             ],
+            event_time_candidate_map_temporal_ambiguity_contract=route_settings[
+                "event_time_candidate_map_temporal_ambiguity_contract"
+            ],
             structured_guide=(
                 self._structured_guide
                 and not set(route.signals).intersection(
@@ -971,6 +978,9 @@ class EvidenceCompiler:
             ),
             "event_time_candidate_map_allow_time_of_day_questions": (
                 self._event_time_candidate_map_allow_time_of_day_questions
+            ),
+            "event_time_candidate_map_temporal_ambiguity_contract": (
+                self._event_time_candidate_map_temporal_ambiguity_contract
             ),
             "final_answer_checklist": self._final_answer_checklist,
             "grounded_inference_contract": self._grounded_inference_contract,
@@ -2500,6 +2510,7 @@ def _build_prompt(
     event_time_candidate_map_normalize_terms: bool,
     event_time_candidate_map_exact_today_min_coverage: float | None,
     event_time_candidate_map_require_role_match: bool,
+    event_time_candidate_map_temporal_ambiguity_contract: bool,
     structured_guide: bool,
     structured_guide_max_rows: int,
     structured_guide_include_rows: bool,
@@ -2612,6 +2623,9 @@ def _build_prompt(
             ),
             event_time_candidate_map_require_role_match=(
                 event_time_candidate_map_require_role_match
+            ),
+            event_time_candidate_map_temporal_ambiguity_contract=(
+                event_time_candidate_map_temporal_ambiguity_contract
             ),
             structured_guide=structured_guide,
             structured_guide_max_rows=structured_guide_max_rows,
@@ -2826,6 +2840,7 @@ def _build_external_naive_prompt(
     event_time_candidate_map_normalize_terms: bool,
     event_time_candidate_map_exact_today_min_coverage: float | None,
     event_time_candidate_map_require_role_match: bool,
+    event_time_candidate_map_temporal_ambiguity_contract: bool,
     structured_guide: bool,
     structured_guide_max_rows: int,
     structured_guide_include_rows: bool,
@@ -2918,6 +2933,9 @@ def _build_external_naive_prompt(
                 event_time_candidate_map_exact_today_min_coverage
             ),
             require_role_match=event_time_candidate_map_require_role_match,
+            temporal_ambiguity_contract=(
+                event_time_candidate_map_temporal_ambiguity_contract
+            ),
         )
         if event_time_candidate_map_lines:
             event_time_candidate_map_block = "\n".join(
@@ -4536,6 +4554,7 @@ def _external_event_time_candidate_map_lines(
     normalize_terms: bool,
     exact_today_min_coverage: float | None,
     require_role_match: bool,
+    temporal_ambiguity_contract: bool,
 ) -> list[str]:
     target_terms = _event_time_candidate_map_target_terms(
         question,
@@ -4657,8 +4676,15 @@ def _external_event_time_candidate_map_lines(
         "Use this narrow map only to locate the likely target event-time row; verify the final answer in Memory Context.",
         "- Only high-confidence q-slot groups with no event-time conflict and strong question-term coverage are shown.",
         "- Omitted rows may be low precision, conflicted, or less specific to the question.",
-        "- target_event_time_candidates:",
     ]
+    if temporal_ambiguity_contract:
+        lines.extend(
+            [
+                "- For planned, intended, scheduled, or future relative phrases, keep mention_time and event_time separate; do not collapse one into the other.",
+                "- If the question could be asking when the plan or statement was made rather than only when the future event was scheduled, include both mention_time and planned event_time in the final answer.",
+            ]
+        )
+    lines.append("- target_event_time_candidates:")
     for entry in selected_for_prompt:
         item = entry["item"]
         group = entry["group"]

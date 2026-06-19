@@ -1026,6 +1026,45 @@ class CompilerTest(unittest.TestCase):
         self.assertIn("mention_time=2022-08-22", compiled.prompt)
         self.assertIn("event_time=2022-08-27 to 2022-08-28", compiled.prompt)
         self.assertIn('relative_phrase: phrase="this weekend"', compiled.prompt)
+        self.assertNotIn("planned, intended, scheduled", compiled.prompt)
+
+    def test_event_time_candidate_map_can_add_temporal_ambiguity_contract(
+        self,
+    ) -> None:
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="Nate",
+                text="I'm taking some time off this weekend to chill with my pets.",
+                timestamp="2022-08-22",
+            ),
+        )
+
+        compiled = EvidenceCompiler(
+            max_evidence_items=1,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            event_time_candidate_map=True,
+            event_time_candidate_map_allowed_time_kinds=("relative_phrase",),
+            event_time_candidate_map_rank_by_coverage=True,
+            event_time_candidate_map_normalize_terms=True,
+            event_time_candidate_map_require_role_match=True,
+            event_time_candidate_map_temporal_ambiguity_contract=True,
+        ).compile(
+            question="When did Nate take time off to chill with his pets?",
+            question_time=None,
+            route=RouteResult("temporal_lookup", ("temporal",)),
+            hits=(),
+            evidence_turns=turns,
+        )
+
+        self.assertIn("Event-Time Candidate Map:", compiled.prompt)
+        self.assertIn("mention_time=2022-08-22", compiled.prompt)
+        self.assertIn("event_time=2022-08-27 to 2022-08-28", compiled.prompt)
+        self.assertIn("planned, intended, scheduled", compiled.prompt)
+        self.assertIn("include both mention_time and planned event_time", compiled.prompt)
 
     def test_memory_tail_filter_preserves_retrieval_order(self) -> None:
         compiler = EvidenceCompiler(
