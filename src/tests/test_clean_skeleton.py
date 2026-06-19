@@ -45,6 +45,7 @@ from memory.pipeline import (
     _align_build_memory_sources,
     _compiler_memory_records,
     _context_manifest,
+    _filter_memory_source_hits_by_utility,
     _memory_lifecycle_manifest,
     _memory_slot_chain_source_hits,
     _memory_records_by_source,
@@ -3214,6 +3215,84 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual(trace["records_seen"], 1)
         self.assertEqual(trace["records_changed"], 1)
         self.assertEqual(trace["sources_added"], 1)
+
+    def test_memory_source_utility_filters_low_overlap_memory_hits(self) -> None:
+        low_overlap = MemoryRecord(
+            memory_id="m-low",
+            memory_type="fact",
+            text="Alex mentioned a generic topic.",
+            source_ids=("s1:t0",),
+            subject="Alex",
+            predicate="mentioned",
+            value="generic topic",
+        )
+        useful = MemoryRecord(
+            memory_id="m-useful",
+            memory_type="preference",
+            text="Alex prefers jasmine tea.",
+            source_ids=("s1:t1", "s1:t2"),
+            subject="Alex",
+            predicate="prefers",
+            value="jasmine tea",
+        )
+
+        hits, trace = _filter_memory_source_hits_by_utility(
+            memory_hits=(
+                MemoryHit(
+                    record=low_overlap,
+                    score=2.0,
+                    rank=1,
+                    matched_terms=("alex",),
+                ),
+                MemoryHit(
+                    record=useful,
+                    score=1.5,
+                    rank=2,
+                    matched_terms=("jasmine", "tea"),
+                ),
+            ),
+            max_sources_per_memory=2,
+            min_matched_terms=2,
+            preserve_top_n=0,
+            max_memory_hits=0,
+        )
+
+        self.assertTrue(trace["applied"])
+        self.assertEqual(trace["records_seen"], 2)
+        self.assertEqual(trace["records_kept"], 1)
+        self.assertEqual(trace["records_dropped"], 1)
+        self.assertEqual(trace["source_hits_before"], 3)
+        self.assertEqual(trace["source_hits_after"], 2)
+        self.assertEqual([hit.source_id for hit in hits], ["s1:t1", "s1:t2"])
+
+    def test_memory_source_utility_preserves_top_rank(self) -> None:
+        record = MemoryRecord(
+            memory_id="m-top",
+            memory_type="fact",
+            text="Alex mentioned a generic topic.",
+            source_ids=("s1:t0",),
+            subject="Alex",
+            predicate="mentioned",
+            value="generic topic",
+        )
+
+        hits, trace = _filter_memory_source_hits_by_utility(
+            memory_hits=(
+                MemoryHit(
+                    record=record,
+                    score=2.0,
+                    rank=1,
+                    matched_terms=("alex",),
+                ),
+            ),
+            max_sources_per_memory=1,
+            min_matched_terms=2,
+            preserve_top_n=1,
+            max_memory_hits=0,
+        )
+
+        self.assertEqual([hit.source_id for hit in hits], ["s1:t0"])
+        self.assertEqual(trace["kept"][0]["reason"], "preserved_top_rank")
 
     def test_build_memory_source_alignment_role_gate_keeps_user_assistant_fix(self) -> None:
         record = MemoryRecord(
