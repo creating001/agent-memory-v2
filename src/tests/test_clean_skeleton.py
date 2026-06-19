@@ -47,6 +47,8 @@ from memory.pipeline import (
     _memory_slot_chain_source_hits,
     _memory_records_by_source,
     _neighbor_turns_for_rerank,
+    _selected_context_content_terms,
+    _selected_context_source_grounded_match,
 )
 from memory.store import RawEvidenceStore
 from common.schemas import (
@@ -676,6 +678,46 @@ class CleanSkeletonTest(unittest.TestCase):
             "missing_self_reference",
         )
         self.assertNotIn("Local dialogue context from the same session", row_text)
+
+    def test_selected_context_source_grounded_match_normalizes_query_terms(
+        self,
+    ) -> None:
+        ferrari_question_terms = _selected_context_content_terms(
+            "How many Ferraris does Calvin own?"
+        )
+        self.assertIn("ferrari", ferrari_question_terms)
+        self.assertNotIn("ferraris", ferrari_question_terms)
+        self.assertNotIn("many", ferrari_question_terms)
+        self.assertNotIn("own", ferrari_question_terms)
+
+        mom_question_terms = _selected_context_content_terms(
+            "How did Deborah's mom support her yoga practice when she first started?"
+        )
+        self.assertIn("mom", mom_question_terms)
+        self.assertIn("mum", mom_question_terms)
+        self.assertIn("support", mom_question_terms)
+
+        match = _selected_context_source_grounded_match(
+            question=(
+                "How did Deborah's mom support her yoga practice when she "
+                "first started?"
+            ),
+            turn=Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="Deborah",
+                text=(
+                    "When I first started doing yoga, my mum was my biggest "
+                    "fan and source of motivation. She often came to classes."
+                ),
+                timestamp="2:14 pm on 3 September, 2023",
+            ),
+            min_terms=2,
+            min_coverage=0.6,
+            role_sensitive=False,
+        )
+        self.assertTrue(match["matched"])
 
     def test_selected_context_risk_audit_is_trace_only(self) -> None:
         config = {

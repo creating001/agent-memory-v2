@@ -4011,6 +4011,7 @@ SELECTED_CONTEXT_SELF_REFERENCE_PATTERN = re.compile(
 SELECTED_CONTEXT_TERM_STOPWORDS = frozenset(
     {
         "a",
+        "about",
         "an",
         "and",
         "are",
@@ -4018,16 +4019,24 @@ SELECTED_CONTEXT_TERM_STOPWORDS = frozenset(
         "be",
         "been",
         "being",
+        "by",
         "could",
         "did",
         "do",
         "does",
+        "during",
         "for",
         "from",
         "had",
         "has",
         "have",
+        "he",
+        "here",
         "her",
+        "hers",
+        "herself",
+        "him",
+        "himself",
         "his",
         "how",
         "i",
@@ -4035,17 +4044,32 @@ SELECTED_CONTEXT_TERM_STOPWORDS = frozenset(
         "is",
         "it",
         "me",
+        "many",
         "my",
         "of",
         "on",
         "or",
         "our",
+        "own",
+        "owned",
+        "owns",
+        "same",
         "she",
         "should",
+        "such",
+        "that",
         "the",
         "their",
+        "theirs",
+        "them",
+        "themselves",
         "they",
+        "this",
+        "those",
+        "these",
+        "there",
         "to",
+        "up",
         "was",
         "were",
         "what",
@@ -4058,9 +4082,49 @@ SELECTED_CONTEXT_TERM_STOPWORDS = frozenset(
         "would",
         "you",
         "your",
+        "with",
     }
 )
 SELECTED_CONTEXT_GENERIC_ROLE_TERMS = frozenset({"assistant", "system", "user"})
+SELECTED_CONTEXT_NO_SINGULAR_VARIANT_TERMS = frozenset(
+    {
+        "alexis",
+        "chris",
+        "james",
+    }
+)
+SELECTED_CONTEXT_TERM_ALIASES: dict[str, tuple[str, ...]] = {
+    "admires": ("admire", "like"),
+    "admired": ("admire", "like"),
+    "admiring": ("admire", "like"),
+    "admire": ("like",),
+    "enjoyed": ("enjoy", "like"),
+    "enjoying": ("enjoy", "like"),
+    "enjoys": ("enjoy", "like"),
+    "enjoy": ("like",),
+    "fan": ("support",),
+    "fans": ("fan", "support"),
+    "mum": ("mom", "mother"),
+    "mom": ("mum", "mother"),
+    "mother": ("mom", "mum"),
+    "motivation": ("motivate", "support"),
+    "motivates": ("motivate", "support"),
+    "motivated": ("motivate", "support"),
+    "motivating": ("motivate", "support"),
+    "encouragement": ("encourage", "support"),
+    "encourages": ("encourage", "support"),
+    "encouraged": ("encourage", "support"),
+    "encouraging": ("encourage", "support"),
+    "educaton": ("education",),
+    "goes": ("go",),
+    "going": ("go",),
+    "persue": ("pursue",),
+    "planned": ("plan",),
+    "planning": ("plan",),
+    "recieved": ("received",),
+    "signed": ("sign",),
+    "went": ("go",),
+}
 
 def _materialize_selected_context(
     *,
@@ -4255,10 +4319,39 @@ def _selected_context_content_terms(text: str) -> frozenset[str]:
         token = match.group(0)
         if len(token) <= 1 or token in SELECTED_CONTEXT_TERM_STOPWORDS:
             continue
-        terms.add(token)
-        if len(token) > 3 and token.endswith("s"):
-            terms.add(token[:-1])
+        terms.update(_selected_context_term_variants(token))
     return frozenset(terms)
+
+
+def _selected_context_term_variants(token: str) -> set[str]:
+    variants = {token}
+    if len(token) > 4 and token.endswith("ies"):
+        variants = {f"{token[:-3]}y"}
+    elif (
+        len(token) > 4
+        and token.endswith(("ses", "xes", "zes", "ches", "shes"))
+        and token not in SELECTED_CONTEXT_NO_SINGULAR_VARIANT_TERMS
+    ):
+        variants = {token[:-2]}
+    elif (
+        len(token) > 3
+        and token.endswith("s")
+        and token not in SELECTED_CONTEXT_NO_SINGULAR_VARIANT_TERMS
+        and not token.endswith(("ss", "us"))
+    ):
+        variants = {token[:-1]}
+    queue = list(variants)
+    while queue:
+        current = queue.pop()
+        for alias in SELECTED_CONTEXT_TERM_ALIASES.get(current, ()):
+            if (
+                len(alias) > 1
+                and alias not in SELECTED_CONTEXT_TERM_STOPWORDS
+                and alias not in variants
+            ):
+                variants.add(alias)
+                queue.append(alias)
+    return variants
 
 
 def _selected_context_text(
