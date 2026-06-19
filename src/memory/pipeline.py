@@ -827,6 +827,9 @@ class Stage1Pipeline:
             memory_state_guide_include_superseded=bool(
                 compiler_config.get("memory_state_guide_include_superseded", True)
             ),
+            memory_state_guide_require_conflict=bool(
+                compiler_config.get("memory_state_guide_require_conflict", False)
+            ),
             profile_activation_guide=bool(
                 compiler_config.get("profile_activation_guide", False)
             ),
@@ -4406,6 +4409,9 @@ def _compiler_trace_config(
         "memory_state_guide_include_superseded": bool(
             compiler_config.get("memory_state_guide_include_superseded", True)
         ),
+        "memory_state_guide_require_conflict": bool(
+            compiler_config.get("memory_state_guide_require_conflict", False)
+        ),
         "profile_activation_guide": bool(
             compiler_config.get("profile_activation_guide", False)
         ),
@@ -4725,6 +4731,9 @@ def _configured_compiler(compiler_config: Mapping[str, Any]) -> EvidenceCompiler
         ),
         memory_state_guide_include_superseded=bool(
             compiler_config.get("memory_state_guide_include_superseded", True)
+        ),
+        memory_state_guide_require_conflict=bool(
+            compiler_config.get("memory_state_guide_require_conflict", False)
         ),
         profile_activation_guide=bool(
             compiler_config.get("profile_activation_guide", False)

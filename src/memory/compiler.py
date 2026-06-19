@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import calendar
 import re
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from datetime import date, timedelta
 from typing import Any
 
@@ -111,6 +111,7 @@ ROUTE_OVERRIDE_KEYS = {
     "max_evidence_items",
     "max_row_text_chars",
     "memory_state_guide",
+    "memory_state_guide_require_conflict",
     "memory_state_guide_include_superseded",
     "memory_state_guide_max_records",
     "memory_state_guide_value_chars",
@@ -314,6 +315,7 @@ class EvidenceCompiler:
         memory_state_guide_max_records: int = 8,
         memory_state_guide_value_chars: int = 120,
         memory_state_guide_include_superseded: bool = True,
+        memory_state_guide_require_conflict: bool = False,
         profile_activation_guide: bool = False,
         profile_activation_guide_information_needs: tuple[str, ...] = (
             "profile_preference",
@@ -544,6 +546,9 @@ class EvidenceCompiler:
         )
         self._memory_state_guide_include_superseded = bool(
             memory_state_guide_include_superseded
+        )
+        self._memory_state_guide_require_conflict = bool(
+            memory_state_guide_require_conflict
         )
         self._profile_activation_guide = bool(profile_activation_guide)
         self._profile_activation_guide_information_needs = _validate_information_needs(
@@ -877,6 +882,9 @@ class EvidenceCompiler:
             memory_state_guide_include_superseded=route_settings[
                 "memory_state_guide_include_superseded"
             ],
+            memory_state_guide_require_conflict=route_settings[
+                "memory_state_guide_require_conflict"
+            ],
             profile_activation_guide=(
                 route_settings["profile_activation_guide"]
                 and route.information_need
@@ -1028,6 +1036,9 @@ class EvidenceCompiler:
             "memory_state_guide_value_chars": self._memory_state_guide_value_chars,
             "memory_state_guide_include_superseded": (
                 self._memory_state_guide_include_superseded
+            ),
+            "memory_state_guide_require_conflict": (
+                self._memory_state_guide_require_conflict
             ),
             "profile_activation_guide": self._profile_activation_guide,
             "profile_activation_guide_max_records": (
@@ -1411,6 +1422,10 @@ def _validate_route_overrides(
         if "memory_state_guide_include_superseded" in raw_overrides:
             overrides["memory_state_guide_include_superseded"] = bool(
                 raw_overrides["memory_state_guide_include_superseded"]
+            )
+        if "memory_state_guide_require_conflict" in raw_overrides:
+            overrides["memory_state_guide_require_conflict"] = bool(
+                raw_overrides["memory_state_guide_require_conflict"]
             )
         if "profile_activation_guide" in raw_overrides:
             overrides["profile_activation_guide"] = bool(
@@ -2704,6 +2719,7 @@ def _build_prompt(
     memory_state_guide_max_records: int,
     memory_state_guide_value_chars: int,
     memory_state_guide_include_superseded: bool,
+    memory_state_guide_require_conflict: bool,
     profile_activation_guide: bool,
     profile_activation_guide_max_records: int,
     profile_activation_guide_value_chars: int,
@@ -2840,6 +2856,9 @@ def _build_prompt(
             memory_state_guide_value_chars=memory_state_guide_value_chars,
             memory_state_guide_include_superseded=(
                 memory_state_guide_include_superseded
+            ),
+            memory_state_guide_require_conflict=(
+                memory_state_guide_require_conflict
             ),
             profile_activation_guide=profile_activation_guide,
             profile_activation_guide_max_records=profile_activation_guide_max_records,
@@ -3056,6 +3075,7 @@ def _build_external_naive_prompt(
     memory_state_guide_max_records: int,
     memory_state_guide_value_chars: int,
     memory_state_guide_include_superseded: bool,
+    memory_state_guide_require_conflict: bool,
     profile_activation_guide: bool,
     profile_activation_guide_max_records: int,
     profile_activation_guide_value_chars: int,
@@ -3209,6 +3229,7 @@ def _build_external_naive_prompt(
             max_records=memory_state_guide_max_records,
             max_value_chars=memory_state_guide_value_chars,
             include_superseded=memory_state_guide_include_superseded,
+            require_conflict=memory_state_guide_require_conflict,
         )
         if memory_state_lines:
             memory_state_guide_block = "\n".join(
@@ -3880,6 +3901,7 @@ def _external_memory_state_guide_lines(
     max_records: int,
     max_value_chars: int,
     include_superseded: bool,
+    require_conflict: bool = False,
 ) -> list[str]:
     """Compact managed-memory state view grounded in visible raw rows."""
 
@@ -3908,6 +3930,19 @@ def _external_memory_state_guide_lines(
 
     if not candidates:
         return []
+    if require_conflict:
+        conflict_slot_keys = _memory_state_conflict_slot_keys(
+            record for _, _, record, _ in candidates
+        )
+        if not conflict_slot_keys:
+            return []
+        candidates = [
+            item
+            for item in candidates
+            if _memory_state_slot_key(item[2]) in conflict_slot_keys
+        ]
+        if not candidates:
+            return []
 
     candidates.sort(reverse=True)
     selected = candidates[:max_records]
@@ -4001,6 +4036,31 @@ def _memory_state_record_score(
     if overlap == 0 and not type_match:
         return 0.0
     return score
+
+
+def _memory_state_conflict_slot_keys(
+    records: Iterable[MemoryRecord],
+) -> set[tuple[str, str, str]]:
+    slots: dict[tuple[str, str, str], list[MemoryRecord]] = {}
+    for record in records:
+        slots.setdefault(_memory_state_slot_key(record), []).append(record)
+
+    conflict_keys: set[tuple[str, str, str]] = set()
+    for key, slot_records in slots.items():
+        values = set()
+        for record in slot_records:
+            value = _normalize_memory_value(record)
+            if value:
+                values.add(value)
+        has_lifecycle_marker = any(
+            (record.status or "active") == "superseded"
+            or bool(record.superseded_by)
+            or bool(record.valid_to)
+            for record in slot_records
+        )
+        if len(values) >= 2 or has_lifecycle_marker:
+            conflict_keys.add(key)
+    return conflict_keys
 
 
 def _memory_state_slot_key(record: MemoryRecord) -> tuple[str, str, str]:

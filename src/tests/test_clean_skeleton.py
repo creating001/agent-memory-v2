@@ -6160,6 +6160,9 @@ class CleanSkeletonTest(unittest.TestCase):
                 "update_conflict_guide_information_needs": ["current_state"],
                 "update_conflict_guide_max_rows": 2,
                 "update_conflict_guide_snippet_chars": 120,
+                "memory_state_guide": True,
+                "memory_state_guide_information_needs": ["current_state"],
+                "memory_state_guide_require_conflict": True,
             },
             "answer": {"fallback_answer": "I do not know."},
         }
@@ -6191,6 +6194,10 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual(
             result["trace"]["compiler"]["update_conflict_guide_information_needs"],
             ("current_state",),
+        )
+        self.assertTrue(result["trace"]["compiler"]["memory_state_guide"])
+        self.assertTrue(
+            result["trace"]["compiler"]["memory_state_guide_require_conflict"]
         )
         self.assertIn(
             "Update/Conflict Candidate Chain:",
