@@ -96,6 +96,11 @@ class Stage1Pipeline:
         selected_context_audit_config = selected_context_config.get("risk_audit", {})
         if not isinstance(selected_context_audit_config, Mapping):
             raise ValueError("retrieval.selected_context.risk_audit must be an object")
+        granularity_profile_audit_config = retrieval_config.get(
+            "granularity_profile_audit", {}
+        )
+        if not isinstance(granularity_profile_audit_config, Mapping):
+            raise ValueError("retrieval.granularity_profile_audit must be an object")
         context_budget_config = retrieval_config.get("context_budget", {})
         if not isinstance(context_budget_config, Mapping):
             raise ValueError("retrieval.context_budget must be an object")
@@ -150,6 +155,9 @@ class Stage1Pipeline:
         )
         self._granularity_profiles = _validate_granularity_profiles(
             retrieval_config.get("granularity_profiles") or ()
+        )
+        self._granularity_profile_audit_enabled = bool(
+            granularity_profile_audit_config.get("enabled", False)
         )
         self._granularity_routers = {
             profile["name"]: _configured_router(
@@ -1325,6 +1333,12 @@ class Stage1Pipeline:
             self._granularity_profiles,
             avg_turn_chars=store.average_turn_chars,
         )
+        granularity_profile_audit = _granularity_profile_audit(
+            enabled=self._granularity_profile_audit_enabled,
+            profiles=self._granularity_profiles,
+            selected_profile=granularity_profile,
+            avg_turn_chars=store.average_turn_chars,
+        )
         built_memory = self._memory_builder.build(store.turns)
         source_alignment = _disabled_source_alignment_trace(
             enabled=self._build_memory_source_alignment_enabled
@@ -1808,6 +1822,7 @@ class Stage1Pipeline:
                         route.information_need, {}
                     ),
                     "granularity_profile": granularity_profile,
+                    "granularity_profile_audit": granularity_profile_audit,
                     "neighbor_window": self._neighbor_window,
                     "neighbor_order": self._neighbor_order,
                     "drop_query_stopwords": self._drop_query_stopwords,
@@ -3431,6 +3446,91 @@ def _apply_context_budget(
         "estimated_chars": estimated_chars,
         "dropped_count": len(dropped),
         "dropped_source_ids": dropped,
+    }
+
+
+def _granularity_profile_audit(
+    *,
+    enabled: bool,
+    profiles: tuple[dict[str, Any], ...],
+    selected_profile: dict[str, Any] | None,
+    avg_turn_chars: float,
+) -> dict[str, Any]:
+    profile_summaries = [
+        _granularity_profile_audit_summary(profile) for profile in profiles
+    ]
+    trace: dict[str, Any] = {
+        "enabled": enabled,
+        "trace_only": True,
+        "applied": False,
+        "skip_reason": "disabled" if not enabled else None,
+        "selector": "avg_turn_chars",
+        "average_turn_chars": round(float(avg_turn_chars), 3),
+        "configured_profile_count": len(profiles),
+        "profiles": profile_summaries,
+        "selected": False,
+        "selected_profile_name": None,
+        "selected_profile": None,
+        "behavior_affecting": False,
+        "behavior_sections": [],
+        "risk_count": 0,
+        "risk_reasons": [],
+        "clean_note": (
+            "Trace-only audit of granularity profile selection. It is not included "
+            "in retrieval, compiler, answer, repair, finalizer, or cache keys."
+        ),
+    }
+    if not enabled:
+        return trace
+    if not profiles:
+        trace["skip_reason"] = "no_profiles_configured"
+        return trace
+
+    trace["applied"] = True
+    trace["skip_reason"] = None
+    if selected_profile is None:
+        return trace
+
+    selected_summary = _granularity_profile_audit_summary(selected_profile)
+    behavior_sections = tuple(selected_summary["behavior_sections"])
+    risk_reasons = [
+        "avg_turn_length_selected_profile",
+        *[
+            f"length_threshold_changes_{section}"
+            for section in behavior_sections
+        ],
+    ]
+    trace.update(
+        {
+            "selected": True,
+            "selected_profile_name": selected_summary["name"],
+            "selected_profile": selected_summary,
+            "behavior_affecting": bool(behavior_sections),
+            "behavior_sections": list(behavior_sections),
+            "risk_count": len(risk_reasons) if behavior_sections else 0,
+            "risk_reasons": risk_reasons if behavior_sections else [],
+        }
+    )
+    return trace
+
+
+def _granularity_profile_audit_summary(profile: Mapping[str, Any]) -> dict[str, Any]:
+    behavior_sections = [
+        section
+        for section in (
+            "route",
+            "retrieval",
+            "selected_context",
+            "compiler",
+            "answer_finalizer",
+        )
+        if profile.get(section)
+    ]
+    return {
+        "name": str(profile.get("name") or ""),
+        "min_avg_turn_chars": profile.get("min_avg_turn_chars"),
+        "max_avg_turn_chars": profile.get("max_avg_turn_chars"),
+        "behavior_sections": behavior_sections,
     }
 
 

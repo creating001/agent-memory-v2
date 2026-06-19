@@ -76,6 +76,9 @@ def main() -> int:
     total_turn_window_bm25_applied = 0
     total_turn_window_hits = 0
     total_turn_window_source_hits = 0
+    total_granularity_profile_audit_applied = 0
+    total_granularity_profile_audit_selected = 0
+    total_granularity_profile_audit_behavior_risk = 0
     total_selected_context_applied = 0
     total_selected_context_materialized = 0
     total_selected_context_skipped_long_center = 0
@@ -206,6 +209,15 @@ def main() -> int:
         total_effective_dense_protect_top_n += int(
             retrieval_trace.get("dense_protect_top_n") or 0
         )
+        granularity_profile_audit = (
+            retrieval_trace.get("granularity_profile_audit") or {}
+        )
+        if granularity_profile_audit.get("applied"):
+            total_granularity_profile_audit_applied += 1
+        if granularity_profile_audit.get("selected"):
+            total_granularity_profile_audit_selected += 1
+        if granularity_profile_audit.get("behavior_affecting"):
+            total_granularity_profile_audit_behavior_risk += 1
         if retrieval_trace.get("turn_window_bm25_applied"):
             total_turn_window_bm25_applied += 1
         total_turn_window_hits += len(retrieval_trace.get("turn_window_hits") or [])
@@ -479,6 +491,27 @@ def main() -> int:
             ),
             "avg_turn_window_source_hits": _safe_average(
                 total_turn_window_source_hits, sample_count
+            ),
+            "granularity_profiles": config.get("retrieval", {}).get(
+                "granularity_profiles"
+            ),
+            "granularity_profile_audit_enabled": config.get("retrieval", {})
+            .get("granularity_profile_audit", {})
+            .get("enabled", False),
+            "granularity_profile_audit_applied_count": (
+                total_granularity_profile_audit_applied
+            ),
+            "granularity_profile_audit_applied_rate": _safe_average(
+                total_granularity_profile_audit_applied, sample_count
+            ),
+            "granularity_profile_audit_selected_count": (
+                total_granularity_profile_audit_selected
+            ),
+            "granularity_profile_audit_selected_rate": _safe_average(
+                total_granularity_profile_audit_selected, sample_count
+            ),
+            "granularity_profile_audit_behavior_risk_count": (
+                total_granularity_profile_audit_behavior_risk
             ),
             "selected_context_enabled": config.get("retrieval", {})
             .get("selected_context", {})
@@ -1551,6 +1584,9 @@ def _write_summary(
         f"- turn_window_bm25_applied_rate: {metrics['retrieval']['turn_window_bm25_applied_rate']}",
         f"- avg_turn_window_hits: {metrics['retrieval']['avg_turn_window_hits']}",
         f"- avg_turn_window_source_hits: {metrics['retrieval']['avg_turn_window_source_hits']}",
+        f"- granularity_profile_audit_enabled: {metrics['retrieval']['granularity_profile_audit_enabled']}",
+        f"- granularity_profile_audit_selected_count: {metrics['retrieval']['granularity_profile_audit_selected_count']}",
+        f"- granularity_profile_audit_behavior_risk_count: {metrics['retrieval']['granularity_profile_audit_behavior_risk_count']}",
         f"- selected_context_enabled: {metrics['retrieval']['selected_context_enabled']}",
         f"- selected_context_window_before: {metrics['retrieval']['selected_context_window_before']}",
         f"- selected_context_window_after: {metrics['retrieval']['selected_context_window_after']}",
@@ -1863,6 +1899,9 @@ def _write_diagnosis(
         f"- turn_window_bm25_applied_rate: {metrics['retrieval']['turn_window_bm25_applied_rate']}",
         f"- avg_turn_window_hits: {metrics['retrieval']['avg_turn_window_hits']}",
         f"- avg_turn_window_source_hits: {metrics['retrieval']['avg_turn_window_source_hits']}",
+        f"- granularity_profile_audit_enabled: {metrics['retrieval']['granularity_profile_audit_enabled']}",
+        f"- granularity_profile_audit_selected_count: {metrics['retrieval']['granularity_profile_audit_selected_count']}",
+        f"- granularity_profile_audit_behavior_risk_count: {metrics['retrieval']['granularity_profile_audit_behavior_risk_count']}",
         f"- selected_context_enabled: {metrics['retrieval']['selected_context_enabled']}",
         f"- selected_context_applied_count: {metrics['retrieval']['selected_context_applied_count']}",
         f"- selected_context_applied_rate: {metrics['retrieval']['selected_context_applied_rate']}",

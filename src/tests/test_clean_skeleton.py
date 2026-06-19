@@ -1121,6 +1121,86 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertTrue(long_finalizer["enable_count_answer_detail"])
         self.assertFalse(long_finalizer["enable_relative_time_calculation"])
 
+    def test_granularity_profile_audit_is_trace_only(self) -> None:
+        config = {
+            "retrieval": {
+                "top_k": 4,
+                "max_top_k": 4,
+                "neighbor_window": 0,
+                "granularity_profile_audit": {"enabled": True},
+                "selected_context": {
+                    "enabled": True,
+                    "window_before": 1,
+                    "window_after": 0,
+                    "max_rows": 2,
+                    "max_neighbor_chars": 80,
+                    "require_anaphora": True,
+                    "information_needs": ["list_count"],
+                },
+                "granularity_profiles": [
+                    {
+                        "name": "long_turn_precision",
+                        "min_avg_turn_chars": 100,
+                        "retrieval": {"top_k": 1, "max_top_k": 1},
+                        "selected_context": {"enabled": False},
+                        "compiler": {"operation_workpad": True},
+                    }
+                ],
+            },
+            "route": {"enable_broad_list_patterns": True},
+            "compiler": {
+                "prompt_mode": "external_naive",
+                "max_evidence_items": 4,
+                "max_evidence_chars": 4000,
+                "evidence_report_contract": True,
+                "evidence_report_information_needs": ["list_count"],
+                "operation_workpad": False,
+            },
+            "answer": {"fallback_answer": "unknown"},
+        }
+        request = PredictionRequest(
+            question="How many books has Alex read?",
+            turns=(
+                Turn("s:t0", "s", 0, "user", " ".join(["Alex read Dune."] * 20)),
+                Turn(
+                    "s:t1",
+                    "s",
+                    1,
+                    "assistant",
+                    " ".join(["This book was excellent."] * 20),
+                ),
+            ),
+        )
+
+        audited_result = Stage1Pipeline(config).predict(request)
+        audit_off_config = {
+            **config,
+            "retrieval": {
+                **config["retrieval"],
+                "granularity_profile_audit": {"enabled": False},
+            },
+        }
+        plain_result = Stage1Pipeline(audit_off_config).predict(request)
+
+        audit = audited_result["trace"]["retrieval"]["granularity_profile_audit"]
+        self.assertTrue(audit["trace_only"])
+        self.assertTrue(audit["applied"])
+        self.assertTrue(audit["selected"])
+        self.assertEqual(audit["selected_profile_name"], "long_turn_precision")
+        self.assertTrue(audit["behavior_affecting"])
+        self.assertIn("retrieval", audit["behavior_sections"])
+        self.assertIn("selected_context", audit["behavior_sections"])
+        self.assertIn("compiler", audit["behavior_sections"])
+        self.assertIn(
+            "avg_turn_length_selected_profile",
+            audit["risk_reasons"],
+        )
+        self.assertEqual(
+            audited_result["trace"]["compiled_context"]["prompt"],
+            plain_result["trace"]["compiled_context"]["prompt"],
+        )
+        self.assertEqual(audited_result["answer"], plain_result["answer"])
+
     def test_context_budget_filters_long_tail_hits_without_granularity_profile(self) -> None:
         config = {
             "retrieval": {
