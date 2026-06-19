@@ -6,12 +6,12 @@
 
 | 项目 | 结果 |
 |---|---|
-| 当前 LTS 配置 | `configs/stage1_no_answer_repair_v234_seeded_qwen36_no_think_build4k_cached.json` |
+| 当前 LTS 配置 | `configs/stage1_no_finalizer_v235_seeded_qwen36_no_think_build4k_cached.json` |
 | Backbone | `Qwen/Qwen3.6-35B-A3B` answer/build，`chat_template_kwargs.enable_thinking=false` |
-| 方法定位 | build-time source-backed memory management + query-time no-repair LTS。`preference/profile/relationship/state` 参与 lifecycle；`fact/event/plan` 保留为 active collection memory；answer repair 从默认 path 移除。 |
+| 方法定位 | build-time source-backed memory management + query-time no-repair/no-finalizer LTS。`preference/profile/relationship/state` 参与 lifecycle；`fact/event/plan` 保留为 active collection memory；answer repair 和 deterministic finalizer 从默认 path 移除。 |
 | LongMemEval-S full | strict/lenient `0.832000 / 0.844000`，`416/500` strict，`422/500` lenient；avg build/query tokens `85393.566 / 6579.782` |
 | LoCoMo non-adversarial full | strict/lenient `0.794156 / 0.819481`，`1223/1540` strict，`1262/1540` lenient；avg build/query tokens `62015.57402597403 / 6094.017532467533` |
-| LTS 理由 | 继承 v233 accuracy 和 build memory policy，answer diff `0/500`、`0/1540`；关闭 v233 full 触发 `8` 次但 applied `0` 的 repair，query tokens 更低，query-time drift surface 更少。 |
+| LTS 理由 | 继承 v233/v234 accuracy 和 build memory policy，v235 vs v234 answer diff `0/500`、`0/1540`；关闭 v234 full applied `0` 的 finalizer，query-time rewrite surface 更少。 |
 | 主要局限 | retrieval/context 仍依赖固定 top-k、route override、selected-context 和多段 ledger；memory operation 还主要停留在 trace/active filtering，尚未系统影响 retrieval/compiler/answer verification。 |
 
 `paired-delta derived` 的含义：新版本只改少量答案，未变化答案沿用父 LTS full dual judge records，变化答案单独跑 paired dual judge 后替换计数。若新版本与父 LTS answer-identical，可继承父 LTS judge records，但必须记录 full answer diff、cache hit/miss 和输出路径。论文级最终汇报再对最终 LTS 配置重跑 fresh full judge。
@@ -28,8 +28,8 @@
 
 | 优先级 | 方向 | 当前问题 | 下一步 |
 |---:|---|---|---|
-| 1 | Memory operations / lifecycle | v234 继承 v233 的 build-time `stateful_only` lifecycle policy，但 memory operation 还主要停留在 trace/active filtering，尚未系统影响 retrieval/compiler/answer verification | 扩展通用 memory object 与 lifecycle policy，让 create/update/merge/supersede/retrieve/expand/verify/audit 更稳定地参与 context organization，同时保持 source/provenance 可追溯 |
-| 2 | Query-time 简化 | v234 已删除默认 answer repair，但 route、selected context、state guide、ledger、finalizer 仍多层叠加，像补丁式 pipeline | 继续收敛为 candidate activation、context compiler、source-grounded answer、通用 consistency verifier |
+| 1 | Memory operations / lifecycle | v235 继承 v233 的 build-time `stateful_only` lifecycle policy，但 memory operation 还主要停留在 trace/active filtering，尚未系统影响 retrieval/compiler/answer verification | 扩展通用 memory object 与 lifecycle policy，让 create/update/merge/supersede/retrieve/expand/verify/audit 更稳定地参与 context organization，同时保持 source/provenance 可追溯 |
+| 2 | Query-time 简化 | v235 已删除默认 answer repair 和 no-op finalizer，但 route、selected context、state guide、ledger 仍多层叠加，像补丁式 pipeline | 继续收敛为 candidate activation、context compiler、source-grounded answer、通用 consistency verifier |
 | 3 | Retrieval/context systemization | 固定 top-k、route override、selected-context 长短 turn 规则仍较多 | 改成更通用的 candidate pooling + rerank + anchor retention + source expansion + evidence utility selection，并报告 context precision / source recall / unsupported answer |
 | 4 | Answer/verifier 统一 | 现有 repair/finalizer 是多条窄触发链；部分有效，但方法形态分散 | 收敛为 source-grounded answer + consistency verifier，只检查数值、时间、说话人、实体、状态冲突、unsupported answer，不写 benchmark-specific rewrite |
 | 5 | src cleanup | `pipeline.py`、compiler、repair/finalizer 兼容分支较多，后续改法成本上升 | 每个阶段做小范围清理，删除已确认无用的兼容代码；保留仍有消融价值和复现价值的模块 |
@@ -38,8 +38,9 @@
 
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
-| `configs/stage1_no_answer_repair_v234_seeded_qwen36_no_think_build4k_cached.json` | current LTS | LME `0.832000/0.844000`，LoCoMo `0.794156/0.819481`；v234 vs v233 answer diff `0/500`、`0/1540`；avg query tokens `6579.782`、`6094.017532467533` | 当前 LTS；继承 v233 build memory policy，删除 no-op answer repair，accuracy 不变且 query token 更低 |
-| `configs/stage1_build_memory_stateful_policy_v233_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | LME `0.832000/0.844000`，LoCoMo `0.794156/0.819481`；changed-answer judge LME `4/4 -> 3/4`，LoCoMo `2/5 -> 3/5`；build memory `stateful_only` policy 覆盖 full | 被 v234 替代；保留为 build memory stateful policy 父锚点 |
+| `configs/stage1_no_finalizer_v235_seeded_qwen36_no_think_build4k_cached.json` | current LTS | LME `0.832000/0.844000`，LoCoMo `0.794156/0.819481`；v235 vs v234 answer diff `0/500`、`0/1540`；finalizer disabled, repair disabled | 当前 LTS；继承 v234 accuracy/token，删除 no-op finalizer，query-time rewrite surface 更少 |
+| `configs/stage1_no_answer_repair_v234_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | LME `0.832000/0.844000`，LoCoMo `0.794156/0.819481`；v234 vs v233 answer diff `0/500`、`0/1540`；avg query tokens `6579.782`、`6094.017532467533` | 被 v235 替代；保留为 no-repair 父锚点 |
+| `configs/stage1_build_memory_stateful_policy_v233_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | LME `0.832000/0.844000`，LoCoMo `0.794156/0.819481`；changed-answer judge LME `4/4 -> 3/4`，LoCoMo `2/5 -> 3/5`；build memory `stateful_only` policy 覆盖 full | 被 v234/v235 替代；保留为 build memory stateful policy 父锚点 |
 | `experiments/diagnostic/stage1_answer_output_cap4096_v232_scope_summary.md` | diagnostic / rejected LTS | v232 降低 avg query tokens：LME `6605.952`，LoCoMo `6070.648701298701`；changed-answer judge LME `1/1 -> 0/1`，LoCoMo `1/3 -> 2/3` | 不升 LTS；硬 output cap 会让 LME temporal 正确答案变拒答，后续应做结构化 answer-first 或 verifier，而不是简单截断 |
 | `configs/stage1_source_backed_lifecycle_noop_repair_prune_v231_seeded_qwen36_no_think_build4k_cached.json` | previous LTS / LME split-best | LME `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v231 vs v230 answer/prompt/evidence/retrieval/route diff `0/500`、`0/1540`；source-backed repair reason `0`，applied `0` | 被 v233/v234 系统 LTS 替代；继续保留为 LME performance anchor |
 | `configs/stage1_source_backed_lifecycle_memory_repair_v230_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | 与 v229 answer diff `0/500`、`0/1540`；source-backed state repair reason LME `4/500`、LoCoMo `2/1540`，applied `0` | 被 v231 替代；说明 no-op verifier 应剪掉 |

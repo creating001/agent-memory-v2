@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_no_answer_repair_v234_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_no_finalizer_v235_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v234 local LTS |
+| Benchmark | 当前 v235 local LTS |
 |---|---:|
 | LongMemEval-S full | strict/lenient `0.832000 / 0.844000`，avg build/query tokens `85393.566 / 6579.782` |
 | LoCoMo non-adversarial full | strict/lenient `0.794156 / 0.819481`，avg build/query tokens `62015.57402597403 / 6094.017532467533` |
 
-v234 的 LTS 理由：继承 v233 的 source-backed build-time lifecycle management，并关闭 full run 中 applied 为 `0` 的 answer repair。v234 与 v233 answer diff `0/500`、`0/1540`，accuracy 不变，query token 更低，query-time drift surface 更小。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_no_answer_repair_v234_scope_summary.md`。
+v235 的 LTS 理由：继承 v233/v234 的 source-backed build-time lifecycle management 和 no-repair query path，并关闭 full run 中 applied 为 `0` 的 deterministic finalizer。v235 与 v234 answer diff `0/500`、`0/1540`，accuracy 和 token 不变，query-time rewrite surface 更小。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_no_finalizer_v235_scope_summary.md`。
 
 ## 目录
 
