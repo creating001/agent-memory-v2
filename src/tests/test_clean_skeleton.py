@@ -1022,6 +1022,78 @@ class CleanSkeletonTest(unittest.TestCase):
         )
         self.assertNotIn("Local dialogue context from the same session", row_text)
 
+    def test_selected_context_timestamp_policy_keeps_only_center_timestamp(
+        self,
+    ) -> None:
+        config = {
+            "retrieval": {
+                "top_k": 3,
+                "max_top_k": 3,
+                "neighbor_window": 0,
+                "selected_context": {
+                    "enabled": True,
+                    "window_before": 1,
+                    "window_after": 0,
+                    "max_rows": 3,
+                    "max_neighbor_chars": 120,
+                    "timestamp_policy": "center_only",
+                    "require_anaphora": True,
+                    "information_needs": ["temporal_lookup"],
+                },
+            },
+            "compiler": {
+                "prompt_mode": "external_naive",
+                "max_evidence_items": 3,
+                "max_evidence_chars": 4000,
+            },
+            "answer": {"fallback_answer": "unknown"},
+        }
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="Alex",
+                text="I visited the art museum on Monday.",
+                timestamp="9:00 am on 1 May, 2024",
+            ),
+            Turn(
+                source_id="s1:t1",
+                session_id="s1",
+                turn_index=1,
+                role="Alex",
+                text="That was a great trip.",
+                timestamp="9:05 am on 1 May, 2024",
+            ),
+        )
+
+        result = Stage1Pipeline(config).predict(
+            PredictionRequest(
+                question="When was Alex's great trip?",
+                turns=turns,
+            )
+        )
+        trace = result["trace"]["retrieval"]["selected_context"]
+        row_text = "\n".join(
+            row["text"] for row in result["trace"]["compiled_context"]["evidence_rows"]
+        )
+
+        self.assertTrue(trace["applied"])
+        self.assertEqual(trace["timestamp_policy"], "center_only")
+        self.assertIn("I visited the art museum on Monday.", row_text)
+        self.assertIn(
+            "- selected turn (9:05 am on 1 May, 2024) | Alex: That was a great trip.",
+            row_text,
+        )
+        self.assertIn(
+            "- nearby turn | Alex: I visited the art museum on Monday.",
+            row_text,
+        )
+        self.assertNotIn(
+            "- nearby turn (9:00 am on 1 May, 2024)",
+            row_text,
+        )
+
     def test_selected_context_source_grounded_match_normalizes_query_terms(
         self,
     ) -> None:

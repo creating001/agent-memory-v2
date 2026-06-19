@@ -327,6 +327,9 @@ class Stage1Pipeline:
         self._selected_context_context_format = _selected_context_context_format(
             selected_context_config.get("context_format", "verbose")
         )
+        self._selected_context_timestamp_policy = _selected_context_timestamp_policy(
+            selected_context_config.get("timestamp_policy", "all")
+        )
         self._selected_context_require_anaphora = bool(
             selected_context_config.get("require_anaphora", True)
         )
@@ -395,6 +398,7 @@ class Stage1Pipeline:
             "max_neighbor_chars": self._selected_context_max_neighbor_chars,
             "max_center_chars": self._selected_context_max_center_chars,
             "context_format": self._selected_context_context_format,
+            "timestamp_policy": self._selected_context_timestamp_policy,
             "require_anaphora": self._selected_context_require_anaphora,
             "require_question_reference": (
                 self._selected_context_require_question_reference
@@ -1691,6 +1695,7 @@ class Stage1Pipeline:
             max_neighbor_chars=selected_context_settings["max_neighbor_chars"],
             max_center_chars=selected_context_settings["max_center_chars"],
             context_format=selected_context_settings["context_format"],
+            timestamp_policy=selected_context_settings["timestamp_policy"],
             require_anaphora=selected_context_settings["require_anaphora"],
             question=request.question,
             require_question_reference=selected_context_settings[
@@ -2292,6 +2297,7 @@ class Stage1Pipeline:
             "max_neighbor_chars": self._selected_context_max_neighbor_chars,
             "max_center_chars": self._selected_context_max_center_chars,
             "context_format": self._selected_context_context_format,
+            "timestamp_policy": self._selected_context_timestamp_policy,
             "require_anaphora": self._selected_context_require_anaphora,
             "require_question_reference": (
                 self._selected_context_require_question_reference
@@ -4554,6 +4560,7 @@ def _materialize_selected_context(
     max_neighbor_chars: int,
     max_center_chars: int,
     context_format: str,
+    timestamp_policy: str,
     require_anaphora: bool,
     question: str,
     require_question_reference: bool,
@@ -4588,6 +4595,7 @@ def _materialize_selected_context(
         "max_neighbor_chars": max_neighbor_chars,
         "max_center_chars": max_center_chars,
         "context_format": context_format,
+        "timestamp_policy": timestamp_policy,
         "require_anaphora": require_anaphora,
         "require_question_reference": require_question_reference,
         "require_question_reference_min_center_chars": (
@@ -4692,6 +4700,7 @@ def _materialize_selected_context(
             window_after=after,
             max_neighbor_chars=neighbor_chars,
             context_format=context_format,
+            timestamp_policy=timestamp_policy,
         )
         if context_text == turn.text:
             materialized_turns.append(turn)
@@ -4828,6 +4837,7 @@ def _selected_context_text(
     window_after: int,
     max_neighbor_chars: int,
     context_format: str = "verbose",
+    timestamp_policy: str = "all",
 ) -> str:
     session_turns = store.session_turns(turn.session_id)
     positions = {
@@ -4856,7 +4866,14 @@ def _selected_context_text(
         text = neighbor.text
         if neighbor.source_id != turn.source_id:
             text = _truncate_text(text, max_neighbor_chars)
-        timestamp = f" ({neighbor.timestamp})" if neighbor.timestamp else ""
+        include_timestamp = timestamp_policy == "all" or (
+            timestamp_policy == "center_only" and neighbor.source_id == turn.source_id
+        )
+        timestamp = (
+            f" ({neighbor.timestamp})"
+            if include_timestamp and neighbor.timestamp
+            else ""
+        )
         lines.append(f"- {label}{timestamp} | {neighbor.role}: {text}")
     if len(lines) <= 2:
         return turn.text
@@ -4903,6 +4920,7 @@ SELECTED_CONTEXT_OVERRIDE_KEYS = {
     "max_neighbor_chars",
     "max_center_chars",
     "context_format",
+    "timestamp_policy",
     "min_context_budget_headroom_chars",
     "require_anaphora",
     "require_question_reference",
@@ -4924,6 +4942,16 @@ def _selected_context_context_format(value: object) -> str:
             "retrieval.selected_context.context_format must be verbose or compact"
         )
     return context_format
+
+
+def _selected_context_timestamp_policy(value: object) -> str:
+    timestamp_policy = str(value or "all")
+    if timestamp_policy not in {"all", "center_only", "none"}:
+        raise ValueError(
+            "retrieval.selected_context.timestamp_policy must be all, "
+            "center_only, or none"
+        )
+    return timestamp_policy
 
 
 def _merged_config(
@@ -5893,6 +5921,8 @@ def _normalized_selected_context_override(
             result[key] = _tuple_config(value)
         elif key == "context_format":
             result[key] = _selected_context_context_format(value)
+        elif key == "timestamp_policy":
+            result[key] = _selected_context_timestamp_policy(value)
     return result
 
 
