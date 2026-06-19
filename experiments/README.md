@@ -6,12 +6,12 @@
 
 | 项目 | 结果 |
 |---|---|
-| 当前 LTS 配置 | `configs/stage1_materialized_selected_context_audit_v213_seeded_qwen36_no_think_build4k_cached.json` |
+| 当前 LTS 配置 | `configs/stage1_selected_context_term_normalized_audit_v214_seeded_qwen36_no_think_build4k_cached.json` |
 | Backbone | `Qwen/Qwen3.6-35B-A3B` answer/build，`chat_template_kwargs.enable_thinking=false` |
-| 方法 | V213 继承 v212，并把 selected-context trace-only risk audit 改为审计 prompt-visible materialized context；不改变 retrieval、prompt、answer 或 cache。 |
-| LongMemEval-S full | v213 与 v212 answer/route/prompt/evidence rows/retrieval hits/effective selected-context diff `0/500`；selected-context audit applied `0/500`；avg build/query tokens `85393.566 / 6580.196`；继承 full `0.834000 / 0.846000`，`417/500` strict，`423/500` lenient |
-| LoCoMo non-adversarial full | v213 与 v212 answer/route/prompt/evidence rows/retrieval hits/effective selected-context diff `0/1540`；selected-context audit applied `1493/1540`，risk rows `7423 -> 6163`；avg build/query tokens `62015.57402597403 / 6095.268181818182`；继承 full `0.793506 / 0.818831`，`1222/1540` strict，`1261/1540` lenient |
-| 状态 | 当前本地 qwen3.6 no-thinking LTS。v213 降低 #3 selected-context audit 误报风险；v212 的全路由 audit、v211 的 #1 context-pressure selector 和 v209 的 #2 retrieval tail candidate 风险收敛保留。它不代表五个原始风险都已解决，#2 真实 token 降本、#3 prompt-visible mitigation 和 #5 memory lifecycle 仍是优先待办。 |
+| 方法 | V214 继承 v213，并规范化 selected-context trace-only risk audit 的 term matching；不改变 retrieval、prompt、answer 或 cache。 |
+| LongMemEval-S full | v214 与 v213 answer/route/prompt/evidence rows/retrieval hits/effective selected-context diff `0/500`；selected-context audit applied `0/500`；avg build/query tokens `85393.566 / 6580.196`；继承 full `0.834000 / 0.846000`，`417/500` strict，`423/500` lenient |
+| LoCoMo non-adversarial full | v214 与 v213 answer/route/prompt/evidence rows/retrieval hits/effective selected-context diff `0/1540`；selected-context audit applied `1493/1540`，risk rows `6163 -> 5841`；avg build/query tokens `62015.57402597403 / 6095.268181818182`；继承 full `0.793506 / 0.818831`，`1222/1540` strict，`1261/1540` lenient |
+| 状态 | 当前本地 qwen3.6 no-thinking LTS。v214 降低 #3 selected-context audit 误报风险；v213 的 materialized audit、v212 的全路由 audit、v211 的 #1 context-pressure selector 和 v209 的 #2 retrieval tail candidate 风险收敛保留。它不代表五个原始风险都已解决，#2 真实 token 降本、#3 prompt-visible mitigation 和 #5 memory lifecycle 仍是优先待办。 |
 
 `paired-delta derived` 的含义：新版本只改少量答案，未变化答案沿用父 LTS full dual judge records，变化答案单独跑 paired dual judge 后替换计数。若新版本与父 LTS answer-identical，则可继承父 LTS judge records，但必须记录 full answer diff、cache hit/miss 和输出路径。若论文级最终汇报需要完全独立 run，再对 LTS 配置重跑 fresh full judge。
 
@@ -27,7 +27,7 @@
 | 优先级 | 项目 | 当前状态 | 下一步 |
 |---:|---|---|---|
 | 1 | #2 top-k/context noise/rerank | v209/v211 用 `22000` chars + `32` anchors 实际裁掉 LME tail retrieval candidates且不改 prompt/answer；v210 说明机械 tail snippet 虽降 query tokens 但 judge 负向 | 继续做 source/span 保真的 prompt-stable context organization 或 guarded rerank，目标是减少进入 prompt 的噪声和 token，而不是硬剪证据 |
-| 2 | #3 selected context | v213 使用 prompt-visible materialized row 做 trace-only audit；LoCoMo audit applied `1493/1540`、risk rows `6163`，低于 v212 的 `7423` | 用 v213 剩余风险 rows 设计 source-backed mitigation；任何 prompt-visible gate 必须先做 changed-answer judge |
+| 2 | #3 selected context | v214 使用 prompt-visible materialized row + normalized query/evidence terms 做 trace-only audit；LoCoMo audit applied `1493/1540`、risk rows `5841`，低于 v213 的 `6163` | 用 v214 剩余风险 rows 设计 source-backed mitigation；任何 prompt-visible gate 必须先做 changed-answer judge |
 | 3 | #5 memory lifecycle/state/conflict/query-time reasoning | v206 已把 prompt-visible guide 收窄为 source-backed、question-aligned、stateful-slot、active+superseded update pair；LME guide `1/500`，LoCoMo `0/1540`，v209 继承 | 扩展更通用的 state/update organization：保留 raw evidence first，typed memory 只做 source-backed activation；不把普通 event/preference 多值当 state conflict |
 | 4 | src cleanup | 已有多轮兼容分支，`repair.py`、compiler、pipeline 仍会继续变复杂 | 每个阶段结束后做小范围清理，删已确认无用的兼容代码，不删仍有消融价值的模块 |
 
@@ -35,7 +35,8 @@
 
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
-| `configs/stage1_materialized_selected_context_audit_v213_seeded_qwen36_no_think_build4k_cached.json` | current LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v213 vs v212 answer/route/prompt/evidence rows/retrieval hits/effective selected-context diff `0/500`、`0/1540`；LoCoMo selected-context risk rows `7423 -> 6163` | 当前 LTS；用 prompt-visible materialized context 审计 selected-context 风险，降低 #3 误报风险，性能继承 v212 |
+| `configs/stage1_selected_context_term_normalized_audit_v214_seeded_qwen36_no_think_build4k_cached.json` | current LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v214 vs v213 answer/route/prompt/evidence rows/retrieval hits/effective selected-context diff `0/500`、`0/1540`；LoCoMo selected-context risk rows `6163 -> 5841` | 当前 LTS；规范化 trace-only selected-context audit term matching，降低 #3 误报风险，性能继承 v213 |
+| `configs/stage1_materialized_selected_context_audit_v213_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v213 vs v212 answer/route/prompt/evidence rows/retrieval hits/effective selected-context diff `0/500`、`0/1540`；LoCoMo selected-context risk rows `7423 -> 6163` | 被 v214 替代；用 prompt-visible materialized context 审计 selected-context 风险，降低 #3 误报风险，性能继承 v212 |
 | `configs/stage1_selected_context_full_risk_audit_v212_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v212 vs v211 answer/route/prompt/evidence rows/retrieval hits/selected-context diff `0/500`、`0/1540`；LoCoMo selected-context risk rows `7423` | 被 v213 替代；扩展 trace-only selected-context risk audit，降低 #3 隐性风险，性能继承 v211 |
 | `configs/stage1_total_context_pressure_profile_v211_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v211 vs v209 answer/route/prompt/evidence rows/retrieval hits/selected-context diff `0/500`、`0/1540`；LME profile selected `500/500`，LoCoMo `0/1540` | 被 v212 替代；用 total raw context pressure 替代 avg-turn `long_turn_precision` selector，降低 #1 风险，性能继承 v209 |
 | `configs/stage1_conservative_context_budget_v209_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v209 vs v207 answer/route/prompt/evidence rows diff `0/500`、`0/1540`；LME retrieval hits diff `137/500`、drop `416`；LoCoMo drop `0`；audit prompt/selected-context risk 均为 `0` | 被 v211 替代；保守实际 context budget 小幅降低 #2 retrieval tail candidate 风险，性能继承 v207 |

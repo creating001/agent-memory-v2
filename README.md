@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_materialized_selected_context_audit_v213_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_selected_context_term_normalized_audit_v214_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v213 local LTS | 说明 |
+| Benchmark | 当前 v214 local LTS | 说明 |
 |---|---:|---|
-| LongMemEval-S full | strict/lenient `0.834000 / 0.846000` | v213 与 v212 answer/route/prompt/evidence rows/retrieval hits/effective selected-context diff `0/500`；selected-context audit applied `0/500`；avg build/query tokens `85393.566 / 6580.196`。 |
-| LoCoMo non-adversarial full | strict/lenient `0.793506 / 0.818831` | v213 与 v212 answer/route/prompt/evidence rows/retrieval hits/effective selected-context diff `0/1540`；selected-context risk rows `7423 -> 6163`；avg build/query tokens `62015.57402597403 / 6095.268181818182`。 |
+| LongMemEval-S full | strict/lenient `0.834000 / 0.846000` | v214 与 v213 answer/route/prompt/evidence rows/retrieval hits/effective selected-context diff `0/500`；selected-context audit applied `0/500`；avg build/query tokens `85393.566 / 6580.196`。 |
+| LoCoMo non-adversarial full | strict/lenient `0.793506 / 0.818831` | v214 与 v213 answer/route/prompt/evidence rows/retrieval hits/effective selected-context diff `0/1540`；selected-context risk rows `6163 -> 5841`；avg build/query tokens `62015.57402597403 / 6095.268181818182`。 |
 
-v213 的 LTS 理由：继承 v212 的 full answer 和 judge accuracy，同时把 selected-context risk audit 改为审计 prompt-visible materialized context，减少 #3 误报风险。v212 的全路由 audit、v211 的 total-context pressure selector 和 v209 的保守 context-budget 仍保留。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_materialized_selected_context_audit_v213_scope_summary.md`。
+v214 的 LTS 理由：继承 v213 的 full answer 和 judge accuracy，同时把 selected-context risk audit 的 term matching 规范化，进一步减少 #3 误报风险。v213 的 materialized prompt-visible audit、v212 的全路由 audit、v211 的 total-context pressure selector 和 v209 的保守 context-budget 仍保留。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_selected_context_term_normalized_audit_v214_scope_summary.md`。
 
 ## 目录
 
