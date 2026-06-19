@@ -12,7 +12,7 @@
 
 | 配置 | 状态 |
 |---|---|
-| `stage1_typed_compact_cap32_build_memory_v245_seeded_qwen36_no_think_build4k_cached.json` | active candidate / probe pending：从 v235 出发，保留 `typed_compact` build prompt，只把 `max_records_per_chunk` 从 `20` 提到 `32`；query path 保持 v235。 |
+| `stage1_typed_compact_cap32_build_memory_v245_seeded_qwen36_no_think_build4k_cached.json` | rejected probe：LoCoMo changed judge strict/lenient `18/22 -> 15/22`、`18/22 -> 17/22`；LME cold build probe 延迟不可接受。保留为 build record cap 负向对照。 |
 | `stage1_lossless_atomic_build_memory_v244_seeded_qwen36_no_think_build4k_cached.json` | diagnostic / not promoted：LoCoMo probe50 query tokens 降低但 changed judge 持平；LME cold build probe 延迟不可接受。保留为 richer atomic build memory 的成本/覆盖教训。 |
 | `stage1_query_scoped_state_source_activation_v243_seeded_qwen36_no_think_build4k_cached.json` | diagnostic / not promoted：probe50 answer-identical；all-current_state targeted answer-identical，但 slot activation 仅 LME `1/22`、LoCoMo `0/4`，覆盖太低。 |
 | `stage1_append_fact_source_alignment_v242_seeded_qwen36_no_think_build4k_cached.json` | full 拒绝：LME changed judge strict/lenient `24/38 -> 14/38`、`24/38 -> 19/38`，derived full LME `0.812000 / 0.834000`；LoCoMo answer-identical。保留为 mechanical source append 负向对照。 |
