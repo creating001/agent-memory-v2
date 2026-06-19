@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_memory_system_graph_v261_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_graph_evidence_utility_v262_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v261 local LTS |
+| Benchmark | 当前 v262 local LTS |
 |---|---:|
 | LongMemEval-S full | strict/lenient `0.832000 / 0.844000`，avg build/query tokens `85393.566 / 6579.782` |
 | LoCoMo non-adversarial full | strict/lenient `0.794156 / 0.819481`，avg build/query tokens `62015.57402597403 / 6094.017532467533` |
 
-v261 的 LTS 理由：继承 v260 full accuracy 和 token 成本，answer/retrieval/final-evidence/token diff 均为 `0`，同时新增 trace-only build memory system graph，把 source-backed typed memories 组织成 namespaces、lifecycle states、object slots、source-support edges、merge edges 和 supersede edges。它不进入 retrieval、compiler、answer、repair、finalizer 或 cache key，用于减少 build memory 只停留在 flat typed records / ledger counts 的系统性风险。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_memory_system_graph_v261_full_summary.md`。
+v262 的 LTS 理由：继承 v261 full accuracy 和 token 成本，answer/retrieval/final-evidence/token diff 均为 `0`，同时把 v261 的 memory system graph 接入为 source-backed evidence utility selector/audit。当前 LTS 配置只做 `tail_rescue` 和 `require_new_source`，不替换 primary evidence，不把 synthetic memory text 放入 final evidence；full run 中 graph utility 触发 LME `341/500`、LoCoMo `1373/1540`，但候选池已满所以没有改变最终证据。它降低了 typed memory 只停留在浅 retrieval hint 的系统风险，但暂不声称性能提升。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_graph_evidence_utility_v262_full_summary.md`。
 
 ## 目录
 

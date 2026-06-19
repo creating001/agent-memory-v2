@@ -6,13 +6,13 @@
 
 | 项目 | 结果 |
 |---|---|
-| 当前 LTS 配置 | `configs/stage1_memory_system_graph_v261_seeded_qwen36_no_think_build4k_cached.json` |
+| 当前 LTS 配置 | `configs/stage1_graph_evidence_utility_v262_seeded_qwen36_no_think_build4k_cached.json` |
 | Backbone | `Qwen/Qwen3.6-35B-A3B` answer/build，`chat_template_kwargs.enable_thinking=false` |
-| 方法定位 | build-time source-backed memory management + memory system graph + operation ledger + lifecycle operation utility + build-slot inventory + object-slot tail-rescue activation + query-time no-repair/no-finalizer + trace-only source-grounded answer support audit。Typed memory 只做 source-backed operation index / activation；最终 evidence 回到 raw Memory rows；memory system graph 只做 trace/metrics，不改预测。 |
+| 方法定位 | build-time source-backed memory management + memory system graph + graph-backed evidence utility selector/audit + operation ledger + lifecycle operation utility + build-slot inventory + object-slot tail-rescue activation + query-time no-repair/no-finalizer + trace-only source-grounded answer support audit。Typed/graph memory 只做 source-backed activation 和 audit；最终 evidence 回到 raw Memory rows。 |
 | LongMemEval-S full | strict/lenient `0.832000 / 0.844000`，`416/500` strict，`422/500` lenient；avg build/query tokens `85393.566 / 6579.782` |
 | LoCoMo non-adversarial full | strict/lenient `0.794156 / 0.819481`，`1223/1540` strict，`1262/1540` lenient；avg build/query tokens `62015.57402597403 / 6094.017532467533` |
-| LTS 理由 | v261 vs v260 full LME/LoCoMo answer、retrieval、final-evidence 和 token diff 均为 `0`，继承 v260 accuracy；memory system graph 覆盖 LME `500/500`、LoCoMo `1540/1540`，记录 namespaces、lifecycle states、source-support / merge / supersede / slot edges。 |
-| 主要局限 | v261 仍是 trace/governance 版本，不是 accuracy peak；下一步要让 graph 支持 general evidence utility selection，并继续收敛 query-time route/guide/repair/finalizer 兼容面。 |
+| LTS 理由 | v262 vs v261 full LME/LoCoMo answer、retrieval、final-evidence 和 token diff 均为 `0`，继承 v261 accuracy；graph utility 触发 LME `341/500`、LoCoMo `1373/1540`，提供 source-backed evidence utility 入口但不替换 primary evidence。 |
+| 主要局限 | v262 是风险降低版，不是 accuracy peak；graph utility 因候选池已满未改变最终 evidence。下一步要让 graph utility 在强 source-support gate 下真正影响 candidate/evidence selection，并继续收敛 query-time route/guide/repair/finalizer 兼容面。 |
 
 `paired-delta derived` 的含义：新版本只改少量答案，未变化答案沿用父 LTS full dual judge records，变化答案单独跑 paired dual judge 后替换计数。若新版本与父 LTS answer-identical，可继承父 LTS judge records，但必须记录 full answer diff、cache hit/miss 和输出路径。论文级最终汇报再对最终 LTS 配置重跑 fresh full judge。
 
@@ -28,8 +28,8 @@
 
 | 优先级 | 方向 | 当前问题 | 下一步 |
 |---:|---|---|---|
-| 1 | Evidence utility selection | v261 已有 trace-only memory system graph，但 graph 还不参与 candidate/evidence selection | 设计 general candidate pooling + utility scoring + anchor retention + source expansion；先 additive/append-only，再验证 replacement gate |
-| 2 | Build memory system | v261 已记录 memory objects、namespaces、lifecycle states 和 operation edges，但 memory object schema 还偏 typed-record 后处理 | 继续把 event/state/profile/relation object schema 标准化，加入 confidence、validity、source span、usage utility 的可消融字段 |
+| 1 | Evidence utility selection | v262 已有 source-backed graph utility audit/selector，但保守 tail-rescue 在 full 上未进入最终 evidence | 设计 bounded overflow 或 strong source-support-gated tail exchange；保护 lexical/dense/memory anchors，changed-answer judge 后再考虑 LTS |
+| 2 | Build memory system | v262 继承了 memory objects、namespaces、lifecycle states 和 operation edges，但 memory object schema 还偏 typed-record 后处理 | 继续把 event/state/profile/relation object schema 标准化，加入 confidence、validity、source span、usage utility 的可消融字段 |
 | 3 | Query-time 简化 | route、selected context、state guide、ledger、audit 多层叠加，后续维护成本高 | 收敛为 candidate activation、context compiler、source-grounded answer、consistency verifier 四层，删除确认无用的兼容分支 |
 | 4 | Answer/verifier 统一 | source-grounded support audit 仍是 trace-only；repair/finalizer 默认关闭后还残留兼容面 | 基于 audit 风险做通用 verifier，只检查数值、时间、说话人、实体、状态冲突、unsupported answer，不写 benchmark-specific rewrite |
 | 5 | src cleanup | `pipeline.py`、compiler、repair/finalizer 兼容分支较多，后续改法成本上升 | 每个阶段做小范围清理，删除已确认无用的兼容代码；保留仍有消融价值和复现价值的模块 |
@@ -38,8 +38,9 @@
 
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
-| `configs/stage1_memory_system_graph_v261_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_memory_system_graph_v261_full_summary.md` | current LTS / memory system graph | v261 vs v260 full LME/LoCoMo answer/hits/final-evidence/token diff 全为 `0`; full accuracy 继承 `0.832000/0.844000`、`0.794156/0.819481`; graph applied LME `500/500`、LoCoMo `1540/1540` | 当前 LTS；build memory 从 typed records + ledger 推进为 trace-only source-backed system graph |
-| `configs/stage1_lifecycle_operation_utility_tail_rescue_v260_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_lifecycle_operation_utility_tail_rescue_v260_full_summary.md` | previous LTS / lifecycle operation utility | v260 vs v257 full answer/hits/final-evidence/token diff 全为 `0`; operation utility applied LME `14/500`、LoCoMo `22/1540` | 被 v261 替代；保留为 append-only operation utility 父锚点 |
+| `configs/stage1_graph_evidence_utility_v262_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_graph_evidence_utility_v262_full_summary.md` | current LTS / graph-backed evidence utility | v262 vs v261 full LME/LoCoMo answer/hits/final-evidence/token diff 全为 `0`; full accuracy 继承 `0.832000/0.844000`、`0.794156/0.819481`; graph utility applied LME `341/500`、LoCoMo `1373/1540` | 当前 LTS；把 memory system graph 从 trace-only governance 推进为 source-backed evidence utility selector/audit |
+| `configs/stage1_memory_system_graph_v261_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_memory_system_graph_v261_full_summary.md` | previous LTS / memory system graph | v261 vs v260 full LME/LoCoMo answer/hits/final-evidence/token diff 全为 `0`; graph applied LME `500/500`、LoCoMo `1540/1540` | 被 v262 替代；保留为 build memory system graph 父锚点 |
+| `configs/stage1_lifecycle_operation_utility_tail_rescue_v260_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_lifecycle_operation_utility_tail_rescue_v260_full_summary.md` | previous LTS / lifecycle operation utility | v260 vs v257 full answer/hits/final-evidence/token diff 全为 `0`; operation utility applied LME `14/500`、LoCoMo `22/1540` | 被 v261/v262 继承；保留为 append-only operation utility 父锚点 |
 | `configs/stage1_lifecycle_operation_utility_v259_seeded_qwen36_no_think_build4k_cached.json` | rejected full / lifecycle tail-exchange lesson | LME answer diff `4/500`，changed lenient loss `1`; LoCoMo answer diff `10/1540`，changed strict/lenient loss `2/2` | 不升 LTS；`tail_exchange` 即使只替换 1 条 evidence 仍会伤害 accuracy |
 | `configs/stage1_operation_utility_tail_exchange_v258_seeded_qwen36_no_think_build4k_cached.json` | rejected probe / collection operation lesson | seeded LoCoMo probe changed subset lenient `9/10 -> 8/10`; collection/list slot 噪声影响答案 | 不升 LTS；collection_multi_value_slot 不能作为强 evidence replacement 信号 |
 | `configs/stage1_build_operation_ledger_v257_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_build_operation_ledger_v257_full_summary.md` | previous LTS / build operation ledger | v257 vs v256 full answer/retrieval/final-evidence/token diff 全为 `0`; operation ledger full 覆盖，source-unbacked records 为 `0` | 被 v260 替代；保留为 build operation ledger 父锚点 |
