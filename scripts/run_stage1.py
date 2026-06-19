@@ -131,12 +131,6 @@ def main() -> int:
     total_build_memory_nonmanaged_multi_value_slots = 0
     total_memory_hits = 0
     total_memory_source_hits = 0
-    total_memory_source_utility_applied = 0
-    total_memory_source_utility_seen = 0
-    total_memory_source_utility_kept = 0
-    total_memory_source_utility_dropped = 0
-    total_memory_source_utility_source_hits_before = 0
-    total_memory_source_utility_source_hits_after = 0
     total_memory_slot_chain_applied = 0
     total_memory_slot_chain_source_hits = 0
     total_answer_cache_hits = 0
@@ -396,24 +390,6 @@ def main() -> int:
         total_memory_source_hits += len(
             retrieval_trace.get("memory_source_hits") or []
         )
-        memory_source_utility = retrieval_trace.get("memory_source_utility") or {}
-        if memory_source_utility.get("applied"):
-            total_memory_source_utility_applied += 1
-        total_memory_source_utility_seen += int(
-            memory_source_utility.get("records_seen") or 0
-        )
-        total_memory_source_utility_kept += int(
-            memory_source_utility.get("records_kept") or 0
-        )
-        total_memory_source_utility_dropped += int(
-            memory_source_utility.get("records_dropped") or 0
-        )
-        total_memory_source_utility_source_hits_before += int(
-            memory_source_utility.get("source_hits_before") or 0
-        )
-        total_memory_source_utility_source_hits_after += int(
-            memory_source_utility.get("source_hits_after") or 0
-        )
         if retrieval_trace.get("memory_slot_chain_applied"):
             total_memory_slot_chain_applied += 1
         total_memory_slot_chain_source_hits += len(
@@ -520,30 +496,6 @@ def main() -> int:
             "avg_memory_hits": _safe_average(total_memory_hits, sample_count),
             "avg_memory_source_hits": _safe_average(
                 total_memory_source_hits, sample_count
-            ),
-            "memory_source_utility": config.get("retrieval", {}).get(
-                "memory_source_utility", {}
-            ),
-            "memory_source_utility_applied_count": (
-                total_memory_source_utility_applied
-            ),
-            "memory_source_utility_applied_rate": _safe_average(
-                total_memory_source_utility_applied, sample_count
-            ),
-            "avg_memory_source_utility_records_seen": _safe_average(
-                total_memory_source_utility_seen, sample_count
-            ),
-            "avg_memory_source_utility_records_kept": _safe_average(
-                total_memory_source_utility_kept, sample_count
-            ),
-            "avg_memory_source_utility_records_dropped": _safe_average(
-                total_memory_source_utility_dropped, sample_count
-            ),
-            "avg_memory_source_utility_source_hits_before": _safe_average(
-                total_memory_source_utility_source_hits_before, sample_count
-            ),
-            "avg_memory_source_utility_source_hits_after": _safe_average(
-                total_memory_source_utility_source_hits_after, sample_count
             ),
             "memory_slot_chain_enabled": config.get("retrieval", {})
             .get("memory_slot_chain", {})
@@ -1808,14 +1760,6 @@ def _write_summary(
         f"- avg_active_build_memory_records: {metrics['build_memory']['avg_active_records']}",
         f"- avg_memory_hits: {metrics['retrieval']['avg_memory_hits']}",
         f"- avg_memory_source_hits: {metrics['retrieval']['avg_memory_source_hits']}",
-        f"- memory_source_utility: {metrics['retrieval']['memory_source_utility']}",
-        f"- memory_source_utility_applied_count: {metrics['retrieval']['memory_source_utility_applied_count']}",
-        f"- memory_source_utility_applied_rate: {metrics['retrieval']['memory_source_utility_applied_rate']}",
-        f"- avg_memory_source_utility_records_seen: {metrics['retrieval']['avg_memory_source_utility_records_seen']}",
-        f"- avg_memory_source_utility_records_kept: {metrics['retrieval']['avg_memory_source_utility_records_kept']}",
-        f"- avg_memory_source_utility_records_dropped: {metrics['retrieval']['avg_memory_source_utility_records_dropped']}",
-        f"- avg_memory_source_utility_source_hits_before: {metrics['retrieval']['avg_memory_source_utility_source_hits_before']}",
-        f"- avg_memory_source_utility_source_hits_after: {metrics['retrieval']['avg_memory_source_utility_source_hits_after']}",
         f"- build_memory_include_superseded: {metrics['retrieval']['build_memory_include_superseded']}",
         f"- build_memory_include_superseded_information_needs: {metrics['retrieval']['build_memory_include_superseded_information_needs']}",
         f"- neighbor_order: {metrics['retrieval']['neighbor_order']}",
@@ -2165,14 +2109,6 @@ def _write_diagnosis(
         f"- avg_build_memory_source_alignment_added_sources: {metrics['build_memory']['avg_source_alignment_added_sources']}",
         f"- avg_memory_hits: {metrics['retrieval']['avg_memory_hits']}",
         f"- avg_memory_source_hits: {metrics['retrieval']['avg_memory_source_hits']}",
-        f"- memory_source_utility: {metrics['retrieval']['memory_source_utility']}",
-        f"- memory_source_utility_applied_count: {metrics['retrieval']['memory_source_utility_applied_count']}",
-        f"- memory_source_utility_applied_rate: {metrics['retrieval']['memory_source_utility_applied_rate']}",
-        f"- avg_memory_source_utility_records_seen: {metrics['retrieval']['avg_memory_source_utility_records_seen']}",
-        f"- avg_memory_source_utility_records_kept: {metrics['retrieval']['avg_memory_source_utility_records_kept']}",
-        f"- avg_memory_source_utility_records_dropped: {metrics['retrieval']['avg_memory_source_utility_records_dropped']}",
-        f"- avg_memory_source_utility_source_hits_before: {metrics['retrieval']['avg_memory_source_utility_source_hits_before']}",
-        f"- avg_memory_source_utility_source_hits_after: {metrics['retrieval']['avg_memory_source_utility_source_hits_after']}",
         f"- build_memory_include_superseded: {metrics['retrieval']['build_memory_include_superseded']}",
         f"- build_memory_include_superseded_information_needs: {metrics['retrieval']['build_memory_include_superseded_information_needs']}",
         f"- avg_context_chars: {metrics['retrieval']['avg_context_chars']}",

@@ -110,11 +110,6 @@ class Stage1Pipeline:
         context_budget_audit_config = retrieval_config.get("context_budget_audit", {})
         if not isinstance(context_budget_audit_config, Mapping):
             raise ValueError("retrieval.context_budget_audit must be an object")
-        memory_source_utility_config = retrieval_config.get(
-            "memory_source_utility", {}
-        )
-        if not isinstance(memory_source_utility_config, Mapping):
-            raise ValueError("retrieval.memory_source_utility must be an object")
         memory_slot_chain_config = retrieval_config.get("memory_slot_chain", {})
         if not isinstance(memory_slot_chain_config, Mapping):
             raise ValueError("retrieval.memory_slot_chain must be an object")
@@ -274,32 +269,6 @@ class Stage1Pipeline:
                 "source_order": self._build_memory_source_alignment_source_order,
             },
         }
-        self._memory_source_utility_enabled = bool(
-            memory_source_utility_config.get("enabled", False)
-        )
-        self._memory_source_utility_mode = str(
-            memory_source_utility_config.get("mode", "memory_hit")
-        ).strip()
-        if self._memory_source_utility_mode not in {
-            "memory_hit",
-            "duplicate_source",
-        }:
-            raise ValueError(
-                "retrieval.memory_source_utility.mode must be one of "
-                "'memory_hit' or 'duplicate_source'"
-            )
-        self._memory_source_utility_information_needs = _tuple_config(
-            memory_source_utility_config.get("information_needs")
-        )
-        self._memory_source_utility_min_matched_terms = max(
-            0, int(memory_source_utility_config.get("min_matched_terms", 2))
-        )
-        self._memory_source_utility_preserve_top_n = max(
-            0, int(memory_source_utility_config.get("preserve_top_n", 0))
-        )
-        self._memory_source_utility_max_memory_hits = max(
-            0, int(memory_source_utility_config.get("max_memory_hits", 0))
-        )
         self._memory_slot_chain_enabled = bool(
             memory_slot_chain_config.get("enabled", False)
         )
@@ -1580,14 +1549,6 @@ class Stage1Pipeline:
             )
         memory_hits = ()
         memory_source_hits = ()
-        memory_source_utility_trace = _disabled_memory_source_utility_trace(
-            enabled=self._memory_source_utility_enabled,
-            information_needs=self._memory_source_utility_information_needs,
-            min_matched_terms=self._memory_source_utility_min_matched_terms,
-            preserve_top_n=self._memory_source_utility_preserve_top_n,
-            max_memory_hits=self._memory_source_utility_max_memory_hits,
-            mode=self._memory_source_utility_mode,
-        )
         memory_slot_chain_source_hits = ()
         memory_slot_chain_trace = _disabled_memory_slot_chain_trace(
             enabled=self._memory_slot_chain_enabled,
@@ -1617,25 +1578,6 @@ class Stage1Pipeline:
                 memory_hits,
                 max_sources_per_memory=self._build_memory_max_sources_per_record,
             )
-            if _memory_source_utility_applies(
-                enabled=self._memory_source_utility_enabled,
-                route=route,
-                information_needs=self._memory_source_utility_information_needs,
-            ) and self._memory_source_utility_mode == "memory_hit":
-                (
-                    memory_source_hits,
-                    memory_source_utility_trace,
-                ) = _filter_memory_source_hits_by_utility(
-                    memory_hits=memory_hits,
-                    max_sources_per_memory=self._build_memory_max_sources_per_record,
-                    min_matched_terms=(
-                        self._memory_source_utility_min_matched_terms
-                    ),
-                    preserve_top_n=self._memory_source_utility_preserve_top_n,
-                    max_memory_hits=self._memory_source_utility_max_memory_hits,
-                    information_needs=self._memory_source_utility_information_needs,
-                    mode=self._memory_source_utility_mode,
-                )
             if _memory_slot_chain_applies(
                 enabled=self._memory_slot_chain_enabled,
                 route=route,
@@ -1711,23 +1653,6 @@ class Stage1Pipeline:
             )
             dense_hits = dense_result.hits
             embedding_tokens = dense_result.embedding_tokens
-        if _memory_source_utility_applies(
-            enabled=self._memory_source_utility_enabled,
-            route=route,
-            information_needs=self._memory_source_utility_information_needs,
-        ) and self._memory_source_utility_mode == "duplicate_source":
-            (
-                memory_source_hits,
-                memory_source_utility_trace,
-            ) = _filter_duplicate_memory_source_hits_by_utility(
-                memory_source_hits=memory_source_hits,
-                base_hits=(*lexical_hits, *dense_hits),
-                min_matched_terms=self._memory_source_utility_min_matched_terms,
-                preserve_top_n=self._memory_source_utility_preserve_top_n,
-                max_memory_hits=self._memory_source_utility_max_memory_hits,
-                information_needs=self._memory_source_utility_information_needs,
-                mode=self._memory_source_utility_mode,
-            )
         if self._embedding_client is not None:
             hit_lists = tuple(
                 hits for hits in (lexical_hits, dense_hits) if hits
@@ -2271,7 +2196,6 @@ class Stage1Pipeline:
                     "memory_source_hits": [
                         hit.to_dict() for hit in memory_source_hits
                     ],
-                    "memory_source_utility": memory_source_utility_trace,
                     "memory_slot_chain_enabled": self._memory_slot_chain_enabled,
                     "memory_slot_chain_applied": memory_slot_chain_trace["applied"],
                     "memory_slot_chain_information_needs": (
@@ -4072,211 +3996,6 @@ def _memory_slot_chain_applies(
     if information_needs and route.information_need not in information_needs:
         return False
     return route.information_need in {"current_state", "profile_preference"}
-
-
-def _memory_source_utility_applies(
-    *,
-    enabled: bool,
-    route: RouteResult,
-    information_needs: tuple[str, ...],
-) -> bool:
-    if not enabled:
-        return False
-    if information_needs and route.information_need not in information_needs:
-        return False
-    return True
-
-
-def _disabled_memory_source_utility_trace(
-    *,
-    enabled: bool,
-    information_needs: tuple[str, ...],
-    min_matched_terms: int,
-    preserve_top_n: int,
-    max_memory_hits: int,
-    mode: str = "memory_hit",
-) -> dict[str, Any]:
-    return {
-        "enabled": enabled,
-        "applied": False,
-        "mode": mode,
-        "information_needs": information_needs,
-        "min_matched_terms": min_matched_terms,
-        "preserve_top_n": preserve_top_n,
-        "max_memory_hits": max_memory_hits,
-        "records_seen": 0,
-        "records_kept": 0,
-        "records_dropped": 0,
-        "source_hits_before": 0,
-        "source_hits_after": 0,
-        "kept": [],
-        "dropped": [],
-    }
-
-
-def _filter_memory_source_hits_by_utility(
-    *,
-    memory_hits: tuple[Any, ...],
-    max_sources_per_memory: int,
-    min_matched_terms: int,
-    preserve_top_n: int,
-    max_memory_hits: int,
-    information_needs: tuple[str, ...] = (),
-    mode: str = "memory_hit",
-) -> tuple[tuple[RetrievalHit, ...], dict[str, Any]]:
-    raw_source_hits = memory_hits_to_source_hits(
-        memory_hits,
-        max_sources_per_memory=max_sources_per_memory,
-    )
-    trace = _disabled_memory_source_utility_trace(
-        enabled=True,
-        information_needs=information_needs,
-        min_matched_terms=min_matched_terms,
-        preserve_top_n=preserve_top_n,
-        max_memory_hits=max_memory_hits,
-        mode=mode,
-    )
-    kept: list[Any] = []
-    kept_trace: list[dict[str, Any]] = []
-    dropped_trace: list[dict[str, Any]] = []
-    for memory_hit in memory_hits:
-        record = getattr(memory_hit, "record", None)
-        matched_terms = _normalized_trace_terms(
-            tuple(getattr(memory_hit, "matched_terms", ()) or ())
-        )
-        rank = int(getattr(memory_hit, "rank", 0) or 0)
-        keep_reason = ""
-        drop_reason = ""
-        if preserve_top_n > 0 and rank <= preserve_top_n:
-            keep_reason = "preserved_top_rank"
-        elif len(matched_terms) >= min_matched_terms:
-            keep_reason = "matched_term_coverage"
-        else:
-            drop_reason = "low_matched_term_coverage"
-        if keep_reason and max_memory_hits > 0 and len(kept) >= max_memory_hits:
-            keep_reason = ""
-            drop_reason = "max_memory_hits"
-        item = {
-            "memory_id": str(getattr(record, "memory_id", "")),
-            "memory_type": str(getattr(record, "memory_type", "")),
-            "rank": rank,
-            "matched_terms": matched_terms,
-        }
-        if keep_reason:
-            kept.append(memory_hit)
-            if len(kept_trace) < 12:
-                kept_trace.append({**item, "reason": keep_reason})
-        elif len(dropped_trace) < 12:
-            dropped_trace.append({**item, "reason": drop_reason})
-
-    filtered_source_hits = memory_hits_to_source_hits(
-        tuple(kept),
-        max_sources_per_memory=max_sources_per_memory,
-    )
-    return filtered_source_hits, {
-        **trace,
-        "applied": True,
-        "records_seen": len(memory_hits),
-        "records_kept": len(kept),
-        "records_dropped": max(0, len(memory_hits) - len(kept)),
-        "source_hits_before": len(raw_source_hits),
-        "source_hits_after": len(filtered_source_hits),
-        "kept": kept_trace,
-        "dropped": dropped_trace,
-    }
-
-
-def _filter_duplicate_memory_source_hits_by_utility(
-    *,
-    memory_source_hits: tuple[RetrievalHit, ...],
-    base_hits: tuple[RetrievalHit, ...],
-    min_matched_terms: int,
-    preserve_top_n: int,
-    max_memory_hits: int,
-    information_needs: tuple[str, ...] = (),
-    mode: str = "duplicate_source",
-) -> tuple[tuple[RetrievalHit, ...], dict[str, Any]]:
-    base_source_ids = set(_source_ids_from_hits(base_hits))
-    trace = _disabled_memory_source_utility_trace(
-        enabled=True,
-        information_needs=information_needs,
-        min_matched_terms=min_matched_terms,
-        preserve_top_n=preserve_top_n,
-        max_memory_hits=max_memory_hits,
-        mode=mode,
-    )
-    kept: list[RetrievalHit] = []
-    kept_trace: list[dict[str, Any]] = []
-    dropped_trace: list[dict[str, Any]] = []
-    capped_duplicate_kept = 0
-    unique_preserved = 0
-    duplicate_seen = 0
-    duplicate_dropped = 0
-    for hit in memory_source_hits:
-        matched_terms = _normalized_trace_terms(tuple(hit.matched_terms or ()))
-        is_duplicate = hit.source_id in base_source_ids
-        keep_reason = ""
-        drop_reason = ""
-        if not is_duplicate:
-            keep_reason = "unique_source_preserved"
-            unique_preserved += 1
-        else:
-            duplicate_seen += 1
-            if preserve_top_n > 0 and hit.rank <= preserve_top_n:
-                keep_reason = "preserved_top_rank"
-            elif len(matched_terms) >= min_matched_terms:
-                keep_reason = "matched_term_coverage"
-            else:
-                drop_reason = "duplicate_low_matched_term_coverage"
-            if (
-                keep_reason
-                and max_memory_hits > 0
-                and capped_duplicate_kept >= max_memory_hits
-            ):
-                keep_reason = ""
-                drop_reason = "max_memory_hits"
-            if keep_reason:
-                capped_duplicate_kept += 1
-            else:
-                duplicate_dropped += 1
-
-        item = {
-            "source_id": hit.source_id,
-            "rank": hit.rank,
-            "matched_terms": matched_terms,
-            "duplicate_source": is_duplicate,
-        }
-        if keep_reason:
-            kept.append(hit)
-            if len(kept_trace) < 12:
-                kept_trace.append({**item, "reason": keep_reason})
-        elif len(dropped_trace) < 12:
-            dropped_trace.append({**item, "reason": drop_reason})
-
-    return tuple(kept), {
-        **trace,
-        "applied": True,
-        "records_seen": len(memory_source_hits),
-        "records_kept": len(kept),
-        "records_dropped": max(0, len(memory_source_hits) - len(kept)),
-        "source_hits_before": len(memory_source_hits),
-        "source_hits_after": len(kept),
-        "base_source_count": len(base_source_ids),
-        "duplicate_source_hits_seen": duplicate_seen,
-        "duplicate_source_hits_dropped": duplicate_dropped,
-        "unique_source_hits_preserved": unique_preserved,
-        "kept": kept_trace,
-        "dropped": dropped_trace,
-    }
-
-
-def _normalized_trace_terms(terms: tuple[Any, ...]) -> tuple[str, ...]:
-    normalized = {
-        str(term).strip().lower()
-        for term in terms
-        if str(term).strip()
-    }
-    return tuple(sorted(normalized))
 
 
 def _disabled_memory_slot_chain_trace(

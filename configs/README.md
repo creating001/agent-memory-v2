@@ -12,8 +12,6 @@
 
 | 配置 | 状态 |
 |---|---|
-| `stage1_duplicate_memory_source_utility_v247_seeded_qwen36_no_think_build4k_cached.json` | rejected probe：LME probe changed judge `1/2 -> 2/2`，但 LoCoMo strict/lenient `16/18 -> 14/18`、`17/18 -> 15/18`，且 query token 小涨。保留为 duplicate-only utility 负向对照。 |
-| `stage1_memory_source_utility_v246_seeded_qwen36_no_think_build4k_cached.json` | rejected full：LME full 降 query token `6579.782 -> 6333.872`，但 changed judge strict/lenient `38/63 -> 27/63`、`39/63 -> 30/63`。保留为 utility gate 负向对照。 |
 | `stage1_typed_compact_cap32_build_memory_v245_seeded_qwen36_no_think_build4k_cached.json` | rejected probe：LoCoMo changed judge strict/lenient `18/22 -> 15/22`、`18/22 -> 17/22`；LME cold build probe 延迟不可接受。保留为 build record cap 负向对照。 |
 | `stage1_lossless_atomic_build_memory_v244_seeded_qwen36_no_think_build4k_cached.json` | diagnostic / not promoted：LoCoMo probe50 query tokens 降低但 changed judge 持平；LME cold build probe 延迟不可接受。保留为 richer atomic build memory 的成本/覆盖教训。 |
 | `stage1_query_scoped_state_source_activation_v243_seeded_qwen36_no_think_build4k_cached.json` | diagnostic / not promoted：probe50 answer-identical；all-current_state targeted answer-identical，但 slot activation 仅 LME `1/22`、LoCoMo `0/4`，覆盖太低。 |
@@ -105,11 +103,11 @@
 - v233 修改 build-time memory management policy；answer cache 从 v231 `answer_draft` traces 预种，full prediction 后只对 changed answers 做 paired dual judge，未变化答案沿用 v231 full judge records。
 - v234 关闭 answer repair，answer cache 从 v233 `answer_draft` traces 预种；v234 vs v233 answer diff 为 0 时继承 v233 accuracy。
 - v235 关闭 deterministic finalizer，answer cache 从 v234 `answer_draft` traces 预种；v235 vs v234 answer diff 为 0 时继承 v234 accuracy。
-- v246 继承 v235 build/answer path，新增 retrieval-time memory source utility gate；answer cache 从 v235 full traces 预种，prompt/answer 变化样本单独做 paired judge。
-- v247 继承 v235 build/answer path，将 v246 改为 duplicate-only memory source utility；answer cache 从 v235 full traces 预种，prompt/answer 变化样本单独做 paired judge。
 - cache 命中只能减少重复 API 调用，不能改变逻辑 token 统计。正式记录仍报告逻辑 cold-build/query token。
 - 不得使用 gold answer、judge output、benchmark 标签、sample id、test feedback 或样本级规则构造配置、cache、prediction、retrieval、compiler、answer 或 repair。
 
 ## 已清理顶层配置
 
 以下负向、被替代或已无保留实验目录支撑的候选已从 `configs/` 删除。结论保留在 `experiments/README.md` 或 git 历史中；确需复现时从历史 commit 取回配置。
+
+- v246/v247 memory-source utility filtering：v246 LME full changed judge strict/lenient `38/63 -> 27/63`、`39/63 -> 30/63`；v247 LoCoMo probe changed judge strict/lenient `16/18 -> 14/18`、`17/18 -> 15/18`。顶层配置和代码路径已删除，结论见 `experiments/diagnostic/stage1_memory_source_utility_v246_lme_full_summary.md`、`experiments/diagnostic/stage1_duplicate_memory_source_utility_v247_probe_summary.md`。
