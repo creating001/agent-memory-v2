@@ -6,13 +6,13 @@
 
 | 项目 | 结果 |
 |---|---|
-| 当前 LTS 配置 | `configs/stage1_object_slot_tail_rescue_v250_seeded_qwen36_no_think_build4k_cached.json` |
+| 当前 LTS 配置 | `configs/stage1_build_slot_inventory_v255_seeded_qwen36_no_think_build4k_cached.json` |
 | Backbone | `Qwen/Qwen3.6-35B-A3B` answer/build，`chat_template_kwargs.enable_thinking=false` |
-| 方法定位 | build-time source-backed memory management + memory object graph + object-slot tail-rescue activation + query-time no-repair/no-finalizer LTS。`preference/profile/relationship/state` 参与 lifecycle；`fact/event/plan` 保留为 active collection memory；object graph 组织 subject/predicate slot、lifecycle/collection、多值、冲突和 source coverage；object-slot source hits 只做低优先级 tail rescue，不参与 RRF 抢占。 |
+| 方法定位 | build-time source-backed memory management + build-slot inventory + object-slot tail-rescue activation + query-time no-repair/no-finalizer LTS。`preference/profile/relationship/state` 参与 lifecycle；`fact/event/plan` 保留为 active collection memory；build-slot inventory 组织 subject/predicate slot、lifecycle/collection、多值和 source coverage；object-slot source hits 只做低优先级 tail rescue，不参与 RRF 抢占。 |
 | LongMemEval-S full | strict/lenient `0.832000 / 0.844000`，`416/500` strict，`422/500` lenient；avg build/query tokens `85393.566 / 6579.782` |
-| LoCoMo non-adversarial full | strict/lenient `0.794156 / 0.819481`，`1223/1540` strict，`1262/1540` lenient；avg build/query tokens `62015.57402597403 / 6094.0084415584415` |
-| LTS 理由 | 继承 v248/v235 accuracy；v250 vs v248 full LME answer/prompt/retrieval diff `0/500`，LoCoMo answer diff `1/1540` 且 changed judge v248/v250 均 correct；object-slot audited LME `89/500`、LoCoMo `198/1540`，但 tail-rescue 不抢占原 evidence。 |
-| 主要局限 | v250 主要是风险收敛而非 accuracy 提升；tail rescue 在候选集已满时通常不改变上下文。下一步仍需更实质的 build memory management、evidence utility selection 和统一 verifier。 |
+| LoCoMo non-adversarial full | strict/lenient `0.794156 / 0.819481`，`1223/1540` strict，`1262/1540` lenient；avg build/query tokens `62015.57402597403 / 6094.017532467533` |
+| LTS 理由 | 继承 v250 accuracy；v255 vs v250 full LME answer/retrieval/final-evidence diff `0/500`，LoCoMo answer diff `1/1540` 且 changed judge v250/v255 均 correct；object-slot audited LME `89/500`、LoCoMo `198/1540`，并新增 source-backed build-slot inventory trace。 |
+| 主要局限 | v255 主要是 build/query 边界和可解释性风险收敛，不是 accuracy peak。下一步仍需让 build memory operations 更实质地参与 evidence utility、source recall 和 verifier，而不是只增强 trace。 |
 
 `paired-delta derived` 的含义：新版本只改少量答案，未变化答案沿用父 LTS full dual judge records，变化答案单独跑 paired dual judge 后替换计数。若新版本与父 LTS answer-identical，可继承父 LTS judge records，但必须记录 full answer diff、cache hit/miss 和输出路径。论文级最终汇报再对最终 LTS 配置重跑 fresh full judge。
 
@@ -38,7 +38,8 @@
 
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
-| `configs/stage1_object_slot_tail_rescue_v250_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_object_slot_tail_rescue_v250_full_summary.md` | current LTS / object-slot tail rescue | full object-slot audited LME `89/500`、LoCoMo `198/1540`; LME answer diff `0/500`; LoCoMo answer diff `1/1540` 且 changed judge both correct | 当前 LTS；修复 v249 RRF 抢占风险，accuracy/token 不回退 |
+| `configs/stage1_build_slot_inventory_v255_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_build_slot_inventory_v255_full_summary.md` | current LTS / build-slot inventory | LME answer/retrieval/final-evidence diff vs v250 `0/500`; LoCoMo answer diff `1/1540` 且 changed judge both correct; full accuracy 继承 v250 `0.832000/0.844000`、`0.794156/0.819481` | 当前 LTS；风险比 v250 更少，accuracy 不回退 |
+| `configs/stage1_object_slot_tail_rescue_v250_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_object_slot_tail_rescue_v250_full_summary.md` | previous LTS / object-slot tail rescue | full object-slot audited LME `89/500`、LoCoMo `198/1540`; LME answer diff `0/500`; LoCoMo answer diff `1/1540` 且 changed judge both correct | 被 v255 替代；保留为 tail-rescue 父锚点 |
 | `configs/stage1_object_lifecycle_tail_exchange_v254_scoped_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_object_lifecycle_tail_exchange_v254_full_summary.md` | rejected full / scoped object-slot lesson | LME answer diff `7/500`，derived `0.826000/0.842000`; LoCoMo answer diff `65/1540`，derived `0.796104/0.817532`; advice gate 命中 LME cocktail badcase，LoCoMo 阻断 `8` 个 advice-like activation | 不升 LTS；风险比 v253 收敛，但 LME 仍低于 v250，LoCoMo lenient 仍低于 v250。下一步转向 build-stage memory operations / evidence utility，而不是继续堆 query gate |
 | `configs/stage1_object_lifecycle_tail_exchange_v253_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_object_lifecycle_tail_exchange_v253_full_summary.md` | rejected full / object-slot boundary lesson | LME answer diff `8/500`，derived `0.824000/0.840000`; LoCoMo answer diff `67/1540`，derived `0.796104/0.817532`; weak term `one` 和 advice/recommendation 问题触发无关 collection slot | 不升 LTS；说明 collection/object slot 不能只靠 overlap，需要通用语义边界和 source-backed utility |
 | `configs/stage1_build_memory_object_graph_v248_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_build_memory_object_graph_v248_full_summary.md` | previous LTS / build memory object graph | full answer/query-token/retrieval-order diff LME `0/500`、LoCoMo `0/1540`; object_graph coverage LME `500/500`、LoCoMo `1540/1540`; inherits v235 accuracy/token | 被 v250 替代；保留为 trace-only object graph 父锚点 |

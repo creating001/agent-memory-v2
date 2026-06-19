@@ -1,0 +1,54 @@
+{
+  "aggregation_type": "derived_from_identical_answer_judge_records",
+  "benchmark": "locomo",
+  "clean_note": "Derived changed-answer judge aggregate is offline evaluation only. It reuses prior judge records only when record_key and answer text are identical, and is not used by prediction, retrieval, compiler, answer, verifier, or cache construction.",
+  "created_at_utc": "2026-06-19T21:30:10.980574+00:00",
+  "derivation_note": "v250 answer for the single v255-v250 changed key reuses the existing v250-v248 changed judge record.",
+  "judge_models": {
+    "flash_1": "deepseek-v4-flash",
+    "flash_2": "deepseek-v4-flash"
+  },
+  "labels": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_build_slot_inventory_v255_full_changed_vs_v250/locomo_labels.jsonl",
+  "metrics": {
+    "judge_1_correct": 1,
+    "judge_1_name": "flash_1",
+    "judge_2_correct": 1,
+    "judge_2_name": "flash_2",
+    "judge_agreement": 1.0,
+    "lenient_accuracy": 1.0,
+    "lenient_accuracy_both_valid": 1.0,
+    "lenient_correct": 1,
+    "n_any_invalid": 0,
+    "n_both_valid": 1,
+    "n_joined": 1,
+    "n_judge_1_judgments": 1,
+    "n_judge_2_judgments": 1,
+    "n_missing_judge_1": 0,
+    "n_missing_judge_2": 0,
+    "strict_accuracy": 1.0,
+    "strict_accuracy_both_valid": 1.0,
+    "strict_correct": 1
+  },
+  "predictions": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_build_slot_inventory_v255_full_changed_vs_v250/locomo_v250_changed_predictions.jsonl",
+  "records": [
+    {
+      "both_valid": true,
+      "group": "3",
+      "judge_1_correct": true,
+      "judge_1_label": "CORRECT",
+      "judge_1_name": "flash_1",
+      "judge_1_valid": true,
+      "judge_2_correct": true,
+      "judge_2_label": "CORRECT",
+      "judge_2_name": "flash_2",
+      "judge_2_valid": true,
+      "lenient_correct": true,
+      "record_key": "27baf30e807665dacb4ec386",
+      "strict_correct": true
+    }
+  ],
+  "source_artifacts": [
+    "experiments/diagnostic/stage1_object_slot_tail_rescue_v250_full_changed_vs_v248/locomo_v250_dual_judge.json"
+  ],
+  "temperature": 0.0
+}

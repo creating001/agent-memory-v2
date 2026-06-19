@@ -6,13 +6,12 @@
 
 | 用途 | 配置 | 状态 |
 |---|---|---|
-| 后续新实验默认配置 | `stage1_object_slot_tail_rescue_v250_seeded_qwen36_no_think_build4k_cached.json` | 当前本地 v250 LTS。继承 v248 accuracy/token，object-slot 只做 source-backed tail rescue，不抢占主 evidence；LongMemEval-S strict/lenient `0.832000 / 0.844000`，LoCoMo `0.794156 / 0.819481`。 |
+| 后续新实验默认配置 | `stage1_build_slot_inventory_v255_seeded_qwen36_no_think_build4k_cached.json` | 当前本地 v255 LTS。继承 v250 accuracy/token，object-slot 仍只做 source-backed tail rescue，不抢占主 evidence，并新增 build-slot inventory trace；LongMemEval-S strict/lenient `0.832000 / 0.844000`，LoCoMo `0.794156 / 0.819481`。 |
 
 ## 近期候选
 
 | 配置 | 状态 |
 |---|---|
-| `stage1_build_slot_inventory_v255_seeded_qwen36_no_think_build4k_cached.json` | pending：继承 v250 tail-rescue 行为，只把 object-slot grouping 明确为 build-stage slot inventory，并在 retrieval trace 中记录 source-backed collection/lifecycle slot 统计；目标是降低 query-time 补丁风险且保持 v250 accuracy/token。 |
 | `stage1_object_lifecycle_tail_exchange_v254_scoped_seeded_qwen36_no_think_build4k_cached.json` | rejected full：advice gate 修复 v253 的 LME cocktail badcase，并在 LoCoMo 阻断 `8` 个 advice-like activation；但 LME derived `0.826000 / 0.842000` 仍低于 v250，LoCoMo lenient `0.817532` 仍低于 v250。保留为 scoped object-slot 边界教训。 |
 | `stage1_object_lifecycle_tail_exchange_v253_seeded_qwen36_no_think_build4k_cached.json` | rejected full：LoCoMo strict 小涨，但 LongMemEval-S strict/lenient 降至 `0.824000 / 0.840000`，LoCoMo lenient 降至 `0.817532`；保留为 object-slot 适用边界教训。 |
 | `stage1_typed_compact_cap32_build_memory_v245_seeded_qwen36_no_think_build4k_cached.json` | rejected probe：LoCoMo changed judge strict/lenient `18/22 -> 15/22`、`18/22 -> 17/22`；LME cold build probe 延迟不可接受。保留为 build record cap 负向对照。 |
@@ -28,6 +27,7 @@
 
 | 配置 | 作用 |
 |---|---|
+| `stage1_object_slot_tail_rescue_v250_seeded_qwen36_no_think_build4k_cached.json` | previous LTS；继承 v248 accuracy/token，object-slot 只做 source-backed tail rescue，不抢占主 evidence；LongMemEval-S strict/lenient `0.832000 / 0.844000`，LoCoMo `0.794156 / 0.819481`。 |
 | `stage1_build_memory_object_graph_v248_seeded_qwen36_no_think_build4k_cached.json` | previous LTS；继承 v235 accuracy/token，full answer/query-token/retrieval-order diff `0/500`、`0/1540`，新增 trace-only build memory object graph。 |
 | `stage1_no_finalizer_v235_seeded_qwen36_no_think_build4k_cached.json` | v248 父 LTS；继承 v234 accuracy/token，关闭 no-op finalizer，v235 vs v234 answer diff `0/500`、`0/1540`，finalizer/repair 均 disabled。 |
 | `stage1_no_answer_repair_v234_seeded_qwen36_no_think_build4k_cached.json` | v235 父 LTS；继承 v233 build-time `stateful_only` memory management，关闭 no-op answer repair，v234 vs v233 answer diff `0/500`、`0/1540`，avg query tokens 降为 `6579.782`、`6094.017532467533`。 |

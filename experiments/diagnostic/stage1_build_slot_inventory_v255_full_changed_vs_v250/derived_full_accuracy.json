@@ -1,0 +1,26 @@
+{
+  "lme": {
+    "changed_vs_v250": 0,
+    "delta_lenient_correct": 0,
+    "delta_strict_correct": 0,
+    "n": 500,
+    "v255_lenient_accuracy": 0.844,
+    "v255_lenient_correct": 422,
+    "v255_strict_accuracy": 0.832,
+    "v255_strict_correct": 416
+  },
+  "locomo": {
+    "changed_v250_lenient_correct": 1,
+    "changed_v250_strict_correct": 1,
+    "changed_v255_lenient_correct": 1,
+    "changed_v255_strict_correct": 1,
+    "changed_vs_v250": 1,
+    "delta_lenient_correct": 0,
+    "delta_strict_correct": 0,
+    "n": 1540,
+    "v255_lenient_accuracy": 0.8194805194805195,
+    "v255_lenient_correct": 1262,
+    "v255_strict_accuracy": 0.7941558441558442,
+    "v255_strict_correct": 1223
+  }
+}

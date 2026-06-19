@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_object_slot_tail_rescue_v250_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_build_slot_inventory_v255_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v250 local LTS |
+| Benchmark | 当前 v255 local LTS |
 |---|---:|
 | LongMemEval-S full | strict/lenient `0.832000 / 0.844000`，avg build/query tokens `85393.566 / 6579.782` |
-| LoCoMo non-adversarial full | strict/lenient `0.794156 / 0.819481`，avg build/query tokens `62015.57402597403 / 6094.0084415584415` |
+| LoCoMo non-adversarial full | strict/lenient `0.794156 / 0.819481`，avg build/query tokens `62015.57402597403 / 6094.017532467533` |
 
-v250 的 LTS 理由：继承 v248/v235 的 accuracy，并把 build memory object graph 从 trace-only 推进到 source-backed tail-rescue activation。object-slot hits 不参与 RRF、不进入 protected rerank source，只在低优先级尾部补漏，避免 v249 collection slot 抢占 evidence 的风险。v250 vs v248 full：LongMemEval-S answer/prompt/retrieval diff `0/500`；LoCoMo 仅 `1/1540` 语义等价 changed answer，dual judge v248/v250 均 correct，因此 derived full accuracy 不回退。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_object_slot_tail_rescue_v250_full_summary.md`。
+v255 的 LTS 理由：继承 v250 full accuracy，并把 object-slot activation 的 source-backed grouping 显式整理为 build-slot inventory trace。object-slot hits 仍不参与 RRF、不进入 protected rerank source，只在低优先级尾部补漏；v255 vs v250 full：LongMemEval-S answer/retrieval/final-evidence diff `0/500`，LoCoMo 仅 `1/1540` 语义等价 changed answer且 dual judge correct，因此 derived full accuracy 不回退。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_build_slot_inventory_v255_full_summary.md`。
 
 ## 目录
 

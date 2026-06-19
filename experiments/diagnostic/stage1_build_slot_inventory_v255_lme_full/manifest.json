@@ -1,0 +1,31 @@
+{
+  "benchmark": "longmemeval_s",
+  "clean_assertions": [
+    "Prediction loader rejects gold/reference/target answers.",
+    "Prediction loader rejects judge outputs and benchmark labels.",
+    "Prediction loader rejects sample ids, qids, and row indices.",
+    "record_key is copied only by the runner and is not passed into pipeline modules.",
+    "Derived context rows always retain raw source_id back-links.",
+    "Build-stage typed memory is created only from raw dialogue turns and visible metadata."
+  ],
+  "config_path": "/data/home_new/wujinqi/agent-memory/configs/stage1_build_slot_inventory_v255_seeded_qwen36_no_think_build4k_cached.json",
+  "created_at_utc": "2026-06-19T21:27:17+00:00",
+  "experiment_dir": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_build_slot_inventory_v255_lme_full",
+  "experiment_kind": "diagnostic",
+  "git": {
+    "commit": "ab6b58ac33f233d38b12229efa3d62ac2a279c7a",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "?? experiments/diagnostic/stage1_build_slot_inventory_v255_locomo_full/"
+  },
+  "input_path": "/data/home_new/wujinqi/agent-memory/outputs/prepare_longmemeval_s_cleaned/prediction_input.jsonl",
+  "output_path": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_build_slot_inventory_v255_lme_full/predictions.jsonl",
+  "outputs": {
+    "predictions": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_build_slot_inventory_v255_lme_full/predictions.jsonl",
+    "traces": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_build_slot_inventory_v255_lme_full/traces.jsonl"
+  },
+  "run_id": "stage1_build_slot_inventory_v255_lme_full",
+  "subset": "full",
+  "trace_path": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_build_slot_inventory_v255_lme_full/traces.jsonl"
+}
