@@ -227,6 +227,17 @@ class Stage1Pipeline:
         self._build_memory_source_alignment_memory_types = _tuple_config(
             source_alignment_config.get("memory_types")
         )
+        self._build_memory_source_alignment_source_order = str(
+            source_alignment_config.get("source_order", "prepend")
+        )
+        if self._build_memory_source_alignment_source_order not in {
+            "prepend",
+            "append",
+        }:
+            raise ValueError(
+                "build_memory.source_alignment.source_order must be "
+                "prepend or append"
+            )
         self._build_memory_trace_config = {
             "enabled": self._build_memory_enabled,
             "mode": build_memory_config.get("mode"),
@@ -255,6 +266,7 @@ class Stage1Pipeline:
                     self._build_memory_source_alignment_require_assistant_answer_source
                 ),
                 "memory_types": self._build_memory_source_alignment_memory_types,
+                "source_order": self._build_memory_source_alignment_source_order,
             },
         }
         self._memory_slot_chain_enabled = bool(
@@ -1508,6 +1520,7 @@ class Stage1Pipeline:
                     self._build_memory_source_alignment_require_assistant_answer_source
                 ),
                 memory_types=self._build_memory_source_alignment_memory_types,
+                source_order=self._build_memory_source_alignment_source_order,
             )
             built_memory = replace(built_memory, records=aligned_records)
         profile_name = granularity_profile.get("name") if granularity_profile else None
@@ -2798,6 +2811,7 @@ def _align_build_memory_sources(
     min_delta: float,
     require_assistant_answer_source: bool = False,
     memory_types: tuple[str, ...] = (),
+    source_order: str = "prepend",
 ) -> tuple[tuple[Any, ...], dict[str, Any]]:
     """Repair near-miss build-memory provenance using local raw turns.
 
@@ -2847,9 +2861,11 @@ def _align_build_memory_sources(
             aligned_records.append(record)
             continue
 
-        merged_source_ids = tuple(
-            dict.fromkeys((*aligned_source_ids, *source_ids))
-        )[:safe_limit]
+        if source_order == "append":
+            merged_candidates = (*source_ids, *aligned_source_ids)
+        else:
+            merged_candidates = (*aligned_source_ids, *source_ids)
+        merged_source_ids = tuple(dict.fromkeys(merged_candidates))[:safe_limit]
         if merged_source_ids != source_ids:
             changed += 1
             added += len(set(merged_source_ids).difference(source_ids))

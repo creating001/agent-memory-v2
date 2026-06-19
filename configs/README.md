@@ -12,7 +12,8 @@
 
 | 配置 | 状态 |
 |---|---|
-| `stage1_fact_source_alignment_v241_seeded_qwen36_no_think_build4k_cached.json` | 基于 v240/v235，source alignment 只作用于 `fact` memory，避免 profile/state/preference lifecycle 扩源；等待 probe。 |
+| `stage1_append_fact_source_alignment_v242_seeded_qwen36_no_think_build4k_cached.json` | 基于 v241/v235，fact source alignment 改为 append，保留原 source priority，只追加 assistant provenance；等待 probe。 |
+| `stage1_fact_source_alignment_v241_seeded_qwen36_no_think_build4k_cached.json` | fact-only source alignment probe 仍负向：LME changed judge `1/2 -> 0/2`；保留为 v242 source-order 父对照。 |
 | `stage1_role_gated_source_alignment_v240_seeded_qwen36_no_think_build4k_cached.json` | role-gated source alignment probe：LoCoMo answer-identical，但 LME alignment 仍过宽，changed judge `3/5 -> 3/5` 且有 specificity loss；保留为负向/收窄父对照。 |
 | `stage1_source_aligned_memory_v239_seeded_qwen36_no_think_build4k_cached.json` | 宽 source alignment probe 负向：LoCoMo probe50 changed-answer strict `13/14 -> 12/14`，lenient 持平；保留为负向对照。 |
 | v236-v238 prompt-side operation guide | 已被 full/probe 拒绝并从当前可执行配置中移除；需要复现时从对应 git commit 和 `experiments/README.md` 回溯。 |
