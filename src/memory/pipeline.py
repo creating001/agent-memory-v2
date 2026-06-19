@@ -305,6 +305,21 @@ class Stage1Pipeline:
             raise ValueError(
                 "retrieval.memory_slot_chain.source_policy must be all or query_scope"
             )
+        self._memory_slot_chain_fusion_mode = str(
+            memory_slot_chain_config.get("fusion_mode", "rrf")
+        )
+        if self._memory_slot_chain_fusion_mode not in {
+            "rrf",
+            "tail_rescue",
+            "tail_exchange",
+        }:
+            raise ValueError(
+                "retrieval.memory_slot_chain.fusion_mode must be rrf, "
+                "tail_rescue, or tail_exchange"
+            )
+        self._memory_slot_chain_tail_exchange_protect_top_n = int(
+            memory_slot_chain_config.get("tail_exchange_protect_top_n", 56)
+        )
         self._object_slot_activation_enabled = bool(
             object_slot_activation_config.get("enabled", False)
         )
@@ -1603,6 +1618,10 @@ class Stage1Pipeline:
             memory_types=self._memory_slot_chain_memory_types,
             question_scope_gate=self._memory_slot_chain_question_scope_gate,
             source_policy=self._memory_slot_chain_source_policy,
+            fusion_mode=self._memory_slot_chain_fusion_mode,
+            tail_exchange_protect_top_n=(
+                self._memory_slot_chain_tail_exchange_protect_top_n
+            ),
         )
         object_slot_activation_trace = _disabled_object_slot_activation_trace(
             enabled=self._object_slot_activation_enabled,
@@ -1658,6 +1677,10 @@ class Stage1Pipeline:
                     memory_types=self._memory_slot_chain_memory_types,
                     question_scope_gate=self._memory_slot_chain_question_scope_gate,
                     source_policy=self._memory_slot_chain_source_policy,
+                    fusion_mode=self._memory_slot_chain_fusion_mode,
+                    tail_exchange_protect_top_n=(
+                        self._memory_slot_chain_tail_exchange_protect_top_n
+                    ),
                 )
             if _object_slot_activation_applies(
                 enabled=self._object_slot_activation_enabled,
@@ -1745,7 +1768,10 @@ class Stage1Pipeline:
             )
             if memory_source_hits:
                 hit_lists = (*hit_lists, memory_source_hits)
-            if memory_slot_chain_source_hits:
+            if (
+                memory_slot_chain_source_hits
+                and self._memory_slot_chain_fusion_mode == "rrf"
+            ):
                 hit_lists = (*hit_lists, memory_slot_chain_source_hits)
             if (
                 object_slot_source_hits
@@ -1780,10 +1806,32 @@ class Stage1Pipeline:
                     object_slot_source_hits,
                     top_k=candidate_top_k,
                 )
+            if memory_slot_chain_source_hits and (
+                self._memory_slot_chain_fusion_mode == "tail_rescue"
+            ):
+                hits = _append_tail_rescue_hits(
+                    hits,
+                    memory_slot_chain_source_hits,
+                    top_k=candidate_top_k,
+                )
+            if memory_slot_chain_source_hits and (
+                self._memory_slot_chain_fusion_mode == "tail_exchange"
+            ):
+                hits = _append_tail_exchange_hits(
+                    hits,
+                    memory_slot_chain_source_hits,
+                    top_k=candidate_top_k,
+                    protect_top_n=(
+                        self._memory_slot_chain_tail_exchange_protect_top_n
+                    ),
+                )
         else:
             if (
                 memory_source_hits
-                or memory_slot_chain_source_hits
+                or (
+                    memory_slot_chain_source_hits
+                    and self._memory_slot_chain_fusion_mode == "rrf"
+                )
                 or (
                     object_slot_source_hits
                     and self._object_slot_activation_fusion_mode == "rrf"
@@ -1796,7 +1844,11 @@ class Stage1Pipeline:
                         for hits in (
                             lexical_hits,
                             memory_source_hits,
-                            memory_slot_chain_source_hits,
+                            (
+                                memory_slot_chain_source_hits
+                                if self._memory_slot_chain_fusion_mode == "rrf"
+                                else ()
+                            ),
                             (
                                 object_slot_source_hits
                                 if self._object_slot_activation_fusion_mode == "rrf"
@@ -1820,6 +1872,25 @@ class Stage1Pipeline:
                     object_slot_source_hits,
                     top_k=candidate_top_k,
                 )
+            if memory_slot_chain_source_hits and (
+                self._memory_slot_chain_fusion_mode == "tail_rescue"
+            ):
+                hits = _append_tail_rescue_hits(
+                    hits,
+                    memory_slot_chain_source_hits,
+                    top_k=candidate_top_k,
+                )
+            if memory_slot_chain_source_hits and (
+                self._memory_slot_chain_fusion_mode == "tail_exchange"
+            ):
+                hits = _append_tail_exchange_hits(
+                    hits,
+                    memory_slot_chain_source_hits,
+                    top_k=candidate_top_k,
+                    protect_top_n=(
+                        self._memory_slot_chain_tail_exchange_protect_top_n
+                    ),
+                )
         embedding_cache_after = _embedding_cache_stats(self._embedding_client)
         turn_hits = hits
         pre_rerank_hits = hits
@@ -1839,7 +1910,11 @@ class Stage1Pipeline:
         protected_rerank_source_ids = _ordered_unique(
             (
                 *_source_ids_from_hits(memory_source_hits),
-                *_source_ids_from_hits(memory_slot_chain_source_hits),
+                *(
+                    _source_ids_from_hits(memory_slot_chain_source_hits)
+                    if self._memory_slot_chain_fusion_mode == "rrf"
+                    else ()
+                ),
                 *(
                     _source_ids_from_hits(object_slot_source_hits)
                     if self._object_slot_activation_fusion_mode == "rrf"
@@ -2339,6 +2414,12 @@ class Stage1Pipeline:
                     ),
                     "memory_slot_chain_source_policy": (
                         self._memory_slot_chain_source_policy
+                    ),
+                    "memory_slot_chain_fusion_mode": (
+                        self._memory_slot_chain_fusion_mode
+                    ),
+                    "memory_slot_chain_tail_exchange_protect_top_n": (
+                        self._memory_slot_chain_tail_exchange_protect_top_n
                     ),
                     "memory_slot_chain_question_scope": memory_slot_chain_trace[
                         "question_scope"
@@ -4448,6 +4529,8 @@ def _disabled_memory_slot_chain_trace(
     memory_types: tuple[str, ...],
     question_scope_gate: bool = False,
     source_policy: str = "all",
+    fusion_mode: str = "rrf",
+    tail_exchange_protect_top_n: int = 56,
     question_scope: str = "unspecified",
     skipped_reason: str = "",
 ) -> dict[str, Any]:
@@ -4460,6 +4543,8 @@ def _disabled_memory_slot_chain_trace(
         "memory_types": memory_types,
         "question_scope_gate": question_scope_gate,
         "source_policy": source_policy,
+        "fusion_mode": fusion_mode,
+        "tail_exchange_protect_top_n": tail_exchange_protect_top_n,
         "question_scope": question_scope,
         "skipped_reason": skipped_reason,
         "chains": [],
@@ -4478,6 +4563,8 @@ def _memory_slot_chain_source_hits(
     question: str = "",
     question_scope_gate: bool = False,
     source_policy: str = "all",
+    fusion_mode: str = "rrf",
+    tail_exchange_protect_top_n: int = 56,
 ) -> tuple[tuple[RetrievalHit, ...], dict[str, Any]]:
     question_scope = _memory_slot_chain_question_scope(question)
     question_terms = _memory_slot_chain_question_terms(question)
@@ -4489,6 +4576,8 @@ def _memory_slot_chain_source_hits(
         memory_types=memory_types,
         question_scope_gate=question_scope_gate,
         source_policy=source_policy,
+        fusion_mode=fusion_mode,
+        tail_exchange_protect_top_n=tail_exchange_protect_top_n,
         question_scope=question_scope,
     )
     if question_scope_gate and question_scope == "unspecified":
@@ -7311,6 +7400,54 @@ def _append_tail_rescue_hits(
         selected.append(hit)
         if len(selected) >= top_k:
             break
+    return tuple(
+        RetrievalHit(
+            source_id=hit.source_id,
+            score=hit.score,
+            rank=rank,
+            retriever=hit.retriever,
+            matched_terms=hit.matched_terms,
+        )
+        for rank, hit in enumerate(selected, start=1)
+    )
+
+
+def _append_tail_exchange_hits(
+    candidate_hits: tuple[RetrievalHit, ...],
+    tail_hits: tuple[RetrievalHit, ...],
+    *,
+    top_k: int,
+    protect_top_n: int,
+) -> tuple[RetrievalHit, ...]:
+    protected_count = max(0, min(protect_top_n, top_k))
+    protected_hits = candidate_hits[:protected_count]
+    selected: list[RetrievalHit] = []
+    seen: set[str] = set()
+
+    for hit in protected_hits:
+        if hit.source_id in seen:
+            continue
+        seen.add(hit.source_id)
+        selected.append(hit)
+        if len(selected) >= top_k:
+            break
+
+    for hit in tail_hits:
+        if len(selected) >= top_k:
+            break
+        if hit.source_id in seen:
+            continue
+        seen.add(hit.source_id)
+        selected.append(hit)
+
+    for hit in candidate_hits[protected_count:]:
+        if len(selected) >= top_k:
+            break
+        if hit.source_id in seen:
+            continue
+        seen.add(hit.source_id)
+        selected.append(hit)
+
     return tuple(
         RetrievalHit(
             source_id=hit.source_id,
