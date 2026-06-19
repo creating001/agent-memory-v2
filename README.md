@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_default_short_context_layout_v198_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_route_neutral_long_profile_v199_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v198 local LTS | 说明 |
+| Benchmark | 当前 v199 local LTS | 说明 |
 |---|---:|---|
-| LongMemEval-S full | strict/lenient `0.834000 / 0.846000` | v198 与 v197 prompt/answer diff `0/500`；answer cache `500/0/0`，性能继承 v197。 |
-| LoCoMo non-adversarial full | strict/lenient `0.793506 / 0.818831` | v198 与 v197 prompt/answer diff `0/1540`；answer cache `1540/0/0`，性能继承 v197。 |
+| LongMemEval-S full | strict/lenient `0.834000 / 0.846000` | v199 与 v198 prompt/answer/route diff `0/500`；answer cache `500/0/0`，性能继承 v198。 |
+| LoCoMo non-adversarial full | strict/lenient `0.793506 / 0.818831` | v199 与 v198 prompt/answer/route diff `0/1540`；answer cache `1540/0/0`，性能继承 v198。 |
 
-v198 的 LTS 理由：继承 v197 的 full prompt、answer 和 judge accuracy，同时删除 `short_turn_v96_spacing` avg-turn profile，把它唯一需要的短上下文排版提升为默认 compiler layout。LoCoMo profile selected 从 v197 的 `1540/1540` 降到 `0/1540`，LME 仍保留 `long_turn_precision` `500/500`；这实质减少 #1 granularity/profile 和 #3 selected-context 的行为面，但不表示 avg-turn profile 已完全解决。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_default_short_context_layout_v198_scope_summary.md`。
+v199 的 LTS 理由：继承 v198 的 full prompt、answer 和 judge accuracy，并删除剩余 `long_turn_precision` profile 中不会改变 LME route 的 route override。LME 仍 `500/500` 选择 `long_turn_precision`，但 profile 行为面从 route/retrieval/selected-context/compiler/finalizer 收窄为 retrieval/selected-context/compiler/finalizer；LoCoMo profile selected 仍为 `0/1540`。这继续减少 #1/#3 风险，但不表示 avg-turn profile 已完全解决。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_route_neutral_long_profile_v199_scope_summary.md`。
 
 ## 目录
 
