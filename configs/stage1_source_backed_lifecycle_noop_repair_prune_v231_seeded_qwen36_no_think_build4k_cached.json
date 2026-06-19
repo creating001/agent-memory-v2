@@ -1,6 +1,6 @@
 {
   "name": "stage1_source_backed_lifecycle_noop_repair_prune_v231_seeded_qwen36_no_think_build4k_cached",
-  "description": "V231 inherits the v230 LTS retrieval, compiler prompt, source-backed memory-state diagnostics, finalizer, and guarded fact tail-exchange rerank. The only behavior change is pruning the source-backed lifecycle repair trigger after full v230 traces showed that this extra current_state repair review had source-backed reasons but applied zero revisions on both LongMemEval-S full and LoCoMo non-adversarial full. The existing Managed Memory State Guide remains active as a source-linked prompt guide, and the source-backed typed memory ledger remains traceable in compiler diagnostics; typed memory is still only an index into cited raw Memory Context rows and is not independent evidence. The answer cache intentionally reuses v229 because the main answer prompt is unchanged, and the repair cache intentionally reuses v230 for prompt-identical remaining repair calls. Prediction uses no labels, judge output, benchmark tags, sample ids, test feedback, gold answers, or sample-level rules.",
+  "description": "V231 inherits the v230 LTS retrieval, compiler prompt, source-backed memory-state diagnostics, finalizer, and guarded fact tail-exchange rerank. The only behavior change is pruning the source-backed lifecycle repair trigger after full v230 traces showed that this extra current_state repair review had source-backed reasons but applied zero revisions on both LongMemEval-S full and LoCoMo non-adversarial full. The existing Managed Memory State Guide remains active as a source-linked prompt guide, and the source-backed typed memory ledger remains traceable in compiler diagnostics; typed memory is still only an index into cited raw Memory Context rows and is not independent evidence. The answer cache intentionally reuses v229 because the main answer prompt is unchanged, while the remaining repair calls use a v231-specific repair cache namespace for clean provenance. Prediction uses no labels, judge output, benchmark tags, sample ids, test feedback, gold answers, or sample-level rules.",
   "build_memory": {
     "enabled": true,
     "mode": "openai_compatible",
@@ -416,8 +416,8 @@
       "max_row_text_chars": 700,
       "cache": {
         "enabled": true,
-        "path": "outputs/cache/qwen36_no_think_build4k_answer_repair_v230_source_backed_lifecycle_memory.sqlite",
-        "namespace": "stage1_source_backed_lifecycle_memory_repair_v230_seeded_qwen36_no_think_build4k_repair"
+        "path": "outputs/cache/qwen36_no_think_build4k_answer_repair_v231_source_backed_lifecycle_noop_prune.sqlite",
+        "namespace": "stage1_source_backed_lifecycle_noop_repair_prune_v231_seeded_qwen36_no_think_build4k_repair"
       }
     }
   }
