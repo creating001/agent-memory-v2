@@ -6,13 +6,12 @@
 
 | 用途 | 配置 | 状态 |
 |---|---|---|
-| 后续新实验默认配置 | `stage1_no_finalizer_v235_seeded_qwen36_no_think_build4k_cached.json` | 当前本地 v235 LTS。继承 v233 build-time `stateful_only` memory management 和 v234 no-repair path，并关闭 no-op finalizer；LongMemEval-S strict/lenient `0.832000 / 0.844000`，LoCoMo `0.794156 / 0.819481`。 |
+| 后续新实验默认配置 | `stage1_build_memory_object_graph_v248_seeded_qwen36_no_think_build4k_cached.json` | 当前本地 v248 LTS。继承 v235 prediction path 和 accuracy/token，新增 trace-only source-backed memory object graph；LongMemEval-S strict/lenient `0.832000 / 0.844000`，LoCoMo `0.794156 / 0.819481`。 |
 
 ## 近期候选
 
 | 配置 | 状态 |
 |---|---|
-| `stage1_build_memory_object_graph_v248_seeded_qwen36_no_think_build4k_cached.json` | full candidate：probe50 answer diff LME/LoCoMo `0/50`，query/retrieval diff `0`；新增 build management summary 的 source-backed memory object graph trace，不改 retrieval/compiler/answer/cache namespace。 |
 | `stage1_typed_compact_cap32_build_memory_v245_seeded_qwen36_no_think_build4k_cached.json` | rejected probe：LoCoMo changed judge strict/lenient `18/22 -> 15/22`、`18/22 -> 17/22`；LME cold build probe 延迟不可接受。保留为 build record cap 负向对照。 |
 | `stage1_lossless_atomic_build_memory_v244_seeded_qwen36_no_think_build4k_cached.json` | diagnostic / not promoted：LoCoMo probe50 query tokens 降低但 changed judge 持平；LME cold build probe 延迟不可接受。保留为 richer atomic build memory 的成本/覆盖教训。 |
 | `stage1_query_scoped_state_source_activation_v243_seeded_qwen36_no_think_build4k_cached.json` | diagnostic / not promoted：probe50 answer-identical；all-current_state targeted answer-identical，但 slot activation 仅 LME `1/22`、LoCoMo `0/4`，覆盖太低。 |
@@ -26,7 +25,8 @@
 
 | 配置 | 作用 |
 |---|---|
-| `stage1_no_finalizer_v235_seeded_qwen36_no_think_build4k_cached.json` | 当前 LTS；继承 v234 accuracy/token，关闭 no-op finalizer，v235 vs v234 answer diff `0/500`、`0/1540`，finalizer/repair 均 disabled。 |
+| `stage1_build_memory_object_graph_v248_seeded_qwen36_no_think_build4k_cached.json` | 当前 LTS；继承 v235 accuracy/token，full answer/query-token/retrieval-order diff `0/500`、`0/1540`，新增 trace-only build memory object graph。 |
+| `stage1_no_finalizer_v235_seeded_qwen36_no_think_build4k_cached.json` | v248 父 LTS；继承 v234 accuracy/token，关闭 no-op finalizer，v235 vs v234 answer diff `0/500`、`0/1540`，finalizer/repair 均 disabled。 |
 | `stage1_no_answer_repair_v234_seeded_qwen36_no_think_build4k_cached.json` | v235 父 LTS；继承 v233 build-time `stateful_only` memory management，关闭 no-op answer repair，v234 vs v233 answer diff `0/500`、`0/1540`，avg query tokens 降为 `6579.782`、`6094.017532467533`。 |
 | `stage1_build_memory_stateful_policy_v233_seeded_qwen36_no_think_build4k_cached.json` | v234 父 LTS；build-time `stateful_only` memory management，LME `0.832000 / 0.844000`，LoCoMo `0.794156 / 0.819481`，相对 v231 changed-answer judge 为 LME `4/4 -> 3/4`、LoCoMo `2/5 -> 3/5`，合并 strict/lenient counts 持平。 |
 | `stage1_source_backed_lifecycle_noop_repair_prune_v231_seeded_qwen36_no_think_build4k_cached.json` | v233 父 LTS / LME split-best；删除 no-op source-backed lifecycle repair trigger，LME `0.834000 / 0.846000`，LoCoMo `0.793506 / 0.818831`，相对 v230 answer/prompt/evidence/retrieval/route diff `0/500`、`0/1540`，avg query 降为 `6637.824`、`6100.992207792207`。 |
@@ -73,7 +73,7 @@
 | Benchmark | 配置 | 结果 | 用途 |
 |---|---|---:|---|
 | LongMemEval-S full | `stage1_source_backed_lifecycle_noop_repair_prune_v231_seeded_qwen36_no_think_build4k_cached.json` | strict `0.834000` / lenient `0.846000` | 当前 LME performance anchor；v233 作为系统 LTS 但 LME 比 v231 少 `1` 个 strict/lenient。 |
-| LoCoMo non-adversarial full | `stage1_no_finalizer_v235_seeded_qwen36_no_think_build4k_cached.json` | strict `0.794156` / lenient `0.819481` | 当前 LTS 与 LoCoMo split best；相对 v231 多 `1` 个 strict/lenient。 |
+| LoCoMo non-adversarial full | `stage1_build_memory_object_graph_v248_seeded_qwen36_no_think_build4k_cached.json` | strict `0.794156` / lenient `0.819481` | 当前 LTS 与 LoCoMo split best；继承 v235，且相对 v231 多 `1` 个 strict/lenient。 |
 
 ## 关键 Baseline
 

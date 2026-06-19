@@ -6,13 +6,13 @@
 
 | 项目 | 结果 |
 |---|---|
-| 当前 LTS 配置 | `configs/stage1_no_finalizer_v235_seeded_qwen36_no_think_build4k_cached.json` |
+| 当前 LTS 配置 | `configs/stage1_build_memory_object_graph_v248_seeded_qwen36_no_think_build4k_cached.json` |
 | Backbone | `Qwen/Qwen3.6-35B-A3B` answer/build，`chat_template_kwargs.enable_thinking=false` |
-| 方法定位 | build-time source-backed memory management + query-time no-repair/no-finalizer LTS。`preference/profile/relationship/state` 参与 lifecycle；`fact/event/plan` 保留为 active collection memory；answer repair 和 deterministic finalizer 从默认 path 移除。 |
+| 方法定位 | build-time source-backed memory management + trace-only memory object graph + query-time no-repair/no-finalizer LTS。`preference/profile/relationship/state` 参与 lifecycle；`fact/event/plan` 保留为 active collection memory；object graph 组织 subject/predicate slot、lifecycle/collection、多值、冲突和 source coverage。 |
 | LongMemEval-S full | strict/lenient `0.832000 / 0.844000`，`416/500` strict，`422/500` lenient；avg build/query tokens `85393.566 / 6579.782` |
 | LoCoMo non-adversarial full | strict/lenient `0.794156 / 0.819481`，`1223/1540` strict，`1262/1540` lenient；avg build/query tokens `62015.57402597403 / 6094.017532467533` |
-| LTS 理由 | 继承 v233/v234 accuracy 和 build memory policy，v235 vs v234 answer diff `0/500`、`0/1540`；关闭 v234 full applied `0` 的 finalizer，query-time rewrite surface 更少。 |
-| 主要局限 | retrieval/context 仍依赖固定 top-k、route override、selected-context 和多段 ledger；memory operation 还主要停留在 trace/active filtering，尚未系统影响 retrieval/compiler/answer verification。 |
+| LTS 理由 | 继承 v235 accuracy/token，v248 vs v235 full answer/query-token/retrieval-order diff `0/500`、`0/1540`；新增 source-backed build memory object graph，降低 build memory 只是扁平 typed list 的系统风险。 |
+| 主要局限 | object graph 目前仍是 trace-only，尚未系统影响 retrieval/compiler/answer verification；retrieval/context 仍依赖固定 top-k、route override、selected-context 和多段 ledger。 |
 
 `paired-delta derived` 的含义：新版本只改少量答案，未变化答案沿用父 LTS full dual judge records，变化答案单独跑 paired dual judge 后替换计数。若新版本与父 LTS answer-identical，可继承父 LTS judge records，但必须记录 full answer diff、cache hit/miss 和输出路径。论文级最终汇报再对最终 LTS 配置重跑 fresh full judge。
 
@@ -38,7 +38,7 @@
 
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
-| `configs/stage1_build_memory_object_graph_v248_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_build_memory_object_graph_v248_probe_summary.md` | full candidate / build memory object graph | probe50 answer diff LME/LoCoMo `0/50`、query-token diff rows `0`、retrieval-order diff rows `0`; object_graph coverage `50/50`、avg slots LME `90.74`、LoCoMo `85.00` | 低风险 build-stage systemization；先跑 full diff。若 full diff 为 0，可继承 v235 accuracy 并作为新的 trace-only LTS |
+| `configs/stage1_build_memory_object_graph_v248_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_build_memory_object_graph_v248_full_summary.md` | current LTS / build memory object graph | full answer/query-token/retrieval-order diff LME `0/500`、LoCoMo `0/1540`; object_graph coverage LME `500/500`、LoCoMo `1540/1540`; inherits v235 accuracy/token | 当前 LTS；低风险 build-stage systemization，不改变 prediction path |
 | `diagnostic/stage1_duplicate_memory_source_utility_v247_probe_summary.md` | rejected probe / duplicate-only utility lesson | probe50: LME changed judge `1/2 -> 2/2`，但 LoCoMo strict/lenient `16/18 -> 14/18`、`17/18 -> 15/18`; query tokens LME `5677.40 -> 5689.26`、LoCoMo `6543.56 -> 6560.04` | 不升 LTS、不跑 full；duplicate-only source boost deletion 仍会扰动 LoCoMo profile/list 细节。顶层 config/code 已清理，后续 utility 不直接删 retrieval hits |
 | `diagnostic/stage1_memory_source_utility_v246_lme_full_summary.md` | rejected full / memory-source utility lesson | LME full query tokens `6579.782 -> 6333.872`、memory-source hits `9.784 -> 4.464`，但 answer diff `63/500`; changed judge strict/lenient `38/63 -> 27/63`、`39/63 -> 30/63`; derived full `0.810 / 0.826` | 不升 LTS；单一 matched-term utility gate 过度裁剪 list/count/advice/numeric 所需 source rows。顶层 config/code 已清理 |
 | `configs/stage1_typed_compact_cap32_build_memory_v245_seeded_qwen36_no_think_build4k_cached.json` | rejected probe / build-cap lesson | LoCoMo probe50 records `112.0 -> 140.8`，query `6543.56 -> 6556.36`，answer diff `22/50`；changed judge strict/lenient `18/22 -> 15/22`、`18/22 -> 17/22`; LME cold build probe aborted before completed sample | 不升 LTS；更多 typed records 带来 drift 和成本，缺少 utility selection |
@@ -49,7 +49,7 @@
 | `configs/stage1_role_gated_source_alignment_v240_seeded_qwen36_no_think_build4k_cached.json` | rejected probe / narrowing parent | LoCoMo probe50 answer-identical，成功挡住 v239 多人物扩源；但 LME probe50 alignment 仍过宽，changed records `4800`，answer diff `5/50`，changed judge strict/lenient `3/5 -> 3/5`，其中 previous occupation specificity loss | 不升 LTS；保留为 v241 fact-only source alignment 的父对照 |
 | `configs/stage1_source_aligned_memory_v239_seeded_qwen36_no_think_build4k_cached.json` | rejected probe / negative control | source alignment 触发过宽：LME probe50 changed `2/50`，judge strict/lenient 持平；LoCoMo probe50 changed `14/50`，changed judge strict `13/14 -> 12/14`、lenient `13/14 -> 13/14`，主要新增错例为 relationship status 变拒答 | 不升 LTS；保留为 v240 role gate 的负向父对照 |
 | v236-v238 prompt-side Memory Operations Guide | rejected line / code removed from current path | v236 list_count guide LoCoMo lenient 回退；v237 temporal guide strict 回退；v238 probe passed 但 full 负向：LME changed judge `14/19 -> 6/19` strict、`15/19 -> 7/19` lenient，LoCoMo `19/26 -> 18/26` | 不升 LTS；已从当前 `src`/`configs` 移除。教训是 source-backed operation view clean 但不能直接作为 answer prompt block；下一步转向 build-side memory quality、retrieval activation 或 verifier-side audit |
-| `configs/stage1_no_finalizer_v235_seeded_qwen36_no_think_build4k_cached.json` | current LTS | LME `0.832000/0.844000`，LoCoMo `0.794156/0.819481`；v235 vs v234 answer diff `0/500`、`0/1540`；finalizer disabled, repair disabled | 当前 LTS；继承 v234 accuracy/token，删除 no-op finalizer，query-time rewrite surface 更少 |
+| `configs/stage1_no_finalizer_v235_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | LME `0.832000/0.844000`，LoCoMo `0.794156/0.819481`；v235 vs v234 answer diff `0/500`、`0/1540`；finalizer disabled, repair disabled | 被 v248 替代；继承 v234 accuracy/token，删除 no-op finalizer，query-time rewrite surface 更少 |
 | `configs/stage1_no_answer_repair_v234_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | LME `0.832000/0.844000`，LoCoMo `0.794156/0.819481`；v234 vs v233 answer diff `0/500`、`0/1540`；avg query tokens `6579.782`、`6094.017532467533` | 被 v235 替代；保留为 no-repair 父锚点 |
 | `configs/stage1_build_memory_stateful_policy_v233_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | LME `0.832000/0.844000`，LoCoMo `0.794156/0.819481`；changed-answer judge LME `4/4 -> 3/4`，LoCoMo `2/5 -> 3/5`；build memory `stateful_only` policy 覆盖 full | 被 v234/v235 替代；保留为 build memory stateful policy 父锚点 |
 | `experiments/diagnostic/stage1_answer_output_cap4096_v232_scope_summary.md` | diagnostic / rejected LTS | v232 降低 avg query tokens：LME `6605.952`，LoCoMo `6070.648701298701`；changed-answer judge LME `1/1 -> 0/1`，LoCoMo `1/3 -> 2/3` | 不升 LTS；硬 output cap 会让 LME temporal 正确答案变拒答，后续应做结构化 answer-first 或 verifier，而不是简单截断 |
