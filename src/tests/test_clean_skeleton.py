@@ -1267,6 +1267,85 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertNotIn("long", hit_ids)
         self.assertNotIn("long", row_ids)
 
+    def test_context_budget_audit_is_trace_only(self) -> None:
+        base_config = {
+            "retrieval": {
+                "top_k": 4,
+                "max_top_k": 4,
+                "neighbor_window": 0,
+            },
+            "compiler": {"max_evidence_items": 4, "max_evidence_chars": 4000},
+            "answer": {"fallback_answer": "unknown"},
+        }
+        audited_config = {
+            **base_config,
+            "retrieval": {
+                **base_config["retrieval"],
+                "context_budget_audit": {
+                    "enabled": True,
+                    "max_chars": 95,
+                    "min_hits": 1,
+                    "protect_top_n": 1,
+                },
+            },
+        }
+        request = PredictionRequest(
+            question="anchor beta gamma target",
+            turns=(
+                Turn(
+                    source_id="anchor",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="anchor beta gamma target",
+                ),
+                Turn(
+                    source_id="long",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="target " + "noise " * 80,
+                ),
+                Turn(
+                    source_id="beta",
+                    session_id="s1",
+                    turn_index=2,
+                    role="user",
+                    text="beta target short evidence",
+                ),
+                Turn(
+                    source_id="gamma",
+                    session_id="s1",
+                    turn_index=3,
+                    role="user",
+                    text="gamma target short evidence",
+                ),
+            ),
+        )
+
+        plain_result = Stage1Pipeline(base_config).predict(request)
+        audited_result = Stage1Pipeline(audited_config).predict(request)
+        audit = audited_result["trace"]["retrieval"]["context_budget_audit"]
+        audited_retrieval = audited_result["trace"]["retrieval"]
+
+        self.assertTrue(audit["trace_only"])
+        self.assertTrue(audit["applied"])
+        self.assertEqual(audit["candidate_count"], 4)
+        self.assertEqual(audit["projected_returned_count"], 3)
+        self.assertIn("long", audit["projected_dropped_source_ids"])
+        self.assertEqual(audit["prompt_rows_missing_source_ids"], ["long"])
+        self.assertFalse(audit["safe_for_current_prompt"])
+        self.assertFalse(audited_retrieval["context_budget_applied"])
+        self.assertIn(
+            "long",
+            [hit["source_id"] for hit in audited_retrieval["hits"]],
+        )
+        self.assertEqual(
+            audited_result["trace"]["compiled_context"]["prompt"],
+            plain_result["trace"]["compiled_context"]["prompt"],
+        )
+        self.assertEqual(audited_result["answer"], plain_result["answer"])
+
     def test_selected_context_respects_context_budget_headroom(self) -> None:
         config = {
             "retrieval": {

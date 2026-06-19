@@ -99,6 +99,14 @@ def main() -> int:
     total_context_budget_returned_count = 0
     total_context_budget_estimated_chars = 0
     total_context_budget_dropped_count = 0
+    total_context_budget_audit_applied = 0
+    total_context_budget_audit_candidate_count = 0
+    total_context_budget_audit_returned_count = 0
+    total_context_budget_audit_dropped_count = 0
+    total_context_budget_audit_prompt_missing = 0
+    total_context_budget_audit_prompt_risk_samples = 0
+    total_context_budget_audit_selected_context_missing = 0
+    total_context_budget_audit_selected_context_risk_samples = 0
     total_embedding_cache_hits = 0
     total_embedding_cache_misses = 0
     total_embedding_cache_writes = 0
@@ -276,6 +284,32 @@ def main() -> int:
         total_context_budget_dropped_count += int(
             retrieval_trace.get("context_budget_dropped_count") or 0
         )
+        context_budget_audit = retrieval_trace.get("context_budget_audit") or {}
+        if context_budget_audit.get("applied"):
+            total_context_budget_audit_applied += 1
+            total_context_budget_audit_candidate_count += int(
+                context_budget_audit.get("candidate_count") or 0
+            )
+            total_context_budget_audit_returned_count += int(
+                context_budget_audit.get("projected_returned_count") or 0
+            )
+            total_context_budget_audit_dropped_count += int(
+                context_budget_audit.get("projected_dropped_count") or 0
+            )
+            prompt_missing = int(
+                context_budget_audit.get("prompt_rows_missing_count") or 0
+            )
+            selected_context_missing = int(
+                context_budget_audit.get("selected_context_missing_count") or 0
+            )
+            total_context_budget_audit_prompt_missing += prompt_missing
+            total_context_budget_audit_selected_context_missing += (
+                selected_context_missing
+            )
+            if prompt_missing:
+                total_context_budget_audit_prompt_risk_samples += 1
+            if selected_context_missing:
+                total_context_budget_audit_selected_context_risk_samples += 1
         embedding_cache = retrieval_trace.get("embedding_cache") or {}
         total_embedding_cache_hits += int(embedding_cache.get("hits") or 0)
         total_embedding_cache_misses += int(embedding_cache.get("misses") or 0)
@@ -699,6 +733,58 @@ def main() -> int:
             "avg_context_budget_dropped_count": _safe_average(
                 total_context_budget_dropped_count,
                 total_context_budget_applied,
+            ),
+            "context_budget_audit_enabled": config.get("retrieval", {})
+            .get("context_budget_audit", {})
+            .get("enabled", False),
+            "context_budget_audit_max_chars": config.get("retrieval", {})
+            .get("context_budget_audit", {})
+            .get("max_chars"),
+            "context_budget_audit_min_hits": config.get("retrieval", {})
+            .get("context_budget_audit", {})
+            .get("min_hits"),
+            "context_budget_audit_protect_top_n": config.get("retrieval", {})
+            .get("context_budget_audit", {})
+            .get("protect_top_n"),
+            "context_budget_audit_max_hits": config.get("retrieval", {})
+            .get("context_budget_audit", {})
+            .get("max_hits"),
+            "context_budget_audit_information_needs": config.get("retrieval", {})
+            .get("context_budget_audit", {})
+            .get("information_needs"),
+            "context_budget_audit_applied_count": (
+                total_context_budget_audit_applied
+            ),
+            "context_budget_audit_applied_rate": _safe_average(
+                total_context_budget_audit_applied, sample_count
+            ),
+            "avg_context_budget_audit_candidate_count": _safe_average(
+                total_context_budget_audit_candidate_count,
+                total_context_budget_audit_applied,
+            ),
+            "avg_context_budget_audit_returned_count": _safe_average(
+                total_context_budget_audit_returned_count,
+                total_context_budget_audit_applied,
+            ),
+            "avg_context_budget_audit_dropped_count": _safe_average(
+                total_context_budget_audit_dropped_count,
+                total_context_budget_audit_applied,
+            ),
+            "context_budget_audit_prompt_risk_count": (
+                total_context_budget_audit_prompt_risk_samples
+            ),
+            "avg_context_budget_audit_prompt_missing_rows": _safe_average(
+                total_context_budget_audit_prompt_missing,
+                total_context_budget_audit_applied,
+            ),
+            "context_budget_audit_selected_context_risk_count": (
+                total_context_budget_audit_selected_context_risk_samples
+            ),
+            "avg_context_budget_audit_selected_context_missing_rows": (
+                _safe_average(
+                    total_context_budget_audit_selected_context_missing,
+                    total_context_budget_audit_applied,
+                )
             ),
             "total_embedding_tokens": total_embedding_tokens,
             "avg_embedding_tokens": _safe_average(total_embedding_tokens, sample_count),

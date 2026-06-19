@@ -104,6 +104,9 @@ class Stage1Pipeline:
         context_budget_config = retrieval_config.get("context_budget", {})
         if not isinstance(context_budget_config, Mapping):
             raise ValueError("retrieval.context_budget must be an object")
+        context_budget_audit_config = retrieval_config.get("context_budget_audit", {})
+        if not isinstance(context_budget_audit_config, Mapping):
+            raise ValueError("retrieval.context_budget_audit must be an object")
         memory_slot_chain_config = retrieval_config.get("memory_slot_chain", {})
         if not isinstance(memory_slot_chain_config, Mapping):
             raise ValueError("retrieval.memory_slot_chain must be an object")
@@ -425,6 +428,24 @@ class Stage1Pipeline:
         )
         self._context_budget_information_needs = _tuple_config(
             context_budget_config.get("information_needs")
+        )
+        self._context_budget_audit_enabled = bool(
+            context_budget_audit_config.get("enabled", False)
+        )
+        self._context_budget_audit_max_chars = int(
+            context_budget_audit_config.get("max_chars", 0)
+        )
+        self._context_budget_audit_min_hits = int(
+            context_budget_audit_config.get("min_hits", 0)
+        )
+        self._context_budget_audit_protect_top_n = int(
+            context_budget_audit_config.get("protect_top_n", 0)
+        )
+        self._context_budget_audit_max_hits = int(
+            context_budget_audit_config.get("max_hits", 0)
+        )
+        self._context_budget_audit_information_needs = _tuple_config(
+            context_budget_audit_config.get("information_needs")
         )
         self._rerank_enabled = bool(rerank_config.get("enabled", False))
         self._rerank_model = rerank_config.get("model")
@@ -1740,6 +1761,38 @@ class Stage1Pipeline:
             compiler_memory_records=compiler_memory_records,
             evidence_rows=compiled.evidence_rows,
         )
+        context_budget_audit = _disabled_context_budget_audit_trace(
+            enabled=self._context_budget_audit_enabled,
+            max_chars=self._context_budget_audit_max_chars,
+            min_hits=self._context_budget_audit_min_hits,
+            protect_top_n=self._context_budget_audit_protect_top_n,
+            max_hits=self._context_budget_audit_max_hits,
+            information_needs=self._context_budget_audit_information_needs,
+        )
+        if _context_budget_applies(
+            route=route,
+            enabled=self._context_budget_audit_enabled,
+            max_chars=self._context_budget_audit_max_chars,
+            information_needs=self._context_budget_audit_information_needs,
+        ):
+            projected_hits, projected_budget = _apply_context_budget(
+                store=store,
+                hits=pre_context_budget_hits,
+                max_chars=self._context_budget_audit_max_chars,
+                min_hits=self._context_budget_audit_min_hits,
+                protect_top_n=self._context_budget_audit_protect_top_n,
+                max_hits=self._context_budget_audit_max_hits,
+                information_needs=self._context_budget_audit_information_needs,
+            )
+            context_budget_audit = _context_budget_audit_trace(
+                store=store,
+                projected_hits=projected_hits,
+                projected_budget=projected_budget,
+                neighbor_window=self._neighbor_window,
+                neighbor_order=self._neighbor_order,
+                evidence_rows=compiled.evidence_rows,
+                selected_context=selected_context,
+            )
         answer_cache_before = _answer_cache_stats(self._answerer)
         draft_answer = self._answerer.answer(compiled)
         answer_cache_after = _answer_cache_stats(self._answerer)
@@ -2096,6 +2149,7 @@ class Stage1Pipeline:
                     "context_budget_dropped_source_ids": (
                         context_budget_trace["dropped_source_ids"]
                     ),
+                    "context_budget_audit": context_budget_audit,
                     "pre_context_budget_hits": [
                         hit.to_dict() for hit in pre_context_budget_hits
                     ],
@@ -3446,6 +3500,45 @@ def _disabled_context_budget_trace(
     }
 
 
+def _disabled_context_budget_audit_trace(
+    *,
+    enabled: bool,
+    max_chars: int,
+    min_hits: int,
+    protect_top_n: int,
+    max_hits: int,
+    information_needs: tuple[str, ...],
+) -> dict[str, Any]:
+    return {
+        "enabled": enabled,
+        "trace_only": True,
+        "applied": False,
+        "reason": "disabled" if not enabled else "not_applicable",
+        "max_chars": max_chars,
+        "min_hits": min_hits,
+        "protect_top_n": protect_top_n,
+        "max_hits": max_hits,
+        "information_needs": information_needs,
+        "candidate_count": 0,
+        "projected_returned_count": 0,
+        "projected_estimated_chars": 0,
+        "projected_dropped_count": 0,
+        "projected_dropped_source_ids": [],
+        "projected_available_source_count": 0,
+        "prompt_row_count": 0,
+        "prompt_rows_missing_count": 0,
+        "prompt_rows_missing_source_ids": [],
+        "selected_context_materialized_count": 0,
+        "selected_context_missing_count": 0,
+        "selected_context_missing_source_ids": [],
+        "safe_for_current_prompt": None,
+        "clean_note": (
+            "Trace-only simulation of retrieval context-budget pressure. It is not "
+            "included in retrieval, compiler, answer, repair, finalizer, or cache keys."
+        ),
+    }
+
+
 def _apply_context_budget(
     *,
     store: RawEvidenceStore,
@@ -3502,6 +3595,66 @@ def _apply_context_budget(
         "estimated_chars": estimated_chars,
         "dropped_count": len(dropped),
         "dropped_source_ids": dropped,
+    }
+
+
+def _context_budget_audit_trace(
+    *,
+    store: RawEvidenceStore,
+    projected_hits: tuple[RetrievalHit, ...],
+    projected_budget: Mapping[str, Any],
+    neighbor_window: int,
+    neighbor_order: str,
+    evidence_rows: tuple[Any, ...],
+    selected_context: Mapping[str, Any],
+) -> dict[str, Any]:
+    projected_turns = store.expand_neighbors(
+        (hit.source_id for hit in projected_hits),
+        window=neighbor_window,
+        order=neighbor_order,
+    )
+    projected_available = {turn.source_id for turn in projected_turns}
+    prompt_source_ids = tuple(
+        row.source_id for row in evidence_rows if getattr(row, "source_id", None)
+    )
+    prompt_missing = tuple(
+        source_id for source_id in prompt_source_ids if source_id not in projected_available
+    )
+    selected_context_source_ids = tuple(
+        source_id for source_id in selected_context.get("materialized_source_ids") or ()
+    )
+    selected_context_missing = tuple(
+        source_id
+        for source_id in selected_context_source_ids
+        if source_id not in projected_available
+    )
+    return {
+        "enabled": True,
+        "trace_only": True,
+        "applied": True,
+        "reason": "simulated",
+        "max_chars": projected_budget.get("max_chars"),
+        "min_hits": projected_budget.get("min_hits"),
+        "protect_top_n": projected_budget.get("protect_top_n"),
+        "max_hits": projected_budget.get("max_hits"),
+        "information_needs": projected_budget.get("information_needs"),
+        "candidate_count": projected_budget.get("candidate_count"),
+        "projected_returned_count": projected_budget.get("returned_count"),
+        "projected_estimated_chars": projected_budget.get("estimated_chars"),
+        "projected_dropped_count": projected_budget.get("dropped_count"),
+        "projected_dropped_source_ids": projected_budget.get("dropped_source_ids"),
+        "projected_available_source_count": len(projected_available),
+        "prompt_row_count": len(prompt_source_ids),
+        "prompt_rows_missing_count": len(prompt_missing),
+        "prompt_rows_missing_source_ids": list(prompt_missing),
+        "selected_context_materialized_count": len(selected_context_source_ids),
+        "selected_context_missing_count": len(selected_context_missing),
+        "selected_context_missing_source_ids": list(selected_context_missing),
+        "safe_for_current_prompt": not prompt_missing,
+        "clean_note": (
+            "Trace-only simulation of retrieval context-budget pressure. It is not "
+            "included in retrieval, compiler, answer, repair, finalizer, or cache keys."
+        ),
     }
 
 
