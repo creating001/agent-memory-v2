@@ -349,6 +349,21 @@ class Stage1Pipeline:
         self._selected_context_source_grounded_min_coverage = float(
             selected_context_config.get("source_grounded_min_coverage", 0.0)
         )
+        self._selected_context_require_materialized_source_grounded = bool(
+            selected_context_config.get("require_materialized_source_grounded", False)
+        )
+        self._selected_context_materialized_source_grounded_min_terms = int(
+            selected_context_config.get(
+                "materialized_source_grounded_min_terms",
+                self._selected_context_source_grounded_min_terms,
+            )
+        )
+        self._selected_context_materialized_source_grounded_min_coverage = float(
+            selected_context_config.get(
+                "materialized_source_grounded_min_coverage",
+                self._selected_context_source_grounded_min_coverage,
+            )
+        )
         self._selected_context_min_context_budget_headroom_chars = int(
             selected_context_config.get("min_context_budget_headroom_chars", 0)
         )
@@ -395,6 +410,15 @@ class Stage1Pipeline:
             ),
             "source_grounded_min_coverage": (
                 self._selected_context_source_grounded_min_coverage
+            ),
+            "require_materialized_source_grounded": (
+                self._selected_context_require_materialized_source_grounded
+            ),
+            "materialized_source_grounded_min_terms": (
+                self._selected_context_materialized_source_grounded_min_terms
+            ),
+            "materialized_source_grounded_min_coverage": (
+                self._selected_context_materialized_source_grounded_min_coverage
             ),
             "min_context_budget_headroom_chars": (
                 self._selected_context_min_context_budget_headroom_chars
@@ -1684,6 +1708,15 @@ class Stage1Pipeline:
             source_grounded_min_coverage=selected_context_settings[
                 "source_grounded_min_coverage"
             ],
+            require_materialized_source_grounded=selected_context_settings[
+                "require_materialized_source_grounded"
+            ],
+            materialized_source_grounded_min_terms=selected_context_settings[
+                "materialized_source_grounded_min_terms"
+            ],
+            materialized_source_grounded_min_coverage=selected_context_settings[
+                "materialized_source_grounded_min_coverage"
+            ],
         )
         selected_context.update(selected_context_budget_gate)
         selected_context["granularity_profile"] = granularity_profile
@@ -2274,6 +2307,15 @@ class Stage1Pipeline:
             ),
             "source_grounded_min_coverage": (
                 self._selected_context_source_grounded_min_coverage
+            ),
+            "require_materialized_source_grounded": (
+                self._selected_context_require_materialized_source_grounded
+            ),
+            "materialized_source_grounded_min_terms": (
+                self._selected_context_materialized_source_grounded_min_terms
+            ),
+            "materialized_source_grounded_min_coverage": (
+                self._selected_context_materialized_source_grounded_min_coverage
             ),
             "min_context_budget_headroom_chars": (
                 self._selected_context_min_context_budget_headroom_chars
@@ -4519,6 +4561,9 @@ def _materialize_selected_context(
     require_source_grounded_self_reference: bool,
     source_grounded_min_terms: int,
     source_grounded_min_coverage: float,
+    require_materialized_source_grounded: bool,
+    materialized_source_grounded_min_terms: int,
+    materialized_source_grounded_min_coverage: float,
 ) -> tuple[tuple[Turn, ...], dict[str, Any]]:
     row_question_reference_threshold = max(
         0, int(require_question_reference_min_center_chars)
@@ -4526,6 +4571,12 @@ def _materialize_selected_context(
     source_grounded_term_threshold = max(0, int(source_grounded_min_terms))
     source_grounded_coverage_threshold = min(
         1.0, max(0.0, float(source_grounded_min_coverage))
+    )
+    materialized_source_grounded_term_threshold = max(
+        0, int(materialized_source_grounded_min_terms)
+    )
+    materialized_source_grounded_coverage_threshold = min(
+        1.0, max(0.0, float(materialized_source_grounded_min_coverage))
     )
     trace: dict[str, Any] = {
         "enabled": enabled,
@@ -4547,6 +4598,15 @@ def _materialize_selected_context(
         ),
         "source_grounded_min_terms": source_grounded_term_threshold,
         "source_grounded_min_coverage": source_grounded_coverage_threshold,
+        "require_materialized_source_grounded": (
+            require_materialized_source_grounded
+        ),
+        "materialized_source_grounded_min_terms": (
+            materialized_source_grounded_term_threshold
+        ),
+        "materialized_source_grounded_min_coverage": (
+            materialized_source_grounded_coverage_threshold
+        ),
         "question_reference": False,
         "skip_reason": None,
         "eligible": False,
@@ -4559,6 +4619,9 @@ def _materialize_selected_context(
         "skipped_source_grounded_count": 0,
         "skipped_source_grounded_source_ids": [],
         "skipped_source_grounded_reasons": {},
+        "skipped_materialized_source_grounded_count": 0,
+        "skipped_materialized_source_grounded_source_ids": [],
+        "skipped_materialized_source_grounded_reasons": {},
     }
     if not enabled or not turns:
         trace["skip_reason"] = "disabled_or_empty"
@@ -4586,6 +4649,8 @@ def _materialize_selected_context(
     skipped_question_reference_center_ids: list[str] = []
     skipped_source_grounded_ids: list[str] = []
     skipped_source_grounded_reasons: dict[str, str] = {}
+    skipped_materialized_source_grounded_ids: list[str] = []
+    skipped_materialized_source_grounded_reasons: dict[str, str] = {}
 
     for turn in turns:
         if max_center_chars > 0 and len(turn.text) > max_center_chars:
@@ -4631,8 +4696,24 @@ def _materialize_selected_context(
         if context_text == turn.text:
             materialized_turns.append(turn)
             continue
+        materialized_turn = replace(turn, text=context_text)
+        if require_materialized_source_grounded:
+            materialized_match = _selected_context_source_grounded_match(
+                question=question,
+                turn=materialized_turn,
+                min_terms=materialized_source_grounded_term_threshold,
+                min_coverage=materialized_source_grounded_coverage_threshold,
+                role_sensitive=False,
+            )
+            if not materialized_match["matched"]:
+                skipped_materialized_source_grounded_ids.append(turn.source_id)
+                skipped_materialized_source_grounded_reasons[turn.source_id] = str(
+                    materialized_match["reason"]
+                )
+                materialized_turns.append(turn)
+                continue
         materialized_ids.append(turn.source_id)
-        materialized_turns.append(replace(turn, text=context_text))
+        materialized_turns.append(materialized_turn)
 
     trace["materialized_count"] = len(materialized_ids)
     trace["materialized_source_ids"] = materialized_ids
@@ -4647,6 +4728,15 @@ def _materialize_selected_context(
     trace["skipped_source_grounded_count"] = len(skipped_source_grounded_ids)
     trace["skipped_source_grounded_source_ids"] = skipped_source_grounded_ids
     trace["skipped_source_grounded_reasons"] = skipped_source_grounded_reasons
+    trace["skipped_materialized_source_grounded_count"] = len(
+        skipped_materialized_source_grounded_ids
+    )
+    trace["skipped_materialized_source_grounded_source_ids"] = (
+        skipped_materialized_source_grounded_ids
+    )
+    trace["skipped_materialized_source_grounded_reasons"] = (
+        skipped_materialized_source_grounded_reasons
+    )
     trace["applied"] = bool(materialized_ids)
     return tuple(materialized_turns), trace
 
@@ -4820,6 +4910,9 @@ SELECTED_CONTEXT_OVERRIDE_KEYS = {
     "require_source_grounded_self_reference",
     "source_grounded_min_terms",
     "source_grounded_min_coverage",
+    "require_materialized_source_grounded",
+    "materialized_source_grounded_min_terms",
+    "materialized_source_grounded_min_coverage",
     "information_needs",
 }
 
@@ -5776,6 +5869,7 @@ def _normalized_selected_context_override(
             "require_anaphora",
             "require_question_reference",
             "require_source_grounded_self_reference",
+            "require_materialized_source_grounded",
         }:
             result[key] = bool(value)
         elif key in {
@@ -5787,9 +5881,13 @@ def _normalized_selected_context_override(
             "min_context_budget_headroom_chars",
             "require_question_reference_min_center_chars",
             "source_grounded_min_terms",
+            "materialized_source_grounded_min_terms",
         }:
             result[key] = int(value)
-        elif key == "source_grounded_min_coverage":
+        elif key in {
+            "source_grounded_min_coverage",
+            "materialized_source_grounded_min_coverage",
+        }:
             result[key] = min(1.0, max(0.0, float(value)))
         elif key == "information_needs":
             result[key] = _tuple_config(value)

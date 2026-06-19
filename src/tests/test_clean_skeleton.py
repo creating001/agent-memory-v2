@@ -889,6 +889,139 @@ class CleanSkeletonTest(unittest.TestCase):
         )
         self.assertNotIn("Local dialogue context from the same session", row_text)
 
+    def test_selected_context_materialized_source_gate_keeps_grounded_context(
+        self,
+    ) -> None:
+        config = {
+            "retrieval": {
+                "top_k": 3,
+                "max_top_k": 3,
+                "neighbor_window": 0,
+                "selected_context": {
+                    "enabled": True,
+                    "window_before": 1,
+                    "window_after": 0,
+                    "max_rows": 3,
+                    "max_neighbor_chars": 120,
+                    "require_anaphora": True,
+                    "require_materialized_source_grounded": True,
+                    "materialized_source_grounded_min_terms": 2,
+                    "materialized_source_grounded_min_coverage": 0.6,
+                    "information_needs": ["fact_lookup"],
+                },
+            },
+            "compiler": {
+                "prompt_mode": "external_naive",
+                "max_evidence_items": 3,
+                "max_evidence_chars": 4000,
+            },
+            "answer": {"fallback_answer": "unknown"},
+        }
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="Dana",
+                text="The dessert came from Bell Bakery.",
+                timestamp="10:00 am on 1 May, 2024",
+            ),
+            Turn(
+                source_id="s1:t1",
+                session_id="s1",
+                turn_index=1,
+                role="Dana",
+                text="That's where I picked up dessert.",
+                timestamp="10:01 am on 1 May, 2024",
+            ),
+        )
+
+        result = Stage1Pipeline(config).predict(
+            PredictionRequest(
+                question=(
+                    "Where did Dana say she picked up dessert from Bell Bakery?"
+                ),
+                turns=turns,
+            )
+        )
+        trace = result["trace"]["retrieval"]["selected_context"]
+        row_text = "\n".join(
+            row["text"] for row in result["trace"]["compiled_context"]["evidence_rows"]
+        )
+
+        self.assertTrue(trace["applied"])
+        self.assertIn("s1:t1", trace["materialized_source_ids"])
+        self.assertEqual(trace["skipped_materialized_source_grounded_count"], 0)
+        self.assertIn("Local dialogue context from the same session", row_text)
+
+    def test_selected_context_materialized_source_gate_blocks_low_coverage_context(
+        self,
+    ) -> None:
+        config = {
+            "retrieval": {
+                "top_k": 3,
+                "max_top_k": 3,
+                "neighbor_window": 0,
+                "selected_context": {
+                    "enabled": True,
+                    "window_before": 1,
+                    "window_after": 0,
+                    "max_rows": 3,
+                    "max_neighbor_chars": 120,
+                    "require_anaphora": True,
+                    "require_materialized_source_grounded": True,
+                    "materialized_source_grounded_min_terms": 2,
+                    "materialized_source_grounded_min_coverage": 0.6,
+                    "information_needs": ["fact_lookup"],
+                },
+            },
+            "compiler": {
+                "prompt_mode": "external_naive",
+                "max_evidence_items": 3,
+                "max_evidence_chars": 4000,
+            },
+            "answer": {"fallback_answer": "unknown"},
+        }
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="Dana",
+                text="We talked about a museum exhibit.",
+                timestamp="10:00 am on 1 May, 2024",
+            ),
+            Turn(
+                source_id="s1:t1",
+                session_id="s1",
+                turn_index=1,
+                role="Dana",
+                text="That's where I picked up dessert.",
+                timestamp="10:01 am on 1 May, 2024",
+            ),
+        )
+
+        result = Stage1Pipeline(config).predict(
+            PredictionRequest(
+                question=(
+                    "Where did Dana say she picked up dessert from Bell Bakery?"
+                ),
+                turns=turns,
+            )
+        )
+        trace = result["trace"]["retrieval"]["selected_context"]
+        row_text = "\n".join(
+            row["text"] for row in result["trace"]["compiled_context"]["evidence_rows"]
+        )
+
+        self.assertFalse(trace["applied"])
+        self.assertIn("s1:t1", trace["skipped_materialized_source_grounded_source_ids"])
+        self.assertEqual(
+            trace["skipped_materialized_source_grounded_reasons"]["s1:t1"],
+            "insufficient_slot_coverage",
+        )
+        self.assertNotIn("Local dialogue context from the same session", row_text)
+
     def test_selected_context_source_grounded_match_normalizes_query_terms(
         self,
     ) -> None:
