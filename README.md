@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_context_organization_ledger_v217_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_source_flow_severity_ledger_v221_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v217 local LTS | 说明 |
+| Benchmark | 当前 v221 local LTS | 说明 |
 |---|---:|---|
-| LongMemEval-S full | strict/lenient `0.834000 / 0.846000` | v217 与 v216 answer/prompt/evidence rows/retrieval hits/effective selected-context diff `0/500`；Context Organization Ledger `500/500`；avg build/query tokens `85393.566 / 6580.196`。 |
-| LoCoMo non-adversarial full | strict/lenient `0.793506 / 0.818831` | v217 与 v216 answer/prompt/evidence rows/retrieval hits/effective selected-context diff `0/1540`；Context Organization Ledger `1540/1540`；avg build/query tokens `62015.57402597403 / 6095.268181818182`。 |
+| LongMemEval-S full | strict/lenient `0.834000 / 0.846000` | v221 与 v217 answer/prompt/evidence rows/retrieval hits/selected-context diff `0/500`；Source-flow Severity Ledger `500/500`；avg build/query tokens `85393.566 / 6580.196`。 |
+| LoCoMo non-adversarial full | strict/lenient `0.793506 / 0.818831` | v221 与 v217 answer/prompt/evidence rows/retrieval hits/selected-context diff `0/1540`；Source-flow Severity Ledger `1540/1540`；selected-context risk rows `5841/5841` 均为 final raw evidence-backed、guarded-rerank eligible `0`；avg build/query tokens `62015.57402597403 / 6095.268181818182`。 |
 
-v217 的 LTS 理由：继承 v216 的 full answer 和 judge accuracy，同时在 Context Manifest 中新增 trace-only Context Organization Ledger，把 prompt context pressure、selected-context 风险原因、typed-memory source activation、memory-projected retrieval 和最终 evidence rows 的关系统一记录。它降低 #2/#3 后续改动的不可诊断风险；v216 的 memory activation ledger、v214 的 selected-context normalized audit、v211 的 context-pressure selector 和 v209 的保守 context-budget 仍保留。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_context_organization_ledger_v217_scope_summary.md`。
+v221 的 LTS 理由：继承 v217 的 full answer 和 judge accuracy，同时在 Context Manifest 中新增 trace-only Source-flow Severity Ledger，把 selected-context 的弱词面匹配风险区分为 final raw evidence-backed、typed-memory-backed、memory-projected-backed 和可作为 guarded rerank 候选的 non-final rows。它降低 #2/#3 后续 rerank/order/hard-gate 的误删风险；v217 的 Context Organization Ledger、v216 的 memory activation ledger、v214 的 normalized audit、v211 的 context-pressure selector 和 v209 的保守 context-budget 仍保留。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_source_flow_severity_ledger_v221_scope_summary.md`。
 
 ## 目录
 
