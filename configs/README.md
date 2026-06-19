@@ -6,13 +6,14 @@
 
 | 用途 | 配置 | 状态 |
 |---|---|---|
-| 后续新实验默认配置 | `stage1_source_backed_lifecycle_memory_repair_v230_seeded_qwen36_no_think_build4k_cached.json` | 当前本地 v230 LTS。继承 v229 full accuracy，并新增 source-backed current-state lifecycle memory repair；LongMemEval-S strict/lenient `0.834000 / 0.846000`，LoCoMo `0.793506 / 0.818831`。 |
+| 后续新实验默认配置 | `stage1_source_backed_lifecycle_noop_repair_prune_v231_seeded_qwen36_no_think_build4k_cached.json` | 当前本地 v231 LTS。继承 v230/v229 full accuracy，保留 source-backed state diagnostics，删除 applied 为 0 的 source-backed lifecycle repair trigger；LongMemEval-S strict/lenient `0.834000 / 0.846000`，LoCoMo `0.793506 / 0.818831`。 |
 
 ## 保留对照
 
 | 配置 | 作用 |
 |---|---|
-| `stage1_source_backed_lifecycle_memory_repair_v230_seeded_qwen36_no_think_build4k_cached.json` | 当前 LTS；source-backed current-state lifecycle memory repair，LME `0.834000 / 0.846000`，LoCoMo `0.793506 / 0.818831`，相对 v229 answer/prompt/evidence/retrieval diff `0/500`、`0/1540`。 |
+| `stage1_source_backed_lifecycle_noop_repair_prune_v231_seeded_qwen36_no_think_build4k_cached.json` | 当前 LTS；删除 no-op source-backed lifecycle repair trigger，LME `0.834000 / 0.846000`，LoCoMo `0.793506 / 0.818831`，相对 v230 answer/prompt/evidence/retrieval/route diff `0/500`、`0/1540`，avg query 降为 `6637.824`、`6100.992207792207`。 |
+| `stage1_source_backed_lifecycle_memory_repair_v230_seeded_qwen36_no_think_build4k_cached.json` | v231 父 LTS；source-backed current-state lifecycle memory repair，LME `0.834000 / 0.846000`，LoCoMo `0.793506 / 0.818831`，相对 v229 answer/prompt/evidence/retrieval diff `0/500`、`0/1540`。 |
 | `stage1_guarded_tail_exchange_rerank_v229_seeded_qwen36_no_think_build4k_cached.json` | v230 父 LTS；source/provenance-aware guarded tail exchange，LME `0.834000 / 0.846000`，LoCoMo `0.793506 / 0.818831`，相对 v225 answer diff `0/500`、`0/1540`。 |
 | `stage1_state_update_organization_ledger_v225_seeded_qwen36_no_think_build4k_cached.json` | v229 父 LTS；trace-only State/Update Organization Ledger，LME `0.834000 / 0.846000`，LoCoMo `0.793506 / 0.818831`，相对 v222 answer/prompt/evidence rows/retrieval hits/selected-context diff `0/500`、`0/1540`。 |
 | `stage1_evidence_pressure_ledger_v222_seeded_qwen36_no_think_build4k_cached.json` | v225 父 LTS；trace-only Evidence Pressure Ledger，性能继承 v221。 |
@@ -54,8 +55,8 @@
 
 | Benchmark | 配置 | 结果 | 用途 |
 |---|---|---:|---|
-| LongMemEval-S full | `stage1_source_backed_lifecycle_memory_repair_v230_seeded_qwen36_no_think_build4k_cached.json` | strict `0.834000` / lenient `0.846000` | 当前 LTS；v230 vs v229 answer/prompt/evidence/retrieval diff `0/500`，性能继承 v229。 |
-| LoCoMo non-adversarial full | `stage1_source_backed_lifecycle_memory_repair_v230_seeded_qwen36_no_think_build4k_cached.json` | strict `0.793506` / lenient `0.818831` | 当前 LTS；v230 vs v229 answer/prompt/evidence/retrieval diff `0/1540`，性能继承 v229。 |
+| LongMemEval-S full | `stage1_source_backed_lifecycle_noop_repair_prune_v231_seeded_qwen36_no_think_build4k_cached.json` | strict `0.834000` / lenient `0.846000` | 当前 LTS；v231 vs v230 answer/prompt/evidence/retrieval/route diff `0/500`，性能继承 v230。 |
+| LoCoMo non-adversarial full | `stage1_source_backed_lifecycle_noop_repair_prune_v231_seeded_qwen36_no_think_build4k_cached.json` | strict `0.793506` / lenient `0.818831` | 当前 LTS；v231 vs v230 answer/prompt/evidence/retrieval/route diff `0/1540`，性能继承 v230。 |
 
 ## 关键 Baseline
 
@@ -82,6 +83,7 @@
 - v217 只新增 trace-only Context Organization Ledger，prompt/answer/retrieval/repair 不变，显式复用 v216 answer cache；full answer diff 为 0 时继承 v216 dual judge 结果。
 - v222 只新增 trace-only Evidence Pressure Ledger，prompt/answer/retrieval/repair 不变，显式复用 v221 answer cache；full answer diff 为 0 时继承 v221 dual judge 结果。
 - v225 只新增 trace-only State/Update Organization Ledger，prompt/answer/retrieval/repair 不变，显式复用 v222 answer cache；full answer diff 为 0 时继承 v222 dual judge 结果。
+- v231 主 answer prompt 不变，显式复用 v229/v230 answer cache；source-backed lifecycle repair trigger 被关闭，剩余 repair 调用使用 v231 专属 repair cache path/namespace。
 - cache 命中只能减少重复 API 调用，不能改变逻辑 token 统计。正式记录仍报告逻辑 cold-build/query token。
 - 不得使用 gold answer、judge output、benchmark 标签、sample id、test feedback 或样本级规则构造配置、cache、prediction、retrieval、compiler、answer 或 repair。
 

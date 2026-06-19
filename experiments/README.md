@@ -6,12 +6,12 @@
 
 | 项目 | 结果 |
 |---|---|
-| 当前 LTS 配置 | `configs/stage1_source_backed_lifecycle_memory_repair_v230_seeded_qwen36_no_think_build4k_cached.json` |
+| 当前 LTS 配置 | `configs/stage1_source_backed_lifecycle_noop_repair_prune_v231_seeded_qwen36_no_think_build4k_cached.json` |
 | Backbone | `Qwen/Qwen3.6-35B-A3B` answer/build，`chat_template_kwargs.enable_thinking=false` |
-| 方法 | V230 继承 v229，并新增 current_state 的 source-backed lifecycle memory repair：typed memory ledger 只作为 Memory Context 原文行索引，在状态/更新风险明确时触发 verifier。 |
-| LongMemEval-S full | v230 与 v229 answer/prompt/evidence rows/retrieval hits diff `0/500`；source-backed state repair reason `4/500`，applied `0/500`；avg build/query tokens `85393.566 / 6682.852`；继承 full `0.834000 / 0.846000`，`417/500` strict，`423/500` lenient |
-| LoCoMo non-adversarial full | v230 与 v229 answer/prompt/evidence rows/retrieval hits diff `0/1540`；source-backed state repair reason `2/1540`，applied `0/1540`；rerank applied `2/1540`；avg build/query tokens `62015.57402597403 / 6108.888311688312`；继承 full `0.793506 / 0.818831`，`1222/1540` strict，`1261/1540` lenient |
-| 状态 | 当前本地 qwen3.6 no-thinking LTS。v230 降低 #5 行为级 state/update reasoning 风险；v229 的 #2 guarded tail exchange、v222/v221/v217/v216 的 context/source-flow/memory activation 审计、v211 的 #1 context-pressure selector 和 v209 的 #2 retrieval tail candidate 收敛保留。它不代表五个原始风险都已解决，#2 真实 token 降本和 #5 更高覆盖 source-backed 状态推理仍是优先待办。 |
+| 方法 | V231 继承 v230 的 retrieval/compiler prompt/source-backed state diagnostics/finalizer/rerank，删除 v230 中 full applied 为 0 的 source-backed lifecycle 二次 repair trigger；typed memory 仍只作为 Memory Context 原文行索引。 |
+| LongMemEval-S full | v231 与 v230 answer/prompt/evidence rows/retrieval hits/route diff `0/500`；source-backed state ledger `14/500`；source-backed repair reason `0/500`；repair triggered `6/500`，applied `0/500`；avg build/query tokens `85393.566 / 6637.824`；继承 full `0.834000 / 0.846000`，`417/500` strict，`423/500` lenient |
+| LoCoMo non-adversarial full | v231 与 v230 answer/prompt/evidence rows/retrieval hits/route diff `0/1540`；source-backed state ledger `4/1540`；source-backed repair reason `0/1540`；repair triggered `2/1540`，applied `0/1540`；rerank applied `2/1540`；avg build/query tokens `62015.57402597403 / 6100.992207792207`；继承 full `0.793506 / 0.818831`，`1222/1540` strict，`1261/1540` lenient |
+| 状态 | 当前本地 qwen3.6 no-thinking LTS。v231 保留 v230 的 source-backed state/update 可追溯性，同时移除无收益 verifier 成本和潜在 drift；v229 的 #2 guarded tail exchange、v222/v221/v217/v216 的 context/source-flow/memory activation 审计、v211 的 #1 context-pressure selector 和 v209 的 #2 retrieval tail candidate 收敛保留。它不代表五个原始风险都已解决，#2 真实 final context 降本和 #5 更高覆盖 source-backed 状态推理仍是优先待办。 |
 
 `paired-delta derived` 的含义：新版本只改少量答案，未变化答案沿用父 LTS full dual judge records，变化答案单独跑 paired dual judge 后替换计数。若新版本与父 LTS answer-identical，则可继承父 LTS judge records，但必须记录 full answer diff、cache hit/miss 和输出路径。若论文级最终汇报需要完全独立 run，再对 LTS 配置重跑 fresh full judge。
 
@@ -26,16 +26,17 @@
 
 | 优先级 | 项目 | 当前状态 | 下一步 |
 |---:|---|---|---|
-| 1 | #2 top-k/context noise/rerank | v229 将 v228 的宽 rerank 收窄到 source/provenance-aware tail exchange：LME full no-op，LoCoMo full only `2/1540` applied、`880/1540` guard skipped、answer diff `0/1540`；但没有真实 query token 降本 | 下一步不要做宽 final row cap、广覆盖 fact rerank 或 selected-context 包装硬删；从 pressure/source-flow ledgers 继续找更高覆盖的非 source-backed、非 session-chain、非 memory-anchor tail 冗余，并控制 rerank token |
+| 1 | #2 top-k/context noise/rerank | v231 通过删除 no-op source-backed repair 降低少量 query token；v229 的 source/provenance-aware tail exchange 仍是主要 #2 行为收敛，LoCoMo full only `2/1540` applied、answer diff `0/1540` | 下一步不要做宽 final row cap、广覆盖 fact rerank 或 selected-context 包装硬删；从 pressure/source-flow ledgers 继续找更高覆盖的非 source-backed、非 session-chain、非 memory-anchor tail 冗余，并控制 rerank token |
 | 2 | #3 selected context | v221 将 v217 的 risk rows 拆成 evidence-backed severity；v218/v219 hard gate 和 v220 nearby timestamp removal 都降低局部风险或 token，但 changed judge 分别 `-5/-12`、`-4/-1`、`-4/-3` | 保留 selected-context 原文保真路径；后续只允许用 severity 作为审计或极窄 ordering guard，不能把 final evidence-backed local context 当可删除噪声 |
-| 3 | #5 memory lifecycle/state/conflict/query-time reasoning | v230 已从 trace-only ledger 推进到窄行为：LME/LoCoMo source-backed state repair reason `4/500`、`2/1540`，均未改答案；typed memory 只索引可见原文行 | 继续提高覆盖，但只允许 source-backed、question-aligned 的状态/更新链进入 verifier；普通多值 fact/list/preference 不进入 stale-conflict 逻辑 |
+| 3 | #5 memory lifecycle/state/conflict/query-time reasoning | v231 保留 source-backed state ledger 和 Managed Memory State Guide，但移除 v230 中 applied 为 0 的 source-backed repair trigger；typed memory 只索引可见原文行 | 继续提高覆盖，但只允许 source-backed、question-aligned 的状态/更新链进入 compiler/verifier；普通多值 fact/list/preference 不进入 stale-conflict 逻辑 |
 | 4 | src cleanup | 已有多轮兼容分支，`repair.py`、compiler、pipeline 仍会继续变复杂 | 每个阶段结束后做小范围清理，删已确认无用的兼容代码，不删仍有消融价值的模块 |
 
 ## 保留候选
 
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
-| `configs/stage1_source_backed_lifecycle_memory_repair_v230_seeded_qwen36_no_think_build4k_cached.json` | current LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v230 vs v229 answer/prompt/evidence/retrieval diff `0/500`、`0/1540`；source-backed state repair reason `4/500`、`2/1540`，applied `0` | 当前 LTS；source-backed typed memory 进入窄 current_state repair verifier，降低 #5 行为级风险，accuracy 继承 v229，query token 小幅增加 |
+| `configs/stage1_source_backed_lifecycle_noop_repair_prune_v231_seeded_qwen36_no_think_build4k_cached.json` | current LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v231 vs v230 answer/prompt/evidence/retrieval/route diff `0/500`、`0/1540`；source-backed ledger `14/500`、`4/1540`；avg query `6637.824`、`6100.992207792207` | 当前 LTS；保留 source-backed state/update 诊断和主 prompt guide，删除 applied 为 0 的 source-backed repair trigger，性能继承 v230 且 query token 降低 |
+| `configs/stage1_source_backed_lifecycle_memory_repair_v230_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v230 vs v229 answer/prompt/evidence/retrieval diff `0/500`、`0/1540`；source-backed state repair reason `4/500`、`2/1540`，applied `0` | 被 v231 替代；source-backed typed memory 进入窄 current_state repair verifier，但 full 中未应用修正且增加 query token |
 | `configs/stage1_guarded_tail_exchange_rerank_v229_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v229 vs v225 answer diff `0/500`、`0/1540`；LoCoMo prompt/evidence/retrieval diff `2/1540`，rerank applied `2/1540`，guard skipped `880/1540` | 被 v230 替代；source/provenance-aware guarded tail exchange 小幅降低 #2 tail candidate/context noise 风险，性能继承 v225 |
 | `configs/stage1_state_update_organization_ledger_v225_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v225 vs v222 answer/prompt/evidence rows/retrieval hits/selected-context diff `0/500`、`0/1540`；State/Update Organization Ledger `500/500`、`1540/1540` | 被 v229 替代；新增 trace-only state/update organization ledger，降低 #5 state/update/conflict 误分类风险，性能继承 v222 |
 | `configs/stage1_evidence_pressure_ledger_v222_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v222 vs v221 answer/prompt/evidence rows/retrieval hits/selected-context diff `0/500`、`0/1540`；Evidence Pressure Ledger `500/500`、`1540/1540` | 被 v225 替代；新增 trace-only evidence pressure ledger，降低 #2 final evidence tail/session/adjacent pressure 不可诊断风险，性能继承 v221 |
@@ -144,7 +145,10 @@
 
 | 路径 | 内容 |
 |---|---|
-| `diagnostic/stage1_source_backed_lifecycle_memory_repair_v230_scope_summary.md` | 当前 LTS 晋升结论：v230 source-backed lifecycle memory repair，full answer diff `0/500`、`0/1540`，source-backed state repair reason `4/500`、`2/1540` |
+| `diagnostic/stage1_source_backed_lifecycle_noop_repair_prune_v231_scope_summary.md` | 当前 LTS 晋升结论：v231 deletes no-op source-backed lifecycle repair trigger，full answer/prompt/evidence/retrieval/route diff `0/500`、`0/1540`，avg query 降为 `6637.824`、`6100.992207792207` |
+| `diagnostic/stage1_source_backed_lifecycle_noop_repair_prune_v231_lme_s_full/` | v231 LME full；vs v230 answer/prompt/evidence/retrieval/route diff `0/500`，source-backed ledger `14/500`，source-backed repair reason `0/500` |
+| `diagnostic/stage1_source_backed_lifecycle_noop_repair_prune_v231_locomo_nonadv_full/` | v231 LoCoMo full；vs v230 answer/prompt/evidence/retrieval/route diff `0/1540`，source-backed ledger `4/1540`，source-backed repair reason `0/1540` |
+| `diagnostic/stage1_source_backed_lifecycle_memory_repair_v230_scope_summary.md` | previous LTS 晋升结论：v230 source-backed lifecycle memory repair，full answer diff `0/500`、`0/1540`，source-backed state repair reason `4/500`、`2/1540` |
 | `diagnostic/stage1_source_backed_lifecycle_memory_repair_v230_lme_s_full/` | v230 LME full；vs v229 answer/prompt/evidence/retrieval diff `0/500`，source-backed state repair reason `4/500`，avg query `6682.852` |
 | `diagnostic/stage1_source_backed_lifecycle_memory_repair_v230_locomo_nonadv_full/` | v230 LoCoMo full；vs v229 answer/prompt/evidence/retrieval diff `0/1540`，source-backed state repair reason `2/1540`，avg query `6108.888311688312` |
 | `diagnostic/stage1_guarded_tail_exchange_rerank_v229_scope_summary.md` | previous LTS 晋升结论：v229 source/provenance-aware guarded tail exchange，full answer diff `0/500`、`0/1540`，LoCoMo guard skipped `880/1540`、rerank applied `2/1540` |
