@@ -699,7 +699,8 @@ class CompilerTest(unittest.TestCase):
         )
 
         self.assertIn("Event-Time Candidate Map:", compiled.prompt)
-        self.assertIn("Memory 1: event_time=2023-05-08", compiled.prompt)
+        self.assertIn("Memory 1: mention_time=2023-05-09", compiled.prompt)
+        self.assertIn("event_time=2023-05-08", compiled.prompt)
         self.assertIn("matched_terms=mural, sunrise", compiled.prompt)
         self.assertIn("not independent evidence", compiled.prompt)
         self.assertNotIn("event_time=2023-06-02", compiled.prompt)
@@ -931,7 +932,8 @@ class CompilerTest(unittest.TestCase):
         )
 
         self.assertIn("Event-Time Candidate Map:", compiled.prompt)
-        self.assertIn("Memory 2: event_time=2022-08-22", compiled.prompt)
+        self.assertIn("Memory 2: mention_time=2022-08-20", compiled.prompt)
+        self.assertIn("event_time=2022-08-22", compiled.prompt)
         self.assertIn("matched_terms=chill, nate, off", compiled.prompt)
         self.assertIn("pets", compiled.prompt)
         self.assertIn("take", compiled.prompt)
@@ -982,6 +984,48 @@ class CompilerTest(unittest.TestCase):
 
         self.assertNotIn("Event-Time Candidate Map:", compiled.prompt)
         self.assertNotIn("event_time=2022-11-04", compiled.prompt)
+
+    def test_event_time_candidate_map_resolves_this_weekend(self) -> None:
+        wrapped_text = (
+            "Local dialogue context from the same session:\n"
+            "- selected turn (10:57 am on 22 August, 2022) | Nate: "
+            "I'm taking some time off this weekend to chill with my pets.\n"
+            "- nearby turn (10:57 am on 22 August, 2022) | Joanna: "
+            "I'm relaxing and recharging this weekend with a long walk.\n"
+        )
+
+        compiled = EvidenceCompiler(
+            max_evidence_items=1,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            event_time_candidate_map=True,
+            event_time_candidate_map_allowed_time_kinds=("relative_phrase",),
+            event_time_candidate_map_strip_context_wrappers=True,
+            event_time_candidate_map_segment_local_context=True,
+            event_time_candidate_map_rank_by_coverage=True,
+            event_time_candidate_map_normalize_terms=True,
+            event_time_candidate_map_require_role_match=True,
+        ).compile(
+            question="When did Nate take time off to chill with his pets?",
+            question_time=None,
+            route=RouteResult("temporal_lookup", ("temporal",)),
+            hits=(),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="Nate",
+                    text=wrapped_text,
+                    timestamp="2022-08-22",
+                ),
+            ),
+        )
+
+        self.assertIn("Event-Time Candidate Map:", compiled.prompt)
+        self.assertIn("mention_time=2022-08-22", compiled.prompt)
+        self.assertIn("event_time=2022-08-27 to 2022-08-28", compiled.prompt)
+        self.assertIn('relative_phrase: phrase="this weekend"', compiled.prompt)
 
     def test_memory_tail_filter_preserves_retrieval_order(self) -> None:
         compiler = EvidenceCompiler(

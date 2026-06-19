@@ -4674,8 +4674,9 @@ def _external_event_time_candidate_map_lines(
         )
         markers = "; ".join(str(marker) for marker in item.get("markers") or ())
         lines.append(
-            f"  - {source_text}: event_time={group['best_event_time']} "
-            f"time_kind={group['best_time_kind']} matched_terms={matched} "
+            f"  - {source_text}: mention_time={item['mention_time']} "
+            f"event_time={group['best_event_time']} time_kind={group['best_time_kind']} "
+            f"matched_terms={matched} "
             f"coverage={float(entry['coverage']):.3f} markers={markers or 'none'} "
             f"text=\"{item['snippet']}\""
         )
@@ -6281,6 +6282,9 @@ def _relative_time_values(text: str, row_date: date) -> list[tuple[str, str]]:
             f"{(row_date + timedelta(days=1)).isoformat()} to "
             f"{(row_date + timedelta(days=7)).isoformat()}",
         ),
+        ("this weekend", _weekend_containing_or_after(row_date)),
+        ("coming weekend", _weekend_containing_or_after(row_date)),
+        ("upcoming weekend", _weekend_containing_or_after(row_date)),
         ("last weekend", _weekend_before(row_date, weekends_back=1)),
         ("previous weekend", _weekend_before(row_date, weekends_back=1)),
         ("the weekend before", _weekend_before(row_date, weekends_back=1)),
@@ -6422,6 +6426,13 @@ def _weekend_before(value: date, *, weekends_back: int) -> str:
     latest_prior_sunday = value - timedelta(days=days_since_sunday or 7)
     target_sunday = latest_prior_sunday - timedelta(days=7 * max(0, weekends_back - 1))
     target_saturday = target_sunday - timedelta(days=1)
+    return f"{target_saturday.isoformat()} to {target_sunday.isoformat()}"
+
+
+def _weekend_containing_or_after(value: date) -> str:
+    days_until_saturday = (5 - value.weekday()) % 7
+    target_saturday = value + timedelta(days=days_until_saturday)
+    target_sunday = target_saturday + timedelta(days=1)
     return f"{target_saturday.isoformat()} to {target_sunday.isoformat()}"
 
 
