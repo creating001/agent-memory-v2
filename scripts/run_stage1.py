@@ -139,6 +139,12 @@ def main() -> int:
     total_answer_cache_misses = 0
     total_answer_cache_writes = 0
     total_answer_finalizer_applied = 0
+    total_answer_verifier_applied = 0
+    total_answer_verifier_risk_samples = 0
+    total_answer_verifier_risk_flags = 0
+    total_answer_verifier_support_items = 0
+    total_answer_verifier_evidence_report_items = 0
+    answer_verifier_risk_reasons: dict[str, int] = {}
     total_answer_repair_triggered = 0
     total_answer_repair_applied = 0
     total_answer_repair_query_tokens = 0
@@ -409,6 +415,23 @@ def main() -> int:
         answer_finalizer = result["trace"].get("answer_finalizer") or {}
         if answer_finalizer.get("applied"):
             total_answer_finalizer_applied += 1
+        answer_verifier = result["trace"].get("answer_verifier") or {}
+        if answer_verifier.get("applied"):
+            total_answer_verifier_applied += 1
+            total_answer_verifier_support_items += int(
+                answer_verifier.get("support_item_count") or 0
+            )
+            total_answer_verifier_evidence_report_items += int(
+                answer_verifier.get("evidence_report_count") or 0
+            )
+            risk_count = int(answer_verifier.get("risk_count") or 0)
+            total_answer_verifier_risk_flags += risk_count
+            if risk_count:
+                total_answer_verifier_risk_samples += 1
+            for reason in answer_verifier.get("risks") or []:
+                answer_verifier_risk_reasons[str(reason)] = (
+                    answer_verifier_risk_reasons.get(str(reason), 0) + 1
+                )
         answer_repair = result["trace"].get("answer_repair") or {}
         if answer_repair.get("triggered"):
             total_answer_repair_triggered += 1
@@ -1036,6 +1059,26 @@ def main() -> int:
                 total_answer_finalizer_applied,
                 sample_count,
             ),
+            "verifier_applied_count": total_answer_verifier_applied,
+            "verifier_applied_rate": _safe_average(
+                total_answer_verifier_applied,
+                sample_count,
+            ),
+            "verifier_risk_sample_count": total_answer_verifier_risk_samples,
+            "verifier_risk_sample_rate": _safe_average(
+                total_answer_verifier_risk_samples,
+                total_answer_verifier_applied,
+            ),
+            "verifier_risk_flag_count": total_answer_verifier_risk_flags,
+            "verifier_risk_reasons": answer_verifier_risk_reasons,
+            "verifier_avg_support_items": _safe_average(
+                total_answer_verifier_support_items,
+                total_answer_verifier_applied,
+            ),
+            "verifier_avg_evidence_report_items": _safe_average(
+                total_answer_verifier_evidence_report_items,
+                total_answer_verifier_applied,
+            ),
             "repair_triggered_count": total_answer_repair_triggered,
             "repair_triggered_rate": _safe_average(
                 total_answer_repair_triggered,
@@ -1563,6 +1606,7 @@ def _answer_metrics(config: dict[str, Any]) -> dict[str, Any]:
     max_output_tokens = _answer_max_output_tokens(answer_config)
     cache_config = answer_config.get("cache", {})
     repair_config = answer_config.get("repair", {})
+    verifier_config = answer_config.get("verifier", {})
     repair_cache_config = repair_config.get("cache", {})
     repair_answer_config = _repair_answer_config_for_metrics(answer_config, repair_config)
     return {
@@ -1612,6 +1656,24 @@ def _answer_metrics(config: dict[str, Any]) -> dict[str, Any]:
         "finalizer_enable_profile_preference_value_preservation": answer_config.get(
             "finalizer", {}
         ).get("enable_profile_preference_value_preservation", False),
+        "verifier_enabled": verifier_config.get("enabled", False),
+        "verifier_mode": verifier_config.get("mode", "source_grounded_audit"),
+        "verifier_trace_only": True,
+        "verifier_require_structured_payload": verifier_config.get(
+            "require_structured_payload", True
+        ),
+        "verifier_require_evidence_report": verifier_config.get(
+            "require_evidence_report", True
+        ),
+        "verifier_check_support_presence": verifier_config.get(
+            "check_support_presence", True
+        ),
+        "verifier_check_sufficiency_consistency": verifier_config.get(
+            "check_sufficiency_consistency", True
+        ),
+        "verifier_check_memory_references": verifier_config.get(
+            "check_memory_references", True
+        ),
         "repair_enabled": repair_config.get("enabled", False),
         "repair_mode": repair_config.get("mode", answer_config.get("mode")),
         "repair_model": repair_answer_config.get("model"),
@@ -1950,6 +2012,22 @@ def _write_summary(
         f"- answer_finalizer_enable_profile_preference_value_preservation: {metrics['answer']['finalizer_enable_profile_preference_value_preservation']}",
         f"- answer_finalizer_applied_count: {metrics['answer']['finalizer_applied_count']}",
         f"- answer_finalizer_applied_rate: {metrics['answer']['finalizer_applied_rate']}",
+        f"- answer_verifier_enabled: {metrics['answer']['verifier_enabled']}",
+        f"- answer_verifier_mode: {metrics['answer']['verifier_mode']}",
+        f"- answer_verifier_trace_only: {metrics['answer']['verifier_trace_only']}",
+        f"- answer_verifier_require_structured_payload: {metrics['answer']['verifier_require_structured_payload']}",
+        f"- answer_verifier_require_evidence_report: {metrics['answer']['verifier_require_evidence_report']}",
+        f"- answer_verifier_check_support_presence: {metrics['answer']['verifier_check_support_presence']}",
+        f"- answer_verifier_check_sufficiency_consistency: {metrics['answer']['verifier_check_sufficiency_consistency']}",
+        f"- answer_verifier_check_memory_references: {metrics['answer']['verifier_check_memory_references']}",
+        f"- answer_verifier_applied_count: {metrics['answer']['verifier_applied_count']}",
+        f"- answer_verifier_applied_rate: {metrics['answer']['verifier_applied_rate']}",
+        f"- answer_verifier_risk_sample_count: {metrics['answer']['verifier_risk_sample_count']}",
+        f"- answer_verifier_risk_sample_rate: {metrics['answer']['verifier_risk_sample_rate']}",
+        f"- answer_verifier_risk_flag_count: {metrics['answer']['verifier_risk_flag_count']}",
+        f"- answer_verifier_risk_reasons: {metrics['answer']['verifier_risk_reasons']}",
+        f"- answer_verifier_avg_support_items: {metrics['answer']['verifier_avg_support_items']}",
+        f"- answer_verifier_avg_evidence_report_items: {metrics['answer']['verifier_avg_evidence_report_items']}",
         f"- answer_repair_enabled: {metrics['answer']['repair_enabled']}",
         f"- answer_repair_mode: {metrics['answer']['repair_mode']}",
         f"- answer_repair_model: {metrics['answer']['repair_model']}",

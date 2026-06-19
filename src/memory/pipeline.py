@@ -9,6 +9,7 @@ from dataclasses import replace
 from typing import Any
 
 from memory.answer import CachedAnswerer, NullAnswerer, OpenAICompatibleAnswerer
+from memory.answer_verify import audit_answer_support
 from memory.build import NullMemoryBuilder, OpenAICompatibleMemoryBuilder
 from memory.compiler import EvidenceCompiler, SUPPORTED_INFORMATION_NEEDS
 from memory.embeddings import CachedEmbeddingClient, OpenAICompatibleEmbeddingClient
@@ -131,6 +132,9 @@ class Stage1Pipeline:
         answer_config = self._config.get("answer", {})
         answer_finalizer_config = answer_config.get("finalizer", {})
         answer_repair_config = answer_config.get("repair", {})
+        answer_verifier_config = answer_config.get("verifier", {})
+        if not isinstance(answer_verifier_config, Mapping):
+            raise ValueError("answer.verifier must be an object")
         self._router = QuestionRouter(
             enable_broad_list_patterns=bool(
                 route_config.get("enable_broad_list_patterns", False)
@@ -1319,6 +1323,49 @@ class Stage1Pipeline:
             for profile in self._granularity_profiles
             if profile.get("answer_finalizer")
         }
+        self._answer_verifier_enabled = bool(
+            answer_verifier_config.get("enabled", False)
+        )
+        self._answer_verifier_mode = str(
+            answer_verifier_config.get("mode", "source_grounded_audit")
+        )
+        self._answer_verifier_require_structured_payload = bool(
+            answer_verifier_config.get("require_structured_payload", True)
+        )
+        self._answer_verifier_require_evidence_report = bool(
+            answer_verifier_config.get("require_evidence_report", True)
+        )
+        self._answer_verifier_check_support_presence = bool(
+            answer_verifier_config.get("check_support_presence", True)
+        )
+        self._answer_verifier_check_sufficiency_consistency = bool(
+            answer_verifier_config.get("check_sufficiency_consistency", True)
+        )
+        self._answer_verifier_check_memory_references = bool(
+            answer_verifier_config.get("check_memory_references", True)
+        )
+        self._answer_verifier_trace_config = {
+            "enabled": self._answer_verifier_enabled,
+            "mode": self._answer_verifier_mode
+            if self._answer_verifier_enabled
+            else None,
+            "trace_only": True,
+            "require_structured_payload": (
+                self._answer_verifier_require_structured_payload
+            ),
+            "require_evidence_report": (
+                self._answer_verifier_require_evidence_report
+            ),
+            "check_support_presence": (
+                self._answer_verifier_check_support_presence
+            ),
+            "check_sufficiency_consistency": (
+                self._answer_verifier_check_sufficiency_consistency
+            ),
+            "check_memory_references": (
+                self._answer_verifier_check_memory_references
+            ),
+        }
         self._answer_repair_enabled = bool(answer_repair_config.get("enabled", False))
         self._answer_repair_information_needs = _tuple_config(
             answer_repair_config.get(
@@ -2344,6 +2391,27 @@ class Stage1Pipeline:
                 token_usage=answer.token_usage,
                 raw_response=answer.raw_response,
             )
+        answer_verifier = audit_answer_support(
+            compiled=compiled,
+            answer=answer,
+            enabled=self._answer_verifier_enabled,
+            mode=self._answer_verifier_mode,
+            require_structured_payload=(
+                self._answer_verifier_require_structured_payload
+            ),
+            require_evidence_report=(
+                self._answer_verifier_require_evidence_report
+            ),
+            check_support_presence=(
+                self._answer_verifier_check_support_presence
+            ),
+            check_sufficiency_consistency=(
+                self._answer_verifier_check_sufficiency_consistency
+            ),
+            check_memory_references=(
+                self._answer_verifier_check_memory_references
+            ),
+        )
         token_usage = built_memory.token_usage + answer.token_usage
         return {
             "answer": answer.answer,
@@ -2706,6 +2774,10 @@ class Stage1Pipeline:
                     **finalizer_settings,
                     "granularity_profile": granularity_profile,
                     **answer_finalization.to_dict(),
+                },
+                "answer_verifier": {
+                    **self._answer_verifier_trace_config,
+                    **answer_verifier.to_dict(),
                 },
                 "answer": answer.to_dict(),
                 "token_cost": token_usage.to_dict(),
