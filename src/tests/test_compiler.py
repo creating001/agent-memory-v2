@@ -534,6 +534,7 @@ class CompilerTest(unittest.TestCase):
             memory_state_guide=True,
             memory_state_guide_information_needs=("current_state",),
             memory_state_guide_require_conflict=True,
+            memory_state_guide_require_active_superseded_pair=True,
             memory_state_guide_require_slot_overlap=True,
             memory_state_guide_require_stateful_slot=True,
         )
@@ -597,6 +598,55 @@ class CompilerTest(unittest.TestCase):
         self.assertIn("predicate=has_status", compiled.prompt)
         self.assertIn("value=Premier Silver", compiled.prompt)
         self.assertIn("value=Premier Gold", compiled.prompt)
+
+    def test_memory_state_guide_pair_gate_skips_superseded_only_slot(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=4,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            max_memory_records=0,
+            memory_state_guide=True,
+            memory_state_guide_information_needs=("current_state",),
+            memory_state_guide_require_conflict=True,
+            memory_state_guide_require_active_superseded_pair=True,
+            memory_state_guide_require_slot_overlap=True,
+            memory_state_guide_require_stateful_slot=True,
+        )
+
+        compiled = compiler.compile(
+            question="What was my previous frequent flyer status?",
+            question_time=None,
+            route=RouteResult("current_state", ("recent_or_current",)),
+            hits=(RetrievalHit("s1:t0", 1.0, 1, "test"),),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="I became eligible for Premier Silver status.",
+                    timestamp="2022-09-16",
+                ),
+            ),
+            memory_records=(),
+            memory_state_guide_records=(
+                MemoryRecord(
+                    memory_id="old",
+                    memory_type="profile",
+                    text="User had Premier Silver frequent flyer status.",
+                    source_ids=("s1:t0",),
+                    subject="User",
+                    predicate="has_status",
+                    value="Premier Silver",
+                    timestamp="2022-09-16",
+                    valid_to="2023-05-30",
+                    status="superseded",
+                    superseded_by="new",
+                ),
+            ),
+        )
+
+        self.assertNotIn("Managed Memory State Guide:", compiled.prompt)
 
     def test_memory_state_guide_stateful_slot_gate_skips_text_only_overlap(self) -> None:
         compiler = EvidenceCompiler(

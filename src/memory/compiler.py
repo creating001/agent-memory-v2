@@ -170,6 +170,7 @@ ROUTE_OVERRIDE_KEYS = {
     "max_row_text_chars",
     "memory_state_guide",
     "memory_state_guide_candidate_records",
+    "memory_state_guide_require_active_superseded_pair",
     "memory_state_guide_require_slot_overlap",
     "memory_state_guide_require_conflict",
     "memory_state_guide_require_stateful_slot",
@@ -378,6 +379,7 @@ class EvidenceCompiler:
         memory_state_guide_value_chars: int = 120,
         memory_state_guide_include_superseded: bool = True,
         memory_state_guide_require_conflict: bool = False,
+        memory_state_guide_require_active_superseded_pair: bool = False,
         memory_state_guide_require_slot_overlap: bool = False,
         memory_state_guide_require_stateful_slot: bool = False,
         profile_activation_guide: bool = False,
@@ -616,6 +618,9 @@ class EvidenceCompiler:
         )
         self._memory_state_guide_require_conflict = bool(
             memory_state_guide_require_conflict
+        )
+        self._memory_state_guide_require_active_superseded_pair = bool(
+            memory_state_guide_require_active_superseded_pair
         )
         self._memory_state_guide_require_slot_overlap = bool(
             memory_state_guide_require_slot_overlap
@@ -977,6 +982,9 @@ class EvidenceCompiler:
             memory_state_guide_require_conflict=route_settings[
                 "memory_state_guide_require_conflict"
             ],
+            memory_state_guide_require_active_superseded_pair=route_settings[
+                "memory_state_guide_require_active_superseded_pair"
+            ],
             memory_state_guide_require_slot_overlap=route_settings[
                 "memory_state_guide_require_slot_overlap"
             ],
@@ -1140,6 +1148,9 @@ class EvidenceCompiler:
             ),
             "memory_state_guide_require_conflict": (
                 self._memory_state_guide_require_conflict
+            ),
+            "memory_state_guide_require_active_superseded_pair": (
+                self._memory_state_guide_require_active_superseded_pair
             ),
             "memory_state_guide_require_slot_overlap": (
                 self._memory_state_guide_require_slot_overlap
@@ -1537,6 +1548,10 @@ def _validate_route_overrides(
         if "memory_state_guide_require_conflict" in raw_overrides:
             overrides["memory_state_guide_require_conflict"] = bool(
                 raw_overrides["memory_state_guide_require_conflict"]
+            )
+        if "memory_state_guide_require_active_superseded_pair" in raw_overrides:
+            overrides["memory_state_guide_require_active_superseded_pair"] = bool(
+                raw_overrides["memory_state_guide_require_active_superseded_pair"]
             )
         if "memory_state_guide_require_slot_overlap" in raw_overrides:
             overrides["memory_state_guide_require_slot_overlap"] = bool(
@@ -2841,6 +2856,7 @@ def _build_prompt(
     memory_state_guide_value_chars: int,
     memory_state_guide_include_superseded: bool,
     memory_state_guide_require_conflict: bool,
+    memory_state_guide_require_active_superseded_pair: bool,
     memory_state_guide_require_slot_overlap: bool,
     memory_state_guide_require_stateful_slot: bool,
     profile_activation_guide: bool,
@@ -2986,6 +3002,9 @@ def _build_prompt(
             ),
             memory_state_guide_require_conflict=(
                 memory_state_guide_require_conflict
+            ),
+            memory_state_guide_require_active_superseded_pair=(
+                memory_state_guide_require_active_superseded_pair
             ),
             memory_state_guide_require_slot_overlap=(
                 memory_state_guide_require_slot_overlap
@@ -3211,6 +3230,7 @@ def _build_external_naive_prompt(
     memory_state_guide_value_chars: int,
     memory_state_guide_include_superseded: bool,
     memory_state_guide_require_conflict: bool,
+    memory_state_guide_require_active_superseded_pair: bool,
     memory_state_guide_require_slot_overlap: bool,
     memory_state_guide_require_stateful_slot: bool,
     profile_activation_guide: bool,
@@ -3367,6 +3387,9 @@ def _build_external_naive_prompt(
             max_value_chars=memory_state_guide_value_chars,
             include_superseded=memory_state_guide_include_superseded,
             require_conflict=memory_state_guide_require_conflict,
+            require_active_superseded_pair=(
+                memory_state_guide_require_active_superseded_pair
+            ),
             require_slot_overlap=memory_state_guide_require_slot_overlap,
             require_stateful_slot=memory_state_guide_require_stateful_slot,
         )
@@ -4041,6 +4064,7 @@ def _external_memory_state_guide_lines(
     max_value_chars: int,
     include_superseded: bool,
     require_conflict: bool = False,
+    require_active_superseded_pair: bool = False,
     require_slot_overlap: bool = False,
     require_stateful_slot: bool = False,
 ) -> list[str]:
@@ -4075,6 +4099,7 @@ def _external_memory_state_guide_lines(
         conflict_slot_keys = _memory_state_conflict_slot_keys(
             (record for _, _, record, _ in candidates),
             question_terms=question_terms,
+            require_active_superseded_pair=require_active_superseded_pair,
             require_slot_overlap=require_slot_overlap,
             require_stateful_slot=require_stateful_slot,
         )
@@ -4186,6 +4211,7 @@ def _memory_state_conflict_slot_keys(
     records: Iterable[MemoryRecord],
     *,
     question_terms: frozenset[str] = frozenset(),
+    require_active_superseded_pair: bool = False,
     require_slot_overlap: bool = False,
     require_stateful_slot: bool = False,
 ) -> set[tuple[str, str, str]]:
@@ -4203,6 +4229,10 @@ def _memory_state_conflict_slot_keys(
         if require_stateful_slot and not _memory_state_slot_is_stateful(
             key[0],
             slot_records,
+        ):
+            continue
+        if require_active_superseded_pair and not _memory_state_slot_has_update_pair(
+            slot_records
         ):
             continue
         values = set()
@@ -4224,6 +4254,21 @@ def _memory_state_conflict_slot_keys(
         if has_value_conflict or has_lifecycle_marker:
             conflict_keys.add(key)
     return conflict_keys
+
+
+def _memory_state_slot_has_update_pair(records: list[MemoryRecord]) -> bool:
+    active_values = set()
+    superseded_values = set()
+    for record in records:
+        value = _normalize_memory_value(record)
+        if not value:
+            continue
+        status = record.status or "active"
+        if status == "superseded" or record.valid_to or record.superseded_by:
+            superseded_values.add(value)
+        else:
+            active_values.add(value)
+    return bool(active_values and superseded_values.difference(active_values))
 
 
 def _memory_state_slot_matches_question(

@@ -6165,6 +6165,7 @@ class CleanSkeletonTest(unittest.TestCase):
                 "memory_state_guide_record_source": "evidence_rows",
                 "memory_state_guide_candidate_records": 12,
                 "memory_state_guide_require_conflict": True,
+                "memory_state_guide_require_active_superseded_pair": True,
                 "memory_state_guide_require_slot_overlap": True,
                 "memory_state_guide_require_stateful_slot": True,
             },
@@ -6202,6 +6203,11 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertTrue(result["trace"]["compiler"]["memory_state_guide"])
         self.assertTrue(
             result["trace"]["compiler"]["memory_state_guide_require_conflict"]
+        )
+        self.assertTrue(
+            result["trace"]["compiler"][
+                "memory_state_guide_require_active_superseded_pair"
+            ]
         )
         self.assertTrue(
             result["trace"]["compiler"]["memory_state_guide_require_slot_overlap"]
