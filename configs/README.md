@@ -12,7 +12,7 @@
 
 | 配置 | 状态 |
 |---|---|
-| `stage1_duplicate_memory_source_utility_v247_seeded_qwen36_no_think_build4k_cached.json` | active probe：v246 的保守修正，只过滤 lexical/dense 已覆盖 source 的低 utility duplicate memory boost，保留 memory-only source，目标是减少 typed-memory 过度排序影响且不丢唯一证据。 |
+| `stage1_duplicate_memory_source_utility_v247_seeded_qwen36_no_think_build4k_cached.json` | rejected probe：LME probe changed judge `1/2 -> 2/2`，但 LoCoMo strict/lenient `16/18 -> 14/18`、`17/18 -> 15/18`，且 query token 小涨。保留为 duplicate-only utility 负向对照。 |
 | `stage1_memory_source_utility_v246_seeded_qwen36_no_think_build4k_cached.json` | rejected full：LME full 降 query token `6579.782 -> 6333.872`，但 changed judge strict/lenient `38/63 -> 27/63`、`39/63 -> 30/63`。保留为 utility gate 负向对照。 |
 | `stage1_typed_compact_cap32_build_memory_v245_seeded_qwen36_no_think_build4k_cached.json` | rejected probe：LoCoMo changed judge strict/lenient `18/22 -> 15/22`、`18/22 -> 17/22`；LME cold build probe 延迟不可接受。保留为 build record cap 负向对照。 |
 | `stage1_lossless_atomic_build_memory_v244_seeded_qwen36_no_think_build4k_cached.json` | diagnostic / not promoted：LoCoMo probe50 query tokens 降低但 changed judge 持平；LME cold build probe 延迟不可接受。保留为 richer atomic build memory 的成本/覆盖教训。 |
