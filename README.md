@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_retrieval_lexical_neutral_long_profile_v202_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_separate_source_conflict_state_guide_v204_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v202 local LTS | 说明 |
+| Benchmark | 当前 v204 local LTS | 说明 |
 |---|---:|---|
-| LongMemEval-S full | strict/lenient `0.834000 / 0.846000` | v202 与 v201 answer/route/compiled context diff `0/500`；raw trace diff 仅为 profile 配置快照少一个冗余 key，normalized trace diff `0/500`；answer cache `500/0/0`。 |
-| LoCoMo non-adversarial full | strict/lenient `0.793506 / 0.818831` | v202 与 v201 answer/route/compiled context diff `0/1540`；raw trace diff 仅为 2 条 embedding cache 计数元数据；answer cache `1540/0/0`。 |
+| LongMemEval-S full | strict/lenient `0.834000 / 0.846000` | v204 与 v202 answer/route/prompt/evidence rows diff `0/500`；Managed Memory State Guide 触发 `0/500`；answer cache `500/0/0`。 |
+| LoCoMo non-adversarial full | strict/lenient `0.793506 / 0.818831` | v204 与 v202 answer/route/prompt/evidence rows diff `0/1540`；Managed Memory State Guide 触发 `0/1540`；answer cache `1540/0/0`。 |
 
-v202 的 LTS 理由：继承 v201 的 full answer 和 judge accuracy，并删除 `long_turn_precision.retrieval` 中冗余的 `lexical_protect_top_n=0` override。全局 dense retrieval 默认已经是 `0`，所以该项只增加 profile 专用耦合，不改变候选保护行为。LME 仍 `500/500` 选择 `long_turn_precision`，LoCoMo profile selected 仍为 `0/1540`；avg-turn profile 风险还没完全解决。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_retrieval_lexical_neutral_long_profile_v202_scope_summary.md`。
+v204 的 LTS 理由：继承 v202 的 full answer 和 judge accuracy，同时把 #5 managed memory state guide 改成 source-separated、conflict-gated 的安全路径。普通 memory-aware evidence ordering 仍用 retrieval-linked typed memory；state guide 可检查 evidence-row-linked typed memory，但只有 active/superseded、`valid_to`、`superseded_by` 或 state/fact/profile/preference 多值冲突时才会进入 prompt，重复 event 值不算 state conflict。本次 full 没有 prompt-visible guide 触发，因此性能继承 v202；详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_separate_source_conflict_state_guide_v204_scope_summary.md`。
 
 ## 目录
 
