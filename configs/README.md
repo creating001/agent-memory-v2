@@ -12,6 +12,7 @@
 
 | 配置 | 状态 |
 |---|---|
+| `stage1_lossless_atomic_build_memory_v244_seeded_qwen36_no_think_build4k_cached.json` | active candidate / probe pending：从 v235 出发，只改 build memory 为 `lossless_atomic` + `max_records_per_chunk=32`；retrieval/compiler/answer/repair/finalizer 保持 v235。 |
 | `stage1_query_scoped_state_source_activation_v243_seeded_qwen36_no_think_build4k_cached.json` | diagnostic / not promoted：probe50 answer-identical；all-current_state targeted answer-identical，但 slot activation 仅 LME `1/22`、LoCoMo `0/4`，覆盖太低。 |
 | `stage1_append_fact_source_alignment_v242_seeded_qwen36_no_think_build4k_cached.json` | full 拒绝：LME changed judge strict/lenient `24/38 -> 14/38`、`24/38 -> 19/38`，derived full LME `0.812000 / 0.834000`；LoCoMo answer-identical。保留为 mechanical source append 负向对照。 |
 | `stage1_fact_source_alignment_v241_seeded_qwen36_no_think_build4k_cached.json` | fact-only source alignment probe 仍负向：LME changed judge `1/2 -> 0/2`；保留为 v242 source-order 父对照。 |
