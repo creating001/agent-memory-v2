@@ -12,7 +12,8 @@
 
 | 配置 | 状态 |
 |---|---|
-| `stage1_source_aligned_memory_v239_seeded_qwen36_no_think_build4k_cached.json` | 基于 v235，只启用 build-memory source alignment：用同 session 相邻 raw turns 修正 typed memory provenance，不新增 answer prompt 规则；等待 probe/full 验证。 |
+| `stage1_role_gated_source_alignment_v240_seeded_qwen36_no_think_build4k_cached.json` | 基于 v239/v235，source alignment 仅允许 `user -> assistant` provenance 修复，避免多人物对话 wrong-speaker 扩源；等待 probe。 |
+| `stage1_source_aligned_memory_v239_seeded_qwen36_no_think_build4k_cached.json` | 宽 source alignment probe 负向：LoCoMo probe50 changed-answer strict `13/14 -> 12/14`，lenient 持平；保留为负向对照。 |
 | v236-v238 prompt-side operation guide | 已被 full/probe 拒绝并从当前可执行配置中移除；需要复现时从对应 git commit 和 `experiments/README.md` 回溯。 |
 
 ## 保留对照

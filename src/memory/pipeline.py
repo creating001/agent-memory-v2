@@ -221,6 +221,9 @@ class Stage1Pipeline:
         self._build_memory_source_alignment_min_delta = float(
             source_alignment_config.get("min_delta", 1.5)
         )
+        self._build_memory_source_alignment_require_assistant_answer_source = bool(
+            source_alignment_config.get("require_assistant_answer_source", False)
+        )
         self._build_memory_trace_config = {
             "enabled": self._build_memory_enabled,
             "mode": build_memory_config.get("mode"),
@@ -245,6 +248,9 @@ class Stage1Pipeline:
                 ),
                 "min_score": self._build_memory_source_alignment_min_score,
                 "min_delta": self._build_memory_source_alignment_min_delta,
+                "require_assistant_answer_source": (
+                    self._build_memory_source_alignment_require_assistant_answer_source
+                ),
             },
         }
         self._memory_slot_chain_enabled = bool(
@@ -1494,6 +1500,9 @@ class Stage1Pipeline:
                 max_sources_per_record=self._build_memory_source_alignment_max_sources,
                 min_score=self._build_memory_source_alignment_min_score,
                 min_delta=self._build_memory_source_alignment_min_delta,
+                require_assistant_answer_source=(
+                    self._build_memory_source_alignment_require_assistant_answer_source
+                ),
             )
             built_memory = replace(built_memory, records=aligned_records)
         profile_name = granularity_profile.get("name") if granularity_profile else None
@@ -2782,6 +2791,7 @@ def _align_build_memory_sources(
     max_sources_per_record: int,
     min_score: float,
     min_delta: float,
+    require_assistant_answer_source: bool = False,
 ) -> tuple[tuple[Any, ...], dict[str, Any]]:
     """Repair near-miss build-memory provenance using local raw turns.
 
@@ -2815,6 +2825,7 @@ def _align_build_memory_sources(
             original_source_ids=source_ids,
             min_score=min_score,
             min_delta=min_delta,
+            require_assistant_answer_source=require_assistant_answer_source,
         )
         if not aligned_source_ids:
             aligned_records.append(record)
@@ -2874,15 +2885,31 @@ def _rank_aligned_source_ids(
     original_source_ids: tuple[str, ...],
     min_score: float,
     min_delta: float,
+    require_assistant_answer_source: bool = False,
 ) -> tuple[str, ...]:
     if not candidates:
         return ()
+    original_set = set(original_source_ids)
+    assistant_answer_origins: tuple[tuple[str, int], ...] = ()
+    if require_assistant_answer_source:
+        assistant_answer_origins = tuple(
+            (turn.session_id, turn.turn_index)
+            for turn in candidates
+            if turn.source_id in original_set and _normalized_role(turn.role) == "user"
+        )
+        if not assistant_answer_origins:
+            return ()
     record_text = _alignment_record_text(record)
     record_terms = _alignment_terms(record_text)
     record_numbers = set(re.findall(r"\b\d+(?:[.,]\d+)?\b", record_text.lower()))
     record_phrases = _alignment_phrases(record)
     scored = []
     for index, turn in enumerate(candidates):
+        if require_assistant_answer_source and not _is_later_assistant_answer_turn(
+            turn,
+            assistant_answer_origins=assistant_answer_origins,
+        ):
+            continue
         turn_text = turn.text.lower()
         turn_terms = _alignment_terms(turn.text)
         overlap = len(record_terms.intersection(turn_terms))
@@ -2895,7 +2922,6 @@ def _rank_aligned_source_ids(
     if not scored:
         return ()
 
-    original_set = set(original_source_ids)
     best_original_score = max(
         (score for score, _, source_id in scored if source_id in original_set),
         default=0.0,
@@ -2906,6 +2932,23 @@ def _rank_aligned_source_ids(
         for score, _, source_id in sorted(scored, key=lambda item: (-item[0], item[1]))
         if source_id not in original_set and score >= cutoff
     )
+
+
+def _is_later_assistant_answer_turn(
+    turn: Turn,
+    *,
+    assistant_answer_origins: tuple[tuple[str, int], ...],
+) -> bool:
+    if _normalized_role(turn.role) != "assistant":
+        return False
+    return any(
+        session_id == turn.session_id and turn.turn_index > turn_index
+        for session_id, turn_index in assistant_answer_origins
+    )
+
+
+def _normalized_role(role: str) -> str:
+    return " ".join(str(role or "").strip().lower().split())
 
 
 def _alignment_record_text(record: Any) -> str:

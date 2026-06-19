@@ -3215,6 +3215,93 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual(trace["records_changed"], 1)
         self.assertEqual(trace["sources_added"], 1)
 
+    def test_build_memory_source_alignment_role_gate_keeps_user_assistant_fix(self) -> None:
+        record = MemoryRecord(
+            memory_id="mem-followers",
+            memory_type="fact",
+            text="The user is nearing 1300 Instagram followers.",
+            source_ids=("s1:t0",),
+            subject="user",
+            predicate="is nearing",
+            value="1300 Instagram followers",
+        )
+        store = RawEvidenceStore(
+            (
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Can you help me write an Instagram caption?",
+                ),
+                Turn(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="assistant",
+                    text=(
+                        "Congratulations on nearing 1300 followers. "
+                        "Here is a caption draft."
+                    ),
+                ),
+            )
+        )
+
+        aligned, trace = _align_build_memory_sources(
+            (record,),
+            store=store,
+            window=1,
+            max_sources_per_record=3,
+            min_score=2.0,
+            min_delta=1.5,
+            require_assistant_answer_source=True,
+        )
+
+        self.assertEqual(aligned[0].source_ids, ("s1:t1", "s1:t0"))
+        self.assertEqual(trace["records_changed"], 1)
+
+    def test_build_memory_source_alignment_role_gate_blocks_multiparty_neighbor(self) -> None:
+        record = MemoryRecord(
+            memory_id="mem-caroline",
+            memory_type="profile",
+            text="Caroline is a transgender woman.",
+            source_ids=("s1:t0",),
+            subject="Caroline",
+            predicate="identity",
+            value="transgender woman",
+        )
+        store = RawEvidenceStore(
+            (
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="Caroline",
+                    text="I am a transgender woman.",
+                ),
+                Turn(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="Melanie",
+                    text="Caroline being a transgender woman matters here.",
+                ),
+            )
+        )
+
+        aligned, trace = _align_build_memory_sources(
+            (record,),
+            store=store,
+            window=1,
+            max_sources_per_record=3,
+            min_score=2.0,
+            min_delta=1.5,
+            require_assistant_answer_source=True,
+        )
+
+        self.assertEqual(aligned[0].source_ids, ("s1:t0",))
+        self.assertEqual(trace["records_changed"], 0)
+
     def test_compiler_memory_record_source_rejects_unknown_value(self) -> None:
         config = {
             "retrieval": {"top_k": 1, "max_top_k": 1},

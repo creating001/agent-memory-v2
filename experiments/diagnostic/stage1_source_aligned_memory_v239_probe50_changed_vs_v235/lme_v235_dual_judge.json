@@ -1,0 +1,130 @@
+{
+  "benchmark": "longmemeval",
+  "by_group": {
+    "single-session-user": {
+      "judge_1_correct": 1,
+      "judge_2_correct": 1,
+      "judge_agreement": 1.0,
+      "lenient_accuracy": 0.5,
+      "lenient_accuracy_both_valid": 0.5,
+      "lenient_correct": 1,
+      "n_any_invalid": 0,
+      "n_both_valid": 2,
+      "n_joined": 2,
+      "strict_accuracy": 0.5,
+      "strict_accuracy_both_valid": 0.5,
+      "strict_correct": 1
+    }
+  },
+  "clean_note": "Dual flash judge is an offline evaluation-only aggregation. It reads gold labels after prediction and must not feed prediction, retrieval, compiler, answer, verifier, or cache construction.",
+  "created_at_utc": "2026-06-19T17:16:41+00:00",
+  "git": {
+    "commit": "239f01698cb2909d63329a87cd52270243534e9e",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "?? experiments/diagnostic/stage1_source_aligned_memory_v239_lme_probe50/\n?? experiments/diagnostic/stage1_source_aligned_memory_v239_locomo_probe50/\n?? experiments/diagnostic/stage1_source_aligned_memory_v239_probe50_changed_vs_v235/"
+  },
+  "judge_models": {
+    "flash_1": "deepseek-v4-flash",
+    "flash_2": "deepseek-v4-flash"
+  },
+  "judge_outputs": {
+    "flash_1": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_source_aligned_memory_v239_probe50_changed_vs_v235/lme_v235_flash1.json",
+    "flash_2": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_source_aligned_memory_v239_probe50_changed_vs_v235/lme_v235_flash2.json"
+  },
+  "judge_request_body_options": {
+    "flash_1": {},
+    "flash_2": {}
+  },
+  "judge_thinking": {
+    "flash_1": null,
+    "flash_2": null
+  },
+  "labels": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_source_aligned_memory_v239_probe50_changed_vs_v235/lme_labels.jsonl",
+  "metrics": {
+    "judge_1_correct": 1,
+    "judge_1_name": "flash_1",
+    "judge_2_correct": 1,
+    "judge_2_name": "flash_2",
+    "judge_agreement": 1.0,
+    "lenient_accuracy": 0.5,
+    "lenient_accuracy_both_valid": 0.5,
+    "lenient_correct": 1,
+    "n_any_invalid": 0,
+    "n_both_valid": 2,
+    "n_joined": 2,
+    "n_judge_1_judgments": 2,
+    "n_judge_2_judgments": 2,
+    "n_missing_judge_1": 0,
+    "n_missing_judge_2": 0,
+    "strict_accuracy": 0.5,
+    "strict_accuracy_both_valid": 0.5,
+    "strict_correct": 1
+  },
+  "predictions": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_source_aligned_memory_v239_probe50_changed_vs_v235/lme_v235_changed_predictions.jsonl",
+  "records": [
+    {
+      "both_valid": true,
+      "group": "single-session-user",
+      "judge_1_correct": false,
+      "judge_1_label": "WRONG",
+      "judge_1_name": "flash_1",
+      "judge_1_valid": true,
+      "judge_2_correct": false,
+      "judge_2_label": "WRONG",
+      "judge_2_name": "flash_2",
+      "judge_2_valid": true,
+      "lenient_correct": false,
+      "record_key": "ea4e66b0d90b6834b4168cfe",
+      "strict_correct": false
+    },
+    {
+      "both_valid": true,
+      "group": "single-session-user",
+      "judge_1_correct": true,
+      "judge_1_label": "CORRECT",
+      "judge_1_name": "flash_1",
+      "judge_1_valid": true,
+      "judge_2_correct": true,
+      "judge_2_label": "CORRECT",
+      "judge_2_name": "flash_2",
+      "judge_2_valid": true,
+      "lenient_correct": true,
+      "record_key": "d0d64a9b8426fda3ea1cd266",
+      "strict_correct": true
+    }
+  ],
+  "single_judge_metrics": {
+    "flash_1": {
+      "accuracy": 0.5,
+      "n_invalid": 0,
+      "n_judgments": 2,
+      "n_valid": 2
+    },
+    "flash_2": {
+      "accuracy": 0.5,
+      "n_invalid": 0,
+      "n_judgments": 2,
+      "n_valid": 2
+    }
+  },
+  "temperature": 0.0,
+  "usage": {
+    "flash_1": {
+      "completion_tokens": 154,
+      "prompt_tokens": 277,
+      "total_tokens": 431
+    },
+    "flash_2": {
+      "completion_tokens": 219,
+      "prompt_tokens": 277,
+      "total_tokens": 496
+    },
+    "total": {
+      "completion_tokens": 373,
+      "prompt_tokens": 554,
+      "total_tokens": 927
+    }
+  }
+}
