@@ -26,8 +26,8 @@
 
 | 优先级 | 项目 | 当前状态 | 下一步 |
 |---:|---|---|---|
-| 1 | #5 memory lifecycle/state/conflict/query-time reasoning | v191 继承 v184 的窄 prompt-side activation，并把 v187/v188 rejected parser/prompt 暴露改成 opt-in；但 `exact_today` 仍有 false-positive prompt-map 风险 | 继续收窄 `exact_today`：要求更强 question slot/action 覆盖，或把低置信候选退回 diagnostics-only |
-| 2 | #2 top-k/context noise/rerank | v129/v134/v140/v152 说明简单裁剪、tail snippet 或 list-count rerank pruning 会伤 accuracy；当前 query context 仍偏长 | 转向 coverage-preserving route-aware context organization：先保留覆盖证据，再做 grouping/dedup/aggregation table |
+| 1 | #5 memory lifecycle/state/conflict/query-time reasoning | v191 继承 v184 的窄 prompt-side activation，并把 v187/v188 rejected parser/prompt 暴露改成 opt-in；但 `exact_today` 仍有 false-positive prompt-map 风险；v192 说明 broad visible candidate guide 会放大 temporal 误解 | 转向 temporal conflict-aware activation：保留 typed/source-backed 线索，但显式区分 mention_time、event phrase、wrapper 和 question slot |
+| 2 | #2 top-k/context noise/rerank | v129/v134/v140/v152 说明简单裁剪、tail snippet 或 list-count rerank pruning 会伤 accuracy；v192 说明宽 Candidate Evidence Map 也会伤 temporal accuracy | 做 coverage-preserving context organization，但避免通用候选列表过强；优先 trace/diagnostic 或窄门控，再进入 prompt |
 | 3 | #1 granularity/profile + #3 selected context | v177 说明 row-length + center-row anaphora 的 selected-context gate 仍过宽；granularity profile 仍基于 avg-turn chars，v158 narrow question-gated policy 仍是较稳边界 | 继续重做更通用的 context organization；selected-context 不能只靠中心行 anaphora 扩邻居，优先做 question-side local reference 或 source-backed candidate map |
 | 4 | src cleanup | 已有多轮兼容分支，`repair.py`、compiler、pipeline 仍会继续变复杂 | 每个阶段结束后做小范围清理，删已确认无用的兼容代码，不删仍有消融价值的模块 |
 
@@ -65,6 +65,7 @@
 
 | 配置 | 原因 |
 |---|---|
+| `stage1_candidate_evidence_map_v192_seeded_qwen36_no_think_build4k_cached.json` | v192 打开 temporal/list_count `Candidate Evidence Map`，但三条 risky activation probe 上 answer diff `2/3`；changed-answer dual judge 从 v191 `2/2` strict/lenient 降到 v192 `1/2`，Nate 行退回 `The weekend of August 27-28, 2022` 且两遍判错，不升 LTS。 |
 | `stage1_source_grounded_self_ref_selected_context_v190_seeded_qwen36_no_think_build4k_cached.json` | v190 用 source-grounded self-reference gate 收窄 temporal selected-context，Nate 行保留 `D19:9,D5:10`、John/James 行 selected-context `0`，但 Nate 答案仍退回 `2022-08-27 to 2022-08-28`，会丢 v184 LoCoMo `+1/+1`，不升 LTS；同时暴露 v187 weekend 解析全局污染重跑 v184 的复现风险。 |
 | `stage1_temporal_question_ref_selected_context_v189_seeded_qwen36_no_think_build4k_cached.json` | v189 将 temporal selected-context 加上 question-reference gate，三条 risky probe 中 selected-context `3/3 -> 0/3`、avg query tokens 降到 `4898.667`，但答案退回 v181/v186-v188 行为，会丢 v184 LoCoMo `+1/+1`，不升 LTS。 |
 | `stage1_temporal_ambiguity_event_time_map_v188_seeded_qwen36_no_think_build4k_cached.json` | v188 只在高置信 Event-Time Candidate Map 出现时加入 `mention_time`/planned `event_time` ambiguity contract，风险面比全局 temporal prompt 小；但三条 v184 risky activation probe 上 Nate row 仍回答 `2022-08-27 to 2022-08-28`，相对当前 LTS 会丢 LoCoMo `+1/+1`，不升 LTS。 |
@@ -105,6 +106,9 @@
 
 | 路径 | 内容 |
 |---|---|
+| `diagnostic/stage1_candidate_evidence_map_v192_probe_summary.md` | v192 负向结论：宽 Candidate Evidence Map 增加 prompt/token 并丢 Nate changed-answer judge，不升 LTS |
+| `diagnostic/stage1_candidate_evidence_map_v192_activation_probe/` | v192 三条 risky activation probe；answer diff vs v191 `2/3`，avg query tokens `6244.333` |
+| `diagnostic/stage1_candidate_evidence_map_v192_changed_vs_v191_probe/` | v192 vs v191 changed-answer dual judge；v191 `2/2` -> v192 `1/2` |
 | `diagnostic/stage1_weekend_parser_gated_v191_scope_summary.md` | 当前 LTS 晋升结论：v191 gate rejected weekend parser / prompt-map `mention_time`，full prompt/answer diff 均为 0，性能继承 v184 |
 | `diagnostic/stage1_weekend_parser_gated_v191_lme_s_full_r2/` | v191 LME full；vs v184 prompt diff `0/500`、answer diff `0/500`、answer cache `500/0/0` |
 | `diagnostic/stage1_weekend_parser_gated_v191_locomo_nonadv_full_r2/` | v191 LoCoMo full；vs v184 prompt diff `0/1540`、answer diff `0/1540`、answer cache `1540/0/0` |

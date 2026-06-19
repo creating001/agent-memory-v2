@@ -1,0 +1,53 @@
+{
+  "decision": "reject",
+  "current_lts_after_run": "v191",
+  "method_commit": "19cd7a5f9cf364b094db2a32530e97d577b9ac7c",
+  "benchmark": "locomo",
+  "subset": "non_adversarial_activation3_changed_answers",
+  "changed_answers": 2,
+  "v191": {
+    "strict_correct": 2,
+    "lenient_correct": 2,
+    "n": 2,
+    "strict_accuracy": 1.0,
+    "lenient_accuracy": 1.0,
+    "judge_usage": {
+      "prompt_tokens": 1474,
+      "completion_tokens": 558,
+      "total_tokens": 2032
+    }
+  },
+  "v192": {
+    "strict_correct": 1,
+    "lenient_correct": 1,
+    "n": 2,
+    "strict_accuracy": 0.5,
+    "lenient_accuracy": 0.5,
+    "judge_usage": {
+      "prompt_tokens": 1484,
+      "completion_tokens": 332,
+      "total_tokens": 1816
+    }
+  },
+  "negative_records": [
+    {
+      "record_key": "acae332af0e2a71091b4c697",
+      "question": "When did Nate take time off to chill with his pets?",
+      "v191_answer": "2022-08-22",
+      "v192_answer": "The weekend of August 27-28, 2022",
+      "v191_judge": [
+        "CORRECT",
+        "CORRECT"
+      ],
+      "v192_judge": [
+        "WRONG",
+        "WRONG"
+      ]
+    }
+  ],
+  "artifacts": {
+    "activation_probe_experiment": "experiments/diagnostic/stage1_candidate_evidence_map_v192_activation_probe/",
+    "activation_probe_outputs": "outputs/diagnostic/stage1_candidate_evidence_map_v192_activation_probe/",
+    "changed_answer_outputs": "outputs/diagnostic/stage1_candidate_evidence_map_v192_changed_vs_v191_probe/"
+  }
+}
