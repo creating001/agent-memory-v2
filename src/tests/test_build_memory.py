@@ -701,6 +701,74 @@ class BuildMemoryTest(unittest.TestCase):
         self.assertEqual(by_value["black tea"].status, "active")
         self.assertEqual(by_value["jasmine tea"].status, "active")
 
+    def test_management_policy_keeps_collection_facts_out_of_lifecycle(self) -> None:
+        class FakeBuilder(OpenAICompatibleMemoryBuilder):
+            def __init__(self) -> None:
+                super().__init__(
+                    base_url="http://unused.local/v1",
+                    model="fake-model",
+                    temperature=0.0,
+                    max_tokens=256,
+                    timeout=1.0,
+                    max_turns_per_chunk=10,
+                    max_chars_per_turn=1000,
+                    max_records_per_chunk=4,
+                    management_policy="stateful_only",
+                )
+
+            def _chat_completion(self, prompt: str) -> dict:
+                del prompt
+                return {
+                    "choices": [
+                        {
+                            "message": {
+                                "content": (
+                                    '{"records":['
+                                    '{"type":"fact","text":"Alex read Dune.",'
+                                    '"subject":"Alex","predicate":"read",'
+                                    '"value":"Dune","source_ids":["s1:t0"],'
+                                    '"timestamp":"2023-01-01","confidence":0.9},'
+                                    '{"type":"fact","text":"Alex read Foundation.",'
+                                    '"subject":"Alex","predicate":"read",'
+                                    '"value":"Foundation","source_ids":["s1:t1"],'
+                                    '"timestamp":"2023-02-01","confidence":0.9}'
+                                    "]} "
+                                )
+                            }
+                        }
+                    ],
+                    "usage": {"total_tokens": 43},
+                }
+
+        built = FakeBuilder().build(
+            (
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Alex read Dune.",
+                ),
+                Turn(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="Alex read Foundation.",
+                ),
+            )
+        )
+
+        self.assertEqual(built.management_policy, "stateful_only")
+        self.assertEqual(built.managed_memory_types, ("preference", "profile", "relationship", "state"))
+        self.assertEqual({record.status for record in built.records}, {"active"})
+        self.assertEqual(built.management["layer_counts"]["semantic"], 2)
+        self.assertEqual(
+            built.management["operation_counts"]["retain_collection_multi_value_slot"],
+            1,
+        )
+        self.assertEqual(built.management["operation_counts"]["supersede"], 0)
+
     def test_compiler_includes_build_memory_view(self) -> None:
         compiler = EvidenceCompiler(
             max_evidence_items=2,

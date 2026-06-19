@@ -236,6 +236,7 @@ class Stage1Pipeline:
                 build_memory_config.get("prompt_profile", "typed_compact")
             ),
             "manage_facts": bool(build_memory_config.get("manage_facts", True)),
+            "management_policy": build_memory_config.get("management_policy"),
             "source_alignment": {
                 "enabled": self._build_memory_source_alignment_enabled,
                 "window": self._build_memory_source_alignment_window,
@@ -627,6 +628,7 @@ class Stage1Pipeline:
                     build_memory_config.get("prompt_profile", "typed_compact")
                 ),
                 manage_facts=bool(build_memory_config.get("manage_facts", True)),
+                management_policy=build_memory_config.get("management_policy"),
                 chat_template_kwargs=_dict_config(
                     build_memory_config.get("chat_template_kwargs")
                 ),

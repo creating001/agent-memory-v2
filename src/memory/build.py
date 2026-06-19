@@ -29,6 +29,11 @@ _MEMORY_TYPES = {
 }
 _STATEFUL_MEMORY_TYPES = frozenset({"preference", "profile", "relationship", "state"})
 _DEFAULT_MANAGED_MEMORY_TYPES = frozenset((*_STATEFUL_MEMORY_TYPES, "fact"))
+_MANAGEMENT_POLICIES = {
+    "none": frozenset(),
+    "stateful_only": _STATEFUL_MEMORY_TYPES,
+    "stateful_plus_facts": _DEFAULT_MANAGED_MEMORY_TYPES,
+}
 
 
 @dataclass(frozen=True)
@@ -97,6 +102,9 @@ class BuiltMemory:
     chunks: int = 0
     cache_enabled: bool = False
     builder: str = "null"
+    management_policy: str = "none"
+    managed_memory_types: tuple[str, ...] = ()
+    management: dict[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -106,6 +114,9 @@ class BuiltMemory:
             "chunks": self.chunks,
             "cache_enabled": self.cache_enabled,
             "builder": self.builder,
+            "management_policy": self.management_policy,
+            "managed_memory_types": list(self.managed_memory_types),
+            "management": dict(self.management or {}),
         }
 
 
@@ -142,10 +153,18 @@ class OpenAICompatibleMemoryBuilder:
         temporal_fields: bool = False,
         prompt_profile: str = "typed_compact",
         manage_facts: bool = True,
+        management_policy: str | None = None,
         chat_template_kwargs: dict[str, Any] | None = None,
     ):
         if prompt_profile not in {"typed_compact", "lossless_atomic"}:
             raise ValueError(f"Unsupported build_memory.prompt_profile: {prompt_profile}")
+        if management_policy is None:
+            management_policy = "stateful_plus_facts" if manage_facts else "stateful_only"
+        if management_policy not in _MANAGEMENT_POLICIES:
+            raise ValueError(
+                "Unsupported build_memory.management_policy: "
+                f"{management_policy}"
+            )
         self._base_url = base_url.rstrip("/")
         self._model = model
         self._temperature = temperature
@@ -164,6 +183,7 @@ class OpenAICompatibleMemoryBuilder:
         self._temporal_fields = temporal_fields
         self._prompt_profile = prompt_profile
         self._manage_facts = manage_facts
+        self._management_policy = management_policy
         self._chat_template_kwargs = dict(chat_template_kwargs or {})
         self._connection: sqlite3.Connection | None = None
         self._cache_stats = BuildMemoryCacheStats()
@@ -178,6 +198,17 @@ class OpenAICompatibleMemoryBuilder:
                 chunks=0,
                 cache_enabled=self._cache_path is not None,
                 builder=self._model,
+                management_policy=self._management_policy,
+                managed_memory_types=tuple(
+                    sorted(_MANAGEMENT_POLICIES[self._management_policy])
+                ),
+                management=_management_summary(
+                    (),
+                    policy=self._management_policy,
+                    managed_memory_types=_MANAGEMENT_POLICIES[
+                        self._management_policy
+                    ],
+                ),
             )
 
         all_records: list[MemoryRecord] = []
@@ -228,9 +259,10 @@ class OpenAICompatibleMemoryBuilder:
                 if record is not None:
                     all_records.append(record)
 
-        managed = _manage_records(
-            tuple(all_records),
-            managed_memory_types=(
+        managed_memory_types = (
+            _MANAGEMENT_POLICIES[self._management_policy]
+            if self._management_policy is not None
+            else (
                 _STATEFUL_MEMORY_TYPES
                 if self._temporal_fields
                 else (
@@ -238,7 +270,11 @@ class OpenAICompatibleMemoryBuilder:
                     if self._manage_facts
                     else _STATEFUL_MEMORY_TYPES
                 )
-            ),
+            )
+        )
+        managed = _manage_records(
+            tuple(all_records),
+            managed_memory_types=managed_memory_types,
         )
         return BuiltMemory(
             records=managed,
@@ -247,6 +283,13 @@ class OpenAICompatibleMemoryBuilder:
             chunks=len(chunks),
             cache_enabled=self._cache_path is not None,
             builder=self._model,
+            management_policy=self._management_policy,
+            managed_memory_types=tuple(sorted(managed_memory_types)),
+            management=_management_summary(
+                managed,
+                policy=self._management_policy,
+                managed_memory_types=managed_memory_types,
+            ),
         )
 
     def _build_prompt(self, turns: tuple[Turn, ...]) -> str:
@@ -626,6 +669,93 @@ def _manage_records(
         )
     )
     return tuple(result)
+
+
+def _management_summary(
+    records: tuple[MemoryRecord, ...],
+    *,
+    policy: str,
+    managed_memory_types: frozenset[str],
+) -> dict[str, Any]:
+    """Summarize build-time memory operations for trace/audit.
+
+    The summary is generated after normalization and lifecycle management. It is
+    a diagnostic view only; retrieval and answering continue to use the managed
+    records themselves.
+    """
+
+    status_counts: dict[str, int] = defaultdict(int)
+    type_counts: dict[str, int] = defaultdict(int)
+    layer_counts: dict[str, int] = defaultdict(int)
+    for record in records:
+        status_counts[record.status] += 1
+        type_counts[record.memory_type] += 1
+        layer_counts[_memory_layer(record.memory_type)] += 1
+
+    groups: dict[tuple[str, str, str], list[MemoryRecord]] = defaultdict(list)
+    for record in records:
+        if not record.subject or not record.predicate:
+            continue
+        groups[
+            (
+                record.memory_type,
+                _normalize_key_text(record.subject),
+                _normalize_key_text(record.predicate),
+            )
+        ].append(record)
+
+    managed_lifecycle_slots = 0
+    nonmanaged_multi_value_slots = 0
+    for (memory_type, _subject, _predicate), group in groups.items():
+        values = {
+            _normalize_key_text(record.value or record.text)
+            for record in group
+            if record.value or record.text
+        }
+        statuses = {record.status for record in group}
+        has_lifecycle = "superseded" in statuses or len(values) > 1
+        if not has_lifecycle:
+            continue
+        if memory_type in managed_memory_types:
+            managed_lifecycle_slots += 1
+        else:
+            nonmanaged_multi_value_slots += 1
+
+    return {
+        "policy": policy,
+        "managed_memory_types": sorted(managed_memory_types),
+        "total_records": len(records),
+        "active_records": status_counts.get("active", 0),
+        "superseded_records": status_counts.get("superseded", 0),
+        "status_counts": dict(sorted(status_counts.items())),
+        "type_counts": dict(sorted(type_counts.items())),
+        "layer_counts": dict(sorted(layer_counts.items())),
+        "operation_counts": {
+            "create": len(records),
+            "retain_active": status_counts.get("active", 0),
+            "supersede": status_counts.get("superseded", 0),
+            "retain_collection_multi_value_slot": nonmanaged_multi_value_slots,
+        },
+        "managed_lifecycle_slot_count": managed_lifecycle_slots,
+        "nonmanaged_multi_value_slot_count": nonmanaged_multi_value_slots,
+        "clean_note": (
+            "Build-time memory management is question-independent and uses only "
+            "typed records derived from raw turns. Non-managed multi-value slots "
+            "remain active collection facts rather than current-state updates."
+        ),
+    }
+
+
+def _memory_layer(memory_type: str) -> str:
+    if memory_type in {"event"}:
+        return "episodic"
+    if memory_type in {"preference", "profile", "relationship", "state"}:
+        return "profile_state"
+    if memory_type in {"plan"}:
+        return "prospective"
+    if memory_type in {"fact"}:
+        return "semantic"
+    return "unknown"
 
 
 def _message_text(message: dict[str, Any]) -> str:
