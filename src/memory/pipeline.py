@@ -3097,6 +3097,13 @@ def _selected_context_manifest(
     materialized_set = set(materialized_source_ids)
     risk_set = set(risk_source_ids)
     safe_set = set(safe_source_ids)
+    severity = _selected_context_source_flow_severity(
+        risk_source_ids=risk_source_ids,
+        final_evidence_source_ids=final_evidence_source_ids,
+        typed_memory_source_ids=typed_memory_source_ids,
+        memory_projected_source_ids=memory_projected_source_ids,
+        risk_reasons=risk_reasons,
+    )
 
     risk_details = []
     for source_id in risk_source_ids[:8]:
@@ -3130,11 +3137,13 @@ def _selected_context_manifest(
         "safe_count": len(safe_source_ids),
         "risk_reason_counts": dict(sorted(reason_counts.items())),
         "risk_final_row_count": len(risk_set & final_set),
+        "risk_not_final_row_count": len(risk_set - final_set),
         "risk_from_typed_memory_source_count": len(risk_set & typed_memory_set),
         "risk_from_memory_projection_count": len(risk_set & memory_projected_set),
         "safe_final_row_count": len(safe_set & final_set),
         "safe_from_typed_memory_source_count": len(safe_set & typed_memory_set),
         "safe_from_memory_projection_count": len(safe_set & memory_projected_set),
+        "source_flow_severity": severity,
         "materialized_source_ids": list(materialized_source_ids),
         "risk_source_ids": list(risk_source_ids),
         "safe_source_ids": list(safe_source_ids),
@@ -3145,6 +3154,78 @@ def _selected_context_manifest(
         ),
         "raw_center_text_audit_count": int(
             risk_audit.get("raw_center_text_audit_count") or 0
+        ),
+    }
+
+
+def _selected_context_source_flow_severity(
+    *,
+    risk_source_ids: tuple[str, ...],
+    final_evidence_source_ids: tuple[str, ...],
+    typed_memory_source_ids: tuple[str, ...],
+    memory_projected_source_ids: tuple[str, ...],
+    risk_reasons: Mapping[str, str],
+) -> dict[str, Any]:
+    """Classify selected-context audit rows without changing prediction.
+
+    A row that looks risky by local question-term matching is much less safe to
+    drop or reorder if it is also a final evidence row. This trace-only split
+    keeps future gates from treating source-backed local context as disposable
+    prompt noise.
+    """
+
+    final_set = set(final_evidence_source_ids)
+    typed_memory_set = set(typed_memory_source_ids)
+    memory_projected_set = set(memory_projected_source_ids)
+    counts = {
+        "raw_evidence_backed": 0,
+        "typed_memory_backed": 0,
+        "memory_projected_backed": 0,
+        "not_final_evidence": 0,
+    }
+    guarded_rerank_eligible_source_ids: list[str] = []
+    blocked_source_ids: list[str] = []
+    details: list[dict[str, Any]] = []
+
+    for source_id in risk_source_ids:
+        in_final = source_id in final_set
+        from_typed_memory = source_id in typed_memory_set
+        from_memory_projection = source_id in memory_projected_set
+        if in_final:
+            counts["raw_evidence_backed"] += 1
+            blocked_source_ids.append(source_id)
+        else:
+            counts["not_final_evidence"] += 1
+            guarded_rerank_eligible_source_ids.append(source_id)
+        if from_typed_memory:
+            counts["typed_memory_backed"] += 1
+        if from_memory_projection:
+            counts["memory_projected_backed"] += 1
+        if len(details) < 8:
+            details.append(
+                {
+                    "source_id": source_id,
+                    "reason": risk_reasons.get(source_id, "unknown"),
+                    "in_final_evidence": in_final,
+                    "from_typed_memory_source": from_typed_memory,
+                    "from_memory_projection": from_memory_projection,
+                    "guarded_rerank_eligible": not in_final,
+                }
+            )
+
+    return {
+        "trace_only": True,
+        "counts": counts,
+        "guarded_rerank_eligible_count": len(guarded_rerank_eligible_source_ids),
+        "guarded_rerank_blocked_by_final_evidence_count": len(blocked_source_ids),
+        "guarded_rerank_eligible_source_ids": guarded_rerank_eligible_source_ids[:16],
+        "blocked_by_final_evidence_source_ids": blocked_source_ids[:16],
+        "details": details,
+        "clean_note": (
+            "Trace-only severity for future guarded rerank/order decisions; "
+            "rows already used as final evidence are not treated as safe tail "
+            "noise solely because the local selected-context text has weak "
+            "question-term overlap."
         ),
     }
 

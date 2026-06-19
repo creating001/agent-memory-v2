@@ -302,6 +302,17 @@ class CleanSkeletonTest(unittest.TestCase):
             selected_context_ledger["risk_from_typed_memory_source_count"],
             1,
         )
+        self.assertEqual(selected_context_ledger["risk_not_final_row_count"], 0)
+        severity = selected_context_ledger["source_flow_severity"]
+        self.assertTrue(severity["trace_only"])
+        self.assertEqual(severity["counts"]["raw_evidence_backed"], 1)
+        self.assertEqual(severity["counts"]["not_final_evidence"], 0)
+        self.assertEqual(severity["counts"]["typed_memory_backed"], 1)
+        self.assertEqual(severity["counts"]["memory_projected_backed"], 0)
+        self.assertEqual(severity["guarded_rerank_eligible_count"], 0)
+        self.assertEqual(
+            severity["guarded_rerank_blocked_by_final_evidence_count"], 1
+        )
         self.assertEqual(
             selected_context_ledger["risk_details"][0]["source_id"], "s1:t1"
         )
