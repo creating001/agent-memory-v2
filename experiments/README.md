@@ -27,7 +27,7 @@
 | 优先级 | 项目 | 当前状态 | 下一步 |
 |---:|---|---|---|
 | 1 | #2 top-k/context noise/rerank | v217 记录 prompt context chars、context-budget headroom/drop 与 selected-context source flow；v209/v211 已保守裁掉 LME tail retrieval candidates，v210/v215 证明机械压缩 prompt text 会伤 reader | 继续做 source/span 保真的 prompt-stable context organization 或 guarded rerank，目标是减少进入 prompt 的噪声和 token，而不是硬剪证据或单纯改写包装格式 |
-| 2 | #3 selected context | v217 将 LoCoMo selected-context risk rows `5841` 归因到 final evidence、typed-memory source 与 memory-projected retrieval，其中 `1198` 与 typed/projection 重合；主因是 slot coverage/terms 不足 | 用 v217 ledger 的风险归因设计 source-backed mitigation；任何 prompt-visible gate 必须先做 changed-answer judge |
+| 2 | #3 selected context | v217 将 LoCoMo selected-context risk rows `5841` 归因到 final evidence、typed-memory source 与 memory-projected retrieval；v218 hard gate 把风险降到 `0` 且降 query tokens，但 LoCoMo changed judge `-5/-12`，说明过宽抑制会伤局部消歧 | 下一步改做细粒度 source-flow scoring / rerank，只压制 wrong-speaker、unsupported time binding 或无 final-evidence/source-backed overlap 的高风险 context |
 | 3 | #5 memory lifecycle/state/conflict/query-time reasoning | v216/v217 已把 typed-memory activation、memory-projected source、context budget、selected-context 和 final evidence rows 合入 trace-only Context Manifest；LME/LoCoMo manifest `500/500`、`1540/1540` | 从 audit 走向更通用的 state/update organization：保留 raw evidence first，typed memory 只做 source-backed activation；不把普通 event/preference 多值当 state conflict |
 | 4 | src cleanup | 已有多轮兼容分支，`repair.py`、compiler、pipeline 仍会继续变复杂 | 每个阶段结束后做小范围清理，删已确认无用的兼容代码，不删仍有消融价值的模块 |
 
@@ -85,6 +85,7 @@
 
 | 配置 | 原因 |
 |---|---|
+| `stage1_materialized_context_source_gate_v218_seeded_qwen36_no_think_build4k_cached.json` | v218 的 materialized-context source gate 是 clean/general 的 source-flow hard gate；LME changed judge 持平 `1/1 -> 1/1`，LoCoMo avg query tokens `6095.268 -> 5739.079`、selected-context risk rows `5841 -> 0`，但 prompt diff `1480/1540`、answer diff `683/1540`，changed-answer dual judge strict/lenient `505/683 -> 500/683`、`527/683 -> 515/683`，derived LoCoMo full `0.790260/0.811039` 低于 v217，不升 LTS。下一步不能做过宽 prompt-visible hard gate，应做更细粒度 source-flow scoring/rerank。 |
 | `stage1_compact_selected_context_format_v215_seeded_qwen36_no_think_build4k_cached.json` | v215 用更短 selected-context wrapper 试图降低 #2 query token；LoCoMo probe200 avg query tokens `6142.005 -> 6017.23`，但 prompt diff `198/200`、evidence row ids diff `47/200`、answer diff `86/200`。token 节省不足以抵消 reader 行为漂移，不升 LTS、不跑 full/judge。 |
 | `stage1_role_aware_tail_snippet_v210_seeded_qwen36_no_think_build4k_cached.json` | v210 只压缩 rank `>32` tail row 的 prompt text，retrieval hits/evidence rows/source order 均不变，LME avg query tokens `6580.196 -> 6122.956`；但 answer diff `96/500`，changed-answer dual judge strict/lenient `55/96 -> 41/96`、`62/96 -> 53/96`，说明 row-set preserving tail snippet 仍会损伤 reader，不升 LTS、不跑 LoCoMo。 |
 | `stage1_guarded_context_budget_v208_seeded_qwen36_no_think_build4k_cached.json` | v208 把 v207 的 `16000` char / `32` anchor context-budget audit 改成真实 retrieval budget；LME answer diff `0/500` 但 prompt/evidence rows diff `1/500`，avg query tokens `6580.196 -> 6580.362`，LoCoMo dropped `0` 且完全 no-op；不升 LTS。后续改用更保守或动态 prompt-stable guard。 |
@@ -131,6 +132,9 @@
 
 | 路径 | 内容 |
 |---|---|
+| `diagnostic/stage1_materialized_context_source_gate_v218_scope_summary.md` | v218 负向结论：selected-context risk rows 降为 `0`、LoCoMo query tokens 下降，但 prompt diff `1480/1540`、changed-answer judge `-5/-12`，不升 LTS |
+| `diagnostic/stage1_materialized_context_source_gate_v218_lme_s_full/` | v218 LME full；answer diff `1/500`，changed-answer judge 持平 `1/1` |
+| `diagnostic/stage1_materialized_context_source_gate_v218_locomo_nonadv_full/` | v218 LoCoMo full；answer diff `683/1540`，selected-context risk rows `0`，avg query tokens `5739.078571428571` |
 | `diagnostic/stage1_context_organization_ledger_v217_scope_summary.md` | 当前 LTS 晋升结论：v217 新增 trace-only Context Organization Ledger，full answer/prompt/evidence rows/retrieval hits/effective selected-context diff 均为 `0`，性能继承 v216 |
 | `diagnostic/stage1_context_organization_ledger_v217_lme_s_full/` | v217 LME full；vs v216 answer/prompt/evidence rows/retrieval hits/effective selected-context diff `0/500`，Context Organization Ledger `500/500` |
 | `diagnostic/stage1_context_organization_ledger_v217_locomo_nonadv_full/` | v217 LoCoMo full；vs v216 answer/prompt/evidence rows/retrieval hits/effective selected-context diff `0/1540`，Context Organization Ledger `1540/1540`，selected-context risk rows `5841` |
