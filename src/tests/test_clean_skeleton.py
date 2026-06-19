@@ -48,6 +48,7 @@ from memory.pipeline import (
     _memory_slot_chain_source_hits,
     _memory_records_by_source,
     _neighbor_turns_for_rerank,
+    _rerank_exchange_guard,
     _selected_context_content_terms,
     _selected_context_source_grounded_match,
 )
@@ -2277,6 +2278,73 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual([hit.source_id for hit in filtered], ["anchor", "best"])
         self.assertTrue(all("rerank_filter" in hit.retriever for hit in filtered))
 
+    def test_rerank_exchange_guard_blocks_protected_tail(self) -> None:
+        store = RawEvidenceStore(
+            (
+                Turn("anchor", "s1", 0, "user", "Coupon anchor."),
+                Turn("memory", "s2", 0, "user", "Memory backed detail."),
+                Turn("candidate", "s3", 0, "user", "Low risk candidate."),
+            )
+        )
+        hits = (
+            RetrievalHit("anchor", 0.9, 1, "hybrid"),
+            RetrievalHit("memory", 0.8, 2, "hybrid"),
+            RetrievalHit("candidate", 0.7, 3, "hybrid"),
+        )
+
+        reason, trace = _rerank_exchange_guard(
+            store=store,
+            question="Where was the coupon redeemed?",
+            hits=hits,
+            top_k=3,
+            return_top_k=2,
+            selection_mode="filter_preserve_order",
+            anchor_keep=1,
+            protected_source_ids=("memory",),
+            enabled=True,
+            protect_memory_sources=True,
+            protect_adjacent_session=True,
+            question_overlap_min_terms=1,
+        )
+
+        self.assertEqual(reason, "exchange_tail_protected_memory_source")
+        self.assertEqual(trace["protected_memory_source_ids"], ("memory",))
+
+    def test_rerank_exchange_guard_blocks_adjacent_tail(self) -> None:
+        store = RawEvidenceStore(
+            (
+                Turn("anchor", "s1", 0, "user", "Coupon anchor."),
+                Turn("tail", "s1", 1, "assistant", "Bridge detail."),
+                Turn("candidate", "s2", 0, "user", "Low risk candidate."),
+            )
+        )
+        hits = (
+            RetrievalHit("anchor", 0.9, 1, "hybrid"),
+            RetrievalHit("tail", 0.8, 2, "hybrid"),
+            RetrievalHit("candidate", 0.7, 3, "hybrid"),
+        )
+
+        reason, trace = _rerank_exchange_guard(
+            store=store,
+            question="Where was the coupon redeemed?",
+            hits=hits,
+            top_k=3,
+            return_top_k=2,
+            selection_mode="filter_preserve_order",
+            anchor_keep=1,
+            protected_source_ids=(),
+            enabled=True,
+            protect_memory_sources=True,
+            protect_adjacent_session=True,
+            question_overlap_min_terms=0,
+        )
+
+        self.assertEqual(reason, "exchange_tail_protected_adjacent_session")
+        self.assertEqual(
+            trace["adjacent_session_pairs"][0]["neighbor_source_id"],
+            "anchor",
+        )
+
     def test_pipeline_rerank_filter_selects_tail_without_reordering_anchor(self) -> None:
         config = {
             "retrieval": {
@@ -2338,6 +2406,83 @@ class CleanSkeletonTest(unittest.TestCase):
             ["anchor", "target"],
         )
         self.assertEqual([row["source_id"] for row in rows], ["anchor", "target"])
+
+    def test_pipeline_rerank_exchange_guard_allows_return_top_k_tail_exchange(
+        self,
+    ) -> None:
+        config = {
+            "retrieval": {
+                "top_k": 3,
+                "max_top_k": 3,
+                "neighbor_window": 0,
+                "drop_query_stopwords": True,
+                "rerank": {
+                    "enabled": True,
+                    "base_url": "http://127.0.0.1:8002/v1",
+                    "model": "fake-reranker",
+                    "pool_k": 4,
+                    "return_top_k": 2,
+                    "anchor_keep": 1,
+                    "anchor_after_top": 0,
+                    "selection_mode": "filter_preserve_order",
+                    "exchange_guard": {
+                        "enabled": True,
+                        "protect_memory_sources": True,
+                        "protect_adjacent_session": True,
+                        "protect_question_overlap_min_terms": 2,
+                    },
+                },
+            },
+            "compiler": {"max_evidence_items": 3, "max_evidence_chars": 4000},
+            "answer": {"fallback_answer": "unknown"},
+        }
+        request = PredictionRequest(
+            question="coupon",
+            turns=(
+                Turn(
+                    source_id="anchor",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="coupon coupon coupon coupon",
+                ),
+                Turn(
+                    source_id="exchangeable",
+                    session_id="s2",
+                    turn_index=0,
+                    role="user",
+                    text="coupon coupon coupon",
+                ),
+                Turn(
+                    source_id="middle",
+                    session_id="s3",
+                    turn_index=0,
+                    role="user",
+                    text="coupon coupon",
+                ),
+                Turn(
+                    source_id="target",
+                    session_id="s4",
+                    turn_index=0,
+                    role="user",
+                    text="coupon Target",
+                ),
+            ),
+        )
+
+        with patch("memory.pipeline.OpenAICompatibleRerankClient", _FakeReranker):
+            result = Stage1Pipeline(config).predict(request)
+
+        retrieval_trace = result["trace"]["retrieval"]
+
+        self.assertEqual(retrieval_trace["candidate_top_k"], 4)
+        self.assertTrue(retrieval_trace["rerank_applied"])
+        self.assertEqual(retrieval_trace["rerank_return_top_k"], 2)
+        self.assertEqual(retrieval_trace["rerank_exchange_guard"]["reason"], "allowed")
+        self.assertEqual(
+            [hit["source_id"] for hit in retrieval_trace["hits"]],
+            ["anchor", "target"],
+        )
 
     def test_rerank_neighbors_are_same_session_only(self) -> None:
         store = RawEvidenceStore(

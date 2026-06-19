@@ -500,6 +500,9 @@ class Stage1Pipeline:
         self._rerank_min_effective_top_k = int(
             rerank_config.get("min_effective_top_k", 0)
         )
+        self._rerank_return_top_k = max(
+            0, int(rerank_config.get("return_top_k", 0))
+        )
         self._rerank_batch_size = int(rerank_config.get("batch_size", 0))
         self._rerank_timeout = float(rerank_config.get("timeout", 120.0))
         self._rerank_document_max_chars = int(
@@ -549,6 +552,27 @@ class Stage1Pipeline:
         )
         self._rerank_information_needs = _tuple_config(
             rerank_config.get("information_needs")
+        )
+        rerank_exchange_guard_config = rerank_config.get("exchange_guard", {})
+        if not isinstance(rerank_exchange_guard_config, Mapping):
+            raise ValueError("retrieval.rerank.exchange_guard must be an object")
+        self._rerank_exchange_guard_enabled = bool(
+            rerank_exchange_guard_config.get("enabled", False)
+        )
+        self._rerank_exchange_guard_protect_memory_sources = bool(
+            rerank_exchange_guard_config.get("protect_memory_sources", True)
+        )
+        self._rerank_exchange_guard_protect_adjacent_session = bool(
+            rerank_exchange_guard_config.get("protect_adjacent_session", True)
+        )
+        self._rerank_exchange_guard_question_overlap_min_terms = max(
+            0,
+            int(
+                rerank_exchange_guard_config.get(
+                    "protect_question_overlap_min_terms",
+                    0,
+                )
+            ),
         )
         self._rerank_client = None
         if self._rerank_enabled:
@@ -1647,12 +1671,20 @@ class Stage1Pipeline:
             enabled=self._rerank_enabled,
             information_needs=self._rerank_information_needs,
             min_effective_top_k=self._rerank_min_effective_top_k,
+            return_top_k=self._rerank_return_top_k,
+            exchange_guard_enabled=self._rerank_exchange_guard_enabled,
         )
         rerank_skipped_reason = _rerank_skip_reason(
             route=route,
             enabled_information_needs=self._rerank_information_needs,
             top_k=top_k,
             min_effective_top_k=self._rerank_min_effective_top_k,
+        )
+        protected_rerank_source_ids = _ordered_unique(
+            (
+                *_source_ids_from_hits(memory_source_hits),
+                *_source_ids_from_hits(memory_slot_chain_source_hits),
+            )
         )
         if self._rerank_client is not None and rerank_skipped_reason is None:
             hits, rerank_trace = self._rerank_hits(
@@ -1661,6 +1693,7 @@ class Stage1Pipeline:
                 hits=hits,
                 top_k=top_k,
                 memory_hits=memory_hits,
+                protected_source_ids=protected_rerank_source_ids,
             )
         elif self._rerank_enabled:
             rerank_trace["skipped_reason"] = rerank_skipped_reason
@@ -2177,6 +2210,9 @@ class Stage1Pipeline:
                         if self._rerank_enabled
                         else None
                     ),
+                    "rerank_return_top_k": rerank_trace.get("return_top_k")
+                    if self._rerank_enabled
+                    else None,
                     "rerank_query_text_mode": self._rerank_query_text_mode
                     if self._rerank_enabled
                     else None,
@@ -2206,6 +2242,12 @@ class Stage1Pipeline:
                     if self._rerank_enabled
                     else None,
                     "rerank_information_needs": self._rerank_information_needs,
+                    "rerank_exchange_guard_enabled": (
+                        self._rerank_exchange_guard_enabled
+                    )
+                    if self._rerank_enabled
+                    else None,
+                    "rerank_exchange_guard": rerank_trace.get("exchange_guard"),
                     "rerank_candidate_count": rerank_trace["candidate_count"],
                     "rerank_returned_count": rerank_trace["returned_count"],
                     "rerank_total_tokens": rerank_trace["total_tokens"],
@@ -2403,12 +2445,15 @@ class Stage1Pipeline:
         hits: tuple[RetrievalHit, ...],
         top_k: int,
         memory_hits: tuple[Any, ...],
+        protected_source_ids: tuple[str, ...] = (),
     ) -> tuple[tuple[RetrievalHit, ...], dict[str, Any]]:
         if self._rerank_client is None or not hits:
             return hits[:top_k], _disabled_rerank_trace(
                 enabled=self._rerank_enabled,
                 information_needs=self._rerank_information_needs,
                 min_effective_top_k=self._rerank_min_effective_top_k,
+                return_top_k=self._rerank_return_top_k,
+                exchange_guard_enabled=self._rerank_exchange_guard_enabled,
             )
 
         rerank_items = tuple(
@@ -2416,15 +2461,53 @@ class Stage1Pipeline:
             for hit in hits
             if (turn := store.get(hit.source_id)) is not None
         )
+        return_top_k = self._rerank_return_top_k or top_k
+        return_top_k = min(top_k, max(0, return_top_k), len(rerank_items))
         if not rerank_items:
             trace = _disabled_rerank_trace(
                 enabled=self._rerank_enabled,
                 information_needs=self._rerank_information_needs,
                 min_effective_top_k=self._rerank_min_effective_top_k,
+                return_top_k=return_top_k,
+                exchange_guard_enabled=self._rerank_exchange_guard_enabled,
             )
             trace["response"] = {"skipped": "no_source_documents"}
             return hits[:top_k], trace
         rerank_hits = tuple(hit for hit, _turn in rerank_items)
+        guard_reason, guard_trace = _rerank_exchange_guard(
+            store=store,
+            question=request.question,
+            hits=rerank_hits,
+            top_k=top_k,
+            return_top_k=return_top_k,
+            selection_mode=self._rerank_selection_mode,
+            anchor_keep=self._rerank_anchor_keep,
+            protected_source_ids=protected_source_ids,
+            enabled=self._rerank_exchange_guard_enabled,
+            protect_memory_sources=(
+                self._rerank_exchange_guard_protect_memory_sources
+            ),
+            protect_adjacent_session=(
+                self._rerank_exchange_guard_protect_adjacent_session
+            ),
+            question_overlap_min_terms=(
+                self._rerank_exchange_guard_question_overlap_min_terms
+            ),
+        )
+        if guard_reason is not None:
+            trace = _disabled_rerank_trace(
+                enabled=self._rerank_enabled,
+                information_needs=self._rerank_information_needs,
+                min_effective_top_k=self._rerank_min_effective_top_k,
+                skipped_reason=guard_reason,
+                return_top_k=return_top_k,
+                exchange_guard_enabled=self._rerank_exchange_guard_enabled,
+                exchange_guard=guard_trace,
+            )
+            trace["candidate_count"] = len(rerank_hits)
+            trace["returned_count"] = min(top_k, len(hits))
+            trace["response"] = {"exchange_guard": guard_trace}
+            return hits[:top_k], trace
         memory_records_by_source = _memory_records_by_source(memory_hits)
         documents = [
             self._format_rerank_document(
@@ -2444,7 +2527,7 @@ class Stage1Pipeline:
             reranked_hits = rerank_hits_filter_preserve_order(
                 hits=rerank_hits,
                 scores=result.scores,
-                top_k=top_k,
+                top_k=return_top_k,
                 anchor_keep=self._rerank_anchor_keep,
                 anchor_after_top=self._rerank_anchor_after_top,
             )
@@ -2452,16 +2535,21 @@ class Stage1Pipeline:
             reranked_hits = rerank_hits_with_anchor_retention(
                 hits=rerank_hits,
                 scores=result.scores,
-                top_k=top_k,
+                top_k=return_top_k,
                 anchor_keep=self._rerank_anchor_keep,
                 anchor_after_top=self._rerank_anchor_after_top,
             )
+        response = dict(result.response)
+        response["exchange_guard"] = guard_trace
         return reranked_hits, {
             "enabled": self._rerank_enabled,
             "applied": True,
             "information_needs": self._rerank_information_needs,
             "selection_mode": self._rerank_selection_mode,
             "min_effective_top_k": self._rerank_min_effective_top_k,
+            "return_top_k": return_top_k,
+            "exchange_guard_enabled": self._rerank_exchange_guard_enabled,
+            "exchange_guard": guard_trace,
             "candidate_count": len(rerank_hits),
             "returned_count": len(reranked_hits),
             "total_tokens": result.total_tokens,
@@ -2471,7 +2559,7 @@ class Stage1Pipeline:
             "document_max_memory_records": (
                 self._rerank_document_max_memory_records
             ),
-            "response": result.response,
+            "response": response,
         }
 
     def _format_rerank_document(
@@ -4308,18 +4396,138 @@ def _rerank_skip_reason(
     return None
 
 
+def _rerank_exchange_guard(
+    *,
+    store: RawEvidenceStore,
+    question: str,
+    hits: tuple[RetrievalHit, ...],
+    top_k: int,
+    return_top_k: int,
+    selection_mode: str,
+    anchor_keep: int,
+    protected_source_ids: tuple[str, ...],
+    enabled: bool,
+    protect_memory_sources: bool,
+    protect_adjacent_session: bool,
+    question_overlap_min_terms: int,
+) -> tuple[str | None, dict[str, Any]]:
+    if not enabled:
+        return None, {"enabled": False}
+    trace: dict[str, Any] = {
+        "enabled": True,
+        "selection_mode": selection_mode,
+        "top_k": top_k,
+        "return_top_k": return_top_k,
+        "anchor_keep": anchor_keep,
+        "protect_memory_sources": protect_memory_sources,
+        "protect_adjacent_session": protect_adjacent_session,
+        "protect_question_overlap_min_terms": question_overlap_min_terms,
+        "reason": None,
+    }
+    if selection_mode != "filter_preserve_order":
+        trace["reason"] = "selection_mode_not_supported"
+        return None, trace
+    if return_top_k <= 0 or return_top_k >= top_k:
+        trace["reason"] = "no_tail_exchange"
+        return None, trace
+    if not hits:
+        trace["reason"] = "no_hits"
+        return None, trace
+
+    anchor_count = max(0, min(anchor_keep, len(hits), return_top_k))
+    exchangeable_hits = hits[anchor_count:return_top_k]
+    exchangeable_source_ids = tuple(hit.source_id for hit in exchangeable_hits)
+    trace["exchangeable_source_ids"] = exchangeable_source_ids[:16]
+    trace["exchangeable_count"] = len(exchangeable_source_ids)
+    trace["protected_source_ids"] = protected_source_ids[:16]
+    if not exchangeable_hits:
+        trace["reason"] = "no_exchangeable_tail"
+        return None, trace
+
+    protected_set = set(protected_source_ids)
+    if protect_memory_sources:
+        protected_tail = tuple(
+            source_id
+            for source_id in exchangeable_source_ids
+            if source_id in protected_set
+        )
+        trace["protected_memory_source_ids"] = protected_tail[:16]
+        if protected_tail:
+            trace["reason"] = "exchange_tail_protected_memory_source"
+            return trace["reason"], trace
+
+    top_window_ids = tuple(hit.source_id for hit in hits[:top_k])
+    top_window_set = set(top_window_ids)
+    exchangeable_set = set(exchangeable_source_ids)
+    if protect_adjacent_session:
+        adjacent_pairs: list[dict[str, Any]] = []
+        for hit in exchangeable_hits:
+            turn = store.get(hit.source_id)
+            if turn is None:
+                continue
+            for neighbor in store.session_turns(turn.session_id):
+                if abs(int(neighbor.turn_index) - int(turn.turn_index)) != 1:
+                    continue
+                if neighbor.source_id not in top_window_set:
+                    continue
+                if neighbor.source_id in exchangeable_set:
+                    continue
+                adjacent_pairs.append(
+                    {
+                        "source_id": hit.source_id,
+                        "neighbor_source_id": neighbor.source_id,
+                        "session_id": turn.session_id,
+                    }
+                )
+                break
+        trace["adjacent_session_pairs"] = adjacent_pairs[:16]
+        if adjacent_pairs:
+            trace["reason"] = "exchange_tail_protected_adjacent_session"
+            return trace["reason"], trace
+
+    if question_overlap_min_terms > 0:
+        question_terms = _lifecycle_terms(question)
+        overlap_items: list[dict[str, Any]] = []
+        for hit in exchangeable_hits:
+            turn = store.get(hit.source_id)
+            if turn is None:
+                continue
+            overlap = tuple(sorted(question_terms & _lifecycle_terms(turn.text)))
+            if len(overlap) < question_overlap_min_terms:
+                continue
+            overlap_items.append(
+                {
+                    "source_id": hit.source_id,
+                    "overlap_terms": overlap[:8],
+                }
+            )
+        trace["question_overlap_items"] = overlap_items[:16]
+        if overlap_items:
+            trace["reason"] = "exchange_tail_protected_question_overlap"
+            return trace["reason"], trace
+
+    trace["reason"] = "allowed"
+    return None, trace
+
+
 def _disabled_rerank_trace(
     *,
     enabled: bool,
     information_needs: tuple[str, ...],
     min_effective_top_k: int = 0,
     skipped_reason: str | None = None,
+    return_top_k: int = 0,
+    exchange_guard_enabled: bool = False,
+    exchange_guard: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     return {
         "enabled": enabled,
         "applied": False,
         "information_needs": information_needs,
         "min_effective_top_k": min_effective_top_k,
+        "return_top_k": return_top_k,
+        "exchange_guard_enabled": exchange_guard_enabled,
+        "exchange_guard": exchange_guard,
         "candidate_count": 0,
         "returned_count": 0,
         "total_tokens": 0,

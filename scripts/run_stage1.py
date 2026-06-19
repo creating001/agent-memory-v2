@@ -94,6 +94,8 @@ def main() -> int:
     total_rerank_candidate_count = 0
     total_rerank_returned_count = 0
     total_rerank_tokens = 0
+    total_rerank_exchange_guard_skipped = 0
+    rerank_exchange_guard_skipped_reasons: dict[str, int] = {}
     total_context_budget_applied = 0
     total_context_budget_candidate_count = 0
     total_context_budget_returned_count = 0
@@ -270,6 +272,13 @@ def main() -> int:
             retrieval_trace.get("rerank_returned_count") or 0
         )
         total_rerank_tokens += int(retrieval_trace.get("rerank_total_tokens") or 0)
+        rerank_skipped_reason = str(retrieval_trace.get("rerank_skipped_reason") or "")
+        if rerank_skipped_reason.startswith("exchange_tail_"):
+            total_rerank_exchange_guard_skipped += 1
+            rerank_exchange_guard_skipped_reasons[rerank_skipped_reason] = (
+                rerank_exchange_guard_skipped_reasons.get(rerank_skipped_reason, 0)
+                + 1
+            )
         if retrieval_trace.get("context_budget_applied"):
             total_context_budget_applied += 1
         total_context_budget_candidate_count += int(
@@ -664,6 +673,9 @@ def main() -> int:
             "rerank_min_effective_top_k": config.get("retrieval", {})
             .get("rerank", {})
             .get("min_effective_top_k"),
+            "rerank_return_top_k": config.get("retrieval", {})
+            .get("rerank", {})
+            .get("return_top_k"),
             "rerank_query_text_mode": config.get("retrieval", {})
             .get("rerank", {})
             .get("query_text_mode"),
@@ -688,6 +700,13 @@ def main() -> int:
             "rerank_information_needs": config.get("retrieval", {})
             .get("rerank", {})
             .get("information_needs"),
+            "rerank_exchange_guard": config.get("retrieval", {})
+            .get("rerank", {})
+            .get("exchange_guard"),
+            "rerank_exchange_guard_enabled": config.get("retrieval", {})
+            .get("rerank", {})
+            .get("exchange_guard", {})
+            .get("enabled", False),
             "rerank_applied_count": total_rerank_applied,
             "rerank_applied_rate": _safe_average(total_rerank_applied, sample_count),
             "avg_rerank_candidate_count": _safe_average(
@@ -702,6 +721,16 @@ def main() -> int:
             "avg_rerank_tokens_when_applied": _safe_average(
                 total_rerank_tokens,
                 total_rerank_applied,
+            ),
+            "rerank_exchange_guard_skipped_count": (
+                total_rerank_exchange_guard_skipped
+            ),
+            "rerank_exchange_guard_skipped_rate": _safe_average(
+                total_rerank_exchange_guard_skipped,
+                sample_count,
+            ),
+            "rerank_exchange_guard_skipped_reasons": dict(
+                sorted(rerank_exchange_guard_skipped_reasons.items())
             ),
             "context_budget_enabled": config.get("retrieval", {})
             .get("context_budget", {})
@@ -1709,11 +1738,15 @@ def _write_summary(
         f"- rerank_model: {metrics['retrieval']['rerank_model']}",
         f"- rerank_pool_k: {metrics['retrieval']['rerank_pool_k']}",
         f"- rerank_min_effective_top_k: {metrics['retrieval']['rerank_min_effective_top_k']}",
+        f"- rerank_return_top_k: {metrics['retrieval']['rerank_return_top_k']}",
         f"- rerank_document_text_mode: {metrics['retrieval']['rerank_document_text_mode']}",
         f"- rerank_document_neighbor_window: {metrics['retrieval']['rerank_document_neighbor_window']}",
         f"- rerank_document_max_memory_records: {metrics['retrieval']['rerank_document_max_memory_records']}",
         f"- rerank_anchor_keep: {metrics['retrieval']['rerank_anchor_keep']}",
         f"- rerank_anchor_after_top: {metrics['retrieval']['rerank_anchor_after_top']}",
+        f"- rerank_exchange_guard_enabled: {metrics['retrieval']['rerank_exchange_guard_enabled']}",
+        f"- rerank_exchange_guard_skipped_count: {metrics['retrieval']['rerank_exchange_guard_skipped_count']}",
+        f"- rerank_exchange_guard_skipped_reasons: {metrics['retrieval']['rerank_exchange_guard_skipped_reasons']}",
         f"- rerank_applied_count: {metrics['retrieval']['rerank_applied_count']}",
         f"- rerank_applied_rate: {metrics['retrieval']['rerank_applied_rate']}",
         f"- avg_rerank_candidate_count: {metrics['retrieval']['avg_rerank_candidate_count']}",
@@ -2030,11 +2063,15 @@ def _write_diagnosis(
         f"- rerank_enabled: {metrics['retrieval']['rerank_enabled']}",
         f"- rerank_model: {metrics['retrieval']['rerank_model']}",
         f"- rerank_pool_k: {metrics['retrieval']['rerank_pool_k']}",
+        f"- rerank_return_top_k: {metrics['retrieval']['rerank_return_top_k']}",
         f"- rerank_document_text_mode: {metrics['retrieval']['rerank_document_text_mode']}",
         f"- rerank_document_neighbor_window: {metrics['retrieval']['rerank_document_neighbor_window']}",
         f"- rerank_document_max_memory_records: {metrics['retrieval']['rerank_document_max_memory_records']}",
         f"- rerank_anchor_keep: {metrics['retrieval']['rerank_anchor_keep']}",
         f"- rerank_anchor_after_top: {metrics['retrieval']['rerank_anchor_after_top']}",
+        f"- rerank_exchange_guard_enabled: {metrics['retrieval']['rerank_exchange_guard_enabled']}",
+        f"- rerank_exchange_guard_skipped_count: {metrics['retrieval']['rerank_exchange_guard_skipped_count']}",
+        f"- rerank_exchange_guard_skipped_reasons: {metrics['retrieval']['rerank_exchange_guard_skipped_reasons']}",
         f"- rerank_applied_count: {metrics['retrieval']['rerank_applied_count']}",
         f"- rerank_applied_rate: {metrics['retrieval']['rerank_applied_rate']}",
         f"- avg_rerank_candidate_count: {metrics['retrieval']['avg_rerank_candidate_count']}",
