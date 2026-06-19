@@ -13,6 +13,7 @@ class RawEvidenceStore:
 
     def __init__(self, turns: Iterable[Turn]):
         self._turns = tuple(turns)
+        self._total_turn_chars = sum(len(turn.text) for turn in self._turns)
         source_ids = [turn.source_id for turn in self._turns]
         if len(source_ids) != len(set(source_ids)):
             raise ValueError("Raw evidence source_id values must be unique")
@@ -34,7 +35,11 @@ class RawEvidenceStore:
     def average_turn_chars(self) -> float:
         if not self._turns:
             return 0.0
-        return sum(len(turn.text) for turn in self._turns) / len(self._turns)
+        return self._total_turn_chars / len(self._turns)
+
+    @property
+    def total_turn_chars(self) -> int:
+        return self._total_turn_chars
 
     def sessions(self) -> tuple[tuple[str, tuple[Turn, ...]], ...]:
         return tuple(self._session_turns.items())
@@ -104,4 +109,5 @@ class RawEvidenceStore:
             "raw_turns": len(self._turns),
             "sessions": len(self._session_turns),
             "avg_turn_chars": self.average_turn_chars,
+            "total_turn_chars": self.total_turn_chars,
         }

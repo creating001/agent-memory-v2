@@ -1390,12 +1390,14 @@ class Stage1Pipeline:
         granularity_profile = _select_granularity_profile(
             self._granularity_profiles,
             avg_turn_chars=store.average_turn_chars,
+            total_turn_chars=store.total_turn_chars,
         )
         granularity_profile_audit = _granularity_profile_audit(
             enabled=self._granularity_profile_audit_enabled,
             profiles=self._granularity_profiles,
             selected_profile=granularity_profile,
             avg_turn_chars=store.average_turn_chars,
+            total_turn_chars=store.total_turn_chars,
         )
         built_memory = self._memory_builder.build(store.turns)
         source_alignment = _disabled_source_alignment_trace(
@@ -3664,6 +3666,7 @@ def _granularity_profile_audit(
     profiles: tuple[dict[str, Any], ...],
     selected_profile: dict[str, Any] | None,
     avg_turn_chars: float,
+    total_turn_chars: int,
 ) -> dict[str, Any]:
     profile_summaries = [
         _granularity_profile_audit_summary(profile) for profile in profiles
@@ -3673,8 +3676,9 @@ def _granularity_profile_audit(
         "trace_only": True,
         "applied": False,
         "skip_reason": "disabled" if not enabled else None,
-        "selector": "avg_turn_chars",
+        "selector": "profile_thresholds",
         "average_turn_chars": round(float(avg_turn_chars), 3),
+        "total_turn_chars": int(total_turn_chars),
         "configured_profile_count": len(profiles),
         "profiles": profile_summaries,
         "selected": False,
@@ -3703,11 +3707,8 @@ def _granularity_profile_audit(
     selected_summary = _granularity_profile_audit_summary(selected_profile)
     behavior_sections = tuple(selected_summary["behavior_sections"])
     risk_reasons = [
-        "avg_turn_length_selected_profile",
-        *[
-            f"length_threshold_changes_{section}"
-            for section in behavior_sections
-        ],
+        *_granularity_profile_selector_reasons(selected_profile),
+        *[f"profile_threshold_changes_{section}" for section in behavior_sections],
     ]
     trace.update(
         {
@@ -3739,8 +3740,25 @@ def _granularity_profile_audit_summary(profile: Mapping[str, Any]) -> dict[str, 
         "name": str(profile.get("name") or ""),
         "min_avg_turn_chars": profile.get("min_avg_turn_chars"),
         "max_avg_turn_chars": profile.get("max_avg_turn_chars"),
+        "min_total_chars": profile.get("min_total_chars"),
+        "max_total_chars": profile.get("max_total_chars"),
         "behavior_sections": behavior_sections,
     }
+
+
+def _granularity_profile_selector_reasons(profile: Mapping[str, Any]) -> list[str]:
+    reasons: list[str] = []
+    if (
+        profile.get("min_avg_turn_chars") is not None
+        or profile.get("max_avg_turn_chars") is not None
+    ):
+        reasons.append("avg_turn_length_selected_profile")
+    if (
+        profile.get("min_total_chars") is not None
+        or profile.get("max_total_chars") is not None
+    ):
+        reasons.append("total_context_pressure_selected_profile")
+    return reasons
 
 
 def _selected_context_budget_gate(
@@ -5161,6 +5179,8 @@ def _validate_granularity_profiles(value: object) -> tuple[dict[str, Any], ...]:
         seen.add(name)
         min_avg_turn_chars = raw_profile.get("min_avg_turn_chars")
         max_avg_turn_chars = raw_profile.get("max_avg_turn_chars")
+        min_total_chars = raw_profile.get("min_total_chars")
+        max_total_chars = raw_profile.get("max_total_chars")
         retrieval = raw_profile.get("retrieval") or {}
         route = raw_profile.get("route") or {}
         selected_context = raw_profile.get("selected_context") or {}
@@ -5213,6 +5233,16 @@ def _validate_granularity_profiles(value: object) -> tuple[dict[str, Any], ...]:
                     if max_avg_turn_chars is not None
                     else None
                 ),
+                "min_total_chars": (
+                    int(min_total_chars)
+                    if min_total_chars is not None
+                    else None
+                ),
+                "max_total_chars": (
+                    int(max_total_chars)
+                    if max_total_chars is not None
+                    else None
+                ),
                 "retrieval": {
                     key: max(0, int(value))
                     for key, value in retrieval.items()
@@ -5262,6 +5292,7 @@ def _select_granularity_profile(
     profiles: tuple[dict[str, Any], ...],
     *,
     avg_turn_chars: float,
+    total_turn_chars: int,
 ) -> dict[str, Any] | None:
     for profile in profiles:
         min_chars = profile.get("min_avg_turn_chars")
@@ -5269,6 +5300,12 @@ def _select_granularity_profile(
         if min_chars is not None and avg_turn_chars < float(min_chars):
             continue
         if max_chars is not None and avg_turn_chars > float(max_chars):
+            continue
+        min_total_chars = profile.get("min_total_chars")
+        max_total_chars = profile.get("max_total_chars")
+        if min_total_chars is not None and total_turn_chars < int(min_total_chars):
+            continue
+        if max_total_chars is not None and total_turn_chars > int(max_total_chars):
             continue
         return profile
     return None

@@ -1201,6 +1201,69 @@ class CleanSkeletonTest(unittest.TestCase):
         )
         self.assertEqual(audited_result["answer"], plain_result["answer"])
 
+    def test_granularity_profile_can_select_by_total_context_pressure(self) -> None:
+        config = {
+            "retrieval": {
+                "top_k": 4,
+                "max_top_k": 4,
+                "neighbor_window": 0,
+                "granularity_profile_audit": {"enabled": True},
+                "granularity_profiles": [
+                    {
+                        "name": "long_context_pressure",
+                        "min_total_chars": 500,
+                        "retrieval": {"top_k": 1, "max_top_k": 1},
+                        "compiler": {"operation_workpad": True},
+                    }
+                ],
+            },
+            "compiler": {
+                "prompt_mode": "external_naive",
+                "max_evidence_items": 4,
+                "max_evidence_chars": 4000,
+                "operation_workpad": False,
+            },
+            "answer": {"fallback_answer": "unknown"},
+        }
+        short_request = PredictionRequest(
+            question="What did Alex read?",
+            turns=(
+                Turn("s:t0", "s", 0, "user", "Alex read Dune."),
+                Turn("s:t1", "s", 1, "assistant", "It was excellent."),
+            ),
+        )
+        long_request = PredictionRequest(
+            question="What did Alex read?",
+            turns=(
+                Turn("s:t0", "s", 0, "user", " ".join(["Alex read Dune."] * 40)),
+                Turn("s:t1", "s", 1, "assistant", "It was excellent."),
+            ),
+        )
+
+        short_result = Stage1Pipeline(config).predict(short_request)
+        long_result = Stage1Pipeline(config).predict(long_request)
+
+        self.assertIsNone(short_result["trace"]["retrieval"]["granularity_profile"])
+        audit = long_result["trace"]["retrieval"]["granularity_profile_audit"]
+        self.assertEqual(
+            long_result["trace"]["retrieval"]["granularity_profile"]["name"],
+            "long_context_pressure",
+        )
+        self.assertEqual(audit["selected_profile_name"], "long_context_pressure")
+        self.assertGreaterEqual(audit["total_turn_chars"], 500)
+        self.assertIn(
+            "total_context_pressure_selected_profile",
+            audit["risk_reasons"],
+        )
+        self.assertNotIn(
+            "avg_turn_length_selected_profile",
+            audit["risk_reasons"],
+        )
+        self.assertEqual(
+            long_result["trace"]["retrieval"]["compiler_profile"],
+            "long_context_pressure",
+        )
+
     def test_context_budget_filters_long_tail_hits_without_granularity_profile(self) -> None:
         config = {
             "retrieval": {
