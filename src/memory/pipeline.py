@@ -1687,6 +1687,7 @@ class Stage1Pipeline:
         )
         selected_context["risk_audit"] = _selected_context_risk_audit(
             store=store,
+            evidence_turns=evidence_turns,
             route=route,
             question=request.question,
             selected_context=selected_context,
@@ -3808,6 +3809,7 @@ def _selected_context_budget_gate(
 def _selected_context_risk_audit(
     *,
     store: RawEvidenceStore,
+    evidence_turns: tuple[Turn, ...],
     route: RouteResult,
     question: str,
     selected_context: Mapping[str, Any],
@@ -3840,6 +3842,9 @@ def _selected_context_risk_audit(
         "safe_source_ids": [],
         "risk_source_ids": [],
         "risk_reasons": {},
+        "text_source": "prompt_visible_materialized_context",
+        "materialized_text_audit_count": 0,
+        "raw_center_text_audit_count": 0,
     }
     if not enabled:
         return trace
@@ -3858,17 +3863,27 @@ def _selected_context_risk_audit(
     safe_source_ids: list[str] = []
     risk_source_ids: list[str] = []
     risk_reasons: dict[str, str] = {}
+    materialized_text_count = 0
+    raw_center_text_count = 0
+    prompt_turns_by_source_id = {turn.source_id: turn for turn in evidence_turns}
     for source_id in materialized_ids:
-        turn = store.get(source_id)
-        if turn is None:
+        raw_turn = store.get(source_id)
+        if raw_turn is None:
             risk_source_ids.append(source_id)
             risk_reasons[source_id] = "missing_source"
             continue
+        prompt_turn = prompt_turns_by_source_id.get(source_id, raw_turn)
+        uses_materialized_text = prompt_turn.text != raw_turn.text
+        if uses_materialized_text:
+            materialized_text_count += 1
+        else:
+            raw_center_text_count += 1
         source_grounded_match = _selected_context_source_grounded_match(
             question=question,
-            turn=turn,
+            turn=prompt_turn,
             min_terms=source_grounded_term_threshold,
             min_coverage=source_grounded_coverage_threshold,
+            role_sensitive=not uses_materialized_text,
         )
         if source_grounded_match["matched"]:
             safe_source_ids.append(source_id)
@@ -3882,6 +3897,8 @@ def _selected_context_risk_audit(
     trace["safe_source_ids"] = safe_source_ids
     trace["risk_source_ids"] = risk_source_ids
     trace["risk_reasons"] = risk_reasons
+    trace["materialized_text_audit_count"] = materialized_text_count
+    trace["raw_center_text_audit_count"] = raw_center_text_count
     return trace
 
 
@@ -4200,14 +4217,17 @@ def _selected_context_source_grounded_match(
     turn: Turn,
     min_terms: int,
     min_coverage: float,
+    role_sensitive: bool = True,
 ) -> dict[str, object]:
     question_terms = _selected_context_content_terms(question)
     if not question_terms:
         return {"matched": False, "reason": "empty_question_terms"}
     role_terms = _selected_context_role_terms(turn.role)
-    if role_terms and not role_terms.intersection(question_terms):
+    if role_sensitive and role_terms and not role_terms.intersection(question_terms):
         return {"matched": False, "reason": "role_not_in_question"}
     if (
+        role_sensitive
+        and
         role_terms
         and role_terms.intersection(question_terms)
         and not SELECTED_CONTEXT_SELF_REFERENCE_PATTERN.search(turn.text)

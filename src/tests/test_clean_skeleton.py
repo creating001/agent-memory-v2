@@ -771,8 +771,14 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertIn("Local dialogue context from the same session", row_text)
         self.assertTrue(risk_audit["trace_only"])
         self.assertTrue(risk_audit["applied"])
-        self.assertIn("s1:t1", risk_audit["risk_source_ids"])
-        self.assertEqual(risk_audit["risk_reasons"]["s1:t1"], "missing_self_reference")
+        self.assertEqual(risk_audit["text_source"], "prompt_visible_materialized_context")
+        self.assertIn("s1:t1", risk_audit["safe_source_ids"])
+        self.assertNotIn("s1:t1", risk_audit["risk_source_ids"])
+        self.assertEqual(
+            risk_audit["materialized_text_audit_count"],
+            risk_audit["audited_count"],
+        )
+        self.assertEqual(risk_audit["raw_center_text_audit_count"], 0)
         self.assertEqual(
             audited_result["trace"]["compiled_context"]["prompt"],
             plain_result["trace"]["compiled_context"]["prompt"],
