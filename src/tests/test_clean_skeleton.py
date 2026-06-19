@@ -3237,6 +3237,78 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertFalse(trace["applied"])
         self.assertEqual(hits, ())
 
+    def test_memory_object_slot_activation_blocks_advice_queries(self) -> None:
+        first_record = MemoryRecord(
+            memory_id="video_editing_course",
+            memory_type="fact",
+            text="Alex saved a video editing course.",
+            source_ids=("s1:t0",),
+            subject="Alex",
+            predicate="saved resource",
+            value="video editing course",
+        )
+        second_record = MemoryRecord(
+            memory_id="camera_forum",
+            memory_type="fact",
+            text="Alex saved a camera forum.",
+            source_ids=("s2:t0",),
+            subject="Alex",
+            predicate="saved resource",
+            value="camera forum",
+        )
+
+        hits, trace = _memory_object_slot_source_hits(
+            memory_hits=(MemoryHit(record=first_record, score=3.0, rank=1),),
+            built_memory_records=(first_record, second_record),
+            question="Can you recommend resources for video editing?",
+            route=RouteResult("list_count", ("list",)),
+            available_source_ids={"s1:t0", "s2:t0"},
+            max_slots=2,
+            max_sources_per_slot=4,
+            memory_types=("fact",),
+            block_advice_queries=True,
+        )
+
+        self.assertFalse(trace["applied"])
+        self.assertEqual(trace["skipped_reason"], "advice_query_blocked")
+        self.assertEqual(hits, ())
+
+    def test_memory_object_slot_activation_ignores_weak_overlap_terms(self) -> None:
+        first_record = MemoryRecord(
+            memory_id="one_event",
+            memory_type="event",
+            text="Alex attended one community event.",
+            source_ids=("s1:t0",),
+            subject="Alex",
+            predicate="attended event",
+            value="one community event",
+        )
+        second_record = MemoryRecord(
+            memory_id="one_workshop",
+            memory_type="event",
+            text="Alex attended one workshop.",
+            source_ids=("s2:t0",),
+            subject="Alex",
+            predicate="attended event",
+            value="one workshop",
+        )
+
+        hits, trace = _memory_object_slot_source_hits(
+            memory_hits=(MemoryHit(record=first_record, score=3.0, rank=1),),
+            built_memory_records=(first_record, second_record),
+            question="Which one for Alex?",
+            route=RouteResult("list_count", ("list",)),
+            available_source_ids={"s1:t0", "s2:t0"},
+            max_slots=2,
+            max_sources_per_slot=4,
+            memory_types=("event",),
+            ignored_overlap_terms=("one", "ones"),
+        )
+
+        self.assertFalse(trace["applied"])
+        self.assertEqual(trace["skipped_reason"], "")
+        self.assertEqual(hits, ())
+
     def test_append_tail_rescue_hits_preserves_primary_order(self) -> None:
         primary = (
             RetrievalHit(source_id="s1:t0", score=1.0, rank=1, retriever="dense"),

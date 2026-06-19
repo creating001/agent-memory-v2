@@ -6,12 +6,14 @@
 
 | 用途 | 配置 | 状态 |
 |---|---|---|
-| 后续新实验默认配置 | `stage1_build_memory_object_graph_v248_seeded_qwen36_no_think_build4k_cached.json` | 当前本地 v248 LTS。继承 v235 prediction path 和 accuracy/token，新增 trace-only source-backed memory object graph；LongMemEval-S strict/lenient `0.832000 / 0.844000`，LoCoMo `0.794156 / 0.819481`。 |
+| 后续新实验默认配置 | `stage1_object_slot_tail_rescue_v250_seeded_qwen36_no_think_build4k_cached.json` | 当前本地 v250 LTS。继承 v248 accuracy/token，object-slot 只做 source-backed tail rescue，不抢占主 evidence；LongMemEval-S strict/lenient `0.832000 / 0.844000`，LoCoMo `0.794156 / 0.819481`。 |
 
 ## 近期候选
 
 | 配置 | 状态 |
 |---|---|
+| `stage1_object_lifecycle_tail_exchange_v254_scoped_seeded_qwen36_no_think_build4k_cached.json` | pending：继承 v253 bounded tail exchange，但 block advice/recommendation/resource-seeking query 的 object-slot activation，并忽略弱 overlap terms。需 probe/full judge 后再决定是否替换 LTS。 |
+| `stage1_object_lifecycle_tail_exchange_v253_seeded_qwen36_no_think_build4k_cached.json` | rejected full：LoCoMo strict 小涨，但 LongMemEval-S strict/lenient 降至 `0.824000 / 0.840000`，LoCoMo lenient 降至 `0.817532`；保留为 object-slot 适用边界教训。 |
 | `stage1_typed_compact_cap32_build_memory_v245_seeded_qwen36_no_think_build4k_cached.json` | rejected probe：LoCoMo changed judge strict/lenient `18/22 -> 15/22`、`18/22 -> 17/22`；LME cold build probe 延迟不可接受。保留为 build record cap 负向对照。 |
 | `stage1_lossless_atomic_build_memory_v244_seeded_qwen36_no_think_build4k_cached.json` | diagnostic / not promoted：LoCoMo probe50 query tokens 降低但 changed judge 持平；LME cold build probe 延迟不可接受。保留为 richer atomic build memory 的成本/覆盖教训。 |
 | `stage1_query_scoped_state_source_activation_v243_seeded_qwen36_no_think_build4k_cached.json` | diagnostic / not promoted：probe50 answer-identical；all-current_state targeted answer-identical，但 slot activation 仅 LME `1/22`、LoCoMo `0/4`，覆盖太低。 |

@@ -355,6 +355,12 @@ class Stage1Pipeline:
         self._object_slot_activation_require_collection_slot = bool(
             object_slot_activation_config.get("require_collection_slot", True)
         )
+        self._object_slot_activation_block_advice_queries = bool(
+            object_slot_activation_config.get("block_advice_queries", False)
+        )
+        self._object_slot_activation_ignored_overlap_terms = _tuple_config(
+            object_slot_activation_config.get("ignored_overlap_terms")
+        )
         self._object_slot_activation_fusion_mode = str(
             object_slot_activation_config.get("fusion_mode", "rrf")
         )
@@ -1652,6 +1658,12 @@ class Stage1Pipeline:
             require_collection_slot=(
                 self._object_slot_activation_require_collection_slot
             ),
+            block_advice_queries=(
+                self._object_slot_activation_block_advice_queries
+            ),
+            ignored_overlap_terms=(
+                self._object_slot_activation_ignored_overlap_terms
+            ),
             fusion_mode=self._object_slot_activation_fusion_mode,
             tail_exchange_protect_top_n=(
                 self._object_slot_activation_tail_exchange_protect_top_n
@@ -1732,6 +1744,12 @@ class Stage1Pipeline:
                     ),
                     require_collection_slot=(
                         self._object_slot_activation_require_collection_slot
+                    ),
+                    block_advice_queries=(
+                        self._object_slot_activation_block_advice_queries
+                    ),
+                    ignored_overlap_terms=(
+                        self._object_slot_activation_ignored_overlap_terms
                     ),
                     fusion_mode=self._object_slot_activation_fusion_mode,
                     tail_exchange_protect_top_n=(
@@ -2517,6 +2535,12 @@ class Stage1Pipeline:
                     ),
                     "object_slot_activation_require_collection_slot": (
                         self._object_slot_activation_require_collection_slot
+                    ),
+                    "object_slot_activation_block_advice_queries": (
+                        self._object_slot_activation_block_advice_queries
+                    ),
+                    "object_slot_activation_ignored_overlap_terms": (
+                        self._object_slot_activation_ignored_overlap_terms
                     ),
                     "object_slot_activation_fusion_mode": (
                         self._object_slot_activation_fusion_mode
@@ -4341,6 +4365,8 @@ def _disabled_object_slot_activation_trace(
     max_sources_per_slot: int,
     min_overlap_terms: int,
     require_collection_slot: bool,
+    block_advice_queries: bool = False,
+    ignored_overlap_terms: tuple[str, ...] = (),
     fusion_mode: str = "rrf",
     tail_exchange_protect_top_n: int = 56,
     tail_exchange_max_swaps: int = 0,
@@ -4355,6 +4381,8 @@ def _disabled_object_slot_activation_trace(
         "max_sources_per_slot": max_sources_per_slot,
         "min_overlap_terms": min_overlap_terms,
         "require_collection_slot": require_collection_slot,
+        "block_advice_queries": block_advice_queries,
+        "ignored_overlap_terms": ignored_overlap_terms,
         "fusion_mode": fusion_mode,
         "tail_exchange_protect_top_n": tail_exchange_protect_top_n,
         "tail_exchange_max_swaps": tail_exchange_max_swaps,
@@ -4375,6 +4403,8 @@ def _memory_object_slot_source_hits(
     memory_types: tuple[str, ...],
     min_overlap_terms: int = 1,
     require_collection_slot: bool = True,
+    block_advice_queries: bool = False,
+    ignored_overlap_terms: tuple[str, ...] = (),
     fusion_mode: str = "rrf",
     tail_exchange_protect_top_n: int = 56,
     tail_exchange_max_swaps: int = 0,
@@ -4393,6 +4423,8 @@ def _memory_object_slot_source_hits(
         max_sources_per_slot=max_sources_per_slot,
         min_overlap_terms=min_overlap_terms,
         require_collection_slot=require_collection_slot,
+        block_advice_queries=block_advice_queries,
+        ignored_overlap_terms=ignored_overlap_terms,
         fusion_mode=fusion_mode,
         tail_exchange_protect_top_n=tail_exchange_protect_top_n,
         tail_exchange_max_swaps=tail_exchange_max_swaps,
@@ -4401,8 +4433,16 @@ def _memory_object_slot_source_hits(
         return (), trace
     if max_slots <= 0 or max_sources_per_slot <= 0:
         return (), {**trace, "skipped_reason": "non_positive_budget"}
+    if block_advice_queries and _object_slot_activation_blocked_by_question(question):
+        return (), {**trace, "skipped_reason": "advice_query_blocked"}
 
-    question_terms = _memory_object_slot_question_terms(question)
+    ignored_terms = frozenset(
+        _memory_slot_chain_text_terms(" ".join(ignored_overlap_terms))
+    )
+    question_terms = _memory_object_slot_question_terms(
+        question,
+        ignored_overlap_terms=ignored_terms,
+    )
     if not question_terms:
         return (), {**trace, "skipped_reason": "no_question_terms"}
 
@@ -4433,6 +4473,7 @@ def _memory_object_slot_source_hits(
             question_terms=question_terms,
             key=key,
             records=records,
+            ignored_overlap_terms=ignored_terms,
         )
         if len(matched_terms) < max(0, min_overlap_terms):
             continue
@@ -4524,10 +4565,13 @@ def _memory_object_slot_matched_terms(
     question_terms: frozenset[str],
     key: tuple[str, str, str],
     records: tuple[Any, ...],
+    ignored_overlap_terms: frozenset[str] = frozenset(),
 ) -> tuple[str, ...]:
     _memory_type, subject, _predicate = key
     subject_terms = _memory_slot_chain_text_terms(subject)
-    scoped_question_terms = question_terms.difference(subject_terms)
+    scoped_question_terms = question_terms.difference(subject_terms).difference(
+        ignored_overlap_terms
+    )
     if not scoped_question_terms:
         return ()
     slot_terms: set[str] = set()
@@ -4546,6 +4590,7 @@ def _memory_object_slot_matched_terms(
                 )
             )
         )
+    slot_terms.difference_update(ignored_overlap_terms)
     return tuple(sorted(scoped_question_terms.intersection(slot_terms)))
 
 
@@ -4581,8 +4626,37 @@ def _memory_object_slot_values(records: tuple[Any, ...]) -> tuple[str, ...]:
     return tuple(values)
 
 
-def _memory_object_slot_question_terms(question: str) -> frozenset[str]:
-    return _memory_slot_chain_question_terms(question)
+def _memory_object_slot_question_terms(
+    question: str,
+    *,
+    ignored_overlap_terms: frozenset[str] = frozenset(),
+) -> frozenset[str]:
+    return frozenset(
+        _memory_slot_chain_question_terms(question).difference(ignored_overlap_terms)
+    )
+
+
+def _object_slot_activation_blocked_by_question(question: str) -> bool:
+    normalized = question.lower()
+    patterns = (
+        (
+            r"\b(?:recommend|recommendation|recommendations|suggest|"
+            r"suggestion|suggestions)\b"
+        ),
+        r"\b(?:advice|tips|ideas)\b",
+        r"\b(?:resource|resources)\s+(?:for|where|that|to)\b",
+        (
+            r"\bwhat\s+(?:should|would|could)\s+i\s+(?:watch|read|"
+            r"listen to|eat|cook|visit|try|buy|wear|do|use)\b"
+        ),
+        (
+            r"\bcan\s+you\s+(?:give|provide|offer|share)\s+.*\b"
+            r"(?:advice|tips|ideas|suggestions|recommendations)\b"
+        ),
+        r"\bshould\s+i\b",
+        r"\bdo\s+you\s+think\b",
+    )
+    return any(re.search(pattern, normalized) for pattern in patterns)
 
 
 def _memory_object_slot_record_sort_key(record: Any) -> tuple[int, str, str]:

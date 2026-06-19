@@ -548,6 +548,16 @@ def main() -> int:
             )
             .get("object_slot_activation", {})
             .get("require_collection_slot"),
+            "object_slot_activation_block_advice_queries": config.get(
+                "retrieval", {}
+            )
+            .get("object_slot_activation", {})
+            .get("block_advice_queries", False),
+            "object_slot_activation_ignored_overlap_terms": config.get(
+                "retrieval", {}
+            )
+            .get("object_slot_activation", {})
+            .get("ignored_overlap_terms"),
             "object_slot_activation_fusion_mode": config.get("retrieval", {})
             .get("object_slot_activation", {})
             .get("fusion_mode", "rrf"),
