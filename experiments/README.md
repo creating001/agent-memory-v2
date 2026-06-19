@@ -64,6 +64,7 @@
 
 | 配置 | 原因 |
 |---|---|
+| `stage1_source_grounded_self_ref_selected_context_v190_seeded_qwen36_no_think_build4k_cached.json` | v190 用 source-grounded self-reference gate 收窄 temporal selected-context，Nate 行保留 `D19:9,D5:10`、John/James 行 selected-context `0`，但 Nate 答案仍退回 `2022-08-27 to 2022-08-28`，会丢 v184 LoCoMo `+1/+1`，不升 LTS；同时暴露 v187 weekend 解析全局污染重跑 v184 的复现风险。 |
 | `stage1_temporal_question_ref_selected_context_v189_seeded_qwen36_no_think_build4k_cached.json` | v189 将 temporal selected-context 加上 question-reference gate，三条 risky probe 中 selected-context `3/3 -> 0/3`、avg query tokens 降到 `4898.667`，但答案退回 v181/v186-v188 行为，会丢 v184 LoCoMo `+1/+1`，不升 LTS。 |
 | `stage1_temporal_ambiguity_event_time_map_v188_seeded_qwen36_no_think_build4k_cached.json` | v188 只在高置信 Event-Time Candidate Map 出现时加入 `mention_time`/planned `event_time` ambiguity contract，风险面比全局 temporal prompt 小；但三条 v184 risky activation probe 上 Nate row 仍回答 `2022-08-27 to 2022-08-28`，相对当前 LTS 会丢 LoCoMo `+1/+1`，不升 LTS。 |
 | `stage1_weekend_event_time_candidate_map_v187_seeded_qwen36_no_think_build4k_cached.json` | v187 在 v186 基础上 clean 地解析 `this weekend`，并在 prompt map 中同时暴露 `mention_time`/`event_time`；但三条 v184 risky activation probe 上仍把 Nate row 回答成 `2022-08-27 to 2022-08-28`，相对当前 LTS 会丢 LoCoMo `+1/+1`，不升 LTS。 |
@@ -103,6 +104,8 @@
 
 | 路径 | 内容 |
 |---|---|
+| `diagnostic/stage1_source_grounded_self_ref_selected_context_v190_probe_summary.md` | v190 probe 结论：self-reference gate 降 selected-context wrong-speaker 风险，但丢 v184 LoCoMo `+1/+1`，不升 LTS |
+| `diagnostic/stage1_source_grounded_self_ref_selected_context_v190_activation_probe/` | v190 三条 risky activation probe；selected-context `2/3`，answer cache `0/3/3` |
 | `diagnostic/stage1_temporal_question_ref_selected_context_v189_probe_summary.md` | v189 probe 结论：question-reference gate 降低 selected-context/token，但丢 v184 LoCoMo `+1/+1`，不升 LTS |
 | `diagnostic/stage1_temporal_question_ref_selected_context_v189_activation_probe/` | v189 三条 risky activation probe；selected-context `0/3`，answer cache `0/3/3` |
 | `diagnostic/stage1_temporal_ambiguity_event_time_map_v188_probe_summary.md` | v188 probe 结论：map-scoped ambiguity contract 未恢复 v184 Nate 行收益，不升 LTS |
