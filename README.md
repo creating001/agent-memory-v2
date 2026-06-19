@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_weekend_parser_gated_v191_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_temporal_activation_audit_v193_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v191 local LTS | 说明 |
+| Benchmark | 当前 v193 local LTS | 说明 |
 |---|---:|---|
-| LongMemEval-S full | strict/lenient `0.834000 / 0.846000` | v191 与 v184 prompt/answer diff `0/500`；answer cache `500/0/0`，性能继承 v184。 |
-| LoCoMo non-adversarial full | strict/lenient `0.793506 / 0.818831` | v191 与 v184 prompt/answer diff `0/1540`；answer cache `1540/0/0`，性能继承 v184。 |
+| LongMemEval-S full | strict/lenient `0.834000 / 0.846000` | v193 与 v191 prompt/answer diff `0/500`；answer cache `500/0/0`，性能继承 v191/v184。 |
+| LoCoMo non-adversarial full | strict/lenient `0.793506 / 0.818831` | v193 与 v191 prompt/answer diff `0/1540`；answer cache `1540/0/0`，性能继承 v191/v184。 |
 
-v191 的 LTS 理由：继承 v184 的窄 prompt-side Event-Time Candidate Map，并把已拒绝的 v187/v188 `this/coming/upcoming weekend` parser 与 prompt-map `mention_time` 暴露改成显式 opt-in。v191 在两个 full set 上与 v184 prompt 和 answer 完全一致，因此继承 v184 judge accuracy，同时降低 rejected 实验污染 LTS 重跑的风险。残余风险是 `exact_today` 仍可能语义噪声，下一步优先继续收窄 activation 条件；#1、#2、#3 仍是后续重点。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_weekend_parser_gated_v191_scope_summary.md`。
+v193 的 LTS 理由：继承 v191 的 prompt-side 行为，并新增 trace-only Event-Time Candidate Map audit，记录 prompt-eligible temporal activation、rejected groups 和 `exact_today_low_question_coverage` 等风险标记。v193 不改变 prompt、答案或 judge accuracy，但把 v191 的 residual `exact_today` activation 风险变成可定位、可消融的结构化诊断。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_temporal_activation_audit_v193_scope_summary.md`。
 
 ## 目录
 

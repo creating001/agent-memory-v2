@@ -1,0 +1,31 @@
+{
+  "benchmark": "locomo",
+  "clean_assertions": [
+    "Prediction loader rejects gold/reference/target answers.",
+    "Prediction loader rejects judge outputs and benchmark labels.",
+    "Prediction loader rejects sample ids, qids, and row indices.",
+    "record_key is copied only by the runner and is not passed into pipeline modules.",
+    "Derived context rows always retain raw source_id back-links.",
+    "Build-stage typed memory is created only from raw dialogue turns and visible metadata."
+  ],
+  "config_path": "/data/home_new/wujinqi/agent-memory/configs/stage1_temporal_activation_audit_v193_seeded_qwen36_no_think_build4k_cached.json",
+  "created_at_utc": "2026-06-19T01:48:27+00:00",
+  "experiment_dir": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_temporal_activation_audit_v193_activation_probe",
+  "experiment_kind": "diagnostic",
+  "git": {
+    "commit": "f85f80abc80c67b69869d5cf2d8aeecddf3f99c1",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "?? experiments/diagnostic/stage1_weekend_parser_gated_v191_activation_probe/\n?? experiments/diagnostic/stage1_weekend_parser_gated_v191_lme_s_full/"
+  },
+  "input_path": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_segment_local_event_time_candidate_map_v185_activation_probe/input.jsonl",
+  "output_path": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_temporal_activation_audit_v193_activation_probe/predictions.jsonl",
+  "outputs": {
+    "predictions": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_temporal_activation_audit_v193_activation_probe/predictions.jsonl",
+    "traces": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_temporal_activation_audit_v193_activation_probe/traces.jsonl"
+  },
+  "run_id": "stage1_temporal_activation_audit_v193_activation_probe",
+  "subset": "non_adversarial_activation3",
+  "trace_path": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_temporal_activation_audit_v193_activation_probe/traces.jsonl"
+}
