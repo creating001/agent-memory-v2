@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_build_memory_stateful_policy_v233_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_no_answer_repair_v234_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v233 local LTS |
+| Benchmark | 当前 v234 local LTS |
 |---|---:|
-| LongMemEval-S full | strict/lenient `0.832000 / 0.844000`，avg build/query tokens `85393.566 / 6637.416` |
-| LoCoMo non-adversarial full | strict/lenient `0.794156 / 0.819481`，avg build/query tokens `62015.57402597403 / 6100.013636363637` |
+| LongMemEval-S full | strict/lenient `0.832000 / 0.844000`，avg build/query tokens `85393.566 / 6579.782` |
+| LoCoMo non-adversarial full | strict/lenient `0.794156 / 0.819481`，avg build/query tokens `62015.57402597403 / 6094.017532467533` |
 
-v233 的 LTS 理由：把 build memory 从 typed retrieval hint 推进到 source-backed lifecycle management。`preference/profile/relationship/state` 才参与 supersede/update；`fact/event/plan` 保留为 active collection memory，避免把多值事实误当成 current-state 覆盖。性能采用 full prediction + changed-answer paired judge 推导，LME `-1`、LoCoMo `+1`，合并 strict/lenient counts 持平。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_build_memory_stateful_policy_v233_scope_summary.md`。
+v234 的 LTS 理由：继承 v233 的 source-backed build-time lifecycle management，并关闭 full run 中 applied 为 `0` 的 answer repair。v234 与 v233 answer diff `0/500`、`0/1540`，accuracy 不变，query token 更低，query-time drift surface 更小。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_no_answer_repair_v234_scope_summary.md`。
 
 ## 目录
 
