@@ -89,11 +89,13 @@ ROUTE_OVERRIDE_KEYS = {
     "event_time_candidate_map",
     "event_time_candidate_map_allow_time_of_day_questions",
     "event_time_candidate_map_allowed_time_kinds",
+    "event_time_candidate_map_include_mention_time",
     "event_time_candidate_map_max_groups",
     "event_time_candidate_map_min_coverage",
     "event_time_candidate_map_min_terms",
     "event_time_candidate_map_snippet_chars",
     "event_time_candidate_map_strip_context_wrappers",
+    "enable_weekend_relative_time",
     "evidence_order",
     "evidence_report_detail",
     "evidence_row_labels",
@@ -252,6 +254,8 @@ class EvidenceCompiler:
         event_time_candidate_map_require_role_match: bool = False,
         event_time_candidate_map_allow_time_of_day_questions: bool = True,
         event_time_candidate_map_temporal_ambiguity_contract: bool = False,
+        event_time_candidate_map_include_mention_time: bool = False,
+        enable_weekend_relative_time: bool = False,
         structured_guide: bool = False,
         structured_guide_max_rows: int = 12,
         structured_guide_include_rows: bool = True,
@@ -433,6 +437,10 @@ class EvidenceCompiler:
         self._event_time_candidate_map_temporal_ambiguity_contract = bool(
             event_time_candidate_map_temporal_ambiguity_contract
         )
+        self._event_time_candidate_map_include_mention_time = bool(
+            event_time_candidate_map_include_mention_time
+        )
+        self._enable_weekend_relative_time = bool(enable_weekend_relative_time)
         self._structured_guide = structured_guide
         self._structured_guide_max_rows = max(1, structured_guide_max_rows)
         self._structured_guide_include_rows = structured_guide_include_rows
@@ -743,6 +751,12 @@ class EvidenceCompiler:
             event_time_candidate_map_temporal_ambiguity_contract=route_settings[
                 "event_time_candidate_map_temporal_ambiguity_contract"
             ],
+            event_time_candidate_map_include_mention_time=route_settings[
+                "event_time_candidate_map_include_mention_time"
+            ],
+            enable_weekend_relative_time=route_settings[
+                "enable_weekend_relative_time"
+            ],
             structured_guide=(
                 self._structured_guide
                 and not set(route.signals).intersection(
@@ -891,6 +905,9 @@ class EvidenceCompiler:
                     question_gate=self._event_time_candidate_manifest_question_gate,
                     grouped_view=self._event_time_candidate_manifest_grouped_view,
                     max_groups=self._event_time_candidate_manifest_max_groups,
+                    enable_weekend_relative_time=route_settings[
+                        "enable_weekend_relative_time"
+                    ],
                 )
             )
         return CompiledContext(
@@ -982,6 +999,10 @@ class EvidenceCompiler:
             "event_time_candidate_map_temporal_ambiguity_contract": (
                 self._event_time_candidate_map_temporal_ambiguity_contract
             ),
+            "event_time_candidate_map_include_mention_time": (
+                self._event_time_candidate_map_include_mention_time
+            ),
+            "enable_weekend_relative_time": self._enable_weekend_relative_time,
             "final_answer_checklist": self._final_answer_checklist,
             "grounded_inference_contract": self._grounded_inference_contract,
             "grounded_inference_gate": self._grounded_inference_gate,
@@ -1197,6 +1218,14 @@ def _validate_route_overrides(
         if "event_time_candidate_map_allow_time_of_day_questions" in raw_overrides:
             overrides["event_time_candidate_map_allow_time_of_day_questions"] = bool(
                 raw_overrides["event_time_candidate_map_allow_time_of_day_questions"]
+            )
+        if "enable_weekend_relative_time" in raw_overrides:
+            overrides["enable_weekend_relative_time"] = bool(
+                raw_overrides["enable_weekend_relative_time"]
+            )
+        if "event_time_candidate_map_include_mention_time" in raw_overrides:
+            overrides["event_time_candidate_map_include_mention_time"] = bool(
+                raw_overrides["event_time_candidate_map_include_mention_time"]
             )
         if "candidate_guide" in raw_overrides:
             overrides["candidate_guide"] = bool(raw_overrides["candidate_guide"])
@@ -2511,6 +2540,8 @@ def _build_prompt(
     event_time_candidate_map_exact_today_min_coverage: float | None,
     event_time_candidate_map_require_role_match: bool,
     event_time_candidate_map_temporal_ambiguity_contract: bool,
+    event_time_candidate_map_include_mention_time: bool,
+    enable_weekend_relative_time: bool,
     structured_guide: bool,
     structured_guide_max_rows: int,
     structured_guide_include_rows: bool,
@@ -2627,6 +2658,10 @@ def _build_prompt(
             event_time_candidate_map_temporal_ambiguity_contract=(
                 event_time_candidate_map_temporal_ambiguity_contract
             ),
+            event_time_candidate_map_include_mention_time=(
+                event_time_candidate_map_include_mention_time
+            ),
+            enable_weekend_relative_time=enable_weekend_relative_time,
             structured_guide=structured_guide,
             structured_guide_max_rows=structured_guide_max_rows,
             structured_guide_include_rows=structured_guide_include_rows,
@@ -2720,6 +2755,7 @@ def _build_prompt(
             max_rows=temporal_workpad_max_rows,
             max_pairs=temporal_workpad_max_pairs,
             include_relative_text=temporal_text_normalization,
+            enable_weekend_relative_time=enable_weekend_relative_time,
         )
         if workpad_lines:
             lines.extend(("", "Temporal calculation workpad:"))
@@ -2742,7 +2778,10 @@ def _build_prompt(
             )
         )
     if temporal_grounding and temporal_hints:
-        hints = _temporal_normalization_hints(rows)
+        hints = _temporal_normalization_hints(
+            rows,
+            enable_weekend_relative_time=enable_weekend_relative_time,
+        )
         if hints:
             lines.extend(("", "Temporal normalization hints derived from row timestamps:"))
             lines.extend(hints)
@@ -2841,6 +2880,8 @@ def _build_external_naive_prompt(
     event_time_candidate_map_exact_today_min_coverage: float | None,
     event_time_candidate_map_require_role_match: bool,
     event_time_candidate_map_temporal_ambiguity_contract: bool,
+    event_time_candidate_map_include_mention_time: bool,
+    enable_weekend_relative_time: bool,
     structured_guide: bool,
     structured_guide_max_rows: int,
     structured_guide_include_rows: bool,
@@ -2900,6 +2941,7 @@ def _build_external_naive_prompt(
             max_pairs=temporal_workpad_max_pairs,
             include_relative_text=temporal_text_normalization,
             event_contract=use_temporal_event_contract,
+            enable_weekend_relative_time=enable_weekend_relative_time,
         )
         if temporal_aid_lines:
             temporal_aid = "\n".join(["", "Temporal Aid:", *temporal_aid_lines, ""])
@@ -2936,6 +2978,8 @@ def _build_external_naive_prompt(
             temporal_ambiguity_contract=(
                 event_time_candidate_map_temporal_ambiguity_contract
             ),
+            include_mention_time=event_time_candidate_map_include_mention_time,
+            enable_weekend_relative_time=enable_weekend_relative_time,
         )
         if event_time_candidate_map_lines:
             event_time_candidate_map_block = "\n".join(
@@ -2956,6 +3000,7 @@ def _build_external_naive_prompt(
             max_rows=structured_guide_max_rows,
             include_relative_text=temporal_text_normalization,
             event_contract=use_temporal_event_contract,
+            enable_weekend_relative_time=enable_weekend_relative_time,
             include_rows=structured_guide_include_rows,
             include_memory=structured_guide_include_memory,
             include_inline_memory_hints=structured_guide_memory_hints,
@@ -3409,6 +3454,7 @@ def _external_structured_guide_lines(
     max_rows: int,
     include_relative_text: bool,
     event_contract: bool,
+    enable_weekend_relative_time: bool,
     include_rows: bool,
     include_memory: bool,
     include_inline_memory_hints: bool,
@@ -3442,7 +3488,13 @@ def _external_structured_guide_lines(
             matched_text = ", ".join(matched_terms) or "none"
             relative_text = ""
             if include_relative_text and row_date is not None:
-                relative_times = tuple(_relative_time_values(row.text, row_date))
+                relative_times = tuple(
+                    _relative_time_values(
+                        row.text,
+                        row_date,
+                        enable_weekend=enable_weekend_relative_time,
+                    )
+                )
                 if relative_times:
                     if event_contract:
                         relative_text = " | event_time_candidates=" + "; ".join(
@@ -4555,6 +4607,8 @@ def _external_event_time_candidate_map_lines(
     exact_today_min_coverage: float | None,
     require_role_match: bool,
     temporal_ambiguity_contract: bool,
+    include_mention_time: bool,
+    enable_weekend_relative_time: bool,
 ) -> list[str]:
     target_terms = _event_time_candidate_map_target_terms(
         question,
@@ -4570,6 +4624,7 @@ def _external_event_time_candidate_map_lines(
         strip_context_wrappers=strip_context_wrappers,
         segment_local_context=segment_local_context,
         normalize_slot_terms=normalize_terms,
+        enable_weekend_relative_time=enable_weekend_relative_time,
     )
     if len(candidates) < 1:
         return []
@@ -4699,8 +4754,13 @@ def _external_event_time_candidate_map_lines(
             f"Memory {item['memory_index']}"
         )
         markers = "; ".join(str(marker) for marker in item.get("markers") or ())
+        time_prefix = (
+            f"mention_time={item['mention_time']} "
+            if include_mention_time
+            else ""
+        )
         lines.append(
-            f"  - {source_text}: mention_time={item['mention_time']} "
+            f"  - {source_text}: {time_prefix}"
             f"event_time={group['best_event_time']} time_kind={group['best_time_kind']} "
             f"matched_terms={matched} "
             f"coverage={float(entry['coverage']):.3f} markers={markers or 'none'} "
@@ -4825,6 +4885,7 @@ def _event_time_candidate_manifest(
     question_gate: bool,
     grouped_view: bool,
     max_groups: int,
+    enable_weekend_relative_time: bool,
 ) -> dict[str, object]:
     base: dict[str, object] = {
         "enabled": True,
@@ -4853,6 +4914,7 @@ def _event_time_candidate_manifest(
         question=question,
         rows=rows,
         snippet_chars=snippet_chars,
+        enable_weekend_relative_time=enable_weekend_relative_time,
     )
     if len(candidates) < 2:
         return {
@@ -5233,6 +5295,7 @@ def _event_timeline_candidate_rows(
     strip_context_wrappers: bool = False,
     segment_local_context: bool = False,
     normalize_slot_terms: bool = False,
+    enable_weekend_relative_time: bool = False,
 ) -> list[dict[str, object]]:
     question_terms = _event_candidate_content_terms(
         question,
@@ -5251,7 +5314,11 @@ def _event_timeline_candidate_rows(
                 segment_local_context=segment_local_context,
             )
         ):
-            markers = _event_time_markers(candidate_text, row_date)
+            markers = _event_time_markers(
+                candidate_text,
+                row_date,
+                enable_weekend=enable_weekend_relative_time,
+            )
             row_terms = _event_candidate_content_terms(
                 candidate_text,
                 normalize_terms=normalize_slot_terms,
@@ -5381,7 +5448,12 @@ def _strip_local_context_timestamp_wrappers(text: str) -> str:
     return "\n".join(lines) if lines else text
 
 
-def _event_time_markers(text: str, row_date: date) -> tuple[dict[str, object], ...]:
+def _event_time_markers(
+    text: str,
+    row_date: date,
+    *,
+    enable_weekend: bool = False,
+) -> tuple[dict[str, object], ...]:
     markers: list[dict[str, object]] = []
     seen: set[tuple[str, str]] = set()
 
@@ -5415,7 +5487,11 @@ def _event_time_markers(text: str, row_date: date) -> tuple[dict[str, object], .
             sort_date=_parse_date(normalized),
             precision_rank=0,
         )
-    for phrase, normalized in _relative_time_values(text, row_date):
+    for phrase, normalized in _relative_time_values(
+        text,
+        row_date,
+        enable_weekend=enable_weekend,
+    ):
         kind = "exact_today" if phrase.lower() == "today" else "relative_phrase"
         add_marker(
             phrase=phrase,
@@ -5539,11 +5615,13 @@ def _external_temporal_aid_lines(
     max_pairs: int,
     include_relative_text: bool,
     event_contract: bool = False,
+    enable_weekend_relative_time: bool = False,
 ) -> list[str]:
     candidates = _external_dated_candidate_rows(
         question,
         rows,
         include_relative_text=include_relative_text,
+        enable_weekend_relative_time=enable_weekend_relative_time,
     )
     if not candidates:
         return []
@@ -5616,6 +5694,7 @@ def _external_dated_candidate_rows(
     question: str,
     rows: tuple[EvidenceRow, ...],
     include_relative_text: bool,
+    enable_weekend_relative_time: bool,
 ) -> list[dict[str, object]]:
     question_terms = _content_terms(question)
     candidates: list[dict[str, object]] = []
@@ -5625,7 +5704,13 @@ def _external_dated_candidate_rows(
             continue
         matched_terms = tuple(sorted(question_terms.intersection(_content_terms(row.text))))
         relative_times = (
-            tuple(_relative_time_values(row.text, row_date))
+            tuple(
+                _relative_time_values(
+                    row.text,
+                    row_date,
+                    enable_weekend=enable_weekend_relative_time,
+                )
+            )
             if include_relative_text
             else ()
         )
@@ -6030,11 +6115,13 @@ def _temporal_workpad_lines(
     max_rows: int,
     max_pairs: int,
     include_relative_text: bool,
+    enable_weekend_relative_time: bool = False,
 ) -> list[str]:
     dated_rows = _dated_candidate_rows(
         question,
         rows,
         include_relative_text=include_relative_text,
+        enable_weekend_relative_time=enable_weekend_relative_time,
     )
     if not dated_rows:
         return []
@@ -6106,6 +6193,7 @@ def _dated_candidate_rows(
     question: str,
     rows: tuple[EvidenceRow, ...],
     include_relative_text: bool = False,
+    enable_weekend_relative_time: bool = False,
 ) -> list[dict[str, object]]:
     question_terms = _content_terms(question)
     candidates: list[dict[str, object]] = []
@@ -6120,7 +6208,13 @@ def _dated_candidate_rows(
         matched_terms = tuple(sorted(question_terms.intersection(_content_terms(row.text))))
         retrieval_bonus = 1 if row.retrieval_rank is not None else 0
         relative_times = (
-            tuple(_relative_time_values(row.text, row_date))
+            tuple(
+                _relative_time_values(
+                    row.text,
+                    row_date,
+                    enable_weekend=enable_weekend_relative_time,
+                )
+            )
             if include_relative_text
             else ()
         )
@@ -6240,14 +6334,22 @@ def _pairwise_temporal_gaps(
     return [(left, right) for _, _, _, left, right in pairs]
 
 
-def _temporal_normalization_hints(rows: tuple[EvidenceRow, ...]) -> list[str]:
+def _temporal_normalization_hints(
+    rows: tuple[EvidenceRow, ...],
+    *,
+    enable_weekend_relative_time: bool = False,
+) -> list[str]:
     hints: list[str] = []
     seen: set[tuple[str, str, str]] = set()
     for row in rows:
         row_date = _parse_date(row.timestamp)
         if row_date is None:
             continue
-        for phrase, normalized in _relative_time_values(row.text, row_date):
+        for phrase, normalized in _relative_time_values(
+            row.text,
+            row_date,
+            enable_weekend=enable_weekend_relative_time,
+        ):
             key = (row.source_id, phrase, normalized)
             if key in seen:
                 continue
@@ -6259,7 +6361,12 @@ def _temporal_normalization_hints(rows: tuple[EvidenceRow, ...]) -> list[str]:
     return hints
 
 
-def _relative_time_values(text: str, row_date: date) -> list[tuple[str, str]]:
+def _relative_time_values(
+    text: str,
+    row_date: date,
+    *,
+    enable_weekend: bool = False,
+) -> list[tuple[str, str]]:
     lowered = text.lower()
     values: list[tuple[str, str]] = []
     seen: set[tuple[str, str]] = set()
@@ -6308,17 +6415,28 @@ def _relative_time_values(text: str, row_date: date) -> list[tuple[str, str]]:
             f"{(row_date + timedelta(days=1)).isoformat()} to "
             f"{(row_date + timedelta(days=7)).isoformat()}",
         ),
-        ("this weekend", _weekend_containing_or_after(row_date)),
-        ("coming weekend", _weekend_containing_or_after(row_date)),
-        ("upcoming weekend", _weekend_containing_or_after(row_date)),
-        ("last weekend", _weekend_before(row_date, weekends_back=1)),
-        ("previous weekend", _weekend_before(row_date, weekends_back=1)),
-        ("the weekend before", _weekend_before(row_date, weekends_back=1)),
-        ("weekend before", _weekend_before(row_date, weekends_back=1)),
     )
     for phrase, normalized in fixed_phrases:
         if re.search(rf"\b{re.escape(phrase)}\b", lowered):
             append_value(phrase, normalized)
+    legacy_weekend_phrases = (
+        ("last weekend", _weekend_before(row_date, weekends_back=1)),
+    )
+    for phrase, normalized in legacy_weekend_phrases:
+        if re.search(rf"\b{re.escape(phrase)}\b", lowered):
+            append_value(phrase, normalized)
+    if enable_weekend:
+        weekend_phrases = (
+            ("this weekend", _weekend_containing_or_after(row_date)),
+            ("coming weekend", _weekend_containing_or_after(row_date)),
+            ("upcoming weekend", _weekend_containing_or_after(row_date)),
+            ("previous weekend", _weekend_before(row_date, weekends_back=1)),
+            ("the weekend before", _weekend_before(row_date, weekends_back=1)),
+            ("weekend before", _weekend_before(row_date, weekends_back=1)),
+        )
+        for phrase, normalized in weekend_phrases:
+            if re.search(rf"\b{re.escape(phrase)}\b", lowered):
+                append_value(phrase, normalized)
 
     for match in re.finditer(
         r"\b(?P<count>\d+|a|an|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s+"
@@ -6334,15 +6452,19 @@ def _relative_time_values(text: str, row_date: date) -> list[tuple[str, str]]:
             continue
         append_value(match.group(0), normalized)
 
-    for match in re.finditer(
+    weekend_count_pattern = (
         r"\b(?P<count>\d+|a|an|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s+"
-        r"weekends?\s+(?:ago|before)\b",
-        lowered,
-    ):
+        r"weekends?\s+"
+        + (r"(?:ago|before)\b" if enable_weekend else r"ago\b")
+    )
+    for match in re.finditer(weekend_count_pattern, lowered):
         count = _parse_count(match.group("count"))
         if count is None or not _is_reasonable_relative_span(count, "week"):
             continue
-        append_value(match.group(0), _weekend_before(row_date, weekends_back=count))
+        append_value(
+            match.group(0),
+            _weekend_before(row_date, weekends_back=count),
+        )
 
     for match in re.finditer(
         r"\b(?P<direction>last|next|previous|coming)\s+"

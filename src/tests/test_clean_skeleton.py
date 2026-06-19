@@ -7135,6 +7135,49 @@ class CleanSkeletonTest(unittest.TestCase):
             compiled.prompt,
         )
 
+    def test_temporal_text_normalization_skips_this_weekend_by_default(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=2,
+            max_evidence_chars=4000,
+            temporal_workpad=True,
+            temporal_text_normalization=True,
+        )
+        route = RouteResult(information_need="temporal_lookup", signals=("temporal",))
+        compiled = compiler.compile(
+            question="When did Alex meet the mentors and visit the museum?",
+            question_time="2023-06-20",
+            route=route,
+            hits=(
+                RetrievalHit("s1:t0", 1.0, 1, "lexical_bm25"),
+                RetrievalHit("s1:t1", 0.9, 2, "lexical_bm25"),
+            ),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Alex met the mentors the week before.",
+                    timestamp="2023-06-09",
+                ),
+                Turn(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="Alex visited the museum this weekend.",
+                    timestamp="2023-06-09",
+                ),
+            ),
+        )
+
+        self.assertIn(
+            'phrase="the week before" normalized="2023-06-02 to 2023-06-08"',
+            compiled.prompt,
+        )
+        self.assertNotIn('phrase="this weekend"', compiled.prompt)
+        self.assertNotIn("2023-06-10 to 2023-06-11", compiled.prompt)
+
     def test_temporal_text_normalization_skips_unreasonable_ago_span(self) -> None:
         compiler = EvidenceCompiler(
             max_evidence_items=1,

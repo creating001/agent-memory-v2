@@ -644,6 +644,14 @@ class Stage1Pipeline:
                     "event_time_candidate_map_temporal_ambiguity_contract", False
                 )
             ),
+            event_time_candidate_map_include_mention_time=bool(
+                compiler_config.get(
+                    "event_time_candidate_map_include_mention_time", False
+                )
+            ),
+            enable_weekend_relative_time=bool(
+                compiler_config.get("enable_weekend_relative_time", False)
+            ),
             structured_guide=bool(compiler_config.get("structured_guide", False)),
             structured_guide_max_rows=int(
                 compiler_config.get("structured_guide_max_rows", 12)
@@ -4022,6 +4030,14 @@ def _compiler_trace_config(
                 "event_time_candidate_map_temporal_ambiguity_contract", False
             )
         ),
+        "event_time_candidate_map_include_mention_time": bool(
+            compiler_config.get(
+                "event_time_candidate_map_include_mention_time", False
+            )
+        ),
+        "enable_weekend_relative_time": bool(
+            compiler_config.get("enable_weekend_relative_time", False)
+        ),
         "structured_guide": bool(compiler_config.get("structured_guide", False)),
         "structured_guide_max_rows": int(
             compiler_config.get("structured_guide_max_rows", 12)
@@ -4306,6 +4322,14 @@ def _configured_compiler(compiler_config: Mapping[str, Any]) -> EvidenceCompiler
             compiler_config.get(
                 "event_time_candidate_map_temporal_ambiguity_contract", False
             )
+        ),
+        event_time_candidate_map_include_mention_time=bool(
+            compiler_config.get(
+                "event_time_candidate_map_include_mention_time", False
+            )
+        ),
+        enable_weekend_relative_time=bool(
+            compiler_config.get("enable_weekend_relative_time", False)
         ),
         structured_guide=bool(compiler_config.get("structured_guide", False)),
         structured_guide_max_rows=int(

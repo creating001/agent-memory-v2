@@ -1,6 +1,6 @@
 {
   "name": "stage1_weekend_event_time_candidate_map_v187_seeded_qwen36_no_think_build4k_cached",
-  "description": "V187 inherits v186 and adds clean relative-time normalization for this/coming/upcoming weekend. The Event-Time Candidate Map exposes both mention_time and event_time so planned future time phrases can be represented without collapsing them into a noisy row date. No labels, judge output, benchmark tags, sample ids, test feedback, gold answers, or sample-level rules are used.",
+  "description": "V187 inherits v186 and explicitly enables clean relative-time normalization for this/coming/upcoming weekend. The Event-Time Candidate Map exposes both mention_time and event_time so planned future time phrases can be represented without collapsing them into a noisy row date. No labels, judge output, benchmark tags, sample ids, test feedback, gold answers, or sample-level rules are used.",
   "build_memory": {
     "enabled": true,
     "mode": "openai_compatible",
@@ -259,7 +259,9 @@
     "event_time_candidate_map_normalize_terms": true,
     "event_time_candidate_map_exact_today_min_coverage": 0.85,
     "event_time_candidate_map_require_role_match": true,
-    "event_time_candidate_map_allow_time_of_day_questions": false
+    "event_time_candidate_map_allow_time_of_day_questions": false,
+    "event_time_candidate_map_include_mention_time": true,
+    "enable_weekend_relative_time": true
   },
   "answer": {
     "mode": "openai_compatible",
