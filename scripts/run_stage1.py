@@ -815,6 +815,15 @@ def main() -> int:
             "event_time_candidate_map_min_coverage": config.get("compiler", {}).get(
                 "event_time_candidate_map_min_coverage", 0.6
             ),
+            "event_time_candidate_map_allowed_time_kinds": config.get(
+                "compiler", {}
+            ).get("event_time_candidate_map_allowed_time_kinds"),
+            "event_time_candidate_map_strip_context_wrappers": config.get(
+                "compiler", {}
+            ).get("event_time_candidate_map_strip_context_wrappers", False),
+            "event_time_candidate_map_allow_time_of_day_questions": config.get(
+                "compiler", {}
+            ).get("event_time_candidate_map_allow_time_of_day_questions", True),
             "event_time_candidate_map_applied_count": (
                 total_event_time_candidate_map_applied
             ),
@@ -1578,6 +1587,9 @@ def _write_summary(
         f"- event_time_candidate_map_snippet_chars: {metrics['compiler']['event_time_candidate_map_snippet_chars']}",
         f"- event_time_candidate_map_min_terms: {metrics['compiler']['event_time_candidate_map_min_terms']}",
         f"- event_time_candidate_map_min_coverage: {metrics['compiler']['event_time_candidate_map_min_coverage']}",
+        f"- event_time_candidate_map_allowed_time_kinds: {metrics['compiler']['event_time_candidate_map_allowed_time_kinds']}",
+        f"- event_time_candidate_map_strip_context_wrappers: {metrics['compiler']['event_time_candidate_map_strip_context_wrappers']}",
+        f"- event_time_candidate_map_allow_time_of_day_questions: {metrics['compiler']['event_time_candidate_map_allow_time_of_day_questions']}",
         f"- event_time_candidate_map_applied_count: {metrics['compiler']['event_time_candidate_map_applied_count']}",
         f"- event_time_candidate_map_applied_rate: {metrics['compiler']['event_time_candidate_map_applied_rate']}",
         f"- event_time_candidate_manifest_applied_count: {metrics['compiler']['event_time_candidate_manifest_applied_count']}",

@@ -577,6 +577,22 @@ class Stage1Pipeline:
             event_time_candidate_map_min_coverage=float(
                 compiler_config.get("event_time_candidate_map_min_coverage", 0.6)
             ),
+            event_time_candidate_map_allowed_time_kinds=_tuple_config(
+                compiler_config.get(
+                    "event_time_candidate_map_allowed_time_kinds",
+                    ("exact_today", "explicit_date", "relative_phrase"),
+                )
+            ),
+            event_time_candidate_map_strip_context_wrappers=bool(
+                compiler_config.get(
+                    "event_time_candidate_map_strip_context_wrappers", False
+                )
+            ),
+            event_time_candidate_map_allow_time_of_day_questions=bool(
+                compiler_config.get(
+                    "event_time_candidate_map_allow_time_of_day_questions", True
+                )
+            ),
             structured_guide=bool(compiler_config.get("structured_guide", False)),
             structured_guide_max_rows=int(
                 compiler_config.get("structured_guide_max_rows", 12)
@@ -3753,6 +3769,20 @@ def _compiler_trace_config(
         "event_time_candidate_map_min_coverage": float(
             compiler_config.get("event_time_candidate_map_min_coverage", 0.6)
         ),
+        "event_time_candidate_map_allowed_time_kinds": _tuple_config(
+            compiler_config.get(
+                "event_time_candidate_map_allowed_time_kinds",
+                ("exact_today", "explicit_date", "relative_phrase"),
+            )
+        ),
+        "event_time_candidate_map_strip_context_wrappers": bool(
+            compiler_config.get("event_time_candidate_map_strip_context_wrappers", False)
+        ),
+        "event_time_candidate_map_allow_time_of_day_questions": bool(
+            compiler_config.get(
+                "event_time_candidate_map_allow_time_of_day_questions", True
+            )
+        ),
         "structured_guide": bool(compiler_config.get("structured_guide", False)),
         "structured_guide_max_rows": int(
             compiler_config.get("structured_guide_max_rows", 12)
@@ -3998,6 +4028,20 @@ def _configured_compiler(compiler_config: Mapping[str, Any]) -> EvidenceCompiler
         ),
         event_time_candidate_map_min_coverage=float(
             compiler_config.get("event_time_candidate_map_min_coverage", 0.6)
+        ),
+        event_time_candidate_map_allowed_time_kinds=_tuple_config(
+            compiler_config.get(
+                "event_time_candidate_map_allowed_time_kinds",
+                ("exact_today", "explicit_date", "relative_phrase"),
+            )
+        ),
+        event_time_candidate_map_strip_context_wrappers=bool(
+            compiler_config.get("event_time_candidate_map_strip_context_wrappers", False)
+        ),
+        event_time_candidate_map_allow_time_of_day_questions=bool(
+            compiler_config.get(
+                "event_time_candidate_map_allow_time_of_day_questions", True
+            )
         ),
         structured_guide=bool(compiler_config.get("structured_guide", False)),
         structured_guide_max_rows=int(

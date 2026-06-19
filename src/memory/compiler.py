@@ -87,10 +87,13 @@ ROUTE_OVERRIDE_KEYS = {
     "current_state_update_contract",
     "dialogue_inference_contract",
     "event_time_candidate_map",
+    "event_time_candidate_map_allow_time_of_day_questions",
+    "event_time_candidate_map_allowed_time_kinds",
     "event_time_candidate_map_max_groups",
     "event_time_candidate_map_min_coverage",
     "event_time_candidate_map_min_terms",
     "event_time_candidate_map_snippet_chars",
+    "event_time_candidate_map_strip_context_wrappers",
     "evidence_order",
     "evidence_report_detail",
     "evidence_row_labels",
@@ -236,6 +239,13 @@ class EvidenceCompiler:
         event_time_candidate_map_snippet_chars: int = 140,
         event_time_candidate_map_min_terms: int = 2,
         event_time_candidate_map_min_coverage: float = 0.6,
+        event_time_candidate_map_allowed_time_kinds: tuple[str, ...] = (
+            "exact_today",
+            "explicit_date",
+            "relative_phrase",
+        ),
+        event_time_candidate_map_strip_context_wrappers: bool = False,
+        event_time_candidate_map_allow_time_of_day_questions: bool = True,
         structured_guide: bool = False,
         structured_guide_max_rows: int = 12,
         structured_guide_include_rows: bool = True,
@@ -384,6 +394,15 @@ class EvidenceCompiler:
         )
         self._event_time_candidate_map_min_coverage = min(
             1.0, max(0.0, float(event_time_candidate_map_min_coverage))
+        )
+        self._event_time_candidate_map_allowed_time_kinds = tuple(
+            str(kind) for kind in event_time_candidate_map_allowed_time_kinds
+        ) or ("exact_today", "explicit_date", "relative_phrase")
+        self._event_time_candidate_map_strip_context_wrappers = bool(
+            event_time_candidate_map_strip_context_wrappers
+        )
+        self._event_time_candidate_map_allow_time_of_day_questions = bool(
+            event_time_candidate_map_allow_time_of_day_questions
         )
         self._structured_guide = structured_guide
         self._structured_guide_max_rows = max(1, structured_guide_max_rows)
@@ -651,7 +670,13 @@ class EvidenceCompiler:
                 route_settings["event_time_candidate_map"]
                 and route.information_need
                 in self._event_time_candidate_map_information_needs
-                and _asks_event_time_candidate_map(question, route)
+                and _asks_event_time_candidate_map(
+                    question,
+                    route,
+                    allow_time_of_day_questions=route_settings[
+                        "event_time_candidate_map_allow_time_of_day_questions"
+                    ],
+                )
             ),
             event_time_candidate_map_max_groups=route_settings[
                 "event_time_candidate_map_max_groups"
@@ -664,6 +689,12 @@ class EvidenceCompiler:
             ],
             event_time_candidate_map_min_coverage=route_settings[
                 "event_time_candidate_map_min_coverage"
+            ],
+            event_time_candidate_map_allowed_time_kinds=route_settings[
+                "event_time_candidate_map_allowed_time_kinds"
+            ],
+            event_time_candidate_map_strip_context_wrappers=route_settings[
+                "event_time_candidate_map_strip_context_wrappers"
             ],
             structured_guide=(
                 self._structured_guide
@@ -877,6 +908,15 @@ class EvidenceCompiler:
             "event_time_candidate_map_min_coverage": (
                 self._event_time_candidate_map_min_coverage
             ),
+            "event_time_candidate_map_allowed_time_kinds": (
+                self._event_time_candidate_map_allowed_time_kinds
+            ),
+            "event_time_candidate_map_strip_context_wrappers": (
+                self._event_time_candidate_map_strip_context_wrappers
+            ),
+            "event_time_candidate_map_allow_time_of_day_questions": (
+                self._event_time_candidate_map_allow_time_of_day_questions
+            ),
             "final_answer_checklist": self._final_answer_checklist,
             "grounded_inference_contract": self._grounded_inference_contract,
             "grounded_inference_gate": self._grounded_inference_gate,
@@ -1051,6 +1091,24 @@ def _validate_route_overrides(
             overrides["event_time_candidate_map_min_coverage"] = min(
                 1.0,
                 max(0.0, float(raw_overrides["event_time_candidate_map_min_coverage"])),
+            )
+        if "event_time_candidate_map_allowed_time_kinds" in raw_overrides:
+            raw_kinds = raw_overrides["event_time_candidate_map_allowed_time_kinds"]
+            if not isinstance(raw_kinds, (list, tuple)):
+                raise ValueError(
+                    "route_overrides.event_time_candidate_map_allowed_time_kinds "
+                    "must be a list or tuple"
+                )
+            overrides["event_time_candidate_map_allowed_time_kinds"] = tuple(
+                str(kind) for kind in raw_kinds
+            )
+        if "event_time_candidate_map_strip_context_wrappers" in raw_overrides:
+            overrides["event_time_candidate_map_strip_context_wrappers"] = bool(
+                raw_overrides["event_time_candidate_map_strip_context_wrappers"]
+            )
+        if "event_time_candidate_map_allow_time_of_day_questions" in raw_overrides:
+            overrides["event_time_candidate_map_allow_time_of_day_questions"] = bool(
+                raw_overrides["event_time_candidate_map_allow_time_of_day_questions"]
             )
         if "candidate_guide" in raw_overrides:
             overrides["candidate_guide"] = bool(raw_overrides["candidate_guide"])
@@ -2357,6 +2415,8 @@ def _build_prompt(
     event_time_candidate_map_snippet_chars: int,
     event_time_candidate_map_min_terms: int,
     event_time_candidate_map_min_coverage: float,
+    event_time_candidate_map_allowed_time_kinds: tuple[str, ...],
+    event_time_candidate_map_strip_context_wrappers: bool,
     structured_guide: bool,
     structured_guide_max_rows: int,
     structured_guide_include_rows: bool,
@@ -2448,6 +2508,12 @@ def _build_prompt(
             event_time_candidate_map_min_terms=event_time_candidate_map_min_terms,
             event_time_candidate_map_min_coverage=(
                 event_time_candidate_map_min_coverage
+            ),
+            event_time_candidate_map_allowed_time_kinds=(
+                event_time_candidate_map_allowed_time_kinds
+            ),
+            event_time_candidate_map_strip_context_wrappers=(
+                event_time_candidate_map_strip_context_wrappers
             ),
             structured_guide=structured_guide,
             structured_guide_max_rows=structured_guide_max_rows,
@@ -2655,6 +2721,8 @@ def _build_external_naive_prompt(
     event_time_candidate_map_snippet_chars: int,
     event_time_candidate_map_min_terms: int,
     event_time_candidate_map_min_coverage: float,
+    event_time_candidate_map_allowed_time_kinds: tuple[str, ...],
+    event_time_candidate_map_strip_context_wrappers: bool,
     structured_guide: bool,
     structured_guide_max_rows: int,
     structured_guide_include_rows: bool,
@@ -2738,6 +2806,8 @@ def _build_external_naive_prompt(
             snippet_chars=event_time_candidate_map_snippet_chars,
             min_terms=event_time_candidate_map_min_terms,
             min_coverage=event_time_candidate_map_min_coverage,
+            allowed_time_kinds=event_time_candidate_map_allowed_time_kinds,
+            strip_context_wrappers=event_time_candidate_map_strip_context_wrappers,
         )
         if event_time_candidate_map_lines:
             event_time_candidate_map_block = "\n".join(
@@ -4349,11 +4419,14 @@ def _external_event_time_candidate_map_lines(
     snippet_chars: int,
     min_terms: int,
     min_coverage: float,
+    allowed_time_kinds: tuple[str, ...],
+    strip_context_wrappers: bool,
 ) -> list[str]:
     candidates = _event_timeline_candidate_rows(
         question=question,
         rows=rows,
         snippet_chars=snippet_chars,
+        strip_context_wrappers=strip_context_wrappers,
     )
     if len(candidates) < 1:
         return []
@@ -4376,12 +4449,18 @@ def _external_event_time_candidate_map_lines(
         "high_confidence_single",
         "high_confidence_duplicate_same_time",
     }
+    allowed_time_kind_set = {str(kind) for kind in allowed_time_kinds}
     item_by_source_id = {str(item["source_id"]): item for item in selected}
     candidates_for_prompt: list[dict[str, object]] = []
     for group in groups:
         if group.get("conflict_type"):
             continue
         if str(group.get("resolution")) not in high_confidence_resolutions:
+            continue
+        if (
+            allowed_time_kind_set
+            and str(group.get("best_time_kind")) not in allowed_time_kind_set
+        ):
             continue
         dedup_key = str(group.get("dedup_key") or "")
         if not dedup_key.startswith("q:"):
@@ -4457,7 +4536,12 @@ def _external_event_time_candidate_map_lines(
     return lines
 
 
-def _asks_event_time_candidate_map(question: str, route: RouteResult) -> bool:
+def _asks_event_time_candidate_map(
+    question: str,
+    route: RouteResult,
+    *,
+    allow_time_of_day_questions: bool,
+) -> bool:
     if route.information_need != "temporal_lookup":
         return False
     lowered = question.lower()
@@ -4467,13 +4551,16 @@ def _asks_event_time_candidate_map(question: str, route: RouteResult) -> bool:
         lowered,
     ):
         return False
+    english_gate = r"\b(when|what\s+date|which\s+date|which\s+day|what\s+day"
+    chinese_gate = r"(什么时候|哪天|日期"
+    if allow_time_of_day_questions:
+        english_gate += r"|what\s+time"
+        chinese_gate += r"|几点|什么时间"
+    english_gate += r")\b"
+    chinese_gate += r")"
     return bool(
-        re.search(
-            r"\b(when|what\s+date|which\s+date|which\s+day|what\s+day|"
-            r"what\s+time)\b",
-            lowered,
-        )
-        or re.search(r"(什么时候|哪天|日期|几点|什么时间)", question)
+        re.search(english_gate, lowered)
+        or re.search(chinese_gate, question)
     )
 
 
@@ -4877,6 +4964,7 @@ def _event_timeline_candidate_rows(
     question: str,
     rows: tuple[EvidenceRow, ...],
     snippet_chars: int,
+    strip_context_wrappers: bool = False,
 ) -> list[dict[str, object]]:
     question_terms = _content_terms(question)
     candidates: list[dict[str, object]] = []
@@ -4884,15 +4972,20 @@ def _event_timeline_candidate_rows(
         row_date = _parse_date(row.timestamp)
         if row_date is None:
             continue
-        markers = _event_time_markers(row.text, row_date)
-        row_terms = _content_terms(row.text)
+        candidate_text = (
+            _strip_local_context_timestamp_wrappers(row.text)
+            if strip_context_wrappers
+            else row.text
+        )
+        markers = _event_time_markers(candidate_text, row_date)
+        row_terms = _content_terms(candidate_text)
         matched_terms = tuple(
             sorted(question_terms.intersection(row_terms))
         )[:8]
         if not markers and not matched_terms:
             continue
         primary = markers[0] if markers else _mention_time_marker(row_date)
-        snippet = _single_line(row.text)
+        snippet = _single_line(candidate_text)
         if len(snippet) > snippet_chars:
             snippet = (snippet[: max(0, snippet_chars - 3)].rstrip() + "...")[
                 :snippet_chars
@@ -4916,7 +5009,7 @@ def _event_timeline_candidate_rows(
                 "score": len(matched_terms) + retrieval_bonus + (2 * len(markers)),
                 "slot_key": _event_candidate_slot_key(
                     question_terms=question_terms,
-                    row_text=row.text,
+                    row_text=candidate_text,
                     source_id=row.source_id,
                 ),
                 "source_id": row.source_id,
@@ -4925,6 +5018,27 @@ def _event_timeline_candidate_rows(
             }
         )
     return candidates
+
+
+def _strip_local_context_timestamp_wrappers(text: str) -> str:
+    if "Local dialogue context from the same session:" not in text:
+        return text
+    lines: list[str] = []
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        if line == "Local dialogue context from the same session:":
+            continue
+        match = re.match(
+            r"^-\s+(?:nearby|selected) turn \([^)]+\)\s*\|\s*(?P<body>.*)$",
+            line,
+        )
+        if match:
+            lines.append(match.group("body"))
+        else:
+            lines.append(line)
+    return "\n".join(lines) if lines else text
 
 
 def _event_time_markers(text: str, row_date: date) -> tuple[dict[str, object], ...]:

@@ -775,6 +775,72 @@ class CompilerTest(unittest.TestCase):
 
         self.assertNotIn("Event-Time Candidate Map:", compiled.prompt)
 
+    def test_event_time_candidate_map_can_ignore_selected_context_timestamps(
+        self,
+    ) -> None:
+        wrapped_text = (
+            "Local dialogue context from the same session:\n"
+            "- nearby turn (4:04 pm on 20 January, 2023) | Gina: "
+            "Are they yours at the festival?\n"
+            "- selected turn (4:04 pm on 20 January, 2023) | Jon: "
+            "They are performing at the festival next month.\n"
+        )
+
+        compiled = EvidenceCompiler(
+            max_evidence_items=1,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            event_time_candidate_map=True,
+            event_time_candidate_map_allowed_time_kinds=("exact_today", "explicit_date"),
+            event_time_candidate_map_strip_context_wrappers=True,
+        ).compile(
+            question="When is Jon's group performing at a festival?",
+            question_time=None,
+            route=RouteResult("temporal_lookup", ("temporal",)),
+            hits=(),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text=wrapped_text,
+                    timestamp="2023-01-20",
+                ),
+            ),
+        )
+
+        self.assertNotIn("Event-Time Candidate Map:", compiled.prompt)
+        self.assertNotIn("event_time=2023-01-20", compiled.prompt)
+
+    def test_event_time_candidate_map_can_block_time_of_day_questions(self) -> None:
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text="I usually go to the gym at 6:00 pm.",
+                timestamp="2023-05-30",
+            ),
+        )
+
+        compiled = EvidenceCompiler(
+            max_evidence_items=1,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            event_time_candidate_map=True,
+            event_time_candidate_map_allow_time_of_day_questions=False,
+        ).compile(
+            question="What time do I usually go to the gym?",
+            question_time=None,
+            route=RouteResult("temporal_lookup", ("temporal",)),
+            hits=(),
+            evidence_turns=turns,
+        )
+
+        self.assertNotIn("Event-Time Candidate Map:", compiled.prompt)
+
     def test_memory_tail_filter_preserves_retrieval_order(self) -> None:
         compiler = EvidenceCompiler(
             max_evidence_items=10,
