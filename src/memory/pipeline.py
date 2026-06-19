@@ -320,6 +320,9 @@ class Stage1Pipeline:
         self._memory_slot_chain_tail_exchange_protect_top_n = int(
             memory_slot_chain_config.get("tail_exchange_protect_top_n", 56)
         )
+        self._memory_slot_chain_tail_exchange_max_swaps = int(
+            memory_slot_chain_config.get("tail_exchange_max_swaps", 0)
+        )
         self._object_slot_activation_enabled = bool(
             object_slot_activation_config.get("enabled", False)
         )
@@ -1622,6 +1625,9 @@ class Stage1Pipeline:
             tail_exchange_protect_top_n=(
                 self._memory_slot_chain_tail_exchange_protect_top_n
             ),
+            tail_exchange_max_swaps=(
+                self._memory_slot_chain_tail_exchange_max_swaps
+            ),
         )
         object_slot_activation_trace = _disabled_object_slot_activation_trace(
             enabled=self._object_slot_activation_enabled,
@@ -1680,6 +1686,9 @@ class Stage1Pipeline:
                     fusion_mode=self._memory_slot_chain_fusion_mode,
                     tail_exchange_protect_top_n=(
                         self._memory_slot_chain_tail_exchange_protect_top_n
+                    ),
+                    tail_exchange_max_swaps=(
+                        self._memory_slot_chain_tail_exchange_max_swaps
                     ),
                 )
             if _object_slot_activation_applies(
@@ -1824,6 +1833,7 @@ class Stage1Pipeline:
                     protect_top_n=(
                         self._memory_slot_chain_tail_exchange_protect_top_n
                     ),
+                    max_swaps=self._memory_slot_chain_tail_exchange_max_swaps,
                 )
         else:
             if (
@@ -1890,6 +1900,7 @@ class Stage1Pipeline:
                     protect_top_n=(
                         self._memory_slot_chain_tail_exchange_protect_top_n
                     ),
+                    max_swaps=self._memory_slot_chain_tail_exchange_max_swaps,
                 )
         embedding_cache_after = _embedding_cache_stats(self._embedding_client)
         turn_hits = hits
@@ -2420,6 +2431,9 @@ class Stage1Pipeline:
                     ),
                     "memory_slot_chain_tail_exchange_protect_top_n": (
                         self._memory_slot_chain_tail_exchange_protect_top_n
+                    ),
+                    "memory_slot_chain_tail_exchange_max_swaps": (
+                        self._memory_slot_chain_tail_exchange_max_swaps
                     ),
                     "memory_slot_chain_question_scope": memory_slot_chain_trace[
                         "question_scope"
@@ -4531,6 +4545,7 @@ def _disabled_memory_slot_chain_trace(
     source_policy: str = "all",
     fusion_mode: str = "rrf",
     tail_exchange_protect_top_n: int = 56,
+    tail_exchange_max_swaps: int = 0,
     question_scope: str = "unspecified",
     skipped_reason: str = "",
 ) -> dict[str, Any]:
@@ -4545,6 +4560,7 @@ def _disabled_memory_slot_chain_trace(
         "source_policy": source_policy,
         "fusion_mode": fusion_mode,
         "tail_exchange_protect_top_n": tail_exchange_protect_top_n,
+        "tail_exchange_max_swaps": tail_exchange_max_swaps,
         "question_scope": question_scope,
         "skipped_reason": skipped_reason,
         "chains": [],
@@ -4565,6 +4581,7 @@ def _memory_slot_chain_source_hits(
     source_policy: str = "all",
     fusion_mode: str = "rrf",
     tail_exchange_protect_top_n: int = 56,
+    tail_exchange_max_swaps: int = 0,
 ) -> tuple[tuple[RetrievalHit, ...], dict[str, Any]]:
     question_scope = _memory_slot_chain_question_scope(question)
     question_terms = _memory_slot_chain_question_terms(question)
@@ -4578,6 +4595,7 @@ def _memory_slot_chain_source_hits(
         source_policy=source_policy,
         fusion_mode=fusion_mode,
         tail_exchange_protect_top_n=tail_exchange_protect_top_n,
+        tail_exchange_max_swaps=tail_exchange_max_swaps,
         question_scope=question_scope,
     )
     if question_scope_gate and question_scope == "unspecified":
@@ -7418,8 +7436,11 @@ def _append_tail_exchange_hits(
     *,
     top_k: int,
     protect_top_n: int,
+    max_swaps: int = 0,
 ) -> tuple[RetrievalHit, ...]:
-    protected_count = max(0, min(protect_top_n, top_k))
+    swap_budget = max(0, min(max_swaps, top_k))
+    max_protected_by_swap = top_k - swap_budget if swap_budget else top_k
+    protected_count = max(0, min(protect_top_n, max_protected_by_swap))
     protected_hits = candidate_hits[:protected_count]
     selected: list[RetrievalHit] = []
     seen: set[str] = set()

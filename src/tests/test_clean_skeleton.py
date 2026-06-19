@@ -3302,6 +3302,35 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual([hit.rank for hit in merged], [1, 2, 3, 4])
         self.assertEqual(merged[2].retriever, "build_memory_slot_chain")
 
+    def test_append_tail_exchange_hits_can_cap_swaps_below_protect_top_n(self) -> None:
+        primary = (
+            RetrievalHit(source_id="s1:t0", score=1.0, rank=1, retriever="dense"),
+            RetrievalHit(source_id="s2:t0", score=0.9, rank=2, retriever="dense"),
+            RetrievalHit(source_id="s3:t0", score=0.8, rank=3, retriever="dense"),
+            RetrievalHit(source_id="s4:t0", score=0.7, rank=4, retriever="dense"),
+        )
+        tail = (
+            RetrievalHit(
+                source_id="s5:t0",
+                score=2.0,
+                rank=1,
+                retriever="build_memory_slot_chain",
+            ),
+        )
+
+        merged = _append_tail_exchange_hits(
+            primary,
+            tail,
+            top_k=4,
+            protect_top_n=56,
+            max_swaps=1,
+        )
+
+        self.assertEqual(
+            [hit.source_id for hit in merged],
+            ["s1:t0", "s2:t0", "s3:t0", "s5:t0"],
+        )
+
     def test_pipeline_memory_slot_chain_can_supply_raw_rows_without_lexical_or_dense(self) -> None:
         old_record = MemoryRecord(
             memory_id="old",
