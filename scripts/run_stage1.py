@@ -148,6 +148,8 @@ def main() -> int:
     total_object_slot_activation_source_hits = 0
     total_operation_utility_applied = 0
     total_operation_utility_source_hits = 0
+    total_graph_utility_applied = 0
+    total_graph_utility_source_hits = 0
     total_answer_cache_hits = 0
     total_answer_cache_misses = 0
     total_answer_cache_writes = 0
@@ -463,6 +465,11 @@ def main() -> int:
         total_operation_utility_source_hits += len(
             retrieval_trace.get("operation_utility_source_hits") or []
         )
+        if retrieval_trace.get("graph_utility_applied"):
+            total_graph_utility_applied += 1
+        total_graph_utility_source_hits += len(
+            retrieval_trace.get("graph_utility_source_hits") or []
+        )
         answer_cache = result["trace"].get("answer_cache") or {}
         total_answer_cache_hits += int(answer_cache.get("hits") or 0)
         total_answer_cache_misses += int(answer_cache.get("misses") or 0)
@@ -688,6 +695,38 @@ def main() -> int:
             ),
             "avg_operation_utility_source_hits": _safe_average(
                 total_operation_utility_source_hits, sample_count
+            ),
+            "graph_utility_enabled": config.get("retrieval", {})
+            .get("graph_utility", {})
+            .get("enabled", False),
+            "graph_utility_information_needs": config.get("retrieval", {})
+            .get("graph_utility", {})
+            .get("information_needs"),
+            "graph_utility_memory_types": config.get("retrieval", {})
+            .get("graph_utility", {})
+            .get("memory_types"),
+            "graph_utility_max_slots": config.get("retrieval", {})
+            .get("graph_utility", {})
+            .get("max_slots"),
+            "graph_utility_max_sources_per_slot": config.get("retrieval", {})
+            .get("graph_utility", {})
+            .get("max_sources_per_slot"),
+            "graph_utility_min_overlap_terms": config.get("retrieval", {})
+            .get("graph_utility", {})
+            .get("min_overlap_terms"),
+            "graph_utility_require_new_source": config.get("retrieval", {})
+            .get("graph_utility", {})
+            .get("require_new_source", True),
+            "graph_utility_fusion_mode": config.get("retrieval", {})
+            .get("graph_utility", {})
+            .get("fusion_mode", "tail_rescue"),
+            "graph_utility_applied_count": total_graph_utility_applied,
+            "graph_utility_applied_rate": _safe_average(
+                total_graph_utility_applied,
+                sample_count,
+            ),
+            "avg_graph_utility_source_hits": _safe_average(
+                total_graph_utility_source_hits, sample_count
             ),
             "dense_enabled": config.get("retrieval", {})
             .get("dense", {})
@@ -2046,6 +2085,11 @@ def _write_summary(
         f"- operation_utility_fusion_mode: {metrics['retrieval']['operation_utility_fusion_mode']}",
         f"- operation_utility_applied_count: {metrics['retrieval']['operation_utility_applied_count']}",
         f"- avg_operation_utility_source_hits: {metrics['retrieval']['avg_operation_utility_source_hits']}",
+        f"- graph_utility_enabled: {metrics['retrieval']['graph_utility_enabled']}",
+        f"- graph_utility_fusion_mode: {metrics['retrieval']['graph_utility_fusion_mode']}",
+        f"- graph_utility_require_new_source: {metrics['retrieval']['graph_utility_require_new_source']}",
+        f"- graph_utility_applied_count: {metrics['retrieval']['graph_utility_applied_count']}",
+        f"- avg_graph_utility_source_hits: {metrics['retrieval']['avg_graph_utility_source_hits']}",
         f"- build_memory_include_superseded: {metrics['retrieval']['build_memory_include_superseded']}",
         f"- build_memory_include_superseded_information_needs: {metrics['retrieval']['build_memory_include_superseded_information_needs']}",
         f"- neighbor_order: {metrics['retrieval']['neighbor_order']}",
@@ -2411,6 +2455,10 @@ def _write_diagnosis(
         f"- avg_build_memory_source_alignment_added_sources: {metrics['build_memory']['avg_source_alignment_added_sources']}",
         f"- avg_memory_hits: {metrics['retrieval']['avg_memory_hits']}",
         f"- avg_memory_source_hits: {metrics['retrieval']['avg_memory_source_hits']}",
+        f"- graph_utility_enabled: {metrics['retrieval']['graph_utility_enabled']}",
+        f"- graph_utility_fusion_mode: {metrics['retrieval']['graph_utility_fusion_mode']}",
+        f"- graph_utility_applied_count: {metrics['retrieval']['graph_utility_applied_count']}",
+        f"- avg_graph_utility_source_hits: {metrics['retrieval']['avg_graph_utility_source_hits']}",
         f"- build_memory_include_superseded: {metrics['retrieval']['build_memory_include_superseded']}",
         f"- build_memory_include_superseded_information_needs: {metrics['retrieval']['build_memory_include_superseded_information_needs']}",
         f"- avg_context_chars: {metrics['retrieval']['avg_context_chars']}",

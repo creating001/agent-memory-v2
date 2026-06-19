@@ -122,6 +122,9 @@ class Stage1Pipeline:
         operation_utility_config = retrieval_config.get("operation_utility", {})
         if not isinstance(operation_utility_config, Mapping):
             raise ValueError("retrieval.operation_utility must be an object")
+        graph_utility_config = retrieval_config.get("graph_utility", {})
+        if not isinstance(graph_utility_config, Mapping):
+            raise ValueError("retrieval.graph_utility must be an object")
         rerank_config = retrieval_config.get("rerank", {})
         route_config = self._config.get("route", {})
         if self._config.get("question_analysis", {}).get("enabled", False):
@@ -472,6 +475,51 @@ class Stage1Pipeline:
         self._operation_utility_tail_exchange_max_swaps = int(
             operation_utility_config.get("tail_exchange_max_swaps", 0)
         )
+        self._graph_utility_enabled = bool(
+            graph_utility_config.get("enabled", False)
+        )
+        self._graph_utility_information_needs = _tuple_config(
+            graph_utility_config.get(
+                "information_needs",
+                tuple(SUPPORTED_INFORMATION_NEEDS),
+            )
+        )
+        self._graph_utility_memory_types = _tuple_config(
+            graph_utility_config.get(
+                "memory_types",
+                (
+                    "event",
+                    "fact",
+                    "plan",
+                    "preference",
+                    "profile",
+                    "relationship",
+                    "state",
+                ),
+            )
+        )
+        self._graph_utility_max_slots = int(
+            graph_utility_config.get("max_slots", 2)
+        )
+        self._graph_utility_max_sources_per_slot = int(
+            graph_utility_config.get("max_sources_per_slot", 4)
+        )
+        self._graph_utility_min_overlap_terms = int(
+            graph_utility_config.get("min_overlap_terms", 1)
+        )
+        self._graph_utility_require_new_source = bool(
+            graph_utility_config.get("require_new_source", True)
+        )
+        self._graph_utility_ignored_overlap_terms = _tuple_config(
+            graph_utility_config.get("ignored_overlap_terms")
+        )
+        self._graph_utility_fusion_mode = str(
+            graph_utility_config.get("fusion_mode", "tail_rescue")
+        )
+        if self._graph_utility_fusion_mode not in {"audit", "tail_rescue"}:
+            raise ValueError(
+                "retrieval.graph_utility.fusion_mode must be audit or tail_rescue"
+            )
         self._dense_enabled = bool(dense_config.get("enabled", False))
         self._dense_top_k = int(dense_config.get("top_k", self._base_top_k))
         self._dense_batch_size = int(dense_config.get("batch_size", 32))
@@ -1769,6 +1817,7 @@ class Stage1Pipeline:
         memory_slot_chain_source_hits = ()
         object_slot_source_hits = ()
         operation_utility_source_hits = ()
+        graph_utility_source_hits = ()
         memory_slot_chain_trace = _disabled_memory_slot_chain_trace(
             enabled=self._memory_slot_chain_enabled,
             information_needs=self._memory_slot_chain_information_needs,
@@ -1829,6 +1878,17 @@ class Stage1Pipeline:
             tail_exchange_max_swaps=(
                 self._operation_utility_tail_exchange_max_swaps
             ),
+        )
+        graph_utility_trace = _disabled_graph_utility_trace(
+            enabled=self._graph_utility_enabled,
+            information_needs=self._graph_utility_information_needs,
+            memory_types=self._graph_utility_memory_types,
+            max_slots=self._graph_utility_max_slots,
+            max_sources_per_slot=self._graph_utility_max_sources_per_slot,
+            min_overlap_terms=self._graph_utility_min_overlap_terms,
+            require_new_source=self._graph_utility_require_new_source,
+            ignored_overlap_terms=self._graph_utility_ignored_overlap_terms,
+            fusion_mode=self._graph_utility_fusion_mode,
         )
         build_memory_include_superseded = (
             self._build_memory_include_superseded
@@ -2216,6 +2276,42 @@ class Stage1Pipeline:
                     ),
                     max_swaps=self._operation_utility_tail_exchange_max_swaps,
                 )
+        if _graph_utility_applies(
+            enabled=self._graph_utility_enabled,
+            route=route,
+            information_needs=self._graph_utility_information_needs,
+        ):
+            (
+                graph_utility_source_hits,
+                graph_utility_trace,
+            ) = _memory_graph_utility_source_hits(
+                memory_hits=memory_hits,
+                built_memory_records=built_memory.records,
+                question=request.question,
+                route=route,
+                available_source_ids={turn.source_id for turn in store.turns},
+                candidate_source_ids=set(_source_ids_from_hits(hits)),
+                max_slots=self._graph_utility_max_slots,
+                max_sources_per_slot=(
+                    self._graph_utility_max_sources_per_slot
+                ),
+                memory_types=self._graph_utility_memory_types,
+                min_overlap_terms=self._graph_utility_min_overlap_terms,
+                require_new_source=self._graph_utility_require_new_source,
+                ignored_overlap_terms=(
+                    self._graph_utility_ignored_overlap_terms
+                ),
+                fusion_mode=self._graph_utility_fusion_mode,
+            )
+            if (
+                graph_utility_source_hits
+                and self._graph_utility_fusion_mode == "tail_rescue"
+            ):
+                hits = _append_tail_rescue_hits(
+                    hits,
+                    graph_utility_source_hits,
+                    top_k=candidate_top_k,
+                )
         embedding_cache_after = _embedding_cache_stats(self._embedding_client)
         turn_hits = hits
         pre_rerank_hits = hits
@@ -2248,6 +2344,11 @@ class Stage1Pipeline:
                 *(
                     _source_ids_from_hits(operation_utility_source_hits)
                     if self._operation_utility_fusion_mode == "rrf"
+                    else ()
+                ),
+                *(
+                    _source_ids_from_hits(graph_utility_source_hits)
+                    if self._graph_utility_fusion_mode == "tail_rescue"
                     else ()
                 ),
             )
@@ -2471,6 +2572,7 @@ class Stage1Pipeline:
             memory_slot_chain_source_hits=memory_slot_chain_source_hits,
             object_slot_source_hits=object_slot_source_hits,
             operation_utility_source_hits=operation_utility_source_hits,
+            graph_utility_source_hits=graph_utility_source_hits,
             turn_window_source_hits=turn_window_source_hits,
             pre_context_budget_hits=pre_context_budget_hits,
             retrieval_hits=hits,
@@ -2883,6 +2985,52 @@ class Stage1Pipeline:
                     "operation_utility_slots": operation_utility_trace["slots"],
                     "operation_utility_skipped_reason": (
                         operation_utility_trace["skipped_reason"]
+                    ),
+                    "graph_utility_enabled": self._graph_utility_enabled,
+                    "graph_utility_applied": graph_utility_trace["applied"],
+                    "graph_utility_information_needs": (
+                        self._graph_utility_information_needs
+                    ),
+                    "graph_utility_memory_types": (
+                        self._graph_utility_memory_types
+                    ),
+                    "graph_utility_max_slots": self._graph_utility_max_slots,
+                    "graph_utility_max_sources_per_slot": (
+                        self._graph_utility_max_sources_per_slot
+                    ),
+                    "graph_utility_min_overlap_terms": (
+                        self._graph_utility_min_overlap_terms
+                    ),
+                    "graph_utility_require_new_source": (
+                        self._graph_utility_require_new_source
+                    ),
+                    "graph_utility_ignored_overlap_terms": (
+                        self._graph_utility_ignored_overlap_terms
+                    ),
+                    "graph_utility_fusion_mode": (
+                        self._graph_utility_fusion_mode
+                    ),
+                    "graph_utility_source_hits": [
+                        hit.to_dict() for hit in graph_utility_source_hits
+                    ],
+                    "graph_utility_question_scope": (
+                        graph_utility_trace["question_scope"]
+                    ),
+                    "graph_utility_slot_index": (
+                        graph_utility_trace.get("slot_index")
+                    ),
+                    "graph_utility_candidate_source_count": (
+                        graph_utility_trace["candidate_source_count"]
+                    ),
+                    "graph_utility_emitted_source_count": (
+                        graph_utility_trace["emitted_source_count"]
+                    ),
+                    "graph_utility_novel_source_count": (
+                        graph_utility_trace["novel_source_count"]
+                    ),
+                    "graph_utility_slots": graph_utility_trace["slots"],
+                    "graph_utility_skipped_reason": (
+                        graph_utility_trace["skipped_reason"]
                     ),
                     "dense_hits": [hit.to_dict() for hit in dense_hits],
                     "turn_window_hits": [
@@ -3832,6 +3980,7 @@ def _context_manifest(
     compiled_context_chars: int | None = None,
     object_slot_source_hits: tuple[Any, ...] = (),
     operation_utility_source_hits: tuple[Any, ...] = (),
+    graph_utility_source_hits: tuple[Any, ...] = (),
 ) -> dict[str, Any]:
     """Trace-only source flow manifest for memory/context organization.
 
@@ -3851,6 +4000,7 @@ def _context_manifest(
             *_source_ids_from_hits(memory_slot_chain_source_hits),
             *_source_ids_from_hits(object_slot_source_hits),
             *_source_ids_from_hits(operation_utility_source_hits),
+            *_source_ids_from_hits(graph_utility_source_hits),
         )
     )
     typed_memory_source_ids = _ordered_unique(
@@ -3893,6 +4043,7 @@ def _context_manifest(
             "operation_utility_source_hit_count": len(
                 operation_utility_source_hits
             ),
+            "graph_utility_source_hit_count": len(graph_utility_source_hits),
             "turn_window_source_hit_count": len(turn_window_source_hits),
             "pre_context_budget_hit_count": len(pre_context_budget_hits),
             "final_hit_count": len(retrieval_hits),
@@ -3913,6 +4064,9 @@ def _context_manifest(
             ),
             "operation_utility_source_ids": _source_ids_from_hits(
                 operation_utility_source_hits
+            ),
+            "graph_utility_source_ids": _source_ids_from_hits(
+                graph_utility_source_hits
             ),
             "turn_window_source_ids": _source_ids_from_hits(
                 turn_window_source_hits
@@ -4888,6 +5042,310 @@ def _memory_operation_utility_source_hits(
         "operation_counts": dict(sorted(operation_counts.items())),
         "slots": slot_traces,
     }
+
+
+def _graph_utility_applies(
+    *,
+    enabled: bool,
+    route: RouteResult,
+    information_needs: tuple[str, ...],
+) -> bool:
+    if not enabled:
+        return False
+    if information_needs and route.information_need not in information_needs:
+        return False
+    return route.information_need in SUPPORTED_INFORMATION_NEEDS
+
+
+def _disabled_graph_utility_trace(
+    *,
+    enabled: bool,
+    information_needs: tuple[str, ...],
+    memory_types: tuple[str, ...],
+    max_slots: int,
+    max_sources_per_slot: int,
+    min_overlap_terms: int,
+    require_new_source: bool,
+    ignored_overlap_terms: tuple[str, ...],
+    fusion_mode: str = "tail_rescue",
+    question_scope: str = "unspecified",
+    skipped_reason: str = "",
+) -> dict[str, Any]:
+    return {
+        "enabled": enabled,
+        "applied": False,
+        "information_needs": information_needs,
+        "memory_types": memory_types,
+        "max_slots": max_slots,
+        "max_sources_per_slot": max_sources_per_slot,
+        "min_overlap_terms": min_overlap_terms,
+        "require_new_source": require_new_source,
+        "ignored_overlap_terms": ignored_overlap_terms,
+        "fusion_mode": fusion_mode,
+        "question_scope": question_scope,
+        "slot_index": _memory_object_slot_empty_index_stats(enabled=True),
+        "candidate_source_count": 0,
+        "emitted_source_count": 0,
+        "novel_source_count": 0,
+        "skipped_reason": skipped_reason,
+        "slots": [],
+    }
+
+
+def _memory_graph_utility_source_hits(
+    *,
+    memory_hits: tuple[Any, ...],
+    built_memory_records: tuple[Any, ...],
+    question: str,
+    route: RouteResult,
+    available_source_ids: set[str],
+    candidate_source_ids: set[str],
+    max_slots: int,
+    max_sources_per_slot: int,
+    memory_types: tuple[str, ...],
+    min_overlap_terms: int = 1,
+    require_new_source: bool = True,
+    ignored_overlap_terms: tuple[str, ...] = (),
+    fusion_mode: str = "tail_rescue",
+) -> tuple[tuple[RetrievalHit, ...], dict[str, Any]]:
+    """Use the build memory graph as a source-backed evidence utility index.
+
+    The graph signal is deliberately projected back to raw turns. It can audit
+    or append candidate sources, but it never exposes synthetic memory text as
+    final evidence and never replaces primary retrieval hits.
+    """
+
+    question_scope = _memory_slot_chain_question_scope(question)
+    candidate_source_ids = {str(source_id) for source_id in candidate_source_ids}
+    trace = _disabled_graph_utility_trace(
+        enabled=True,
+        information_needs=(route.information_need,),
+        memory_types=memory_types,
+        max_slots=max_slots,
+        max_sources_per_slot=max_sources_per_slot,
+        min_overlap_terms=min_overlap_terms,
+        require_new_source=require_new_source,
+        ignored_overlap_terms=ignored_overlap_terms,
+        fusion_mode=fusion_mode,
+        question_scope=question_scope,
+    )
+    trace = {
+        **trace,
+        "candidate_source_count": len(candidate_source_ids),
+    }
+    if not memory_hits or not built_memory_records:
+        return (), trace
+    if max_slots <= 0 or max_sources_per_slot <= 0:
+        return (), {**trace, "skipped_reason": "non_positive_budget"}
+
+    ignored_terms = frozenset(
+        _memory_slot_chain_text_terms(" ".join(ignored_overlap_terms))
+    )
+    question_terms = _memory_object_slot_question_terms(
+        question,
+        ignored_overlap_terms=ignored_terms,
+    )
+    if not question_terms:
+        return (), {**trace, "skipped_reason": "no_question_terms"}
+
+    groups, slot_index_stats = _memory_object_slot_index(
+        built_memory_records,
+        memory_types=memory_types,
+    )
+    trace = {**trace, "slot_index": slot_index_stats}
+
+    selected_hits: list[RetrievalHit] = []
+    slot_traces: list[dict[str, Any]] = []
+    seen_sources: set[str] = set()
+    seen_keys: set[tuple[str, str, str]] = set()
+    rank = 1
+    for memory_hit in memory_hits:
+        if len(slot_traces) >= max_slots:
+            break
+        record = getattr(memory_hit, "record", None)
+        key = _memory_object_slot_key(record, memory_types=memory_types)
+        if key is None or key in seen_keys:
+            continue
+        seen_keys.add(key)
+        records = tuple(groups.get(key, ()))
+        if not records:
+            continue
+
+        matched_terms = _memory_object_slot_matched_terms(
+            question_terms=question_terms,
+            key=key,
+            records=records,
+            ignored_overlap_terms=ignored_terms,
+        )
+        if len(matched_terms) < max(0, min_overlap_terms):
+            continue
+
+        source_ids = _memory_graph_slot_sources(
+            records,
+            available_source_ids=available_source_ids,
+            existing_source_ids=candidate_source_ids if require_new_source else set(),
+            max_sources=max_sources_per_slot,
+            question_scope=question_scope,
+        )
+        if not source_ids:
+            continue
+
+        signals = _memory_graph_slot_signals(records)
+        base_score = float(getattr(memory_hit, "score", 0.0) or 0.0)
+        slot_score = _memory_graph_slot_score(
+            base_score=base_score,
+            matched_terms=matched_terms,
+            signals=signals,
+            route=route,
+            memory_type=key[0],
+            source_ids=source_ids,
+        )
+        emitted_sources: list[str] = []
+        for offset, source_id in enumerate(source_ids):
+            if source_id in seen_sources:
+                continue
+            seen_sources.add(source_id)
+            emitted_sources.append(source_id)
+            selected_hits.append(
+                RetrievalHit(
+                    source_id=source_id,
+                    score=slot_score - (offset * 1e-6),
+                    rank=rank,
+                    retriever="build_memory_graph_utility",
+                    matched_terms=matched_terms,
+                )
+            )
+            rank += 1
+        if not emitted_sources:
+            continue
+
+        slot_traces.append(
+            {
+                "slot": {
+                    "memory_type": key[0],
+                    "subject": key[1],
+                    "predicate": key[2],
+                },
+                "signals": signals,
+                "matched_memory_id": str(getattr(record, "memory_id", "")),
+                "matched_terms": matched_terms,
+                "question_scope": question_scope,
+                "record_count": len(records),
+                "status_counts": _memory_operation_slot_status_counts(records),
+                "source_ids": tuple(emitted_sources),
+                "candidate_source_ids": tuple(
+                    source_id
+                    for source_id in source_ids
+                    if source_id in candidate_source_ids
+                ),
+                "novel_source_count": sum(
+                    1 for source_id in emitted_sources if source_id not in candidate_source_ids
+                ),
+                "score": slot_score,
+                "values": _memory_object_slot_values(records)[:6],
+            }
+        )
+
+    if not selected_hits:
+        return (), {**trace, "skipped_reason": "no_matching_graph_slot"}
+
+    emitted_source_ids = tuple(hit.source_id for hit in selected_hits)
+    novel_source_count = sum(
+        1 for source_id in emitted_source_ids if source_id not in candidate_source_ids
+    )
+    return tuple(selected_hits), {
+        **trace,
+        "applied": bool(slot_traces),
+        "emitted_source_count": len(emitted_source_ids),
+        "novel_source_count": novel_source_count,
+        "slots": slot_traces,
+    }
+
+
+def _memory_graph_slot_sources(
+    records: tuple[Any, ...],
+    *,
+    available_source_ids: set[str],
+    existing_source_ids: set[str],
+    max_sources: int,
+    question_scope: str,
+) -> tuple[str, ...]:
+    if max_sources <= 0:
+        return ()
+    selected: list[str] = []
+    for record in sorted(
+        records,
+        key=lambda item: _memory_operation_slot_record_sort_key(
+            item,
+            question_scope=question_scope,
+        ),
+    ):
+        for source_id in tuple(getattr(record, "source_ids", ()) or ()):
+            source_id = str(source_id)
+            if (
+                source_id not in available_source_ids
+                or source_id in existing_source_ids
+                or source_id in selected
+            ):
+                continue
+            selected.append(source_id)
+            if len(selected) >= max_sources:
+                return tuple(selected)
+    return tuple(selected)
+
+
+def _memory_graph_slot_signals(records: tuple[Any, ...]) -> tuple[str, ...]:
+    if not records:
+        return ()
+    signals: list[str] = ["source_support"]
+    status_values = {
+        str(getattr(record, "status", "active") or "active").lower()
+        for record in records
+    }
+    if "superseded" in status_values:
+        signals.append("supersede")
+    if any(
+        getattr(record, "superseded_by", None) or getattr(record, "valid_to", None)
+        for record in records
+    ):
+        if "supersede" not in signals:
+            signals.append("supersede")
+    values = _memory_object_slot_values(records)
+    if len(values) > 1:
+        signals.append("multi_value_slot")
+    operation_signals = _memory_operation_slot_types(
+        records,
+        managed_memory_types=tuple(sorted(_STATE_UPDATE_MEMORY_TYPES)),
+    )
+    for signal in operation_signals:
+        if signal not in signals:
+            signals.append(signal)
+    return tuple(signals)
+
+
+def _memory_graph_slot_score(
+    *,
+    base_score: float,
+    matched_terms: tuple[str, ...],
+    signals: tuple[str, ...],
+    route: RouteResult,
+    memory_type: str,
+    source_ids: tuple[str, ...],
+) -> float:
+    score = base_score + (2.0 * len(matched_terms))
+    if "supersede" in signals or "conflict_slot" in signals:
+        score += 0.5
+    if "multi_value_slot" in signals or "collection_multi_value_slot" in signals:
+        score += 0.25
+    if (
+        route.information_need in {"current_state", "profile_preference"}
+        and memory_type in _STATE_UPDATE_MEMORY_TYPES
+    ):
+        score += 0.25
+    if route.information_need == "list_count" and "multi_value_slot" in signals:
+        score += 0.25
+    score += min(0.25, 0.05 * len(source_ids))
+    return score
 
 
 def _memory_operation_slot_types(
