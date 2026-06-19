@@ -133,6 +133,8 @@ def main() -> int:
     total_memory_source_hits = 0
     total_memory_slot_chain_applied = 0
     total_memory_slot_chain_source_hits = 0
+    total_object_slot_activation_applied = 0
+    total_object_slot_activation_source_hits = 0
     total_answer_cache_hits = 0
     total_answer_cache_misses = 0
     total_answer_cache_writes = 0
@@ -395,6 +397,11 @@ def main() -> int:
         total_memory_slot_chain_source_hits += len(
             retrieval_trace.get("memory_slot_chain_source_hits") or []
         )
+        if retrieval_trace.get("object_slot_activation_applied"):
+            total_object_slot_activation_applied += 1
+        total_object_slot_activation_source_hits += len(
+            retrieval_trace.get("object_slot_activation_source_hits") or []
+        )
         answer_cache = result["trace"].get("answer_cache") or {}
         total_answer_cache_hits += int(answer_cache.get("hits") or 0)
         total_answer_cache_misses += int(answer_cache.get("misses") or 0)
@@ -515,6 +522,40 @@ def main() -> int:
             ),
             "avg_memory_slot_chain_source_hits": _safe_average(
                 total_memory_slot_chain_source_hits, sample_count
+            ),
+            "object_slot_activation_enabled": config.get("retrieval", {})
+            .get("object_slot_activation", {})
+            .get("enabled", False),
+            "object_slot_activation_information_needs": config.get("retrieval", {})
+            .get("object_slot_activation", {})
+            .get("information_needs"),
+            "object_slot_activation_memory_types": config.get("retrieval", {})
+            .get("object_slot_activation", {})
+            .get("memory_types"),
+            "object_slot_activation_max_slots": config.get("retrieval", {})
+            .get("object_slot_activation", {})
+            .get("max_slots"),
+            "object_slot_activation_max_sources_per_slot": config.get(
+                "retrieval", {}
+            )
+            .get("object_slot_activation", {})
+            .get("max_sources_per_slot"),
+            "object_slot_activation_min_overlap_terms": config.get("retrieval", {})
+            .get("object_slot_activation", {})
+            .get("min_overlap_terms"),
+            "object_slot_activation_require_collection_slot": config.get(
+                "retrieval", {}
+            )
+            .get("object_slot_activation", {})
+            .get("require_collection_slot"),
+            "object_slot_activation_applied_count": (
+                total_object_slot_activation_applied
+            ),
+            "object_slot_activation_applied_rate": _safe_average(
+                total_object_slot_activation_applied, sample_count
+            ),
+            "avg_object_slot_activation_source_hits": _safe_average(
+                total_object_slot_activation_source_hits, sample_count
             ),
             "dense_enabled": config.get("retrieval", {})
             .get("dense", {})

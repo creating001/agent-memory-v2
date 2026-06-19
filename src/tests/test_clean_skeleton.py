@@ -46,6 +46,7 @@ from memory.pipeline import (
     _compiler_memory_records,
     _context_manifest,
     _memory_lifecycle_manifest,
+    _memory_object_slot_source_hits,
     _memory_slot_chain_source_hits,
     _memory_records_by_source,
     _neighbor_turns_for_rerank,
@@ -3127,6 +3128,106 @@ class CleanSkeletonTest(unittest.TestCase):
             memory_types=("state",),
             question_scope_gate=True,
             source_policy="query_scope",
+        )
+
+        self.assertFalse(trace["applied"])
+        self.assertEqual(hits, ())
+
+    def test_memory_object_slot_activation_expands_collection_sources(self) -> None:
+        first_record = MemoryRecord(
+            memory_id="dune",
+            memory_type="fact",
+            text="Alex read Dune.",
+            source_ids=("s1:t0",),
+            subject="Alex",
+            predicate="read book",
+            value="Dune",
+        )
+        second_record = MemoryRecord(
+            memory_id="foundation",
+            memory_type="fact",
+            text="Alex read Foundation.",
+            source_ids=("s2:t0",),
+            subject="Alex",
+            predicate="read book",
+            value="Foundation",
+        )
+
+        hits, trace = _memory_object_slot_source_hits(
+            memory_hits=(MemoryHit(record=first_record, score=3.0, rank=1),),
+            built_memory_records=(first_record, second_record),
+            question="Which books did Alex read?",
+            route=RouteResult("list_count", ("list",)),
+            available_source_ids={"s1:t0", "s2:t0"},
+            max_slots=2,
+            max_sources_per_slot=4,
+            memory_types=("fact",),
+        )
+
+        self.assertTrue(trace["applied"])
+        self.assertEqual(
+            [hit.source_id for hit in hits],
+            ["s1:t0", "s2:t0"],
+        )
+        self.assertEqual({hit.retriever for hit in hits}, {"build_memory_object_slot"})
+        self.assertEqual(trace["slots"][0]["values"], ("dune", "foundation"))
+        self.assertIn("book", trace["slots"][0]["matched_terms"])
+
+    def test_memory_object_slot_activation_requires_collection_slot(self) -> None:
+        record = MemoryRecord(
+            memory_id="dune",
+            memory_type="fact",
+            text="Alex read Dune.",
+            source_ids=("s1:t0",),
+            subject="Alex",
+            predicate="read book",
+            value="Dune",
+        )
+
+        hits, trace = _memory_object_slot_source_hits(
+            memory_hits=(MemoryHit(record=record, score=3.0, rank=1),),
+            built_memory_records=(record,),
+            question="Which books did Alex read?",
+            route=RouteResult("list_count", ("list",)),
+            available_source_ids={"s1:t0"},
+            max_slots=2,
+            max_sources_per_slot=4,
+            memory_types=("fact",),
+            require_collection_slot=True,
+        )
+
+        self.assertFalse(trace["applied"])
+        self.assertEqual(hits, ())
+
+    def test_memory_object_slot_activation_ignores_subject_only_overlap(self) -> None:
+        first_record = MemoryRecord(
+            memory_id="dune",
+            memory_type="fact",
+            text="Alex read Dune.",
+            source_ids=("s1:t0",),
+            subject="Alex",
+            predicate="read book",
+            value="Dune",
+        )
+        second_record = MemoryRecord(
+            memory_id="foundation",
+            memory_type="fact",
+            text="Alex read Foundation.",
+            source_ids=("s2:t0",),
+            subject="Alex",
+            predicate="read book",
+            value="Foundation",
+        )
+
+        hits, trace = _memory_object_slot_source_hits(
+            memory_hits=(MemoryHit(record=first_record, score=3.0, rank=1),),
+            built_memory_records=(first_record, second_record),
+            question="What does Alex enjoy lately?",
+            route=RouteResult("list_count", ("list",)),
+            available_source_ids={"s1:t0", "s2:t0"},
+            max_slots=2,
+            max_sources_per_slot=4,
+            memory_types=("fact",),
         )
 
         self.assertFalse(trace["applied"])

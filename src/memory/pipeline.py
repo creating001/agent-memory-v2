@@ -113,6 +113,11 @@ class Stage1Pipeline:
         memory_slot_chain_config = retrieval_config.get("memory_slot_chain", {})
         if not isinstance(memory_slot_chain_config, Mapping):
             raise ValueError("retrieval.memory_slot_chain must be an object")
+        object_slot_activation_config = retrieval_config.get(
+            "object_slot_activation", {}
+        )
+        if not isinstance(object_slot_activation_config, Mapping):
+            raise ValueError("retrieval.object_slot_activation must be an object")
         rerank_config = retrieval_config.get("rerank", {})
         route_config = self._config.get("route", {})
         if self._config.get("question_analysis", {}).get("enabled", False):
@@ -300,6 +305,38 @@ class Stage1Pipeline:
             raise ValueError(
                 "retrieval.memory_slot_chain.source_policy must be all or query_scope"
             )
+        self._object_slot_activation_enabled = bool(
+            object_slot_activation_config.get("enabled", False)
+        )
+        self._object_slot_activation_information_needs = _tuple_config(
+            object_slot_activation_config.get("information_needs", ("list_count",))
+        )
+        self._object_slot_activation_memory_types = _tuple_config(
+            object_slot_activation_config.get(
+                "memory_types",
+                (
+                    "event",
+                    "fact",
+                    "plan",
+                    "preference",
+                    "profile",
+                    "relationship",
+                    "state",
+                ),
+            )
+        )
+        self._object_slot_activation_max_slots = int(
+            object_slot_activation_config.get("max_slots", 3)
+        )
+        self._object_slot_activation_max_sources_per_slot = int(
+            object_slot_activation_config.get("max_sources_per_slot", 8)
+        )
+        self._object_slot_activation_min_overlap_terms = int(
+            object_slot_activation_config.get("min_overlap_terms", 1)
+        )
+        self._object_slot_activation_require_collection_slot = bool(
+            object_slot_activation_config.get("require_collection_slot", True)
+        )
         self._dense_enabled = bool(dense_config.get("enabled", False))
         self._dense_top_k = int(dense_config.get("top_k", self._base_top_k))
         self._dense_batch_size = int(dense_config.get("batch_size", 32))
@@ -1550,6 +1587,7 @@ class Stage1Pipeline:
         memory_hits = ()
         memory_source_hits = ()
         memory_slot_chain_source_hits = ()
+        object_slot_source_hits = ()
         memory_slot_chain_trace = _disabled_memory_slot_chain_trace(
             enabled=self._memory_slot_chain_enabled,
             information_needs=self._memory_slot_chain_information_needs,
@@ -1558,6 +1596,19 @@ class Stage1Pipeline:
             memory_types=self._memory_slot_chain_memory_types,
             question_scope_gate=self._memory_slot_chain_question_scope_gate,
             source_policy=self._memory_slot_chain_source_policy,
+        )
+        object_slot_activation_trace = _disabled_object_slot_activation_trace(
+            enabled=self._object_slot_activation_enabled,
+            information_needs=self._object_slot_activation_information_needs,
+            memory_types=self._object_slot_activation_memory_types,
+            max_slots=self._object_slot_activation_max_slots,
+            max_sources_per_slot=(
+                self._object_slot_activation_max_sources_per_slot
+            ),
+            min_overlap_terms=self._object_slot_activation_min_overlap_terms,
+            require_collection_slot=(
+                self._object_slot_activation_require_collection_slot
+            ),
         )
         build_memory_include_superseded = (
             self._build_memory_include_superseded
@@ -1599,6 +1650,32 @@ class Stage1Pipeline:
                     memory_types=self._memory_slot_chain_memory_types,
                     question_scope_gate=self._memory_slot_chain_question_scope_gate,
                     source_policy=self._memory_slot_chain_source_policy,
+                )
+            if _object_slot_activation_applies(
+                enabled=self._object_slot_activation_enabled,
+                route=route,
+                information_needs=self._object_slot_activation_information_needs,
+            ):
+                (
+                    object_slot_source_hits,
+                    object_slot_activation_trace,
+                ) = _memory_object_slot_source_hits(
+                    memory_hits=memory_hits,
+                    built_memory_records=built_memory.records,
+                    question=request.question,
+                    route=route,
+                    available_source_ids={turn.source_id for turn in store.turns},
+                    max_slots=self._object_slot_activation_max_slots,
+                    max_sources_per_slot=(
+                        self._object_slot_activation_max_sources_per_slot
+                    ),
+                    memory_types=self._object_slot_activation_memory_types,
+                    min_overlap_terms=(
+                        self._object_slot_activation_min_overlap_terms
+                    ),
+                    require_collection_slot=(
+                        self._object_slot_activation_require_collection_slot
+                    ),
                 )
         turn_window_hits = ()
         turn_window_source_hits = ()
@@ -1661,6 +1738,8 @@ class Stage1Pipeline:
                 hit_lists = (*hit_lists, memory_source_hits)
             if memory_slot_chain_source_hits:
                 hit_lists = (*hit_lists, memory_slot_chain_source_hits)
+            if object_slot_source_hits:
+                hit_lists = (*hit_lists, object_slot_source_hits)
             if turn_window_source_hits:
                 hit_lists = (*hit_lists, turn_window_source_hits)
             hits = _merge_hit_lists(
@@ -1684,6 +1763,7 @@ class Stage1Pipeline:
             if (
                 memory_source_hits
                 or memory_slot_chain_source_hits
+                or object_slot_source_hits
                 or turn_window_source_hits
             ):
                 hits = _merge_hit_lists(
@@ -1693,6 +1773,7 @@ class Stage1Pipeline:
                             lexical_hits,
                             memory_source_hits,
                             memory_slot_chain_source_hits,
+                            object_slot_source_hits,
                             turn_window_source_hits,
                         )
                         if hits
@@ -1722,6 +1803,7 @@ class Stage1Pipeline:
             (
                 *_source_ids_from_hits(memory_source_hits),
                 *_source_ids_from_hits(memory_slot_chain_source_hits),
+                *_source_ids_from_hits(object_slot_source_hits),
             )
         )
         if self._rerank_client is not None and rerank_skipped_reason is None:
@@ -1941,6 +2023,7 @@ class Stage1Pipeline:
             memory_hits=memory_hits,
             memory_source_hits=memory_source_hits,
             memory_slot_chain_source_hits=memory_slot_chain_source_hits,
+            object_slot_source_hits=object_slot_source_hits,
             turn_window_source_hits=turn_window_source_hits,
             pre_context_budget_hits=pre_context_budget_hits,
             retrieval_hits=hits,
@@ -2226,6 +2309,39 @@ class Stage1Pipeline:
                     "memory_slot_chain_skipped_reason": memory_slot_chain_trace[
                         "skipped_reason"
                     ],
+                    "object_slot_activation_enabled": (
+                        self._object_slot_activation_enabled
+                    ),
+                    "object_slot_activation_applied": (
+                        object_slot_activation_trace["applied"]
+                    ),
+                    "object_slot_activation_information_needs": (
+                        self._object_slot_activation_information_needs
+                    ),
+                    "object_slot_activation_memory_types": (
+                        self._object_slot_activation_memory_types
+                    ),
+                    "object_slot_activation_max_slots": (
+                        self._object_slot_activation_max_slots
+                    ),
+                    "object_slot_activation_max_sources_per_slot": (
+                        self._object_slot_activation_max_sources_per_slot
+                    ),
+                    "object_slot_activation_min_overlap_terms": (
+                        self._object_slot_activation_min_overlap_terms
+                    ),
+                    "object_slot_activation_require_collection_slot": (
+                        self._object_slot_activation_require_collection_slot
+                    ),
+                    "object_slot_activation_source_hits": [
+                        hit.to_dict() for hit in object_slot_source_hits
+                    ],
+                    "object_slot_activation_slots": (
+                        object_slot_activation_trace["slots"]
+                    ),
+                    "object_slot_activation_skipped_reason": (
+                        object_slot_activation_trace["skipped_reason"]
+                    ),
                     "dense_hits": [hit.to_dict() for hit in dense_hits],
                     "turn_window_hits": [
                         hit.to_dict() for hit in turn_window_hits
@@ -3168,6 +3284,7 @@ def _context_manifest(
     compiler_memory_records: tuple[Any, ...],
     evidence_rows: tuple[Any, ...],
     compiled_context_chars: int | None = None,
+    object_slot_source_hits: tuple[Any, ...] = (),
 ) -> dict[str, Any]:
     """Trace-only source flow manifest for memory/context organization.
 
@@ -3185,6 +3302,7 @@ def _context_manifest(
         (
             *_source_ids_from_hits(memory_source_hits),
             *_source_ids_from_hits(memory_slot_chain_source_hits),
+            *_source_ids_from_hits(object_slot_source_hits),
         )
     )
     typed_memory_source_ids = _ordered_unique(
@@ -3223,6 +3341,7 @@ def _context_manifest(
             "memory_slot_chain_source_hit_count": len(
                 memory_slot_chain_source_hits
             ),
+            "object_slot_source_hit_count": len(object_slot_source_hits),
             "turn_window_source_hit_count": len(turn_window_source_hits),
             "pre_context_budget_hit_count": len(pre_context_budget_hits),
             "final_hit_count": len(retrieval_hits),
@@ -3238,6 +3357,9 @@ def _context_manifest(
             "lexical_source_ids": _source_ids_from_hits(lexical_hits),
             "dense_source_ids": _source_ids_from_hits(dense_hits),
             "memory_projected_source_ids": memory_projected_source_ids,
+            "object_slot_source_ids": _source_ids_from_hits(
+                object_slot_source_hits
+            ),
             "turn_window_source_ids": _source_ids_from_hits(
                 turn_window_source_hits
             ),
@@ -3996,6 +4118,277 @@ def _memory_slot_chain_applies(
     if information_needs and route.information_need not in information_needs:
         return False
     return route.information_need in {"current_state", "profile_preference"}
+
+
+def _object_slot_activation_applies(
+    *,
+    enabled: bool,
+    route: RouteResult,
+    information_needs: tuple[str, ...],
+) -> bool:
+    if not enabled:
+        return False
+    if information_needs and route.information_need not in information_needs:
+        return False
+    return route.information_need in {
+        "current_state",
+        "fact_lookup",
+        "list_count",
+        "profile_preference",
+    }
+
+
+def _disabled_object_slot_activation_trace(
+    *,
+    enabled: bool,
+    information_needs: tuple[str, ...],
+    memory_types: tuple[str, ...],
+    max_slots: int,
+    max_sources_per_slot: int,
+    min_overlap_terms: int,
+    require_collection_slot: bool,
+    skipped_reason: str = "",
+) -> dict[str, Any]:
+    return {
+        "enabled": enabled,
+        "applied": False,
+        "information_needs": information_needs,
+        "memory_types": memory_types,
+        "max_slots": max_slots,
+        "max_sources_per_slot": max_sources_per_slot,
+        "min_overlap_terms": min_overlap_terms,
+        "require_collection_slot": require_collection_slot,
+        "skipped_reason": skipped_reason,
+        "slots": [],
+    }
+
+
+def _memory_object_slot_source_hits(
+    *,
+    memory_hits: tuple[Any, ...],
+    built_memory_records: tuple[Any, ...],
+    question: str,
+    route: RouteResult,
+    available_source_ids: set[str],
+    max_slots: int,
+    max_sources_per_slot: int,
+    memory_types: tuple[str, ...],
+    min_overlap_terms: int = 1,
+    require_collection_slot: bool = True,
+) -> tuple[tuple[RetrievalHit, ...], dict[str, Any]]:
+    """Expand a matched build-memory object slot back to raw source rows.
+
+    This uses derived memory only as a source-backed index. It never exposes
+    typed memory text as final evidence and never drops existing retrieval hits.
+    """
+
+    trace = _disabled_object_slot_activation_trace(
+        enabled=True,
+        information_needs=(route.information_need,),
+        memory_types=memory_types,
+        max_slots=max_slots,
+        max_sources_per_slot=max_sources_per_slot,
+        min_overlap_terms=min_overlap_terms,
+        require_collection_slot=require_collection_slot,
+    )
+    if not memory_hits or not built_memory_records:
+        return (), trace
+    if max_slots <= 0 or max_sources_per_slot <= 0:
+        return (), {**trace, "skipped_reason": "non_positive_budget"}
+
+    question_terms = _memory_object_slot_question_terms(question)
+    if not question_terms:
+        return (), {**trace, "skipped_reason": "no_question_terms"}
+
+    groups: dict[tuple[str, str, str], list[Any]] = {}
+    for record in built_memory_records:
+        key = _memory_object_slot_key(record, memory_types=memory_types)
+        if key is None:
+            continue
+        groups.setdefault(key, []).append(record)
+
+    selected_hits: list[RetrievalHit] = []
+    slot_traces: list[dict[str, Any]] = []
+    seen_sources: set[str] = set()
+    seen_keys: set[tuple[str, str, str]] = set()
+    rank = 1
+    for memory_hit in memory_hits:
+        if len(slot_traces) >= max_slots:
+            break
+        record = getattr(memory_hit, "record", None)
+        key = _memory_object_slot_key(record, memory_types=memory_types)
+        if key is None or key in seen_keys:
+            continue
+        seen_keys.add(key)
+        records = tuple(groups.get(key, ()))
+        if require_collection_slot and not _is_memory_object_collection_slot(records):
+            continue
+        matched_terms = _memory_object_slot_matched_terms(
+            question_terms=question_terms,
+            key=key,
+            records=records,
+        )
+        if len(matched_terms) < max(0, min_overlap_terms):
+            continue
+
+        source_ids = _memory_object_slot_sources(
+            records,
+            available_source_ids=available_source_ids,
+            max_sources=max_sources_per_slot,
+        )
+        if not source_ids:
+            continue
+
+        base_score = float(getattr(memory_hit, "score", 0.0) or 0.0)
+        emitted_sources: list[str] = []
+        for offset, source_id in enumerate(source_ids):
+            if source_id in seen_sources:
+                continue
+            seen_sources.add(source_id)
+            emitted_sources.append(source_id)
+            selected_hits.append(
+                RetrievalHit(
+                    source_id=source_id,
+                    score=base_score - (offset * 1e-6),
+                    rank=rank,
+                    retriever="build_memory_object_slot",
+                    matched_terms=matched_terms,
+                )
+            )
+            rank += 1
+        if not emitted_sources:
+            continue
+
+        slot_traces.append(
+            {
+                "slot": {
+                    "memory_type": key[0],
+                    "subject": key[1],
+                    "predicate": key[2],
+                },
+                "matched_memory_id": str(getattr(record, "memory_id", "")),
+                "matched_terms": matched_terms,
+                "record_count": len(records),
+                "source_ids": tuple(emitted_sources),
+                "values": _memory_object_slot_values(records)[:6],
+            }
+        )
+
+    return tuple(selected_hits), {
+        **trace,
+        "applied": bool(slot_traces),
+        "slots": slot_traces,
+    }
+
+
+def _memory_object_slot_key(
+    record: Any,
+    *,
+    memory_types: tuple[str, ...],
+) -> tuple[str, str, str] | None:
+    if record is None:
+        return None
+    memory_type = str(getattr(record, "memory_type", "") or "").lower()
+    allowed_types = {item.lower() for item in memory_types} if memory_types else {
+        "event",
+        "fact",
+        "plan",
+        "preference",
+        "profile",
+        "relationship",
+        "state",
+    }
+    if memory_type not in allowed_types:
+        return None
+    subject = _normalize_memory_slot_text(str(getattr(record, "subject", "") or ""))
+    predicate = _normalize_memory_slot_text(str(getattr(record, "predicate", "") or ""))
+    if not subject or not predicate:
+        return None
+    return (memory_type, subject, predicate)
+
+
+def _is_memory_object_collection_slot(records: tuple[Any, ...]) -> bool:
+    if len(records) < 2:
+        return False
+    return len(_memory_object_slot_values(records)) > 1
+
+
+def _memory_object_slot_matched_terms(
+    *,
+    question_terms: frozenset[str],
+    key: tuple[str, str, str],
+    records: tuple[Any, ...],
+) -> tuple[str, ...]:
+    _memory_type, subject, _predicate = key
+    subject_terms = _memory_slot_chain_text_terms(subject)
+    scoped_question_terms = question_terms.difference(subject_terms)
+    if not scoped_question_terms:
+        return ()
+    slot_terms: set[str] = set()
+    for record in records:
+        slot_terms.update(
+            _memory_slot_chain_text_terms(
+                " ".join(
+                    str(part)
+                    for part in (
+                        getattr(record, "predicate", "") or "",
+                        getattr(record, "value", "") or "",
+                        getattr(record, "text", "") or "",
+                        " ".join(tuple(getattr(record, "entities", ()) or ())),
+                    )
+                    if part
+                )
+            )
+        )
+    return tuple(sorted(scoped_question_terms.intersection(slot_terms)))
+
+
+def _memory_object_slot_sources(
+    records: tuple[Any, ...],
+    *,
+    available_source_ids: set[str],
+    max_sources: int,
+) -> tuple[str, ...]:
+    selected: list[str] = []
+    for record in sorted(records, key=_memory_object_slot_record_sort_key):
+        for source_id in tuple(getattr(record, "source_ids", ()) or ()):
+            source_id = str(source_id)
+            if source_id not in available_source_ids or source_id in selected:
+                continue
+            selected.append(source_id)
+            if len(selected) >= max_sources:
+                return tuple(selected)
+    return tuple(selected)
+
+
+def _memory_object_slot_values(records: tuple[Any, ...]) -> tuple[str, ...]:
+    values: list[str] = []
+    seen: set[str] = set()
+    for record in records:
+        value = _normalize_memory_slot_text(
+            str(getattr(record, "value", "") or getattr(record, "text", "") or "")
+        )
+        if not value or value in seen:
+            continue
+        seen.add(value)
+        values.append(value)
+    return tuple(values)
+
+
+def _memory_object_slot_question_terms(question: str) -> frozenset[str]:
+    return _memory_slot_chain_question_terms(question)
+
+
+def _memory_object_slot_record_sort_key(record: Any) -> tuple[int, str, str]:
+    status = str(getattr(record, "status", "active") or "active")
+    status_rank = 0 if status == "active" else 1
+    time_value = (
+        getattr(record, "valid_from", None)
+        or getattr(record, "timestamp", None)
+        or getattr(record, "mention_time", None)
+        or ""
+    )
+    return (status_rank, str(time_value), str(getattr(record, "memory_id", "")))
 
 
 def _disabled_memory_slot_chain_trace(
