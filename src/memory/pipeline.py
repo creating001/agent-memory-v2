@@ -321,6 +321,17 @@ class Stage1Pipeline:
                 "require_question_reference_min_center_chars", 0
             )
         )
+        self._selected_context_require_source_grounded_self_reference = bool(
+            selected_context_config.get(
+                "require_source_grounded_self_reference", False
+            )
+        )
+        self._selected_context_source_grounded_min_terms = int(
+            selected_context_config.get("source_grounded_min_terms", 0)
+        )
+        self._selected_context_source_grounded_min_coverage = float(
+            selected_context_config.get("source_grounded_min_coverage", 0.0)
+        )
         self._selected_context_min_context_budget_headroom_chars = int(
             selected_context_config.get("min_context_budget_headroom_chars", 0)
         )
@@ -345,6 +356,15 @@ class Stage1Pipeline:
             ),
             "require_question_reference_min_center_chars": (
                 self._selected_context_require_question_reference_min_center_chars
+            ),
+            "require_source_grounded_self_reference": (
+                self._selected_context_require_source_grounded_self_reference
+            ),
+            "source_grounded_min_terms": (
+                self._selected_context_source_grounded_min_terms
+            ),
+            "source_grounded_min_coverage": (
+                self._selected_context_source_grounded_min_coverage
             ),
             "min_context_budget_headroom_chars": (
                 self._selected_context_min_context_budget_headroom_chars
@@ -1520,6 +1540,15 @@ class Stage1Pipeline:
             require_question_reference_min_center_chars=selected_context_settings[
                 "require_question_reference_min_center_chars"
             ],
+            require_source_grounded_self_reference=selected_context_settings[
+                "require_source_grounded_self_reference"
+            ],
+            source_grounded_min_terms=selected_context_settings[
+                "source_grounded_min_terms"
+            ],
+            source_grounded_min_coverage=selected_context_settings[
+                "source_grounded_min_coverage"
+            ],
         )
         selected_context.update(selected_context_budget_gate)
         selected_context["granularity_profile"] = granularity_profile
@@ -2011,6 +2040,15 @@ class Stage1Pipeline:
             ),
             "require_question_reference_min_center_chars": (
                 self._selected_context_require_question_reference_min_center_chars
+            ),
+            "require_source_grounded_self_reference": (
+                self._selected_context_require_source_grounded_self_reference
+            ),
+            "source_grounded_min_terms": (
+                self._selected_context_source_grounded_min_terms
+            ),
+            "source_grounded_min_coverage": (
+                self._selected_context_source_grounded_min_coverage
             ),
             "min_context_budget_headroom_chars": (
                 self._selected_context_min_context_budget_headroom_chars
@@ -3468,6 +3506,67 @@ SELECTED_CONTEXT_QUESTION_REFERENCE_PATTERN = re.compile(
     r"\bthe\s+(?:former|latter)\b",
     re.IGNORECASE,
 )
+SELECTED_CONTEXT_TERM_PATTERN = re.compile(r"[A-Za-z0-9_]+")
+SELECTED_CONTEXT_SELF_REFERENCE_PATTERN = re.compile(
+    r"\b("
+    r"i|i['’]?m|i['’]?ve|i['’]?d|me|my|mine|"
+    r"we|we['’]?re|we['’]?ve|us|our|ours"
+    r")\b",
+    re.IGNORECASE,
+)
+SELECTED_CONTEXT_TERM_STOPWORDS = frozenset(
+    {
+        "a",
+        "an",
+        "and",
+        "are",
+        "at",
+        "be",
+        "been",
+        "being",
+        "could",
+        "did",
+        "do",
+        "does",
+        "for",
+        "from",
+        "had",
+        "has",
+        "have",
+        "her",
+        "his",
+        "how",
+        "i",
+        "in",
+        "is",
+        "it",
+        "me",
+        "my",
+        "of",
+        "on",
+        "or",
+        "our",
+        "she",
+        "should",
+        "the",
+        "their",
+        "they",
+        "to",
+        "was",
+        "were",
+        "what",
+        "when",
+        "where",
+        "which",
+        "who",
+        "whom",
+        "why",
+        "would",
+        "you",
+        "your",
+    }
+)
+SELECTED_CONTEXT_GENERIC_ROLE_TERMS = frozenset({"assistant", "system", "user"})
 
 def _materialize_selected_context(
     *,
@@ -3485,9 +3584,16 @@ def _materialize_selected_context(
     question: str,
     require_question_reference: bool,
     require_question_reference_min_center_chars: int,
+    require_source_grounded_self_reference: bool,
+    source_grounded_min_terms: int,
+    source_grounded_min_coverage: float,
 ) -> tuple[tuple[Turn, ...], dict[str, Any]]:
     row_question_reference_threshold = max(
         0, int(require_question_reference_min_center_chars)
+    )
+    source_grounded_term_threshold = max(0, int(source_grounded_min_terms))
+    source_grounded_coverage_threshold = min(
+        1.0, max(0.0, float(source_grounded_min_coverage))
     )
     trace: dict[str, Any] = {
         "enabled": enabled,
@@ -3503,6 +3609,11 @@ def _materialize_selected_context(
         "require_question_reference_min_center_chars": (
             row_question_reference_threshold
         ),
+        "require_source_grounded_self_reference": (
+            require_source_grounded_self_reference
+        ),
+        "source_grounded_min_terms": source_grounded_term_threshold,
+        "source_grounded_min_coverage": source_grounded_coverage_threshold,
         "question_reference": False,
         "skip_reason": None,
         "eligible": False,
@@ -3512,6 +3623,9 @@ def _materialize_selected_context(
         "skipped_long_center_source_ids": [],
         "skipped_question_reference_center_count": 0,
         "skipped_question_reference_center_source_ids": [],
+        "skipped_source_grounded_count": 0,
+        "skipped_source_grounded_source_ids": [],
+        "skipped_source_grounded_reasons": {},
     }
     if not enabled or not turns:
         trace["skip_reason"] = "disabled_or_empty"
@@ -3537,6 +3651,8 @@ def _materialize_selected_context(
     materialized_turns: list[Turn] = []
     skipped_long_center_ids: list[str] = []
     skipped_question_reference_center_ids: list[str] = []
+    skipped_source_grounded_ids: list[str] = []
+    skipped_source_grounded_reasons: dict[str, str] = {}
 
     for turn in turns:
         if max_center_chars > 0 and len(turn.text) > max_center_chars:
@@ -3557,6 +3673,20 @@ def _materialize_selected_context(
         ):
             materialized_turns.append(turn)
             continue
+        if require_source_grounded_self_reference and not question_reference:
+            source_grounded_match = _selected_context_source_grounded_match(
+                question=question,
+                turn=turn,
+                min_terms=source_grounded_term_threshold,
+                min_coverage=source_grounded_coverage_threshold,
+            )
+            if not source_grounded_match["matched"]:
+                skipped_source_grounded_ids.append(turn.source_id)
+                skipped_source_grounded_reasons[turn.source_id] = str(
+                    source_grounded_match["reason"]
+                )
+                materialized_turns.append(turn)
+                continue
         context_text = _selected_context_text(
             store=store,
             turn=turn,
@@ -3580,8 +3710,58 @@ def _materialize_selected_context(
     trace["skipped_question_reference_center_source_ids"] = (
         skipped_question_reference_center_ids
     )
+    trace["skipped_source_grounded_count"] = len(skipped_source_grounded_ids)
+    trace["skipped_source_grounded_source_ids"] = skipped_source_grounded_ids
+    trace["skipped_source_grounded_reasons"] = skipped_source_grounded_reasons
     trace["applied"] = bool(materialized_ids)
     return tuple(materialized_turns), trace
+
+
+def _selected_context_source_grounded_match(
+    *,
+    question: str,
+    turn: Turn,
+    min_terms: int,
+    min_coverage: float,
+) -> dict[str, object]:
+    question_terms = _selected_context_content_terms(question)
+    if not question_terms:
+        return {"matched": False, "reason": "empty_question_terms"}
+    role_terms = _selected_context_role_terms(turn.role)
+    if role_terms and not role_terms.intersection(question_terms):
+        return {"matched": False, "reason": "role_not_in_question"}
+    if (
+        role_terms
+        and role_terms.intersection(question_terms)
+        and not SELECTED_CONTEXT_SELF_REFERENCE_PATTERN.search(turn.text)
+    ):
+        return {"matched": False, "reason": "missing_self_reference"}
+    turn_terms = _selected_context_content_terms(turn.text).union(role_terms)
+    matched_terms = question_terms.intersection(turn_terms)
+    if len(matched_terms) < min_terms:
+        return {"matched": False, "reason": "insufficient_slot_terms"}
+    coverage = len(matched_terms) / max(1, len(question_terms))
+    if coverage < min_coverage:
+        return {"matched": False, "reason": "insufficient_slot_coverage"}
+    return {"matched": True, "reason": "source_grounded_self_reference"}
+
+
+def _selected_context_role_terms(role: str) -> frozenset[str]:
+    return _selected_context_content_terms(role).difference(
+        SELECTED_CONTEXT_GENERIC_ROLE_TERMS
+    )
+
+
+def _selected_context_content_terms(text: str) -> frozenset[str]:
+    terms: set[str] = set()
+    for match in SELECTED_CONTEXT_TERM_PATTERN.finditer(text.lower()):
+        token = match.group(0)
+        if len(token) <= 1 or token in SELECTED_CONTEXT_TERM_STOPWORDS:
+            continue
+        terms.add(token)
+        if len(token) > 3 and token.endswith("s"):
+            terms.add(token[:-1])
+    return frozenset(terms)
 
 
 def _selected_context_text(
@@ -3661,6 +3841,9 @@ SELECTED_CONTEXT_OVERRIDE_KEYS = {
     "require_anaphora",
     "require_question_reference",
     "require_question_reference_min_center_chars",
+    "require_source_grounded_self_reference",
+    "source_grounded_min_terms",
+    "source_grounded_min_coverage",
     "information_needs",
 }
 
@@ -4501,7 +4684,12 @@ def _normalized_selected_context_override(
 ) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for key, value in raw.items():
-        if key in {"enabled", "require_anaphora", "require_question_reference"}:
+        if key in {
+            "enabled",
+            "require_anaphora",
+            "require_question_reference",
+            "require_source_grounded_self_reference",
+        }:
             result[key] = bool(value)
         elif key in {
             "window_before",
@@ -4511,8 +4699,11 @@ def _normalized_selected_context_override(
             "max_center_chars",
             "min_context_budget_headroom_chars",
             "require_question_reference_min_center_chars",
+            "source_grounded_min_terms",
         }:
             result[key] = int(value)
+        elif key == "source_grounded_min_coverage":
+            result[key] = min(1.0, max(0.0, float(value)))
         elif key == "information_needs":
             result[key] = _tuple_config(value)
     return result

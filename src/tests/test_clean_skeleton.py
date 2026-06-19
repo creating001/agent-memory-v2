@@ -526,6 +526,157 @@ class CleanSkeletonTest(unittest.TestCase):
             referenced_trace["skipped_question_reference_center_count"], 0
         )
 
+    def test_selected_context_source_grounded_gate_keeps_self_event(
+        self,
+    ) -> None:
+        config = {
+            "retrieval": {
+                "top_k": 3,
+                "max_top_k": 3,
+                "neighbor_window": 0,
+                "selected_context": {
+                    "enabled": True,
+                    "window_before": 1,
+                    "window_after": 1,
+                    "max_rows": 3,
+                    "max_neighbor_chars": 120,
+                    "require_anaphora": True,
+                    "require_source_grounded_self_reference": True,
+                    "source_grounded_min_terms": 2,
+                    "source_grounded_min_coverage": 0.6,
+                    "information_needs": ["temporal_lookup"],
+                },
+            },
+            "compiler": {
+                "prompt_mode": "external_naive",
+                "max_evidence_items": 3,
+                "max_evidence_chars": 4000,
+            },
+            "answer": {"fallback_answer": "unknown"},
+        }
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="Joanna",
+                text="Any plans for the weekend?",
+                timestamp="10:57 am on 22 August, 2022",
+            ),
+            Turn(
+                source_id="s1:t1",
+                session_id="s1",
+                turn_index=1,
+                role="Nate",
+                text="I'm taking some time off this weekend to chill with my pets.",
+                timestamp="10:57 am on 22 August, 2022",
+            ),
+            Turn(
+                source_id="s1:t2",
+                session_id="s1",
+                turn_index=2,
+                role="Joanna",
+                text="That sounds relaxing.",
+                timestamp="10:57 am on 22 August, 2022",
+            ),
+        )
+
+        result = Stage1Pipeline(config).predict(
+            PredictionRequest(
+                question="When did Nate take time off to chill with his pets?",
+                turns=turns,
+            )
+        )
+        trace = result["trace"]["retrieval"]["selected_context"]
+        row_text = "\n".join(
+            row["text"] for row in result["trace"]["compiled_context"]["evidence_rows"]
+        )
+
+        self.assertTrue(trace["applied"])
+        self.assertIn("s1:t1", trace["materialized_source_ids"])
+        self.assertEqual(trace["skipped_source_grounded_count"], 0)
+        self.assertIn("Local dialogue context from the same session", row_text)
+
+    def test_selected_context_source_grounded_gate_blocks_second_person_binding(
+        self,
+    ) -> None:
+        config = {
+            "retrieval": {
+                "top_k": 3,
+                "max_top_k": 3,
+                "neighbor_window": 0,
+                "selected_context": {
+                    "enabled": True,
+                    "window_before": 1,
+                    "window_after": 1,
+                    "max_rows": 3,
+                    "max_neighbor_chars": 120,
+                    "require_anaphora": True,
+                    "require_source_grounded_self_reference": True,
+                    "source_grounded_min_terms": 2,
+                    "source_grounded_min_coverage": 0.6,
+                    "information_needs": ["temporal_lookup"],
+                },
+            },
+            "compiler": {
+                "prompt_mode": "external_naive",
+                "max_evidence_items": 3,
+                "max_evidence_chars": 4000,
+            },
+            "answer": {"fallback_answer": "unknown"},
+        }
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="James",
+                text=(
+                    "That's my sister and my dogs. We were chilling together "
+                    "yesterday."
+                ),
+                timestamp="9:49 am on 22 July, 2022",
+            ),
+            Turn(
+                source_id="s1:t1",
+                session_id="s1",
+                turn_index=1,
+                role="John",
+                text=(
+                    "Wow, they look so happy! It's awesome that you get to spend "
+                    "time with your sister and your furry friends."
+                ),
+                timestamp="9:49 am on 22 July, 2022",
+            ),
+            Turn(
+                source_id="s1:t2",
+                session_id="s1",
+                turn_index=2,
+                role="James",
+                text="I'm blessed to have a close bond with my sister and pets.",
+                timestamp="9:49 am on 22 July, 2022",
+            ),
+        )
+
+        result = Stage1Pipeline(config).predict(
+            PredictionRequest(
+                question="When did John spend time with his sister and dogs?",
+                turns=turns,
+            )
+        )
+        trace = result["trace"]["retrieval"]["selected_context"]
+        row_text = "\n".join(
+            row["text"] for row in result["trace"]["compiled_context"]["evidence_rows"]
+        )
+
+        self.assertFalse(trace["applied"])
+        self.assertIn("s1:t1", trace["skipped_source_grounded_source_ids"])
+        self.assertEqual(
+            trace["skipped_source_grounded_reasons"]["s1:t1"],
+            "missing_self_reference",
+        )
+        self.assertNotIn("Local dialogue context from the same session", row_text)
+
     def test_selected_context_route_override_is_scoped(self) -> None:
         config = {
             "retrieval": {
