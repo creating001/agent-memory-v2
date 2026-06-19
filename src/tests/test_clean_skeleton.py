@@ -2204,6 +2204,62 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertNotIn("question_type", result["trace"]["compiled_context"]["prompt"])
         self.assertEqual(result["trace"]["token_cost"]["query_tokens"], 0)
 
+    def test_pipeline_rerank_min_effective_top_k_blocks_pool_expansion(self) -> None:
+        config = {
+            "retrieval": {
+                "top_k": 1,
+                "max_top_k": 1,
+                "neighbor_window": 0,
+                "drop_query_stopwords": True,
+                "rerank": {
+                    "enabled": True,
+                    "base_url": "http://127.0.0.1:8002/v1",
+                    "model": "fake-reranker",
+                    "pool_k": 2,
+                    "min_effective_top_k": 2,
+                    "anchor_keep": 0,
+                    "anchor_after_top": 0,
+                },
+            },
+            "compiler": {"max_evidence_items": 1, "max_evidence_chars": 4000},
+            "answer": {"fallback_answer": "unknown"},
+        }
+        request = PredictionRequest(
+            question="Where did Alex redeem the coupon?",
+            turns=(
+                Turn(
+                    source_id="bad",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Where redeem coupon where redeem coupon.",
+                ),
+                Turn(
+                    source_id="good",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="Alex redeemed the coupon at Target.",
+                ),
+            ),
+        )
+
+        with patch("memory.pipeline.OpenAICompatibleRerankClient", _FakeReranker):
+            result = Stage1Pipeline(config).predict(request)
+
+        retrieval_trace = result["trace"]["retrieval"]
+        rows = result["trace"]["compiled_context"]["evidence_rows"]
+
+        self.assertEqual(retrieval_trace["candidate_top_k"], 1)
+        self.assertFalse(retrieval_trace["rerank_applied"])
+        self.assertEqual(
+            retrieval_trace["rerank_skipped_reason"],
+            "top_k_below_min_effective_top_k",
+        )
+        self.assertEqual(retrieval_trace["rerank_min_effective_top_k"], 2)
+        self.assertEqual(retrieval_trace["hits"][0]["source_id"], "bad")
+        self.assertEqual(rows[0]["source_id"], "bad")
+
     def test_rerank_filter_preserves_retrieval_order_after_selection(self) -> None:
         hits = (
             RetrievalHit("anchor", 0.9, 1, "hybrid"),

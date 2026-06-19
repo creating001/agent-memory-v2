@@ -657,6 +657,9 @@ def main() -> int:
             .get("rerank", {})
             .get("base_url"),
             "rerank_pool_k": config.get("retrieval", {}).get("rerank", {}).get("pool_k"),
+            "rerank_min_effective_top_k": config.get("retrieval", {})
+            .get("rerank", {})
+            .get("min_effective_top_k"),
             "rerank_query_text_mode": config.get("retrieval", {})
             .get("rerank", {})
             .get("query_text_mode"),
@@ -1700,6 +1703,7 @@ def _write_summary(
         f"- rerank_enabled: {metrics['retrieval']['rerank_enabled']}",
         f"- rerank_model: {metrics['retrieval']['rerank_model']}",
         f"- rerank_pool_k: {metrics['retrieval']['rerank_pool_k']}",
+        f"- rerank_min_effective_top_k: {metrics['retrieval']['rerank_min_effective_top_k']}",
         f"- rerank_document_text_mode: {metrics['retrieval']['rerank_document_text_mode']}",
         f"- rerank_document_neighbor_window: {metrics['retrieval']['rerank_document_neighbor_window']}",
         f"- rerank_document_max_memory_records: {metrics['retrieval']['rerank_document_max_memory_records']}",

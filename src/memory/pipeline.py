@@ -486,6 +486,9 @@ class Stage1Pipeline:
         self._rerank_model = rerank_config.get("model")
         self._rerank_base_url = rerank_config.get("base_url")
         self._rerank_pool_k = int(rerank_config.get("pool_k", self._base_top_k))
+        self._rerank_min_effective_top_k = int(
+            rerank_config.get("min_effective_top_k", 0)
+        )
         self._rerank_batch_size = int(rerank_config.get("batch_size", 0))
         self._rerank_timeout = float(rerank_config.get("timeout", 120.0))
         self._rerank_document_max_chars = int(
@@ -1632,11 +1635,15 @@ class Stage1Pipeline:
         rerank_trace = _disabled_rerank_trace(
             enabled=self._rerank_enabled,
             information_needs=self._rerank_information_needs,
+            min_effective_top_k=self._rerank_min_effective_top_k,
         )
-        if self._rerank_client is not None and _rerank_applies(
+        rerank_skipped_reason = _rerank_skip_reason(
             route=route,
             enabled_information_needs=self._rerank_information_needs,
-        ):
+            top_k=top_k,
+            min_effective_top_k=self._rerank_min_effective_top_k,
+        )
+        if self._rerank_client is not None and rerank_skipped_reason is None:
             hits, rerank_trace = self._rerank_hits(
                 store=store,
                 request=request,
@@ -1644,6 +1651,8 @@ class Stage1Pipeline:
                 top_k=top_k,
                 memory_hits=memory_hits,
             )
+        elif self._rerank_enabled:
+            rerank_trace["skipped_reason"] = rerank_skipped_reason
         pre_context_budget_hits = hits
         context_budget_trace = _disabled_context_budget_trace(
             enabled=self._context_budget_enabled,
@@ -2149,6 +2158,11 @@ class Stage1Pipeline:
                     "rerank_pool_k": self._rerank_pool_k
                     if self._rerank_enabled
                     else None,
+                    "rerank_min_effective_top_k": (
+                        self._rerank_min_effective_top_k
+                        if self._rerank_enabled
+                        else None
+                    ),
                     "rerank_query_text_mode": self._rerank_query_text_mode
                     if self._rerank_enabled
                     else None,
@@ -2181,6 +2195,7 @@ class Stage1Pipeline:
                     "rerank_candidate_count": rerank_trace["candidate_count"],
                     "rerank_returned_count": rerank_trace["returned_count"],
                     "rerank_total_tokens": rerank_trace["total_tokens"],
+                    "rerank_skipped_reason": rerank_trace["skipped_reason"],
                     "rerank_response": rerank_trace["response"],
                     "pre_rerank_hits": [
                         hit.to_dict() for hit in pre_rerank_hits
@@ -2273,10 +2288,12 @@ class Stage1Pipeline:
         )
         candidate_top_k = top_k
         dense_top_k = settings["dense_top_k"]
-        if self._rerank_enabled and _rerank_applies(
+        if self._rerank_enabled and _rerank_skip_reason(
             route=route,
             enabled_information_needs=self._rerank_information_needs,
-        ):
+            top_k=top_k,
+            min_effective_top_k=self._rerank_min_effective_top_k,
+        ) is None:
             candidate_top_k = max(candidate_top_k, self._rerank_pool_k)
             dense_top_k = max(dense_top_k, candidate_top_k)
         return {
@@ -2368,6 +2385,7 @@ class Stage1Pipeline:
             return hits[:top_k], _disabled_rerank_trace(
                 enabled=self._rerank_enabled,
                 information_needs=self._rerank_information_needs,
+                min_effective_top_k=self._rerank_min_effective_top_k,
             )
 
         rerank_items = tuple(
@@ -2379,6 +2397,7 @@ class Stage1Pipeline:
             trace = _disabled_rerank_trace(
                 enabled=self._rerank_enabled,
                 information_needs=self._rerank_information_needs,
+                min_effective_top_k=self._rerank_min_effective_top_k,
             )
             trace["response"] = {"skipped": "no_source_documents"}
             return hits[:top_k], trace
@@ -2419,9 +2438,11 @@ class Stage1Pipeline:
             "applied": True,
             "information_needs": self._rerank_information_needs,
             "selection_mode": self._rerank_selection_mode,
+            "min_effective_top_k": self._rerank_min_effective_top_k,
             "candidate_count": len(rerank_hits),
             "returned_count": len(reranked_hits),
             "total_tokens": result.total_tokens,
+            "skipped_reason": None,
             "document_text_mode": self._rerank_document_text_mode,
             "document_neighbor_window": self._rerank_document_neighbor_window,
             "document_max_memory_records": (
@@ -4247,18 +4268,39 @@ def _rerank_applies(
     return route.information_need in enabled_information_needs
 
 
+def _rerank_skip_reason(
+    *,
+    route: RouteResult,
+    enabled_information_needs: tuple[str, ...],
+    top_k: int,
+    min_effective_top_k: int,
+) -> str | None:
+    if not _rerank_applies(
+        route=route,
+        enabled_information_needs=enabled_information_needs,
+    ):
+        return "information_need_not_enabled"
+    if min_effective_top_k > 0 and top_k < min_effective_top_k:
+        return "top_k_below_min_effective_top_k"
+    return None
+
+
 def _disabled_rerank_trace(
     *,
     enabled: bool,
     information_needs: tuple[str, ...],
+    min_effective_top_k: int = 0,
+    skipped_reason: str | None = None,
 ) -> dict[str, Any]:
     return {
         "enabled": enabled,
         "applied": False,
         "information_needs": information_needs,
+        "min_effective_top_k": min_effective_top_k,
         "candidate_count": 0,
         "returned_count": 0,
         "total_tokens": 0,
+        "skipped_reason": skipped_reason,
         "response": None,
     }
 
