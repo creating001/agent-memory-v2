@@ -1,0 +1,20 @@
+{
+  "changed": 1,
+  "record_key": "f32506eabf8b9384df950965",
+  "v181": "June 20, 2023",
+  "v184": "2023-06-20",
+  "label": {
+    "benchmark": "locomo",
+    "category": 2,
+    "evidence": [
+      "D15:5"
+    ],
+    "gold_answer": "20 June, 2023",
+    "question": "When Jon is planning to open his dance studio?",
+    "question_type": null,
+    "record_key": "f32506eabf8b9384df950965",
+    "source_sample_id": "conv-30",
+    "subset": "non-adversarial"
+  },
+  "clean_note": "Labels copied only for offline judge after prediction."
+}
