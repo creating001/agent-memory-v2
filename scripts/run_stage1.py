@@ -548,6 +548,9 @@ def main() -> int:
             )
             .get("object_slot_activation", {})
             .get("require_collection_slot"),
+            "object_slot_activation_fusion_mode": config.get("retrieval", {})
+            .get("object_slot_activation", {})
+            .get("fusion_mode", "rrf"),
             "object_slot_activation_applied_count": (
                 total_object_slot_activation_applied
             ),

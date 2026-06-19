@@ -43,6 +43,7 @@ from data.io import load_prediction_jsonl
 from memory.pipeline import (
     Stage1Pipeline,
     _align_build_memory_sources,
+    _append_tail_rescue_hits,
     _compiler_memory_records,
     _context_manifest,
     _memory_lifecycle_manifest,
@@ -3162,9 +3163,11 @@ class CleanSkeletonTest(unittest.TestCase):
             max_slots=2,
             max_sources_per_slot=4,
             memory_types=("fact",),
+            fusion_mode="tail_rescue",
         )
 
         self.assertTrue(trace["applied"])
+        self.assertEqual(trace["fusion_mode"], "tail_rescue")
         self.assertEqual(
             [hit.source_id for hit in hits],
             ["s1:t0", "s2:t0"],
@@ -3232,6 +3235,35 @@ class CleanSkeletonTest(unittest.TestCase):
 
         self.assertFalse(trace["applied"])
         self.assertEqual(hits, ())
+
+    def test_append_tail_rescue_hits_preserves_primary_order(self) -> None:
+        primary = (
+            RetrievalHit(source_id="s1:t0", score=1.0, rank=1, retriever="dense"),
+            RetrievalHit(source_id="s2:t0", score=0.9, rank=2, retriever="dense"),
+        )
+        tail = (
+            RetrievalHit(
+                source_id="s2:t0",
+                score=3.0,
+                rank=1,
+                retriever="build_memory_object_slot",
+            ),
+            RetrievalHit(
+                source_id="s3:t0",
+                score=2.0,
+                rank=2,
+                retriever="build_memory_object_slot",
+            ),
+        )
+
+        merged = _append_tail_rescue_hits(primary, tail, top_k=3)
+
+        self.assertEqual(
+            [hit.source_id for hit in merged],
+            ["s1:t0", "s2:t0", "s3:t0"],
+        )
+        self.assertEqual([hit.rank for hit in merged], [1, 2, 3])
+        self.assertEqual(merged[1].retriever, "dense")
 
     def test_pipeline_memory_slot_chain_can_supply_raw_rows_without_lexical_or_dense(self) -> None:
         old_record = MemoryRecord(

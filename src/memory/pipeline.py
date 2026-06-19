@@ -337,6 +337,13 @@ class Stage1Pipeline:
         self._object_slot_activation_require_collection_slot = bool(
             object_slot_activation_config.get("require_collection_slot", True)
         )
+        self._object_slot_activation_fusion_mode = str(
+            object_slot_activation_config.get("fusion_mode", "rrf")
+        )
+        if self._object_slot_activation_fusion_mode not in {"rrf", "tail_rescue"}:
+            raise ValueError(
+                "retrieval.object_slot_activation.fusion_mode must be rrf or tail_rescue"
+            )
         self._dense_enabled = bool(dense_config.get("enabled", False))
         self._dense_top_k = int(dense_config.get("top_k", self._base_top_k))
         self._dense_batch_size = int(dense_config.get("batch_size", 32))
@@ -1609,6 +1616,7 @@ class Stage1Pipeline:
             require_collection_slot=(
                 self._object_slot_activation_require_collection_slot
             ),
+            fusion_mode=self._object_slot_activation_fusion_mode,
         )
         build_memory_include_superseded = (
             self._build_memory_include_superseded
@@ -1676,6 +1684,7 @@ class Stage1Pipeline:
                     require_collection_slot=(
                         self._object_slot_activation_require_collection_slot
                     ),
+                    fusion_mode=self._object_slot_activation_fusion_mode,
                 )
         turn_window_hits = ()
         turn_window_source_hits = ()
@@ -1738,7 +1747,10 @@ class Stage1Pipeline:
                 hit_lists = (*hit_lists, memory_source_hits)
             if memory_slot_chain_source_hits:
                 hit_lists = (*hit_lists, memory_slot_chain_source_hits)
-            if object_slot_source_hits:
+            if (
+                object_slot_source_hits
+                and self._object_slot_activation_fusion_mode == "rrf"
+            ):
                 hit_lists = (*hit_lists, object_slot_source_hits)
             if turn_window_source_hits:
                 hit_lists = (*hit_lists, turn_window_source_hits)
@@ -1759,11 +1771,23 @@ class Stage1Pipeline:
                     hits,
                     top_k=candidate_top_k,
                 )
+            if (
+                object_slot_source_hits
+                and self._object_slot_activation_fusion_mode == "tail_rescue"
+            ):
+                hits = _append_tail_rescue_hits(
+                    hits,
+                    object_slot_source_hits,
+                    top_k=candidate_top_k,
+                )
         else:
             if (
                 memory_source_hits
                 or memory_slot_chain_source_hits
-                or object_slot_source_hits
+                or (
+                    object_slot_source_hits
+                    and self._object_slot_activation_fusion_mode == "rrf"
+                )
                 or turn_window_source_hits
             ):
                 hits = _merge_hit_lists(
@@ -1773,7 +1797,11 @@ class Stage1Pipeline:
                             lexical_hits,
                             memory_source_hits,
                             memory_slot_chain_source_hits,
-                            object_slot_source_hits,
+                            (
+                                object_slot_source_hits
+                                if self._object_slot_activation_fusion_mode == "rrf"
+                                else ()
+                            ),
                             turn_window_source_hits,
                         )
                         if hits
@@ -1783,6 +1811,15 @@ class Stage1Pipeline:
                 )
             else:
                 hits = lexical_hits
+            if (
+                object_slot_source_hits
+                and self._object_slot_activation_fusion_mode == "tail_rescue"
+            ):
+                hits = _append_tail_rescue_hits(
+                    hits,
+                    object_slot_source_hits,
+                    top_k=candidate_top_k,
+                )
         embedding_cache_after = _embedding_cache_stats(self._embedding_client)
         turn_hits = hits
         pre_rerank_hits = hits
@@ -1803,7 +1840,11 @@ class Stage1Pipeline:
             (
                 *_source_ids_from_hits(memory_source_hits),
                 *_source_ids_from_hits(memory_slot_chain_source_hits),
-                *_source_ids_from_hits(object_slot_source_hits),
+                *(
+                    _source_ids_from_hits(object_slot_source_hits)
+                    if self._object_slot_activation_fusion_mode == "rrf"
+                    else ()
+                ),
             )
         )
         if self._rerank_client is not None and rerank_skipped_reason is None:
@@ -2332,6 +2373,9 @@ class Stage1Pipeline:
                     ),
                     "object_slot_activation_require_collection_slot": (
                         self._object_slot_activation_require_collection_slot
+                    ),
+                    "object_slot_activation_fusion_mode": (
+                        self._object_slot_activation_fusion_mode
                     ),
                     "object_slot_activation_source_hits": [
                         hit.to_dict() for hit in object_slot_source_hits
@@ -4147,6 +4191,7 @@ def _disabled_object_slot_activation_trace(
     max_sources_per_slot: int,
     min_overlap_terms: int,
     require_collection_slot: bool,
+    fusion_mode: str = "rrf",
     skipped_reason: str = "",
 ) -> dict[str, Any]:
     return {
@@ -4158,6 +4203,7 @@ def _disabled_object_slot_activation_trace(
         "max_sources_per_slot": max_sources_per_slot,
         "min_overlap_terms": min_overlap_terms,
         "require_collection_slot": require_collection_slot,
+        "fusion_mode": fusion_mode,
         "skipped_reason": skipped_reason,
         "slots": [],
     }
@@ -4175,6 +4221,7 @@ def _memory_object_slot_source_hits(
     memory_types: tuple[str, ...],
     min_overlap_terms: int = 1,
     require_collection_slot: bool = True,
+    fusion_mode: str = "rrf",
 ) -> tuple[tuple[RetrievalHit, ...], dict[str, Any]]:
     """Expand a matched build-memory object slot back to raw source rows.
 
@@ -4190,6 +4237,7 @@ def _memory_object_slot_source_hits(
         max_sources_per_slot=max_sources_per_slot,
         min_overlap_terms=min_overlap_terms,
         require_collection_slot=require_collection_slot,
+        fusion_mode=fusion_mode,
     )
     if not memory_hits or not built_memory_records:
         return (), trace
@@ -7246,3 +7294,30 @@ def _merge_hit_lists(
     if len(hit_lists) == 1:
         return hit_lists[0][:top_k]
     return reciprocal_rank_fusion(hit_lists, top_k=top_k, rrf_k=rrf_k)
+
+
+def _append_tail_rescue_hits(
+    candidate_hits: tuple[RetrievalHit, ...],
+    tail_hits: tuple[RetrievalHit, ...],
+    *,
+    top_k: int,
+) -> tuple[RetrievalHit, ...]:
+    selected: list[RetrievalHit] = []
+    seen: set[str] = set()
+    for hit in (*candidate_hits, *tail_hits):
+        if hit.source_id in seen:
+            continue
+        seen.add(hit.source_id)
+        selected.append(hit)
+        if len(selected) >= top_k:
+            break
+    return tuple(
+        RetrievalHit(
+            source_id=hit.source_id,
+            score=hit.score,
+            rank=rank,
+            retriever=hit.retriever,
+            matched_terms=hit.matched_terms,
+        )
+        for rank, hit in enumerate(selected, start=1)
+    )
