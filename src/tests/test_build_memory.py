@@ -19,6 +19,8 @@ from memory.build import (
     _cache_key,
     _chunk_turns,
     _manage_records,
+    _manage_records_with_trace,
+    _management_summary,
     _records_from_payload,
 )
 from memory.compiler import EvidenceCompiler
@@ -639,6 +641,97 @@ class BuildMemoryTest(unittest.TestCase):
         self.assertIsNone(by_id["old"].valid_to)
         self.assertEqual(by_id["new"].status, "active")
 
+    def test_memory_operation_ledger_tracks_management_operations(self) -> None:
+        managed_types = frozenset({"preference", "profile", "relationship", "state"})
+        records = (
+            MemoryRecord(
+                memory_id="fact-dup-low",
+                memory_type="fact",
+                text="Alex bought black tea.",
+                source_ids=("s1:t0",),
+                subject="Alex",
+                predicate="bought",
+                value="black tea",
+                confidence=0.4,
+            ),
+            MemoryRecord(
+                memory_id="fact-dup-high",
+                memory_type="fact",
+                text="Alex bought black tea.",
+                source_ids=("s1:t0",),
+                subject="Alex",
+                predicate="bought",
+                value="black tea",
+                confidence=0.9,
+            ),
+            MemoryRecord(
+                memory_id="fact-coffee",
+                memory_type="fact",
+                text="Alex bought coffee.",
+                source_ids=("s1:t1",),
+                subject="Alex",
+                predicate="bought",
+                value="coffee",
+            ),
+            MemoryRecord(
+                memory_id="state-old",
+                memory_type="state",
+                text="Alex lives in Austin.",
+                source_ids=("s2:t0",),
+                subject="Alex",
+                predicate="lives_in",
+                value="Austin",
+                timestamp="2024-01-01",
+                valid_from="2024-01-01",
+            ),
+            MemoryRecord(
+                memory_id="state-new",
+                memory_type="state",
+                text="Alex lives in Seattle.",
+                source_ids=("s2:t1",),
+                subject="Alex",
+                predicate="lives_in",
+                value="Seattle",
+                timestamp="2024-03-01",
+                valid_from="2024-03-01",
+            ),
+        )
+
+        managed, trace = _manage_records_with_trace(
+            records,
+            managed_memory_types=managed_types,
+        )
+        summary = _management_summary(
+            managed,
+            policy="stateful_only",
+            managed_memory_types=managed_types,
+            raw_records=records,
+            deduped_records=trace["deduped_records"],
+            merge_groups=trace["merge_groups"],
+            supersede_pairs=trace["supersede_pairs"],
+            include_operation_ledger=True,
+        )
+        ledger = summary["operation_ledger"]
+
+        self.assertTrue(ledger["trace_only"])
+        self.assertEqual(ledger["operation_counts"]["create"], 4)
+        self.assertEqual(ledger["operation_counts"]["merge"], 1)
+        self.assertEqual(ledger["operation_counts"]["supersede"], 1)
+        self.assertEqual(
+            ledger["operation_counts"]["retain_collection_multi_value_slot"],
+            1,
+        )
+        self.assertEqual(ledger["operation_counts"]["audit_conflict_slot"], 1)
+        self.assertEqual(ledger["source_unbacked_record_count"], 0)
+        self.assertEqual(
+            ledger["samples"]["merge"][0]["memory_id"],
+            "fact-dup-high",
+        )
+        self.assertEqual(
+            ledger["samples"]["supersede"][0]["superseded_by"],
+            "state-new",
+        )
+
     def test_builder_can_keep_parallel_facts_active_without_temporal_fields(self) -> None:
         class FakeBuilder(OpenAICompatibleMemoryBuilder):
             def __init__(self) -> None:
@@ -700,6 +793,71 @@ class BuildMemoryTest(unittest.TestCase):
         by_value = {record.value: record for record in built.records}
         self.assertEqual(by_value["black tea"].status, "active")
         self.assertEqual(by_value["jasmine tea"].status, "active")
+        self.assertNotIn("operation_ledger", built.management or {})
+
+    def test_builder_can_emit_operation_ledger(self) -> None:
+        class FakeBuilder(OpenAICompatibleMemoryBuilder):
+            def __init__(self) -> None:
+                super().__init__(
+                    base_url="http://unused.local/v1",
+                    model="fake-model",
+                    temperature=0.0,
+                    max_tokens=256,
+                    timeout=1.0,
+                    max_turns_per_chunk=10,
+                    max_chars_per_turn=1000,
+                    max_records_per_chunk=4,
+                    manage_facts=False,
+                    operation_ledger=True,
+                )
+
+            def _chat_completion(self, prompt: str) -> dict:
+                del prompt
+                return {
+                    "choices": [
+                        {
+                            "message": {
+                                "content": (
+                                    '{"records":['
+                                    '{"type":"state","text":"Alex lives in Austin.",'
+                                    '"subject":"Alex","predicate":"lives_in",'
+                                    '"value":"Austin","source_ids":["s1:t0"],'
+                                    '"timestamp":"2024-01-01","confidence":0.9},'
+                                    '{"type":"state","text":"Alex lives in Seattle.",'
+                                    '"subject":"Alex","predicate":"lives_in",'
+                                    '"value":"Seattle","source_ids":["s1:t1"],'
+                                    '"timestamp":"2024-03-01","confidence":0.9}'
+                                    "]} "
+                                )
+                            }
+                        }
+                    ],
+                    "usage": {"total_tokens": 43},
+                }
+
+        built = FakeBuilder().build(
+            (
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Alex lives in Austin.",
+                ),
+                Turn(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="Alex lives in Seattle.",
+                ),
+            )
+        )
+
+        ledger = (built.management or {})["operation_ledger"]
+        self.assertTrue(ledger["applied"])
+        self.assertEqual(ledger["operation_counts"]["supersede"], 1)
+        self.assertEqual(ledger["source_backed_record_count"], 2)
 
     def test_management_policy_keeps_collection_facts_out_of_lifecycle(self) -> None:
         class FakeBuilder(OpenAICompatibleMemoryBuilder):

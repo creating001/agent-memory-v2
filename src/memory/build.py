@@ -154,6 +154,7 @@ class OpenAICompatibleMemoryBuilder:
         prompt_profile: str = "typed_compact",
         manage_facts: bool = True,
         management_policy: str | None = None,
+        operation_ledger: bool = False,
         chat_template_kwargs: dict[str, Any] | None = None,
     ):
         if prompt_profile not in {"typed_compact", "lossless_atomic"}:
@@ -184,6 +185,7 @@ class OpenAICompatibleMemoryBuilder:
         self._prompt_profile = prompt_profile
         self._manage_facts = manage_facts
         self._management_policy = management_policy
+        self._operation_ledger = operation_ledger
         self._chat_template_kwargs = dict(chat_template_kwargs or {})
         self._connection: sqlite3.Connection | None = None
         self._cache_stats = BuildMemoryCacheStats()
@@ -208,6 +210,7 @@ class OpenAICompatibleMemoryBuilder:
                     managed_memory_types=_MANAGEMENT_POLICIES[
                         self._management_policy
                     ],
+                    include_operation_ledger=self._operation_ledger,
                 ),
             )
 
@@ -272,7 +275,7 @@ class OpenAICompatibleMemoryBuilder:
                 )
             )
         )
-        managed = _manage_records(
+        managed, operation_trace = _manage_records_with_trace(
             tuple(all_records),
             managed_memory_types=managed_memory_types,
         )
@@ -289,6 +292,11 @@ class OpenAICompatibleMemoryBuilder:
                 managed,
                 policy=self._management_policy,
                 managed_memory_types=managed_memory_types,
+                raw_records=tuple(all_records),
+                deduped_records=operation_trace["deduped_records"],
+                merge_groups=operation_trace["merge_groups"],
+                supersede_pairs=operation_trace["supersede_pairs"],
+                include_operation_ledger=self._operation_ledger,
             ),
         )
 
@@ -591,7 +599,21 @@ def _manage_records(
     records: tuple[MemoryRecord, ...],
     managed_memory_types: frozenset[str] = _DEFAULT_MANAGED_MEMORY_TYPES,
 ) -> tuple[MemoryRecord, ...]:
+    managed, _trace = _manage_records_with_trace(
+        records,
+        managed_memory_types=managed_memory_types,
+    )
+    return managed
+
+
+def _manage_records_with_trace(
+    records: tuple[MemoryRecord, ...],
+    managed_memory_types: frozenset[str] = _DEFAULT_MANAGED_MEMORY_TYPES,
+) -> tuple[tuple[MemoryRecord, ...], dict[str, Any]]:
     deduped: dict[tuple[str, str, tuple[str, ...]], MemoryRecord] = {}
+    duplicate_groups: dict[
+        tuple[str, str, tuple[str, ...]], list[MemoryRecord]
+    ] = defaultdict(list)
     for record in records:
         key = (
             record.memory_type,
@@ -609,11 +631,21 @@ def _manage_records(
             ),
             record.source_ids,
         )
+        duplicate_groups[key].append(record)
         existing = deduped.get(key)
         if existing is None or record.confidence > existing.confidence:
             deduped[key] = record
 
-    managed = list(deduped.values())
+    deduped_records = tuple(deduped.values())
+    merge_groups = []
+    for key, group in duplicate_groups.items():
+        if len(group) <= 1:
+            continue
+        kept = deduped[key]
+        merged = tuple(record for record in group if record.memory_id != kept.memory_id)
+        merge_groups.append({"kept": kept, "merged": merged})
+
+    managed = list(deduped_records)
     grouped: dict[tuple[str, str, str], list[MemoryRecord]] = defaultdict(list)
     for record in managed:
         if record.memory_type not in managed_memory_types:
@@ -629,6 +661,7 @@ def _manage_records(
         ].append(record)
 
     superseded: dict[str, str] = {}
+    supersede_pairs: list[dict[str, Any]] = []
     for group in grouped.values():
         distinct_values = {
             _normalize_key_text(record.value or record.text) for record in group
@@ -639,6 +672,7 @@ def _manage_records(
         for record in group:
             if record.memory_id != newest.memory_id:
                 superseded[record.memory_id] = newest.memory_id
+                supersede_pairs.append({"old": record, "new": newest})
 
     managed_by_id = {record.memory_id: record for record in managed}
     result = []
@@ -668,7 +702,12 @@ def _manage_records(
             record.memory_id,
         )
     )
-    return tuple(result)
+    operation_trace = {
+        "deduped_records": deduped_records,
+        "merge_groups": tuple(merge_groups),
+        "supersede_pairs": tuple(supersede_pairs),
+    }
+    return tuple(result), operation_trace
 
 
 def _management_summary(
@@ -676,6 +715,11 @@ def _management_summary(
     *,
     policy: str,
     managed_memory_types: frozenset[str],
+    raw_records: tuple[MemoryRecord, ...] | None = None,
+    deduped_records: tuple[MemoryRecord, ...] | None = None,
+    merge_groups: tuple[dict[str, Any], ...] = (),
+    supersede_pairs: tuple[dict[str, Any], ...] = (),
+    include_operation_ledger: bool = False,
 ) -> dict[str, Any]:
     """Summarize build-time memory operations for trace/audit.
 
@@ -725,7 +769,7 @@ def _management_summary(
         groups,
         managed_memory_types=managed_memory_types,
     )
-    return {
+    summary = {
         "policy": policy,
         "managed_memory_types": sorted(managed_memory_types),
         "total_records": len(records),
@@ -748,6 +792,215 @@ def _management_summary(
             "typed records derived from raw turns. Non-managed multi-value slots "
             "remain active collection facts rather than current-state updates."
         ),
+    }
+    if include_operation_ledger:
+        summary["operation_ledger"] = _memory_operation_ledger(
+            raw_records=tuple(raw_records or records),
+            deduped_records=tuple(deduped_records or records),
+            managed_records=records,
+            managed_memory_types=managed_memory_types,
+            merge_groups=merge_groups,
+            supersede_pairs=supersede_pairs,
+        )
+    return summary
+
+
+def _memory_operation_ledger(
+    *,
+    raw_records: tuple[MemoryRecord, ...],
+    deduped_records: tuple[MemoryRecord, ...],
+    managed_records: tuple[MemoryRecord, ...],
+    managed_memory_types: frozenset[str],
+    merge_groups: tuple[dict[str, Any], ...],
+    supersede_pairs: tuple[dict[str, Any], ...],
+) -> dict[str, Any]:
+    """Trace-only operation ledger for build-stage memory management."""
+
+    groups: dict[tuple[str, str, str], list[MemoryRecord]] = defaultdict(list)
+    for record in managed_records:
+        if not record.subject or not record.predicate:
+            continue
+        groups[
+            (
+                record.memory_type,
+                _normalize_key_text(record.subject),
+                _normalize_key_text(record.predicate),
+            )
+        ].append(record)
+
+    collection_slots = []
+    conflict_slots = []
+    for key, group in sorted(groups.items()):
+        values = {
+            _normalize_key_text(record.value or record.text)
+            for record in group
+            if record.value or record.text
+        }
+        statuses = {record.status for record in group}
+        has_lifecycle = "superseded" in statuses or len(values) > 1
+        if not has_lifecycle:
+            continue
+        if key[0] in managed_memory_types:
+            conflict_slots.append((key, tuple(group)))
+        else:
+            collection_slots.append((key, tuple(group)))
+
+    operation_counts = {
+        "create": len(deduped_records),
+        "merge": sum(len(group.get("merged") or ()) for group in merge_groups),
+        "supersede": len(supersede_pairs),
+        "retain_active": sum(
+            1 for record in managed_records if record.status == "active"
+        ),
+        "retain_superseded": sum(
+            1 for record in managed_records if record.status == "superseded"
+        ),
+        "retain_collection_multi_value_slot": len(collection_slots),
+        "verify_source_backed": sum(1 for record in managed_records if record.source_ids),
+        "audit_slot": len(groups),
+        "audit_conflict_slot": len(conflict_slots),
+    }
+    source_backed_count = operation_counts["verify_source_backed"]
+    source_unbacked_count = max(0, len(managed_records) - source_backed_count)
+    return {
+        "enabled": True,
+        "trace_only": True,
+        "applied": True,
+        "operation_counts": operation_counts,
+        "source_backed_record_count": source_backed_count,
+        "source_unbacked_record_count": source_unbacked_count,
+        "layer_operation_counts": _layer_operation_counts(
+            deduped_records=deduped_records,
+            managed_records=managed_records,
+            supersede_pairs=supersede_pairs,
+        ),
+        "samples": {
+            "create": [
+                _operation_sample("create", record)
+                for record in deduped_records[:4]
+            ],
+            "merge": [
+                _merge_operation_sample(group)
+                for group in merge_groups[:4]
+            ],
+            "supersede": [
+                _supersede_operation_sample(pair)
+                for pair in supersede_pairs[:4]
+            ],
+            "retain_collection_multi_value_slot": [
+                _slot_operation_sample("retain_collection_multi_value_slot", key, group)
+                for key, group in collection_slots[:4]
+            ],
+            "audit_conflict_slot": [
+                _slot_operation_sample("audit_conflict_slot", key, group)
+                for key, group in conflict_slots[:4]
+            ],
+        },
+        "clean_note": (
+            "Trace-only build memory operation ledger. It summarizes "
+            "question-independent create, merge, supersede, retain, verify, and "
+            "audit operations over source-backed typed memories; it is not used "
+            "by retrieval, compiler, answer, repair, finalizer, or cache keys."
+        ),
+    }
+
+
+def _layer_operation_counts(
+    *,
+    deduped_records: tuple[MemoryRecord, ...],
+    managed_records: tuple[MemoryRecord, ...],
+    supersede_pairs: tuple[dict[str, Any], ...],
+) -> dict[str, dict[str, int]]:
+    result: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    for record in deduped_records:
+        result[_memory_layer(record.memory_type)]["create"] += 1
+    for record in managed_records:
+        operation = (
+            "retain_superseded"
+            if record.status == "superseded"
+            else "retain_active"
+        )
+        result[_memory_layer(record.memory_type)][operation] += 1
+    for pair in supersede_pairs:
+        old = pair.get("old")
+        if isinstance(old, MemoryRecord):
+            result[_memory_layer(old.memory_type)]["supersede"] += 1
+    return {
+        layer: dict(sorted(counts.items()))
+        for layer, counts in sorted(result.items())
+    }
+
+
+def _operation_sample(operation: str, record: MemoryRecord) -> dict[str, Any]:
+    return {
+        "operation": operation,
+        "memory_id": record.memory_id,
+        "memory_type": record.memory_type,
+        "layer": _memory_layer(record.memory_type),
+        "status": record.status,
+        "subject": _normalize_key_text(record.subject),
+        "predicate": _normalize_key_text(record.predicate),
+        "value": _normalize_key_text(record.value or record.text)[:160],
+        "source_ids": list(record.source_ids[:6]),
+    }
+
+
+def _merge_operation_sample(group: dict[str, Any]) -> dict[str, Any]:
+    kept = group.get("kept")
+    merged = tuple(group.get("merged") or ())
+    if not isinstance(kept, MemoryRecord):
+        return {"operation": "merge", "reason": "invalid_sample"}
+    sample = _operation_sample("merge", kept)
+    sample["merged_memory_ids"] = [
+        record.memory_id for record in merged if isinstance(record, MemoryRecord)
+    ][:6]
+    sample["reason"] = "duplicate_normalized_text_and_sources"
+    return sample
+
+
+def _supersede_operation_sample(pair: dict[str, Any]) -> dict[str, Any]:
+    old = pair.get("old")
+    new = pair.get("new")
+    if not isinstance(old, MemoryRecord) or not isinstance(new, MemoryRecord):
+        return {"operation": "supersede", "reason": "invalid_sample"}
+    sample = _operation_sample("supersede", old)
+    sample["superseded_by"] = new.memory_id
+    sample["new_value"] = _normalize_key_text(new.value or new.text)[:160]
+    sample["valid_to"] = new.valid_from or new.timestamp
+    sample["reason"] = "newer_managed_slot_value"
+    return sample
+
+
+def _slot_operation_sample(
+    operation: str,
+    key: tuple[str, str, str],
+    group: tuple[MemoryRecord, ...],
+) -> dict[str, Any]:
+    memory_type, subject, predicate = key
+    return {
+        "operation": operation,
+        "memory_type": memory_type,
+        "layer": _memory_layer(memory_type),
+        "subject": subject,
+        "predicate": predicate,
+        "record_count": len(group),
+        "active_value_count": len(
+            {
+                _normalize_key_text(record.value or record.text)
+                for record in group
+                if record.status == "active" and (record.value or record.text)
+            }
+        ),
+        "superseded_value_count": len(
+            {
+                _normalize_key_text(record.value or record.text)
+                for record in group
+                if record.status == "superseded" and (record.value or record.text)
+            }
+        ),
+        "source_ids": _ordered_strings(
+            source_id for record in group for source_id in record.source_ids
+        )[:8],
     }
 
 

@@ -126,6 +126,10 @@ def main() -> int:
     build_memory_management_layer_counts: dict[str, int] = {}
     build_memory_management_status_counts: dict[str, int] = {}
     build_memory_management_type_counts: dict[str, int] = {}
+    build_memory_operation_ledger_counts: dict[str, int] = {}
+    total_build_memory_operation_ledger_applied = 0
+    total_build_memory_operation_ledger_source_backed = 0
+    total_build_memory_operation_ledger_source_unbacked = 0
     total_build_memory_collection_retained = 0
     total_build_memory_managed_lifecycle_slots = 0
     total_build_memory_nonmanaged_multi_value_slots = 0
@@ -378,6 +382,19 @@ def main() -> int:
             build_memory_management_type_counts,
             management.get("type_counts") or {},
         )
+        operation_ledger = management.get("operation_ledger") or {}
+        if operation_ledger.get("applied"):
+            total_build_memory_operation_ledger_applied += 1
+            _merge_int_counts(
+                build_memory_operation_ledger_counts,
+                operation_ledger.get("operation_counts") or {},
+            )
+            total_build_memory_operation_ledger_source_backed += int(
+                operation_ledger.get("source_backed_record_count") or 0
+            )
+            total_build_memory_operation_ledger_source_unbacked += int(
+                operation_ledger.get("source_unbacked_record_count") or 0
+            )
         total_build_memory_collection_retained += int(
             operation_counts.get("retain_collection_multi_value_slot") or 0
         )
@@ -986,6 +1003,31 @@ def main() -> int:
             "management_layer_counts": build_memory_management_layer_counts,
             "management_status_counts": build_memory_management_status_counts,
             "management_type_counts": build_memory_management_type_counts,
+            "operation_ledger": config.get("build_memory", {}).get(
+                "operation_ledger", {}
+            ),
+            "operation_ledger_applied_count": (
+                total_build_memory_operation_ledger_applied
+            ),
+            "operation_ledger_applied_rate": _safe_average(
+                total_build_memory_operation_ledger_applied,
+                sample_count,
+            ),
+            "operation_ledger_counts": build_memory_operation_ledger_counts,
+            "operation_ledger_source_backed_records": (
+                total_build_memory_operation_ledger_source_backed
+            ),
+            "operation_ledger_source_unbacked_records": (
+                total_build_memory_operation_ledger_source_unbacked
+            ),
+            "avg_operation_ledger_source_backed_records": _safe_average(
+                total_build_memory_operation_ledger_source_backed,
+                total_build_memory_operation_ledger_applied,
+            ),
+            "avg_operation_ledger_source_unbacked_records": _safe_average(
+                total_build_memory_operation_ledger_source_unbacked,
+                total_build_memory_operation_ledger_applied,
+            ),
             "total_collection_retained_records": (
                 total_build_memory_collection_retained
             ),
@@ -1862,6 +1904,12 @@ def _write_summary(
         f"- build_memory_management_policy_counts: {metrics['build_memory']['management_policy_counts']}",
         f"- build_memory_management_operation_counts: {metrics['build_memory']['management_operation_counts']}",
         f"- build_memory_management_layer_counts: {metrics['build_memory']['management_layer_counts']}",
+        f"- build_memory_operation_ledger: {metrics['build_memory']['operation_ledger']}",
+        f"- build_memory_operation_ledger_applied_count: {metrics['build_memory']['operation_ledger_applied_count']}",
+        f"- build_memory_operation_ledger_applied_rate: {metrics['build_memory']['operation_ledger_applied_rate']}",
+        f"- build_memory_operation_ledger_counts: {metrics['build_memory']['operation_ledger_counts']}",
+        f"- avg_build_memory_operation_ledger_source_backed_records: {metrics['build_memory']['avg_operation_ledger_source_backed_records']}",
+        f"- avg_build_memory_operation_ledger_source_unbacked_records: {metrics['build_memory']['avg_operation_ledger_source_unbacked_records']}",
         f"- avg_build_memory_collection_retained_records: {metrics['build_memory']['avg_collection_retained_records']}",
         f"- avg_build_memory_managed_lifecycle_slots: {metrics['build_memory']['avg_managed_lifecycle_slots']}",
         f"- avg_build_memory_nonmanaged_multi_value_slots: {metrics['build_memory']['avg_nonmanaged_multi_value_slots']}",

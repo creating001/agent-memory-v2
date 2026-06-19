@@ -211,6 +211,12 @@ class Stage1Pipeline:
         self._build_memory_drop_query_stopwords = bool(
             build_memory_config.get("drop_query_stopwords", True)
         )
+        operation_ledger_config = build_memory_config.get("operation_ledger", {})
+        if not isinstance(operation_ledger_config, Mapping):
+            raise ValueError("build_memory.operation_ledger must be an object")
+        self._build_memory_operation_ledger_enabled = bool(
+            operation_ledger_config.get("enabled", False)
+        )
         source_alignment_config = build_memory_config.get("source_alignment", {})
         self._build_memory_source_alignment_enabled = bool(
             source_alignment_config.get("enabled", False)
@@ -263,6 +269,10 @@ class Stage1Pipeline:
             ),
             "manage_facts": bool(build_memory_config.get("manage_facts", True)),
             "management_policy": build_memory_config.get("management_policy"),
+            "operation_ledger": {
+                "enabled": self._build_memory_operation_ledger_enabled,
+                "trace_only": True,
+            },
             "source_alignment": {
                 "enabled": self._build_memory_source_alignment_enabled,
                 "window": self._build_memory_source_alignment_window,
@@ -737,6 +747,7 @@ class Stage1Pipeline:
                 ),
                 manage_facts=bool(build_memory_config.get("manage_facts", True)),
                 management_policy=build_memory_config.get("management_policy"),
+                operation_ledger=self._build_memory_operation_ledger_enabled,
                 chat_template_kwargs=_dict_config(
                     build_memory_config.get("chat_template_kwargs")
                 ),
