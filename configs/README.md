@@ -12,7 +12,7 @@
 
 | 配置 | 状态 |
 |---|---|
-| `stage1_append_fact_source_alignment_v242_seeded_qwen36_no_think_build4k_cached.json` | Probe 正向，进入 full：LME probe50 changed judge `2/4 -> 3/4`，LoCoMo answer-identical；fact source alignment 采用 append source order。 |
+| `stage1_append_fact_source_alignment_v242_seeded_qwen36_no_think_build4k_cached.json` | full 拒绝：LME changed judge strict/lenient `24/38 -> 14/38`、`24/38 -> 19/38`，derived full LME `0.812000 / 0.834000`；LoCoMo answer-identical。保留为 mechanical source append 负向对照。 |
 | `stage1_fact_source_alignment_v241_seeded_qwen36_no_think_build4k_cached.json` | fact-only source alignment probe 仍负向：LME changed judge `1/2 -> 0/2`；保留为 v242 source-order 父对照。 |
 | `stage1_role_gated_source_alignment_v240_seeded_qwen36_no_think_build4k_cached.json` | role-gated source alignment probe：LoCoMo answer-identical，但 LME alignment 仍过宽，changed judge `3/5 -> 3/5` 且有 specificity loss；保留为负向/收窄父对照。 |
 | `stage1_source_aligned_memory_v239_seeded_qwen36_no_think_build4k_cached.json` | 宽 source alignment probe 负向：LoCoMo probe50 changed-answer strict `13/14 -> 12/14`，lenient 持平；保留为负向对照。 |
