@@ -358,10 +358,21 @@ class Stage1Pipeline:
         self._object_slot_activation_fusion_mode = str(
             object_slot_activation_config.get("fusion_mode", "rrf")
         )
-        if self._object_slot_activation_fusion_mode not in {"rrf", "tail_rescue"}:
+        if self._object_slot_activation_fusion_mode not in {
+            "rrf",
+            "tail_rescue",
+            "tail_exchange",
+        }:
             raise ValueError(
-                "retrieval.object_slot_activation.fusion_mode must be rrf or tail_rescue"
+                "retrieval.object_slot_activation.fusion_mode must be rrf, "
+                "tail_rescue, or tail_exchange"
             )
+        self._object_slot_activation_tail_exchange_protect_top_n = int(
+            object_slot_activation_config.get("tail_exchange_protect_top_n", 56)
+        )
+        self._object_slot_activation_tail_exchange_max_swaps = int(
+            object_slot_activation_config.get("tail_exchange_max_swaps", 0)
+        )
         self._dense_enabled = bool(dense_config.get("enabled", False))
         self._dense_top_k = int(dense_config.get("top_k", self._base_top_k))
         self._dense_batch_size = int(dense_config.get("batch_size", 32))
@@ -1642,6 +1653,12 @@ class Stage1Pipeline:
                 self._object_slot_activation_require_collection_slot
             ),
             fusion_mode=self._object_slot_activation_fusion_mode,
+            tail_exchange_protect_top_n=(
+                self._object_slot_activation_tail_exchange_protect_top_n
+            ),
+            tail_exchange_max_swaps=(
+                self._object_slot_activation_tail_exchange_max_swaps
+            ),
         )
         build_memory_include_superseded = (
             self._build_memory_include_superseded
@@ -1717,6 +1734,12 @@ class Stage1Pipeline:
                         self._object_slot_activation_require_collection_slot
                     ),
                     fusion_mode=self._object_slot_activation_fusion_mode,
+                    tail_exchange_protect_top_n=(
+                        self._object_slot_activation_tail_exchange_protect_top_n
+                    ),
+                    tail_exchange_max_swaps=(
+                        self._object_slot_activation_tail_exchange_max_swaps
+                    ),
                 )
         turn_window_hits = ()
         turn_window_source_hits = ()
@@ -1815,6 +1838,19 @@ class Stage1Pipeline:
                     object_slot_source_hits,
                     top_k=candidate_top_k,
                 )
+            if (
+                object_slot_source_hits
+                and self._object_slot_activation_fusion_mode == "tail_exchange"
+            ):
+                hits = _append_tail_exchange_hits(
+                    hits,
+                    object_slot_source_hits,
+                    top_k=candidate_top_k,
+                    protect_top_n=(
+                        self._object_slot_activation_tail_exchange_protect_top_n
+                    ),
+                    max_swaps=self._object_slot_activation_tail_exchange_max_swaps,
+                )
             if memory_slot_chain_source_hits and (
                 self._memory_slot_chain_fusion_mode == "tail_rescue"
             ):
@@ -1881,6 +1917,19 @@ class Stage1Pipeline:
                     hits,
                     object_slot_source_hits,
                     top_k=candidate_top_k,
+                )
+            if (
+                object_slot_source_hits
+                and self._object_slot_activation_fusion_mode == "tail_exchange"
+            ):
+                hits = _append_tail_exchange_hits(
+                    hits,
+                    object_slot_source_hits,
+                    top_k=candidate_top_k,
+                    protect_top_n=(
+                        self._object_slot_activation_tail_exchange_protect_top_n
+                    ),
+                    max_swaps=self._object_slot_activation_tail_exchange_max_swaps,
                 )
             if memory_slot_chain_source_hits and (
                 self._memory_slot_chain_fusion_mode == "tail_rescue"
@@ -2471,6 +2520,12 @@ class Stage1Pipeline:
                     ),
                     "object_slot_activation_fusion_mode": (
                         self._object_slot_activation_fusion_mode
+                    ),
+                    "object_slot_activation_tail_exchange_protect_top_n": (
+                        self._object_slot_activation_tail_exchange_protect_top_n
+                    ),
+                    "object_slot_activation_tail_exchange_max_swaps": (
+                        self._object_slot_activation_tail_exchange_max_swaps
                     ),
                     "object_slot_activation_source_hits": [
                         hit.to_dict() for hit in object_slot_source_hits
@@ -4287,6 +4342,8 @@ def _disabled_object_slot_activation_trace(
     min_overlap_terms: int,
     require_collection_slot: bool,
     fusion_mode: str = "rrf",
+    tail_exchange_protect_top_n: int = 56,
+    tail_exchange_max_swaps: int = 0,
     skipped_reason: str = "",
 ) -> dict[str, Any]:
     return {
@@ -4299,6 +4356,8 @@ def _disabled_object_slot_activation_trace(
         "min_overlap_terms": min_overlap_terms,
         "require_collection_slot": require_collection_slot,
         "fusion_mode": fusion_mode,
+        "tail_exchange_protect_top_n": tail_exchange_protect_top_n,
+        "tail_exchange_max_swaps": tail_exchange_max_swaps,
         "skipped_reason": skipped_reason,
         "slots": [],
     }
@@ -4317,6 +4376,8 @@ def _memory_object_slot_source_hits(
     min_overlap_terms: int = 1,
     require_collection_slot: bool = True,
     fusion_mode: str = "rrf",
+    tail_exchange_protect_top_n: int = 56,
+    tail_exchange_max_swaps: int = 0,
 ) -> tuple[tuple[RetrievalHit, ...], dict[str, Any]]:
     """Expand a matched build-memory object slot back to raw source rows.
 
@@ -4333,6 +4394,8 @@ def _memory_object_slot_source_hits(
         min_overlap_terms=min_overlap_terms,
         require_collection_slot=require_collection_slot,
         fusion_mode=fusion_mode,
+        tail_exchange_protect_top_n=tail_exchange_protect_top_n,
+        tail_exchange_max_swaps=tail_exchange_max_swaps,
     )
     if not memory_hits or not built_memory_records:
         return (), trace
