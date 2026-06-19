@@ -6,12 +6,12 @@
 
 | 项目 | 结果 |
 |---|---|
-| 当前 LTS 配置 | `configs/stage1_compiler_budget_neutral_long_profile_v201_seeded_qwen36_no_think_build4k_cached.json` |
+| 当前 LTS 配置 | `configs/stage1_retrieval_lexical_neutral_long_profile_v202_seeded_qwen36_no_think_build4k_cached.json` |
 | Backbone | `Qwen/Qwen3.6-35B-A3B` answer/build，`chat_template_kwargs.enable_thinking=false` |
-| 方法 | V201 继承 v200，并删除剩余 `long_turn_precision` compiler 里的冗余 `max_evidence_items/max_evidence_chars` override；LME v200 full final evidence rows never exceed `40`，且 `max_evidence_chars=18000` 已是全局默认。 |
-| LongMemEval-S full | v201 与 v200 prompt diff `0/500`、answer diff `0/500`、route diff `0/500`、compiler trace diff `0/500`，answer cache `500/0/0`；继承 v200 full `0.834000 / 0.846000`，`417/500` strict，`423/500` lenient |
-| LoCoMo non-adversarial full | v201 与 v200 prompt diff `0/1540`、answer diff `0/1540`、route diff `0/1540`、compiler trace diff `0/1540`，answer cache `1540/0/0`；继承 v200 full `0.793506 / 0.818831`，`1222/1540` strict，`1261/1540` lenient |
-| 状态 | 当前本地 qwen3.6 no-thinking LTS。v201 保留 v200 行为和性能，同时去掉两个冗余 compiler profile 子项；LoCoMo profile selected 仍为 `0/1540`。 |
+| 方法 | V202 继承 v201，并删除剩余 `long_turn_precision.retrieval` 里的冗余 `lexical_protect_top_n=0` override；全局 dense retrieval 已默认 `0`，该 profile 子项不改变候选保护行为。 |
+| LongMemEval-S full | v202 与 v201 answer diff `0/500`、route diff `0/500`、compiled context diff `0/500`；raw trace diff `500/500` 仅为 profile 配置快照少一个冗余 key，normalized trace diff `0/500`；answer cache `500/0/0`；继承 v201 full `0.834000 / 0.846000`，`417/500` strict，`423/500` lenient |
+| LoCoMo non-adversarial full | v202 与 v201 answer diff `0/1540`、route diff `0/1540`、compiled context diff `0/1540`；raw trace diff `2/1540` 仅为 embedding cache hit 计数元数据；answer cache `1540/0/0`；继承 v201 full `0.793506 / 0.818831`，`1222/1540` strict，`1261/1540` lenient |
+| 状态 | 当前本地 qwen3.6 no-thinking LTS。v202 保留 v201 行为和性能，同时去掉一个冗余 retrieval profile 子项；LoCoMo profile selected 仍为 `0/1540`。 |
 
 `paired-delta derived` 的含义：新版本只改少量答案，未变化答案沿用父 LTS full dual judge records，变化答案单独跑 paired dual judge 后替换计数。若新版本与父 LTS answer-identical，则可继承父 LTS judge records，但必须记录 full answer diff、cache hit/miss 和输出路径。若论文级最终汇报需要完全独立 run，再对 LTS 配置重跑 fresh full judge。
 
@@ -28,14 +28,15 @@
 |---:|---|---|---|
 | 1 | #5 memory lifecycle/state/conflict/query-time reasoning | v194 用窄 `mention_time_fallback` 修正一个 v193 audit 暴露的低覆盖 `exact_today` activation；full answer diff `0`，但仍有更广泛 lifecycle/conflict/query-time reasoning 可做 | 继续做 temporal conflict-aware activation 和 state/conflict memory；保留 typed/source-backed 线索，显式区分 mention_time、event phrase、wrapper 和 question slot |
 | 2 | #2 top-k/context noise/rerank | v129/v134/v140/v152 说明简单裁剪、tail snippet 或 list-count rerank pruning 会伤 accuracy；v192 说明宽 Candidate Evidence Map 也会伤 temporal accuracy | 做 coverage-preserving context organization，但避免通用候选列表过强；优先 trace/diagnostic 或窄门控，再进入 prompt |
-| 3 | #1 granularity/profile + #3 selected context | v177 说明 row-length + center-row anaphora 的 selected-context gate 仍过宽；v195 说明 temporal self-reference hard gate 明显负向；v198 删除短 turn profile；v199 删除长 profile route override；v200 删除长 profile finalizer override；v201 删除长 profile 冗余 compiler budget override；selected_context 直接默认化会把 LME materialized rows 从 `3` 扩到 `317` | 继续拆解 LME 的 `long_turn_precision`，优先把 retrieval、selected_context、compiler 改成 general query/context-pressure 或 route-scoped 策略；selected_context 必须先有窄门控再进 prompt |
+| 3 | #1 granularity/profile + #3 selected context | v177 说明 row-length + center-row anaphora 的 selected-context gate 仍过宽；v195 说明 temporal self-reference hard gate 明显负向；v198 删除短 turn profile；v199 删除长 profile route override；v200 删除长 profile finalizer override；v201 删除长 profile 冗余 compiler budget override；v202 删除长 profile 冗余 lexical protect override；selected_context 直接默认化会把 LME materialized rows 从 `3` 扩到 `317` | 继续拆解 LME 的 `long_turn_precision`，优先把 retrieval、selected_context、compiler 改成 general query/context-pressure 或 route-scoped 策略；selected_context 必须先有窄门控再进 prompt |
 | 4 | src cleanup | 已有多轮兼容分支，`repair.py`、compiler、pipeline 仍会继续变复杂 | 每个阶段结束后做小范围清理，删已确认无用的兼容代码，不删仍有消融价值的模块 |
 
 ## 保留候选
 
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
-| `configs/stage1_compiler_budget_neutral_long_profile_v201_seeded_qwen36_no_think_build4k_cached.json` | current LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v201 vs v200 prompt/answer/route/compiler trace diff `0/500`、`0/1540`；compiler budget profile keys removed | 当前 LTS；删除长 profile 冗余 compiler budget override，性能继承 v200 |
+| `configs/stage1_retrieval_lexical_neutral_long_profile_v202_seeded_qwen36_no_think_build4k_cached.json` | current LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v202 vs v201 answer/route/compiled context diff `0/500`、`0/1540`；retrieval profile redundant lexical protect key removed | 当前 LTS；删除长 profile 冗余 retrieval lexical-protect override，性能继承 v201 |
+| `configs/stage1_compiler_budget_neutral_long_profile_v201_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v201 vs v200 prompt/answer/route/compiler trace diff `0/500`、`0/1540`；compiler budget profile keys removed | 被 v202 替代；删除长 profile 冗余 compiler budget override，性能继承 v200 |
 | `configs/stage1_finalizer_neutral_long_profile_v200_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v200 vs v199 prompt/answer/route diff `0/500`、`0/1540`；LME profile risk_count `5 -> 4` | 被 v201 替代；删除长 profile 的 finalizer override，性能继承 v199 |
 | `configs/stage1_route_neutral_long_profile_v199_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v199 vs v198 prompt/answer/route diff `0/500`、`0/1540`；LME profile risk_count `6 -> 5` | 被 v200 替代；删除长 profile 的 route override，性能继承 v198 |
 | `configs/stage1_default_short_context_layout_v198_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v198 vs v197 prompt/answer diff `0/500`、`0/1540`；LoCoMo granularity profile selected `0/1540` | 被 v199 替代；删除短 turn avg-turn profile，默认化短上下文排版，性能继承 v197 |
@@ -115,7 +116,11 @@
 
 | 路径 | 内容 |
 |---|---|
-| `diagnostic/stage1_compiler_budget_neutral_long_profile_v201_scope_summary.md` | 当前 LTS 晋升结论：v201 删除长 profile 冗余 compiler budget override，full prompt/answer/route/compiler trace diff 均为 0，性能继承 v200 |
+| `diagnostic/stage1_retrieval_lexical_neutral_long_profile_v202_scope_summary.md` | 当前 LTS 晋升结论：v202 删除长 profile 冗余 retrieval lexical-protect override，full answer/route/compiled context diff 均为 0，性能继承 v201 |
+| `diagnostic/stage1_retrieval_lexical_neutral_long_profile_v202_lme_s_full/` | v202 LME full；vs v201 answer diff `0/500`、route diff `0/500`、compiled context diff `0/500`、normalized trace diff `0/500` |
+| `diagnostic/stage1_retrieval_lexical_neutral_long_profile_v202_locomo_nonadv_full/` | v202 LoCoMo full；vs v201 answer diff `0/1540`、route diff `0/1540`、compiled context diff `0/1540`、raw trace diff 仅为 2 条 embedding cache 元数据 |
+| `diagnostic/stage1_retrieval_lexical_neutral_long_profile_v202_activation_probe/` | v202 三条 risky activation probe；answer/route/compiled context/raw trace diff `0/3` |
+| `diagnostic/stage1_compiler_budget_neutral_long_profile_v201_scope_summary.md` | previous LTS 晋升结论：v201 删除长 profile 冗余 compiler budget override，full prompt/answer/route/compiler trace diff 均为 0，性能继承 v200 |
 | `diagnostic/stage1_compiler_budget_neutral_long_profile_v201_lme_s_full/` | v201 LME full；vs v200 prompt diff `0/500`、answer diff `0/500`、route diff `0/500`、compiler trace diff `0/500` |
 | `diagnostic/stage1_compiler_budget_neutral_long_profile_v201_locomo_nonadv_full/` | v201 LoCoMo full；vs v200 prompt diff `0/1540`、answer diff `0/1540`、route diff `0/1540`、granularity audit selected `0/1540` |
 | `diagnostic/stage1_compiler_budget_neutral_long_profile_v201_activation_probe/` | v201 三条 risky activation probe；prompt/answer diff `0/3`，granularity profile selected `0/3` |

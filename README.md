@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_compiler_budget_neutral_long_profile_v201_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_retrieval_lexical_neutral_long_profile_v202_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v201 local LTS | 说明 |
+| Benchmark | 当前 v202 local LTS | 说明 |
 |---|---:|---|
-| LongMemEval-S full | strict/lenient `0.834000 / 0.846000` | v201 与 v200 prompt/answer/route/compiler trace diff `0/500`；answer cache `500/0/0`，性能继承 v200。 |
-| LoCoMo non-adversarial full | strict/lenient `0.793506 / 0.818831` | v201 与 v200 prompt/answer/route/compiler trace diff `0/1540`；answer cache `1540/0/0`，性能继承 v200。 |
+| LongMemEval-S full | strict/lenient `0.834000 / 0.846000` | v202 与 v201 answer/route/compiled context diff `0/500`；raw trace diff 仅为 profile 配置快照少一个冗余 key，normalized trace diff `0/500`；answer cache `500/0/0`。 |
+| LoCoMo non-adversarial full | strict/lenient `0.793506 / 0.818831` | v202 与 v201 answer/route/compiled context diff `0/1540`；raw trace diff 仅为 2 条 embedding cache 计数元数据；answer cache `1540/0/0`。 |
 
-v201 的 LTS 理由：继承 v200 的 full prompt、answer 和 judge accuracy，并删除 `long_turn_precision` compiler 中冗余的 `max_evidence_items/max_evidence_chars` override。LME 仍 `500/500` 选择 `long_turn_precision`，但 profile compiler 只保留真正会改变 prompt 的控制项；LoCoMo profile selected 仍为 `0/1540`。这继续减少 #1/#3 风险，但不表示 avg-turn profile 已完全解决。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_compiler_budget_neutral_long_profile_v201_scope_summary.md`。
+v202 的 LTS 理由：继承 v201 的 full answer 和 judge accuracy，并删除 `long_turn_precision.retrieval` 中冗余的 `lexical_protect_top_n=0` override。全局 dense retrieval 默认已经是 `0`，所以该项只增加 profile 专用耦合，不改变候选保护行为。LME 仍 `500/500` 选择 `long_turn_precision`，LoCoMo profile selected 仍为 `0/1540`；avg-turn profile 风险还没完全解决。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_retrieval_lexical_neutral_long_profile_v202_scope_summary.md`。
 
 ## 目录
 
