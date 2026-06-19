@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_selected_context_full_risk_audit_v212_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_materialized_selected_context_audit_v213_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v212 local LTS | 说明 |
+| Benchmark | 当前 v213 local LTS | 说明 |
 |---|---:|---|
-| LongMemEval-S full | strict/lenient `0.834000 / 0.846000` | v212 与 v211 answer/route/prompt/evidence rows/retrieval hits/selected-context diff `0/500`；selected-context audit applied `0/500`；answer cache `500/0/0`。 |
-| LoCoMo non-adversarial full | strict/lenient `0.793506 / 0.818831` | v212 与 v211 answer/route/prompt/evidence rows/retrieval hits/selected-context diff `0/1540`；selected-context audit applied `1493/1540`，risk rows `7423`；answer cache `1540/0/0`。 |
+| LongMemEval-S full | strict/lenient `0.834000 / 0.846000` | v213 与 v212 answer/route/prompt/evidence rows/retrieval hits/effective selected-context diff `0/500`；selected-context audit applied `0/500`；avg build/query tokens `85393.566 / 6580.196`。 |
+| LoCoMo non-adversarial full | strict/lenient `0.793506 / 0.818831` | v213 与 v212 answer/route/prompt/evidence rows/retrieval hits/effective selected-context diff `0/1540`；selected-context risk rows `7423 -> 6163`；avg build/query tokens `62015.57402597403 / 6095.268181818182`。 |
 
-v212 的 LTS 理由：继承 v211 的 full answer 和 judge accuracy，同时把 selected-context risk audit 从 temporal-only 扩展到 fact/list/profile/temporal/current-state routes，让 #3 风险面可观测。v211 的 total-context pressure selector 和 v209 的保守 context-budget 仍保留。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_selected_context_full_risk_audit_v212_scope_summary.md`。
+v213 的 LTS 理由：继承 v212 的 full answer 和 judge accuracy，同时把 selected-context risk audit 改为审计 prompt-visible materialized context，减少 #3 误报风险。v212 的全路由 audit、v211 的 total-context pressure selector 和 v209 的保守 context-budget 仍保留。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_materialized_selected_context_audit_v213_scope_summary.md`。
 
 ## 目录
 
