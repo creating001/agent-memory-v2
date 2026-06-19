@@ -1,0 +1,1577 @@
+{
+  "api_key_env": "DEEPSEEK_API_KEY",
+  "base_url": "https://api.deepseek.com",
+  "benchmark": "locomo",
+  "clean_note": "Offline judge reads gold labels only after prediction. This output must not be consumed by prediction, retrieval, compiler, answer, or verifier.",
+  "created_at_utc": "2026-06-19T20:40:28+00:00",
+  "dry_run": false,
+  "git": {
+    "commit": "b25301c7aaf4b6e2425a7ceaabeb0ef28cbee64b",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "?? experiments/diagnostic/stage1_object_lifecycle_tail_exchange_v253_full_changed_vs_v250/\n?? experiments/diagnostic/stage1_object_lifecycle_tail_exchange_v253_lme_full/\n?? experiments/diagnostic/stage1_object_lifecycle_tail_exchange_v253_locomo_full/"
+  },
+  "judgments": [
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "382cb7da7063429d",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "d5068b3c68a955ba6cdfe705",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 551,
+        "completion_tokens_details": {
+          "reasoning_tokens": 548
+        },
+        "prompt_cache_hit_tokens": 384,
+        "prompt_cache_miss_tokens": 16,
+        "prompt_tokens": 400,
+        "prompt_tokens_details": {
+          "cached_tokens": 384
+        },
+        "total_tokens": 951
+      }
+    },
+    {
+      "label": "WRONG",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "e08efe0c38fac74a",
+      "question_type": null,
+      "raw_response": "WRONG",
+      "record_key": "d3a8d12b5be57abcc6ef6dc6",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 52,
+        "completion_tokens_details": {
+          "reasoning_tokens": 49
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 108,
+        "prompt_tokens": 364,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 416
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "d7b481f21f1491fa",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "9e2a3c32e8878884b9b87ac4",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 56,
+        "completion_tokens_details": {
+          "reasoning_tokens": 53
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 122,
+        "prompt_tokens": 378,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 434
+      }
+    },
+    {
+      "label": "WRONG",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "7ac6fd37e00e3c7f",
+      "question_type": null,
+      "raw_response": "WRONG",
+      "record_key": "97e324be3e76a7dc37e954fd",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 171,
+        "completion_tokens_details": {
+          "reasoning_tokens": 168
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 103,
+        "prompt_tokens": 359,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 530
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "f52a8ad375df073d",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "55dd99f73457ab586d0d3e64",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 185,
+        "completion_tokens_details": {
+          "reasoning_tokens": 182
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 101,
+        "prompt_tokens": 357,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 542
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "6cb706deed52e09a",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "1c96c79744028a8d6da023e6",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 414,
+        "completion_tokens_details": {
+          "reasoning_tokens": 411
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 99,
+        "prompt_tokens": 355,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 769
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "c0e2afa7ffa85b5f",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "be97ced16e861ee8dd0f6803",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 110,
+        "completion_tokens_details": {
+          "reasoning_tokens": 107
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 109,
+        "prompt_tokens": 365,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 475
+      }
+    },
+    {
+      "label": "WRONG",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "535f68a83ddb9b6d",
+      "question_type": null,
+      "raw_response": "WRONG",
+      "record_key": "5535cefb3250570b78be549b",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 71,
+        "completion_tokens_details": {
+          "reasoning_tokens": 68
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 121,
+        "prompt_tokens": 377,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 448
+      }
+    },
+    {
+      "label": "WRONG",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "8b6cb689cfd46dfb",
+      "question_type": null,
+      "raw_response": "WRONG",
+      "record_key": "36e0ab9cd568e5088574aae6",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 79,
+        "completion_tokens_details": {
+          "reasoning_tokens": 76
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 105,
+        "prompt_tokens": 361,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 440
+      }
+    },
+    {
+      "label": "WRONG",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "b19a4a4fd418bfe5",
+      "question_type": null,
+      "raw_response": "WRONG",
+      "record_key": "5914a80c05561014ce603442",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 201,
+        "completion_tokens_details": {
+          "reasoning_tokens": 198
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 111,
+        "prompt_tokens": 367,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 568
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "fe7c2bef9c0544d3",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "0f12b20501887ba1ad098125",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 103,
+        "completion_tokens_details": {
+          "reasoning_tokens": 100
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 128,
+        "prompt_tokens": 384,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 487
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "1ad8f2d61985d856",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "43b9ae422254fd6868d68c4c",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 131,
+        "completion_tokens_details": {
+          "reasoning_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 123,
+        "prompt_tokens": 379,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 510
+      }
+    },
+    {
+      "label": "WRONG",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "ae00944d6bd98ed5",
+      "question_type": null,
+      "raw_response": "WRONG",
+      "record_key": "f3895596dc477dfeb06124e7",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 77,
+        "completion_tokens_details": {
+          "reasoning_tokens": 74
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 107,
+        "prompt_tokens": 363,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 440
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "c0fb32bbc629b2e5",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "93ac58586be43efe5ffed648",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 41,
+        "completion_tokens_details": {
+          "reasoning_tokens": 38
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 113,
+        "prompt_tokens": 369,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 410
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "b18fcc30001cdc55",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "81990f066c1e211ed76f7736",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 95,
+        "completion_tokens_details": {
+          "reasoning_tokens": 92
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 168,
+        "prompt_tokens": 424,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 519
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "e731140dd2792b6e",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "3c8c35036fdcff8b37eccfa6",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 91,
+        "completion_tokens_details": {
+          "reasoning_tokens": 88
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 118,
+        "prompt_tokens": 374,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 465
+      }
+    },
+    {
+      "label": "WRONG",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "0f7819a6720b99f1",
+      "question_type": null,
+      "raw_response": "WRONG",
+      "record_key": "13226ac37256686401c7cb9b",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 31,
+        "completion_tokens_details": {
+          "reasoning_tokens": 28
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 100,
+        "prompt_tokens": 356,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 387
+      }
+    },
+    {
+      "label": "WRONG",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "5167e400a864f92c",
+      "question_type": null,
+      "raw_response": "WRONG",
+      "record_key": "33414213f13f63fffa1bb2de",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 164,
+        "completion_tokens_details": {
+          "reasoning_tokens": 161
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 134,
+        "prompt_tokens": 390,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 554
+      }
+    },
+    {
+      "label": "WRONG",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "e781c3366adc59a1",
+      "question_type": null,
+      "raw_response": "WRONG",
+      "record_key": "1631153dc1de08738315b8a6",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 88,
+        "completion_tokens_details": {
+          "reasoning_tokens": 85
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 106,
+        "prompt_tokens": 362,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 450
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "53de66c0996742bc",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "2b24be1367d00e5e051a0bc0",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 213,
+        "completion_tokens_details": {
+          "reasoning_tokens": 210
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 123,
+        "prompt_tokens": 379,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 592
+      }
+    },
+    {
+      "label": "WRONG",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "6781111511f3ba8d",
+      "question_type": null,
+      "raw_response": "WRONG",
+      "record_key": "370b822ccdf97a131f0c6b87",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 72,
+        "completion_tokens_details": {
+          "reasoning_tokens": 69
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 114,
+        "prompt_tokens": 370,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 442
+      }
+    },
+    {
+      "label": "WRONG",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "985e1d98c5b02bfa",
+      "question_type": null,
+      "raw_response": "WRONG",
+      "record_key": "395ccd9f0bbe87fee523ec17",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 66,
+        "completion_tokens_details": {
+          "reasoning_tokens": 63
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 110,
+        "prompt_tokens": 366,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 432
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "4c4724ecabc4e0b5",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "5db09a19e45182d2eadf36c2",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 29,
+        "completion_tokens_details": {
+          "reasoning_tokens": 26
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 103,
+        "prompt_tokens": 359,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 388
+      }
+    },
+    {
+      "label": "WRONG",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "f832ff947ae1c948",
+      "question_type": null,
+      "raw_response": "WRONG",
+      "record_key": "7856051197554a990b01055d",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 349,
+        "completion_tokens_details": {
+          "reasoning_tokens": 346
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 141,
+        "prompt_tokens": 397,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 746
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "1410a7251d7fe8d3",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "8e085784dc6892d822103852",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 99,
+        "completion_tokens_details": {
+          "reasoning_tokens": 96
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 147,
+        "prompt_tokens": 403,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 502
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "4da2075246b48e49",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "77d64859bda11c1bf9937e2d",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 35,
+        "completion_tokens_details": {
+          "reasoning_tokens": 32
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 99,
+        "prompt_tokens": 355,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 390
+      }
+    },
+    {
+      "label": "WRONG",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "a98fa1e4a6172a12",
+      "question_type": null,
+      "raw_response": "WRONG",
+      "record_key": "f260cbe9fc3c24df08459675",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 94,
+        "completion_tokens_details": {
+          "reasoning_tokens": 91
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 165,
+        "prompt_tokens": 421,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 515
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "e31977f2395154b6",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "d2d34434abced78cb8ad6a26",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 32,
+        "completion_tokens_details": {
+          "reasoning_tokens": 29
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 97,
+        "prompt_tokens": 353,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 385
+      }
+    },
+    {
+      "label": "WRONG",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "960a66fbe8fad341",
+      "question_type": null,
+      "raw_response": "WRONG",
+      "record_key": "c91d115dcc3d4bb1418e7718",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 638,
+        "completion_tokens_details": {
+          "reasoning_tokens": 635
+        },
+        "prompt_cache_hit_tokens": 384,
+        "prompt_cache_miss_tokens": 75,
+        "prompt_tokens": 459,
+        "prompt_tokens_details": {
+          "cached_tokens": 384
+        },
+        "total_tokens": 1097
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "4c6f9311877bbf56",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "c3398ea042b4769b34a3353d",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 77,
+        "completion_tokens_details": {
+          "reasoning_tokens": 74
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 165,
+        "prompt_tokens": 421,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 498
+      }
+    },
+    {
+      "label": "WRONG",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "4cabbba9a235337a",
+      "question_type": null,
+      "raw_response": "WRONG",
+      "record_key": "348efb7e44a8722f2b50358a",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 68,
+        "completion_tokens_details": {
+          "reasoning_tokens": 65
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 104,
+        "prompt_tokens": 360,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 428
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "31c1085f912e16ff",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "9885bbc112a310ee562b6f56",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 233,
+        "completion_tokens_details": {
+          "reasoning_tokens": 230
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 106,
+        "prompt_tokens": 362,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 595
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "f2a625b5ddec01a5",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "a4e7f3fe207be449b8c91021",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 76,
+        "completion_tokens_details": {
+          "reasoning_tokens": 73
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 121,
+        "prompt_tokens": 377,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 453
+      }
+    },
+    {
+      "label": "WRONG",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "a45c2880a246bd63",
+      "question_type": null,
+      "raw_response": "WRONG",
+      "record_key": "7ecc1909c6aa4be506c617ae",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 294,
+        "completion_tokens_details": {
+          "reasoning_tokens": 291
+        },
+        "prompt_cache_hit_tokens": 384,
+        "prompt_cache_miss_tokens": 4,
+        "prompt_tokens": 388,
+        "prompt_tokens_details": {
+          "cached_tokens": 384
+        },
+        "total_tokens": 682
+      }
+    },
+    {
+      "label": "WRONG",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "c918ff99adf39fcc",
+      "question_type": null,
+      "raw_response": "WRONG",
+      "record_key": "82d0a52f6aef3e4c061ee292",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 65,
+        "completion_tokens_details": {
+          "reasoning_tokens": 62
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 116,
+        "prompt_tokens": 372,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 437
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "c1b555d340570932",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "c014ce73d9c1f2c22688697b",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 81,
+        "completion_tokens_details": {
+          "reasoning_tokens": 78
+        },
+        "prompt_cache_hit_tokens": 384,
+        "prompt_cache_miss_tokens": 5,
+        "prompt_tokens": 389,
+        "prompt_tokens_details": {
+          "cached_tokens": 384
+        },
+        "total_tokens": 470
+      }
+    },
+    {
+      "label": "WRONG",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "61c0f4242a80d31e",
+      "question_type": null,
+      "raw_response": "WRONG",
+      "record_key": "9783355b790229416a8a6e23",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 87,
+        "completion_tokens_details": {
+          "reasoning_tokens": 84
+        },
+        "prompt_cache_hit_tokens": 384,
+        "prompt_cache_miss_tokens": 5,
+        "prompt_tokens": 389,
+        "prompt_tokens_details": {
+          "cached_tokens": 384
+        },
+        "total_tokens": 476
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "cb9fce41fa364cbe",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "561c2afdd4928ed836e84bd2",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 87,
+        "completion_tokens_details": {
+          "reasoning_tokens": 84
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 113,
+        "prompt_tokens": 369,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 456
+      }
+    },
+    {
+      "label": "WRONG",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "74f380d4fa02ce63",
+      "question_type": null,
+      "raw_response": "WRONG",
+      "record_key": "30cd284b4b87693454277aaa",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 83,
+        "completion_tokens_details": {
+          "reasoning_tokens": 80
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 110,
+        "prompt_tokens": 366,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 449
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "9a82eeab130bdbe1",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "2160d217a323ec2093471b21",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 71,
+        "completion_tokens_details": {
+          "reasoning_tokens": 68
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 117,
+        "prompt_tokens": 373,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 444
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "950795811be1f5cf",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "54b75c5342b1d698c2d7e68c",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 190,
+        "completion_tokens_details": {
+          "reasoning_tokens": 187
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 124,
+        "prompt_tokens": 380,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 570
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "b8d7f415e7cf47fe",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "7f9c7d145919ce4bc983fbf9",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 148,
+        "completion_tokens_details": {
+          "reasoning_tokens": 145
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 126,
+        "prompt_tokens": 382,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 530
+      }
+    },
+    {
+      "label": "WRONG",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "e5e974574beadcf1",
+      "question_type": null,
+      "raw_response": "WRONG",
+      "record_key": "1489c12532671ad05f820415",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 68,
+        "completion_tokens_details": {
+          "reasoning_tokens": 65
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 111,
+        "prompt_tokens": 367,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 435
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "b2424d9cd55ce5e6",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "7bef7313b3907ddc5f76bda3",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 59,
+        "completion_tokens_details": {
+          "reasoning_tokens": 56
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 119,
+        "prompt_tokens": 375,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 434
+      }
+    },
+    {
+      "label": "WRONG",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "abe6ba5ce79fcf30",
+      "question_type": null,
+      "raw_response": "WRONG",
+      "record_key": "3e35890b3582162456741235",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 88,
+        "completion_tokens_details": {
+          "reasoning_tokens": 85
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 109,
+        "prompt_tokens": 365,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 453
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "4f4fa184b29737ab",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "8b4c87948f3a98ba7c86b343",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 469,
+        "completion_tokens_details": {
+          "reasoning_tokens": 466
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 129,
+        "prompt_tokens": 385,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 854
+      }
+    },
+    {
+      "label": "WRONG",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "f7ab52c81f3c0bc5",
+      "question_type": null,
+      "raw_response": "WRONG",
+      "record_key": "5af04490ad4b7db6e7b3b74c",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 60,
+        "completion_tokens_details": {
+          "reasoning_tokens": 57
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 115,
+        "prompt_tokens": 371,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 431
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "2df0d79c94dbfd91",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "9d706fdbac17028f653f49c5",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 53,
+        "completion_tokens_details": {
+          "reasoning_tokens": 50
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 112,
+        "prompt_tokens": 368,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 421
+      }
+    },
+    {
+      "label": "WRONG",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "b75848b6742e2368",
+      "question_type": null,
+      "raw_response": "WRONG",
+      "record_key": "2af7a4304a7b98c0324a70c1",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 159,
+        "completion_tokens_details": {
+          "reasoning_tokens": 156
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 118,
+        "prompt_tokens": 374,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 533
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "1f68620c2790db94",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "f558948094e919a0826159f1",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 67,
+        "completion_tokens_details": {
+          "reasoning_tokens": 64
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 114,
+        "prompt_tokens": 370,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 437
+      }
+    },
+    {
+      "label": "WRONG",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "2cfe62981665c7b6",
+      "question_type": null,
+      "raw_response": "WRONG",
+      "record_key": "fb914885e95bc82423b934c5",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 59,
+        "completion_tokens_details": {
+          "reasoning_tokens": 56
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 107,
+        "prompt_tokens": 363,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 422
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "49bb81626573ca2b",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "9d80a9282029ef1f274dfc23",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 30,
+        "completion_tokens_details": {
+          "reasoning_tokens": 27
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 99,
+        "prompt_tokens": 355,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 385
+      }
+    },
+    {
+      "label": "WRONG",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "b8a9a7c87b24fc32",
+      "question_type": null,
+      "raw_response": "WRONG",
+      "record_key": "e2701de146fbb9a6ef1dd2d5",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 1101,
+        "completion_tokens_details": {
+          "reasoning_tokens": 1098
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 127,
+        "prompt_tokens": 383,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 1484
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "c86e3665f0f1da91",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "fd69e663c9bad39de394e3c3",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 135,
+        "completion_tokens_details": {
+          "reasoning_tokens": 132
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 133,
+        "prompt_tokens": 389,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 524
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "fc1095777d9dedf4",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "8bf3312c21cad01469d10486",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 339,
+        "completion_tokens_details": {
+          "reasoning_tokens": 336
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 143,
+        "prompt_tokens": 399,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 738
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "f14cffd9abcd1aba",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "ff02ded2f18675f1e6a260b2",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 81,
+        "completion_tokens_details": {
+          "reasoning_tokens": 78
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 131,
+        "prompt_tokens": 387,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 468
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "7f05b31a6d02fc8d",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "f0d7489889d05008576b0852",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 62,
+        "completion_tokens_details": {
+          "reasoning_tokens": 59
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 117,
+        "prompt_tokens": 373,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 435
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "6670255d8f67ce5e",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "64e51d8f2b9b17e45dd03ff6",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 144,
+        "completion_tokens_details": {
+          "reasoning_tokens": 141
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 102,
+        "prompt_tokens": 358,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 502
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "8f1f366fa362124d",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "71b3e17d2b71e42838c4140b",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 77,
+        "completion_tokens_details": {
+          "reasoning_tokens": 74
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 110,
+        "prompt_tokens": 366,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 443
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "15af1ea79a494e43",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "e6c24f18a77328a21dcb740e",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 32,
+        "completion_tokens_details": {
+          "reasoning_tokens": 29
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 103,
+        "prompt_tokens": 359,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 391
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "db57ba90926b1ade",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "cd217a85968a98602deb0e1c",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 415,
+        "completion_tokens_details": {
+          "reasoning_tokens": 412
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 106,
+        "prompt_tokens": 362,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 777
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "b3e32fd251a688d4",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "d3e9b3780bb4cf1eebbc15e1",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 31,
+        "completion_tokens_details": {
+          "reasoning_tokens": 28
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 104,
+        "prompt_tokens": 360,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 391
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "c9b265041f7ec1b6",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "4ab38062e03913738796e0e8",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 44,
+        "completion_tokens_details": {
+          "reasoning_tokens": 41
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 105,
+        "prompt_tokens": 361,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 405
+      }
+    },
+    {
+      "label": "WRONG",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "1a31b83b6df0928e",
+      "question_type": null,
+      "raw_response": "WRONG",
+      "record_key": "d939ff50be21d855e02624f6",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 154,
+        "completion_tokens_details": {
+          "reasoning_tokens": 151
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 104,
+        "prompt_tokens": 360,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 514
+      }
+    },
+    {
+      "label": "WRONG",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "26ab3a4d2b881375",
+      "question_type": null,
+      "raw_response": "WRONG",
+      "record_key": "ea7c1765e7dc767cafa8e953",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 33,
+        "completion_tokens_details": {
+          "reasoning_tokens": 30
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 100,
+        "prompt_tokens": 356,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 389
+      }
+    },
+    {
+      "label": "WRONG",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "56a622c0763cffc2",
+      "question_type": null,
+      "raw_response": "WRONG",
+      "record_key": "7c96eae9d2fba73a1c0a26b5",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 93,
+        "completion_tokens_details": {
+          "reasoning_tokens": 90
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 106,
+        "prompt_tokens": 362,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 455
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "5c389f6d1d266c64",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "b6ce387df934e72cb4c95fb1",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 58,
+        "completion_tokens_details": {
+          "reasoning_tokens": 55
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 121,
+        "prompt_tokens": 377,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 435
+      }
+    }
+  ],
+  "labels": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_object_lifecycle_tail_exchange_v253_full_changed_vs_v250/locomo_labels.jsonl",
+  "metrics": {
+    "accuracy": 0.582089552238806,
+    "n_invalid": 0,
+    "n_judgments": 67,
+    "n_valid": 67
+  },
+  "model": "deepseek-v4-flash",
+  "partial_output": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_object_lifecycle_tail_exchange_v253_full_changed_vs_v250/locomo_v253_flash1.json.partial.jsonl",
+  "predictions": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_object_lifecycle_tail_exchange_v253_full_changed_vs_v250/locomo_v253_changed_predictions.jsonl",
+  "request_body_options": {},
+  "temperature": 0.0,
+  "thinking": null,
+  "usage": {
+    "completion_tokens": 9809,
+    "prompt_tokens": 25119,
+    "total_tokens": 34928
+  },
+  "workers": 4
+}
