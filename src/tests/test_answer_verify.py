@@ -96,6 +96,43 @@ class AnswerVerifyTest(unittest.TestCase):
         self.assertIn("unresolved_memory_reference", audit.risks)
         self.assertEqual(audit.unresolved_memory_references, ("Memory 99",))
 
+    def test_source_grounded_audit_accepts_bare_numeric_memory_reference(self) -> None:
+        audit = audit_answer_support(
+            compiled=_compiled(row_count=16),
+            answer=_answer(
+                {
+                    "sufficient": True,
+                    "evidence_report": [{"memory": "16", "status": "support"}],
+                    "answer": "jasmine tea",
+                }
+            ),
+            enabled=True,
+        )
+
+        self.assertNotIn("unresolved_memory_reference", audit.risks)
+        self.assertEqual(audit.memory_reference_count, 1)
+
+    def test_source_grounded_audit_uses_final_answer_when_json_answer_missing(
+        self,
+    ) -> None:
+        audit = audit_answer_support(
+            compiled=_compiled(row_count=1),
+            answer=_answer(
+                {
+                    "sufficient": False,
+                    "evidence_report": [
+                        {"memory": "Memory 1", "status": "support"}
+                    ],
+                    "answer": None,
+                },
+                final_answer="The provided information is not enough.",
+            ),
+            enabled=True,
+        )
+
+        self.assertNotIn("empty_answer", audit.risks)
+        self.assertNotIn("sufficiency_false_but_answered", audit.risks)
+
     def test_source_grounded_audit_disabled_is_noop(self) -> None:
         audit = audit_answer_support(
             compiled=_compiled(row_count=1),
@@ -132,10 +169,18 @@ def _compiled(*, row_count: int) -> CompiledContext:
     )
 
 
-def _answer(payload: dict[str, object]) -> AnswerResult:
+def _answer(
+    payload: dict[str, object],
+    *,
+    final_answer: str | None = None,
+) -> AnswerResult:
     content = json.dumps(payload)
     return AnswerResult(
-        answer=str(payload.get("answer") or ""),
+        answer=(
+            final_answer
+            if final_answer is not None
+            else str(payload.get("answer") or "")
+        ),
         model="fake",
         token_usage=TokenUsage(query_tokens=7),
         raw_response=json.dumps({"content": content, "usage": {"total_tokens": 7}}),

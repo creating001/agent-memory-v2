@@ -85,7 +85,8 @@ def audit_answer_support(
     content = raw_response_content(answer.raw_response)
     payload = extract_json_object(content) if content else None
     structured_payload_present = isinstance(payload, dict)
-    response_answer = _answer_text(payload) if payload else answer.answer
+    payload_answer = _answer_text(payload) if payload else ""
+    response_answer = payload_answer if payload_answer.strip() else answer.answer
     answer_empty = not response_answer.strip()
     answer_is_insufficient = _answer_is_insufficient(response_answer)
     sufficient = _payload_sufficient(payload)
@@ -214,7 +215,11 @@ def _memory_references(
 
 def _memory_reference_numbers(item: dict[str, Any]) -> tuple[int, ...]:
     text = str(item.get("memory") or "")
-    return tuple(int(match.group(1)) for match in _MEMORY_REF_PATTERN.finditer(text))
+    if "memory" in text.lower():
+        return tuple(int(value) for value in re.findall(r"\b\d+\b", text))
+    if re.fullmatch(r"\s*\d+(?:\s*,\s*\d+)*\s*", text):
+        return tuple(int(value) for value in re.findall(r"\d+", text))
+    return ()
 
 
 def _answer_is_insufficient(answer: str) -> bool:
