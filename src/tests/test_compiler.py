@@ -937,6 +937,52 @@ class CompilerTest(unittest.TestCase):
         self.assertIn("take", compiled.prompt)
         self.assertNotIn("event_time=2022-03-18", compiled.prompt)
 
+    def test_event_time_candidate_map_can_require_role_match(self) -> None:
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="James",
+                text=(
+                    "Hey John, yesterday I spent time with my family and dogs "
+                    "during a road trip."
+                ),
+                timestamp="2022-11-05",
+            ),
+            Turn(
+                source_id="s2:t0",
+                session_id="s2",
+                turn_index=0,
+                role="John",
+                text=(
+                    "It is great that you spent time with family and dogs. "
+                    "I should spend more time with my sister someday."
+                ),
+                timestamp="2022-11-06",
+            ),
+        )
+
+        compiled = EvidenceCompiler(
+            max_evidence_items=2,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            event_time_candidate_map=True,
+            event_time_candidate_map_allowed_time_kinds=("relative_phrase",),
+            event_time_candidate_map_rank_by_coverage=True,
+            event_time_candidate_map_normalize_terms=True,
+            event_time_candidate_map_require_role_match=True,
+        ).compile(
+            question="When did John spend time with his sister and dogs?",
+            question_time=None,
+            route=RouteResult("temporal_lookup", ("temporal",)),
+            hits=(),
+            evidence_turns=turns,
+        )
+
+        self.assertNotIn("Event-Time Candidate Map:", compiled.prompt)
+        self.assertNotIn("event_time=2022-11-04", compiled.prompt)
+
     def test_memory_tail_filter_preserves_retrieval_order(self) -> None:
         compiler = EvidenceCompiler(
             max_evidence_items=10,

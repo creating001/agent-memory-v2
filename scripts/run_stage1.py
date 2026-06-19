@@ -833,6 +833,9 @@ def main() -> int:
             "event_time_candidate_map_exact_today_min_coverage": config.get(
                 "compiler", {}
             ).get("event_time_candidate_map_exact_today_min_coverage"),
+            "event_time_candidate_map_require_role_match": config.get(
+                "compiler", {}
+            ).get("event_time_candidate_map_require_role_match", False),
             "event_time_candidate_map_allow_time_of_day_questions": config.get(
                 "compiler", {}
             ).get("event_time_candidate_map_allow_time_of_day_questions", True),
@@ -1605,6 +1608,7 @@ def _write_summary(
         f"- event_time_candidate_map_rank_by_coverage: {metrics['compiler']['event_time_candidate_map_rank_by_coverage']}",
         f"- event_time_candidate_map_normalize_terms: {metrics['compiler']['event_time_candidate_map_normalize_terms']}",
         f"- event_time_candidate_map_exact_today_min_coverage: {metrics['compiler']['event_time_candidate_map_exact_today_min_coverage']}",
+        f"- event_time_candidate_map_require_role_match: {metrics['compiler']['event_time_candidate_map_require_role_match']}",
         f"- event_time_candidate_map_allow_time_of_day_questions: {metrics['compiler']['event_time_candidate_map_allow_time_of_day_questions']}",
         f"- event_time_candidate_map_applied_count: {metrics['compiler']['event_time_candidate_map_applied_count']}",
         f"- event_time_candidate_map_applied_rate: {metrics['compiler']['event_time_candidate_map_applied_rate']}",

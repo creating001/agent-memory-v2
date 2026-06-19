@@ -249,6 +249,7 @@ class EvidenceCompiler:
         event_time_candidate_map_rank_by_coverage: bool = False,
         event_time_candidate_map_normalize_terms: bool = False,
         event_time_candidate_map_exact_today_min_coverage: float | None = None,
+        event_time_candidate_map_require_role_match: bool = False,
         event_time_candidate_map_allow_time_of_day_questions: bool = True,
         structured_guide: bool = False,
         structured_guide_max_rows: int = 12,
@@ -421,6 +422,9 @@ class EvidenceCompiler:
                 1.0,
                 max(0.0, float(event_time_candidate_map_exact_today_min_coverage)),
             )
+        )
+        self._event_time_candidate_map_require_role_match = bool(
+            event_time_candidate_map_require_role_match
         )
         self._event_time_candidate_map_allow_time_of_day_questions = bool(
             event_time_candidate_map_allow_time_of_day_questions
@@ -729,6 +733,9 @@ class EvidenceCompiler:
             event_time_candidate_map_exact_today_min_coverage=route_settings[
                 "event_time_candidate_map_exact_today_min_coverage"
             ],
+            event_time_candidate_map_require_role_match=route_settings[
+                "event_time_candidate_map_require_role_match"
+            ],
             structured_guide=(
                 self._structured_guide
                 and not set(route.signals).intersection(
@@ -959,6 +966,9 @@ class EvidenceCompiler:
             "event_time_candidate_map_exact_today_min_coverage": (
                 self._event_time_candidate_map_exact_today_min_coverage
             ),
+            "event_time_candidate_map_require_role_match": (
+                self._event_time_candidate_map_require_role_match
+            ),
             "event_time_candidate_map_allow_time_of_day_questions": (
                 self._event_time_candidate_map_allow_time_of_day_questions
             ),
@@ -1169,6 +1179,10 @@ def _validate_route_overrides(
             ]
             overrides["event_time_candidate_map_exact_today_min_coverage"] = (
                 None if raw_value is None else min(1.0, max(0.0, float(raw_value)))
+            )
+        if "event_time_candidate_map_require_role_match" in raw_overrides:
+            overrides["event_time_candidate_map_require_role_match"] = bool(
+                raw_overrides["event_time_candidate_map_require_role_match"]
             )
         if "event_time_candidate_map_allow_time_of_day_questions" in raw_overrides:
             overrides["event_time_candidate_map_allow_time_of_day_questions"] = bool(
@@ -2485,6 +2499,7 @@ def _build_prompt(
     event_time_candidate_map_rank_by_coverage: bool,
     event_time_candidate_map_normalize_terms: bool,
     event_time_candidate_map_exact_today_min_coverage: float | None,
+    event_time_candidate_map_require_role_match: bool,
     structured_guide: bool,
     structured_guide_max_rows: int,
     structured_guide_include_rows: bool,
@@ -2594,6 +2609,9 @@ def _build_prompt(
             ),
             event_time_candidate_map_exact_today_min_coverage=(
                 event_time_candidate_map_exact_today_min_coverage
+            ),
+            event_time_candidate_map_require_role_match=(
+                event_time_candidate_map_require_role_match
             ),
             structured_guide=structured_guide,
             structured_guide_max_rows=structured_guide_max_rows,
@@ -2807,6 +2825,7 @@ def _build_external_naive_prompt(
     event_time_candidate_map_rank_by_coverage: bool,
     event_time_candidate_map_normalize_terms: bool,
     event_time_candidate_map_exact_today_min_coverage: float | None,
+    event_time_candidate_map_require_role_match: bool,
     structured_guide: bool,
     structured_guide_max_rows: int,
     structured_guide_include_rows: bool,
@@ -2898,6 +2917,7 @@ def _build_external_naive_prompt(
             exact_today_min_coverage=(
                 event_time_candidate_map_exact_today_min_coverage
             ),
+            require_role_match=event_time_candidate_map_require_role_match,
         )
         if event_time_candidate_map_lines:
             event_time_candidate_map_block = "\n".join(
@@ -4515,6 +4535,7 @@ def _external_event_time_candidate_map_lines(
     rank_by_coverage: bool,
     normalize_terms: bool,
     exact_today_min_coverage: float | None,
+    require_role_match: bool,
 ) -> list[str]:
     target_terms = _event_time_candidate_map_target_terms(
         question,
@@ -4560,6 +4581,11 @@ def _external_event_time_candidate_map_lines(
     }
     allowed_time_kind_set = {str(kind) for kind in allowed_time_kinds}
     item_by_source_id = {str(item["source_id"]): item for item in selected}
+    target_role_terms = (
+        _event_time_candidate_map_target_role_terms(selected, target_terms)
+        if require_role_match
+        else frozenset()
+    )
     candidates_for_prompt: list[dict[str, object]] = []
     for group in groups:
         if group.get("conflict_type"):
@@ -4591,6 +4617,11 @@ def _external_event_time_candidate_map_lines(
             continue
         best = item_by_source_id.get(str(group.get("best_source_id") or ""))
         if best is None:
+            continue
+        if target_role_terms and not _event_time_candidate_role_matches(
+            str(best.get("role") or ""),
+            target_role_terms,
+        ):
             continue
         candidates_for_prompt.append(
             {
@@ -4699,6 +4730,33 @@ def _event_time_candidate_map_key_terms(slot_key: str) -> frozenset[str]:
     if slot_key.startswith("q:"):
         return frozenset(slot_key[2:].split("|")).difference(_EVENT_SLOT_WEAK_TERMS)
     return frozenset()
+
+
+def _event_time_candidate_map_target_role_terms(
+    items: list[dict[str, object]],
+    target_terms: frozenset[str],
+) -> frozenset[str]:
+    candidate_role_terms: set[str] = set()
+    for item in items:
+        candidate_role_terms.update(
+            _event_time_candidate_role_terms(str(item.get("role") or ""))
+        )
+    return frozenset(candidate_role_terms).intersection(target_terms)
+
+
+def _event_time_candidate_role_matches(
+    role: str,
+    target_role_terms: frozenset[str],
+) -> bool:
+    role_terms = _event_time_candidate_role_terms(role)
+    if not role_terms:
+        return True
+    return bool(role_terms.intersection(target_role_terms))
+
+
+def _event_time_candidate_role_terms(role: str) -> frozenset[str]:
+    terms = _content_terms(role).difference({"assistant", "system", "user"})
+    return frozenset(term for term in terms if term not in _EVENT_SLOT_WEAK_TERMS)
 
 
 def _event_time_candidate_map_target_terms(

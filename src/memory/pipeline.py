@@ -611,6 +611,9 @@ class Stage1Pipeline:
                     )
                 )
             ),
+            event_time_candidate_map_require_role_match=bool(
+                compiler_config.get("event_time_candidate_map_require_role_match", False)
+            ),
             event_time_candidate_map_allow_time_of_day_questions=bool(
                 compiler_config.get(
                     "event_time_candidate_map_allow_time_of_day_questions", True
@@ -3818,6 +3821,9 @@ def _compiler_trace_config(
                 compiler_config.get("event_time_candidate_map_exact_today_min_coverage")
             )
         ),
+        "event_time_candidate_map_require_role_match": bool(
+            compiler_config.get("event_time_candidate_map_require_role_match", False)
+        ),
         "event_time_candidate_map_allow_time_of_day_questions": bool(
             compiler_config.get(
                 "event_time_candidate_map_allow_time_of_day_questions", True
@@ -4094,6 +4100,9 @@ def _configured_compiler(compiler_config: Mapping[str, Any]) -> EvidenceCompiler
             else float(
                 compiler_config.get("event_time_candidate_map_exact_today_min_coverage")
             )
+        ),
+        event_time_candidate_map_require_role_match=bool(
+            compiler_config.get("event_time_candidate_map_require_role_match", False)
         ),
         event_time_candidate_map_allow_time_of_day_questions=bool(
             compiler_config.get(
