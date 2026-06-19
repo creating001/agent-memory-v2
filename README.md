@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_source_backed_lifecycle_noop_repair_prune_v231_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_build_memory_stateful_policy_v233_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v231 local LTS | 说明 |
-|---|---:|---|
-| LongMemEval-S full | strict/lenient `0.834000 / 0.846000` | v231 与 v230 answer/prompt/evidence rows/retrieval hits/route diff `0/500`；source-backed state ledger `14/500`；source-backed repair reason `0/500`，applied `0/500`；avg build/query tokens `85393.566 / 6637.824`。 |
-| LoCoMo non-adversarial full | strict/lenient `0.793506 / 0.818831` | v231 与 v230 answer/prompt/evidence rows/retrieval hits/route diff `0/1540`；source-backed state ledger `4/1540`；source-backed repair reason `0/1540`，applied `0/1540`；guarded rerank applied `2/1540`；avg build/query tokens `62015.57402597403 / 6100.992207792207`。 |
+| Benchmark | 当前 v233 local LTS |
+|---|---:|
+| LongMemEval-S full | strict/lenient `0.832000 / 0.844000`，avg build/query tokens `85393.566 / 6637.416` |
+| LoCoMo non-adversarial full | strict/lenient `0.794156 / 0.819481`，avg build/query tokens `62015.57402597403 / 6100.013636363637` |
 
-v231 的 LTS 理由：继承 v230/v229 的 full answer 和 judge accuracy，保留 source-backed state/update ledger 与 Managed Memory State Guide，但删除 v230 中 applied 为 0 的 source-backed lifecycle 二次 repair 触发，降低 query token 和 verifier drift 风险。typed memory 只作为 Memory Context 原文行索引，不独立作证据。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_source_backed_lifecycle_noop_repair_prune_v231_scope_summary.md`。
+v233 的 LTS 理由：把 build memory 从 typed retrieval hint 推进到 source-backed lifecycle management。`preference/profile/relationship/state` 才参与 supersede/update；`fact/event/plan` 保留为 active collection memory，避免把多值事实误当成 current-state 覆盖。性能采用 full prediction + changed-answer paired judge 推导，LME `-1`、LoCoMo `+1`，合并 strict/lenient counts 持平。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_build_memory_stateful_policy_v233_scope_summary.md`。
 
 ## 目录
 

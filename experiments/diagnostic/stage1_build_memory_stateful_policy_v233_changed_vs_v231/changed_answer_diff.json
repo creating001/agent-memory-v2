@@ -1,0 +1,116 @@
+{
+  "lme": {
+    "changed_keys": [
+      "4f59d44ad8458660ea315a98",
+      "130329eb8ec5dc8ca92aa3f4",
+      "c1aa11de095f137c23c26fae",
+      "378a4a880b03d270954e746b"
+    ],
+    "count": 4,
+    "details": [
+      {
+        "category": null,
+        "gold_answer": "the sports store downtown",
+        "question": "Where did I buy my new tennis racket from?",
+        "question_type": "single-session-user",
+        "record_key": "4f59d44ad8458660ea315a98",
+        "v231_answer": "sports store downtown",
+        "v233_answer": "a sports store downtown"
+      },
+      {
+        "category": null,
+        "gold_answer": "You did not mention this information. You mentioned receiving a birthday gift from your sister, but not your dad.",
+        "question": "What did my dad gave me as a birthday gift?",
+        "question_type": "single-session-user",
+        "record_key": "130329eb8ec5dc8ca92aa3f4",
+        "v231_answer": "The provided information is not enough to answer the question: No memory context records the user's dad giving the user a birthday gift",
+        "v233_answer": "The provided information is not enough."
+      },
+      {
+        "category": null,
+        "gold_answer": "The user would prefer theme park suggestions that cater to their interest in both thrill rides and special events, utilizing their previous experiences at Disneyland, Knott's Berry Farm, Six Flags Magic Mountain, and Universal Studios Hollywood as a reference point. They would also appreciate recommendations that highlight unique food experiences and nighttime shows. The user might not prefer suggestions that focus solely on one aspect of theme parks, such as only thrill rides or only family-friendly attractions, and may not be interested in parks that lack special events or unique dining options.",
+        "question": "I am planning another theme park weekend; do you have any suggestions?",
+        "question_type": "single-session-preference",
+        "record_key": "c1aa11de095f137c23c26fae",
+        "v231_answer": "Based on your previous visits, consider these upcoming events: Disneyland's Halloween Time and Holiday Season; Knott's Berry Farm's Knott's Scary Farm and Christmas Celebration; Six Flags Magic Mountain's Fright Fest and Holiday in the Park; and Universal Studios Hollywood's Halloween Horror Nights and Grinchmas.",
+        "v233_answer": "Based on upcoming events, consider visiting Disneyland for Halloween Time and Holiday Season festivities, Knott's Berry Farm for Knott's Scary Farm and Christmas Celebration, Six Flags Magic Mountain for Fright Fest and Holiday in the Park, or Universal Studios Hollywood for Halloween Horror Nights and Grinchmas."
+      },
+      {
+        "category": null,
+        "gold_answer": 4,
+        "question": "How many weeks ago did I attend a bird watching workshop at the local Audubon society?",
+        "question_type": "temporal-reasoning",
+        "record_key": "378a4a880b03d270954e746b",
+        "v231_answer": "4 weeks",
+        "v233_answer": "4 weeks ago"
+      }
+    ],
+    "files": {
+      "labels": "experiments/diagnostic/stage1_build_memory_stateful_policy_v233_changed_vs_v231/lme_labels.jsonl",
+      "v231_predictions": "experiments/diagnostic/stage1_build_memory_stateful_policy_v233_changed_vs_v231/lme_v231_changed_predictions.jsonl",
+      "v233_predictions": "experiments/diagnostic/stage1_build_memory_stateful_policy_v233_changed_vs_v231/lme_v233_changed_predictions.jsonl"
+    }
+  },
+  "locomo": {
+    "changed_keys": [
+      "69730f4d8f3e6ea00c896356",
+      "0df391e1f684eeb22e522c4f",
+      "477d50fc1edbbb9e9222d91b",
+      "527daa37bf27a956111e189e",
+      "3a9f758d0442d55e478995a5"
+    ],
+    "count": 5,
+    "details": [
+      {
+        "category": 1,
+        "gold_answer": "Horse, sunset, sunrise",
+        "question": "What has Melanie painted?",
+        "question_type": null,
+        "record_key": "69730f4d8f3e6ea00c896356",
+        "v231_answer": "Melanie has painted a lake sunrise, a horse, and an abstract painting. She also generally paints landscapes and still life.",
+        "v233_answer": "Melanie has painted a lake sunrise, a horse, a sunset, an abstract painting, and nature-inspired works including landscapes, still life, and flowers."
+      },
+      {
+        "category": 4,
+        "gold_answer": "art and self-expression",
+        "question": "What is Melanie's hand-painted bowl a reminder of?",
+        "question_type": null,
+        "record_key": "0df391e1f684eeb22e522c4f",
+        "v231_answer": "insufficient' or clarify",
+        "v233_answer": "The provided information is not enough."
+      },
+      {
+        "category": 4,
+        "gold_answer": "They are important and mean the world to her",
+        "question": "How did Melanie feel about her family after the accident?",
+        "question_type": null,
+        "record_key": "477d50fc1edbbb9e9222d91b",
+        "v231_answer": "Melanie felt that family was super important to her, that they meant the world to her, and that she was thankful to have them. The accident served as a reminder to cherish her family.",
+        "v233_answer": "Melanie felt that family was super important to her, that they meant the world to her, and that the accident served as a reminder to cherish them."
+      },
+      {
+        "category": 4,
+        "gold_answer": "Grateful and thankful for her family",
+        "question": "How did Melanie feel after the accident?",
+        "question_type": null,
+        "record_key": "527daa37bf27a956111e189e",
+        "v231_answer": "Melanie felt scared during the accident, but afterwards she felt thankful for her family and reflective, viewing it as a reminder that life is precious.",
+        "v233_answer": "Melanie felt scared during the accident, but afterwards she felt thankful and reflected that the experience was a reminder that life is precious and to cherish her family."
+      },
+      {
+        "category": 4,
+        "gold_answer": "Went on a nature walk or hike",
+        "question": "What did Melanie do after the road trip to relax?",
+        "question_type": null,
+        "record_key": "3a9f758d0442d55e478995a5",
+        "v231_answer": "She went on a camping trip (to the Grand Canyon) with her family.",
+        "v233_answer": "She went on a camping trip with her family."
+      }
+    ],
+    "files": {
+      "labels": "experiments/diagnostic/stage1_build_memory_stateful_policy_v233_changed_vs_v231/locomo_labels.jsonl",
+      "v231_predictions": "experiments/diagnostic/stage1_build_memory_stateful_policy_v233_changed_vs_v231/locomo_v231_changed_predictions.jsonl",
+      "v233_predictions": "experiments/diagnostic/stage1_build_memory_stateful_policy_v233_changed_vs_v231/locomo_v233_changed_predictions.jsonl"
+    }
+  }
+}

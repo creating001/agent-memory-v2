@@ -6,13 +6,13 @@
 
 | 项目 | 结果 |
 |---|---|
-| 当前 LTS 配置 | `configs/stage1_source_backed_lifecycle_noop_repair_prune_v231_seeded_qwen36_no_think_build4k_cached.json` |
+| 当前 LTS 配置 | `configs/stage1_build_memory_stateful_policy_v233_seeded_qwen36_no_think_build4k_cached.json` |
 | Backbone | `Qwen/Qwen3.6-35B-A3B` answer/build，`chat_template_kwargs.enable_thinking=false` |
-| 方法定位 | clean evidence-first Agent Memory 管线的当前稳定点。typed memory 仍主要作为 source-backed index / organization，不独立替代 raw evidence；v231 删除 v230 中 full applied 为 0 的 source-backed lifecycle repair trigger。 |
-| LongMemEval-S full | strict/lenient `0.834000 / 0.846000`，`417/500` strict，`423/500` lenient；avg build/query tokens `85393.566 / 6637.824` |
-| LoCoMo non-adversarial full | strict/lenient `0.793506 / 0.818831`，`1222/1540` strict，`1261/1540` lenient；avg build/query tokens `62015.57402597403 / 6100.992207792207` |
-| LTS 理由 | 继承 v230/v229 full accuracy，保留 source-backed state/update 诊断和 Managed Memory State Guide，删除无收益二次 repair 路径，降低 query token 和 verifier drift 风险。 |
-| 主要局限 | v231 仍偏 benchmark-tuned pipeline：memory operations 不够系统，query-time route/guide/ledger/repair/finalizer 叠加较多，retrieval/context 仍依赖固定 top-k 与多段启发式。 |
+| 方法定位 | build-time source-backed memory management 的当前稳定点。`preference/profile/relationship/state` 参与 lifecycle supersede/update；`fact/event/plan` 保留为 active collection memory，避免多值事实被误当成 current-state 覆盖。 |
+| LongMemEval-S full | strict/lenient `0.832000 / 0.844000`，`416/500` strict，`422/500` lenient；avg build/query tokens `85393.566 / 6637.416` |
+| LoCoMo non-adversarial full | strict/lenient `0.794156 / 0.819481`，`1223/1540` strict，`1262/1540` lenient；avg build/query tokens `62015.57402597403 / 6100.013636363637` |
+| LTS 理由 | 相对 v231，LME `-1`、LoCoMo `+1`，合并 strict/lenient counts 持平；同时显著降低 build naive / typed-memory-as-hint 风险，形成可审计的 memory policy、operation trace 和 layer trace。 |
+| 主要局限 | v233 仍继承 v231 的 query-time route/guide/ledger/repair/finalizer 复杂度；answer repair 在 full run 触发 `8` 次但 applied `0`，下一版应优先剪掉或统一。 |
 
 `paired-delta derived` 的含义：新版本只改少量答案，未变化答案沿用父 LTS full dual judge records，变化答案单独跑 paired dual judge 后替换计数。若新版本与父 LTS answer-identical，可继承父 LTS judge records，但必须记录 full answer diff、cache hit/miss 和输出路径。论文级最终汇报再对最终 LTS 配置重跑 fresh full judge。
 
@@ -28,8 +28,8 @@
 
 | 优先级 | 方向 | 当前问题 | 下一步 |
 |---:|---|---|---|
-| 1 | Memory operations / lifecycle | v231 typed memory 多数仍是 retrieval hint；create/update/merge/supersede/retrieve/expand/verify/audit 没有形成统一 memory policy | 设计通用 memory object 与 lifecycle policy，让 typed memory 参与状态管理、冲突处理、context organization 和 answer verification，同时保持 source/provenance 可追溯 |
-| 2 | Query-time 简化 | route、selected context、state guide、ledger、repair、finalizer 多层叠加，像补丁式 pipeline | 把可前移的状态/冲突/版本链逻辑移到 build-time memory management；query-time 保留 candidate activation、context compiler、source-grounded answer、通用 verifier |
+| 1 | Memory operations / lifecycle | v233 已加入 build-time `stateful_only` lifecycle policy，但 memory operation 还主要停留在 trace/active filtering，尚未系统影响 retrieval/compiler/answer verification | 扩展通用 memory object 与 lifecycle policy，让 create/update/merge/supersede/retrieve/expand/verify/audit 更稳定地参与 context organization，同时保持 source/provenance 可追溯 |
+| 2 | Query-time 简化 | route、selected context、state guide、ledger、repair、finalizer 多层叠加，像补丁式 pipeline；v233 repair full 触发 `8` 次 applied `0` | v234 优先禁用或统一无收益 repair；query-time 收敛为 candidate activation、context compiler、source-grounded answer、通用 consistency verifier |
 | 3 | Retrieval/context systemization | 固定 top-k、route override、selected-context 长短 turn 规则仍较多 | 改成更通用的 candidate pooling + rerank + anchor retention + source expansion + evidence utility selection，并报告 context precision / source recall / unsupported answer |
 | 4 | Answer/verifier 统一 | 现有 repair/finalizer 是多条窄触发链；部分有效，但方法形态分散 | 收敛为 source-grounded answer + consistency verifier，只检查数值、时间、说话人、实体、状态冲突、unsupported answer，不写 benchmark-specific rewrite |
 | 5 | src cleanup | `pipeline.py`、compiler、repair/finalizer 兼容分支较多，后续改法成本上升 | 每个阶段做小范围清理，删除已确认无用的兼容代码；保留仍有消融价值和复现价值的模块 |
@@ -38,8 +38,9 @@
 
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
-| `configs/stage1_source_backed_lifecycle_noop_repair_prune_v231_seeded_qwen36_no_think_build4k_cached.json` | current LTS | LME `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v231 vs v230 answer/prompt/evidence/retrieval/route diff `0/500`、`0/1540`；source-backed repair reason `0`，applied `0` | 当前 LTS；保留 source-backed state/update 诊断，删除 no-op lifecycle repair |
+| `configs/stage1_build_memory_stateful_policy_v233_seeded_qwen36_no_think_build4k_cached.json` | current LTS | LME `0.832000/0.844000`，LoCoMo `0.794156/0.819481`；changed-answer judge LME `4/4 -> 3/4`，LoCoMo `2/5 -> 3/5`；build memory `stateful_only` policy 覆盖 full | 当前 LTS；合并性能持平，同时降低 build naive 和 fact/list lifecycle 误覆盖风险 |
 | `experiments/diagnostic/stage1_answer_output_cap4096_v232_scope_summary.md` | diagnostic / rejected LTS | v232 降低 avg query tokens：LME `6605.952`，LoCoMo `6070.648701298701`；changed-answer judge LME `1/1 -> 0/1`，LoCoMo `1/3 -> 2/3` | 不升 LTS；硬 output cap 会让 LME temporal 正确答案变拒答，后续应做结构化 answer-first 或 verifier，而不是简单截断 |
+| `configs/stage1_source_backed_lifecycle_noop_repair_prune_v231_seeded_qwen36_no_think_build4k_cached.json` | previous LTS / LME split-best | LME `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v231 vs v230 answer/prompt/evidence/retrieval/route diff `0/500`、`0/1540`；source-backed repair reason `0`，applied `0` | 被 v233 替代为系统 LTS；继续保留为 LME performance anchor |
 | `configs/stage1_source_backed_lifecycle_memory_repair_v230_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | 与 v229 answer diff `0/500`、`0/1540`；source-backed state repair reason LME `4/500`、LoCoMo `2/1540`，applied `0` | 被 v231 替代；说明 no-op verifier 应剪掉 |
 | `configs/stage1_guarded_tail_exchange_rerank_v229_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | 与 v225 answer diff `0/500`、`0/1540`；LoCoMo rerank applied `2/1540`，guard skipped `880/1540` | 保留为 #2 retrieval tail / source-provenance-aware rerank 父锚点 |
 | `configs/stage1_state_update_organization_ledger_v225_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | State/Update Organization Ledger 覆盖 LME `500/500`、LoCoMo `1540/1540`，answer diff `0` | 保留为 #5 state/update organization 诊断锚点 |
