@@ -6140,16 +6140,17 @@ def _event_time_candidate_text_segments(
             else text
         )
         return ((candidate_text, None),)
-    if "Local dialogue context from the same session:" not in text:
+    if not _has_local_context_wrapper(text):
         return ((text, None),)
 
     segments: list[tuple[str, str | None]] = []
     for raw_line in text.splitlines():
         line = raw_line.strip()
-        if not line or line == "Local dialogue context from the same session:":
+        if not line or _is_local_context_header(line):
             continue
         match = re.match(
-            r"^-\s+(?:nearby|selected) turn \([^)]+\)\s*\|\s*(?P<body>.*)$",
+            r"^-\s+(?:(?:nearby|selected) turn|near|center)"
+            r"(?: \([^)]+\))?\s*\|\s*(?P<body>.*)$",
             line,
         )
         body = match.group("body") if match else line
@@ -6162,17 +6163,18 @@ def _event_time_candidate_text_segments(
 
 
 def _strip_local_context_timestamp_wrappers(text: str) -> str:
-    if "Local dialogue context from the same session:" not in text:
+    if not _has_local_context_wrapper(text):
         return text
     lines: list[str] = []
     for raw_line in text.splitlines():
         line = raw_line.strip()
         if not line:
             continue
-        if line == "Local dialogue context from the same session:":
+        if _is_local_context_header(line):
             continue
         match = re.match(
-            r"^-\s+(?:nearby|selected) turn \([^)]+\)\s*\|\s*(?P<body>.*)$",
+            r"^-\s+(?:(?:nearby|selected) turn|near|center)"
+            r"(?: \([^)]+\))?\s*\|\s*(?P<body>.*)$",
             line,
         )
         if match:
@@ -6180,6 +6182,20 @@ def _strip_local_context_timestamp_wrappers(text: str) -> str:
         else:
             lines.append(line)
     return "\n".join(lines) if lines else text
+
+
+def _has_local_context_wrapper(text: str) -> bool:
+    return (
+        "Local dialogue context from the same session:" in text
+        or "Same-session context:" in text
+    )
+
+
+def _is_local_context_header(line: str) -> bool:
+    return line in {
+        "Local dialogue context from the same session:",
+        "Same-session context:",
+    }
 
 
 def _event_time_markers(

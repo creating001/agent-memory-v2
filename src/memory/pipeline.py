@@ -324,6 +324,9 @@ class Stage1Pipeline:
         self._selected_context_max_center_chars = int(
             selected_context_config.get("max_center_chars", 0)
         )
+        self._selected_context_context_format = _selected_context_context_format(
+            selected_context_config.get("context_format", "verbose")
+        )
         self._selected_context_require_anaphora = bool(
             selected_context_config.get("require_anaphora", True)
         )
@@ -376,6 +379,7 @@ class Stage1Pipeline:
             "max_rows": self._selected_context_max_rows,
             "max_neighbor_chars": self._selected_context_max_neighbor_chars,
             "max_center_chars": self._selected_context_max_center_chars,
+            "context_format": self._selected_context_context_format,
             "require_anaphora": self._selected_context_require_anaphora,
             "require_question_reference": (
                 self._selected_context_require_question_reference
@@ -1662,6 +1666,7 @@ class Stage1Pipeline:
             max_rows=selected_context_settings["max_rows"],
             max_neighbor_chars=selected_context_settings["max_neighbor_chars"],
             max_center_chars=selected_context_settings["max_center_chars"],
+            context_format=selected_context_settings["context_format"],
             require_anaphora=selected_context_settings["require_anaphora"],
             question=request.question,
             require_question_reference=selected_context_settings[
@@ -2232,6 +2237,7 @@ class Stage1Pipeline:
             "max_rows": self._selected_context_max_rows,
             "max_neighbor_chars": self._selected_context_max_neighbor_chars,
             "max_center_chars": self._selected_context_max_center_chars,
+            "context_format": self._selected_context_context_format,
             "require_anaphora": self._selected_context_require_anaphora,
             "require_question_reference": (
                 self._selected_context_require_question_reference
@@ -4138,6 +4144,7 @@ def _materialize_selected_context(
     max_rows: int,
     max_neighbor_chars: int,
     max_center_chars: int,
+    context_format: str,
     require_anaphora: bool,
     question: str,
     require_question_reference: bool,
@@ -4162,6 +4169,7 @@ def _materialize_selected_context(
         "max_rows": max_rows,
         "max_neighbor_chars": max_neighbor_chars,
         "max_center_chars": max_center_chars,
+        "context_format": context_format,
         "require_anaphora": require_anaphora,
         "require_question_reference": require_question_reference,
         "require_question_reference_min_center_chars": (
@@ -4251,6 +4259,7 @@ def _materialize_selected_context(
             window_before=before,
             window_after=after,
             max_neighbor_chars=neighbor_chars,
+            context_format=context_format,
         )
         if context_text == turn.text:
             materialized_turns.append(turn)
@@ -4361,6 +4370,7 @@ def _selected_context_text(
     window_before: int,
     window_after: int,
     max_neighbor_chars: int,
+    context_format: str = "verbose",
 ) -> str:
     session_turns = store.session_turns(turn.session_id)
     positions = {
@@ -4375,9 +4385,17 @@ def _selected_context_text(
     if len(neighbors) <= 1:
         return turn.text
 
-    lines = ["Local dialogue context from the same session:"]
+    compact = context_format == "compact"
+    lines = [
+        "Same-session context:"
+        if compact
+        else "Local dialogue context from the same session:"
+    ]
     for neighbor in neighbors:
-        label = "selected turn" if neighbor.source_id == turn.source_id else "nearby turn"
+        if neighbor.source_id == turn.source_id:
+            label = "center" if compact else "selected turn"
+        else:
+            label = "near" if compact else "nearby turn"
         text = neighbor.text
         if neighbor.source_id != turn.source_id:
             text = _truncate_text(text, max_neighbor_chars)
@@ -4427,6 +4445,7 @@ SELECTED_CONTEXT_OVERRIDE_KEYS = {
     "max_rows",
     "max_neighbor_chars",
     "max_center_chars",
+    "context_format",
     "min_context_budget_headroom_chars",
     "require_anaphora",
     "require_question_reference",
@@ -4436,6 +4455,15 @@ SELECTED_CONTEXT_OVERRIDE_KEYS = {
     "source_grounded_min_coverage",
     "information_needs",
 }
+
+
+def _selected_context_context_format(value: object) -> str:
+    context_format = str(value or "verbose")
+    if context_format not in {"verbose", "compact"}:
+        raise ValueError(
+            "retrieval.selected_context.context_format must be verbose or compact"
+        )
+    return context_format
 
 
 def _merged_config(
@@ -5398,6 +5426,8 @@ def _normalized_selected_context_override(
             result[key] = min(1.0, max(0.0, float(value)))
         elif key == "information_needs":
             result[key] = _tuple_config(value)
+        elif key == "context_format":
+            result[key] = _selected_context_context_format(value)
     return result
 
 

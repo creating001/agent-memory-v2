@@ -341,6 +341,71 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertIn("Nothing is Impossible", prompt)
         self.assertNotIn("question_type", prompt)
 
+    def test_pipeline_selected_context_compact_format_preserves_evidence(
+        self,
+    ) -> None:
+        config = {
+            "retrieval": {
+                "top_k": 2,
+                "max_top_k": 2,
+                "neighbor_window": 0,
+                "selected_context": {
+                    "enabled": True,
+                    "window_before": 1,
+                    "window_after": 0,
+                    "max_rows": 2,
+                    "max_neighbor_chars": 80,
+                    "max_center_chars": 0,
+                    "context_format": "compact",
+                    "require_anaphora": True,
+                    "information_needs": ["list_count"],
+                },
+            },
+            "route": {"enable_broad_list_patterns": True},
+            "compiler": {
+                "prompt_mode": "external_naive",
+                "max_evidence_items": 2,
+                "max_evidence_chars": 4000,
+            },
+            "answer": {"fallback_answer": "unknown"},
+        }
+        request = PredictionRequest(
+            question="What books has Alex read?",
+            turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text='Alex read "Nothing is Impossible" last year.',
+                    timestamp="2024-01-01",
+                ),
+                Turn(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="assistant",
+                    text="This book inspired Alex to keep training.",
+                    timestamp="2024-01-01",
+                ),
+            ),
+        )
+
+        result = Stage1Pipeline(config).predict(request)
+        trace = result["trace"]["retrieval"]["selected_context"]
+        row_text = "\n".join(
+            row["text"]
+            for row in result["trace"]["compiled_context"]["evidence_rows"]
+        )
+
+        self.assertTrue(trace["applied"])
+        self.assertEqual(trace["context_format"], "compact")
+        self.assertIn("Same-session context:", row_text)
+        self.assertIn("- center (2024-01-01) | assistant:", row_text)
+        self.assertIn("- near (2024-01-01) | user:", row_text)
+        self.assertNotIn("Local dialogue context from the same session", row_text)
+        self.assertIn("Nothing is Impossible", row_text)
+
     def test_selected_context_can_require_question_reference(self) -> None:
         config = {
             "retrieval": {
