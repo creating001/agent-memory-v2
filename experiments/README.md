@@ -6,12 +6,12 @@
 
 | 项目 | 结果 |
 |---|---|
-| 当前 LTS 配置 | `configs/stage1_source_flow_severity_ledger_v221_seeded_qwen36_no_think_build4k_cached.json` |
+| 当前 LTS 配置 | `configs/stage1_evidence_pressure_ledger_v222_seeded_qwen36_no_think_build4k_cached.json` |
 | Backbone | `Qwen/Qwen3.6-35B-A3B` answer/build，`chat_template_kwargs.enable_thinking=false` |
-| 方法 | V221 继承 v217，并在 Context Manifest 中新增 trace-only Source-flow Severity Ledger；不改变 retrieval、prompt、answer 或 cache。 |
-| LongMemEval-S full | v221 与 v217 answer/prompt/evidence rows/retrieval hits/selected-context diff `0/500`；Severity Ledger `500/500`；avg build/query tokens `85393.566 / 6580.196`；继承 full `0.834000 / 0.846000`，`417/500` strict，`423/500` lenient |
-| LoCoMo non-adversarial full | v221 与 v217 answer/prompt/evidence rows/retrieval hits/selected-context diff `0/1540`；Severity Ledger `1540/1540`；selected-context risk rows `5841/5841` 为 final raw evidence-backed，guarded-rerank eligible `0`；avg build/query tokens `62015.57402597403 / 6095.268181818182`；继承 full `0.793506 / 0.818831`，`1222/1540` strict，`1261/1540` lenient |
-| 状态 | 当前本地 qwen3.6 no-thinking LTS。v221 降低 #2/#3 selected-context/source-flow 误删和误排序风险；v217 的 context organization ledger、v216 的 #5 memory provenance/activation、v214 的 #3 normalized audit、v211 的 #1 context-pressure selector 和 v209 的 #2 retrieval tail candidate 风险收敛保留。它不代表五个原始风险都已解决，#2 真实 token 降本和 #5 state/update organization 仍是优先待办。 |
+| 方法 | V222 继承 v221，并在 Context Manifest 中新增 trace-only Evidence Pressure Ledger；不改变 retrieval、prompt、answer 或 cache。 |
+| LongMemEval-S full | v222 与 v221 answer/prompt/evidence rows/retrieval hits/selected-context diff `0/500`；Evidence Pressure Ledger `500/500`；avg build/query tokens `85393.566 / 6580.196`；继承 full `0.834000 / 0.846000`，`417/500` strict，`423/500` lenient |
+| LoCoMo non-adversarial full | v222 与 v221 answer/prompt/evidence rows/retrieval hits/selected-context diff `0/1540`；Evidence Pressure Ledger `1540/1540`；tail after rank `40` 为 `21780` rows / `2789101` chars；avg build/query tokens `62015.57402597403 / 6095.268181818182`；继承 full `0.793506 / 0.818831`，`1222/1540` strict，`1261/1540` lenient |
+| 状态 | 当前本地 qwen3.6 no-thinking LTS。v222 降低 #2 final evidence tail/session/adjacent pressure 不可诊断风险；v221 的 source-flow severity、v217 的 context organization ledger、v216 的 #5 memory provenance/activation、v211 的 #1 context-pressure selector 和 v209 的 #2 retrieval tail candidate 风险收敛保留。它不代表五个原始风险都已解决，#2 真实 token 降本和 #5 state/update organization 仍是优先待办。 |
 
 `paired-delta derived` 的含义：新版本只改少量答案，未变化答案沿用父 LTS full dual judge records，变化答案单独跑 paired dual judge 后替换计数。若新版本与父 LTS answer-identical，则可继承父 LTS judge records，但必须记录 full answer diff、cache hit/miss 和输出路径。若论文级最终汇报需要完全独立 run，再对 LTS 配置重跑 fresh full judge。
 
@@ -26,7 +26,7 @@
 
 | 优先级 | 项目 | 当前状态 | 下一步 |
 |---:|---|---|---|
-| 1 | #2 top-k/context noise/rerank | v221 证明 LoCoMo selected-context risk rows `5841/5841` 都是 final raw evidence-backed，guarded-rerank eligible `0`；v209/v211 已保守裁掉 LME tail retrieval candidates，v210/v215 证明机械压缩 prompt text 会伤 reader | 下一步不要从 selected-context 包装入手；优先做 retrieval/pre-compiler 层的 source/span 保真 rerank 或多样性选择，并要求 final evidence set/prompt 有窄 diff 后再 judge |
+| 1 | #2 top-k/context noise/rerank | v222 显式记录 final evidence pressure：LME tail after rank `32` 为 `2016` rows，LoCoMo tail after rank `40` 为 `21780` rows；v221 证明 LoCoMo selected-context risk rows `5841/5841` 都是 final raw evidence-backed；v210/v215 证明机械压缩 prompt text 会伤 reader | 下一步不要从 selected-context 包装入手；优先做 retrieval/pre-compiler 层的 source/span 保真 rerank 或多样性选择，并要求 final evidence set/prompt 有窄 diff 后再 judge |
 | 2 | #3 selected context | v221 将 v217 的 risk rows 拆成 evidence-backed severity；v218/v219 hard gate 和 v220 nearby timestamp removal 都降低局部风险或 token，但 changed judge 分别 `-5/-12`、`-4/-1`、`-4/-3` | 保留 selected-context 原文保真路径；后续只允许用 severity 作为审计或极窄 ordering guard，不能把 final evidence-backed local context 当可删除噪声 |
 | 3 | #5 memory lifecycle/state/conflict/query-time reasoning | v216/v217 已把 typed-memory activation、memory-projected source、context budget、selected-context 和 final evidence rows 合入 trace-only Context Manifest；LME/LoCoMo manifest `500/500`、`1540/1540` | 从 audit 走向更通用的 state/update organization：保留 raw evidence first，typed memory 只做 source-backed activation；不把普通 event/preference 多值当 state conflict |
 | 4 | src cleanup | 已有多轮兼容分支，`repair.py`、compiler、pipeline 仍会继续变复杂 | 每个阶段结束后做小范围清理，删已确认无用的兼容代码，不删仍有消融价值的模块 |
@@ -35,7 +35,8 @@
 
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
-| `configs/stage1_source_flow_severity_ledger_v221_seeded_qwen36_no_think_build4k_cached.json` | current LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v221 vs v217 answer/prompt/evidence rows/retrieval hits/selected-context diff `0/500`、`0/1540`；LoCoMo risk rows `5841/5841` final raw evidence-backed、guarded-rerank eligible `0` | 当前 LTS；新增 trace-only source-flow severity ledger，降低 #2/#3 误删和误排序风险，性能继承 v217 |
+| `configs/stage1_evidence_pressure_ledger_v222_seeded_qwen36_no_think_build4k_cached.json` | current LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v222 vs v221 answer/prompt/evidence rows/retrieval hits/selected-context diff `0/500`、`0/1540`；Evidence Pressure Ledger `500/500`、`1540/1540` | 当前 LTS；新增 trace-only evidence pressure ledger，降低 #2 final evidence tail/session/adjacent pressure 不可诊断风险，性能继承 v221 |
+| `configs/stage1_source_flow_severity_ledger_v221_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v221 vs v217 answer/prompt/evidence rows/retrieval hits/selected-context diff `0/500`、`0/1540`；LoCoMo risk rows `5841/5841` final raw evidence-backed、guarded-rerank eligible `0` | 被 v222 替代；新增 trace-only source-flow severity ledger，降低 #2/#3 误删和误排序风险，性能继承 v217 |
 | `configs/stage1_context_organization_ledger_v217_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v217 vs v216 answer/prompt/evidence rows/retrieval hits/effective selected-context diff `0/500`、`0/1540`；Context Organization Ledger `500/500`、`1540/1540` | 被 v221 替代；新增 trace-only context organization/source-flow ledger，降低 #2/#3 不可诊断风险，性能继承 v216 |
 | `configs/stage1_context_manifest_v216_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v216 vs v214 answer/prompt/evidence rows/retrieval hits/effective selected-context diff `0/500`、`0/1540`；context manifest `500/500`、`1540/1540` | 被 v217 替代；新增 trace-only Context Manifest / Memory Activation Ledger，降低 #5 provenance/activation 不可解释风险，性能继承 v214 |
 | `configs/stage1_selected_context_term_normalized_audit_v214_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v214 vs v213 answer/route/prompt/evidence rows/retrieval hits/effective selected-context diff `0/500`、`0/1540`；LoCoMo selected-context risk rows `6163 -> 5841` | 被 v216 替代；规范化 trace-only selected-context audit term matching，降低 #3 误报风险，性能继承 v213 |
@@ -135,7 +136,10 @@
 
 | 路径 | 内容 |
 |---|---|
-| `diagnostic/stage1_source_flow_severity_ledger_v221_scope_summary.md` | 当前 LTS 晋升结论：v221 新增 trace-only Source-flow Severity Ledger，full answer/prompt/evidence rows/retrieval hits/selected-context diff 均为 `0`，LoCoMo risk rows `5841/5841` 为 final raw evidence-backed |
+| `diagnostic/stage1_evidence_pressure_ledger_v222_scope_summary.md` | 当前 LTS 晋升结论：v222 新增 trace-only Evidence Pressure Ledger，full answer/prompt/evidence rows/retrieval hits/selected-context diff 均为 `0`，LoCoMo tail after rank `40` 为 `21780` rows / `2789101` chars |
+| `diagnostic/stage1_evidence_pressure_ledger_v222_lme_s_full/` | v222 LME full；vs v221 answer/prompt/evidence rows/retrieval hits/selected-context diff `0/500`，Evidence Pressure Ledger `500/500` |
+| `diagnostic/stage1_evidence_pressure_ledger_v222_locomo_nonadv_full/` | v222 LoCoMo full；vs v221 answer/prompt/evidence rows/retrieval hits/selected-context diff `0/1540`，Evidence Pressure Ledger `1540/1540` |
+| `diagnostic/stage1_source_flow_severity_ledger_v221_scope_summary.md` | previous LTS 晋升结论：v221 新增 trace-only Source-flow Severity Ledger，full answer/prompt/evidence rows/retrieval hits/selected-context diff 均为 `0`，LoCoMo risk rows `5841/5841` 为 final raw evidence-backed |
 | `diagnostic/stage1_source_flow_severity_ledger_v221_lme_s_full/` | v221 LME full；vs v217 answer/prompt/evidence rows/retrieval hits/selected-context diff `0/500`，Severity Ledger `500/500` |
 | `diagnostic/stage1_source_flow_severity_ledger_v221_locomo_nonadv_full/` | v221 LoCoMo full；vs v217 answer/prompt/evidence rows/retrieval hits/selected-context diff `0/1540`，Severity Ledger `1540/1540`，guarded-rerank eligible `0` |
 | `diagnostic/stage1_temporal_selected_context_center_timestamp_v220_scope_summary.md` | v220 负向结论：保留 context 文本但移除 nearby timestamp 后 changed-answer judge `-4/-3`，不升 LTS |
