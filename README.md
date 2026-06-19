@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_granularity_profile_audit_v197_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_default_short_context_layout_v198_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v197 local LTS | 说明 |
+| Benchmark | 当前 v198 local LTS | 说明 |
 |---|---:|---|
-| LongMemEval-S full | strict/lenient `0.834000 / 0.846000` | v197 与 v196 prompt/answer diff `0/500`；answer cache `500/0/0`，性能继承 v196/v194/v193/v191/v184。 |
-| LoCoMo non-adversarial full | strict/lenient `0.793506 / 0.818831` | v197 与 v196 prompt/answer diff `0/1540`；answer cache `1540/0/0`，性能继承 v196/v194/v193/v191/v184。 |
+| LongMemEval-S full | strict/lenient `0.834000 / 0.846000` | v198 与 v197 prompt/answer diff `0/500`；answer cache `500/0/0`，性能继承 v197。 |
+| LoCoMo non-adversarial full | strict/lenient `0.793506 / 0.818831` | v198 与 v197 prompt/answer diff `0/1540`；answer cache `1540/0/0`，性能继承 v197。 |
 
-v197 的 LTS 理由：继承 v196 行为和性能，并新增 trace-only granularity profile audit。它把 avg-turn-length profile 对 route/retrieval/selected-context/compiler 的行为改写显式记录到 trace，不改变检索、prompt 或答案；full 审计显示 LME `500/500` 走 `long_turn_precision`，LoCoMo `1540/1540` 走 `short_turn_v96_spacing`。这降低 #1 granularity/profile 和 #3 selected-context 的隐性风险，但不表示 avg-turn profile 已解决；下一步仍要替换成更 general 的 pressure/route/context 机制。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_granularity_profile_audit_v197_scope_summary.md`。
+v198 的 LTS 理由：继承 v197 的 full prompt、answer 和 judge accuracy，同时删除 `short_turn_v96_spacing` avg-turn profile，把它唯一需要的短上下文排版提升为默认 compiler layout。LoCoMo profile selected 从 v197 的 `1540/1540` 降到 `0/1540`，LME 仍保留 `long_turn_precision` `500/500`；这实质减少 #1 granularity/profile 和 #3 selected-context 的行为面，但不表示 avg-turn profile 已完全解决。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_default_short_context_layout_v198_scope_summary.md`。
 
 ## 目录
 
