@@ -6,12 +6,12 @@
 
 | 项目 | 结果 |
 |---|---|
-| 当前 LTS 配置 | `configs/stage1_strict_event_time_candidate_map_v184_seeded_qwen36_no_think_build4k_cached.json` |
+| 当前 LTS 配置 | `configs/stage1_weekend_parser_gated_v191_seeded_qwen36_no_think_build4k_cached.json` |
 | Backbone | `Qwen/Qwen3.6-35B-A3B` answer/build，`chat_template_kwargs.enable_thinking=false` |
-| 方法 | V184 strict event-time candidate map：继承 v181 grouped event-time management view，并新增很窄的 prompt-side source-backed event-date activation；剥离 selected-context wrapper 时间，只允许 `exact_today` / explicit date 候选，禁用 time-of-day question activation。 |
-| LongMemEval-S full | v184 与 v181 answer diff `0/500`，map applied `0/500`，answer cache `500/0/0`；继承 v181 full `0.834000 / 0.846000`，`417/500` strict，`423/500` lenient |
-| LoCoMo non-adversarial full | v184 与 v181 answer diff `2/1540`，map applied `3/1540`，answer cache `1538/2/2`；changed-answer dual judge `1/2 -> 2/2`，derived full `0.793506 / 0.818831`，`1222/1540` strict，`1261/1540` lenient |
-| 状态 | 当前本地 qwen3.6 no-thinking LTS。v184 在不改变 LME 的前提下提升 LoCoMo `+1/+1`，并降低 #5 query-time activation 风险；残余风险是 `exact_today` map 仍可能语义噪声，下一步继续收窄 activation 或要求更强 slot/action coverage。 |
+| 方法 | V191 继承 v184 strict event-time candidate map，并把已拒绝的 v187/v188 `this/coming/upcoming weekend` parser 与 prompt-map `mention_time` 暴露改为显式 opt-in；保留 v184 legacy past-weekend normalization，避免 rejected 实验污染 LTS 重跑。 |
+| LongMemEval-S full | v191 与 v184 prompt diff `0/500`、answer diff `0/500`，answer cache `500/0/0`；继承 v184 full `0.834000 / 0.846000`，`417/500` strict，`423/500` lenient |
+| LoCoMo non-adversarial full | v191 与 v184 prompt diff `0/1540`、answer diff `0/1540`，answer cache `1540/0/0`；继承 v184 full `0.793506 / 0.818831`，`1222/1540` strict，`1261/1540` lenient |
+| 状态 | 当前本地 qwen3.6 no-thinking LTS。v191 不改 full 答案和 judge accuracy，但降低 rejected parser/prompt 兼容性污染风险；残余风险仍是 `exact_today` map 可能语义噪声，下一步继续收窄 activation 或要求更强 slot/action coverage。 |
 
 `paired-delta derived` 的含义：新版本只改少量答案，未变化答案沿用父 LTS full dual judge records，变化答案单独跑 paired dual judge 后替换计数。若新版本与父 LTS answer-identical，则可继承父 LTS judge records，但必须记录 full answer diff、cache hit/miss 和输出路径。若论文级最终汇报需要完全独立 run，再对 LTS 配置重跑 fresh full judge。
 
@@ -26,7 +26,7 @@
 
 | 优先级 | 项目 | 当前状态 | 下一步 |
 |---:|---|---|---|
-| 1 | #5 memory lifecycle/state/conflict/query-time reasoning | v184 已把 v181 grouped candidate management view 的一小部分接入 query-time activation，并避免 v182 的 relative/wrapper time 过强问题；但 `exact_today` 仍有 false-positive prompt-map 风险 | 继续收窄 `exact_today`：要求更强 question slot/action 覆盖，或把低置信候选退回 diagnostics-only |
+| 1 | #5 memory lifecycle/state/conflict/query-time reasoning | v191 继承 v184 的窄 prompt-side activation，并把 v187/v188 rejected parser/prompt 暴露改成 opt-in；但 `exact_today` 仍有 false-positive prompt-map 风险 | 继续收窄 `exact_today`：要求更强 question slot/action 覆盖，或把低置信候选退回 diagnostics-only |
 | 2 | #2 top-k/context noise/rerank | v129/v134/v140/v152 说明简单裁剪、tail snippet 或 list-count rerank pruning 会伤 accuracy；当前 query context 仍偏长 | 转向 coverage-preserving route-aware context organization：先保留覆盖证据，再做 grouping/dedup/aggregation table |
 | 3 | #1 granularity/profile + #3 selected context | v177 说明 row-length + center-row anaphora 的 selected-context gate 仍过宽；granularity profile 仍基于 avg-turn chars，v158 narrow question-gated policy 仍是较稳边界 | 继续重做更通用的 context organization；selected-context 不能只靠中心行 anaphora 扩邻居，优先做 question-side local reference 或 source-backed candidate map |
 | 4 | src cleanup | 已有多轮兼容分支，`repair.py`、compiler、pipeline 仍会继续变复杂 | 每个阶段结束后做小范围清理，删已确认无用的兼容代码，不删仍有消融价值的模块 |
@@ -35,7 +35,8 @@
 
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
-| `configs/stage1_strict_event_time_candidate_map_v184_seeded_qwen36_no_think_build4k_cached.json` | current LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v184 vs v181 answer diff `0/500`、`2/1540` | 当前 LTS；严格 prompt-side event-time candidate map 降低 #5 query-time activation 风险，LoCoMo changed-answer dual judge `1/2 -> 2/2` |
+| `configs/stage1_weekend_parser_gated_v191_seeded_qwen36_no_think_build4k_cached.json` | current LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v191 vs v184 prompt/answer diff `0/500`、`0/1540` | 当前 LTS；显式 gate v187/v188 rejected weekend parser 和 prompt-map `mention_time` 暴露，降低复现/兼容风险且性能继承 v184 |
+| `configs/stage1_strict_event_time_candidate_map_v184_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v184 vs v181 answer diff `0/500`、`2/1540` | 被 v191 替代；严格 prompt-side event-time candidate map 降低 #5 query-time activation 风险，LoCoMo changed-answer dual judge `1/2 -> 2/2` |
 | `configs/stage1_grouped_event_time_candidate_manifest_v181_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.792857/0.818182`；v181 vs v180 answer diff `0/500`、`0/1540` | 被 v184 替代；trace-only grouped event-time manifest 降低 #5 organization/conflict audit 风险，性能继承 v180/v176 |
 | `configs/stage1_trace_event_time_candidate_manifest_v180_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.792857/0.818182`；v180 vs v176 answer diff `0/500`、`0/1540` | 被 v181 替代；仍是 flat event-time manifest 父对照 |
 | `configs/stage1_cross_route_profile_advice_repair_v176_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.792857/0.818182`；v176 vs v175 answer diff `2/500`、`0/1540` | 被 v180 替代；仍是 cross-route profile/advice repair 父对照，LME strict `+1`、lenient `+2` |
@@ -104,6 +105,10 @@
 
 | 路径 | 内容 |
 |---|---|
+| `diagnostic/stage1_weekend_parser_gated_v191_scope_summary.md` | 当前 LTS 晋升结论：v191 gate rejected weekend parser / prompt-map `mention_time`，full prompt/answer diff 均为 0，性能继承 v184 |
+| `diagnostic/stage1_weekend_parser_gated_v191_lme_s_full_r2/` | v191 LME full；vs v184 prompt diff `0/500`、answer diff `0/500`、answer cache `500/0/0` |
+| `diagnostic/stage1_weekend_parser_gated_v191_locomo_nonadv_full_r2/` | v191 LoCoMo full；vs v184 prompt diff `0/1540`、answer diff `0/1540`、answer cache `1540/0/0` |
+| `diagnostic/stage1_weekend_parser_gated_v191_activation_probe_r2/` | v191 三条 risky activation probe；vs v184 prompt/answer diff `0/3`，answer cache `3/0/0` |
 | `diagnostic/stage1_source_grounded_self_ref_selected_context_v190_probe_summary.md` | v190 probe 结论：self-reference gate 降 selected-context wrong-speaker 风险，但丢 v184 LoCoMo `+1/+1`，不升 LTS |
 | `diagnostic/stage1_source_grounded_self_ref_selected_context_v190_activation_probe/` | v190 三条 risky activation probe；selected-context `2/3`，answer cache `0/3/3` |
 | `diagnostic/stage1_temporal_question_ref_selected_context_v189_probe_summary.md` | v189 probe 结论：question-reference gate 降低 selected-context/token，但丢 v184 LoCoMo `+1/+1`，不升 LTS |
