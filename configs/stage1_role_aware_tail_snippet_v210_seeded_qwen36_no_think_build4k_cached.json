@@ -1,0 +1,393 @@
+{
+    "name": "stage1_role_aware_tail_snippet_v210_seeded_qwen36_no_think_build4k_cached",
+    "description": "V210 inherits the v209 LTS and adds conservative role-aware tail row prompt rendering for risk #2 and #3. Retrieval, row selection, evidence ordering, build memory, answer, repair, finalizer, and cache namespaces stay unchanged. Only compiler rendering changes after retrieval rank 32: long low-rank assistant rows are rendered as question snippets, while user rows keep full text unless they exceed a larger role-aware budget. This aims to reduce prompt noise/token cost without hard-pruning raw evidence rows, avoiding the broad row-pressure failure mode of v140 and the over-aggressive fact tail compression of v134. Prediction uses no labels, judge output, benchmark tags, sample ids, test feedback, gold answers, or sample-level rules.",
+  "build_memory": {
+    "enabled": true,
+    "mode": "openai_compatible",
+    "base_url": "http://127.0.0.1:8000/v1",
+    "model": "Qwen/Qwen3.6-35B-A3B",
+    "temperature": 0,
+    "max_tokens": 4096,
+    "timeout": 900,
+    "max_turns_per_chunk": 80,
+    "max_chars_per_turn": 500,
+    "max_records_per_chunk": 20,
+    "chat_template_kwargs": {
+      "enable_thinking": false
+    },
+    "top_k": 20,
+    "max_sources_per_record": 4,
+    "drop_query_stopwords": true,
+    "include_superseded": false,
+    "include_superseded_information_needs": [
+      "temporal_lookup",
+      "list_count",
+      "profile_preference",
+      "current_state"
+    ],
+    "cache": {
+      "enabled": true,
+      "path": "outputs/cache/qwen36_no_think_build4k_memory_v102.sqlite",
+      "namespace": "stage1_spacing_profile_v102_qwen36_no_think_build4k_cold"
+    }
+  },
+  "retrieval": {
+    "top_k": 60,
+    "max_top_k": 60,
+    "route_overrides": {
+      "temporal_lookup": {
+        "top_k": 40,
+        "max_top_k": 40,
+        "dense_top_k": 40,
+        "lexical_protect_top_n": 0,
+        "dense_protect_top_n": 32
+      }
+    },
+    "granularity_profiles": [
+      {
+        "name": "long_turn_precision",
+        "min_avg_turn_chars": 300,
+        "retrieval": {
+          "top_k": 40,
+          "max_top_k": 40,
+          "dense_top_k": 40,
+          "dense_protect_top_n": 32
+        },
+        "selected_context": {
+          "enabled": true,
+          "window_before": 1,
+          "window_after": 1,
+          "max_rows": 4,
+          "max_neighbor_chars": 140,
+          "max_center_chars": 260,
+          "require_anaphora": true,
+          "require_question_reference": true,
+          "information_needs": [
+            "profile_preference",
+            "current_state"
+          ]
+        },
+        "compiler": {
+          "temporal_event_contract": false,
+          "operation_workpad": true,
+          "operation_workpad_information_needs": [
+            "list_count",
+            "temporal_lookup"
+          ],
+          "personalized_advice_contract": true,
+          "update_conflict_guide": true,
+          "update_conflict_guide_information_needs": [
+            "current_state",
+            "fact_lookup"
+          ],
+          "update_conflict_guide_max_rows": 6,
+          "update_conflict_guide_snippet_chars": 180,
+          "memory_context_newlines_after_blocks": 3
+        }
+      }
+    ],
+    "granularity_profile_audit": {
+      "enabled": true
+    },
+    "neighbor_window": 0,
+    "neighbor_order": "hit_priority",
+    "drop_query_stopwords": true,
+    "score_threshold": 0,
+    "selected_context": {
+      "enabled": true,
+      "window_before": 1,
+      "window_after": 2,
+      "max_rows": 6,
+      "max_neighbor_chars": 180,
+      "max_center_chars": 320,
+      "require_anaphora": true,
+      "information_needs": [
+        "fact_lookup",
+        "list_count",
+        "profile_preference"
+      ],
+      "route_overrides": {
+        "temporal_lookup": {
+          "enabled": true,
+          "window_before": 1,
+          "window_after": 1,
+          "max_rows": 4,
+          "max_neighbor_chars": 140,
+          "max_center_chars": 260,
+          "require_anaphora": true,
+          "information_needs": [
+            "temporal_lookup"
+          ]
+        }
+      },
+        "risk_audit": {
+          "enabled": true,
+          "information_needs": [
+            "temporal_lookup"
+          ],
+          "source_grounded_min_terms": 2,
+          "source_grounded_min_coverage": 0.6
+        }
+      },
+      "context_budget": {
+        "enabled": true,
+        "max_chars": 22000,
+        "min_hits": 32,
+        "protect_top_n": 32,
+        "max_hits": 60,
+        "information_needs": [
+          "current_state",
+          "fact_lookup",
+          "list_count",
+          "profile_preference",
+          "temporal_lookup"
+        ]
+      },
+      "context_budget_audit": {
+        "enabled": true,
+        "max_chars": 22000,
+        "min_hits": 32,
+        "protect_top_n": 32,
+      "max_hits": 60,
+      "information_needs": [
+        "current_state",
+        "fact_lookup",
+        "list_count",
+        "profile_preference",
+        "temporal_lookup"
+      ]
+    },
+    "lexical": {
+      "enabled": true
+    },
+    "dense": {
+      "enabled": true,
+      "base_url": "http://127.0.0.1:8001/v1",
+      "model": "Qwen/Qwen3-Embedding-0.6B",
+      "top_k": 60,
+      "batch_size": 32,
+      "document_text_mode": "external_naive",
+      "query_text_mode": "external_naive",
+      "rrf_k": 60,
+      "lexical_protect_top_n": 0,
+      "protect_top_n": 48,
+      "timeout": 120,
+      "cache": {
+        "enabled": true,
+        "path": "outputs/cache/qwen3_embedding.sqlite",
+        "namespace": "Qwen/Qwen3-Embedding-0.6B"
+      }
+    }
+  },
+  "route": {
+    "enable_broad_list_patterns": true,
+    "enable_recommendation_profile_patterns": true,
+    "temporal_priority_over_recent": false
+  },
+  "compiler": {
+    "prompt_mode": "external_naive",
+    "memory_record_source": "retrieval",
+    "memory_state_guide_record_source": "evidence_rows",
+    "max_evidence_items": 60,
+    "max_evidence_chars": 18000,
+    "route_overrides": {
+      "temporal_lookup": {
+        "max_evidence_items": 40,
+        "max_evidence_chars": 18000
+      },
+      "fact_lookup": {
+        "grounded_inference_contract": true,
+        "grounded_inference_gate": "modal_only"
+      },
+      "profile_preference": {
+        "grounded_inference_contract": true,
+        "grounded_inference_gate": "modal_only",
+        "evidence_order": "memory_source_interleave",
+        "source_anchor_keep": 32,
+        "source_anchor_memory_rows": 4,
+        "source_anchor_per_session": 1,
+        "source_anchor_session_rows": 0
+      },
+      "current_state": {
+        "grounded_inference_contract": true,
+        "grounded_inference_gate": "modal_only",
+        "evidence_order": "memory_source_interleave",
+        "source_anchor_keep": 32,
+        "source_anchor_memory_rows": 4,
+        "source_anchor_per_session": 1,
+        "source_anchor_session_rows": 0
+      }
+    },
+    "max_memory_records": 0,
+    "memory_state_guide": true,
+    "memory_state_guide_information_needs": [
+      "current_state"
+    ],
+    "memory_state_guide_max_records": 4,
+    "memory_state_guide_candidate_records": 24,
+    "memory_state_guide_value_chars": 120,
+    "memory_state_guide_include_superseded": true,
+    "memory_state_guide_require_conflict": true,
+    "memory_state_guide_require_active_superseded_pair": true,
+    "memory_state_guide_require_slot_overlap": true,
+    "memory_state_guide_require_stateful_slot": true,
+    "answer_style": "concise",
+    "temporal_grounding": false,
+    "temporal_hints": false,
+    "temporal_workpad": true,
+    "temporal_workpad_scope": "route",
+    "temporal_workpad_max_rows": 12,
+    "temporal_workpad_max_pairs": 12,
+    "structured_guide": true,
+    "structured_guide_max_rows": 12,
+    "structured_guide_include_rows": true,
+    "structured_guide_include_memory": false,
+    "structured_guide_disabled_signals": [
+      "personalized_recommendation"
+    ],
+    "structured_answer_contract": false,
+    "evidence_report_contract": true,
+    "evidence_report_information_needs": [
+      "current_state",
+      "fact_lookup",
+      "list_count",
+      "profile_preference",
+      "temporal_lookup"
+    ],
+    "evidence_report_max_items": 8,
+    "operation_workpad": false,
+    "evidence_order": "retrieval",
+    "memory_order": "retrieval",
+    "memory_layout": "flat",
+        "row_text_mode": "full",
+        "tail_row_text_after_rank": 32,
+        "tail_row_text_mode": "role_query_snippet",
+        "tail_max_row_text_chars": 700,
+        "route_guidance": false,
+    "evidence_row_labels": false,
+    "final_answer_checklist": false,
+    "temporal_text_normalization": true,
+    "temporal_event_contract": true,
+    "event_time_candidate_manifest": true,
+    "event_time_candidate_manifest_information_needs": [
+      "current_state",
+      "list_count",
+      "temporal_lookup"
+    ],
+    "event_time_candidate_manifest_max_rows": 12,
+    "event_time_candidate_manifest_grouped_view": true,
+    "event_time_candidate_manifest_max_groups": 8,
+    "event_time_candidate_manifest_snippet_chars": 160,
+    "event_time_candidate_manifest_question_gate": true,
+    "event_time_candidate_map": true,
+    "event_time_candidate_map_information_needs": [
+      "temporal_lookup"
+    ],
+    "event_time_candidate_map_max_groups": 1,
+    "event_time_candidate_map_snippet_chars": 140,
+    "event_time_candidate_map_min_terms": 2,
+    "event_time_candidate_map_min_coverage": 0.6,
+    "event_time_candidate_map_allowed_time_kinds": [
+      "exact_today",
+      "explicit_date"
+    ],
+    "event_time_candidate_map_strip_context_wrappers": true,
+    "event_time_candidate_map_allow_time_of_day_questions": false,
+    "event_time_candidate_map_audit": true,
+    "event_time_candidate_map_include_mention_time": false,
+    "event_time_candidate_map_mention_time_fallback": true,
+    "event_time_candidate_map_mention_time_fallback_min_coverage": 0.8,
+    "event_time_candidate_map_mention_time_fallback_trigger_max_coverage": 0.8,
+    "enable_weekend_relative_time": false,
+    "memory_context_newlines_after_blocks": 4
+  },
+  "answer": {
+    "mode": "openai_compatible",
+    "base_url": "http://127.0.0.1:8000/v1",
+    "model": "Qwen/Qwen3.6-35B-A3B",
+    "temperature": 0,
+    "max_input_tokens": 131072,
+    "max_output_tokens": 16384,
+    "max_tokens": 16384,
+    "chat_template_kwargs": {
+      "enable_thinking": false
+    },
+    "output_format": "json_answer",
+    "timeout": 600,
+    "cache": {
+      "enabled": true,
+      "path": "outputs/cache/qwen36_no_think_build4k_answer_v196_selected_context_risk_audit_seeded.sqlite",
+      "namespace": "stage1_selected_context_risk_audit_v196_seeded_qwen36_no_think_build4k"
+    },
+    "finalizer": {
+      "enabled": true,
+      "mode": "source_grounded_consistency_guard",
+      "enable_missing_detail": false,
+      "enable_numeric_slot_label_preservation": true,
+      "enable_source_value_specificity_preservation": true,
+      "enable_profile_preference_value_preservation": true
+    },
+    "repair": {
+      "enabled": true,
+      "mode": "openai_compatible",
+      "base_url": "http://127.0.0.1:8000/v1",
+      "model": "Qwen/Qwen3.6-35B-A3B",
+      "temperature": 0,
+      "max_input_tokens": 131072,
+      "max_output_tokens": 16384,
+      "max_tokens": 16384,
+      "chat_template_kwargs": {
+        "enable_thinking": false
+      },
+      "output_format": "json_answer",
+      "timeout": 600,
+      "information_needs": [
+        "current_state",
+        "fact_lookup",
+        "profile_preference",
+        "temporal_lookup",
+        "list_count"
+      ],
+      "enable_uncertain_trigger": true,
+      "uncertain_trigger_information_needs": [
+        "current_state"
+      ],
+      "enable_short_list_trigger": false,
+      "enable_temporal_conflict_trigger": false,
+      "enable_profile_preference_trigger": false,
+      "enable_profile_advice_abstention_trigger": true,
+      "enable_cross_route_profile_advice_abstention_trigger": true,
+      "cross_route_profile_advice_abstention_information_needs": [
+        "fact_lookup",
+        "list_count"
+      ],
+      "enable_modal_abstention_trigger": true,
+      "modal_abstention_information_needs": [
+        "current_state"
+      ],
+      "enable_source_grounded_modal_inference_trigger": true,
+      "source_grounded_modal_inference_information_needs": [
+        "fact_lookup",
+        "profile_preference"
+      ],
+      "source_grounded_modal_min_support_items": 2,
+      "enable_source_grounded_temporal_calculation_trigger": true,
+      "source_grounded_temporal_calculation_information_needs": [
+        "current_state",
+        "fact_lookup",
+        "temporal_lookup"
+      ],
+      "source_grounded_temporal_calculation_min_support_items": 1,
+      "enable_lifecycle_ledger": true,
+      "enable_lifecycle_slot_trigger": false,
+      "uncertain_min_support_items": 0,
+      "max_context_chars": 14000,
+      "max_row_text_chars": 700,
+      "cache": {
+        "enabled": true,
+        "path": "outputs/cache/qwen36_no_think_build4k_answer_repair_v196_selected_context_risk_audit_seeded.sqlite",
+        "namespace": "stage1_selected_context_risk_audit_v196_seeded_qwen36_no_think_build4k_repair"
+      }
+    }
+  }
+}
