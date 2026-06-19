@@ -265,12 +265,12 @@ def main() -> int:
         )
         if retrieval_trace.get("rerank_applied"):
             total_rerank_applied += 1
-        total_rerank_candidate_count += int(
-            retrieval_trace.get("rerank_candidate_count") or 0
-        )
-        total_rerank_returned_count += int(
-            retrieval_trace.get("rerank_returned_count") or 0
-        )
+            total_rerank_candidate_count += int(
+                retrieval_trace.get("rerank_candidate_count") or 0
+            )
+            total_rerank_returned_count += int(
+                retrieval_trace.get("rerank_returned_count") or 0
+            )
         total_rerank_tokens += int(retrieval_trace.get("rerank_total_tokens") or 0)
         rerank_skipped_reason = str(retrieval_trace.get("rerank_skipped_reason") or "")
         if rerank_skipped_reason.startswith("exchange_tail_"):

@@ -133,8 +133,8 @@ Stage-1 clean skeleton run: validate raw evidence storage, lexical retrieval, ne
 - rerank_exchange_guard_skipped_reasons: {'exchange_tail_protected_adjacent_session': 59, 'exchange_tail_protected_memory_source': 805, 'exchange_tail_protected_question_overlap': 16}
 - rerank_applied_count: 2
 - rerank_applied_rate: 0.0012987012987012987
-- avg_rerank_candidate_count: 26460.0
-- avg_rerank_returned_count: 26456.0
+- avg_rerank_candidate_count: 60.0
+- avg_rerank_returned_count: 56.0
 - avg_rerank_tokens_when_applied: 12698.0
 - rerank_token_accounting: rerank model tokens are reported separately and are not included in build/query LLM token budgets.
 - context_budget_enabled: True
