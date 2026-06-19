@@ -12,6 +12,7 @@
 
 | 配置 | 状态 |
 |---|---|
+| `stage1_duplicate_memory_source_utility_v247_seeded_qwen36_no_think_build4k_cached.json` | active probe：v246 的保守修正，只过滤 lexical/dense 已覆盖 source 的低 utility duplicate memory boost，保留 memory-only source，目标是减少 typed-memory 过度排序影响且不丢唯一证据。 |
 | `stage1_memory_source_utility_v246_seeded_qwen36_no_think_build4k_cached.json` | rejected full：LME full 降 query token `6579.782 -> 6333.872`，但 changed judge strict/lenient `38/63 -> 27/63`、`39/63 -> 30/63`。保留为 utility gate 负向对照。 |
 | `stage1_typed_compact_cap32_build_memory_v245_seeded_qwen36_no_think_build4k_cached.json` | rejected probe：LoCoMo changed judge strict/lenient `18/22 -> 15/22`、`18/22 -> 17/22`；LME cold build probe 延迟不可接受。保留为 build record cap 负向对照。 |
 | `stage1_lossless_atomic_build_memory_v244_seeded_qwen36_no_think_build4k_cached.json` | diagnostic / not promoted：LoCoMo probe50 query tokens 降低但 changed judge 持平；LME cold build probe 延迟不可接受。保留为 richer atomic build memory 的成本/覆盖教训。 |
@@ -105,6 +106,7 @@
 - v234 关闭 answer repair，answer cache 从 v233 `answer_draft` traces 预种；v234 vs v233 answer diff 为 0 时继承 v233 accuracy。
 - v235 关闭 deterministic finalizer，answer cache 从 v234 `answer_draft` traces 预种；v235 vs v234 answer diff 为 0 时继承 v234 accuracy。
 - v246 继承 v235 build/answer path，新增 retrieval-time memory source utility gate；answer cache 从 v235 full traces 预种，prompt/answer 变化样本单独做 paired judge。
+- v247 继承 v235 build/answer path，将 v246 改为 duplicate-only memory source utility；answer cache 从 v235 full traces 预种，prompt/answer 变化样本单独做 paired judge。
 - cache 命中只能减少重复 API 调用，不能改变逻辑 token 统计。正式记录仍报告逻辑 cold-build/query token。
 - 不得使用 gold answer、judge output、benchmark 标签、sample id、test feedback 或样本级规则构造配置、cache、prediction、retrieval、compiler、answer 或 repair。
 

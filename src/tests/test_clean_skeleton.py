@@ -45,6 +45,7 @@ from memory.pipeline import (
     _align_build_memory_sources,
     _compiler_memory_records,
     _context_manifest,
+    _filter_duplicate_memory_source_hits_by_utility,
     _filter_memory_source_hits_by_utility,
     _memory_lifecycle_manifest,
     _memory_slot_chain_source_hits,
@@ -3293,6 +3294,59 @@ class CleanSkeletonTest(unittest.TestCase):
 
         self.assertEqual([hit.source_id for hit in hits], ["s1:t0"])
         self.assertEqual(trace["kept"][0]["reason"], "preserved_top_rank")
+
+    def test_duplicate_memory_source_utility_preserves_unique_sources(self) -> None:
+        hits, trace = _filter_duplicate_memory_source_hits_by_utility(
+            memory_source_hits=(
+                RetrievalHit(
+                    source_id="duplicate-low",
+                    score=2.0,
+                    rank=1,
+                    retriever="build_memory_bm25",
+                    matched_terms=("alex",),
+                ),
+                RetrievalHit(
+                    source_id="unique-low",
+                    score=1.5,
+                    rank=2,
+                    retriever="build_memory_bm25",
+                    matched_terms=("alex",),
+                ),
+                RetrievalHit(
+                    source_id="duplicate-high",
+                    score=1.0,
+                    rank=3,
+                    retriever="build_memory_bm25",
+                    matched_terms=("jasmine", "tea"),
+                ),
+            ),
+            base_hits=(
+                RetrievalHit(
+                    source_id="duplicate-low",
+                    score=3.0,
+                    rank=1,
+                    retriever="dense_embedding",
+                ),
+                RetrievalHit(
+                    source_id="duplicate-high",
+                    score=2.5,
+                    rank=2,
+                    retriever="lexical_bm25",
+                ),
+            ),
+            min_matched_terms=2,
+            preserve_top_n=0,
+            max_memory_hits=0,
+        )
+
+        self.assertEqual(
+            [hit.source_id for hit in hits],
+            ["unique-low", "duplicate-high"],
+        )
+        self.assertEqual(trace["duplicate_source_hits_seen"], 2)
+        self.assertEqual(trace["duplicate_source_hits_dropped"], 1)
+        self.assertEqual(trace["unique_source_hits_preserved"], 1)
+        self.assertEqual(trace["dropped"][0]["source_id"], "duplicate-low")
 
     def test_build_memory_source_alignment_role_gate_keeps_user_assistant_fix(self) -> None:
         record = MemoryRecord(
