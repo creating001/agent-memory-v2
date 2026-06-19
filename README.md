@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_total_context_pressure_profile_v211_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_selected_context_full_risk_audit_v212_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v211 local LTS | 说明 |
+| Benchmark | 当前 v212 local LTS | 说明 |
 |---|---:|---|
-| LongMemEval-S full | strict/lenient `0.834000 / 0.846000` | v211 与 v209 answer/route/prompt/evidence rows/retrieval hits/selected-context diff `0/500`；profile selector 从 avg-turn 改为 total-context pressure，触发 `500/500`；answer cache `500/0/0`。 |
-| LoCoMo non-adversarial full | strict/lenient `0.793506 / 0.818831` | v211 与 v209 answer/route/prompt/evidence rows/retrieval hits/selected-context diff `0/1540`；profile 不触发 `0/1540`；answer cache `1540/0/0`。 |
+| LongMemEval-S full | strict/lenient `0.834000 / 0.846000` | v212 与 v211 answer/route/prompt/evidence rows/retrieval hits/selected-context diff `0/500`；selected-context audit applied `0/500`；answer cache `500/0/0`。 |
+| LoCoMo non-adversarial full | strict/lenient `0.793506 / 0.818831` | v212 与 v211 answer/route/prompt/evidence rows/retrieval hits/selected-context diff `0/1540`；selected-context audit applied `1493/1540`，risk rows `7423`；answer cache `1540/0/0`。 |
 
-v211 的 LTS 理由：继承 v209 的 full answer 和 judge accuracy，同时把最后一个 behavior-affecting 的 avg-turn-length `long_turn_precision` selector 改成通用 total raw context pressure selector：`min_total_chars=120000`。v209 的保守 context-budget 仍保留。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_total_context_pressure_profile_v211_scope_summary.md`。
+v212 的 LTS 理由：继承 v211 的 full answer 和 judge accuracy，同时把 selected-context risk audit 从 temporal-only 扩展到 fact/list/profile/temporal/current-state routes，让 #3 风险面可观测。v211 的 total-context pressure selector 和 v209 的保守 context-budget 仍保留。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_selected_context_full_risk_audit_v212_scope_summary.md`。
 
 ## 目录
 

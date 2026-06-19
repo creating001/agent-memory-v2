@@ -6,12 +6,12 @@
 
 | 项目 | 结果 |
 |---|---|
-| 当前 LTS 配置 | `configs/stage1_total_context_pressure_profile_v211_seeded_qwen36_no_think_build4k_cached.json` |
+| 当前 LTS 配置 | `configs/stage1_selected_context_full_risk_audit_v212_seeded_qwen36_no_think_build4k_cached.json` |
 | Backbone | `Qwen/Qwen3.6-35B-A3B` answer/build，`chat_template_kwargs.enable_thinking=false` |
-| 方法 | V211 继承 v209 的保守实际 context-budget，并把剩余 behavior-affecting 的 avg-turn `long_turn_precision` selector 改为 total raw context pressure selector：`min_total_chars=120000`，profile 名为 `long_context_pressure`。 |
-| LongMemEval-S full | v211 与 v209 answer/route/prompt/evidence rows/retrieval hits/effective selected-context diff `0/500`；profile selected `500/500`；answer cache `500/0/0`；继承 full `0.834000 / 0.846000`，`417/500` strict，`423/500` lenient |
-| LoCoMo non-adversarial full | v211 与 v209 answer/route/prompt/evidence rows/retrieval hits/effective selected-context diff `0/1540`；profile selected `0/1540`；answer cache `1540/0/0`；继承 full `0.793506 / 0.818831`，`1222/1540` strict，`1261/1540` lenient |
-| 状态 | 当前本地 qwen3.6 no-thinking LTS。v211 降低 #1 granularity/profile 风险；v209 的 #2 retrieval tail candidate 风险收敛保留。它不代表五个原始风险都已解决，#2 真实 token 降本、#3 selected-context 和 #5 memory lifecycle 仍是优先待办。 |
+| 方法 | V212 继承 v211，并把 selected-context trace-only risk audit 从 temporal-only 扩展到 fact/list/profile/temporal/current-state routes；不改变 retrieval、prompt、answer 或 cache。 |
+| LongMemEval-S full | v212 与 v211 answer/route/prompt/evidence rows/retrieval hits/effective selected-context diff `0/500`；selected-context audit applied `0/500`；answer cache `500/0/0`；继承 full `0.834000 / 0.846000`，`417/500` strict，`423/500` lenient |
+| LoCoMo non-adversarial full | v212 与 v211 answer/route/prompt/evidence rows/retrieval hits/effective selected-context diff `0/1540`；selected-context audit applied `1493/1540`，risk rows `7423`；answer cache `1540/0/0`；继承 full `0.793506 / 0.818831`，`1222/1540` strict，`1261/1540` lenient |
+| 状态 | 当前本地 qwen3.6 no-thinking LTS。v212 降低 #3 selected-context 隐性风险；v211 的 #1 context-pressure selector 和 v209 的 #2 retrieval tail candidate 风险收敛保留。它不代表五个原始风险都已解决，#2 真实 token 降本、#3 mitigation 和 #5 memory lifecycle 仍是优先待办。 |
 
 `paired-delta derived` 的含义：新版本只改少量答案，未变化答案沿用父 LTS full dual judge records，变化答案单独跑 paired dual judge 后替换计数。若新版本与父 LTS answer-identical，则可继承父 LTS judge records，但必须记录 full answer diff、cache hit/miss 和输出路径。若论文级最终汇报需要完全独立 run，再对 LTS 配置重跑 fresh full judge。
 
@@ -27,7 +27,7 @@
 | 优先级 | 项目 | 当前状态 | 下一步 |
 |---:|---|---|---|
 | 1 | #2 top-k/context noise/rerank | v209/v211 用 `22000` chars + `32` anchors 实际裁掉 LME tail retrieval candidates且不改 prompt/answer；v210 说明机械 tail snippet 虽降 query tokens 但 judge 负向 | 继续做 source/span 保真的 prompt-stable context organization 或 guarded rerank，目标是减少进入 prompt 的噪声和 token，而不是硬剪证据 |
-| 2 | #3 selected context | v211 已把 #1 的 avg-turn selector 改成 total-context pressure；selected-context hard gate 仍容易负向，v177/v195 均有回退证据 | selected-context 必须先 trace/窄门控，再进入 prompt；优先做 source-backed audit 或低风险组织视图 |
+| 2 | #3 selected context | v212 已把 selected-context risk audit 扩到 fact/list/profile/temporal/current-state；LoCoMo audit applied `1493/1540`、risk rows `7423` | 用 v212 trace 设计 source-backed mitigation；任何 prompt-visible gate 必须先做 changed-answer judge |
 | 3 | #5 memory lifecycle/state/conflict/query-time reasoning | v206 已把 prompt-visible guide 收窄为 source-backed、question-aligned、stateful-slot、active+superseded update pair；LME guide `1/500`，LoCoMo `0/1540`，v209 继承 | 扩展更通用的 state/update organization：保留 raw evidence first，typed memory 只做 source-backed activation；不把普通 event/preference 多值当 state conflict |
 | 4 | src cleanup | 已有多轮兼容分支，`repair.py`、compiler、pipeline 仍会继续变复杂 | 每个阶段结束后做小范围清理，删已确认无用的兼容代码，不删仍有消融价值的模块 |
 
@@ -35,7 +35,8 @@
 
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
-| `configs/stage1_total_context_pressure_profile_v211_seeded_qwen36_no_think_build4k_cached.json` | current LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v211 vs v209 answer/route/prompt/evidence rows/retrieval hits/selected-context diff `0/500`、`0/1540`；LME profile selected `500/500`，LoCoMo `0/1540` | 当前 LTS；用 total raw context pressure 替代 avg-turn `long_turn_precision` selector，降低 #1 风险，性能继承 v209 |
+| `configs/stage1_selected_context_full_risk_audit_v212_seeded_qwen36_no_think_build4k_cached.json` | current LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v212 vs v211 answer/route/prompt/evidence rows/retrieval hits/selected-context diff `0/500`、`0/1540`；LoCoMo selected-context risk rows `7423` | 当前 LTS；扩展 trace-only selected-context risk audit，降低 #3 隐性风险，性能继承 v211 |
+| `configs/stage1_total_context_pressure_profile_v211_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v211 vs v209 answer/route/prompt/evidence rows/retrieval hits/selected-context diff `0/500`、`0/1540`；LME profile selected `500/500`，LoCoMo `0/1540` | 被 v212 替代；用 total raw context pressure 替代 avg-turn `long_turn_precision` selector，降低 #1 风险，性能继承 v209 |
 | `configs/stage1_conservative_context_budget_v209_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v209 vs v207 answer/route/prompt/evidence rows diff `0/500`、`0/1540`；LME retrieval hits diff `137/500`、drop `416`；LoCoMo drop `0`；audit prompt/selected-context risk 均为 `0` | 被 v211 替代；保守实际 context budget 小幅降低 #2 retrieval tail candidate 风险，性能继承 v207 |
 | `configs/stage1_context_budget_audit_v207_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v207 vs v206 answer/route/prompt/evidence rows/retrieval hits diff `0/500`、`0/1540`；audit prompt/selected-context risk 均为 `0` | 被 v209 替代；trace-only context-budget audit 降低 #2 不可见风险，性能继承 v206 |
 | `configs/stage1_update_pair_state_conflict_guide_v206_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v206 vs v205 answer/route/prompt/evidence rows diff `0/500`、`0/1540`；LME guide `1/500`，LoCoMo guide `0/1540` | 被 v207 替代；active+superseded update-pair state guide gate，性能继承 v205/v204/v202 |
