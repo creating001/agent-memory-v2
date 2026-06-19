@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_build_operation_ledger_v257_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_lifecycle_operation_utility_tail_rescue_v260_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v257 local LTS |
+| Benchmark | 当前 v260 local LTS |
 |---|---:|
 | LongMemEval-S full | strict/lenient `0.832000 / 0.844000`，avg build/query tokens `85393.566 / 6579.782` |
 | LoCoMo non-adversarial full | strict/lenient `0.794156 / 0.819481`，avg build/query tokens `62015.57402597403 / 6094.017532467533` |
 
-v257 的 LTS 理由：继承 v256 full accuracy 和 token 成本，answer/retrieval/final-evidence/token diff 均为 `0`，同时新增 trace-only build memory operation ledger，显式记录 create、merge、supersede、retain、verify 和 audit 操作。它不改 prompt、不改 retrieval、不改 answer、不进入 cache key，用于减少 build memory 组织、source verification 和 lifecycle audit 风险。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_build_operation_ledger_v257_full_summary.md`。
+v260 的 LTS 理由：继承 v257 full accuracy 和 token 成本，answer/retrieval/final-evidence/token diff 均为 `0`，同时把 build memory operation ledger 以 append-only tail-rescue 方式接入 retrieval trace。Typed memory 只做 source-backed operation index，最终 evidence 仍回到 raw Memory rows；它不替换高置信 evidence，用于减少 build memory 只停留在 trace-only 审计、以及 query 侧过度复杂化的风险。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_lifecycle_operation_utility_tail_rescue_v260_full_summary.md`。
 
 ## 目录
 

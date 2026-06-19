@@ -1,0 +1,266 @@
+{
+  "api_key_env": "DEEPSEEK_API_KEY",
+  "base_url": "https://api.deepseek.com",
+  "benchmark": "locomo",
+  "clean_note": "Offline judge reads gold labels only after prediction. This output must not be consumed by prediction, retrieval, compiler, answer, or verifier.",
+  "created_at_utc": "2026-06-19T22:55:05+00:00",
+  "dry_run": false,
+  "git": {
+    "commit": "7c8bb1b49e513279338aac04b377f0169d5bcee3",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "?? experiments/diagnostic/stage1_lifecycle_operation_utility_v259_lme_full/\n?? experiments/diagnostic/stage1_lifecycle_operation_utility_v259_lme_full_changed_vs_v257/\n?? experiments/diagnostic/stage1_lifecycle_operation_utility_v259_lme_probe50/\n?? experiments/diagnostic/stage1_lifecycle_operation_utility_v259_locomo_full/\n?? experiments/diagnostic/stage1_lifecycle_operation_utility_v259_locomo_full_changed_vs_v257/\n?? experiments/diagnostic/stage1_lifecycle_operation_utility_v259_locomo_probe50/\n?? experiments/diagnostic/stage1_operation_utility_tail_exchange_v258_lme_probe50/\n?? experiments/diagnostic/stage1_operation_utility_tail_exchange_v258_lme_probe50_changed_vs_v257/\n?? experiments/diagnostic/stage1_operation_utility_tail_exchange_v258_locomo_probe50/\n?? experiments/diagnostic/stage1_operation_utility_tail_exchange_v258_locomo_probe50_changed_vs_v257/\n?? experiments/diagnostic/stage1_operation_utility_tail_exchange_v258_locomo_probe50_seeded_changed_vs_v257/"
+  },
+  "judgments": [
+    {
+      "label": "WRONG",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "03a81217f4c49df3",
+      "question_type": null,
+      "raw_response": "WRONG",
+      "record_key": "98204abce8fdb37acb9681af",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 69,
+        "completion_tokens_details": {
+          "reasoning_tokens": 66
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 116,
+        "prompt_tokens": 372,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 441
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "5379c454193ed818",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "93ac58586be43efe5ffed648",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 44,
+        "completion_tokens_details": {
+          "reasoning_tokens": 41
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 113,
+        "prompt_tokens": 369,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 413
+      }
+    },
+    {
+      "label": "WRONG",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "69503fde03cdd9dc",
+      "question_type": null,
+      "raw_response": "WRONG",
+      "record_key": "40fd9962de0b1cb712e6bf39",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 63,
+        "completion_tokens_details": {
+          "reasoning_tokens": 60
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 115,
+        "prompt_tokens": 371,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 434
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "571fe40b3b931d5d",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "348efb7e44a8722f2b50358a",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 92,
+        "completion_tokens_details": {
+          "reasoning_tokens": 89
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 103,
+        "prompt_tokens": 359,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 451
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "40b54b673cc6d2e7",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "7d1bada7258541e757a9ec29",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 62,
+        "completion_tokens_details": {
+          "reasoning_tokens": 59
+        },
+        "prompt_cache_hit_tokens": 384,
+        "prompt_cache_miss_tokens": 13,
+        "prompt_tokens": 397,
+        "prompt_tokens_details": {
+          "cached_tokens": 384
+        },
+        "total_tokens": 459
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "89d55ec0b6e68f56",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "c2502269932a17656749fc9d",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 101,
+        "completion_tokens_details": {
+          "reasoning_tokens": 98
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 108,
+        "prompt_tokens": 364,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 465
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "751380b946249fb8",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "27baf30e807665dacb4ec386",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 82,
+        "completion_tokens_details": {
+          "reasoning_tokens": 79
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 117,
+        "prompt_tokens": 373,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 455
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "2b21057740161d90",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "9d706fdbac17028f653f49c5",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 61,
+        "completion_tokens_details": {
+          "reasoning_tokens": 58
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 114,
+        "prompt_tokens": 370,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 431
+      }
+    },
+    {
+      "label": "WRONG",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "41c77d6e17cf6943",
+      "question_type": null,
+      "raw_response": "WRONG",
+      "record_key": "acb046df4203ccbe1c58823c",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 106,
+        "completion_tokens_details": {
+          "reasoning_tokens": 103
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 118,
+        "prompt_tokens": 374,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 480
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "ce823b03e91bde74",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "b6ce387df934e72cb4c95fb1",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 73,
+        "completion_tokens_details": {
+          "reasoning_tokens": 70
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 125,
+        "prompt_tokens": 381,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 454
+      }
+    }
+  ],
+  "labels": "/data/home_new/wujinqi/agent-memory/outputs/prepare_locomo_non_adversarial/labels.jsonl",
+  "metrics": {
+    "accuracy": 0.7,
+    "n_invalid": 0,
+    "n_judgments": 10,
+    "n_valid": 10
+  },
+  "model": "deepseek-v4-flash",
+  "partial_output": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_lifecycle_operation_utility_v259_locomo_full_changed_vs_v257/locomo_v257_flash_1.json.partial.jsonl",
+  "predictions": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_lifecycle_operation_utility_v259_locomo_full_changed_vs_v257/locomo_v257_changed_predictions.jsonl",
+  "request_body_options": {},
+  "temperature": 0.0,
+  "thinking": null,
+  "usage": {
+    "completion_tokens": 753,
+    "prompt_tokens": 3730,
+    "total_tokens": 4483
+  },
+  "workers": 4
+}
