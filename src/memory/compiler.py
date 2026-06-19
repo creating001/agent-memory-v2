@@ -1045,6 +1045,20 @@ class EvidenceCompiler:
             prompt_mode=self._prompt_mode,
         )
         diagnostics: dict[str, Any] = {}
+        if (
+            route_settings["memory_state_guide"]
+            and route.information_need in self._memory_state_guide_information_needs
+        ):
+            memory_state_ledger = _source_backed_memory_state_ledger(
+                question=question,
+                route=route,
+                rows=laid_out_rows,
+                memory_records=selected_memory_state_guide_records,
+                max_records=route_settings["memory_state_guide_candidate_records"],
+                max_value_chars=route_settings["memory_state_guide_value_chars"],
+            )
+            if memory_state_ledger["applied"]:
+                diagnostics["source_backed_memory_state_ledger"] = memory_state_ledger
         if self._event_time_candidate_manifest:
             diagnostics["event_time_candidate_manifest"] = (
                 _event_time_candidate_manifest(
@@ -4178,6 +4192,102 @@ def _memory_record_source_labels(
         if memory_index is not None:
             labels.append(f"Memory {memory_index}")
     return tuple(dict.fromkeys(labels))
+
+
+def _source_backed_memory_state_ledger(
+    *,
+    question: str,
+    route: RouteResult,
+    rows: tuple[EvidenceRow, ...],
+    memory_records: tuple[MemoryRecord, ...],
+    max_records: int,
+    max_value_chars: int,
+) -> dict[str, Any]:
+    """Structured source-backed memory state index for repair-time review."""
+
+    if not rows or not memory_records or max_records <= 0:
+        return {
+            "applied": False,
+            "entries": [],
+            "entry_count": 0,
+            "reason": "no_rows_or_records",
+        }
+
+    source_to_memory_index = {
+        row.source_id: index for index, row in enumerate(rows, start=1)
+    }
+    question_terms = _content_terms(question)
+    focused_question_terms = set(question_terms).difference(
+        MEMORY_STATE_GUIDE_ALIGNMENT_WEAK_TERMS
+    )
+    candidates: list[tuple[float, int, dict[str, Any]]] = []
+    for ordinal, record in enumerate(memory_records):
+        source_labels = _memory_record_source_labels(record, source_to_memory_index)
+        if not source_labels:
+            continue
+        slot_terms = _memory_state_slot_alignment_terms(record)
+        overlap_terms = tuple(sorted(focused_question_terms.intersection(slot_terms)))
+        if not overlap_terms:
+            continue
+        stateful_slot = _memory_state_slot_is_stateful(
+            record.memory_type,
+            [record],
+        )
+        if len(overlap_terms) < 2 and not stateful_slot:
+            continue
+        score = _memory_state_record_score(
+            record,
+            question_terms=question_terms,
+            route=route,
+        ) + float(len(overlap_terms))
+        if score <= 0:
+            continue
+        value = record.value or record.text
+        time_value = (
+            record.event_time
+            or record.valid_from
+            or record.mention_time
+            or record.timestamp
+            or "unknown"
+        )
+        candidates.append(
+            (
+                score,
+                -ordinal,
+                {
+                    "memory_type": record.memory_type,
+                    "status": record.status or "active",
+                    "subject": _single_line(record.subject),
+                    "predicate": _single_line(record.predicate),
+                    "value": _truncate_text(_single_line(value), max_value_chars),
+                    "time": _single_line(time_value),
+                    "valid_to": record.valid_to or "open",
+                    "source_labels": source_labels,
+                    "overlap_terms": overlap_terms,
+                    "stateful_slot": stateful_slot,
+                },
+            )
+        )
+
+    if not candidates:
+        return {
+            "applied": False,
+            "entries": [],
+            "entry_count": 0,
+            "reason": "no_question_aligned_source_backed_state",
+        }
+
+    candidates.sort(reverse=True)
+    entries = [entry for _score, _ordinal, entry in candidates[:max_records]]
+    return {
+        "applied": True,
+        "entries": entries,
+        "entry_count": len(entries),
+        "clean_note": (
+            "Source-backed typed memory ledger. Entries are only an index into "
+            "cited raw Memory Context rows and are not independent evidence."
+        ),
+    }
 
 
 def _memory_state_record_score(

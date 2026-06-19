@@ -28,6 +28,7 @@ from memory.finalize import (
 )
 from memory.repair import (
     _lifecycle_slot_trigger_reasons,
+    _source_backed_lifecycle_memory_trigger_reasons,
     build_repair_prompt,
     repair_trigger_reasons,
 )
@@ -4711,6 +4712,107 @@ class CleanSkeletonTest(unittest.TestCase):
                     ),
                     (),
                 )
+
+    def test_source_backed_lifecycle_memory_trigger_requires_ledger(self) -> None:
+        def context_for(*, with_ledger: bool) -> CompiledContext:
+            diagnostics = {}
+            if with_ledger:
+                diagnostics["source_backed_memory_state_ledger"] = {
+                    "applied": True,
+                    "entries": [
+                        {
+                            "memory_type": "profile",
+                            "status": "active",
+                            "subject": "Alex",
+                            "predicate": "team_size",
+                            "value": "5 engineers",
+                            "time": "2025-01-01",
+                            "valid_to": "open",
+                            "source_labels": ["Memory 2"],
+                            "overlap_terms": ["engineers"],
+                        }
+                    ],
+                }
+            return CompiledContext(
+                question="How many engineers do I lead now?",
+                question_time="2025-06-01",
+                route=RouteResult(information_need="current_state", signals=()),
+                evidence_rows=(
+                    EvidenceRow(
+                        source_id="s1:t1",
+                        session_id="s1",
+                        turn_index=1,
+                        role="user",
+                        text="Alex led 4 engineers when the role started.",
+                        timestamp="2024-01-01",
+                        retrieval_rank=1,
+                        retrieval_score=1.0,
+                    ),
+                    EvidenceRow(
+                        source_id="s2:t1",
+                        session_id="s2",
+                        turn_index=1,
+                        role="user",
+                        text="Alex now leads 5 engineers.",
+                        timestamp="2025-01-01",
+                        retrieval_rank=2,
+                        retrieval_score=0.9,
+                    ),
+                ),
+                prompt="original prompt",
+                context_chars=0,
+                diagnostics=diagnostics,
+            )
+
+        draft = AnswerResult(
+            answer="5 engineers",
+            model="draft",
+            token_usage=TokenUsage(query_tokens=3),
+            raw_response=json.dumps(
+                {
+                    "content": json.dumps(
+                        {
+                            "sufficient": True,
+                            "answer_type": "fact",
+                            "evidence_report": [
+                                {"status": "support", "value": "4 engineers"},
+                                {"status": "support", "value": "5 engineers"},
+                            ],
+                            "answer": "5 engineers",
+                        }
+                    )
+                }
+            ),
+        )
+
+        self.assertEqual(
+            _source_backed_lifecycle_memory_trigger_reasons(
+                compiled=context_for(with_ledger=False),
+                draft=draft,
+            ),
+            (),
+        )
+        self.assertEqual(
+            _source_backed_lifecycle_memory_trigger_reasons(
+                compiled=context_for(with_ledger=True),
+                draft=draft,
+            ),
+            ("source_backed_memory_state_review",),
+        )
+
+        prompt, _ = build_repair_prompt(
+            compiled=context_for(with_ledger=True),
+            draft=draft,
+            reasons=("source_backed_memory_state_review",),
+            max_context_chars=1000,
+            max_row_text_chars=200,
+            enable_source_backed_memory_ledger=True,
+        )
+
+        self.assertIn("Source-Backed Managed Memory Ledger:", prompt)
+        self.assertIn("value=5 engineers", prompt)
+        self.assertIn("sources=Memory 2", prompt)
+        self.assertIn("not independent evidence", prompt)
 
     def test_answer_repair_prompt_adds_modal_abstention_rules(self) -> None:
         context = CompiledContext(

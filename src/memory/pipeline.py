@@ -1309,6 +1309,11 @@ class Stage1Pipeline:
         self._answer_repair_enable_lifecycle_slot_trigger = bool(
             answer_repair_config.get("enable_lifecycle_slot_trigger", False)
         )
+        self._answer_repair_enable_source_backed_lifecycle_memory_trigger = bool(
+            answer_repair_config.get(
+                "enable_source_backed_lifecycle_memory_trigger", False
+            )
+        )
         self._answer_repair_uncertain_min_support_items = int(
             answer_repair_config.get("uncertain_min_support_items", 0)
         )
@@ -1389,6 +1394,9 @@ class Stage1Pipeline:
             ),
             "enable_lifecycle_slot_trigger": (
                 self._answer_repair_enable_lifecycle_slot_trigger
+            ),
+            "enable_source_backed_lifecycle_memory_trigger": (
+                self._answer_repair_enable_source_backed_lifecycle_memory_trigger
             ),
             "uncertain_min_support_items": (
                 self._answer_repair_uncertain_min_support_items
@@ -2000,6 +2008,9 @@ class Stage1Pipeline:
             enable_lifecycle_ledger=self._answer_repair_enable_lifecycle_ledger,
             enable_lifecycle_slot_trigger=(
                 self._answer_repair_enable_lifecycle_slot_trigger
+            ),
+            enable_source_backed_lifecycle_memory_trigger=(
+                self._answer_repair_enable_source_backed_lifecycle_memory_trigger
             ),
         )
         repair_cache_after = _answer_cache_stats(self._answer_repairer)

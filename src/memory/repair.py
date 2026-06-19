@@ -306,6 +306,7 @@ def maybe_repair_answer(
     max_row_text_chars: int,
     enable_lifecycle_ledger: bool = False,
     enable_lifecycle_slot_trigger: bool = False,
+    enable_source_backed_lifecycle_memory_trigger: bool = False,
 ) -> AnswerRepair:
     """Run a second LLM pass only when generic runtime signals show risk."""
 
@@ -358,6 +359,15 @@ def maybe_repair_answer(
             *_lifecycle_slot_trigger_reasons(compiled=compiled, draft=draft),
         )
         reasons = tuple(dict.fromkeys(reasons))
+    if enable_source_backed_lifecycle_memory_trigger:
+        reasons = (
+            *reasons,
+            *_source_backed_lifecycle_memory_trigger_reasons(
+                compiled=compiled,
+                draft=draft,
+            ),
+        )
+        reasons = tuple(dict.fromkeys(reasons))
     if not reasons:
         return _noop(draft, enabled=True, reason="no_trigger")
 
@@ -366,6 +376,9 @@ def maybe_repair_answer(
         draft=draft,
         reasons=reasons,
         enable_lifecycle_ledger=enable_lifecycle_ledger,
+        enable_source_backed_memory_ledger=(
+            enable_source_backed_lifecycle_memory_trigger
+        ),
         max_context_chars=max_context_chars,
         max_row_text_chars=max_row_text_chars,
     )
@@ -541,6 +554,7 @@ def build_repair_prompt(
     max_context_chars: int,
     max_row_text_chars: int,
     enable_lifecycle_ledger: bool = False,
+    enable_source_backed_memory_ledger: bool = False,
 ) -> tuple[str, int]:
     draft_json = raw_response_content(draft.raw_response) or draft.answer
     memory_context, context_chars = _repair_memory_context(
@@ -553,6 +567,12 @@ def build_repair_prompt(
         enabled=enable_lifecycle_ledger,
         max_rows=10,
         max_text_chars=min(max_row_text_chars, 360) if max_row_text_chars else 360,
+    )
+    source_backed_memory_ledger = _source_backed_memory_state_ledger(
+        compiled,
+        enabled=enable_source_backed_memory_ledger,
+        max_records=8,
+        max_value_chars=160,
     )
     question_time = compiled.question_time or ""
     reason_text = ", ".join(reasons)
@@ -583,6 +603,7 @@ def build_repair_prompt(
             "Memory Context:",
             memory_context,
             *lifecycle_ledger,
+            *source_backed_memory_ledger,
             "",
             "Rules:",
             "1. Prefer decision=keep when the draft answer is directly supported and complete enough for the question.",
@@ -714,6 +735,30 @@ def _lifecycle_slot_trigger_reasons(
     return ("current_state_lifecycle_review",)
 
 
+def _source_backed_lifecycle_memory_trigger_reasons(
+    *,
+    compiled: CompiledContext,
+    draft: AnswerResult,
+) -> tuple[str, ...]:
+    if compiled.route.information_need != "current_state":
+        return ()
+    if not _lifecycle_slot_question_applies(compiled.question):
+        return ()
+    if not _source_backed_memory_state_entries(compiled):
+        return ()
+    payload = _draft_payload(draft.raw_response)
+    if _has_uncertain_signal(draft.answer, payload):
+        return ()
+    answer_type = str(payload.get("answer_type") or "").strip().lower()
+    if answer_type in {"list"}:
+        return ()
+    if len(_support_values(payload)) <= 1:
+        return ()
+    if len(_current_state_lifecycle_rows(compiled, max_rows=10)) < 2:
+        return ()
+    return ("source_backed_memory_state_review",)
+
+
 def _lifecycle_slot_question_applies(question: str) -> bool:
     text = question or ""
     if not _CURRENT_STATE_LIFECYCLE_QUESTION.search(text):
@@ -729,6 +774,70 @@ def _lifecycle_slot_question_applies(question: str) -> bool:
     if _LIFECYCLE_LATEST_EVENT_QUESTION.search(text):
         return False
     return True
+
+
+def _source_backed_memory_state_entries(compiled: CompiledContext) -> tuple[dict[str, Any], ...]:
+    ledger = compiled.diagnostics.get("source_backed_memory_state_ledger")
+    if not isinstance(ledger, dict) or not ledger.get("applied"):
+        return ()
+    entries = ledger.get("entries")
+    if not isinstance(entries, list):
+        return ()
+    return tuple(entry for entry in entries if isinstance(entry, dict))
+
+
+def _source_backed_memory_state_ledger(
+    compiled: CompiledContext,
+    *,
+    enabled: bool,
+    max_records: int,
+    max_value_chars: int,
+) -> list[str]:
+    if not enabled or compiled.route.information_need != "current_state":
+        return []
+    entries = _source_backed_memory_state_entries(compiled)
+    if not entries:
+        return []
+
+    lines = [
+        "",
+        "Source-Backed Managed Memory Ledger:",
+        "Use this typed memory view only as an index into cited raw Memory Context rows; it is not independent evidence.",
+        "Each record below cites Memory rows that must be verified before keeping or revising the answer.",
+        "- records:",
+    ]
+    for index, entry in enumerate(entries[: max(1, max_records)], start=1):
+        value = _truncate_text(_single_line(entry.get("value") or ""), max_value_chars)
+        fields = [
+            f"type={_single_line(entry.get('memory_type') or '')}",
+            f"status={_single_line(entry.get('status') or 'active')}",
+        ]
+        subject = _single_line(entry.get("subject") or "")
+        predicate = _single_line(entry.get("predicate") or "")
+        if subject:
+            fields.append(f"subject={subject}")
+        if predicate:
+            fields.append(f"predicate={predicate}")
+        if value:
+            fields.append(f"value={value}")
+        time_value = _single_line(entry.get("time") or "")
+        if time_value:
+            fields.append(f"time={time_value}")
+        valid_to = _single_line(entry.get("valid_to") or "")
+        if valid_to:
+            fields.append(f"valid_to={valid_to}")
+        source_labels = entry.get("source_labels") or ()
+        if isinstance(source_labels, (list, tuple)):
+            sources = ", ".join(_single_line(label) for label in source_labels[:6])
+            if sources:
+                fields.append(f"sources={sources}")
+        overlap_terms = entry.get("overlap_terms") or ()
+        if isinstance(overlap_terms, (list, tuple)):
+            overlap = ", ".join(_single_line(term) for term in overlap_terms[:8])
+            if overlap:
+                fields.append(f"overlap={overlap}")
+        lines.append(f"  - Record {index}: " + " | ".join(fields))
+    return lines
 
 
 def _current_state_lifecycle_ledger(
@@ -803,6 +912,16 @@ def _current_state_lifecycle_rows(
     ]
     ordered = sorted(selected, key=lambda item: (item[2], item[3]))
     return tuple((index, row) for _score, _rank, _date, index, row in ordered)
+
+
+def _single_line(value: Any) -> str:
+    return " ".join(str(value or "").split())
+
+
+def _truncate_text(value: str, max_chars: int) -> str:
+    if max_chars <= 0 or len(value) <= max_chars:
+        return value
+    return value[: max(0, max_chars - 3)].rstrip() + "..."
 
 
 def _content_terms(text: str) -> frozenset[str]:

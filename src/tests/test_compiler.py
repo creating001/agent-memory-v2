@@ -297,6 +297,76 @@ class CompilerTest(unittest.TestCase):
         self.assertIn("sources=Memory 2", compiled.prompt)
         self.assertIn("not independent evidence", compiled.prompt)
 
+    def test_source_backed_memory_state_ledger_diagnostics_use_visible_sources(
+        self,
+    ) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=4,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            memory_state_guide=True,
+            memory_state_guide_information_needs=("current_state",),
+            memory_state_guide_candidate_records=8,
+        )
+
+        compiled = compiler.compile(
+            question="How many engineers does Alex lead now?",
+            question_time=None,
+            route=RouteResult("current_state", ("current_state",)),
+            hits=(
+                RetrievalHit("s1:t0", 1.0, 1, "test"),
+                RetrievalHit("s2:t0", 0.9, 2, "test"),
+            ),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Alex led four engineers in the old role.",
+                    timestamp="2024-01-01",
+                ),
+                Turn(
+                    source_id="s2:t0",
+                    session_id="s2",
+                    turn_index=0,
+                    role="user",
+                    text="Alex now leads five engineers.",
+                    timestamp="2025-01-01",
+                ),
+            ),
+            memory_records=(
+                MemoryRecord(
+                    memory_id="visible",
+                    memory_type="profile",
+                    text="Alex leads five engineers.",
+                    source_ids=("s2:t0",),
+                    subject="Alex",
+                    predicate="team_size",
+                    value="five engineers",
+                    timestamp="2025-01-01",
+                    status="active",
+                ),
+                MemoryRecord(
+                    memory_id="hidden",
+                    memory_type="profile",
+                    text="Alex leads ten engineers.",
+                    source_ids=("s9:t0",),
+                    subject="Alex",
+                    predicate="team_size",
+                    value="ten engineers",
+                    timestamp="2025-02-01",
+                    status="active",
+                ),
+            ),
+        )
+
+        ledger = compiled.diagnostics["source_backed_memory_state_ledger"]
+        self.assertTrue(ledger["applied"])
+        self.assertEqual(ledger["entry_count"], 1)
+        self.assertEqual(ledger["entries"][0]["value"], "five engineers")
+        self.assertEqual(ledger["entries"][0]["source_labels"], ("Memory 2",))
+
     def test_memory_state_guide_skips_unlinked_memory(self) -> None:
         compiler = EvidenceCompiler(
             max_evidence_items=4,
