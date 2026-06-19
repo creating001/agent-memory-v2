@@ -38,6 +38,7 @@
 
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
+| `configs/stage1_source_aligned_memory_v239_seeded_qwen36_no_think_build4k_cached.json` | active candidate | 基于 v235 LTS，只启用 build-memory source alignment。目标是把 typed memory 的 source ids 对齐到更强 support 的相邻原文 turns，减少 build-stage provenance 风险，不新增 answer prompt 规则或 query-time rewrite | 待 probe/full；若风险下降且 accuracy 不明显退化，再考虑替换 LTS |
 | v236-v238 prompt-side Memory Operations Guide | rejected line / code removed from current path | v236 list_count guide LoCoMo lenient 回退；v237 temporal guide strict 回退；v238 probe passed 但 full 负向：LME changed judge `14/19 -> 6/19` strict、`15/19 -> 7/19` lenient，LoCoMo `19/26 -> 18/26` | 不升 LTS；已从当前 `src`/`configs` 移除。教训是 source-backed operation view clean 但不能直接作为 answer prompt block；下一步转向 build-side memory quality、retrieval activation 或 verifier-side audit |
 | `configs/stage1_no_finalizer_v235_seeded_qwen36_no_think_build4k_cached.json` | current LTS | LME `0.832000/0.844000`，LoCoMo `0.794156/0.819481`；v235 vs v234 answer diff `0/500`、`0/1540`；finalizer disabled, repair disabled | 当前 LTS；继承 v234 accuracy/token，删除 no-op finalizer，query-time rewrite surface 更少 |
 | `configs/stage1_no_answer_repair_v234_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | LME `0.832000/0.844000`，LoCoMo `0.794156/0.819481`；v234 vs v233 answer diff `0/500`、`0/1540`；avg query tokens `6579.782`、`6094.017532467533` | 被 v235 替代；保留为 no-repair 父锚点 |
