@@ -1073,6 +1073,38 @@ class CompilerTest(unittest.TestCase):
         self.assertNotIn("event_time=2022-08-27 to 2022-08-28", compiled.prompt)
         self.assertNotIn('relative_phrase: phrase="this weekend"', compiled.prompt)
 
+    def test_event_time_candidate_map_audit_is_trace_only(self) -> None:
+        compiled = EvidenceCompiler(
+            max_evidence_items=1,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            event_time_candidate_map=False,
+            event_time_candidate_map_audit=True,
+            event_time_candidate_map_allowed_time_kinds=("exact_today",),
+            event_time_candidate_map_strip_context_wrappers=True,
+        ).compile(
+            question="When did Nate chill with his pets?",
+            question_time=None,
+            route=RouteResult("temporal_lookup", ("temporal",)),
+            hits=(),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="Nate",
+                    text="Today I decided to chill with my pets.",
+                    timestamp="2022-03-18",
+                ),
+            ),
+        )
+
+        self.assertNotIn("Event-Time Candidate Map:", compiled.prompt)
+        audit = compiled.diagnostics["event_time_candidate_map_audit"]
+        self.assertTrue(audit["applied"])
+        self.assertEqual(audit["prompt_eligible_count"], 1)
+        self.assertIn("exact_today_prompt_candidate", audit["risk_flags"])
+
     def test_event_time_candidate_map_can_add_temporal_ambiguity_contract(
         self,
     ) -> None:

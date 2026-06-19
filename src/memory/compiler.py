@@ -87,6 +87,7 @@ ROUTE_OVERRIDE_KEYS = {
     "current_state_update_contract",
     "dialogue_inference_contract",
     "event_time_candidate_map",
+    "event_time_candidate_map_audit",
     "event_time_candidate_map_allow_time_of_day_questions",
     "event_time_candidate_map_allowed_time_kinds",
     "event_time_candidate_map_include_mention_time",
@@ -253,6 +254,7 @@ class EvidenceCompiler:
         event_time_candidate_map_exact_today_min_coverage: float | None = None,
         event_time_candidate_map_require_role_match: bool = False,
         event_time_candidate_map_allow_time_of_day_questions: bool = True,
+        event_time_candidate_map_audit: bool = False,
         event_time_candidate_map_temporal_ambiguity_contract: bool = False,
         event_time_candidate_map_include_mention_time: bool = False,
         enable_weekend_relative_time: bool = False,
@@ -434,6 +436,7 @@ class EvidenceCompiler:
         self._event_time_candidate_map_allow_time_of_day_questions = bool(
             event_time_candidate_map_allow_time_of_day_questions
         )
+        self._event_time_candidate_map_audit = bool(event_time_candidate_map_audit)
         self._event_time_candidate_map_temporal_ambiguity_contract = bool(
             event_time_candidate_map_temporal_ambiguity_contract
         )
@@ -910,6 +913,49 @@ class EvidenceCompiler:
                     ],
                 )
             )
+        if route_settings["event_time_candidate_map_audit"]:
+            diagnostics["event_time_candidate_map_audit"] = (
+                _event_time_candidate_map_audit(
+                    question=question,
+                    route=route,
+                    rows=laid_out_rows,
+                    max_groups=route_settings["event_time_candidate_map_max_groups"],
+                    snippet_chars=route_settings[
+                        "event_time_candidate_map_snippet_chars"
+                    ],
+                    min_terms=route_settings["event_time_candidate_map_min_terms"],
+                    min_coverage=route_settings[
+                        "event_time_candidate_map_min_coverage"
+                    ],
+                    allowed_time_kinds=route_settings[
+                        "event_time_candidate_map_allowed_time_kinds"
+                    ],
+                    strip_context_wrappers=route_settings[
+                        "event_time_candidate_map_strip_context_wrappers"
+                    ],
+                    segment_local_context=route_settings[
+                        "event_time_candidate_map_segment_local_context"
+                    ],
+                    rank_by_coverage=route_settings[
+                        "event_time_candidate_map_rank_by_coverage"
+                    ],
+                    normalize_terms=route_settings[
+                        "event_time_candidate_map_normalize_terms"
+                    ],
+                    exact_today_min_coverage=route_settings[
+                        "event_time_candidate_map_exact_today_min_coverage"
+                    ],
+                    require_role_match=route_settings[
+                        "event_time_candidate_map_require_role_match"
+                    ],
+                    allow_time_of_day_questions=route_settings[
+                        "event_time_candidate_map_allow_time_of_day_questions"
+                    ],
+                    enable_weekend_relative_time=route_settings[
+                        "enable_weekend_relative_time"
+                    ],
+                )
+            )
         return CompiledContext(
             question=question,
             question_time=question_time,
@@ -996,6 +1042,7 @@ class EvidenceCompiler:
             "event_time_candidate_map_allow_time_of_day_questions": (
                 self._event_time_candidate_map_allow_time_of_day_questions
             ),
+            "event_time_candidate_map_audit": self._event_time_candidate_map_audit,
             "event_time_candidate_map_temporal_ambiguity_contract": (
                 self._event_time_candidate_map_temporal_ambiguity_contract
             ),
@@ -1218,6 +1265,10 @@ def _validate_route_overrides(
         if "event_time_candidate_map_allow_time_of_day_questions" in raw_overrides:
             overrides["event_time_candidate_map_allow_time_of_day_questions"] = bool(
                 raw_overrides["event_time_candidate_map_allow_time_of_day_questions"]
+            )
+        if "event_time_candidate_map_audit" in raw_overrides:
+            overrides["event_time_candidate_map_audit"] = bool(
+                raw_overrides["event_time_candidate_map_audit"]
             )
         if "enable_weekend_relative_time" in raw_overrides:
             overrides["enable_weekend_relative_time"] = bool(
@@ -4767,6 +4818,226 @@ def _external_event_time_candidate_map_lines(
             f"text=\"{item['snippet']}\""
         )
     return lines
+
+
+def _event_time_candidate_map_audit(
+    *,
+    question: str,
+    route: RouteResult,
+    rows: tuple[EvidenceRow, ...],
+    max_groups: int,
+    snippet_chars: int,
+    min_terms: int,
+    min_coverage: float,
+    allowed_time_kinds: tuple[str, ...],
+    strip_context_wrappers: bool,
+    segment_local_context: bool,
+    rank_by_coverage: bool,
+    normalize_terms: bool,
+    exact_today_min_coverage: float | None,
+    require_role_match: bool,
+    allow_time_of_day_questions: bool,
+    enable_weekend_relative_time: bool,
+) -> dict[str, object]:
+    """Trace-only mirror of prompt-side event-time map gating."""
+
+    base: dict[str, object] = {
+        "enabled": True,
+        "trace_only": True,
+        "applied": False,
+        "information_need": route.information_need,
+        "prompt_eligible_count": 0,
+        "prompt_candidates": [],
+        "rejected_groups": [],
+        "risk_flags": [],
+        "clean_note": (
+            "Trace-only audit of Event-Time Candidate Map gating. It is not "
+            "included in the answer prompt, retrieval, repair, finalizer, or cache key."
+        ),
+    }
+    if not _asks_event_time_candidate_map(
+        question,
+        route,
+        allow_time_of_day_questions=allow_time_of_day_questions,
+    ):
+        return {**base, "reason": "question_gate_not_matched"}
+
+    target_terms = _event_time_candidate_map_target_terms(
+        question,
+        normalize_terms=normalize_terms,
+    )
+    if not target_terms:
+        return {**base, "reason": "no_target_terms"}
+
+    candidates = _event_timeline_candidate_rows(
+        question=question,
+        rows=rows,
+        snippet_chars=snippet_chars,
+        strip_context_wrappers=strip_context_wrappers,
+        segment_local_context=segment_local_context,
+        normalize_slot_terms=normalize_terms,
+        enable_weekend_relative_time=enable_weekend_relative_time,
+    )
+    if not candidates:
+        return {**base, "reason": "no_source_backed_time_candidates"}
+
+    if rank_by_coverage:
+        selected = sorted(
+            candidates,
+            key=lambda item: _event_time_candidate_map_pool_sort_key(
+                item,
+                target_terms,
+            ),
+        )[: max(2, max_groups * 16)]
+    else:
+        selected = sorted(
+            candidates,
+            key=lambda item: (-int(item["score"]), int(item["memory_index"])),
+        )[: max(2, max_groups * 8)]
+    conflict_groups = _event_time_candidate_conflict_groups(selected)
+    groups = _event_time_candidate_groups(
+        selected,
+        conflict_groups=conflict_groups,
+        max_groups=max(1, max_groups * 8),
+    )
+
+    high_confidence_resolutions = {
+        "high_confidence_single",
+        "high_confidence_duplicate_same_time",
+    }
+    allowed_time_kind_set = {str(kind) for kind in allowed_time_kinds}
+    item_by_source_id = {str(item["source_id"]): item for item in selected}
+    target_role_terms = (
+        _event_time_candidate_map_target_role_terms(selected, target_terms)
+        if require_role_match
+        else frozenset()
+    )
+    prompt_candidates: list[dict[str, object]] = []
+    rejected_groups: list[dict[str, object]] = []
+
+    for group in groups:
+        dedup_key = str(group.get("dedup_key") or "")
+        key_terms = frozenset(dedup_key[2:].split("|")).difference(
+            _EVENT_SLOT_WEAK_TERMS
+        )
+        matched_terms = tuple(sorted(key_terms.intersection(target_terms)))
+        coverage = len(matched_terms) / max(1, len(target_terms))
+        best = item_by_source_id.get(str(group.get("best_source_id") or ""))
+        rejected_reason = ""
+        if group.get("conflict_type"):
+            rejected_reason = str(group.get("conflict_type"))
+        elif str(group.get("resolution")) not in high_confidence_resolutions:
+            rejected_reason = str(group.get("resolution") or "low_confidence")
+        elif (
+            allowed_time_kind_set
+            and str(group.get("best_time_kind")) not in allowed_time_kind_set
+        ):
+            rejected_reason = "time_kind_not_allowed"
+        elif not dedup_key.startswith("q:"):
+            rejected_reason = "non_question_slot"
+        elif len(matched_terms) < min_terms:
+            rejected_reason = "too_few_question_terms"
+        elif coverage < min_coverage:
+            rejected_reason = "low_question_coverage"
+        elif (
+            str(group.get("best_time_kind")) == "exact_today"
+            and exact_today_min_coverage is not None
+            and coverage < exact_today_min_coverage
+        ):
+            rejected_reason = "exact_today_low_question_coverage"
+        elif best is None:
+            rejected_reason = "missing_best_source"
+        elif target_role_terms and not _event_time_candidate_role_matches(
+            str(best.get("role") or ""),
+            target_role_terms,
+        ):
+            rejected_reason = "role_mismatch"
+
+        if rejected_reason:
+            if len(rejected_groups) < max(4, max_groups * 2):
+                rejected_groups.append(
+                    {
+                        "dedup_key": dedup_key,
+                        "reason": rejected_reason,
+                        "best_time_kind": str(group.get("best_time_kind") or ""),
+                        "best_event_time": str(group.get("best_event_time") or ""),
+                        "coverage": round(coverage, 3),
+                        "matched_terms": matched_terms,
+                        "source_ids": tuple(
+                            str(source_id)
+                            for source_id in group.get("source_ids") or ()
+                        ),
+                    }
+                )
+            continue
+
+        assert best is not None
+        flags = _event_time_candidate_map_audit_flags(
+            group=group,
+            item=best,
+            coverage=coverage,
+            exact_today_min_coverage=exact_today_min_coverage,
+        )
+        prompt_candidates.append(
+            {
+                "source_id": str(best.get("source_id") or ""),
+                "memory_index": int(best.get("memory_index") or 0),
+                "dedup_key": dedup_key,
+                "mention_time": str(best.get("mention_time") or ""),
+                "event_time": str(group.get("best_event_time") or ""),
+                "time_kind": str(group.get("best_time_kind") or ""),
+                "matched_terms": matched_terms,
+                "coverage": round(coverage, 3),
+                "markers": tuple(str(marker) for marker in best.get("markers") or ()),
+                "risk_flags": flags,
+                "snippet": str(best.get("snippet") or ""),
+            }
+        )
+
+    top_flags = sorted(
+        {
+            flag
+            for candidate in prompt_candidates
+            for flag in tuple(candidate.get("risk_flags") or ())
+        }
+    )
+    return {
+        **base,
+        "applied": True,
+        "reason": "event_time_candidate_map_gate_audited",
+        "n_candidates": len(candidates),
+        "n_selected": len(selected),
+        "target_terms": tuple(sorted(target_terms)),
+        "prompt_eligible_count": len(prompt_candidates),
+        "prompt_candidates": prompt_candidates[:max_groups],
+        "rejected_groups": rejected_groups,
+        "risk_flags": tuple(top_flags),
+        "conflict_groups": conflict_groups,
+    }
+
+
+def _event_time_candidate_map_audit_flags(
+    *,
+    group: dict[str, object],
+    item: dict[str, object],
+    coverage: float,
+    exact_today_min_coverage: float | None,
+) -> tuple[str, ...]:
+    flags: list[str] = []
+    time_kind = str(group.get("best_time_kind") or "")
+    if time_kind == "exact_today":
+        flags.append("exact_today_prompt_candidate")
+        threshold = 0.8 if exact_today_min_coverage is None else exact_today_min_coverage
+        if coverage < threshold:
+            flags.append("exact_today_low_question_coverage")
+    if time_kind == "relative_phrase":
+        flags.append("relative_phrase_prompt_candidate")
+    if str(item.get("mention_time") or "") == str(group.get("best_event_time") or ""):
+        flags.append("event_time_equals_mention_time")
+    markers = tuple(str(marker) for marker in item.get("markers") or ())
+    if not markers:
+        flags.append("mention_time_only_candidate")
+    return tuple(flags)
 
 
 def _asks_event_time_candidate_map(

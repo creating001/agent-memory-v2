@@ -639,6 +639,9 @@ class Stage1Pipeline:
                     "event_time_candidate_map_allow_time_of_day_questions", True
                 )
             ),
+            event_time_candidate_map_audit=bool(
+                compiler_config.get("event_time_candidate_map_audit", False)
+            ),
             event_time_candidate_map_temporal_ambiguity_contract=bool(
                 compiler_config.get(
                     "event_time_candidate_map_temporal_ambiguity_contract", False
@@ -4025,6 +4028,9 @@ def _compiler_trace_config(
                 "event_time_candidate_map_allow_time_of_day_questions", True
             )
         ),
+        "event_time_candidate_map_audit": bool(
+            compiler_config.get("event_time_candidate_map_audit", False)
+        ),
         "event_time_candidate_map_temporal_ambiguity_contract": bool(
             compiler_config.get(
                 "event_time_candidate_map_temporal_ambiguity_contract", False
@@ -4317,6 +4323,9 @@ def _configured_compiler(compiler_config: Mapping[str, Any]) -> EvidenceCompiler
             compiler_config.get(
                 "event_time_candidate_map_allow_time_of_day_questions", True
             )
+        ),
+        event_time_candidate_map_audit=bool(
+            compiler_config.get("event_time_candidate_map_audit", False)
         ),
         event_time_candidate_map_temporal_ambiguity_contract=bool(
             compiler_config.get(

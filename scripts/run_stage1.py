@@ -63,6 +63,9 @@ def main() -> int:
     total_event_time_candidate_manifest_conflict_groups = 0
     total_event_time_candidate_manifest_safe_order = 0
     total_event_time_candidate_map_applied = 0
+    total_event_time_candidate_map_audit_applied = 0
+    total_event_time_candidate_map_audit_prompt_candidates = 0
+    total_event_time_candidate_map_audit_risk_flags = 0
     total_compiler_context_pressure_applied = 0
     total_compiler_context_pressure_headroom = 0
     total_compiler_context_pressure_headroom_count = 0
@@ -156,6 +159,18 @@ def main() -> int:
             total_personalized_advice_contract_applied += 1
         if "Event-Time Candidate Map:" in prompt_text:
             total_event_time_candidate_map_applied += 1
+        event_time_map_audit = (
+            (compiled.get("diagnostics") or {}).get("event_time_candidate_map_audit")
+            or {}
+        )
+        if event_time_map_audit.get("applied"):
+            total_event_time_candidate_map_audit_applied += 1
+            total_event_time_candidate_map_audit_prompt_candidates += int(
+                event_time_map_audit.get("prompt_eligible_count") or 0
+            )
+            total_event_time_candidate_map_audit_risk_flags += len(
+                event_time_map_audit.get("risk_flags") or []
+            )
         event_time_manifest = (
             (compiled.get("diagnostics") or {}).get("event_time_candidate_manifest")
             or {}
@@ -839,6 +854,9 @@ def main() -> int:
             "event_time_candidate_map_allow_time_of_day_questions": config.get(
                 "compiler", {}
             ).get("event_time_candidate_map_allow_time_of_day_questions", True),
+            "event_time_candidate_map_audit": config.get("compiler", {}).get(
+                "event_time_candidate_map_audit", False
+            ),
             "event_time_candidate_map_temporal_ambiguity_contract": config.get(
                 "compiler", {}
             ).get("event_time_candidate_map_temporal_ambiguity_contract", False),
@@ -848,6 +866,21 @@ def main() -> int:
             "event_time_candidate_map_applied_rate": _safe_average(
                 total_event_time_candidate_map_applied,
                 sample_count,
+            ),
+            "event_time_candidate_map_audit_applied_count": (
+                total_event_time_candidate_map_audit_applied
+            ),
+            "event_time_candidate_map_audit_applied_rate": _safe_average(
+                total_event_time_candidate_map_audit_applied,
+                sample_count,
+            ),
+            "avg_event_time_candidate_map_audit_prompt_candidates": _safe_average(
+                total_event_time_candidate_map_audit_prompt_candidates,
+                total_event_time_candidate_map_audit_applied,
+            ),
+            "avg_event_time_candidate_map_audit_risk_flags": _safe_average(
+                total_event_time_candidate_map_audit_risk_flags,
+                total_event_time_candidate_map_audit_applied,
             ),
             "event_time_candidate_manifest_applied_count": (
                 total_event_time_candidate_manifest_applied
@@ -1613,9 +1646,14 @@ def _write_summary(
         f"- event_time_candidate_map_exact_today_min_coverage: {metrics['compiler']['event_time_candidate_map_exact_today_min_coverage']}",
         f"- event_time_candidate_map_require_role_match: {metrics['compiler']['event_time_candidate_map_require_role_match']}",
         f"- event_time_candidate_map_allow_time_of_day_questions: {metrics['compiler']['event_time_candidate_map_allow_time_of_day_questions']}",
+        f"- event_time_candidate_map_audit: {metrics['compiler']['event_time_candidate_map_audit']}",
         f"- event_time_candidate_map_temporal_ambiguity_contract: {metrics['compiler']['event_time_candidate_map_temporal_ambiguity_contract']}",
         f"- event_time_candidate_map_applied_count: {metrics['compiler']['event_time_candidate_map_applied_count']}",
         f"- event_time_candidate_map_applied_rate: {metrics['compiler']['event_time_candidate_map_applied_rate']}",
+        f"- event_time_candidate_map_audit_applied_count: {metrics['compiler']['event_time_candidate_map_audit_applied_count']}",
+        f"- event_time_candidate_map_audit_applied_rate: {metrics['compiler']['event_time_candidate_map_audit_applied_rate']}",
+        f"- avg_event_time_candidate_map_audit_prompt_candidates: {metrics['compiler']['avg_event_time_candidate_map_audit_prompt_candidates']}",
+        f"- avg_event_time_candidate_map_audit_risk_flags: {metrics['compiler']['avg_event_time_candidate_map_audit_risk_flags']}",
         f"- event_time_candidate_manifest_applied_count: {metrics['compiler']['event_time_candidate_manifest_applied_count']}",
         f"- event_time_candidate_manifest_applied_rate: {metrics['compiler']['event_time_candidate_manifest_applied_rate']}",
         f"- avg_event_time_candidate_manifest_items: {metrics['compiler']['avg_event_time_candidate_manifest_items']}",
