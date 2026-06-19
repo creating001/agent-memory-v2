@@ -64,6 +64,7 @@
 
 | 配置 | 原因 |
 |---|---|
+| `stage1_temporal_ambiguity_event_time_map_v188_seeded_qwen36_no_think_build4k_cached.json` | v188 只在高置信 Event-Time Candidate Map 出现时加入 `mention_time`/planned `event_time` ambiguity contract，风险面比全局 temporal prompt 小；但三条 v184 risky activation probe 上 Nate row 仍回答 `2022-08-27 to 2022-08-28`，相对当前 LTS 会丢 LoCoMo `+1/+1`，不升 LTS。 |
 | `stage1_weekend_event_time_candidate_map_v187_seeded_qwen36_no_think_build4k_cached.json` | v187 在 v186 基础上 clean 地解析 `this weekend`，并在 prompt map 中同时暴露 `mention_time`/`event_time`；但三条 v184 risky activation probe 上仍把 Nate row 回答成 `2022-08-27 to 2022-08-28`，相对当前 LTS 会丢 LoCoMo `+1/+1`，不升 LTS。 |
 | `stage1_role_matched_event_time_candidate_map_v186_seeded_qwen36_no_think_build4k_cached.json` | v186 在 v184 三条 risky activation probe 上将 prompt-map 触发降到 `0/3`，风险低于 v184/v185，但答案退回 v181，其中 Nate row 从 v184 correct 退回 `2022-08-27 to 2022-08-28`；相对当前 LTS 会丢 LoCoMo `+1/+1`，不升 LTS。 |
 | `stage1_segment_local_event_time_candidate_map_v185_seeded_qwen36_no_think_build4k_cached.json` | v185 用 segment-local binding、coverage-first ranking 和 exact_today 高覆盖阈值去掉两个 wrapper/nearby `today` false positives，但仍在 John/sister/dogs row 上把 James 的 dated event 放入 map；不升 LTS，v186 已用 role matching 修正。 |
@@ -101,6 +102,8 @@
 
 | 路径 | 内容 |
 |---|---|
+| `diagnostic/stage1_temporal_ambiguity_event_time_map_v188_probe_summary.md` | v188 probe 结论：map-scoped ambiguity contract 未恢复 v184 Nate 行收益，不升 LTS |
+| `diagnostic/stage1_temporal_ambiguity_event_time_map_v188_activation_probe/` | v188 三条 risky activation probe；map applied `1/3`，answer cache `2/1/1` |
 | `diagnostic/stage1_weekend_event_time_candidate_map_v187_probe_summary.md` | v187 probe 结论：clean 解析 `this weekend`，但丢 v184 LoCoMo `+1/+1`，不升 LTS |
 | `diagnostic/stage1_weekend_event_time_candidate_map_v187_activation_probe/` | v187 三条 risky activation probe；map applied `1/3`，answer cache `2/1/1` |
 | `diagnostic/stage1_segment_local_event_time_candidate_map_v185_v186_probe_summary.md` | v185/v186 probe 结论：v186 风险更低但丢 v184 LoCoMo `+1/+1`，不升 LTS |
