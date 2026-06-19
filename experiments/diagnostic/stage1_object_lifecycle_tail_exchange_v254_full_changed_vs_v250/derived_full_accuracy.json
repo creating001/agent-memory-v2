@@ -1,0 +1,32 @@
+{
+  "lme": {
+    "base_v250_lenient_correct": 422,
+    "base_v250_strict_correct": 416,
+    "changed_v250_lenient_correct": 6,
+    "changed_v250_strict_correct": 6,
+    "changed_v254_lenient_correct": 5,
+    "changed_v254_strict_correct": 3,
+    "delta_lenient_correct": -1,
+    "delta_strict_correct": -3,
+    "n": 500,
+    "v254_lenient_accuracy": 0.842,
+    "v254_lenient_correct": 421,
+    "v254_strict_accuracy": 0.826,
+    "v254_strict_correct": 413
+  },
+  "locomo": {
+    "base_v250_lenient_correct": 1262,
+    "base_v250_strict_correct": 1223,
+    "changed_v250_lenient_correct": 42,
+    "changed_v250_strict_correct": 34,
+    "changed_v254_lenient_correct": 39,
+    "changed_v254_strict_correct": 37,
+    "delta_lenient_correct": -3,
+    "delta_strict_correct": 3,
+    "n": 1540,
+    "v254_lenient_accuracy": 0.8175324675324676,
+    "v254_lenient_correct": 1259,
+    "v254_strict_accuracy": 0.7961038961038961,
+    "v254_strict_correct": 1226
+  }
+}
