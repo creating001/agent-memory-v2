@@ -38,7 +38,7 @@
 
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
-| `configs/stage1_memory_operation_guide_v236_seeded_qwen36_no_think_build4k_cached.json` | candidate / smoke only | 用 source-backed Memory Operations Guide 替代 narrow current-state guide；LME smoke2 avg build/query tokens `89000.0/6104.0`，operation guide applied `1/2`，正式 full accuracy 未跑 | 候选；风险方向符合 #1/#2，但必须跑 full prediction + judge 后才能考虑 LTS |
+| `configs/stage1_memory_operation_guide_v236_seeded_qwen36_no_think_build4k_cached.json` | candidate / probe rejected for LTS | source-backed Memory Operations Guide 替代 narrow current-state guide；cache-seeded probe50：LME diff `4/50`, changed judge `4/4 -> 4/4`；LoCoMo diff `17/50`, changed judge strict `11/17 -> 11/17`, lenient `14/17 -> 13/17` | 不升 LTS；方法风险方向可取，但 list_count guide 有过宽集合风险，下一版先收窄 |
 | `configs/stage1_no_finalizer_v235_seeded_qwen36_no_think_build4k_cached.json` | current LTS | LME `0.832000/0.844000`，LoCoMo `0.794156/0.819481`；v235 vs v234 answer diff `0/500`、`0/1540`；finalizer disabled, repair disabled | 当前 LTS；继承 v234 accuracy/token，删除 no-op finalizer，query-time rewrite surface 更少 |
 | `configs/stage1_no_answer_repair_v234_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | LME `0.832000/0.844000`，LoCoMo `0.794156/0.819481`；v234 vs v233 answer diff `0/500`、`0/1540`；avg query tokens `6579.782`、`6094.017532467533` | 被 v235 替代；保留为 no-repair 父锚点 |
 | `configs/stage1_build_memory_stateful_policy_v233_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | LME `0.832000/0.844000`，LoCoMo `0.794156/0.819481`；changed-answer judge LME `4/4 -> 3/4`，LoCoMo `2/5 -> 3/5`；build memory `stateful_only` policy 覆盖 full | 被 v234/v235 替代；保留为 build memory stateful policy 父锚点 |

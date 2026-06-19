@@ -12,7 +12,7 @@
 
 | 配置 | 状态 |
 |---|---|
-| `stage1_memory_operation_guide_v236_seeded_qwen36_no_think_build4k_cached.json` | v236 candidate；用 source-backed Memory Operations Guide 替代 narrow current-state guide，覆盖 current_state/list_count/profile_preference/temporal_lookup，保持 `max_memory_records=0`。已通过 unit tests 和 LME smoke2；full accuracy 未跑，不能替代当前 LTS。 |
+| `stage1_memory_operation_guide_v236_seeded_qwen36_no_think_build4k_cached.json` | v236 candidate / 不升 LTS；source-backed Memory Operations Guide 覆盖 current_state/list_count/profile_preference/temporal_lookup，probe50 中 LME 持平但 LoCoMo changed lenient `14/17 -> 13/17`，list_count guide 有过宽集合风险。 |
 
 ## 保留对照
 
