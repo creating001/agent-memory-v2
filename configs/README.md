@@ -6,13 +6,14 @@
 
 | 用途 | 配置 | 状态 |
 |---|---|---|
-| 后续新实验默认配置 | `stage1_state_update_organization_ledger_v225_seeded_qwen36_no_think_build4k_cached.json` | 当前本地 v225 LTS。继承 v222 full accuracy，并新增 trace-only State/Update Organization Ledger；LongMemEval-S strict/lenient `0.834000 / 0.846000`，LoCoMo `0.793506 / 0.818831`。 |
+| 后续新实验默认配置 | `stage1_guarded_tail_exchange_rerank_v229_seeded_qwen36_no_think_build4k_cached.json` | 当前本地 v229 LTS。继承 v225 full accuracy，并新增 source/provenance-aware guarded tail exchange；LongMemEval-S strict/lenient `0.834000 / 0.846000`，LoCoMo `0.793506 / 0.818831`。 |
 
 ## 保留对照
 
 | 配置 | 作用 |
 |---|---|
-| `stage1_state_update_organization_ledger_v225_seeded_qwen36_no_think_build4k_cached.json` | 当前 LTS；trace-only State/Update Organization Ledger，LME `0.834000 / 0.846000`，LoCoMo `0.793506 / 0.818831`，相对 v222 answer/prompt/evidence rows/retrieval hits/selected-context diff `0/500`、`0/1540`。 |
+| `stage1_guarded_tail_exchange_rerank_v229_seeded_qwen36_no_think_build4k_cached.json` | 当前 LTS；source/provenance-aware guarded tail exchange，LME `0.834000 / 0.846000`，LoCoMo `0.793506 / 0.818831`，相对 v225 answer diff `0/500`、`0/1540`。 |
+| `stage1_state_update_organization_ledger_v225_seeded_qwen36_no_think_build4k_cached.json` | v229 父 LTS；trace-only State/Update Organization Ledger，LME `0.834000 / 0.846000`，LoCoMo `0.793506 / 0.818831`，相对 v222 answer/prompt/evidence rows/retrieval hits/selected-context diff `0/500`、`0/1540`。 |
 | `stage1_evidence_pressure_ledger_v222_seeded_qwen36_no_think_build4k_cached.json` | v225 父 LTS；trace-only Evidence Pressure Ledger，性能继承 v221。 |
 | `stage1_source_flow_severity_ledger_v221_seeded_qwen36_no_think_build4k_cached.json` | v222 父 LTS；trace-only Source-flow Severity Ledger，性能继承 v217。 |
 | `stage1_context_organization_ledger_v217_seeded_qwen36_no_think_build4k_cached.json` | v221 父 LTS；trace-only Context Organization Ledger，性能继承 v216。 |
@@ -52,8 +53,8 @@
 
 | Benchmark | 配置 | 结果 | 用途 |
 |---|---|---:|---|
-| LongMemEval-S full | `stage1_state_update_organization_ledger_v225_seeded_qwen36_no_think_build4k_cached.json` | strict `0.834000` / lenient `0.846000` | 当前 LTS；v225 vs v222 behavior diff `0/500`，性能继承 v222。 |
-| LoCoMo non-adversarial full | `stage1_state_update_organization_ledger_v225_seeded_qwen36_no_think_build4k_cached.json` | strict `0.793506` / lenient `0.818831` | 当前 LTS；v225 vs v222 behavior diff `0/1540`，性能继承 v222。 |
+| LongMemEval-S full | `stage1_guarded_tail_exchange_rerank_v229_seeded_qwen36_no_think_build4k_cached.json` | strict `0.834000` / lenient `0.846000` | 当前 LTS；v229 vs v225 answer/prompt/evidence/retrieval diff `0/500`，性能继承 v225。 |
+| LoCoMo non-adversarial full | `stage1_guarded_tail_exchange_rerank_v229_seeded_qwen36_no_think_build4k_cached.json` | strict `0.793506` / lenient `0.818831` | 当前 LTS；v229 vs v225 answer diff `0/1540`，prompt/evidence/retrieval diff `2/1540`，性能继承 v225。 |
 
 ## 关键 Baseline
 

@@ -6,12 +6,12 @@
 
 | 项目 | 结果 |
 |---|---|
-| 当前 LTS 配置 | `configs/stage1_state_update_organization_ledger_v225_seeded_qwen36_no_think_build4k_cached.json` |
+| 当前 LTS 配置 | `configs/stage1_guarded_tail_exchange_rerank_v229_seeded_qwen36_no_think_build4k_cached.json` |
 | Backbone | `Qwen/Qwen3.6-35B-A3B` answer/build，`chat_template_kwargs.enable_thinking=false` |
-| 方法 | V225 继承 v222，并在 Memory Lifecycle Manifest 中新增 trace-only State/Update Organization Ledger；不改变 retrieval、prompt、answer 或 cache。 |
-| LongMemEval-S full | v225 与 v222 answer/prompt/evidence rows/retrieval hits/selected-context diff `0/500`；State/Update Organization Ledger `500/500`；avg build/query tokens `85393.566 / 6580.196`；继承 full `0.834000 / 0.846000`，`417/500` strict，`423/500` lenient |
-| LoCoMo non-adversarial full | v225 与 v222 answer/prompt/evidence rows/retrieval hits/selected-context diff `0/1540`；State/Update Organization Ledger `1540/1540`；avg build/query tokens `62015.57402597403 / 6095.268181818182`；继承 full `0.793506 / 0.818831`，`1222/1540` strict，`1261/1540` lenient |
-| 状态 | 当前本地 qwen3.6 no-thinking LTS。v225 降低 #5 state/update/conflict 误分类风险；v222 的 #2 evidence pressure、v221 的 source-flow severity、v217 的 context organization ledger、v216 的 memory provenance/activation、v211 的 #1 context-pressure selector 和 v209 的 #2 retrieval tail candidate 风险收敛保留。它不代表五个原始风险都已解决，#2 真实 token 降本和 #5 行为级 state/update reasoning 仍是优先待办。 |
+| 方法 | V229 继承 v225，并把 v228 过宽 rerank 收窄为 fact_lookup 的 guarded tail exchange；只有 rank 53-56 交换区无 memory source、无同 session 邻接链、无问题词覆盖时才调用 reranker。 |
+| LongMemEval-S full | v229 与 v225 answer/prompt/evidence rows/retrieval hits diff `0/500`；rerank applied `0/500`；avg build/query tokens `85393.566 / 6637.83`；继承 full `0.834000 / 0.846000`，`417/500` strict，`423/500` lenient |
+| LoCoMo non-adversarial full | v229 与 v225 answer diff `0/1540`，prompt/evidence/retrieval diff `2/1540`；rerank applied `2/1540`，guard skipped `880/1540`；avg build/query tokens `62015.57402597403 / 6100.992207792207`；继承 full `0.793506 / 0.818831`，`1222/1540` strict，`1261/1540` lenient |
+| 状态 | 当前本地 qwen3.6 no-thinking LTS。v229 小幅降低 #2 tail candidate/context noise 风险；v225 的 #5 State/Update Organization Ledger、v222 的 #2 evidence pressure、v221 的 source-flow severity、v217 的 context organization ledger、v216 的 memory provenance/activation、v211 的 #1 context-pressure selector 和 v209 的 #2 retrieval tail candidate 风险收敛保留。它不代表五个原始风险都已解决，#2 真实 token 降本和 #5 行为级 state/update reasoning 仍是优先待办。 |
 
 `paired-delta derived` 的含义：新版本只改少量答案，未变化答案沿用父 LTS full dual judge records，变化答案单独跑 paired dual judge 后替换计数。若新版本与父 LTS answer-identical，则可继承父 LTS judge records，但必须记录 full answer diff、cache hit/miss 和输出路径。若论文级最终汇报需要完全独立 run，再对 LTS 配置重跑 fresh full judge。
 
@@ -26,7 +26,7 @@
 
 | 优先级 | 项目 | 当前状态 | 下一步 |
 |---:|---|---|---|
-| 1 | #2 top-k/context noise/rerank | v222 显式记录 final evidence pressure：LME tail after rank `32` 为 `2016` rows，LoCoMo tail after rank `40` 为 `21780` rows；v228 修正 v226/v227 scope 后仍在 LoCoMo changed judge `-1/-5`；v223/v224 final cap 和 v210/v215 prompt 压缩也均负向 | 下一步不要做宽 final row cap、广覆盖 fact rerank 或 selected-context 包装硬删；只能用 pressure/source-flow ledgers 找到非 source-backed、非 session-chain、非 memory-anchor 的窄 tail 冗余 |
+| 1 | #2 top-k/context noise/rerank | v229 将 v228 的宽 rerank 收窄到 source/provenance-aware tail exchange：LME full no-op，LoCoMo full only `2/1540` applied、`880/1540` guard skipped、answer diff `0/1540`；但没有真实 query token 降本 | 下一步不要做宽 final row cap、广覆盖 fact rerank 或 selected-context 包装硬删；从 pressure/source-flow ledgers 继续找更高覆盖的非 source-backed、非 session-chain、非 memory-anchor tail 冗余，并控制 rerank token |
 | 2 | #3 selected context | v221 将 v217 的 risk rows 拆成 evidence-backed severity；v218/v219 hard gate 和 v220 nearby timestamp removal 都降低局部风险或 token，但 changed judge 分别 `-5/-12`、`-4/-1`、`-4/-3` | 保留 selected-context 原文保真路径；后续只允许用 severity 作为审计或极窄 ordering guard，不能把 final evidence-backed local context 当可删除噪声 |
 | 3 | #5 memory lifecycle/state/conflict/query-time reasoning | v225 新增 State/Update Organization Ledger：LME/LoCoMo `500/500`、`1540/1540`；activated update slots `156`、`422`，并把 ordinary non-state multi-value slots 单独标出 | 下一步从 audit 走向窄行为：只在 source-backed active/superseded lifecycle chain 上触发 state/update verifier 或 compiler guide；普通多值 fact/list/preference 不进入 stale-conflict 逻辑 |
 | 4 | src cleanup | 已有多轮兼容分支，`repair.py`、compiler、pipeline 仍会继续变复杂 | 每个阶段结束后做小范围清理，删已确认无用的兼容代码，不删仍有消融价值的模块 |
@@ -35,7 +35,8 @@
 
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
-| `configs/stage1_state_update_organization_ledger_v225_seeded_qwen36_no_think_build4k_cached.json` | current LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v225 vs v222 answer/prompt/evidence rows/retrieval hits/selected-context diff `0/500`、`0/1540`；State/Update Organization Ledger `500/500`、`1540/1540` | 当前 LTS；新增 trace-only state/update organization ledger，降低 #5 state/update/conflict 误分类风险，性能继承 v222 |
+| `configs/stage1_guarded_tail_exchange_rerank_v229_seeded_qwen36_no_think_build4k_cached.json` | current LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v229 vs v225 answer diff `0/500`、`0/1540`；LoCoMo prompt/evidence/retrieval diff `2/1540`，rerank applied `2/1540`，guard skipped `880/1540` | 当前 LTS；source/provenance-aware guarded tail exchange 小幅降低 #2 tail candidate/context noise 风险，性能继承 v225 |
+| `configs/stage1_state_update_organization_ledger_v225_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v225 vs v222 answer/prompt/evidence rows/retrieval hits/selected-context diff `0/500`、`0/1540`；State/Update Organization Ledger `500/500`、`1540/1540` | 被 v229 替代；新增 trace-only state/update organization ledger，降低 #5 state/update/conflict 误分类风险，性能继承 v222 |
 | `configs/stage1_evidence_pressure_ledger_v222_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v222 vs v221 answer/prompt/evidence rows/retrieval hits/selected-context diff `0/500`、`0/1540`；Evidence Pressure Ledger `500/500`、`1540/1540` | 被 v225 替代；新增 trace-only evidence pressure ledger，降低 #2 final evidence tail/session/adjacent pressure 不可诊断风险，性能继承 v221 |
 | `configs/stage1_source_flow_severity_ledger_v221_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v221 vs v217 answer/prompt/evidence rows/retrieval hits/selected-context diff `0/500`、`0/1540`；LoCoMo risk rows `5841/5841` final raw evidence-backed、guarded-rerank eligible `0` | 被 v222 替代；新增 trace-only source-flow severity ledger，降低 #2/#3 误删和误排序风险，性能继承 v217 |
 | `configs/stage1_context_organization_ledger_v217_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v217 vs v216 answer/prompt/evidence rows/retrieval hits/effective selected-context diff `0/500`、`0/1540`；Context Organization Ledger `500/500`、`1540/1540` | 被 v221 替代；新增 trace-only context organization/source-flow ledger，降低 #2/#3 不可诊断风险，性能继承 v216 |
@@ -142,7 +143,8 @@
 
 | 路径 | 内容 |
 |---|---|
-| `diagnostic/stage1_state_update_organization_ledger_v225_scope_summary.md` | 当前 LTS 晋升结论：v225 新增 trace-only State/Update Organization Ledger，full answer/prompt/evidence rows/retrieval hits/selected-context diff 均为 `0`，性能继承 v222 |
+| `diagnostic/stage1_guarded_tail_exchange_rerank_v229_scope_summary.md` | 当前 LTS 晋升结论：v229 source/provenance-aware guarded tail exchange，full answer diff `0/500`、`0/1540`，LoCoMo guard skipped `880/1540`、rerank applied `2/1540` |
+| `diagnostic/stage1_state_update_organization_ledger_v225_scope_summary.md` | previous LTS 晋升结论：v225 新增 trace-only State/Update Organization Ledger，full answer/prompt/evidence rows/retrieval hits/selected-context diff 均为 `0`，性能继承 v222 |
 | `diagnostic/stage1_state_update_organization_ledger_v225_lme_s_full/` | v225 LME full；vs v222 answer/prompt/evidence rows/retrieval hits/selected-context diff `0/500`，State/Update Organization Ledger `500/500` |
 | `diagnostic/stage1_state_update_organization_ledger_v225_locomo_nonadv_full/` | v225 LoCoMo full；vs v222 answer/prompt/evidence rows/retrieval hits/selected-context diff `0/1540`，State/Update Organization Ledger `1540/1540` |
 | `diagnostic/stage1_profile_aware_gated_fact_list_rerank_v228_scope_summary.md` | v228 负向结论：profile-aware gated fact/list rerank clean 但 LoCoMo changed-answer judge `-1/-5`，不升 LTS |
