@@ -721,6 +721,10 @@ def _management_summary(
         else:
             nonmanaged_multi_value_slots += 1
 
+    object_graph = _memory_object_graph_summary(
+        groups,
+        managed_memory_types=managed_memory_types,
+    )
     return {
         "policy": policy,
         "managed_memory_types": sorted(managed_memory_types),
@@ -738,12 +742,134 @@ def _management_summary(
         },
         "managed_lifecycle_slot_count": managed_lifecycle_slots,
         "nonmanaged_multi_value_slot_count": nonmanaged_multi_value_slots,
+        "object_graph": object_graph,
         "clean_note": (
             "Build-time memory management is question-independent and uses only "
             "typed records derived from raw turns. Non-managed multi-value slots "
             "remain active collection facts rather than current-state updates."
         ),
     }
+
+
+def _memory_object_graph_summary(
+    groups: dict[tuple[str, str, str], list[MemoryRecord]],
+    *,
+    managed_memory_types: frozenset[str],
+) -> dict[str, Any]:
+    """Trace-only source-backed object/slot view over managed memories."""
+
+    slot_count = 0
+    lifecycle_slot_count = 0
+    collection_slot_count = 0
+    conflict_slot_count = 0
+    multi_value_active_slot_count = 0
+    source_backed_slot_count = 0
+    layer_counts: dict[str, int] = defaultdict(int)
+    slot_samples: list[dict[str, Any]] = []
+
+    for key, records in sorted(groups.items()):
+        memory_type, subject, predicate = key
+        active_values = _ordered_normalized_values(
+            record.value or record.text
+            for record in records
+            if record.status == "active"
+        )
+        superseded_values = _ordered_normalized_values(
+            record.value or record.text
+            for record in records
+            if record.status == "superseded"
+        )
+        all_values = _ordered_normalized_values(
+            record.value or record.text for record in records
+        )
+        active_source_ids = _ordered_strings(
+            source_id
+            for record in records
+            if record.status == "active"
+            for source_id in record.source_ids
+        )
+        superseded_source_ids = _ordered_strings(
+            source_id
+            for record in records
+            if record.status == "superseded"
+            for source_id in record.source_ids
+        )
+        source_ids = _ordered_strings(
+            source_id for record in records for source_id in record.source_ids
+        )
+        has_lifecycle = bool(superseded_values) or len(all_values) > 1
+        is_managed = memory_type in managed_memory_types
+        if has_lifecycle and is_managed:
+            slot_kind = "managed_lifecycle"
+            lifecycle_slot_count += 1
+        elif has_lifecycle:
+            slot_kind = "collection_multi_value"
+            collection_slot_count += 1
+        else:
+            slot_kind = "single_value"
+        if active_values and superseded_values:
+            conflict_slot_count += 1
+        if len(active_values) > 1:
+            multi_value_active_slot_count += 1
+        if source_ids:
+            source_backed_slot_count += 1
+        layer = _memory_layer(memory_type)
+        layer_counts[layer] += 1
+        slot_count += 1
+        if len(slot_samples) < 12:
+            slot_samples.append(
+                {
+                    "memory_type": memory_type,
+                    "layer": layer,
+                    "slot_kind": slot_kind,
+                    "subject": subject,
+                    "predicate": predicate,
+                    "record_count": len(records),
+                    "active_value_count": len(active_values),
+                    "superseded_value_count": len(superseded_values),
+                    "source_count": len(source_ids),
+                    "active_values": active_values[:4],
+                    "superseded_values": superseded_values[:4],
+                    "active_source_ids": active_source_ids[:6],
+                    "superseded_source_ids": superseded_source_ids[:6],
+                }
+            )
+
+    return {
+        "trace_only": True,
+        "slot_count": slot_count,
+        "managed_lifecycle_slot_count": lifecycle_slot_count,
+        "collection_multi_value_slot_count": collection_slot_count,
+        "conflict_slot_count": conflict_slot_count,
+        "multi_value_active_slot_count": multi_value_active_slot_count,
+        "source_backed_slot_count": source_backed_slot_count,
+        "layer_counts": dict(sorted(layer_counts.items())),
+        "slots": slot_samples,
+        "clean_note": (
+            "Trace-only build-stage object graph. Slots are grouped from "
+            "source-backed typed memory records by memory_type, subject, and "
+            "predicate; the graph is not used by retrieval, compiler, answer, "
+            "repair, finalizer, or cache keys."
+        ),
+    }
+
+
+def _ordered_normalized_values(values: Any) -> list[str]:
+    return _ordered_strings(
+        _normalize_key_text(value) for value in values if _normalize_key_text(value)
+    )
+
+
+def _ordered_strings(values: Any) -> list[str]:
+    result: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        text = str(value or "").strip()
+        if not text or text in seen:
+            continue
+        seen.add(text)
+        result.append(text)
+    return result
 
 
 def _memory_layer(memory_type: str) -> str:

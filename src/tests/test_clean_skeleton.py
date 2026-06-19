@@ -19,7 +19,7 @@ from memory.answer import (
     _message_text,
     _parse_answer_content,
 )
-from memory.build import BuiltMemory, MemoryRecord
+from memory.build import BuiltMemory, MemoryRecord, _management_summary
 from memory.compiler import EvidenceCompiler
 from memory.finalize import (
     finalize_structured_answer,
@@ -2722,6 +2722,71 @@ class CleanSkeletonTest(unittest.TestCase):
             [record.memory_id for record in combined],
             ["mem-retrieval", "mem-row"],
         )
+
+    def test_build_management_summary_includes_source_backed_object_graph(self) -> None:
+        old_city = MemoryRecord(
+            memory_id="m-old-city",
+            memory_type="state",
+            text="User lived in Austin.",
+            source_ids=("s1:t1",),
+            subject="user",
+            predicate="location",
+            value="Austin",
+            status="superseded",
+            superseded_by="m-new-city",
+        )
+        new_city = MemoryRecord(
+            memory_id="m-new-city",
+            memory_type="state",
+            text="User now lives in Seattle.",
+            source_ids=("s2:t1",),
+            subject="user",
+            predicate="location",
+            value="Seattle",
+            status="active",
+        )
+        hobby_one = MemoryRecord(
+            memory_id="m-hobby-one",
+            memory_type="fact",
+            text="User likes hiking.",
+            source_ids=("s3:t1",),
+            subject="user",
+            predicate="hobby",
+            value="hiking",
+            status="active",
+        )
+        hobby_two = MemoryRecord(
+            memory_id="m-hobby-two",
+            memory_type="fact",
+            text="User likes pottery.",
+            source_ids=("s4:t1",),
+            subject="user",
+            predicate="hobby",
+            value="pottery",
+            status="active",
+        )
+
+        summary = _management_summary(
+            (old_city, new_city, hobby_one, hobby_two),
+            policy="stateful_only",
+            managed_memory_types=frozenset(
+                {"preference", "profile", "relationship", "state"}
+            ),
+        )
+
+        graph = summary["object_graph"]
+        self.assertTrue(graph["trace_only"])
+        self.assertEqual(graph["slot_count"], 2)
+        self.assertEqual(graph["managed_lifecycle_slot_count"], 1)
+        self.assertEqual(graph["collection_multi_value_slot_count"], 1)
+        self.assertEqual(graph["conflict_slot_count"], 1)
+        self.assertEqual(graph["multi_value_active_slot_count"], 1)
+        city_slot = next(
+            slot for slot in graph["slots"] if slot["predicate"] == "location"
+        )
+        self.assertEqual(city_slot["slot_kind"], "managed_lifecycle")
+        self.assertEqual(city_slot["active_values"], ["seattle"])
+        self.assertEqual(city_slot["superseded_values"], ["austin"])
 
     def test_memory_lifecycle_manifest_is_trace_only_and_source_grounded(self) -> None:
         old_record = MemoryRecord(
