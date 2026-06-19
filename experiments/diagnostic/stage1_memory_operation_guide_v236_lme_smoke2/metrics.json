@@ -3,11 +3,11 @@
   "answer": {
     "base_url": "http://127.0.0.1:8000/v1",
     "cache_enabled": true,
-    "cache_hits": 0,
-    "cache_misses": 2,
+    "cache_hits": 2,
+    "cache_misses": 0,
     "cache_namespace": "stage1_memory_operation_guide_v236_seeded_qwen36_no_think_build4k",
     "cache_path": "outputs/cache/qwen36_no_think_build4k_answer_v236_memory_operation_guide.sqlite",
-    "cache_writes": 2,
+    "cache_writes": 0,
     "chat_template_kwargs": {
       "enable_thinking": false
     },
@@ -188,7 +188,7 @@
     "avg_event_time_candidate_manifest_items": 12.0,
     "avg_event_time_candidate_map_audit_prompt_candidates": null,
     "avg_event_time_candidate_map_audit_risk_flags": null,
-    "avg_memory_operation_guide_entries": 13.0,
+    "avg_memory_operation_guide_entries": 4.0,
     "candidate_guide": false,
     "candidate_guide_information_needs": null,
     "candidate_guide_max_rows": 6,
@@ -277,15 +277,14 @@
       "temporal_lookup"
     ],
     "memory_operation_guide_layer_counts": {
-      "episodic": 3,
-      "profile_state": 5,
-      "prospective": 5
+      "episodic": 2,
+      "profile_state": 2
     },
     "memory_operation_guide_max_records": 4,
     "memory_operation_guide_operation_counts": {
       "retain_active": 1,
-      "retain_collection": 8,
-      "supersede": 4
+      "retain_collection": 2,
+      "supersede": 1
     },
     "memory_operation_guide_record_source": "evidence_rows",
     "memory_operation_guide_value_chars": 100,

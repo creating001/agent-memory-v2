@@ -18,7 +18,7 @@ Stage-1 clean skeleton run: validate raw evidence storage, lexical retrieval, ne
 ## Git
 
 - inside_work_tree: True
-- commit: c79545cd825f5edc0a28bc4a1ff412f7aa4e6c2e
+- commit: d4fddeef5246229c57f8ccf07741d6b57f49b1f2
 - dirty: True
 - note: None
 
@@ -185,9 +185,9 @@ Stage-1 clean skeleton run: validate raw evidence storage, lexical retrieval, ne
 - answer_cache_enabled: True
 - answer_cache_path: outputs/cache/qwen36_no_think_build4k_answer_v236_memory_operation_guide.sqlite
 - answer_cache_namespace: stage1_memory_operation_guide_v236_seeded_qwen36_no_think_build4k
-- answer_cache_hits: 0
-- answer_cache_misses: 2
-- answer_cache_writes: 2
+- answer_cache_hits: 2
+- answer_cache_misses: 0
+- answer_cache_writes: 0
 - answer_finalizer_enabled: False
 - answer_finalizer_mode: source_grounded_consistency_guard
 - answer_finalizer_enable_count_correction: False
@@ -351,9 +351,9 @@ Stage-1 clean skeleton run: validate raw evidence storage, lexical retrieval, ne
 - memory_operation_guide_include_collections: True
 - memory_operation_guide_applied_count: 1
 - memory_operation_guide_applied_rate: 0.5
-- avg_memory_operation_guide_entries: 13.0
-- memory_operation_guide_operation_counts: {'retain_active': 1, 'retain_collection': 8, 'supersede': 4}
-- memory_operation_guide_layer_counts: {'episodic': 3, 'profile_state': 5, 'prospective': 5}
+- avg_memory_operation_guide_entries: 4.0
+- memory_operation_guide_operation_counts: {'retain_active': 1, 'retain_collection': 2, 'supersede': 1}
+- memory_operation_guide_layer_counts: {'episodic': 2, 'profile_state': 2}
 - profile_activation_guide: False
 - profile_activation_guide_information_needs: None
 - profile_activation_guide_max_records: 4

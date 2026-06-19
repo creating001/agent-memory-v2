@@ -179,9 +179,9 @@ The run validates pipeline shape, clean traceability, and answerer integration u
 - answer_cache_enabled: True
 - answer_cache_path: outputs/cache/qwen36_no_think_build4k_answer_v236_memory_operation_guide.sqlite
 - answer_cache_namespace: stage1_memory_operation_guide_v236_seeded_qwen36_no_think_build4k
-- answer_cache_hits: 0
-- answer_cache_misses: 2
-- answer_cache_writes: 2
+- answer_cache_hits: 2
+- answer_cache_misses: 0
+- answer_cache_writes: 0
 - answer_finalizer_enabled: False
 - answer_finalizer_mode: source_grounded_consistency_guard
 - answer_finalizer_enable_count_correction: False

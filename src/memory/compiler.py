@@ -1153,7 +1153,7 @@ class EvidenceCompiler:
                 route=route,
                 rows=laid_out_rows,
                 memory_records=selected_memory_operation_guide_records,
-                max_records=route_settings["memory_operation_guide_candidate_records"],
+                max_records=route_settings["memory_operation_guide_max_records"],
                 max_value_chars=route_settings["memory_operation_guide_value_chars"],
                 include_superseded=route_settings[
                     "memory_operation_guide_include_superseded"
