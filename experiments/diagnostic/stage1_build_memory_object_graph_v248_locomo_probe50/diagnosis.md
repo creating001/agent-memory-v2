@@ -1,0 +1,235 @@
+# Diagnosis for stage1_build_memory_object_graph_v248_locomo_probe50
+
+## Summary
+
+The run validates pipeline shape, clean traceability, and answerer integration under the configured experiment kind.
+
+## Observations
+
+- samples_processed: 50
+- avg_compiled_evidence_items: 49.04
+- avg_build_tokens: 45868.0
+- avg_build_think_tokens: 0.0
+- avg_build_total_tokens: 45868.0
+- build_token_accounting: logical cold-build visible LLM tokens; cached build chunks count from stored usage, while cache hits only avoid repeated local API calls.
+- avg_build_memory_records: 112.0
+- avg_active_build_memory_records: 98.0
+- build_memory_temporal_fields: False
+- build_memory_prompt_profile: typed_compact
+- build_memory_manage_facts: False
+- build_memory_management_policy: stateful_only
+- build_memory_management_policy_counts: {'stateful_only': 50}
+- build_memory_management_operation_counts: {'create': 5600, 'retain_active': 4900, 'supersede': 700, 'retain_collection_multi_value_slot': 400}
+- build_memory_management_layer_counts: {'episodic': 1900, 'profile_state': 2950, 'prospective': 350, 'semantic': 400}
+- avg_build_memory_collection_retained_records: 8.0
+- avg_build_memory_managed_lifecycle_slots: 8.0
+- avg_build_memory_nonmanaged_multi_value_slots: 8.0
+- build_memory_overlap_turns: 0
+- build_memory_cache_hits: 300
+- build_memory_cache_misses: 0
+- build_memory_cache_writes: 0
+- build_memory_source_alignment: {}
+- build_memory_source_alignment_changed_records: 0
+- build_memory_source_alignment_added_sources: 0
+- avg_build_memory_source_alignment_changed_records: 0.0
+- avg_build_memory_source_alignment_added_sources: 0.0
+- avg_memory_hits: 20.0
+- avg_memory_source_hits: 27.72
+- build_memory_include_superseded: False
+- build_memory_include_superseded_information_needs: ['temporal_lookup', 'list_count', 'profile_preference', 'current_state']
+- avg_context_chars: 17078.16
+- avg_query_tokens: 6543.56
+- avg_query_think_tokens: 0.0
+- avg_query_total_tokens: 6543.56
+- token_accounting_note: avg_build_tokens / avg_query_tokens exclude explicit reasoning tokens when the provider reports them; avg_*_total_tokens include visible plus think tokens.
+- retrieval_route_overrides: {'temporal_lookup': {'top_k': 40, 'max_top_k': 40, 'dense_top_k': 40, 'lexical_protect_top_n': 0, 'dense_protect_top_n': 32}}
+- retrieval_route_override_precedence: after_profile
+- avg_effective_top_k: 50.4
+- avg_effective_dense_top_k: 50.4
+- avg_effective_dense_protect_top_n: 40.32
+- dense_protect_top_n: 48
+- turn_window_bm25_enabled: False
+- turn_window_top_k: None
+- turn_window_window_before: None
+- turn_window_window_after: None
+- turn_window_max_sources_per_window: None
+- turn_window_bm25_applied_count: 0
+- turn_window_bm25_applied_rate: 0.0
+- avg_turn_window_hits: 0.0
+- avg_turn_window_source_hits: 0.0
+- granularity_profile_audit_enabled: True
+- granularity_profile_audit_selected_count: 0
+- granularity_profile_audit_behavior_risk_count: 0
+- selected_context_enabled: True
+- selected_context_applied_count: 49
+- selected_context_applied_rate: 0.98
+- selected_context_budget_gate_applied_count: 0
+- selected_context_budget_gate_blocked_count: 0
+- avg_selected_context_budget_gate_headroom_chars: None
+- avg_selected_context_materialized_rows: 4.92
+- avg_selected_context_skipped_long_center_rows: 2.04
+- avg_selected_context_skipped_question_reference_center_rows: 0.0
+- selected_context_risk_audit_enabled: True
+- selected_context_risk_audit_applied_count: 49
+- selected_context_risk_audit_risk_count: 168
+- avg_selected_context_risk_audit_audited_rows: 4.92
+- avg_selected_context_risk_audit_risk_rows: 3.36
+- rerank_enabled: True
+- rerank_model: Qwen/Qwen3-Reranker-0.6B
+- rerank_pool_k: 60
+- rerank_return_top_k: 56
+- rerank_document_text_mode: turn_with_neighbors_and_memory
+- rerank_document_neighbor_window: 1
+- rerank_document_max_memory_records: 2
+- rerank_anchor_keep: 52
+- rerank_anchor_after_top: 0
+- rerank_exchange_guard_enabled: True
+- rerank_exchange_guard_skipped_count: 16
+- rerank_exchange_guard_skipped_reasons: {'exchange_tail_protected_adjacent_session': 1, 'exchange_tail_protected_memory_source': 15}
+- rerank_applied_count: 0
+- rerank_applied_rate: 0.0
+- avg_rerank_candidate_count: None
+- avg_rerank_returned_count: None
+- avg_rerank_tokens_when_applied: None
+- context_budget_enabled: True
+- context_budget_applied_count: 50
+- context_budget_applied_rate: 1.0
+- avg_context_budget_candidate_count: 50.4
+- avg_context_budget_returned_count: 50.4
+- avg_context_budget_estimated_chars: 6397.1
+- avg_context_budget_dropped_count: 0.0
+- context_budget_audit_enabled: True
+- context_budget_audit_applied_count: 50
+- context_budget_audit_applied_rate: 1.0
+- avg_context_budget_audit_candidate_count: 50.4
+- avg_context_budget_audit_returned_count: 50.4
+- avg_context_budget_audit_dropped_count: 0.0
+- context_budget_audit_prompt_risk_count: 0
+- avg_context_budget_audit_prompt_missing_rows: 0.0
+- context_budget_audit_selected_context_risk_count: 0
+- avg_context_budget_audit_selected_context_missing_rows: 0.0
+- embedding_cache_enabled: True
+- embedding_cache_hits: 469
+- embedding_cache_misses: 0
+- evidence_order: retrieval
+- memory_record_source: retrieval
+- avg_compiled_memory_records: 0.0
+- memory_order: retrieval
+- memory_layout: flat
+- row_text_mode: full
+- max_row_text_chars: 0
+- evidence_row_labels: False
+- final_answer_checklist: False
+- max_memory_records: 0
+- route_guidance: False
+- temporal_workpad: True
+- temporal_text_normalization: True
+- temporal_event_contract: True
+- temporal_workpad_scope: route
+- temporal_workpad_max_rows: 12
+- temporal_workpad_max_pairs: 12
+- event_timeline: False
+- event_timeline_information_needs: None
+- event_timeline_max_rows: 12
+- event_timeline_snippet_chars: 180
+- operation_workpad_question_gate: False
+- personalized_advice_contract: False
+- personalized_advice_contract_applied: 0
+- context_pressure_enabled: False
+- context_pressure_applied_count: 0
+- context_pressure_applied_rate: 0.0
+- avg_context_pressure_headroom_chars: None
+- structured_guide: True
+- structured_guide_max_rows: 12
+- structured_guide_include_rows: True
+- structured_guide_include_memory: False
+- structured_guide_disabled_signals: ['personalized_recommendation']
+- structured_answer_contract: False
+- structured_answer_contract_information_needs: None
+- structured_answer_contract_max_items: 10
+- evidence_report_contract: True
+- evidence_report_information_needs: ['current_state', 'fact_lookup', 'list_count', 'profile_preference', 'temporal_lookup']
+- evidence_report_max_items: 8
+- evidence_report_detail: False
+- aggregation_report_contract: False
+- aggregation_report_information_needs: None
+- candidate_guide: False
+- candidate_guide_information_needs: None
+- candidate_guide_max_rows: 6
+- candidate_guide_snippet_chars: 160
+- update_conflict_guide: False
+- update_conflict_guide_information_needs: None
+- update_conflict_guide_max_rows: 6
+- update_conflict_guide_snippet_chars: 180
+- update_conflict_guide_applied: 0
+- current_state_update_contract: False
+- dialogue_inference_contract: False
+- temporal_order_contract: False
+- source_anchor_keep: 0
+- source_anchor_memory_rows: 0
+- source_anchor_per_session: 0
+- source_anchor_session_rows: 0
+- route_overrides: {'temporal_lookup': {'max_evidence_items': 40, 'max_evidence_chars': 18000}, 'fact_lookup': {'grounded_inference_contract': True, 'grounded_inference_gate': 'modal_only'}, 'profile_preference': {'grounded_inference_contract': True, 'grounded_inference_gate': 'modal_only', 'evidence_order': 'memory_source_interleave', 'source_anchor_keep': 32, 'source_anchor_memory_rows': 4, 'source_anchor_per_session': 1, 'source_anchor_session_rows': 0}, 'current_state': {'grounded_inference_contract': True, 'grounded_inference_gate': 'modal_only', 'evidence_order': 'memory_source_interleave', 'source_anchor_keep': 32, 'source_anchor_memory_rows': 4, 'source_anchor_per_session': 1, 'source_anchor_session_rows': 0}}
+- enable_recommendation_profile_patterns: True
+- enable_advice_profile_patterns: False
+- temporal_priority_over_recent: False
+- answer_max_input_tokens: 131072
+- answer_max_output_tokens: 16384
+- answer_chat_template_kwargs: {'enable_thinking': False}
+- answer_cache_enabled: True
+- answer_cache_path: outputs/cache/qwen36_no_think_build4k_answer_v235_no_finalizer_seeded.sqlite
+- answer_cache_namespace: stage1_no_finalizer_v235_seeded_qwen36_no_think_build4k
+- answer_cache_hits: 50
+- answer_cache_misses: 0
+- answer_cache_writes: 0
+- answer_finalizer_enabled: False
+- answer_finalizer_mode: source_grounded_consistency_guard
+- answer_finalizer_enable_count_correction: False
+- answer_finalizer_enable_evidence_report_count_correction: False
+- answer_finalizer_enable_money_sum_correction: True
+- answer_finalizer_enable_duration_rounding_correction: False
+- answer_finalizer_enable_missing_detail: False
+- answer_finalizer_enable_relative_time_calculation: False
+- answer_finalizer_enable_numeric_slot_label_preservation: True
+- answer_finalizer_enable_source_value_specificity_preservation: True
+- answer_finalizer_enable_profile_preference_value_preservation: True
+- answer_finalizer_applied_count: 0
+- answer_finalizer_applied_rate: 0.0
+- answer_repair_enabled: False
+- answer_repair_mode: openai_compatible
+- answer_repair_model: Qwen/Qwen3.6-35B-A3B
+- answer_repair_max_input_tokens: 131072
+- answer_repair_max_output_tokens: 16384
+- answer_repair_information_needs: ['current_state', 'fact_lookup', 'profile_preference', 'temporal_lookup', 'list_count']
+- answer_repair_uncertain_trigger_information_needs: ['current_state']
+- answer_repair_enable_profile_preference_trigger: False
+- answer_repair_enable_profile_advice_abstention_trigger: True
+- answer_repair_enable_cross_route_profile_advice_abstention_trigger: True
+- answer_repair_cross_route_profile_advice_abstention_information_needs: ['fact_lookup', 'list_count']
+- answer_repair_enable_modal_abstention_trigger: True
+- answer_repair_modal_abstention_information_needs: ['current_state']
+- answer_repair_enable_source_grounded_modal_inference_trigger: True
+- answer_repair_source_grounded_modal_inference_information_needs: ['fact_lookup', 'profile_preference']
+- answer_repair_source_grounded_modal_min_support_items: 2
+- answer_repair_enable_source_grounded_temporal_calculation_trigger: True
+- answer_repair_source_grounded_temporal_calculation_information_needs: ['current_state', 'fact_lookup', 'temporal_lookup']
+- answer_repair_source_grounded_temporal_calculation_min_support_items: 1
+- answer_repair_enable_source_grounded_temporal_order_trigger: False
+- answer_repair_source_grounded_temporal_order_information_needs: None
+- answer_repair_source_grounded_temporal_order_min_support_items: 3
+- answer_repair_triggered_count: 0
+- answer_repair_triggered_rate: 0.0
+- answer_repair_applied_count: 0
+- answer_repair_applied_rate: 0.0
+- answer_repair_total_query_tokens: 0
+- answer_repair_avg_query_tokens_when_triggered: None
+- answer_repair_cache_hits: 0
+- answer_repair_cache_misses: 0
+- answer_repair_cache_writes: 0
+- answer: OpenAI-compatible answerer using Qwen/Qwen3.6-35B-A3B at http://127.0.0.1:8000/v1 with temperature 0, max_input_tokens 131072, and max_output_tokens 16384, chat_template_kwargs {'enable_thinking': False}.
+
+## Next Steps
+
+- Use offline lexical, judge, and evidence-recall scripts to diagnose quality after prediction is complete.
+- Compare typed build memory on/off before adding more expensive answer-time reasoning.
+- Keep each new method behind explicit config toggles for ablation.
