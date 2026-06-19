@@ -7300,6 +7300,10 @@ class CleanSkeletonTest(unittest.TestCase):
                 "memory_state_guide_require_active_superseded_pair": True,
                 "memory_state_guide_require_slot_overlap": True,
                 "memory_state_guide_require_stateful_slot": True,
+                "memory_operation_guide": True,
+                "memory_operation_guide_information_needs": ["current_state"],
+                "memory_operation_guide_record_source": "evidence_rows",
+                "memory_operation_guide_candidate_records": 12,
             },
             "answer": {"fallback_answer": "I do not know."},
         }
@@ -7353,6 +7357,17 @@ class CleanSkeletonTest(unittest.TestCase):
         )
         self.assertEqual(
             result["trace"]["retrieval"]["compiler_memory_state_guide_record_source"],
+            "evidence_rows",
+        )
+        self.assertTrue(result["trace"]["compiler"]["memory_operation_guide"])
+        self.assertEqual(
+            result["trace"]["compiler"]["memory_operation_guide_record_source"],
+            "evidence_rows",
+        )
+        self.assertEqual(
+            result["trace"]["retrieval"][
+                "compiler_memory_operation_guide_record_source"
+            ],
             "evidence_rows",
         )
         self.assertIn(

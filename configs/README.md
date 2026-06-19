@@ -8,6 +8,12 @@
 |---|---|---|
 | 后续新实验默认配置 | `stage1_no_finalizer_v235_seeded_qwen36_no_think_build4k_cached.json` | 当前本地 v235 LTS。继承 v233 build-time `stateful_only` memory management 和 v234 no-repair path，并关闭 no-op finalizer；LongMemEval-S strict/lenient `0.832000 / 0.844000`，LoCoMo `0.794156 / 0.819481`。 |
 
+## 近期候选
+
+| 配置 | 状态 |
+|---|---|
+| `stage1_memory_operation_guide_v236_seeded_qwen36_no_think_build4k_cached.json` | v236 candidate；用 source-backed Memory Operations Guide 替代 narrow current-state guide，覆盖 current_state/list_count/profile_preference/temporal_lookup，保持 `max_memory_records=0`。已通过 unit tests 和 LME smoke2；full accuracy 未跑，不能替代当前 LTS。 |
+
 ## 保留对照
 
 | 配置 | 作用 |

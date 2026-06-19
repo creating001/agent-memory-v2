@@ -367,6 +367,144 @@ class CompilerTest(unittest.TestCase):
         self.assertEqual(ledger["entries"][0]["value"], "five engineers")
         self.assertEqual(ledger["entries"][0]["source_labels"], ("Memory 2",))
 
+    def test_memory_operation_guide_links_collection_and_lifecycle_to_raw_rows(
+        self,
+    ) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=6,
+            max_evidence_chars=5000,
+            prompt_mode="external_naive",
+            max_memory_records=0,
+            memory_operation_guide=True,
+            memory_operation_guide_information_needs=("list_count",),
+            memory_operation_guide_max_records=8,
+            memory_operation_guide_candidate_records=8,
+        )
+
+        compiled = compiler.compile(
+            question="Which cities did Alex visit, and where does Alex live now?",
+            question_time=None,
+            route=RouteResult("list_count", ("list_or_count",)),
+            hits=(
+                RetrievalHit("s1:t0", 1.0, 1, "test"),
+                RetrievalHit("s2:t0", 0.9, 2, "test"),
+                RetrievalHit("s3:t0", 0.8, 3, "test"),
+                RetrievalHit("s4:t0", 0.7, 4, "test"),
+            ),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Alex visited Paris.",
+                    timestamp="2024-01-01",
+                ),
+                Turn(
+                    source_id="s2:t0",
+                    session_id="s2",
+                    turn_index=0,
+                    role="user",
+                    text="Alex visited Berlin.",
+                    timestamp="2024-02-01",
+                ),
+                Turn(
+                    source_id="s3:t0",
+                    session_id="s3",
+                    turn_index=0,
+                    role="user",
+                    text="Alex live Austin before the move.",
+                    timestamp="2024-03-01",
+                ),
+                Turn(
+                    source_id="s4:t0",
+                    session_id="s4",
+                    turn_index=0,
+                    role="user",
+                    text="Alex live Seattle now.",
+                    timestamp="2024-04-01",
+                ),
+            ),
+            memory_records=(),
+            memory_operation_guide_records=(
+                MemoryRecord(
+                    memory_id="visit_paris",
+                    memory_type="fact",
+                    text="Alex visited Paris.",
+                    source_ids=("s1:t0",),
+                    subject="Alex",
+                    predicate="visited",
+                    value="Paris",
+                    timestamp="2024-01-01",
+                    status="active",
+                ),
+                MemoryRecord(
+                    memory_id="visit_berlin",
+                    memory_type="fact",
+                    text="Alex visited Berlin.",
+                    source_ids=("s2:t0",),
+                    subject="Alex",
+                    predicate="visited",
+                    value="Berlin",
+                    timestamp="2024-02-01",
+                    status="active",
+                ),
+                MemoryRecord(
+                    memory_id="old_home",
+                    memory_type="state",
+                    text="Alex live Austin.",
+                    source_ids=("s3:t0",),
+                    subject="Alex",
+                    predicate="live",
+                    value="Austin",
+                    timestamp="2024-03-01",
+                    status="superseded",
+                    superseded_by="new_home",
+                ),
+                MemoryRecord(
+                    memory_id="new_home",
+                    memory_type="state",
+                    text="Alex live Seattle.",
+                    source_ids=("s4:t0",),
+                    subject="Alex",
+                    predicate="live",
+                    value="Seattle",
+                    timestamp="2024-04-01",
+                    status="active",
+                ),
+                MemoryRecord(
+                    memory_id="hidden",
+                    memory_type="fact",
+                    text="Alex visited Rome.",
+                    source_ids=("s9:t0",),
+                    subject="Alex",
+                    predicate="visited",
+                    value="Rome",
+                    timestamp="2024-05-01",
+                    status="active",
+                ),
+            ),
+        )
+
+        self.assertEqual(compiled.memory_records, ())
+        self.assertIn("Memory Operations Guide:", compiled.prompt)
+        self.assertIn("operation=retain_collection_multi_value_slot", compiled.prompt)
+        self.assertIn("operation=supersede", compiled.prompt)
+        self.assertIn("operation=retain_active", compiled.prompt)
+        self.assertIn("sources=Memory 1", compiled.prompt)
+        self.assertIn("sources=Memory 4", compiled.prompt)
+        self.assertIn("not independent evidence", compiled.prompt)
+        self.assertNotIn("Rome", compiled.prompt)
+
+        ledger = compiled.diagnostics["source_backed_memory_operation_ledger"]
+        self.assertTrue(ledger["applied"])
+        self.assertEqual(ledger["entry_count"], 4)
+        self.assertEqual(
+            ledger["operation_counts"]["retain_collection_multi_value_slot"], 2
+        )
+        self.assertEqual(ledger["operation_counts"]["supersede"], 1)
+        self.assertEqual(ledger["operation_counts"]["retain_active"], 1)
+
     def test_memory_state_guide_skips_unlinked_memory(self) -> None:
         compiler = EvidenceCompiler(
             max_evidence_items=4,
