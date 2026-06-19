@@ -26,7 +26,7 @@
 
 | 优先级 | 项目 | 当前状态 | 下一步 |
 |---:|---|---|---|
-| 1 | #2 top-k/context noise/rerank | v222 显式记录 final evidence pressure：LME tail after rank `32` 为 `2016` rows，LoCoMo tail after rank `40` 为 `21780` rows；v226 fact/list tail rerank probe 因 candidate pool 扩张导致 LME prompt/evidence diff `18/50`、LoCoMo answer diff `32/80`；v223/v224 final cap 和 v210/v215 prompt 压缩均负向 | 下一步不要做宽 final row cap 或 selected-context 包装硬删；rerank 只能在 pre-rerank effective top-k 足够大、确有 tail 区域时触发，并要求 final evidence set/prompt 有窄 diff 后再 judge |
+| 1 | #2 top-k/context noise/rerank | v222 显式记录 final evidence pressure：LME tail after rank `32` 为 `2016` rows，LoCoMo tail after rank `40` 为 `21780` rows；v226 fact/list tail rerank probe 因 candidate pool 扩张导致 LME prompt/evidence diff `18/50`、LoCoMo answer diff `32/80`；v227 top-k gate 生效但暴露 route override 覆盖 long-context profile 的配置风险 | 下一步不要做宽 final row cap 或 selected-context 包装硬删；rerank 只能在 pre-rerank effective top-k 足够大、确有 tail 区域时触发，且 route override 必须尊重 granularity profile |
 | 2 | #3 selected context | v221 将 v217 的 risk rows 拆成 evidence-backed severity；v218/v219 hard gate 和 v220 nearby timestamp removal 都降低局部风险或 token，但 changed judge 分别 `-5/-12`、`-4/-1`、`-4/-3` | 保留 selected-context 原文保真路径；后续只允许用 severity 作为审计或极窄 ordering guard，不能把 final evidence-backed local context 当可删除噪声 |
 | 3 | #5 memory lifecycle/state/conflict/query-time reasoning | v225 新增 State/Update Organization Ledger：LME/LoCoMo `500/500`、`1540/1540`；activated update slots `156`、`422`，并把 ordinary non-state multi-value slots 单独标出 | 下一步从 audit 走向窄行为：只在 source-backed active/superseded lifecycle chain 上触发 state/update verifier 或 compiler guide；普通多值 fact/list/preference 不进入 stale-conflict 逻辑 |
 | 4 | src cleanup | 已有多轮兼容分支，`repair.py`、compiler、pipeline 仍会继续变复杂 | 每个阶段结束后做小范围清理，删已确认无用的兼容代码，不删仍有消融价值的模块 |
@@ -88,6 +88,7 @@
 
 | 配置 | 原因 |
 |---|---|
+| `stage1_gated_fact_list_tail_rerank_filter_v227_seeded_qwen36_no_think_build4k_cached.json` | v227 修复 v226 fact/list 低 top-k 扩池问题，LME probe50 rerank applied `0/50`、fact/list top-k gate skip `36/36`；但继承的 current/profile route override 覆盖 long-context profile，导致 profile_preference prompt/evidence diff `1/50`，scope 仍不干净，不升 LTS、不跑 full judge。 |
 | `stage1_fact_list_tail_rerank_filter_v226_seeded_qwen36_no_think_build4k_cached.json` | v226 的 fact/list tail rerank 是 clean/source-preserving，但 pipeline 按 information need 扩 candidate pool 到 `60`，导致 scope 过宽：LME probe50 prompt/evidence diff `18/50`、answer diff `6/50`，LoCoMo probe80 answer diff `32/80`、fact_lookup evidence diff `22/27`，且 rerank 额外 tokens 高；不升 LTS、不跑 full judge。 |
 | `stage1_profile_tail_cap56_v224_seeded_qwen36_no_think_build4k_cached.json` | v224 profile-only final evidence cap56 是 clean/source-preserving，LME no-op、LoCoMo prompt/evidence diff `40/1540`、answer diff `18/1540`，avg query tokens `6095.268 -> 6089.123`；changed-answer dual judge `13/18 -> 12/18` strict、`13/18 -> 13/18` lenient，严格正确率下降且 token 收益太小，不升 LTS。 |
 | `stage1_route_tail_cap56_v223_seeded_qwen36_no_think_build4k_cached.json` | v223 route-scoped final evidence cap56 是 clean/source-preserving，LME no-op、LoCoMo avg query tokens `6095.268 -> 5980.044`，但 prompt/evidence diff `927/1540`、answer diff `369/1540`，changed-answer dual judge `258/369 -> 245/369` strict、`273/369 -> 261/369` lenient，derived LoCoMo full `0.785065/0.811039`，不升 LTS。 |
@@ -143,6 +144,7 @@
 | `diagnostic/stage1_state_update_organization_ledger_v225_scope_summary.md` | 当前 LTS 晋升结论：v225 新增 trace-only State/Update Organization Ledger，full answer/prompt/evidence rows/retrieval hits/selected-context diff 均为 `0`，性能继承 v222 |
 | `diagnostic/stage1_state_update_organization_ledger_v225_lme_s_full/` | v225 LME full；vs v222 answer/prompt/evidence rows/retrieval hits/selected-context diff `0/500`，State/Update Organization Ledger `500/500` |
 | `diagnostic/stage1_state_update_organization_ledger_v225_locomo_nonadv_full/` | v225 LoCoMo full；vs v222 answer/prompt/evidence rows/retrieval hits/selected-context diff `0/1540`，State/Update Organization Ledger `1540/1540` |
+| `diagnostic/stage1_gated_fact_list_tail_rerank_filter_v227_scope_summary.md` | v227 负向结论：fact/list top-k gate 生效，但 route override 覆盖 long-context profile 导致 LME probe50 profile diff `1/50`，不升 LTS |
 | `diagnostic/stage1_fact_list_tail_rerank_filter_v226_scope_summary.md` | v226 负向结论：fact/list tail rerank 扩大 candidate pool 后漂移过宽，LME probe50 answer diff `6/50`、LoCoMo probe80 answer diff `32/80`，不升 LTS、不跑 full judge |
 | `diagnostic/stage1_evidence_pressure_ledger_v222_scope_summary.md` | previous LTS 晋升结论：v222 新增 trace-only Evidence Pressure Ledger，full answer/prompt/evidence rows/retrieval hits/selected-context diff 均为 `0`，LoCoMo tail after rank `40` 为 `21780` rows / `2789101` chars |
 | `diagnostic/stage1_evidence_pressure_ledger_v222_lme_s_full/` | v222 LME full；vs v221 answer/prompt/evidence rows/retrieval hits/selected-context diff `0/500`，Evidence Pressure Ledger `500/500` |
