@@ -833,6 +833,12 @@ class Stage1Pipeline:
             memory_state_guide_require_conflict=bool(
                 compiler_config.get("memory_state_guide_require_conflict", False)
             ),
+            memory_state_guide_require_slot_overlap=bool(
+                compiler_config.get("memory_state_guide_require_slot_overlap", False)
+            ),
+            memory_state_guide_require_stateful_slot=bool(
+                compiler_config.get("memory_state_guide_require_stateful_slot", False)
+            ),
             profile_activation_guide=bool(
                 compiler_config.get("profile_activation_guide", False)
             ),
@@ -4461,6 +4467,12 @@ def _compiler_trace_config(
         "memory_state_guide_require_conflict": bool(
             compiler_config.get("memory_state_guide_require_conflict", False)
         ),
+        "memory_state_guide_require_slot_overlap": bool(
+            compiler_config.get("memory_state_guide_require_slot_overlap", False)
+        ),
+        "memory_state_guide_require_stateful_slot": bool(
+            compiler_config.get("memory_state_guide_require_stateful_slot", False)
+        ),
         "profile_activation_guide": bool(
             compiler_config.get("profile_activation_guide", False)
         ),
@@ -4786,6 +4798,12 @@ def _configured_compiler(compiler_config: Mapping[str, Any]) -> EvidenceCompiler
         ),
         memory_state_guide_require_conflict=bool(
             compiler_config.get("memory_state_guide_require_conflict", False)
+        ),
+        memory_state_guide_require_slot_overlap=bool(
+            compiler_config.get("memory_state_guide_require_slot_overlap", False)
+        ),
+        memory_state_guide_require_stateful_slot=bool(
+            compiler_config.get("memory_state_guide_require_stateful_slot", False)
         ),
         profile_activation_guide=bool(
             compiler_config.get("profile_activation_guide", False)

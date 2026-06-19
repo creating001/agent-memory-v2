@@ -36,6 +36,63 @@ MAX_RELATIVE_TIME_SPANS = {
     "year": 100,
 }
 MEMORY_STATE_GUIDE_VALUE_CONFLICT_TYPES = {"fact", "preference", "profile", "state"}
+MEMORY_STATE_GUIDE_ALIGNMENT_WEAK_TERMS = {
+    "a",
+    "about",
+    "after",
+    "an",
+    "and",
+    "are",
+    "at",
+    "been",
+    "before",
+    "current",
+    "did",
+    "does",
+    "for",
+    "from",
+    "got",
+    "had",
+    "has",
+    "have",
+    "her",
+    "his",
+    "how",
+    "i",
+    "in",
+    "is",
+    "it",
+    "latest",
+    "me",
+    "my",
+    "now",
+    "of",
+    "on",
+    "or",
+    "our",
+    "previous",
+    "recent",
+    "recently",
+    "the",
+    "their",
+    "today",
+    "was",
+    "were",
+    "what",
+    "when",
+    "where",
+    "which",
+    "with",
+    "you",
+    "your",
+}
+MEMORY_STATE_GUIDE_STATEFUL_SLOT_PATTERN = re.compile(
+    r"\b("
+    r"address|current|feel|feels|frequent|goal|job|live|lives|living|"
+    r"located|location|membership|moved|position|record|role|status|work|works"
+    r")\b",
+    re.IGNORECASE,
+)
 TOKEN_PATTERN = re.compile(r"[\w]+", re.UNICODE)
 PERSONALIZED_ADVICE_PATTERN = re.compile(
     r"\b("
@@ -113,7 +170,9 @@ ROUTE_OVERRIDE_KEYS = {
     "max_row_text_chars",
     "memory_state_guide",
     "memory_state_guide_candidate_records",
+    "memory_state_guide_require_slot_overlap",
     "memory_state_guide_require_conflict",
+    "memory_state_guide_require_stateful_slot",
     "memory_state_guide_include_superseded",
     "memory_state_guide_max_records",
     "memory_state_guide_value_chars",
@@ -319,6 +378,8 @@ class EvidenceCompiler:
         memory_state_guide_value_chars: int = 120,
         memory_state_guide_include_superseded: bool = True,
         memory_state_guide_require_conflict: bool = False,
+        memory_state_guide_require_slot_overlap: bool = False,
+        memory_state_guide_require_stateful_slot: bool = False,
         profile_activation_guide: bool = False,
         profile_activation_guide_information_needs: tuple[str, ...] = (
             "profile_preference",
@@ -555,6 +616,12 @@ class EvidenceCompiler:
         )
         self._memory_state_guide_require_conflict = bool(
             memory_state_guide_require_conflict
+        )
+        self._memory_state_guide_require_slot_overlap = bool(
+            memory_state_guide_require_slot_overlap
+        )
+        self._memory_state_guide_require_stateful_slot = bool(
+            memory_state_guide_require_stateful_slot
         )
         self._profile_activation_guide = bool(profile_activation_guide)
         self._profile_activation_guide_information_needs = _validate_information_needs(
@@ -910,6 +977,12 @@ class EvidenceCompiler:
             memory_state_guide_require_conflict=route_settings[
                 "memory_state_guide_require_conflict"
             ],
+            memory_state_guide_require_slot_overlap=route_settings[
+                "memory_state_guide_require_slot_overlap"
+            ],
+            memory_state_guide_require_stateful_slot=route_settings[
+                "memory_state_guide_require_stateful_slot"
+            ],
             profile_activation_guide=(
                 route_settings["profile_activation_guide"]
                 and route.information_need
@@ -1067,6 +1140,12 @@ class EvidenceCompiler:
             ),
             "memory_state_guide_require_conflict": (
                 self._memory_state_guide_require_conflict
+            ),
+            "memory_state_guide_require_slot_overlap": (
+                self._memory_state_guide_require_slot_overlap
+            ),
+            "memory_state_guide_require_stateful_slot": (
+                self._memory_state_guide_require_stateful_slot
             ),
             "profile_activation_guide": self._profile_activation_guide,
             "profile_activation_guide_max_records": (
@@ -1458,6 +1537,14 @@ def _validate_route_overrides(
         if "memory_state_guide_require_conflict" in raw_overrides:
             overrides["memory_state_guide_require_conflict"] = bool(
                 raw_overrides["memory_state_guide_require_conflict"]
+            )
+        if "memory_state_guide_require_slot_overlap" in raw_overrides:
+            overrides["memory_state_guide_require_slot_overlap"] = bool(
+                raw_overrides["memory_state_guide_require_slot_overlap"]
+            )
+        if "memory_state_guide_require_stateful_slot" in raw_overrides:
+            overrides["memory_state_guide_require_stateful_slot"] = bool(
+                raw_overrides["memory_state_guide_require_stateful_slot"]
             )
         if "profile_activation_guide" in raw_overrides:
             overrides["profile_activation_guide"] = bool(
@@ -2754,6 +2841,8 @@ def _build_prompt(
     memory_state_guide_value_chars: int,
     memory_state_guide_include_superseded: bool,
     memory_state_guide_require_conflict: bool,
+    memory_state_guide_require_slot_overlap: bool,
+    memory_state_guide_require_stateful_slot: bool,
     profile_activation_guide: bool,
     profile_activation_guide_max_records: int,
     profile_activation_guide_value_chars: int,
@@ -2897,6 +2986,12 @@ def _build_prompt(
             ),
             memory_state_guide_require_conflict=(
                 memory_state_guide_require_conflict
+            ),
+            memory_state_guide_require_slot_overlap=(
+                memory_state_guide_require_slot_overlap
+            ),
+            memory_state_guide_require_stateful_slot=(
+                memory_state_guide_require_stateful_slot
             ),
             profile_activation_guide=profile_activation_guide,
             profile_activation_guide_max_records=profile_activation_guide_max_records,
@@ -3116,6 +3211,8 @@ def _build_external_naive_prompt(
     memory_state_guide_value_chars: int,
     memory_state_guide_include_superseded: bool,
     memory_state_guide_require_conflict: bool,
+    memory_state_guide_require_slot_overlap: bool,
+    memory_state_guide_require_stateful_slot: bool,
     profile_activation_guide: bool,
     profile_activation_guide_max_records: int,
     profile_activation_guide_value_chars: int,
@@ -3270,6 +3367,8 @@ def _build_external_naive_prompt(
             max_value_chars=memory_state_guide_value_chars,
             include_superseded=memory_state_guide_include_superseded,
             require_conflict=memory_state_guide_require_conflict,
+            require_slot_overlap=memory_state_guide_require_slot_overlap,
+            require_stateful_slot=memory_state_guide_require_stateful_slot,
         )
         if memory_state_lines:
             memory_state_guide_block = "\n".join(
@@ -3942,6 +4041,8 @@ def _external_memory_state_guide_lines(
     max_value_chars: int,
     include_superseded: bool,
     require_conflict: bool = False,
+    require_slot_overlap: bool = False,
+    require_stateful_slot: bool = False,
 ) -> list[str]:
     """Compact managed-memory state view grounded in visible raw rows."""
 
@@ -3972,7 +4073,10 @@ def _external_memory_state_guide_lines(
         return []
     if require_conflict:
         conflict_slot_keys = _memory_state_conflict_slot_keys(
-            record for _, _, record, _ in candidates
+            (record for _, _, record, _ in candidates),
+            question_terms=question_terms,
+            require_slot_overlap=require_slot_overlap,
+            require_stateful_slot=require_stateful_slot,
         )
         if not conflict_slot_keys:
             return []
@@ -4080,6 +4184,10 @@ def _memory_state_record_score(
 
 def _memory_state_conflict_slot_keys(
     records: Iterable[MemoryRecord],
+    *,
+    question_terms: frozenset[str] = frozenset(),
+    require_slot_overlap: bool = False,
+    require_stateful_slot: bool = False,
 ) -> set[tuple[str, str, str]]:
     slots: dict[tuple[str, str, str], list[MemoryRecord]] = {}
     for record in records:
@@ -4087,6 +4195,16 @@ def _memory_state_conflict_slot_keys(
 
     conflict_keys: set[tuple[str, str, str]] = set()
     for key, slot_records in slots.items():
+        if require_slot_overlap and not _memory_state_slot_matches_question(
+            slot_records,
+            question_terms=question_terms,
+        ):
+            continue
+        if require_stateful_slot and not _memory_state_slot_is_stateful(
+            key[0],
+            slot_records,
+        ):
+            continue
         values = set()
         for record in slot_records:
             value = _normalize_memory_value(record)
@@ -4106,6 +4224,42 @@ def _memory_state_conflict_slot_keys(
         if has_value_conflict or has_lifecycle_marker:
             conflict_keys.add(key)
     return conflict_keys
+
+
+def _memory_state_slot_matches_question(
+    records: list[MemoryRecord],
+    *,
+    question_terms: frozenset[str],
+) -> bool:
+    if not question_terms:
+        return False
+    slot_terms: set[str] = set()
+    for record in records:
+        slot_terms.update(_memory_state_slot_alignment_terms(record))
+    focused_question_terms = set(question_terms).difference(
+        MEMORY_STATE_GUIDE_ALIGNMENT_WEAK_TERMS
+    )
+    return bool(slot_terms.intersection(focused_question_terms))
+
+
+def _memory_state_slot_alignment_terms(record: MemoryRecord) -> frozenset[str]:
+    text = " ".join((record.subject, record.predicate, record.value))
+    text = text.replace("_", " ").replace("-", " ")
+    return _content_terms(text)
+
+
+def _memory_state_slot_is_stateful(
+    memory_type: str,
+    records: list[MemoryRecord],
+) -> bool:
+    if memory_type == "state":
+        return True
+    text = " ".join(
+        " ".join((record.predicate, record.subject, record.value))
+        for record in records
+    )
+    text = text.replace("_", " ").replace("-", " ")
+    return bool(MEMORY_STATE_GUIDE_STATEFUL_SLOT_PATTERN.search(text))
 
 
 def _memory_state_slot_key(record: MemoryRecord) -> tuple[str, str, str]:
