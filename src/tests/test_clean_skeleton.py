@@ -48,6 +48,7 @@ from memory.pipeline import (
     _compiler_memory_records,
     _context_manifest,
     _memory_lifecycle_manifest,
+    _memory_object_slot_index,
     _memory_object_slot_source_hits,
     _memory_slot_chain_source_hits,
     _memory_records_by_source,
@@ -3176,6 +3177,93 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual({hit.retriever for hit in hits}, {"build_memory_object_slot"})
         self.assertEqual(trace["slots"][0]["values"], ("dune", "foundation"))
         self.assertIn("book", trace["slots"][0]["matched_terms"])
+
+    def test_memory_object_slot_index_is_source_backed_build_inventory(self) -> None:
+        old_record = MemoryRecord(
+            memory_id="old-city",
+            memory_type="state",
+            text="Alex lived in Austin.",
+            source_ids=("s1:t0",),
+            subject="Alex",
+            predicate="home city",
+            value="Austin",
+            status="superseded",
+        )
+        active_record = MemoryRecord(
+            memory_id="new-city",
+            memory_type="state",
+            text="Alex lives in Seattle.",
+            source_ids=("s2:t0",),
+            subject="Alex",
+            predicate="home city",
+            value="Seattle",
+            status="active",
+        )
+        hiking_record = MemoryRecord(
+            memory_id="hiking",
+            memory_type="fact",
+            text="Alex tried hiking.",
+            source_ids=("s3:t0",),
+            subject="Alex",
+            predicate="tried activity",
+            value="hiking",
+            status="active",
+        )
+
+        index, stats = _memory_object_slot_index(
+            (old_record, active_record, hiking_record),
+            memory_types=("state", "fact"),
+        )
+
+        self.assertTrue(stats["enabled"])
+        self.assertEqual(stats["source"], "build_slot_index")
+        self.assertEqual(stats["slot_count"], 2)
+        self.assertEqual(stats["collection_slot_count"], 1)
+        self.assertEqual(stats["lifecycle_slot_count"], 1)
+        self.assertEqual(stats["source_backed_collection_slot_count"], 1)
+        self.assertIn(("state", "alex", "home city"), index)
+
+    def test_memory_object_slot_activation_can_use_build_slot_index(self) -> None:
+        first_record = MemoryRecord(
+            memory_id="dune",
+            memory_type="fact",
+            text="Alex read Dune.",
+            source_ids=("s1:t0",),
+            subject="Alex",
+            predicate="read book",
+            value="Dune",
+        )
+        second_record = MemoryRecord(
+            memory_id="foundation",
+            memory_type="fact",
+            text="Alex read Foundation.",
+            source_ids=("s2:t0",),
+            subject="Alex",
+            predicate="read book",
+            value="Foundation",
+        )
+
+        hits, trace = _memory_object_slot_source_hits(
+            memory_hits=(MemoryHit(record=first_record, score=3.0, rank=1),),
+            built_memory_records=(first_record, second_record),
+            question="Which books did Alex read?",
+            route=RouteResult("list_count", ("list",)),
+            available_source_ids={"s1:t0", "s2:t0"},
+            max_slots=2,
+            max_sources_per_slot=4,
+            memory_types=("fact",),
+            fusion_mode="tail_rescue",
+            use_build_slot_index=True,
+        )
+
+        self.assertTrue(trace["applied"])
+        self.assertTrue(trace["use_build_slot_index"])
+        self.assertEqual(trace["slot_index"]["source"], "build_slot_index")
+        self.assertEqual(trace["slot_index"]["collection_slot_count"], 1)
+        self.assertEqual(
+            [hit.source_id for hit in hits],
+            ["s1:t0", "s2:t0"],
+        )
 
     def test_memory_object_slot_activation_requires_collection_slot(self) -> None:
         record = MemoryRecord(

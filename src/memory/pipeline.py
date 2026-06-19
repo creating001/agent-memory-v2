@@ -355,6 +355,9 @@ class Stage1Pipeline:
         self._object_slot_activation_require_collection_slot = bool(
             object_slot_activation_config.get("require_collection_slot", True)
         )
+        self._object_slot_activation_use_build_slot_index = bool(
+            object_slot_activation_config.get("use_build_slot_index", False)
+        )
         self._object_slot_activation_block_advice_queries = bool(
             object_slot_activation_config.get("block_advice_queries", False)
         )
@@ -1658,6 +1661,9 @@ class Stage1Pipeline:
             require_collection_slot=(
                 self._object_slot_activation_require_collection_slot
             ),
+            use_build_slot_index=(
+                self._object_slot_activation_use_build_slot_index
+            ),
             block_advice_queries=(
                 self._object_slot_activation_block_advice_queries
             ),
@@ -1744,6 +1750,9 @@ class Stage1Pipeline:
                     ),
                     require_collection_slot=(
                         self._object_slot_activation_require_collection_slot
+                    ),
+                    use_build_slot_index=(
+                        self._object_slot_activation_use_build_slot_index
                     ),
                     block_advice_queries=(
                         self._object_slot_activation_block_advice_queries
@@ -2536,6 +2545,9 @@ class Stage1Pipeline:
                     "object_slot_activation_require_collection_slot": (
                         self._object_slot_activation_require_collection_slot
                     ),
+                    "object_slot_activation_use_build_slot_index": (
+                        self._object_slot_activation_use_build_slot_index
+                    ),
                     "object_slot_activation_block_advice_queries": (
                         self._object_slot_activation_block_advice_queries
                     ),
@@ -2554,6 +2566,9 @@ class Stage1Pipeline:
                     "object_slot_activation_source_hits": [
                         hit.to_dict() for hit in object_slot_source_hits
                     ],
+                    "object_slot_activation_slot_index": (
+                        object_slot_activation_trace.get("slot_index")
+                    ),
                     "object_slot_activation_slots": (
                         object_slot_activation_trace["slots"]
                     ),
@@ -4365,6 +4380,7 @@ def _disabled_object_slot_activation_trace(
     max_sources_per_slot: int,
     min_overlap_terms: int,
     require_collection_slot: bool,
+    use_build_slot_index: bool = False,
     block_advice_queries: bool = False,
     ignored_overlap_terms: tuple[str, ...] = (),
     fusion_mode: str = "rrf",
@@ -4381,6 +4397,10 @@ def _disabled_object_slot_activation_trace(
         "max_sources_per_slot": max_sources_per_slot,
         "min_overlap_terms": min_overlap_terms,
         "require_collection_slot": require_collection_slot,
+        "use_build_slot_index": use_build_slot_index,
+        "slot_index": _memory_object_slot_empty_index_stats(
+            enabled=use_build_slot_index
+        ),
         "block_advice_queries": block_advice_queries,
         "ignored_overlap_terms": ignored_overlap_terms,
         "fusion_mode": fusion_mode,
@@ -4403,6 +4423,7 @@ def _memory_object_slot_source_hits(
     memory_types: tuple[str, ...],
     min_overlap_terms: int = 1,
     require_collection_slot: bool = True,
+    use_build_slot_index: bool = False,
     block_advice_queries: bool = False,
     ignored_overlap_terms: tuple[str, ...] = (),
     fusion_mode: str = "rrf",
@@ -4423,6 +4444,7 @@ def _memory_object_slot_source_hits(
         max_sources_per_slot=max_sources_per_slot,
         min_overlap_terms=min_overlap_terms,
         require_collection_slot=require_collection_slot,
+        use_build_slot_index=use_build_slot_index,
         block_advice_queries=block_advice_queries,
         ignored_overlap_terms=ignored_overlap_terms,
         fusion_mode=fusion_mode,
@@ -4446,12 +4468,17 @@ def _memory_object_slot_source_hits(
     if not question_terms:
         return (), {**trace, "skipped_reason": "no_question_terms"}
 
-    groups: dict[tuple[str, str, str], list[Any]] = {}
-    for record in built_memory_records:
-        key = _memory_object_slot_key(record, memory_types=memory_types)
-        if key is None:
-            continue
-        groups.setdefault(key, []).append(record)
+    if use_build_slot_index:
+        groups, slot_index_stats = _memory_object_slot_index(
+            built_memory_records,
+            memory_types=memory_types,
+        )
+    else:
+        groups, slot_index_stats = _memory_object_slot_legacy_groups(
+            built_memory_records,
+            memory_types=memory_types,
+        )
+    trace = {**trace, "slot_index": slot_index_stats}
 
     selected_hits: list[RetrievalHit] = []
     slot_traces: list[dict[str, Any]] = []
@@ -4525,6 +4552,85 @@ def _memory_object_slot_source_hits(
         **trace,
         "applied": bool(slot_traces),
         "slots": slot_traces,
+    }
+
+
+def _memory_object_slot_empty_index_stats(*, enabled: bool) -> dict[str, Any]:
+    return {
+        "enabled": enabled,
+        "source": "build_slot_index" if enabled else "legacy_query_grouping",
+        "slot_count": 0,
+        "collection_slot_count": 0,
+        "lifecycle_slot_count": 0,
+        "source_backed_slot_count": 0,
+        "source_backed_collection_slot_count": 0,
+    }
+
+
+def _memory_object_slot_legacy_groups(
+    records: tuple[Any, ...],
+    *,
+    memory_types: tuple[str, ...],
+) -> tuple[dict[tuple[str, str, str], tuple[Any, ...]], dict[str, Any]]:
+    groups: dict[tuple[str, str, str], list[Any]] = {}
+    for record in records:
+        key = _memory_object_slot_key(record, memory_types=memory_types)
+        if key is None:
+            continue
+        groups.setdefault(key, []).append(record)
+    return {key: tuple(value) for key, value in groups.items()}, {
+        **_memory_object_slot_empty_index_stats(enabled=False),
+        "slot_count": len(groups),
+    }
+
+
+def _memory_object_slot_index(
+    records: tuple[Any, ...],
+    *,
+    memory_types: tuple[str, ...],
+) -> tuple[dict[tuple[str, str, str], tuple[Any, ...]], dict[str, Any]]:
+    """Build a question-independent slot inventory from typed memory records."""
+
+    groups: dict[tuple[str, str, str], list[Any]] = {}
+    for record in records:
+        key = _memory_object_slot_key(record, memory_types=memory_types)
+        if key is None:
+            continue
+        groups.setdefault(key, []).append(record)
+
+    collection_slot_count = 0
+    lifecycle_slot_count = 0
+    source_backed_slot_count = 0
+    source_backed_collection_slot_count = 0
+    indexed: dict[tuple[str, str, str], tuple[Any, ...]] = {}
+    for key, grouped_records in groups.items():
+        slot_records = tuple(grouped_records)
+        indexed[key] = slot_records
+        statuses = {
+            str(getattr(record, "status", "active") or "active")
+            for record in slot_records
+        }
+        has_sources = any(
+            tuple(getattr(record, "source_ids", ()) or ())
+            for record in slot_records
+        )
+        is_collection = _is_memory_object_collection_slot(slot_records)
+        if is_collection:
+            collection_slot_count += 1
+        if "superseded" in statuses:
+            lifecycle_slot_count += 1
+        if has_sources:
+            source_backed_slot_count += 1
+        if has_sources and is_collection:
+            source_backed_collection_slot_count += 1
+
+    return indexed, {
+        **_memory_object_slot_empty_index_stats(enabled=True),
+        "slot_count": len(indexed),
+        "collection_slot_count": collection_slot_count,
+        "lifecycle_slot_count": lifecycle_slot_count,
+        "source_backed_slot_count": source_backed_slot_count,
+        "source_backed_collection_slot_count": source_backed_collection_slot_count,
     }
 
 

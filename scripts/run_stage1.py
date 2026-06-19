@@ -548,6 +548,11 @@ def main() -> int:
             )
             .get("object_slot_activation", {})
             .get("require_collection_slot"),
+            "object_slot_activation_use_build_slot_index": config.get(
+                "retrieval", {}
+            )
+            .get("object_slot_activation", {})
+            .get("use_build_slot_index", False),
             "object_slot_activation_block_advice_queries": config.get(
                 "retrieval", {}
             )

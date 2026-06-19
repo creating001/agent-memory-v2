@@ -12,6 +12,7 @@
 
 | 配置 | 状态 |
 |---|---|
+| `stage1_build_slot_inventory_v255_seeded_qwen36_no_think_build4k_cached.json` | pending：继承 v250 tail-rescue 行为，只把 object-slot grouping 明确为 build-stage slot inventory，并在 retrieval trace 中记录 source-backed collection/lifecycle slot 统计；目标是降低 query-time 补丁风险且保持 v250 accuracy/token。 |
 | `stage1_object_lifecycle_tail_exchange_v254_scoped_seeded_qwen36_no_think_build4k_cached.json` | rejected full：advice gate 修复 v253 的 LME cocktail badcase，并在 LoCoMo 阻断 `8` 个 advice-like activation；但 LME derived `0.826000 / 0.842000` 仍低于 v250，LoCoMo lenient `0.817532` 仍低于 v250。保留为 scoped object-slot 边界教训。 |
 | `stage1_object_lifecycle_tail_exchange_v253_seeded_qwen36_no_think_build4k_cached.json` | rejected full：LoCoMo strict 小涨，但 LongMemEval-S strict/lenient 降至 `0.824000 / 0.840000`，LoCoMo lenient 降至 `0.817532`；保留为 object-slot 适用边界教训。 |
 | `stage1_typed_compact_cap32_build_memory_v245_seeded_qwen36_no_think_build4k_cached.json` | rejected probe：LoCoMo changed judge strict/lenient `18/22 -> 15/22`、`18/22 -> 17/22`；LME cold build probe 延迟不可接受。保留为 build record cap 负向对照。 |
