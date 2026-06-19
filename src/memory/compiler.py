@@ -35,6 +35,7 @@ MAX_RELATIVE_TIME_SPANS = {
     "month": 1200,
     "year": 100,
 }
+MEMORY_STATE_GUIDE_VALUE_CONFLICT_TYPES = {"fact", "preference", "profile", "state"}
 TOKEN_PATTERN = re.compile(r"[\w]+", re.UNICODE)
 PERSONALIZED_ADVICE_PATTERN = re.compile(
     r"\b("
@@ -111,6 +112,7 @@ ROUTE_OVERRIDE_KEYS = {
     "max_evidence_items",
     "max_row_text_chars",
     "memory_state_guide",
+    "memory_state_guide_candidate_records",
     "memory_state_guide_require_conflict",
     "memory_state_guide_include_superseded",
     "memory_state_guide_max_records",
@@ -313,6 +315,7 @@ class EvidenceCompiler:
             "profile_preference",
         ),
         memory_state_guide_max_records: int = 8,
+        memory_state_guide_candidate_records: int = 12,
         memory_state_guide_value_chars: int = 120,
         memory_state_guide_include_superseded: bool = True,
         memory_state_guide_require_conflict: bool = False,
@@ -541,6 +544,9 @@ class EvidenceCompiler:
         self._memory_state_guide_max_records = max(
             1, int(memory_state_guide_max_records)
         )
+        self._memory_state_guide_candidate_records = max(
+            1, int(memory_state_guide_candidate_records)
+        )
         self._memory_state_guide_value_chars = max(
             40, int(memory_state_guide_value_chars)
         )
@@ -622,6 +628,7 @@ class EvidenceCompiler:
         hits: tuple[RetrievalHit, ...],
         evidence_turns: tuple[Turn, ...],
         memory_records: tuple[MemoryRecord, ...] = (),
+        memory_state_guide_records: tuple[MemoryRecord, ...] | None = None,
     ) -> CompiledContext:
         hit_by_source_id = {hit.source_id: hit for hit in hits}
         candidates: list[EvidenceRow] = []
@@ -707,6 +714,20 @@ class EvidenceCompiler:
         )
         selected_memory_records = ordered_memory_records[
             : route_settings["max_memory_records"]
+        ]
+        memory_state_guide_source_records = (
+            tuple(memory_state_guide_records)
+            if memory_state_guide_records is not None
+            else tuple(memory_records)
+        )
+        ordered_memory_state_guide_records = _order_memory_records(
+            memory_state_guide_source_records,
+            question=question,
+            route=route,
+            memory_order=self._memory_order,
+        )
+        selected_memory_state_guide_records = ordered_memory_state_guide_records[
+            : route_settings["memory_state_guide_candidate_records"]
         ]
         laid_out_rows = _layout_rows(
             tuple(rows),
@@ -876,6 +897,10 @@ class EvidenceCompiler:
             memory_state_guide_max_records=route_settings[
                 "memory_state_guide_max_records"
             ],
+            memory_state_guide_records=selected_memory_state_guide_records,
+            memory_state_guide_candidate_records=route_settings[
+                "memory_state_guide_candidate_records"
+            ],
             memory_state_guide_value_chars=route_settings[
                 "memory_state_guide_value_chars"
             ],
@@ -1033,6 +1058,9 @@ class EvidenceCompiler:
             ),
             "memory_state_guide": self._memory_state_guide,
             "memory_state_guide_max_records": self._memory_state_guide_max_records,
+            "memory_state_guide_candidate_records": (
+                self._memory_state_guide_candidate_records
+            ),
             "memory_state_guide_value_chars": self._memory_state_guide_value_chars,
             "memory_state_guide_include_superseded": (
                 self._memory_state_guide_include_superseded
@@ -1414,6 +1442,10 @@ def _validate_route_overrides(
         if "memory_state_guide_max_records" in raw_overrides:
             overrides["memory_state_guide_max_records"] = max(
                 1, int(raw_overrides["memory_state_guide_max_records"])
+            )
+        if "memory_state_guide_candidate_records" in raw_overrides:
+            overrides["memory_state_guide_candidate_records"] = max(
+                1, int(raw_overrides["memory_state_guide_candidate_records"])
             )
         if "memory_state_guide_value_chars" in raw_overrides:
             overrides["memory_state_guide_value_chars"] = max(
@@ -2716,7 +2748,9 @@ def _build_prompt(
     update_conflict_guide_max_rows: int,
     update_conflict_guide_snippet_chars: int,
     memory_state_guide: bool,
+    memory_state_guide_records: tuple[MemoryRecord, ...],
     memory_state_guide_max_records: int,
+    memory_state_guide_candidate_records: int,
     memory_state_guide_value_chars: int,
     memory_state_guide_include_superseded: bool,
     memory_state_guide_require_conflict: bool,
@@ -2852,7 +2886,11 @@ def _build_prompt(
                 update_conflict_guide_snippet_chars
             ),
             memory_state_guide=memory_state_guide,
+            memory_state_guide_records=memory_state_guide_records,
             memory_state_guide_max_records=memory_state_guide_max_records,
+            memory_state_guide_candidate_records=(
+                memory_state_guide_candidate_records
+            ),
             memory_state_guide_value_chars=memory_state_guide_value_chars,
             memory_state_guide_include_superseded=(
                 memory_state_guide_include_superseded
@@ -3072,7 +3110,9 @@ def _build_external_naive_prompt(
     update_conflict_guide_max_rows: int,
     update_conflict_guide_snippet_chars: int,
     memory_state_guide: bool,
+    memory_state_guide_records: tuple[MemoryRecord, ...],
     memory_state_guide_max_records: int,
+    memory_state_guide_candidate_records: int,
     memory_state_guide_value_chars: int,
     memory_state_guide_include_superseded: bool,
     memory_state_guide_require_conflict: bool,
@@ -3225,7 +3265,7 @@ def _build_external_naive_prompt(
             question=question,
             route=route,
             rows=rows,
-            memory_records=memory_records,
+            memory_records=memory_state_guide_records,
             max_records=memory_state_guide_max_records,
             max_value_chars=memory_state_guide_value_chars,
             include_superseded=memory_state_guide_include_superseded,
@@ -4058,7 +4098,12 @@ def _memory_state_conflict_slot_keys(
             or bool(record.valid_to)
             for record in slot_records
         )
-        if len(values) >= 2 or has_lifecycle_marker:
+        memory_type = key[0]
+        has_value_conflict = (
+            memory_type in MEMORY_STATE_GUIDE_VALUE_CONFLICT_TYPES
+            and len(values) >= 2
+        )
+        if has_value_conflict or has_lifecycle_marker:
             conflict_keys.add(key)
     return conflict_keys
 

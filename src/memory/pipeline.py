@@ -821,6 +821,9 @@ class Stage1Pipeline:
             memory_state_guide_max_records=int(
                 compiler_config.get("memory_state_guide_max_records", 8)
             ),
+            memory_state_guide_candidate_records=int(
+                compiler_config.get("memory_state_guide_candidate_records", 12)
+            ),
             memory_state_guide_value_chars=int(
                 compiler_config.get("memory_state_guide_value_chars", 120)
             ),
@@ -909,6 +912,14 @@ class Stage1Pipeline:
         self._compiler_memory_record_source = _validate_memory_record_source(
             str(compiler_config.get("memory_record_source", "retrieval"))
         )
+        self._compiler_memory_state_guide_record_source = _validate_memory_record_source(
+            str(
+                compiler_config.get(
+                    "memory_state_guide_record_source",
+                    self._compiler_memory_record_source,
+                )
+            )
+        )
         self._compiler_context_pressure_enabled = bool(
             compiler_context_pressure_config.get("enabled", False)
         )
@@ -933,10 +944,16 @@ class Stage1Pipeline:
                 self._compiler_context_pressure_overrides,
             ),
             memory_record_source=self._compiler_memory_record_source,
+            memory_state_guide_record_source=(
+                self._compiler_memory_state_guide_record_source
+            ),
         )
         self._compiler_trace_config = _compiler_trace_config(
             compiler_config,
             memory_record_source=self._compiler_memory_record_source,
+            memory_state_guide_record_source=(
+                self._compiler_memory_state_guide_record_source
+            ),
         )
         self._granularity_compilers = {
             profile["name"]: _configured_compiler(
@@ -962,6 +979,9 @@ class Stage1Pipeline:
                     self._compiler_context_pressure_overrides,
                 ),
                 memory_record_source=self._compiler_memory_record_source,
+                memory_state_guide_record_source=(
+                    self._compiler_memory_state_guide_record_source
+                ),
             )
             for profile in self._granularity_profiles
             if profile.get("compiler")
@@ -970,6 +990,9 @@ class Stage1Pipeline:
             profile["name"]: _compiler_trace_config(
                 _merged_config(compiler_config, profile["compiler"]),
                 memory_record_source=self._compiler_memory_record_source,
+                memory_state_guide_record_source=(
+                    self._compiler_memory_state_guide_record_source
+                ),
             )
             for profile in self._granularity_profiles
             if profile.get("compiler")
@@ -1648,6 +1671,17 @@ class Stage1Pipeline:
             built_memory_records=built_memory.records,
             evidence_turns=evidence_turns,
         )
+        compiler_memory_state_guide_records = (
+            compiler_memory_records
+            if self._compiler_memory_state_guide_record_source
+            == self._compiler_memory_record_source
+            else _compiler_memory_records(
+                source=self._compiler_memory_state_guide_record_source,
+                memory_hits=memory_hits,
+                built_memory_records=built_memory.records,
+                evidence_turns=evidence_turns,
+            )
+        )
         compiler = self._granularity_compilers.get(
             str(profile_name),
             self._compiler,
@@ -1686,6 +1720,7 @@ class Stage1Pipeline:
             hits=hits,
             evidence_turns=evidence_turns,
             memory_records=compiler_memory_records,
+            memory_state_guide_records=compiler_memory_state_guide_records,
         )
         memory_lifecycle_manifest = _memory_lifecycle_manifest(
             question=request.question,
@@ -1914,11 +1949,18 @@ class Stage1Pipeline:
                     "lexical_hits": [hit.to_dict() for hit in lexical_hits],
                     "memory_hits": [hit.to_dict() for hit in memory_hits],
                     "compiler_memory_record_source": self._compiler_memory_record_source,
+                    "compiler_memory_state_guide_record_source": (
+                        self._compiler_memory_state_guide_record_source
+                    ),
                     "compiler_profile": profile_name
                     if str(profile_name) in self._granularity_compilers
                     else None,
                     "compiler_memory_records": [
                         record.to_dict() for record in compiler_memory_records
+                    ],
+                    "compiler_memory_state_guide_records": [
+                        record.to_dict()
+                        for record in compiler_memory_state_guide_records
                     ],
                     "memory_source_hits": [
                         hit.to_dict() for hit in memory_source_hits
@@ -4138,10 +4180,14 @@ def _compiler_trace_config(
     compiler_config: Mapping[str, Any],
     *,
     memory_record_source: str,
+    memory_state_guide_record_source: str | None = None,
 ) -> dict[str, Any]:
     return {
         "prompt_mode": str(compiler_config.get("prompt_mode", "default")),
         "memory_record_source": memory_record_source,
+        "memory_state_guide_record_source": (
+            memory_state_guide_record_source or memory_record_source
+        ),
         "evidence_order": str(compiler_config.get("evidence_order", "retrieval")),
         "memory_order": str(compiler_config.get("memory_order", "retrieval")),
         "memory_layout": str(compiler_config.get("memory_layout", "flat")),
@@ -4402,6 +4448,9 @@ def _compiler_trace_config(
         ),
         "memory_state_guide_max_records": int(
             compiler_config.get("memory_state_guide_max_records", 8)
+        ),
+        "memory_state_guide_candidate_records": int(
+            compiler_config.get("memory_state_guide_candidate_records", 12)
         ),
         "memory_state_guide_value_chars": int(
             compiler_config.get("memory_state_guide_value_chars", 120)
@@ -4725,6 +4774,9 @@ def _configured_compiler(compiler_config: Mapping[str, Any]) -> EvidenceCompiler
         ),
         memory_state_guide_max_records=int(
             compiler_config.get("memory_state_guide_max_records", 8)
+        ),
+        memory_state_guide_candidate_records=int(
+            compiler_config.get("memory_state_guide_candidate_records", 12)
         ),
         memory_state_guide_value_chars=int(
             compiler_config.get("memory_state_guide_value_chars", 120)
