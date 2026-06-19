@@ -103,6 +103,9 @@
   "build_memory": {
     "avg_active_records": 142.06948051948052,
     "avg_chunks": 8.059090909090909,
+    "avg_collection_retained_records": 8.746753246753247,
+    "avg_managed_lifecycle_slots": 5.5285714285714285,
+    "avg_nonmanaged_multi_value_slots": 8.746753246753247,
     "avg_records": 150.91493506493507,
     "avg_source_alignment_added_sources": 0.0,
     "avg_source_alignment_changed_records": 0.0,
@@ -124,6 +127,35 @@
       "current_state"
     ],
     "manage_facts": false,
+    "management_layer_counts": {
+      "episodic": 79615,
+      "profile_state": 109005,
+      "prospective": 21928,
+      "semantic": 21861
+    },
+    "management_operation_counts": {
+      "create": 232409,
+      "retain_active": 218787,
+      "retain_collection_multi_value_slot": 13470,
+      "supersede": 13622
+    },
+    "management_policy": "stateful_only",
+    "management_policy_counts": {
+      "stateful_only": 1540
+    },
+    "management_status_counts": {
+      "active": 218787,
+      "superseded": 13622
+    },
+    "management_type_counts": {
+      "event": 79615,
+      "fact": 21861,
+      "plan": 21928,
+      "preference": 47494,
+      "profile": 42557,
+      "relationship": 10726,
+      "state": 8228
+    },
     "max_chars_per_turn": 500,
     "max_records_per_chunk": 20,
     "max_tokens": 4096,
@@ -139,6 +171,9 @@
     "temporal_fields": false,
     "total_active_records": 218787,
     "total_chunks": 12411,
+    "total_collection_retained_records": 13470,
+    "total_managed_lifecycle_slots": 8514,
+    "total_nonmanaged_multi_value_slots": 13470,
     "total_records": 232409,
     "total_superseded_records": 13622
   },

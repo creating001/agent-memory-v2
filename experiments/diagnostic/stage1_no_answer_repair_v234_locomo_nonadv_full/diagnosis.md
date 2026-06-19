@@ -17,6 +17,13 @@ The run validates pipeline shape, clean traceability, and answerer integration u
 - build_memory_temporal_fields: False
 - build_memory_prompt_profile: typed_compact
 - build_memory_manage_facts: False
+- build_memory_management_policy: stateful_only
+- build_memory_management_policy_counts: {'stateful_only': 1540}
+- build_memory_management_operation_counts: {'create': 232409, 'retain_active': 218787, 'retain_collection_multi_value_slot': 13470, 'supersede': 13622}
+- build_memory_management_layer_counts: {'episodic': 79615, 'profile_state': 109005, 'prospective': 21928, 'semantic': 21861}
+- avg_build_memory_collection_retained_records: 8.746753246753247
+- avg_build_memory_managed_lifecycle_slots: 5.5285714285714285
+- avg_build_memory_nonmanaged_multi_value_slots: 8.746753246753247
 - build_memory_overlap_turns: 0
 - build_memory_cache_hits: 12411
 - build_memory_cache_misses: 0
@@ -35,7 +42,7 @@ The run validates pipeline shape, clean traceability, and answerer integration u
 - avg_query_think_tokens: 0.0
 - avg_query_total_tokens: 6094.017532467533
 - token_accounting_note: avg_build_tokens / avg_query_tokens exclude explicit reasoning tokens when the provider reports them; avg_*_total_tokens include visible plus think tokens.
-- retrieval_route_overrides: {'temporal_lookup': {'top_k': 40, 'max_top_k': 40, 'dense_top_k': 40, 'lexical_protect_top_n': 0, 'dense_protect_top_n': 32}}
+- retrieval_route_overrides: {'temporal_lookup': {'dense_protect_top_n': 32, 'dense_top_k': 40, 'lexical_protect_top_n': 0, 'max_top_k': 40, 'top_k': 40}}
 - retrieval_route_override_precedence: after_profile
 - avg_effective_top_k: 55.61038961038961
 - avg_effective_dense_top_k: 55.61038961038961
@@ -162,7 +169,7 @@ The run validates pipeline shape, clean traceability, and answerer integration u
 - source_anchor_memory_rows: 0
 - source_anchor_per_session: 0
 - source_anchor_session_rows: 0
-- route_overrides: {'temporal_lookup': {'max_evidence_items': 40, 'max_evidence_chars': 18000}, 'fact_lookup': {'grounded_inference_contract': True, 'grounded_inference_gate': 'modal_only'}, 'profile_preference': {'grounded_inference_contract': True, 'grounded_inference_gate': 'modal_only', 'evidence_order': 'memory_source_interleave', 'source_anchor_keep': 32, 'source_anchor_memory_rows': 4, 'source_anchor_per_session': 1, 'source_anchor_session_rows': 0}, 'current_state': {'grounded_inference_contract': True, 'grounded_inference_gate': 'modal_only', 'evidence_order': 'memory_source_interleave', 'source_anchor_keep': 32, 'source_anchor_memory_rows': 4, 'source_anchor_per_session': 1, 'source_anchor_session_rows': 0}}
+- route_overrides: {'current_state': {'evidence_order': 'memory_source_interleave', 'grounded_inference_contract': True, 'grounded_inference_gate': 'modal_only', 'source_anchor_keep': 32, 'source_anchor_memory_rows': 4, 'source_anchor_per_session': 1, 'source_anchor_session_rows': 0}, 'fact_lookup': {'grounded_inference_contract': True, 'grounded_inference_gate': 'modal_only'}, 'profile_preference': {'evidence_order': 'memory_source_interleave', 'grounded_inference_contract': True, 'grounded_inference_gate': 'modal_only', 'source_anchor_keep': 32, 'source_anchor_memory_rows': 4, 'source_anchor_per_session': 1, 'source_anchor_session_rows': 0}, 'temporal_lookup': {'max_evidence_chars': 18000, 'max_evidence_items': 40}}
 - enable_recommendation_profile_patterns: True
 - enable_advice_profile_patterns: False
 - temporal_priority_over_recent: False
