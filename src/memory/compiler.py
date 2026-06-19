@@ -91,6 +91,9 @@ ROUTE_OVERRIDE_KEYS = {
     "event_time_candidate_map_allow_time_of_day_questions",
     "event_time_candidate_map_allowed_time_kinds",
     "event_time_candidate_map_include_mention_time",
+    "event_time_candidate_map_mention_time_fallback",
+    "event_time_candidate_map_mention_time_fallback_min_coverage",
+    "event_time_candidate_map_mention_time_fallback_trigger_max_coverage",
     "event_time_candidate_map_max_groups",
     "event_time_candidate_map_min_coverage",
     "event_time_candidate_map_min_terms",
@@ -257,6 +260,9 @@ class EvidenceCompiler:
         event_time_candidate_map_audit: bool = False,
         event_time_candidate_map_temporal_ambiguity_contract: bool = False,
         event_time_candidate_map_include_mention_time: bool = False,
+        event_time_candidate_map_mention_time_fallback: bool = False,
+        event_time_candidate_map_mention_time_fallback_min_coverage: float = 0.8,
+        event_time_candidate_map_mention_time_fallback_trigger_max_coverage: float = 0.8,
         enable_weekend_relative_time: bool = False,
         structured_guide: bool = False,
         structured_guide_max_rows: int = 12,
@@ -442,6 +448,24 @@ class EvidenceCompiler:
         )
         self._event_time_candidate_map_include_mention_time = bool(
             event_time_candidate_map_include_mention_time
+        )
+        self._event_time_candidate_map_mention_time_fallback = bool(
+            event_time_candidate_map_mention_time_fallback
+        )
+        self._event_time_candidate_map_mention_time_fallback_min_coverage = min(
+            1.0,
+            max(0.0, float(event_time_candidate_map_mention_time_fallback_min_coverage)),
+        )
+        self._event_time_candidate_map_mention_time_fallback_trigger_max_coverage = (
+            min(
+                1.0,
+                max(
+                    0.0,
+                    float(
+                        event_time_candidate_map_mention_time_fallback_trigger_max_coverage
+                    ),
+                ),
+            )
         )
         self._enable_weekend_relative_time = bool(enable_weekend_relative_time)
         self._structured_guide = structured_guide
@@ -757,6 +781,19 @@ class EvidenceCompiler:
             event_time_candidate_map_include_mention_time=route_settings[
                 "event_time_candidate_map_include_mention_time"
             ],
+            event_time_candidate_map_mention_time_fallback=route_settings[
+                "event_time_candidate_map_mention_time_fallback"
+            ],
+            event_time_candidate_map_mention_time_fallback_min_coverage=(
+                route_settings[
+                    "event_time_candidate_map_mention_time_fallback_min_coverage"
+                ]
+            ),
+            event_time_candidate_map_mention_time_fallback_trigger_max_coverage=(
+                route_settings[
+                    "event_time_candidate_map_mention_time_fallback_trigger_max_coverage"
+                ]
+            ),
             enable_weekend_relative_time=route_settings[
                 "enable_weekend_relative_time"
             ],
@@ -1049,6 +1086,15 @@ class EvidenceCompiler:
             "event_time_candidate_map_include_mention_time": (
                 self._event_time_candidate_map_include_mention_time
             ),
+            "event_time_candidate_map_mention_time_fallback": (
+                self._event_time_candidate_map_mention_time_fallback
+            ),
+            "event_time_candidate_map_mention_time_fallback_min_coverage": (
+                self._event_time_candidate_map_mention_time_fallback_min_coverage
+            ),
+            "event_time_candidate_map_mention_time_fallback_trigger_max_coverage": (
+                self._event_time_candidate_map_mention_time_fallback_trigger_max_coverage
+            ),
             "enable_weekend_relative_time": self._enable_weekend_relative_time,
             "final_answer_checklist": self._final_answer_checklist,
             "grounded_inference_contract": self._grounded_inference_contract,
@@ -1277,6 +1323,44 @@ def _validate_route_overrides(
         if "event_time_candidate_map_include_mention_time" in raw_overrides:
             overrides["event_time_candidate_map_include_mention_time"] = bool(
                 raw_overrides["event_time_candidate_map_include_mention_time"]
+            )
+        if "event_time_candidate_map_mention_time_fallback" in raw_overrides:
+            overrides["event_time_candidate_map_mention_time_fallback"] = bool(
+                raw_overrides["event_time_candidate_map_mention_time_fallback"]
+            )
+        if (
+            "event_time_candidate_map_mention_time_fallback_min_coverage"
+            in raw_overrides
+        ):
+            overrides[
+                "event_time_candidate_map_mention_time_fallback_min_coverage"
+            ] = min(
+                1.0,
+                max(
+                    0.0,
+                    float(
+                        raw_overrides[
+                            "event_time_candidate_map_mention_time_fallback_min_coverage"
+                        ]
+                    ),
+                ),
+            )
+        if (
+            "event_time_candidate_map_mention_time_fallback_trigger_max_coverage"
+            in raw_overrides
+        ):
+            overrides[
+                "event_time_candidate_map_mention_time_fallback_trigger_max_coverage"
+            ] = min(
+                1.0,
+                max(
+                    0.0,
+                    float(
+                        raw_overrides[
+                            "event_time_candidate_map_mention_time_fallback_trigger_max_coverage"
+                        ]
+                    ),
+                ),
             )
         if "candidate_guide" in raw_overrides:
             overrides["candidate_guide"] = bool(raw_overrides["candidate_guide"])
@@ -2592,6 +2676,9 @@ def _build_prompt(
     event_time_candidate_map_require_role_match: bool,
     event_time_candidate_map_temporal_ambiguity_contract: bool,
     event_time_candidate_map_include_mention_time: bool,
+    event_time_candidate_map_mention_time_fallback: bool,
+    event_time_candidate_map_mention_time_fallback_min_coverage: float,
+    event_time_candidate_map_mention_time_fallback_trigger_max_coverage: float,
     enable_weekend_relative_time: bool,
     structured_guide: bool,
     structured_guide_max_rows: int,
@@ -2711,6 +2798,15 @@ def _build_prompt(
             ),
             event_time_candidate_map_include_mention_time=(
                 event_time_candidate_map_include_mention_time
+            ),
+            event_time_candidate_map_mention_time_fallback=(
+                event_time_candidate_map_mention_time_fallback
+            ),
+            event_time_candidate_map_mention_time_fallback_min_coverage=(
+                event_time_candidate_map_mention_time_fallback_min_coverage
+            ),
+            event_time_candidate_map_mention_time_fallback_trigger_max_coverage=(
+                event_time_candidate_map_mention_time_fallback_trigger_max_coverage
             ),
             enable_weekend_relative_time=enable_weekend_relative_time,
             structured_guide=structured_guide,
@@ -2932,6 +3028,9 @@ def _build_external_naive_prompt(
     event_time_candidate_map_require_role_match: bool,
     event_time_candidate_map_temporal_ambiguity_contract: bool,
     event_time_candidate_map_include_mention_time: bool,
+    event_time_candidate_map_mention_time_fallback: bool,
+    event_time_candidate_map_mention_time_fallback_min_coverage: float,
+    event_time_candidate_map_mention_time_fallback_trigger_max_coverage: float,
     enable_weekend_relative_time: bool,
     structured_guide: bool,
     structured_guide_max_rows: int,
@@ -3030,6 +3129,13 @@ def _build_external_naive_prompt(
                 event_time_candidate_map_temporal_ambiguity_contract
             ),
             include_mention_time=event_time_candidate_map_include_mention_time,
+            mention_time_fallback=event_time_candidate_map_mention_time_fallback,
+            mention_time_fallback_min_coverage=(
+                event_time_candidate_map_mention_time_fallback_min_coverage
+            ),
+            mention_time_fallback_trigger_max_coverage=(
+                event_time_candidate_map_mention_time_fallback_trigger_max_coverage
+            ),
             enable_weekend_relative_time=enable_weekend_relative_time,
         )
         if event_time_candidate_map_lines:
@@ -4659,6 +4765,9 @@ def _external_event_time_candidate_map_lines(
     require_role_match: bool,
     temporal_ambiguity_contract: bool,
     include_mention_time: bool,
+    mention_time_fallback: bool,
+    mention_time_fallback_min_coverage: float,
+    mention_time_fallback_trigger_max_coverage: float,
     enable_weekend_relative_time: bool,
 ) -> list[str]:
     target_terms = _event_time_candidate_map_target_terms(
@@ -4712,15 +4821,9 @@ def _external_event_time_candidate_map_lines(
         else frozenset()
     )
     candidates_for_prompt: list[dict[str, object]] = []
+    mention_time_fallbacks: list[dict[str, object]] = []
     for group in groups:
         if group.get("conflict_type"):
-            continue
-        if str(group.get("resolution")) not in high_confidence_resolutions:
-            continue
-        if (
-            allowed_time_kind_set
-            and str(group.get("best_time_kind")) not in allowed_time_kind_set
-        ):
             continue
         dedup_key = str(group.get("dedup_key") or "")
         if not dedup_key.startswith("q:"):
@@ -4746,6 +4849,28 @@ def _external_event_time_candidate_map_lines(
         if target_role_terms and not _event_time_candidate_role_matches(
             str(best.get("role") or ""),
             target_role_terms,
+        ):
+            continue
+        if (
+            mention_time_fallback
+            and str(group.get("best_time_kind")) == "mention_time_only"
+            and str(group.get("resolution")) == "low_precision_single"
+            and coverage >= mention_time_fallback_min_coverage
+        ):
+            mention_time_fallbacks.append(
+                {
+                    "coverage": coverage,
+                    "matched_terms": matched_terms,
+                    "group": group,
+                    "item": best,
+                }
+            )
+            continue
+        if str(group.get("resolution")) not in high_confidence_resolutions:
+            continue
+        if (
+            allowed_time_kind_set
+            and str(group.get("best_time_kind")) not in allowed_time_kind_set
         ):
             continue
         candidates_for_prompt.append(
@@ -4777,12 +4902,39 @@ def _external_event_time_candidate_map_lines(
     if len(top_times) > 1:
         return []
     selected_for_prompt = top[:max_groups]
+    fallback_for_prompt: dict[str, object] | None = None
+    if mention_time_fallback and selected_for_prompt:
+        primary = selected_for_prompt[0]
+        primary_group = primary["group"]
+        if (
+            str(primary_group.get("best_time_kind")) == "exact_today"
+            and float(primary["coverage"])
+            < mention_time_fallback_trigger_max_coverage
+        ):
+            stronger_fallbacks = [
+                item
+                for item in mention_time_fallbacks
+                if float(item["coverage"]) > float(primary["coverage"])
+            ]
+            if stronger_fallbacks:
+                fallback_for_prompt = sorted(
+                    stronger_fallbacks,
+                    key=lambda item: (
+                        -float(item["coverage"]),
+                        -len(item["matched_terms"]),
+                        int(item["item"]["memory_index"]),
+                    ),
+                )[0]
 
     lines = [
         "Use this narrow map only to locate the likely target event-time row; verify the final answer in Memory Context.",
         "- Only high-confidence q-slot groups with no event-time conflict and strong question-term coverage are shown.",
         "- Omitted rows may be low precision, conflicted, or less specific to the question.",
     ]
+    if fallback_for_prompt is not None:
+        lines.append(
+            "- mention_time_fallback rows appear only when a row strongly matches the target but has no explicit event date; use the row Date only if the question asks when it was stated/planned or no stronger event-time row applies."
+        )
     if temporal_ambiguity_contract:
         lines.extend(
             [
@@ -4791,7 +4943,10 @@ def _external_event_time_candidate_map_lines(
             ]
         )
     lines.append("- target_event_time_candidates:")
-    for entry in selected_for_prompt:
+    for entry in [
+        *selected_for_prompt,
+        *([fallback_for_prompt] if fallback_for_prompt is not None else []),
+    ]:
         item = entry["item"]
         group = entry["group"]
         matched = ", ".join(entry["matched_terms"]) or "none"
@@ -4805,6 +4960,10 @@ def _external_event_time_candidate_map_lines(
             f"Memory {item['memory_index']}"
         )
         markers = "; ".join(str(marker) for marker in item.get("markers") or ())
+        time_kind = str(group["best_time_kind"])
+        if entry is fallback_for_prompt:
+            markers = markers or "mention_time_only"
+            time_kind = "mention_time_fallback"
         time_prefix = (
             f"mention_time={item['mention_time']} "
             if include_mention_time
@@ -4812,7 +4971,7 @@ def _external_event_time_candidate_map_lines(
         )
         lines.append(
             f"  - {source_text}: {time_prefix}"
-            f"event_time={group['best_event_time']} time_kind={group['best_time_kind']} "
+            f"event_time={group['best_event_time']} time_kind={time_kind} "
             f"matched_terms={matched} "
             f"coverage={float(entry['coverage']):.3f} markers={markers or 'none'} "
             f"text=\"{item['snippet']}\""

@@ -1105,6 +1105,53 @@ class CompilerTest(unittest.TestCase):
         self.assertEqual(audit["prompt_eligible_count"], 1)
         self.assertIn("exact_today_prompt_candidate", audit["risk_flags"])
 
+    def test_event_time_candidate_map_adds_narrow_mention_time_fallback(
+        self,
+    ) -> None:
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="Nate",
+                text="Nate says pets bring joy, and today he will chill with pets.",
+                timestamp="2022-03-18",
+            ),
+            Turn(
+                source_id="s2:t0",
+                session_id="s2",
+                turn_index=0,
+                role="Nate",
+                text=(
+                    "Nate is taking time off to chill with his pets and recharge."
+                ),
+                timestamp="2022-08-22",
+            ),
+        )
+
+        compiled = EvidenceCompiler(
+            max_evidence_items=2,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            event_time_candidate_map=True,
+            event_time_candidate_map_allowed_time_kinds=("exact_today",),
+            event_time_candidate_map_min_coverage=0.6,
+            event_time_candidate_map_mention_time_fallback=True,
+            event_time_candidate_map_mention_time_fallback_min_coverage=0.8,
+            event_time_candidate_map_mention_time_fallback_trigger_max_coverage=0.8,
+        ).compile(
+            question="When did Nate take time off to chill with his pets?",
+            question_time=None,
+            route=RouteResult("temporal_lookup", ("temporal",)),
+            hits=(),
+            evidence_turns=turns,
+        )
+
+        self.assertIn("Event-Time Candidate Map:", compiled.prompt)
+        self.assertIn("time_kind=exact_today", compiled.prompt)
+        self.assertIn("time_kind=mention_time_fallback", compiled.prompt)
+        self.assertIn("event_time=2022-08-22", compiled.prompt)
+
     def test_event_time_candidate_map_can_add_temporal_ambiguity_contract(
         self,
     ) -> None:

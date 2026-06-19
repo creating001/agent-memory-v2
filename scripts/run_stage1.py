@@ -860,6 +860,21 @@ def main() -> int:
             "event_time_candidate_map_temporal_ambiguity_contract": config.get(
                 "compiler", {}
             ).get("event_time_candidate_map_temporal_ambiguity_contract", False),
+            "event_time_candidate_map_include_mention_time": config.get(
+                "compiler", {}
+            ).get("event_time_candidate_map_include_mention_time", False),
+            "event_time_candidate_map_mention_time_fallback": config.get(
+                "compiler", {}
+            ).get("event_time_candidate_map_mention_time_fallback", False),
+            "event_time_candidate_map_mention_time_fallback_min_coverage": config.get(
+                "compiler", {}
+            ).get("event_time_candidate_map_mention_time_fallback_min_coverage", 0.8),
+            "event_time_candidate_map_mention_time_fallback_trigger_max_coverage": config.get(
+                "compiler", {}
+            ).get(
+                "event_time_candidate_map_mention_time_fallback_trigger_max_coverage",
+                0.8,
+            ),
             "event_time_candidate_map_applied_count": (
                 total_event_time_candidate_map_applied
             ),
@@ -1648,6 +1663,10 @@ def _write_summary(
         f"- event_time_candidate_map_allow_time_of_day_questions: {metrics['compiler']['event_time_candidate_map_allow_time_of_day_questions']}",
         f"- event_time_candidate_map_audit: {metrics['compiler']['event_time_candidate_map_audit']}",
         f"- event_time_candidate_map_temporal_ambiguity_contract: {metrics['compiler']['event_time_candidate_map_temporal_ambiguity_contract']}",
+        f"- event_time_candidate_map_include_mention_time: {metrics['compiler']['event_time_candidate_map_include_mention_time']}",
+        f"- event_time_candidate_map_mention_time_fallback: {metrics['compiler']['event_time_candidate_map_mention_time_fallback']}",
+        f"- event_time_candidate_map_mention_time_fallback_min_coverage: {metrics['compiler']['event_time_candidate_map_mention_time_fallback_min_coverage']}",
+        f"- event_time_candidate_map_mention_time_fallback_trigger_max_coverage: {metrics['compiler']['event_time_candidate_map_mention_time_fallback_trigger_max_coverage']}",
         f"- event_time_candidate_map_applied_count: {metrics['compiler']['event_time_candidate_map_applied_count']}",
         f"- event_time_candidate_map_applied_rate: {metrics['compiler']['event_time_candidate_map_applied_rate']}",
         f"- event_time_candidate_map_audit_applied_count: {metrics['compiler']['event_time_candidate_map_audit_applied_count']}",

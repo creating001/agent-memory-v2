@@ -652,6 +652,23 @@ class Stage1Pipeline:
                     "event_time_candidate_map_include_mention_time", False
                 )
             ),
+            event_time_candidate_map_mention_time_fallback=bool(
+                compiler_config.get(
+                    "event_time_candidate_map_mention_time_fallback", False
+                )
+            ),
+            event_time_candidate_map_mention_time_fallback_min_coverage=float(
+                compiler_config.get(
+                    "event_time_candidate_map_mention_time_fallback_min_coverage",
+                    0.8,
+                )
+            ),
+            event_time_candidate_map_mention_time_fallback_trigger_max_coverage=float(
+                compiler_config.get(
+                    "event_time_candidate_map_mention_time_fallback_trigger_max_coverage",
+                    0.8,
+                )
+            ),
             enable_weekend_relative_time=bool(
                 compiler_config.get("enable_weekend_relative_time", False)
             ),
@@ -4041,6 +4058,21 @@ def _compiler_trace_config(
                 "event_time_candidate_map_include_mention_time", False
             )
         ),
+        "event_time_candidate_map_mention_time_fallback": bool(
+            compiler_config.get("event_time_candidate_map_mention_time_fallback", False)
+        ),
+        "event_time_candidate_map_mention_time_fallback_min_coverage": float(
+            compiler_config.get(
+                "event_time_candidate_map_mention_time_fallback_min_coverage",
+                0.8,
+            )
+        ),
+        "event_time_candidate_map_mention_time_fallback_trigger_max_coverage": float(
+            compiler_config.get(
+                "event_time_candidate_map_mention_time_fallback_trigger_max_coverage",
+                0.8,
+            )
+        ),
         "enable_weekend_relative_time": bool(
             compiler_config.get("enable_weekend_relative_time", False)
         ),
@@ -4335,6 +4367,21 @@ def _configured_compiler(compiler_config: Mapping[str, Any]) -> EvidenceCompiler
         event_time_candidate_map_include_mention_time=bool(
             compiler_config.get(
                 "event_time_candidate_map_include_mention_time", False
+            )
+        ),
+        event_time_candidate_map_mention_time_fallback=bool(
+            compiler_config.get("event_time_candidate_map_mention_time_fallback", False)
+        ),
+        event_time_candidate_map_mention_time_fallback_min_coverage=float(
+            compiler_config.get(
+                "event_time_candidate_map_mention_time_fallback_min_coverage",
+                0.8,
+            )
+        ),
+        event_time_candidate_map_mention_time_fallback_trigger_max_coverage=float(
+            compiler_config.get(
+                "event_time_candidate_map_mention_time_fallback_trigger_max_coverage",
+                0.8,
             )
         ),
         enable_weekend_relative_time=bool(
