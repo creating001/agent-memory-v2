@@ -6,12 +6,12 @@
 
 | 项目 | 结果 |
 |---|---|
-| 当前 LTS 配置 | `configs/stage1_context_manifest_v216_seeded_qwen36_no_think_build4k_cached.json` |
+| 当前 LTS 配置 | `configs/stage1_context_organization_ledger_v217_seeded_qwen36_no_think_build4k_cached.json` |
 | Backbone | `Qwen/Qwen3.6-35B-A3B` answer/build，`chat_template_kwargs.enable_thinking=false` |
-| 方法 | V216 继承 v214，并新增 trace-only Context Manifest / Memory Activation Ledger；不改变 retrieval、prompt、answer 或 cache。 |
-| LongMemEval-S full | v216 与 v214 answer/prompt/evidence rows/retrieval hits/effective selected-context diff `0/500`；context manifest `500/500`；avg build/query tokens `85393.566 / 6580.196`；继承 full `0.834000 / 0.846000`，`417/500` strict，`423/500` lenient |
-| LoCoMo non-adversarial full | v216 与 v214 answer/prompt/evidence rows/retrieval hits/effective selected-context diff `0/1540`；context manifest `1540/1540`；avg build/query tokens `62015.57402597403 / 6095.268181818182`；继承 full `0.793506 / 0.818831`，`1222/1540` strict，`1261/1540` lenient |
-| 状态 | 当前本地 qwen3.6 no-thinking LTS。v216 降低 #5 memory provenance/activation 不可解释风险；v214 的 #3 normalized audit、v211 的 #1 context-pressure selector 和 v209 的 #2 retrieval tail candidate 风险收敛保留。它不代表五个原始风险都已解决，#2 真实 token 降本、#3 prompt-visible mitigation 和 #5 state/update organization 仍是优先待办。 |
+| 方法 | V217 继承 v216，并在 Context Manifest 中新增 trace-only Context Organization Ledger；不改变 retrieval、prompt、answer 或 cache。 |
+| LongMemEval-S full | v217 与 v216 answer/prompt/evidence rows/retrieval hits/effective selected-context diff `0/500`；Context Organization Ledger `500/500`；avg build/query tokens `85393.566 / 6580.196`；继承 full `0.834000 / 0.846000`，`417/500` strict，`423/500` lenient |
+| LoCoMo non-adversarial full | v217 与 v216 answer/prompt/evidence rows/retrieval hits/effective selected-context diff `0/1540`；Context Organization Ledger `1540/1540`；avg build/query tokens `62015.57402597403 / 6095.268181818182`；继承 full `0.793506 / 0.818831`，`1222/1540` strict，`1261/1540` lenient |
+| 状态 | 当前本地 qwen3.6 no-thinking LTS。v217 降低 #2/#3 context organization 与 selected-context source-flow 不可诊断风险；v216 的 #5 memory provenance/activation、v214 的 #3 normalized audit、v211 的 #1 context-pressure selector 和 v209 的 #2 retrieval tail candidate 风险收敛保留。它不代表五个原始风险都已解决，#2 真实 token 降本、#3 prompt-visible mitigation 和 #5 state/update organization 仍是优先待办。 |
 
 `paired-delta derived` 的含义：新版本只改少量答案，未变化答案沿用父 LTS full dual judge records，变化答案单独跑 paired dual judge 后替换计数。若新版本与父 LTS answer-identical，则可继承父 LTS judge records，但必须记录 full answer diff、cache hit/miss 和输出路径。若论文级最终汇报需要完全独立 run，再对 LTS 配置重跑 fresh full judge。
 
@@ -26,16 +26,17 @@
 
 | 优先级 | 项目 | 当前状态 | 下一步 |
 |---:|---|---|---|
-| 1 | #2 top-k/context noise/rerank | v209/v211 用 `22000` chars + `32` anchors 实际裁掉 LME tail retrieval candidates且不改 prompt/answer；v210 tail snippet 和 v215 selected-context compact wrapper 都说明机械压缩 prompt text 会扰动 reader | 继续做 source/span 保真的 prompt-stable context organization 或 guarded rerank，目标是减少进入 prompt 的噪声和 token，而不是硬剪证据或单纯改写包装格式 |
-| 2 | #3 selected context | v214 使用 prompt-visible materialized row + normalized query/evidence terms 做 trace-only audit；LoCoMo audit applied `1493/1540`、risk rows `5841`，低于 v213 的 `6163` | 用 v214 剩余风险 rows 设计 source-backed mitigation；任何 prompt-visible gate 必须先做 changed-answer judge |
-| 3 | #5 memory lifecycle/state/conflict/query-time reasoning | v216 已把 typed-memory activation、memory-projected source、context budget、selected-context 和 final evidence rows 合入 trace-only Context Manifest；LME/LoCoMo manifest `500/500`、`1540/1540` | 从 audit 走向更通用的 state/update organization：保留 raw evidence first，typed memory 只做 source-backed activation；不把普通 event/preference 多值当 state conflict |
+| 1 | #2 top-k/context noise/rerank | v217 记录 prompt context chars、context-budget headroom/drop 与 selected-context source flow；v209/v211 已保守裁掉 LME tail retrieval candidates，v210/v215 证明机械压缩 prompt text 会伤 reader | 继续做 source/span 保真的 prompt-stable context organization 或 guarded rerank，目标是减少进入 prompt 的噪声和 token，而不是硬剪证据或单纯改写包装格式 |
+| 2 | #3 selected context | v217 将 LoCoMo selected-context risk rows `5841` 归因到 final evidence、typed-memory source 与 memory-projected retrieval，其中 `1198` 与 typed/projection 重合；主因是 slot coverage/terms 不足 | 用 v217 ledger 的风险归因设计 source-backed mitigation；任何 prompt-visible gate 必须先做 changed-answer judge |
+| 3 | #5 memory lifecycle/state/conflict/query-time reasoning | v216/v217 已把 typed-memory activation、memory-projected source、context budget、selected-context 和 final evidence rows 合入 trace-only Context Manifest；LME/LoCoMo manifest `500/500`、`1540/1540` | 从 audit 走向更通用的 state/update organization：保留 raw evidence first，typed memory 只做 source-backed activation；不把普通 event/preference 多值当 state conflict |
 | 4 | src cleanup | 已有多轮兼容分支，`repair.py`、compiler、pipeline 仍会继续变复杂 | 每个阶段结束后做小范围清理，删已确认无用的兼容代码，不删仍有消融价值的模块 |
 
 ## 保留候选
 
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
-| `configs/stage1_context_manifest_v216_seeded_qwen36_no_think_build4k_cached.json` | current LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v216 vs v214 answer/prompt/evidence rows/retrieval hits/effective selected-context diff `0/500`、`0/1540`；context manifest `500/500`、`1540/1540` | 当前 LTS；新增 trace-only Context Manifest / Memory Activation Ledger，降低 #5 provenance/activation 不可解释风险，性能继承 v214 |
+| `configs/stage1_context_organization_ledger_v217_seeded_qwen36_no_think_build4k_cached.json` | current LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v217 vs v216 answer/prompt/evidence rows/retrieval hits/effective selected-context diff `0/500`、`0/1540`；Context Organization Ledger `500/500`、`1540/1540` | 当前 LTS；新增 trace-only context organization/source-flow ledger，降低 #2/#3 不可诊断风险，性能继承 v216 |
+| `configs/stage1_context_manifest_v216_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v216 vs v214 answer/prompt/evidence rows/retrieval hits/effective selected-context diff `0/500`、`0/1540`；context manifest `500/500`、`1540/1540` | 被 v217 替代；新增 trace-only Context Manifest / Memory Activation Ledger，降低 #5 provenance/activation 不可解释风险，性能继承 v214 |
 | `configs/stage1_selected_context_term_normalized_audit_v214_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v214 vs v213 answer/route/prompt/evidence rows/retrieval hits/effective selected-context diff `0/500`、`0/1540`；LoCoMo selected-context risk rows `6163 -> 5841` | 被 v216 替代；规范化 trace-only selected-context audit term matching，降低 #3 误报风险，性能继承 v213 |
 | `configs/stage1_materialized_selected_context_audit_v213_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v213 vs v212 answer/route/prompt/evidence rows/retrieval hits/effective selected-context diff `0/500`、`0/1540`；LoCoMo selected-context risk rows `7423 -> 6163` | 被 v214 替代；用 prompt-visible materialized context 审计 selected-context 风险，降低 #3 误报风险，性能继承 v212 |
 | `configs/stage1_selected_context_full_risk_audit_v212_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v212 vs v211 answer/route/prompt/evidence rows/retrieval hits/selected-context diff `0/500`、`0/1540`；LoCoMo selected-context risk rows `7423` | 被 v213 替代；扩展 trace-only selected-context risk audit，降低 #3 隐性风险，性能继承 v211 |
@@ -130,7 +131,10 @@
 
 | 路径 | 内容 |
 |---|---|
-| `diagnostic/stage1_context_budget_audit_v207_scope_summary.md` | 当前 LTS 晋升结论：v207 新增 trace-only context-budget audit，full answer/route/prompt/evidence rows/retrieval hits diff 均为 `0`，性能继承 v206 |
+| `diagnostic/stage1_context_organization_ledger_v217_scope_summary.md` | 当前 LTS 晋升结论：v217 新增 trace-only Context Organization Ledger，full answer/prompt/evidence rows/retrieval hits/effective selected-context diff 均为 `0`，性能继承 v216 |
+| `diagnostic/stage1_context_organization_ledger_v217_lme_s_full/` | v217 LME full；vs v216 answer/prompt/evidence rows/retrieval hits/effective selected-context diff `0/500`，Context Organization Ledger `500/500` |
+| `diagnostic/stage1_context_organization_ledger_v217_locomo_nonadv_full/` | v217 LoCoMo full；vs v216 answer/prompt/evidence rows/retrieval hits/effective selected-context diff `0/1540`，Context Organization Ledger `1540/1540`，selected-context risk rows `5841` |
+| `diagnostic/stage1_context_budget_audit_v207_scope_summary.md` | previous LTS 晋升结论：v207 新增 trace-only context-budget audit，full answer/route/prompt/evidence rows/retrieval hits diff 均为 `0`，性能继承 v206 |
 | `diagnostic/stage1_context_budget_audit_v207_lme_s_full/` | v207 LME full；vs v206 answer/route/prompt/evidence rows/retrieval hits diff `0/500`，audit prompt/selected-context risk `0/0` |
 | `diagnostic/stage1_context_budget_audit_v207_locomo_nonadv_full/` | v207 LoCoMo full；vs v206 answer/route/prompt/evidence rows/retrieval hits diff `0/1540`，audit prompt/selected-context risk `0/0` |
 | `diagnostic/stage1_update_pair_state_conflict_guide_v206_scope_summary.md` | previous LTS 晋升结论：v206 增加 active+superseded update-pair gate，full answer/route/prompt/evidence rows diff 均为 `0`，性能继承 v205/v204/v202 |

@@ -6,13 +6,18 @@
 
 | 用途 | 配置 | 状态 |
 |---|---|---|
-| 后续新实验默认配置 | `stage1_strict_event_time_candidate_map_v184_seeded_qwen36_no_think_build4k_cached.json` | 当前本地 v184 LTS。继承 v181 grouped event-time manifest，并新增严格 prompt-side event-time candidate map；LongMemEval-S strict/lenient `0.834000 / 0.846000`，LoCoMo `0.793506 / 0.818831`。 |
+| 后续新实验默认配置 | `stage1_context_organization_ledger_v217_seeded_qwen36_no_think_build4k_cached.json` | 当前本地 v217 LTS。继承 v216 full accuracy，并新增 trace-only Context Organization Ledger；LongMemEval-S strict/lenient `0.834000 / 0.846000`，LoCoMo `0.793506 / 0.818831`。 |
 
 ## 保留对照
 
 | 配置 | 作用 |
 |---|---|
-| `stage1_strict_event_time_candidate_map_v184_seeded_qwen36_no_think_build4k_cached.json` | 当前 LTS；严格 prompt-side event-time candidate map，LME `0.834000 / 0.846000`，LoCoMo `0.793506 / 0.818831`，相对 v181 answer diff `0/500`、`2/1540`。 |
+| `stage1_context_organization_ledger_v217_seeded_qwen36_no_think_build4k_cached.json` | 当前 LTS；trace-only Context Organization Ledger，LME `0.834000 / 0.846000`，LoCoMo `0.793506 / 0.818831`，相对 v216 answer/prompt/evidence rows/retrieval hits/effective selected-context diff `0/500`、`0/1540`。 |
+| `stage1_context_manifest_v216_seeded_qwen36_no_think_build4k_cached.json` | v217 父 LTS；trace-only Context Manifest / Memory Activation Ledger，性能继承 v214。 |
+| `stage1_selected_context_term_normalized_audit_v214_seeded_qwen36_no_think_build4k_cached.json` | v216 父 LTS；normalized selected-context audit，LoCoMo selected-context risk rows `6163 -> 5841`，性能继承 v213。 |
+| `stage1_total_context_pressure_profile_v211_seeded_qwen36_no_think_build4k_cached.json` | v214 父线；用 total raw context pressure 替代 avg-turn selector，性能继承 v209。 |
+| `stage1_conservative_context_budget_v209_seeded_qwen36_no_think_build4k_cached.json` | v211 父线；保守 context budget 实际裁掉 LME tail retrieval candidates，性能继承 v207。 |
+| `stage1_strict_event_time_candidate_map_v184_seeded_qwen36_no_think_build4k_cached.json` | 历史 LTS；严格 prompt-side event-time candidate map，LME `0.834000 / 0.846000`，LoCoMo `0.793506 / 0.818831`，相对 v181 answer diff `0/500`、`2/1540`。 |
 | `stage1_grouped_event_time_candidate_manifest_v181_qwen36_no_think_build4k_cached.json` | v184 父 LTS；trace-only grouped event-time candidate manifest，answer-identical to v180，LME `0.834000 / 0.846000`，LoCoMo `0.792857 / 0.818182`。 |
 | `stage1_trace_event_time_candidate_manifest_v180_qwen36_no_think_build4k_cached.json` | v181 父 LTS；trace-only answer-slot-aware event-time manifest，answer-identical to v176，LME `0.834000 / 0.846000`，LoCoMo `0.792857 / 0.818182`。 |
 | `stage1_cross_route_profile_advice_repair_v176_qwen36_no_think_build4k_cached.json` | v180 父 LTS；错路由 advice/fact/list 拒答可进入 no-new-names profile advice verifier，LME `0.834000 / 0.846000`，LoCoMo `0.792857 / 0.818182`。 |
@@ -44,8 +49,8 @@
 
 | Benchmark | 配置 | 结果 | 用途 |
 |---|---|---:|---|
-| LongMemEval-S full | `stage1_strict_event_time_candidate_map_v184_seeded_qwen36_no_think_build4k_cached.json` | strict `0.834000` / lenient `0.846000` | 当前 LTS；v184 vs v181 answer diff `0/500`，性能继承 v181。 |
-| LoCoMo non-adversarial full | `stage1_strict_event_time_candidate_map_v184_seeded_qwen36_no_think_build4k_cached.json` | strict `0.793506` / lenient `0.818831` | 当前 LTS；v184 vs v181 answer diff `2/1540`，changed-answer dual judge `1/2 -> 2/2`。 |
+| LongMemEval-S full | `stage1_context_organization_ledger_v217_seeded_qwen36_no_think_build4k_cached.json` | strict `0.834000` / lenient `0.846000` | 当前 LTS；v217 vs v216 behavior diff `0/500`，性能继承 v216。 |
+| LoCoMo non-adversarial full | `stage1_context_organization_ledger_v217_seeded_qwen36_no_think_build4k_cached.json` | strict `0.793506` / lenient `0.818831` | 当前 LTS；v217 vs v216 behavior diff `0/1540`，性能继承 v216。 |
 
 ## 关键 Baseline
 
@@ -69,6 +74,7 @@
 - v180 只新增 trace-only compiler diagnostics，prompt/answer/repair 不变，显式复用 v176 的 answer 与 repair cache；full answer diff 为 0 时继承 v176 dual judge 结果。
 - v181 只新增 trace-only grouped manifest diagnostics，prompt/answer/repair 不变，显式复用 v180/v176 的 answer 与 repair cache；full answer diff 为 0 时继承 v180/v176 dual judge 结果。
 - v184 新增严格 prompt-side event-time candidate map，并用 v181 full prediction traces/predictions 预种 answer cache；prompt-identical rows 命中 v181 answer，prompt-changed rows miss/write 后只对 changed answers 做 paired judge。
+- v217 只新增 trace-only Context Organization Ledger，prompt/answer/retrieval/repair 不变，显式复用 v216 answer cache；full answer diff 为 0 时继承 v216 dual judge 结果。
 - cache 命中只能减少重复 API 调用，不能改变逻辑 token 统计。正式记录仍报告逻辑 cold-build/query token。
 - 不得使用 gold answer、judge output、benchmark 标签、sample id、test feedback 或样本级规则构造配置、cache、prediction、retrieval、compiler、answer 或 repair。
 
