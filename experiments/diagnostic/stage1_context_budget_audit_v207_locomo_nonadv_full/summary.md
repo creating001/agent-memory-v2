@@ -1,4 +1,4 @@
-# stage1_context_budget_audit_v207_lme_s_full
+# stage1_context_budget_audit_v207_locomo_nonadv_full
 
 ## Purpose
 
@@ -6,41 +6,41 @@ Stage-1 clean skeleton run: validate raw evidence storage, lexical retrieval, ne
 
 ## Scope
 
-- benchmark: longmemeval_s
-- subset: full
+- benchmark: locomo
+- subset: non_adversarial_full
 - experiment_kind: diagnostic
 - limit: None
 - workers: 4
-- input_path: /data/home_new/wujinqi/agent-memory/outputs/prepare_longmemeval_s_cleaned/prediction_input.jsonl
+- input_path: /data/home_new/wujinqi/agent-memory/outputs/prepare_locomo_non_adversarial/prediction_input.jsonl
 - config_path: /data/home_new/wujinqi/agent-memory/configs/stage1_context_budget_audit_v207_seeded_qwen36_no_think_build4k_cached.json
 - answer: OpenAI-compatible answerer using Qwen/Qwen3.6-35B-A3B at http://127.0.0.1:8000/v1 with temperature 0, max_input_tokens 131072, and max_output_tokens 16384, chat_template_kwargs {'enable_thinking': False}.
 
 ## Git
 
 - inside_work_tree: True
-- commit: 91b0d14ff52decdd97d97919b6130931b800df2b
+- commit: 9610c811d634ece454d3c57fdce40e774db11cce
 - dirty: False
 - note: None
 
 ## Metrics
 
-- n_samples: 500
+- n_samples: 1540
 - accuracy: None
 - f1: None
 - bleu: None
-- avg_build_tokens: 85393.566
+- avg_build_tokens: 62015.57402597403
 - avg_build_think_tokens: 0.0
-- avg_build_total_tokens: 85393.566
+- avg_build_total_tokens: 62015.57402597403
 - build_token_accounting: logical cold-build visible LLM tokens; cached build chunks count from stored usage, while cache hits only avoid repeated local API calls.
-- avg_query_tokens: 6580.196
+- avg_query_tokens: 6095.268181818182
 - avg_query_think_tokens: 0.0
-- avg_query_total_tokens: 6580.196
+- avg_query_total_tokens: 6095.268181818182
 - token_accounting_note: avg_build_tokens / avg_query_tokens exclude explicit reasoning tokens when the provider reports them; avg_*_total_tokens include visible plus think tokens.
-- avg_compiled_evidence_items: 34.746
+- avg_compiled_evidence_items: 54.142857142857146
 - retrieval_route_overrides: {'temporal_lookup': {'top_k': 40, 'max_top_k': 40, 'dense_top_k': 40, 'lexical_protect_top_n': 0, 'dense_protect_top_n': 32}}
-- avg_effective_top_k: 40.0
-- avg_effective_dense_top_k: 40.0
-- avg_effective_dense_protect_top_n: 32.0
+- avg_effective_top_k: 55.61038961038961
+- avg_effective_dense_top_k: 55.61038961038961
+- avg_effective_dense_protect_top_n: 44.48831168831169
 - build_memory_enabled: True
 - build_memory_model: Qwen/Qwen3.6-35B-A3B
 - build_memory_temporal_fields: False
@@ -50,7 +50,7 @@ Stage-1 clean skeleton run: validate raw evidence storage, lexical retrieval, ne
 - build_memory_chat_template_kwargs: {'enable_thinking': False}
 - build_memory_cache_enabled: True
 - build_memory_cache_path: outputs/cache/qwen36_no_think_build4k_memory_v102.sqlite
-- build_memory_cache_hits: 3341
+- build_memory_cache_hits: 12411
 - build_memory_cache_misses: 0
 - build_memory_cache_writes: 0
 - build_memory_source_alignment: {}
@@ -58,10 +58,10 @@ Stage-1 clean skeleton run: validate raw evidence storage, lexical retrieval, ne
 - build_memory_source_alignment_added_sources: 0
 - avg_build_memory_source_alignment_changed_records: 0.0
 - avg_build_memory_source_alignment_added_sources: 0.0
-- avg_build_memory_records: 115.818
-- avg_active_build_memory_records: 102.2
-- avg_memory_hits: 8.464
-- avg_memory_source_hits: 9.726
+- avg_build_memory_records: 150.91493506493507
+- avg_active_build_memory_records: 141.86818181818182
+- avg_memory_hits: 19.857792207792208
+- avg_memory_source_hits: 25.929220779220778
 - build_memory_include_superseded: False
 - build_memory_include_superseded_information_needs: ['temporal_lookup', 'list_count', 'profile_preference', 'current_state']
 - neighbor_order: hit_priority
@@ -74,7 +74,7 @@ Stage-1 clean skeleton run: validate raw evidence storage, lexical retrieval, ne
 - dense_query_text_mode: external_naive
 - embedding_cache_enabled: True
 - embedding_cache_path: outputs/cache/qwen3_embedding.sqlite
-- embedding_cache_hits: 247238
+- embedding_cache_hits: 7422
 - embedding_cache_misses: 0
 - embedding_cache_writes: 0
 - turn_window_bm25_enabled: False
@@ -91,8 +91,8 @@ Stage-1 clean skeleton run: validate raw evidence storage, lexical retrieval, ne
 - avg_turn_window_hits: 0.0
 - avg_turn_window_source_hits: 0.0
 - granularity_profile_audit_enabled: True
-- granularity_profile_audit_selected_count: 500
-- granularity_profile_audit_behavior_risk_count: 500
+- granularity_profile_audit_selected_count: 0
+- granularity_profile_audit_behavior_risk_count: 0
 - selected_context_enabled: True
 - selected_context_window_before: 1
 - selected_context_window_after: 2
@@ -104,19 +104,19 @@ Stage-1 clean skeleton run: validate raw evidence storage, lexical retrieval, ne
 - selected_context_require_question_reference: None
 - selected_context_require_question_reference_min_center_chars: None
 - selected_context_min_context_budget_headroom_chars: None
-- selected_context_applied_count: 3
-- selected_context_applied_rate: 0.006
+- selected_context_applied_count: 1536
+- selected_context_applied_rate: 0.9974025974025974
 - selected_context_budget_gate_applied_count: 0
 - selected_context_budget_gate_blocked_count: 0
 - avg_selected_context_budget_gate_headroom_chars: None
-- avg_selected_context_materialized_rows: 0.024
-- avg_selected_context_skipped_long_center_rows: 0.106
+- avg_selected_context_materialized_rows: 5.545454545454546
+- avg_selected_context_skipped_long_center_rows: 1.1746753246753248
 - avg_selected_context_skipped_question_reference_center_rows: 0.0
 - selected_context_risk_audit_enabled: True
-- selected_context_risk_audit_applied_count: 0
-- selected_context_risk_audit_risk_count: 0
-- avg_selected_context_risk_audit_audited_rows: 0.0
-- avg_selected_context_risk_audit_risk_rows: 0.0
+- selected_context_risk_audit_applied_count: 329
+- selected_context_risk_audit_risk_count: 1083
+- avg_selected_context_risk_audit_audited_rows: 0.8545454545454545
+- avg_selected_context_risk_audit_risk_rows: 0.7032467532467532
 - rerank_enabled: False
 - rerank_model: None
 - rerank_pool_k: None
@@ -149,17 +149,17 @@ Stage-1 clean skeleton run: validate raw evidence storage, lexical retrieval, ne
 - context_budget_audit_protect_top_n: 32
 - context_budget_audit_max_hits: 60
 - context_budget_audit_information_needs: ['current_state', 'fact_lookup', 'list_count', 'profile_preference', 'temporal_lookup']
-- context_budget_audit_applied_count: 500
+- context_budget_audit_applied_count: 1540
 - context_budget_audit_applied_rate: 1.0
-- avg_context_budget_audit_candidate_count: 40.0
-- avg_context_budget_audit_returned_count: 37.75
-- avg_context_budget_audit_dropped_count: 2.25
+- avg_context_budget_audit_candidate_count: 55.61038961038961
+- avg_context_budget_audit_returned_count: 55.61038961038961
+- avg_context_budget_audit_dropped_count: 0.0
 - context_budget_audit_prompt_risk_count: 0
 - avg_context_budget_audit_prompt_missing_rows: 0.0
 - context_budget_audit_selected_context_risk_count: 0
 - avg_context_budget_audit_selected_context_missing_rows: 0.0
 - avg_embedding_tokens: 0.0
-- avg_context_chars: 19775.056
+- avg_context_chars: 17402.64025974026
 - compiler_prompt_mode: external_naive
 - compiler_memory_record_source: retrieval
 - avg_compiled_memory_records: 0.0
@@ -172,7 +172,7 @@ Stage-1 clean skeleton run: validate raw evidence storage, lexical retrieval, ne
 - answer_cache_enabled: True
 - answer_cache_path: outputs/cache/qwen36_no_think_build4k_answer_v196_selected_context_risk_audit_seeded.sqlite
 - answer_cache_namespace: stage1_selected_context_risk_audit_v196_seeded_qwen36_no_think_build4k
-- answer_cache_hits: 500
+- answer_cache_hits: 1540
 - answer_cache_misses: 0
 - answer_cache_writes: 0
 - answer_finalizer_enabled: True
@@ -220,15 +220,15 @@ Stage-1 clean skeleton run: validate raw evidence storage, lexical retrieval, ne
 - answer_repair_cache_enabled: True
 - answer_repair_cache_path: outputs/cache/qwen36_no_think_build4k_answer_repair_v196_selected_context_risk_audit_seeded.sqlite
 - answer_repair_cache_namespace: stage1_selected_context_risk_audit_v196_seeded_qwen36_no_think_build4k_repair
-- answer_repair_cache_hits: 6
+- answer_repair_cache_hits: 2
 - answer_repair_cache_misses: 0
 - answer_repair_cache_writes: 0
-- answer_repair_triggered_count: 6
-- answer_repair_triggered_rate: 0.012
+- answer_repair_triggered_count: 2
+- answer_repair_triggered_rate: 0.0012987012987012987
 - answer_repair_applied_count: 0
 - answer_repair_applied_rate: 0.0
-- answer_repair_total_query_tokens: 28814
-- answer_repair_avg_query_tokens_when_triggered: 4802.333333333333
+- answer_repair_total_query_tokens: 9234
+- answer_repair_avg_query_tokens_when_triggered: 4617.0
 - answer_style: concise
 - evidence_order: retrieval
 - memory_order: retrieval
@@ -278,21 +278,21 @@ Stage-1 clean skeleton run: validate raw evidence storage, lexical retrieval, ne
 - event_time_candidate_map_mention_time_fallback: True
 - event_time_candidate_map_mention_time_fallback_min_coverage: 0.8
 - event_time_candidate_map_mention_time_fallback_trigger_max_coverage: 0.8
-- event_time_candidate_map_applied_count: 0
-- event_time_candidate_map_applied_rate: 0.0
-- event_time_candidate_map_audit_applied_count: 10
-- event_time_candidate_map_audit_applied_rate: 0.02
-- avg_event_time_candidate_map_audit_prompt_candidates: 0.0
-- avg_event_time_candidate_map_audit_risk_flags: 0.0
-- event_time_candidate_manifest_applied_count: 234
-- event_time_candidate_manifest_applied_rate: 0.468
-- avg_event_time_candidate_manifest_items: 11.876068376068377
-- avg_event_time_candidate_manifest_groups: 7.358974358974359
-- avg_event_time_candidate_manifest_conflict_groups: 1.2863247863247864
-- event_time_candidate_manifest_safe_order_count: 0
+- event_time_candidate_map_applied_count: 3
+- event_time_candidate_map_applied_rate: 0.001948051948051948
+- event_time_candidate_map_audit_applied_count: 241
+- event_time_candidate_map_audit_applied_rate: 0.1564935064935065
+- avg_event_time_candidate_map_audit_prompt_candidates: 0.012448132780082987
+- avg_event_time_candidate_map_audit_risk_flags: 0.03319502074688797
+- event_time_candidate_manifest_applied_count: 356
+- event_time_candidate_manifest_applied_rate: 0.23116883116883116
+- avg_event_time_candidate_manifest_items: 11.98876404494382
+- avg_event_time_candidate_manifest_groups: 6.752808988764045
+- avg_event_time_candidate_manifest_conflict_groups: 1.7612359550561798
+- event_time_candidate_manifest_safe_order_count: 2
 - operation_workpad_question_gate: False
 - personalized_advice_contract: False
-- personalized_advice_contract_applied: 29
+- personalized_advice_contract_applied: 0
 - context_pressure_enabled: False
 - context_pressure_max_headroom_chars: None
 - context_pressure_information_needs: None
@@ -322,7 +322,7 @@ Stage-1 clean skeleton run: validate raw evidence storage, lexical retrieval, ne
 - update_conflict_guide_information_needs: None
 - update_conflict_guide_max_rows: 6
 - update_conflict_guide_snippet_chars: 180
-- update_conflict_guide_applied: 44
+- update_conflict_guide_applied: 0
 - memory_state_guide: True
 - memory_state_guide_information_needs: ['current_state']
 - memory_state_guide_max_records: 4
@@ -347,10 +347,10 @@ Stage-1 clean skeleton run: validate raw evidence storage, lexical retrieval, ne
 
 ## Outputs
 
-- predictions: /data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_context_budget_audit_v207_lme_s_full/predictions.jsonl
-- traces: /data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_context_budget_audit_v207_lme_s_full/traces.jsonl
-- metrics: /data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_context_budget_audit_v207_lme_s_full/metrics.json
-- manifest: /data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_context_budget_audit_v207_lme_s_full/manifest.json
+- predictions: /data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_context_budget_audit_v207_locomo_nonadv_full/predictions.jsonl
+- traces: /data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_context_budget_audit_v207_locomo_nonadv_full/traces.jsonl
+- metrics: /data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_context_budget_audit_v207_locomo_nonadv_full/metrics.json
+- manifest: /data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_context_budget_audit_v207_locomo_nonadv_full/manifest.json
 
 ## Clean Notes
 

@@ -1,4 +1,4 @@
-# Diagnosis for stage1_context_budget_audit_v207_lme_s_full
+# Diagnosis for stage1_context_budget_audit_v207_locomo_nonadv_full
 
 ## Summary
 
@@ -6,19 +6,19 @@ The run validates pipeline shape, clean traceability, and answerer integration u
 
 ## Observations
 
-- samples_processed: 500
-- avg_compiled_evidence_items: 34.746
-- avg_build_tokens: 85393.566
+- samples_processed: 1540
+- avg_compiled_evidence_items: 54.142857142857146
+- avg_build_tokens: 62015.57402597403
 - avg_build_think_tokens: 0.0
-- avg_build_total_tokens: 85393.566
+- avg_build_total_tokens: 62015.57402597403
 - build_token_accounting: logical cold-build visible LLM tokens; cached build chunks count from stored usage, while cache hits only avoid repeated local API calls.
-- avg_build_memory_records: 115.818
-- avg_active_build_memory_records: 102.2
+- avg_build_memory_records: 150.91493506493507
+- avg_active_build_memory_records: 141.86818181818182
 - build_memory_temporal_fields: False
 - build_memory_prompt_profile: typed_compact
 - build_memory_manage_facts: True
 - build_memory_overlap_turns: 0
-- build_memory_cache_hits: 3341
+- build_memory_cache_hits: 12411
 - build_memory_cache_misses: 0
 - build_memory_cache_writes: 0
 - build_memory_source_alignment: {}
@@ -26,19 +26,19 @@ The run validates pipeline shape, clean traceability, and answerer integration u
 - build_memory_source_alignment_added_sources: 0
 - avg_build_memory_source_alignment_changed_records: 0.0
 - avg_build_memory_source_alignment_added_sources: 0.0
-- avg_memory_hits: 8.464
-- avg_memory_source_hits: 9.726
+- avg_memory_hits: 19.857792207792208
+- avg_memory_source_hits: 25.929220779220778
 - build_memory_include_superseded: False
 - build_memory_include_superseded_information_needs: ['temporal_lookup', 'list_count', 'profile_preference', 'current_state']
-- avg_context_chars: 19775.056
-- avg_query_tokens: 6580.196
+- avg_context_chars: 17402.64025974026
+- avg_query_tokens: 6095.268181818182
 - avg_query_think_tokens: 0.0
-- avg_query_total_tokens: 6580.196
+- avg_query_total_tokens: 6095.268181818182
 - token_accounting_note: avg_build_tokens / avg_query_tokens exclude explicit reasoning tokens when the provider reports them; avg_*_total_tokens include visible plus think tokens.
 - retrieval_route_overrides: {'temporal_lookup': {'top_k': 40, 'max_top_k': 40, 'dense_top_k': 40, 'lexical_protect_top_n': 0, 'dense_protect_top_n': 32}}
-- avg_effective_top_k: 40.0
-- avg_effective_dense_top_k: 40.0
-- avg_effective_dense_protect_top_n: 32.0
+- avg_effective_top_k: 55.61038961038961
+- avg_effective_dense_top_k: 55.61038961038961
+- avg_effective_dense_protect_top_n: 44.48831168831169
 - dense_protect_top_n: 48
 - turn_window_bm25_enabled: False
 - turn_window_top_k: None
@@ -50,22 +50,22 @@ The run validates pipeline shape, clean traceability, and answerer integration u
 - avg_turn_window_hits: 0.0
 - avg_turn_window_source_hits: 0.0
 - granularity_profile_audit_enabled: True
-- granularity_profile_audit_selected_count: 500
-- granularity_profile_audit_behavior_risk_count: 500
+- granularity_profile_audit_selected_count: 0
+- granularity_profile_audit_behavior_risk_count: 0
 - selected_context_enabled: True
-- selected_context_applied_count: 3
-- selected_context_applied_rate: 0.006
+- selected_context_applied_count: 1536
+- selected_context_applied_rate: 0.9974025974025974
 - selected_context_budget_gate_applied_count: 0
 - selected_context_budget_gate_blocked_count: 0
 - avg_selected_context_budget_gate_headroom_chars: None
-- avg_selected_context_materialized_rows: 0.024
-- avg_selected_context_skipped_long_center_rows: 0.106
+- avg_selected_context_materialized_rows: 5.545454545454546
+- avg_selected_context_skipped_long_center_rows: 1.1746753246753248
 - avg_selected_context_skipped_question_reference_center_rows: 0.0
 - selected_context_risk_audit_enabled: True
-- selected_context_risk_audit_applied_count: 0
-- selected_context_risk_audit_risk_count: 0
-- avg_selected_context_risk_audit_audited_rows: 0.0
-- avg_selected_context_risk_audit_risk_rows: 0.0
+- selected_context_risk_audit_applied_count: 329
+- selected_context_risk_audit_risk_count: 1083
+- avg_selected_context_risk_audit_audited_rows: 0.8545454545454545
+- avg_selected_context_risk_audit_risk_rows: 0.7032467532467532
 - rerank_enabled: False
 - rerank_model: None
 - rerank_pool_k: None
@@ -87,17 +87,17 @@ The run validates pipeline shape, clean traceability, and answerer integration u
 - avg_context_budget_estimated_chars: None
 - avg_context_budget_dropped_count: None
 - context_budget_audit_enabled: True
-- context_budget_audit_applied_count: 500
+- context_budget_audit_applied_count: 1540
 - context_budget_audit_applied_rate: 1.0
-- avg_context_budget_audit_candidate_count: 40.0
-- avg_context_budget_audit_returned_count: 37.75
-- avg_context_budget_audit_dropped_count: 2.25
+- avg_context_budget_audit_candidate_count: 55.61038961038961
+- avg_context_budget_audit_returned_count: 55.61038961038961
+- avg_context_budget_audit_dropped_count: 0.0
 - context_budget_audit_prompt_risk_count: 0
 - avg_context_budget_audit_prompt_missing_rows: 0.0
 - context_budget_audit_selected_context_risk_count: 0
 - avg_context_budget_audit_selected_context_missing_rows: 0.0
 - embedding_cache_enabled: True
-- embedding_cache_hits: 247238
+- embedding_cache_hits: 7422
 - embedding_cache_misses: 0
 - evidence_order: retrieval
 - memory_record_source: retrieval
@@ -122,7 +122,7 @@ The run validates pipeline shape, clean traceability, and answerer integration u
 - event_timeline_snippet_chars: 180
 - operation_workpad_question_gate: False
 - personalized_advice_contract: False
-- personalized_advice_contract_applied: 29
+- personalized_advice_contract_applied: 0
 - context_pressure_enabled: False
 - context_pressure_applied_count: 0
 - context_pressure_applied_rate: 0.0
@@ -149,7 +149,7 @@ The run validates pipeline shape, clean traceability, and answerer integration u
 - update_conflict_guide_information_needs: None
 - update_conflict_guide_max_rows: 6
 - update_conflict_guide_snippet_chars: 180
-- update_conflict_guide_applied: 44
+- update_conflict_guide_applied: 0
 - current_state_update_contract: False
 - dialogue_inference_contract: False
 - temporal_order_contract: False
@@ -167,7 +167,7 @@ The run validates pipeline shape, clean traceability, and answerer integration u
 - answer_cache_enabled: True
 - answer_cache_path: outputs/cache/qwen36_no_think_build4k_answer_v196_selected_context_risk_audit_seeded.sqlite
 - answer_cache_namespace: stage1_selected_context_risk_audit_v196_seeded_qwen36_no_think_build4k
-- answer_cache_hits: 500
+- answer_cache_hits: 1540
 - answer_cache_misses: 0
 - answer_cache_writes: 0
 - answer_finalizer_enabled: True
@@ -205,13 +205,13 @@ The run validates pipeline shape, clean traceability, and answerer integration u
 - answer_repair_enable_source_grounded_temporal_order_trigger: False
 - answer_repair_source_grounded_temporal_order_information_needs: None
 - answer_repair_source_grounded_temporal_order_min_support_items: 3
-- answer_repair_triggered_count: 6
-- answer_repair_triggered_rate: 0.012
+- answer_repair_triggered_count: 2
+- answer_repair_triggered_rate: 0.0012987012987012987
 - answer_repair_applied_count: 0
 - answer_repair_applied_rate: 0.0
-- answer_repair_total_query_tokens: 28814
-- answer_repair_avg_query_tokens_when_triggered: 4802.333333333333
-- answer_repair_cache_hits: 6
+- answer_repair_total_query_tokens: 9234
+- answer_repair_avg_query_tokens_when_triggered: 4617.0
+- answer_repair_cache_hits: 2
 - answer_repair_cache_misses: 0
 - answer_repair_cache_writes: 0
 - answer: OpenAI-compatible answerer using Qwen/Qwen3.6-35B-A3B at http://127.0.0.1:8000/v1 with temperature 0, max_input_tokens 131072, and max_output_tokens 16384, chat_template_kwargs {'enable_thinking': False}.

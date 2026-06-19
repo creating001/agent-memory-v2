@@ -6,12 +6,12 @@
 
 | 项目 | 结果 |
 |---|---|
-| 当前 LTS 配置 | `configs/stage1_update_pair_state_conflict_guide_v206_seeded_qwen36_no_think_build4k_cached.json` |
+| 当前 LTS 配置 | `configs/stage1_context_budget_audit_v207_seeded_qwen36_no_think_build4k_cached.json` |
 | Backbone | `Qwen/Qwen3.6-35B-A3B` answer/build，`chat_template_kwargs.enable_thinking=false` |
-| 方法 | V206 继承 v205/v204/v202，并把 managed memory state guide 进一步收窄：evidence ordering 仍用 retrieval-linked typed memory，state guide 只检查 evidence-row-linked typed memory，且必须同时满足 lifecycle/conflict、active+superseded distinct update pair、question-aligned slot overlap 和 stateful slot gate。 |
-| LongMemEval-S full | v206 与 v205 answer diff `0/500`、route diff `0/500`、prompt diff `0/500`、evidence rows diff `0/500`；Managed Memory State Guide 触发 `1/500`；answer cache `500/0/0`；继承 v205/v204/v202 full `0.834000 / 0.846000`，`417/500` strict，`423/500` lenient |
-| LoCoMo non-adversarial full | v206 与 v205 answer diff `0/1540`、route diff `0/1540`、prompt diff `0/1540`、evidence rows diff `0/1540`；Managed Memory State Guide 触发 `0/1540`；answer cache `1540/0/0`；继承 v205/v204/v202 full `0.793506 / 0.818831`，`1222/1540` strict，`1261/1540` lenient |
-| 状态 | 当前本地 qwen3.6 no-thinking LTS。v206 比 v205 更进一步降低 #5 误触发风险；它不代表五个原始风险都已解决，#1/#2/#3 仍是优先待办。 |
+| 方法 | V207 继承 v206，并新增 trace-only context-budget audit：模拟 `16000` chars、`32` protected/min hits 的 retrieval budget，记录 projected dropped sources、prompt-row missing 和 selected-context missing；不改变 retrieval、compiler、answer、repair、finalizer 或 cache key。 |
+| LongMemEval-S full | v207 与 v206 answer/route/prompt/evidence rows/retrieval hits diff `0/500`；context-budget audit applied `500/500`，avg dropped `2.25`，prompt risk `0`，selected-context risk `0`；answer cache `500/0/0`；继承 full `0.834000 / 0.846000`，`417/500` strict，`423/500` lenient |
+| LoCoMo non-adversarial full | v207 与 v206 answer/route/prompt/evidence rows/retrieval hits diff `0/1540`；context-budget audit applied `1540/1540`，avg dropped `0.0`，prompt risk `0`，selected-context risk `0`；answer cache `1540/0/0`；继承 full `0.793506 / 0.818831`，`1222/1540` strict，`1261/1540` lenient |
+| 状态 | 当前本地 qwen3.6 no-thinking LTS。v207 降低 #2 top-k/context-noise 后续实验的不可见风险；它不代表五个原始风险都已解决，#1/#3 和真实 token 降本仍是优先待办。 |
 
 `paired-delta derived` 的含义：新版本只改少量答案，未变化答案沿用父 LTS full dual judge records，变化答案单独跑 paired dual judge 后替换计数。若新版本与父 LTS answer-identical，则可继承父 LTS judge records，但必须记录 full answer diff、cache hit/miss 和输出路径。若论文级最终汇报需要完全独立 run，再对 LTS 配置重跑 fresh full judge。
 
@@ -26,16 +26,17 @@
 
 | 优先级 | 项目 | 当前状态 | 下一步 |
 |---:|---|---|---|
-| 1 | #5 memory lifecycle/state/conflict/query-time reasoning | v206 已把 prompt-visible guide 收窄为 source-backed、question-aligned、stateful-slot、active+superseded update pair；LME guide `1/500`，answer diff `0/500`；LoCoMo guide `0/1540`，answer diff `0/1540` | 下一步扩展更通用的 state/update organization：保留 raw evidence first，typed memory 只做 source-backed activation；优先处理状态更新、冲突、有效期和 query-time reasoning，不把普通 event/preference 多值当 state conflict |
-| 2 | #2 top-k/context noise/rerank | v129/v134/v140/v152 说明简单裁剪、tail snippet 或 list-count rerank pruning 会伤 accuracy；v192 说明宽 Candidate Evidence Map 也会伤 temporal accuracy | 做 coverage-preserving context organization，但避免通用候选列表过强；优先 trace/diagnostic 或窄门控，再进入 prompt |
-| 3 | #1 granularity/profile + #3 selected context | v177 说明 row-length + center-row anaphora 的 selected-context gate 仍过宽；v195 说明 temporal self-reference hard gate 明显负向；v198 删除短 turn profile；v199 删除长 profile route override；v200 删除长 profile finalizer override；v201 删除长 profile 冗余 compiler budget override；v202 删除长 profile 冗余 lexical protect override；selected_context 直接默认化会把 LME materialized rows 从 `3` 扩到 `317` | 继续拆解 LME 的 `long_turn_precision`，优先把 retrieval、selected_context、compiler 改成 general query/context-pressure 或 route-scoped 策略；selected_context 必须先有窄门控再进 prompt |
+| 1 | #2 top-k/context noise/rerank | v207 trace-only audit 显示 `16000` chars + `32` anchors 不会丢当前 prompt/selected-context 证据：LME prompt risk `0/500`、LoCoMo `0/1540`；历史 v129/v134/v140/v152 说明直接裁剪或 broad rerank 会伤 accuracy | 基于 v207 audit 做 guarded context budget 或 rerank ordering，先保证 prompt-row/selected-context coverage，再看是否真实降低 query tokens 和 noise |
+| 2 | #1 granularity/profile + #3 selected context | v198-v202 已删除短/长 profile 的多处冗余 override，但 LME 仍选择 `long_turn_precision`；v177/v195 说明 selected-context hard gate 容易负向 | 继续把 `long_turn_precision` 拆成 general route/context-pressure 策略；selected-context 必须先 trace/窄门控，再进入 prompt |
+| 3 | #5 memory lifecycle/state/conflict/query-time reasoning | v206 已把 prompt-visible guide 收窄为 source-backed、question-aligned、stateful-slot、active+superseded update pair；LME guide `1/500`，LoCoMo `0/1540`，v207 继承 | 扩展更通用的 state/update organization：保留 raw evidence first，typed memory 只做 source-backed activation；不把普通 event/preference 多值当 state conflict |
 | 4 | src cleanup | 已有多轮兼容分支，`repair.py`、compiler、pipeline 仍会继续变复杂 | 每个阶段结束后做小范围清理，删已确认无用的兼容代码，不删仍有消融价值的模块 |
 
 ## 保留候选
 
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
-| `configs/stage1_update_pair_state_conflict_guide_v206_seeded_qwen36_no_think_build4k_cached.json` | current LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v206 vs v205 answer/route/prompt/evidence rows diff `0/500`、`0/1540`；LME guide `1/500`，LoCoMo guide `0/1540` | 当前 LTS；active+superseded update-pair state guide gate，性能继承 v205/v204/v202 |
+| `configs/stage1_context_budget_audit_v207_seeded_qwen36_no_think_build4k_cached.json` | current LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v207 vs v206 answer/route/prompt/evidence rows/retrieval hits diff `0/500`、`0/1540`；audit prompt/selected-context risk 均为 `0` | 当前 LTS；trace-only context-budget audit 降低 #2 不可见风险，性能继承 v206 |
+| `configs/stage1_update_pair_state_conflict_guide_v206_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v206 vs v205 answer/route/prompt/evidence rows diff `0/500`、`0/1540`；LME guide `1/500`，LoCoMo guide `0/1540` | 被 v207 替代；active+superseded update-pair state guide gate，性能继承 v205/v204/v202 |
 | `configs/stage1_question_aligned_stateful_conflict_guide_v205_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v205 vs v204 answer diff `0/500`、`0/1540`；LME prompt diff/guide `1/500`，LoCoMo prompt diff/guide `0/1540` | 被 v206 替代；source-backed question-aligned stateful conflict guide，性能继承 v204/v202 |
 | `configs/stage1_separate_source_conflict_state_guide_v204_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v204 vs v202 answer/route/prompt/evidence rows diff `0/500`、`0/1540`；guide 触发 `0` | 被 v205 替代；source-separated conflict-gated state guide path，性能继承 v202 |
 | `configs/stage1_retrieval_lexical_neutral_long_profile_v202_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v202 vs v201 answer/route/compiled context diff `0/500`、`0/1540`；retrieval profile redundant lexical protect key removed | 被 v204 替代；删除长 profile 冗余 retrieval lexical-protect override，性能继承 v201 |
@@ -120,7 +121,10 @@
 
 | 路径 | 内容 |
 |---|---|
-| `diagnostic/stage1_update_pair_state_conflict_guide_v206_scope_summary.md` | 当前 LTS 晋升结论：v206 增加 active+superseded update-pair gate，full answer/route/prompt/evidence rows diff 均为 `0`，性能继承 v205/v204/v202 |
+| `diagnostic/stage1_context_budget_audit_v207_scope_summary.md` | 当前 LTS 晋升结论：v207 新增 trace-only context-budget audit，full answer/route/prompt/evidence rows/retrieval hits diff 均为 `0`，性能继承 v206 |
+| `diagnostic/stage1_context_budget_audit_v207_lme_s_full/` | v207 LME full；vs v206 answer/route/prompt/evidence rows/retrieval hits diff `0/500`，audit prompt/selected-context risk `0/0` |
+| `diagnostic/stage1_context_budget_audit_v207_locomo_nonadv_full/` | v207 LoCoMo full；vs v206 answer/route/prompt/evidence rows/retrieval hits diff `0/1540`，audit prompt/selected-context risk `0/0` |
+| `diagnostic/stage1_update_pair_state_conflict_guide_v206_scope_summary.md` | previous LTS 晋升结论：v206 增加 active+superseded update-pair gate，full answer/route/prompt/evidence rows diff 均为 `0`，性能继承 v205/v204/v202 |
 | `diagnostic/stage1_update_pair_state_conflict_guide_v206_lme_s_full/` | v206 LME full；vs v205 answer/route/prompt/evidence rows diff `0/500`，Managed Memory State Guide 触发 `1/500` |
 | `diagnostic/stage1_update_pair_state_conflict_guide_v206_locomo_nonadv_full/` | v206 LoCoMo full；vs v205 answer/route/prompt/evidence rows diff `0/1540`，Managed Memory State Guide 触发 `0/1540` |
 | `diagnostic/stage1_question_aligned_stateful_conflict_guide_v205_scope_summary.md` | previous LTS 晋升结论：v205 增加 question-aligned/stateful slot gates，LME guide 触发 `1/500` 且 answer diff `0/500`，LoCoMo prompt/answer diff `0/1540`，性能继承 v204/v202 |

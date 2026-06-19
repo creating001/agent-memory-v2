@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_update_pair_state_conflict_guide_v206_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_context_budget_audit_v207_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v206 local LTS | 说明 |
+| Benchmark | 当前 v207 local LTS | 说明 |
 |---|---:|---|
-| LongMemEval-S full | strict/lenient `0.834000 / 0.846000` | v206 与 v205 answer/route/prompt/evidence rows diff `0/500`；Managed Memory State Guide 触发 `1/500`；answer cache `500/0/0`。 |
-| LoCoMo non-adversarial full | strict/lenient `0.793506 / 0.818831` | v206 与 v205 answer/route/prompt/evidence rows diff `0/1540`；Managed Memory State Guide 触发 `0/1540`；answer cache `1540/0/0`。 |
+| LongMemEval-S full | strict/lenient `0.834000 / 0.846000` | v207 与 v206 answer/route/prompt/evidence rows/retrieval hits diff `0/500`；context-budget audit prompt/selected-context risk `0/0`；answer cache `500/0/0`。 |
+| LoCoMo non-adversarial full | strict/lenient `0.793506 / 0.818831` | v207 与 v206 answer/route/prompt/evidence rows/retrieval hits diff `0/1540`；context-budget audit prompt/selected-context risk `0/0`；answer cache `1540/0/0`。 |
 
-v206 的 LTS 理由：继承 v205/v204/v202 的 full answer 和 judge accuracy，同时把 #5 managed memory state guide 进一步收窄为 source-backed、question-aligned、stateful 且必须有 active+superseded distinct update pair 的 prompt-visible activation。普通 memory-aware evidence ordering 仍用 retrieval-linked typed memory；state guide 只检查 evidence-row-linked typed memory。LME 唯一触发仍是 United frequent flyer status 的 active/superseded 状态槽，答案不变；LoCoMo 无 prompt 变化。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_update_pair_state_conflict_guide_v206_scope_summary.md`。
+v207 的 LTS 理由：继承 v206 的 full answer 和 judge accuracy，同时新增 trace-only context-budget audit，模拟 `16000` chars、`32` protected/min hits 的检索预算，记录 projected dropped sources、prompt-row missing 和 selected-context missing。它不进入 retrieval、compiler、answer、repair、finalizer 或 cache key，因此不改变预测；作用是降低 #2 top-k/context-noise 后续实验的不可见风险。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_context_budget_audit_v207_scope_summary.md`。
 
 ## 目录
 
