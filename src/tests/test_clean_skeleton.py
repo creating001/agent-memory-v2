@@ -3302,6 +3302,59 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual(aligned[0].source_ids, ("s1:t0",))
         self.assertEqual(trace["records_changed"], 0)
 
+    def test_build_memory_source_alignment_memory_type_gate(self) -> None:
+        fact_record = MemoryRecord(
+            memory_id="mem-fact",
+            memory_type="fact",
+            text="The user is nearing 1300 Instagram followers.",
+            source_ids=("s1:t0",),
+            subject="user",
+            predicate="is nearing",
+            value="1300 Instagram followers",
+        )
+        profile_record = MemoryRecord(
+            memory_id="mem-profile",
+            memory_type="profile",
+            text="The user is a photographer with 1300 Instagram followers.",
+            source_ids=("s1:t0",),
+            subject="user",
+            predicate="profile",
+            value="photographer with 1300 Instagram followers",
+        )
+        store = RawEvidenceStore(
+            (
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Can you help me write an Instagram caption?",
+                ),
+                Turn(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="assistant",
+                    text="You are a photographer nearing 1300 Instagram followers.",
+                ),
+            )
+        )
+
+        aligned, trace = _align_build_memory_sources(
+            (fact_record, profile_record),
+            store=store,
+            window=1,
+            max_sources_per_record=3,
+            min_score=2.0,
+            min_delta=1.5,
+            require_assistant_answer_source=True,
+            memory_types=("fact",),
+        )
+
+        self.assertEqual(aligned[0].source_ids, ("s1:t1", "s1:t0"))
+        self.assertEqual(aligned[1].source_ids, ("s1:t0",))
+        self.assertEqual(trace["records_changed"], 1)
+
     def test_compiler_memory_record_source_rejects_unknown_value(self) -> None:
         config = {
             "retrieval": {"top_k": 1, "max_top_k": 1},

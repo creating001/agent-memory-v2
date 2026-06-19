@@ -224,6 +224,9 @@ class Stage1Pipeline:
         self._build_memory_source_alignment_require_assistant_answer_source = bool(
             source_alignment_config.get("require_assistant_answer_source", False)
         )
+        self._build_memory_source_alignment_memory_types = _tuple_config(
+            source_alignment_config.get("memory_types")
+        )
         self._build_memory_trace_config = {
             "enabled": self._build_memory_enabled,
             "mode": build_memory_config.get("mode"),
@@ -251,6 +254,7 @@ class Stage1Pipeline:
                 "require_assistant_answer_source": (
                     self._build_memory_source_alignment_require_assistant_answer_source
                 ),
+                "memory_types": self._build_memory_source_alignment_memory_types,
             },
         }
         self._memory_slot_chain_enabled = bool(
@@ -1503,6 +1507,7 @@ class Stage1Pipeline:
                 require_assistant_answer_source=(
                     self._build_memory_source_alignment_require_assistant_answer_source
                 ),
+                memory_types=self._build_memory_source_alignment_memory_types,
             )
             built_memory = replace(built_memory, records=aligned_records)
         profile_name = granularity_profile.get("name") if granularity_profile else None
@@ -2792,6 +2797,7 @@ def _align_build_memory_sources(
     min_score: float,
     min_delta: float,
     require_assistant_answer_source: bool = False,
+    memory_types: tuple[str, ...] = (),
 ) -> tuple[tuple[Any, ...], dict[str, Any]]:
     """Repair near-miss build-memory provenance using local raw turns.
 
@@ -2811,8 +2817,18 @@ def _align_build_memory_sources(
     added = 0
     safe_window = max(0, int(window))
     safe_limit = max(1, int(max_sources_per_record))
+    allowed_memory_types = {
+        str(memory_type).strip().lower()
+        for memory_type in memory_types
+        if str(memory_type).strip()
+    }
 
     for record in records:
+        if allowed_memory_types and str(
+            getattr(record, "memory_type", "") or ""
+        ).strip().lower() not in allowed_memory_types:
+            aligned_records.append(record)
+            continue
         source_ids = tuple(getattr(record, "source_ids", ()))
         candidates = _source_alignment_candidates(
             source_ids,
