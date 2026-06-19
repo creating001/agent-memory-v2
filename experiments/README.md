@@ -6,12 +6,12 @@
 
 | 项目 | 结果 |
 |---|---|
-| 当前 LTS 配置 | `configs/stage1_temporal_mention_time_fallback_v194_seeded_qwen36_no_think_build4k_cached.json` |
+| 当前 LTS 配置 | `configs/stage1_selected_context_risk_audit_v196_seeded_qwen36_no_think_build4k_cached.json` |
 | Backbone | `Qwen/Qwen3.6-35B-A3B` answer/build，`chat_template_kwargs.enable_thinking=false` |
-| 方法 | V194 继承 v193，并在 Event-Time Candidate Map 中加入窄 `mention_time_fallback`：只有低覆盖 `exact_today` candidate 与更强 `mention_time_only` target row 同时存在时才显示 fallback。 |
-| LongMemEval-S full | v194 与 v193 prompt diff `0/500`、answer diff `0/500`，answer cache `500/0/0`；继承 v193/v191/v184 full `0.834000 / 0.846000`，`417/500` strict，`423/500` lenient |
-| LoCoMo non-adversarial full | v194 与 v193 prompt diff `1/1540`、answer diff `0/1540`，answer cache `1540/0/0`；继承 v193/v191/v184 full `0.793506 / 0.818831`，`1222/1540` strict，`1261/1540` lenient |
-| 状态 | 当前本地 qwen3.6 no-thinking LTS。v194 不改 full 答案和 judge accuracy，但把 Nate 行的弱 `exact_today` prompt activation 补成 source-backed mention-time fallback，降低 #5 temporal activation 风险。 |
+| 方法 | V196 继承 v194，并新增 trace-only selected-context risk audit：只记录 temporal selected-context 中 role/self-reference/question-slot coverage 风险，不删除证据、不改 prompt、不改答案。 |
+| LongMemEval-S full | v196 与 v194 prompt diff `0/500`、answer diff `0/500`，answer cache `500/0/0`；继承 v194/v193/v191/v184 full `0.834000 / 0.846000`，`417/500` strict，`423/500` lenient |
+| LoCoMo non-adversarial full | v196 与 v194 prompt diff `0/1540`、answer diff `0/1540`，answer cache `1540/0/0`；继承 v194/v193/v191/v184 full `0.793506 / 0.818831`，`1222/1540` strict，`1261/1540` lenient |
+| 状态 | 当前本地 qwen3.6 no-thinking LTS。v196 保留 v194 行为和性能，同时在 LoCoMo full 审计 `329/1540` 条样本、`1316` 个 selected-context row，标出 `1083` 个风险 row，降低 #3 selected-context 隐性风险。 |
 
 `paired-delta derived` 的含义：新版本只改少量答案，未变化答案沿用父 LTS full dual judge records，变化答案单独跑 paired dual judge 后替换计数。若新版本与父 LTS answer-identical，则可继承父 LTS judge records，但必须记录 full answer diff、cache hit/miss 和输出路径。若论文级最终汇报需要完全独立 run，再对 LTS 配置重跑 fresh full judge。
 
@@ -28,14 +28,15 @@
 |---:|---|---|---|
 | 1 | #5 memory lifecycle/state/conflict/query-time reasoning | v194 用窄 `mention_time_fallback` 修正一个 v193 audit 暴露的低覆盖 `exact_today` activation；full answer diff `0`，但仍有更广泛 lifecycle/conflict/query-time reasoning 可做 | 继续做 temporal conflict-aware activation 和 state/conflict memory；保留 typed/source-backed 线索，显式区分 mention_time、event phrase、wrapper 和 question slot |
 | 2 | #2 top-k/context noise/rerank | v129/v134/v140/v152 说明简单裁剪、tail snippet 或 list-count rerank pruning 会伤 accuracy；v192 说明宽 Candidate Evidence Map 也会伤 temporal accuracy | 做 coverage-preserving context organization，但避免通用候选列表过强；优先 trace/diagnostic 或窄门控，再进入 prompt |
-| 3 | #1 granularity/profile + #3 selected context | v177 说明 row-length + center-row anaphora 的 selected-context gate 仍过宽；v195 说明 temporal source-grounded self-reference hard gate 虽降 token/noise，但 LoCoMo changed-answer judge 明显负向；granularity profile 仍基于 avg-turn chars，v158 narrow question-gated policy 仍是较稳边界 | 继续重做更通用的 context organization；selected-context 不宜 hard block 大量 temporal 邻居，优先做 trace-only risk audit、question-side local reference 或更窄 conflict-aware activation |
+| 3 | #1 granularity/profile + #3 selected context | v177 说明 row-length + center-row anaphora 的 selected-context gate 仍过宽；v195 说明 temporal source-grounded self-reference hard gate 虽降 token/noise，但 LoCoMo changed-answer judge 明显负向；v196 改为 trace-only audit，full answer diff `0` 且能定位风险 row；granularity profile 仍基于 avg-turn chars | 基于 v196 audit 做更窄 conflict-aware activation；selected-context 不宜 hard block 大量 temporal 邻居，优先标注/组织风险证据而不是删除证据 |
 | 4 | src cleanup | 已有多轮兼容分支，`repair.py`、compiler、pipeline 仍会继续变复杂 | 每个阶段结束后做小范围清理，删已确认无用的兼容代码，不删仍有消融价值的模块 |
 
 ## 保留候选
 
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
-| `configs/stage1_temporal_mention_time_fallback_v194_seeded_qwen36_no_think_build4k_cached.json` | current LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v194 vs v193 prompt diff `0/500`、`1/1540`，answer diff `0/500`、`0/1540` | 当前 LTS；窄 mention-time fallback 降低 #5 temporal activation 风险，性能继承 v193/v191/v184 |
+| `configs/stage1_selected_context_risk_audit_v196_seeded_qwen36_no_think_build4k_cached.json` | current LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v196 vs v194 prompt/answer diff `0/500`、`0/1540`；LoCoMo audit applied `329/1540`、risk rows `1083` | 当前 LTS；trace-only selected-context risk audit 降低 #3 隐性风险，性能继承 v194/v193/v191/v184 |
+| `configs/stage1_temporal_mention_time_fallback_v194_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v194 vs v193 prompt diff `0/500`、`1/1540`，answer diff `0/500`、`0/1540` | 被 v196 替代；窄 mention-time fallback 降低 #5 temporal activation 风险，性能继承 v193/v191/v184 |
 | `configs/stage1_temporal_activation_audit_v193_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v193 vs v191 prompt/answer diff `0/500`、`0/1540` | 被 v194 替代；trace-only temporal activation audit 降低 #5 隐性 activation 风险，性能继承 v191/v184 |
 | `configs/stage1_weekend_parser_gated_v191_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v191 vs v184 prompt/answer diff `0/500`、`0/1540` | 被 v193 替代；显式 gate v187/v188 rejected weekend parser 和 prompt-map `mention_time` 暴露，降低复现/兼容风险且性能继承 v184 |
 | `configs/stage1_strict_event_time_candidate_map_v184_seeded_qwen36_no_think_build4k_cached.json` | previous LTS | LME strict/lenient `0.834000/0.846000`，LoCoMo `0.793506/0.818831`；v184 vs v181 answer diff `0/500`、`2/1540` | 被 v191 替代；严格 prompt-side event-time candidate map 降低 #5 query-time activation 风险，LoCoMo changed-answer dual judge `1/2 -> 2/2` |
@@ -109,6 +110,10 @@
 
 | 路径 | 内容 |
 |---|---|
+| `diagnostic/stage1_selected_context_risk_audit_v196_scope_summary.md` | 当前 LTS 晋升结论：v196 trace-only selected-context risk audit，full prompt/answer diff 均为 0，性能继承 v194 |
+| `diagnostic/stage1_selected_context_risk_audit_v196_lme_s_full/` | v196 LME full；vs v194 prompt diff `0/500`、answer diff `0/500`、answer cache `500/0/0` |
+| `diagnostic/stage1_selected_context_risk_audit_v196_locomo_nonadv_full/` | v196 LoCoMo full；vs v194 prompt diff `0/1540`、answer diff `0/1540`、audit applied `329/1540`、risk rows `1083` |
+| `diagnostic/stage1_selected_context_risk_audit_v196_activation_probe/` | v196 三条 risky activation probe；prompt/answer diff `0/3`，audit 标出 Nate/John-James selected-context 风险 row |
 | `diagnostic/stage1_temporal_source_grounded_selected_context_v195_changed_vs_v194/summary.md` | v195 负向结论：temporal selected-context hard gate 降低 context noise/token，但 LoCoMo changed-answer judge `76/105 -> 67/105` strict、`79/105 -> 68/105` lenient，不升 LTS |
 | `diagnostic/stage1_temporal_source_grounded_selected_context_v195_locomo_nonadv_full/` | v195 LoCoMo full；vs v194 prompt diff `324/1540`、answer diff `105/1540`、selected-context rows `8540 -> 7572` |
 | `diagnostic/stage1_temporal_source_grounded_selected_context_v195_lme_s_full/` | v195 LME full；vs v194 prompt diff `0/500`、answer diff `0/500` |

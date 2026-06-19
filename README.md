@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_temporal_mention_time_fallback_v194_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_selected_context_risk_audit_v196_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v194 local LTS | 说明 |
+| Benchmark | 当前 v196 local LTS | 说明 |
 |---|---:|---|
-| LongMemEval-S full | strict/lenient `0.834000 / 0.846000` | v194 与 v193 prompt/answer diff `0/500`；answer cache `500/0/0`，性能继承 v193/v191/v184。 |
-| LoCoMo non-adversarial full | strict/lenient `0.793506 / 0.818831` | v194 与 v193 prompt diff `1/1540`、answer diff `0/1540`；answer cache `1540/0/0`，性能继承 v193/v191/v184。 |
+| LongMemEval-S full | strict/lenient `0.834000 / 0.846000` | v196 与 v194 prompt/answer diff `0/500`；answer cache `500/0/0`，性能继承 v194/v193/v191/v184。 |
+| LoCoMo non-adversarial full | strict/lenient `0.793506 / 0.818831` | v196 与 v194 prompt/answer diff `0/1540`；answer cache `1540/0/0`，性能继承 v194/v193/v191/v184。 |
 
-v194 的 LTS 理由：继承 v193，并在 Event-Time Candidate Map 中加入窄 `mention_time_fallback`。当低覆盖 `exact_today` candidate 与更强的 `mention_time_only` target row 同时存在时，v194 显示 source-backed fallback，避免只暴露弱 exact-today candidate；不开放宽 relative phrase，不改变 full 答案或 judge accuracy。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_temporal_mention_time_fallback_v194_scope_summary.md`。
+v196 的 LTS 理由：继承 v194 的窄 `mention_time_fallback`，并新增 trace-only selected-context risk audit。它把 temporal selected-context 中 role/self-reference/question-slot coverage 风险显式记录到 trace，不删除证据、不改变 prompt 或答案；LoCoMo full 审计 `329/1540` 条样本、`1316` 个 selected-context row，标出 `1083` 个风险 row。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_selected_context_risk_audit_v196_scope_summary.md`。
 
 ## 目录
 
