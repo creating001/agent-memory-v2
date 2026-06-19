@@ -38,6 +38,7 @@
 
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
+| `configs/stage1_typed_compact_cap32_build_memory_v245_seeded_qwen36_no_think_build4k_cached.json` | active candidate / probe pending | 从 v235 出发，保留 `typed_compact` build prompt，只把 `max_records_per_chunk` 从 `20` 提到 `32`；retrieval/compiler/answer/repair/finalizer 保持 v235 | 先跑 LME/LoCoMo probe；目标是用更低成本提升 build memory coverage |
 | `configs/stage1_lossless_atomic_build_memory_v244_seeded_qwen36_no_think_build4k_cached.json` | diagnostic / not promoted | LoCoMo probe50 records `112.0 -> 160.6`、query `6543.56 -> 5955.48`，answer diff `17/50`，changed judge strict/lenient `13/17 -> 13/17`、`14/17 -> 14/17`; LME cold build probe aborted before any completed sample | 不升 LTS；build memory 方向有价值，但当前 lossless full-build 延迟/成本风险过高且无 LoCoMo accuracy gain |
 | `configs/stage1_query_scoped_state_source_activation_v243_seeded_qwen36_no_think_build4k_cached.json` | diagnostic / not promoted | probe50 answer diff `0/50`、`0/50`；targeted all-current_state answer diff LME `0/22`、LoCoMo `0/4`，但 slot activation 仅 LME `1/22`、LoCoMo `0/4` | 不升 LTS；低风险但机制覆盖太窄，不能真正解决 build/system 目标 |
 | `configs/stage1_append_fact_source_alignment_v242_seeded_qwen36_no_think_build4k_cached.json` | rejected full / source-alignment lesson | Full: LME answer diff `38/500`，changed judge strict/lenient `24/38 -> 14/38`、`24/38 -> 19/38`；derived full LME `0.812000/0.834000`，LoCoMo answer-identical | 不升 LTS；mechanical source append 虽减少形式 provenance 风险，但显著伤害性能，后续改为 typed source graph / activation audit + evidence-utility gate |
