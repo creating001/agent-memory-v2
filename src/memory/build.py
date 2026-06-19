@@ -155,6 +155,7 @@ class OpenAICompatibleMemoryBuilder:
         manage_facts: bool = True,
         management_policy: str | None = None,
         operation_ledger: bool = False,
+        memory_system_graph: bool = False,
         chat_template_kwargs: dict[str, Any] | None = None,
     ):
         if prompt_profile not in {"typed_compact", "lossless_atomic"}:
@@ -186,6 +187,7 @@ class OpenAICompatibleMemoryBuilder:
         self._manage_facts = manage_facts
         self._management_policy = management_policy
         self._operation_ledger = operation_ledger
+        self._memory_system_graph = memory_system_graph
         self._chat_template_kwargs = dict(chat_template_kwargs or {})
         self._connection: sqlite3.Connection | None = None
         self._cache_stats = BuildMemoryCacheStats()
@@ -211,6 +213,7 @@ class OpenAICompatibleMemoryBuilder:
                         self._management_policy
                     ],
                     include_operation_ledger=self._operation_ledger,
+                    include_memory_system_graph=self._memory_system_graph,
                 ),
             )
 
@@ -297,6 +300,7 @@ class OpenAICompatibleMemoryBuilder:
                 merge_groups=operation_trace["merge_groups"],
                 supersede_pairs=operation_trace["supersede_pairs"],
                 include_operation_ledger=self._operation_ledger,
+                include_memory_system_graph=self._memory_system_graph,
             ),
         )
 
@@ -720,6 +724,7 @@ def _management_summary(
     merge_groups: tuple[dict[str, Any], ...] = (),
     supersede_pairs: tuple[dict[str, Any], ...] = (),
     include_operation_ledger: bool = False,
+    include_memory_system_graph: bool = False,
 ) -> dict[str, Any]:
     """Summarize build-time memory operations for trace/audit.
 
@@ -795,6 +800,15 @@ def _management_summary(
     }
     if include_operation_ledger:
         summary["operation_ledger"] = _memory_operation_ledger(
+            raw_records=tuple(raw_records or records),
+            deduped_records=tuple(deduped_records or records),
+            managed_records=records,
+            managed_memory_types=managed_memory_types,
+            merge_groups=merge_groups,
+            supersede_pairs=supersede_pairs,
+        )
+    if include_memory_system_graph:
+        summary["memory_system_graph"] = _memory_system_graph_summary(
             raw_records=tuple(raw_records or records),
             deduped_records=tuple(deduped_records or records),
             managed_records=records,
@@ -903,6 +917,244 @@ def _memory_operation_ledger(
             "by retrieval, compiler, answer, repair, finalizer, or cache keys."
         ),
     }
+
+
+def _memory_system_graph_summary(
+    *,
+    raw_records: tuple[MemoryRecord, ...],
+    deduped_records: tuple[MemoryRecord, ...],
+    managed_records: tuple[MemoryRecord, ...],
+    managed_memory_types: frozenset[str],
+    merge_groups: tuple[dict[str, Any], ...],
+    supersede_pairs: tuple[dict[str, Any], ...],
+) -> dict[str, Any]:
+    """Trace-only memory system graph over source-backed build memory.
+
+    The graph is intentionally conservative: it describes memory objects,
+    source spans, lifecycle slots, and operation edges, but it does not feed
+    retrieval, compiler, answer, repair, finalizer, or cache construction.
+    """
+
+    source_ids = _ordered_strings(
+        source_id for record in managed_records for source_id in record.source_ids
+    )
+    groups: dict[tuple[str, str, str], list[MemoryRecord]] = defaultdict(list)
+    for record in managed_records:
+        if not record.subject or not record.predicate:
+            continue
+        groups[
+            (
+                record.memory_type,
+                _normalize_key_text(record.subject),
+                _normalize_key_text(record.predicate),
+            )
+        ].append(record)
+
+    namespace_counts: dict[str, int] = defaultdict(int)
+    lifecycle_counts: dict[str, int] = defaultdict(int)
+    layer_counts: dict[str, int] = defaultdict(int)
+    for record in managed_records:
+        namespace_counts[_memory_namespace(record)] += 1
+        lifecycle_counts[record.status] += 1
+        layer_counts[_memory_layer(record.memory_type)] += 1
+
+    slot_member_edges = sum(len(records) for records in groups.values())
+    source_support_edges = sum(len(record.source_ids) for record in managed_records)
+    operation_edge_counts = {
+        "create": len(deduped_records),
+        "merge": sum(len(group.get("merged") or ()) for group in merge_groups),
+        "supersede": len(supersede_pairs),
+        "source_support": source_support_edges,
+        "slot_member": slot_member_edges,
+        "verify_source_backed": sum(
+            1 for record in managed_records if record.source_ids
+        ),
+        "audit_slot": len(groups),
+    }
+
+    return {
+        "enabled": True,
+        "trace_only": True,
+        "applied": True,
+        "raw_record_count": len(raw_records),
+        "deduped_record_count": len(deduped_records),
+        "memory_object_count": len(managed_records),
+        "active_object_count": lifecycle_counts.get("active", 0),
+        "superseded_object_count": lifecycle_counts.get("superseded", 0),
+        "source_span_count": len(source_ids),
+        "slot_count": len(groups),
+        "managed_lifecycle_slot_count": sum(
+            1
+            for key, records in groups.items()
+            if key[0] in managed_memory_types and _slot_has_lifecycle(records)
+        ),
+        "collection_slot_count": sum(
+            1
+            for key, records in groups.items()
+            if key[0] not in managed_memory_types and _slot_has_lifecycle(records)
+        ),
+        "namespace_counts": dict(sorted(namespace_counts.items())),
+        "layer_counts": dict(sorted(layer_counts.items())),
+        "lifecycle_counts": dict(sorted(lifecycle_counts.items())),
+        "operation_edge_counts": operation_edge_counts,
+        "memory_object_samples": [
+            _memory_object_sample(record) for record in managed_records[:10]
+        ],
+        "slot_samples": [
+            _memory_system_slot_sample(key, tuple(records))
+            for key, records in sorted(groups.items())[:10]
+        ],
+        "operation_edge_samples": _memory_system_operation_edge_samples(
+            managed_records=managed_records,
+            merge_groups=merge_groups,
+            supersede_pairs=supersede_pairs,
+        ),
+        "source_span_samples": source_ids[:12],
+        "clean_note": (
+            "Trace-only build memory system graph. It organizes source-backed "
+            "typed memories into namespaces, lifecycle states, object slots, "
+            "source-support edges, merge edges, and supersede edges. It is not "
+            "used by retrieval, compiler, answer, repair, finalizer, or cache "
+            "keys."
+        ),
+    }
+
+
+def _memory_namespace(record: MemoryRecord) -> str:
+    layer = _memory_layer(record.memory_type)
+    if layer == "profile_state":
+        return "long_term_profile_state"
+    if layer == "semantic":
+        return "long_term_semantic"
+    if layer == "episodic":
+        return "long_term_episodic"
+    if layer == "prospective":
+        return "prospective"
+    return "unknown"
+
+
+def _slot_has_lifecycle(records: list[MemoryRecord]) -> bool:
+    values = {
+        _normalize_key_text(record.value or record.text)
+        for record in records
+        if record.value or record.text
+    }
+    statuses = {record.status for record in records}
+    return "superseded" in statuses or len(values) > 1
+
+
+def _memory_object_sample(record: MemoryRecord) -> dict[str, Any]:
+    return {
+        "memory_id": record.memory_id,
+        "memory_type": record.memory_type,
+        "namespace": _memory_namespace(record),
+        "layer": _memory_layer(record.memory_type),
+        "status": record.status,
+        "subject": _normalize_key_text(record.subject),
+        "predicate": _normalize_key_text(record.predicate),
+        "value": _normalize_key_text(record.value or record.text)[:160],
+        "source_ids": list(record.source_ids[:6]),
+        "valid_from": record.valid_from,
+        "valid_to": record.valid_to,
+        "superseded_by": record.superseded_by,
+    }
+
+
+def _memory_system_slot_sample(
+    key: tuple[str, str, str],
+    records: tuple[MemoryRecord, ...],
+) -> dict[str, Any]:
+    memory_type, subject, predicate = key
+    active_values = _ordered_normalized_values(
+        record.value or record.text
+        for record in records
+        if record.status == "active"
+    )
+    superseded_values = _ordered_normalized_values(
+        record.value or record.text
+        for record in records
+        if record.status == "superseded"
+    )
+    return {
+        "slot_id": _slot_id(key),
+        "memory_type": memory_type,
+        "namespace": _memory_namespace(records[0]) if records else "unknown",
+        "layer": _memory_layer(memory_type),
+        "subject": subject,
+        "predicate": predicate,
+        "record_count": len(records),
+        "active_value_count": len(active_values),
+        "superseded_value_count": len(superseded_values),
+        "active_values": active_values[:4],
+        "superseded_values": superseded_values[:4],
+        "memory_ids": [record.memory_id for record in records[:8]],
+        "source_ids": _ordered_strings(
+            source_id for record in records for source_id in record.source_ids
+        )[:8],
+    }
+
+
+def _memory_system_operation_edge_samples(
+    *,
+    managed_records: tuple[MemoryRecord, ...],
+    merge_groups: tuple[dict[str, Any], ...],
+    supersede_pairs: tuple[dict[str, Any], ...],
+) -> dict[str, list[dict[str, Any]]]:
+    return {
+        "source_support": [
+            {
+                "operation": "source_support",
+                "memory_id": record.memory_id,
+                "source_ids": list(record.source_ids[:6]),
+            }
+            for record in managed_records[:6]
+            if record.source_ids
+        ],
+        "merge": [
+            _memory_system_merge_edge_sample(group) for group in merge_groups[:6]
+        ],
+        "supersede": [
+            _memory_system_supersede_edge_sample(pair)
+            for pair in supersede_pairs[:6]
+        ],
+    }
+
+
+def _memory_system_merge_edge_sample(group: dict[str, Any]) -> dict[str, Any]:
+    kept = group.get("kept")
+    merged = tuple(group.get("merged") or ())
+    if not isinstance(kept, MemoryRecord):
+        return {"operation": "merge", "reason": "invalid_sample"}
+    return {
+        "operation": "merge",
+        "kept_memory_id": kept.memory_id,
+        "merged_memory_ids": [
+            record.memory_id for record in merged if isinstance(record, MemoryRecord)
+        ][:8],
+        "reason": "duplicate_normalized_text_and_sources",
+    }
+
+
+def _memory_system_supersede_edge_sample(pair: dict[str, Any]) -> dict[str, Any]:
+    old = pair.get("old")
+    new = pair.get("new")
+    if not isinstance(old, MemoryRecord) or not isinstance(new, MemoryRecord):
+        return {"operation": "supersede", "reason": "invalid_sample"}
+    return {
+        "operation": "supersede",
+        "old_memory_id": old.memory_id,
+        "new_memory_id": new.memory_id,
+        "old_value": _normalize_key_text(old.value or old.text)[:160],
+        "new_value": _normalize_key_text(new.value or new.text)[:160],
+        "valid_to": new.valid_from or new.timestamp,
+        "reason": "newer_managed_slot_value",
+    }
+
+
+def _slot_id(key: tuple[str, str, str]) -> str:
+    digest = hashlib.sha256()
+    digest.update("|".join(key).encode("utf-8"))
+    return f"slot_{digest.hexdigest()[:12]}"
 
 
 def _layer_operation_counts(

@@ -127,9 +127,16 @@ def main() -> int:
     build_memory_management_status_counts: dict[str, int] = {}
     build_memory_management_type_counts: dict[str, int] = {}
     build_memory_operation_ledger_counts: dict[str, int] = {}
+    build_memory_system_graph_operation_edge_counts: dict[str, int] = {}
+    build_memory_system_graph_namespace_counts: dict[str, int] = {}
+    build_memory_system_graph_lifecycle_counts: dict[str, int] = {}
     total_build_memory_operation_ledger_applied = 0
     total_build_memory_operation_ledger_source_backed = 0
     total_build_memory_operation_ledger_source_unbacked = 0
+    total_build_memory_system_graph_applied = 0
+    total_build_memory_system_graph_objects = 0
+    total_build_memory_system_graph_sources = 0
+    total_build_memory_system_graph_slots = 0
     total_build_memory_collection_retained = 0
     total_build_memory_managed_lifecycle_slots = 0
     total_build_memory_nonmanaged_multi_value_slots = 0
@@ -396,6 +403,30 @@ def main() -> int:
             )
             total_build_memory_operation_ledger_source_unbacked += int(
                 operation_ledger.get("source_unbacked_record_count") or 0
+            )
+        memory_system_graph = management.get("memory_system_graph") or {}
+        if memory_system_graph.get("applied"):
+            total_build_memory_system_graph_applied += 1
+            total_build_memory_system_graph_objects += int(
+                memory_system_graph.get("memory_object_count") or 0
+            )
+            total_build_memory_system_graph_sources += int(
+                memory_system_graph.get("source_span_count") or 0
+            )
+            total_build_memory_system_graph_slots += int(
+                memory_system_graph.get("slot_count") or 0
+            )
+            _merge_int_counts(
+                build_memory_system_graph_operation_edge_counts,
+                memory_system_graph.get("operation_edge_counts") or {},
+            )
+            _merge_int_counts(
+                build_memory_system_graph_namespace_counts,
+                memory_system_graph.get("namespace_counts") or {},
+            )
+            _merge_int_counts(
+                build_memory_system_graph_lifecycle_counts,
+                memory_system_graph.get("lifecycle_counts") or {},
             )
         total_build_memory_collection_retained += int(
             operation_counts.get("retain_collection_multi_value_slot") or 0
@@ -1070,6 +1101,37 @@ def main() -> int:
             "avg_operation_ledger_source_unbacked_records": _safe_average(
                 total_build_memory_operation_ledger_source_unbacked,
                 total_build_memory_operation_ledger_applied,
+            ),
+            "memory_system_graph": config.get("build_memory", {}).get(
+                "memory_system_graph", {}
+            ),
+            "memory_system_graph_applied_count": (
+                total_build_memory_system_graph_applied
+            ),
+            "memory_system_graph_applied_rate": _safe_average(
+                total_build_memory_system_graph_applied,
+                sample_count,
+            ),
+            "memory_system_graph_operation_edge_counts": (
+                build_memory_system_graph_operation_edge_counts
+            ),
+            "memory_system_graph_namespace_counts": (
+                build_memory_system_graph_namespace_counts
+            ),
+            "memory_system_graph_lifecycle_counts": (
+                build_memory_system_graph_lifecycle_counts
+            ),
+            "avg_memory_system_graph_objects": _safe_average(
+                total_build_memory_system_graph_objects,
+                total_build_memory_system_graph_applied,
+            ),
+            "avg_memory_system_graph_source_spans": _safe_average(
+                total_build_memory_system_graph_sources,
+                total_build_memory_system_graph_applied,
+            ),
+            "avg_memory_system_graph_slots": _safe_average(
+                total_build_memory_system_graph_slots,
+                total_build_memory_system_graph_applied,
             ),
             "total_collection_retained_records": (
                 total_build_memory_collection_retained
@@ -1953,6 +2015,14 @@ def _write_summary(
         f"- build_memory_operation_ledger_counts: {metrics['build_memory']['operation_ledger_counts']}",
         f"- avg_build_memory_operation_ledger_source_backed_records: {metrics['build_memory']['avg_operation_ledger_source_backed_records']}",
         f"- avg_build_memory_operation_ledger_source_unbacked_records: {metrics['build_memory']['avg_operation_ledger_source_unbacked_records']}",
+        f"- build_memory_system_graph: {metrics['build_memory']['memory_system_graph']}",
+        f"- build_memory_system_graph_applied_count: {metrics['build_memory']['memory_system_graph_applied_count']}",
+        f"- build_memory_system_graph_applied_rate: {metrics['build_memory']['memory_system_graph_applied_rate']}",
+        f"- build_memory_system_graph_operation_edge_counts: {metrics['build_memory']['memory_system_graph_operation_edge_counts']}",
+        f"- build_memory_system_graph_namespace_counts: {metrics['build_memory']['memory_system_graph_namespace_counts']}",
+        f"- avg_build_memory_system_graph_objects: {metrics['build_memory']['avg_memory_system_graph_objects']}",
+        f"- avg_build_memory_system_graph_source_spans: {metrics['build_memory']['avg_memory_system_graph_source_spans']}",
+        f"- avg_build_memory_system_graph_slots: {metrics['build_memory']['avg_memory_system_graph_slots']}",
         f"- avg_build_memory_collection_retained_records: {metrics['build_memory']['avg_collection_retained_records']}",
         f"- avg_build_memory_managed_lifecycle_slots: {metrics['build_memory']['avg_managed_lifecycle_slots']}",
         f"- avg_build_memory_nonmanaged_multi_value_slots: {metrics['build_memory']['avg_nonmanaged_multi_value_slots']}",
