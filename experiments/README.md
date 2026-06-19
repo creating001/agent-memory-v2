@@ -6,13 +6,13 @@
 
 | 项目 | 结果 |
 |---|---|
-| 当前 LTS 配置 | `configs/stage1_answer_support_audit_v256_seeded_qwen36_no_think_build4k_cached.json` |
+| 当前 LTS 配置 | `configs/stage1_build_operation_ledger_v257_seeded_qwen36_no_think_build4k_cached.json` |
 | Backbone | `Qwen/Qwen3.6-35B-A3B` answer/build，`chat_template_kwargs.enable_thinking=false` |
-| 方法定位 | build-time source-backed memory management + build-slot inventory + object-slot tail-rescue activation + query-time no-repair/no-finalizer + trace-only source-grounded answer support audit。Typed memory 仍只做 source-backed activation/index；最终 evidence 回到 raw Memory rows；answer verifier 只审计 `evidence_report`、sufficiency 和 Memory 引用，不改答案。 |
+| 方法定位 | build-time source-backed memory management + operation ledger + build-slot inventory + object-slot tail-rescue activation + query-time no-repair/no-finalizer + trace-only source-grounded answer support audit。Typed memory 仍只做 source-backed activation/index；最终 evidence 回到 raw Memory rows；operation ledger 审计 create/merge/supersede/retain/verify/audit，不改答案。 |
 | LongMemEval-S full | strict/lenient `0.832000 / 0.844000`，`416/500` strict，`422/500` lenient；avg build/query tokens `85393.566 / 6579.782` |
 | LoCoMo non-adversarial full | strict/lenient `0.794156 / 0.819481`，`1223/1540` strict，`1262/1540` lenient；avg build/query tokens `62015.57402597403 / 6094.017532467533` |
-| LTS 理由 | v256 vs v255 full LME/LoCoMo answer、retrieval、final-evidence 和 token diff 均为 `0`，继承 v255 accuracy；新增 answer support audit，full 覆盖 `500/500` 和 `1540/1540`，暴露少量 unsupported/support-report 风险样本。 |
-| 主要局限 | v256 仍是风险可观测性和系统边界收敛，不是 accuracy peak。下一步要把 audit 信号变成通用、保守的 evidence reorganization / abstention 机制，同时继续改进 build memory operations。 |
+| LTS 理由 | v257 vs v256 full LME/LoCoMo answer、retrieval、final-evidence 和 token diff 均为 `0`，继承 v256 accuracy；新增 build memory operation ledger，full 覆盖 `500/500` 和 `1540/1540`，source-unbacked records 为 `0`。 |
+| 主要局限 | v257 仍是 build memory 风险可观测性和系统边界收敛，不是 accuracy peak。下一步要让 operation ledger 的 retrieve/expand/verify 信号保守参与 evidence utility selection，而不是只增强 trace。 |
 
 `paired-delta derived` 的含义：新版本只改少量答案，未变化答案沿用父 LTS full dual judge records，变化答案单独跑 paired dual judge 后替换计数。若新版本与父 LTS answer-identical，可继承父 LTS judge records，但必须记录 full answer diff、cache hit/miss 和输出路径。论文级最终汇报再对最终 LTS 配置重跑 fresh full judge。
 
@@ -28,7 +28,7 @@
 
 | 优先级 | 方向 | 当前问题 | 下一步 |
 |---:|---|---|---|
-| 1 | Memory operations / lifecycle | v235 继承 v233 的 build-time `stateful_only` lifecycle policy，但 memory operation 还主要停留在 trace/active filtering，尚未系统影响 retrieval/compiler/answer verification | 扩展通用 memory object 与 lifecycle policy，让 create/update/merge/supersede/retrieve/expand/verify/audit 更稳定地参与 context organization，同时保持 source/provenance 可追溯 |
+| 1 | Memory operations / lifecycle | v257 已显式审计 create/merge/supersede/retain/verify/audit，但 retrieve/expand/verify 还没有稳定影响 retrieval/compiler | 扩展通用 memory object 与 lifecycle policy，让 operation ledger 保守参与 context organization，同时保持 source/provenance 可追溯 |
 | 2 | Query-time 简化 | v235 已删除默认 answer repair 和 no-op finalizer，但 route、selected context、state guide、ledger 仍多层叠加，像补丁式 pipeline | 继续收敛为 candidate activation、context compiler、source-grounded answer、通用 consistency verifier |
 | 3 | Retrieval/context systemization | 固定 top-k、route override、selected-context 长短 turn 规则仍较多 | 改成更通用的 candidate pooling + rerank + anchor retention + source expansion + evidence utility selection，并报告 context precision / source recall / unsupported answer |
 | 4 | Answer/verifier 统一 | v256 已有 trace-only source-grounded support audit，但还不参与安全纠错或 abstention | 基于 audit 风险设计通用 consistency verifier，只检查数值、时间、说话人、实体、状态冲突、unsupported answer，不写 benchmark-specific rewrite |
@@ -38,7 +38,8 @@
 
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
-| `configs/stage1_answer_support_audit_v256_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_answer_support_audit_v256_full_summary.md` | current LTS / answer support audit | v256 vs v255 full LME/LoCoMo answer/retrieval/final-evidence/token diff 全为 `0`; full accuracy 继承 `0.832000/0.844000`、`0.794156/0.819481`; verifier risk samples LME `11/500`、LoCoMo `10/1540` | 当前 LTS；风险可观测性更强，accuracy/token 不回退 |
+| `configs/stage1_build_operation_ledger_v257_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_build_operation_ledger_v257_full_summary.md` | current LTS / build operation ledger | v257 vs v256 full LME/LoCoMo answer/retrieval/final-evidence/token diff 全为 `0`; full accuracy 继承 `0.832000/0.844000`、`0.794156/0.819481`; ledger applied LME `500/500`、LoCoMo `1540/1540` | 当前 LTS；build memory operations 更系统，accuracy/token 不回退 |
+| `configs/stage1_answer_support_audit_v256_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_answer_support_audit_v256_full_summary.md` | previous LTS / answer support audit | v256 vs v255 full LME/LoCoMo answer/retrieval/final-evidence/token diff 全为 `0`; full accuracy 继承 `0.832000/0.844000`、`0.794156/0.819481`; verifier risk samples LME `11/500`、LoCoMo `10/1540` | 被 v257 替代；保留为 answer support audit 父锚点 |
 | `configs/stage1_build_slot_inventory_v255_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_build_slot_inventory_v255_full_summary.md` | previous LTS / build-slot inventory | LME answer/retrieval/final-evidence diff vs v250 `0/500`; LoCoMo answer diff `1/1540` 且 changed judge both correct; full accuracy 继承 v250 `0.832000/0.844000`、`0.794156/0.819481` | 被 v256 替代；保留为 build-slot inventory 父锚点 |
 | `configs/stage1_object_slot_tail_rescue_v250_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_object_slot_tail_rescue_v250_full_summary.md` | previous LTS / object-slot tail rescue | full object-slot audited LME `89/500`、LoCoMo `198/1540`; LME answer diff `0/500`; LoCoMo answer diff `1/1540` 且 changed judge both correct | 被 v255 替代；保留为 tail-rescue 父锚点 |
 | `configs/stage1_object_lifecycle_tail_exchange_v254_scoped_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_object_lifecycle_tail_exchange_v254_full_summary.md` | rejected full / scoped object-slot lesson | LME answer diff `7/500`，derived `0.826000/0.842000`; LoCoMo answer diff `65/1540`，derived `0.796104/0.817532`; advice gate 命中 LME cocktail badcase，LoCoMo 阻断 `8` 个 advice-like activation | 不升 LTS；风险比 v253 收敛，但 LME 仍低于 v250，LoCoMo lenient 仍低于 v250。下一步转向 build-stage memory operations / evidence utility，而不是继续堆 query gate |
