@@ -119,6 +119,9 @@ class Stage1Pipeline:
         )
         if not isinstance(object_slot_activation_config, Mapping):
             raise ValueError("retrieval.object_slot_activation must be an object")
+        operation_utility_config = retrieval_config.get("operation_utility", {})
+        if not isinstance(operation_utility_config, Mapping):
+            raise ValueError("retrieval.operation_utility must be an object")
         rerank_config = retrieval_config.get("rerank", {})
         route_config = self._config.get("route", {})
         if self._config.get("question_analysis", {}).get("enabled", False):
@@ -395,6 +398,69 @@ class Stage1Pipeline:
         )
         self._object_slot_activation_tail_exchange_max_swaps = int(
             object_slot_activation_config.get("tail_exchange_max_swaps", 0)
+        )
+        self._operation_utility_enabled = bool(
+            operation_utility_config.get("enabled", False)
+        )
+        self._operation_utility_information_needs = _tuple_config(
+            operation_utility_config.get(
+                "information_needs",
+                tuple(SUPPORTED_INFORMATION_NEEDS),
+            )
+        )
+        self._operation_utility_operations = _tuple_config(
+            operation_utility_config.get(
+                "operations",
+                operation_utility_config.get(
+                    "operation_types",
+                    (
+                        "supersede",
+                        "conflict_slot",
+                        "collection_multi_value_slot",
+                    ),
+                ),
+            )
+        )
+        self._operation_utility_memory_types = _tuple_config(
+            operation_utility_config.get(
+                "memory_types",
+                (
+                    "event",
+                    "fact",
+                    "plan",
+                    "preference",
+                    "profile",
+                    "relationship",
+                    "state",
+                ),
+            )
+        )
+        self._operation_utility_max_slots = int(
+            operation_utility_config.get("max_slots", 3)
+        )
+        self._operation_utility_max_sources_per_slot = int(
+            operation_utility_config.get("max_sources_per_slot", 6)
+        )
+        self._operation_utility_min_overlap_terms = int(
+            operation_utility_config.get("min_overlap_terms", 1)
+        )
+        self._operation_utility_fusion_mode = str(
+            operation_utility_config.get("fusion_mode", "tail_rescue")
+        )
+        if self._operation_utility_fusion_mode not in {
+            "rrf",
+            "tail_rescue",
+            "tail_exchange",
+        }:
+            raise ValueError(
+                "retrieval.operation_utility.fusion_mode must be rrf, "
+                "tail_rescue, or tail_exchange"
+            )
+        self._operation_utility_tail_exchange_protect_top_n = int(
+            operation_utility_config.get("tail_exchange_protect_top_n", 56)
+        )
+        self._operation_utility_tail_exchange_max_swaps = int(
+            operation_utility_config.get("tail_exchange_max_swaps", 0)
         )
         self._dense_enabled = bool(dense_config.get("enabled", False))
         self._dense_top_k = int(dense_config.get("top_k", self._base_top_k))
@@ -1691,6 +1757,7 @@ class Stage1Pipeline:
         memory_source_hits = ()
         memory_slot_chain_source_hits = ()
         object_slot_source_hits = ()
+        operation_utility_source_hits = ()
         memory_slot_chain_trace = _disabled_memory_slot_chain_trace(
             enabled=self._memory_slot_chain_enabled,
             information_needs=self._memory_slot_chain_information_needs,
@@ -1734,6 +1801,22 @@ class Stage1Pipeline:
             ),
             tail_exchange_max_swaps=(
                 self._object_slot_activation_tail_exchange_max_swaps
+            ),
+        )
+        operation_utility_trace = _disabled_operation_utility_trace(
+            enabled=self._operation_utility_enabled,
+            information_needs=self._operation_utility_information_needs,
+            memory_types=self._operation_utility_memory_types,
+            operations=self._operation_utility_operations,
+            max_slots=self._operation_utility_max_slots,
+            max_sources_per_slot=self._operation_utility_max_sources_per_slot,
+            min_overlap_terms=self._operation_utility_min_overlap_terms,
+            fusion_mode=self._operation_utility_fusion_mode,
+            tail_exchange_protect_top_n=(
+                self._operation_utility_tail_exchange_protect_top_n
+            ),
+            tail_exchange_max_swaps=(
+                self._operation_utility_tail_exchange_max_swaps
             ),
         )
         build_memory_include_superseded = (
@@ -1826,6 +1909,38 @@ class Stage1Pipeline:
                         self._object_slot_activation_tail_exchange_max_swaps
                     ),
                 )
+            if _operation_utility_applies(
+                enabled=self._operation_utility_enabled,
+                route=route,
+                information_needs=self._operation_utility_information_needs,
+            ):
+                (
+                    operation_utility_source_hits,
+                    operation_utility_trace,
+                ) = _memory_operation_utility_source_hits(
+                    memory_hits=memory_hits,
+                    built_memory_records=built_memory.records,
+                    question=request.question,
+                    route=route,
+                    available_source_ids={turn.source_id for turn in store.turns},
+                    max_slots=self._operation_utility_max_slots,
+                    max_sources_per_slot=(
+                        self._operation_utility_max_sources_per_slot
+                    ),
+                    memory_types=self._operation_utility_memory_types,
+                    operations=self._operation_utility_operations,
+                    min_overlap_terms=self._operation_utility_min_overlap_terms,
+                    fusion_mode=self._operation_utility_fusion_mode,
+                    tail_exchange_protect_top_n=(
+                        self._operation_utility_tail_exchange_protect_top_n
+                    ),
+                    tail_exchange_max_swaps=(
+                        self._operation_utility_tail_exchange_max_swaps
+                    ),
+                    managed_memory_types=tuple(
+                        getattr(built_memory, "managed_memory_types", ()) or ()
+                    ),
+                )
         turn_window_hits = ()
         turn_window_source_hits = ()
         turn_window_bm25_applied = False
@@ -1895,6 +2010,11 @@ class Stage1Pipeline:
                 and self._object_slot_activation_fusion_mode == "rrf"
             ):
                 hit_lists = (*hit_lists, object_slot_source_hits)
+            if (
+                operation_utility_source_hits
+                and self._operation_utility_fusion_mode == "rrf"
+            ):
+                hit_lists = (*hit_lists, operation_utility_source_hits)
             if turn_window_source_hits:
                 hit_lists = (*hit_lists, turn_window_source_hits)
             hits = _merge_hit_lists(
@@ -1956,6 +2076,26 @@ class Stage1Pipeline:
                     ),
                     max_swaps=self._memory_slot_chain_tail_exchange_max_swaps,
                 )
+            if operation_utility_source_hits and (
+                self._operation_utility_fusion_mode == "tail_rescue"
+            ):
+                hits = _append_tail_rescue_hits(
+                    hits,
+                    operation_utility_source_hits,
+                    top_k=candidate_top_k,
+                )
+            if operation_utility_source_hits and (
+                self._operation_utility_fusion_mode == "tail_exchange"
+            ):
+                hits = _append_tail_exchange_hits(
+                    hits,
+                    operation_utility_source_hits,
+                    top_k=candidate_top_k,
+                    protect_top_n=(
+                        self._operation_utility_tail_exchange_protect_top_n
+                    ),
+                    max_swaps=self._operation_utility_tail_exchange_max_swaps,
+                )
         else:
             if (
                 memory_source_hits
@@ -1966,6 +2106,10 @@ class Stage1Pipeline:
                 or (
                     object_slot_source_hits
                     and self._object_slot_activation_fusion_mode == "rrf"
+                )
+                or (
+                    operation_utility_source_hits
+                    and self._operation_utility_fusion_mode == "rrf"
                 )
                 or turn_window_source_hits
             ):
@@ -1983,6 +2127,11 @@ class Stage1Pipeline:
                             (
                                 object_slot_source_hits
                                 if self._object_slot_activation_fusion_mode == "rrf"
+                                else ()
+                            ),
+                            (
+                                operation_utility_source_hits
+                                if self._operation_utility_fusion_mode == "rrf"
                                 else ()
                             ),
                             turn_window_source_hits,
@@ -2036,6 +2185,26 @@ class Stage1Pipeline:
                     ),
                     max_swaps=self._memory_slot_chain_tail_exchange_max_swaps,
                 )
+            if operation_utility_source_hits and (
+                self._operation_utility_fusion_mode == "tail_rescue"
+            ):
+                hits = _append_tail_rescue_hits(
+                    hits,
+                    operation_utility_source_hits,
+                    top_k=candidate_top_k,
+                )
+            if operation_utility_source_hits and (
+                self._operation_utility_fusion_mode == "tail_exchange"
+            ):
+                hits = _append_tail_exchange_hits(
+                    hits,
+                    operation_utility_source_hits,
+                    top_k=candidate_top_k,
+                    protect_top_n=(
+                        self._operation_utility_tail_exchange_protect_top_n
+                    ),
+                    max_swaps=self._operation_utility_tail_exchange_max_swaps,
+                )
         embedding_cache_after = _embedding_cache_stats(self._embedding_client)
         turn_hits = hits
         pre_rerank_hits = hits
@@ -2063,6 +2232,11 @@ class Stage1Pipeline:
                 *(
                     _source_ids_from_hits(object_slot_source_hits)
                     if self._object_slot_activation_fusion_mode == "rrf"
+                    else ()
+                ),
+                *(
+                    _source_ids_from_hits(operation_utility_source_hits)
+                    if self._operation_utility_fusion_mode == "rrf"
                     else ()
                 ),
             )
@@ -2285,6 +2459,7 @@ class Stage1Pipeline:
             memory_source_hits=memory_source_hits,
             memory_slot_chain_source_hits=memory_slot_chain_source_hits,
             object_slot_source_hits=object_slot_source_hits,
+            operation_utility_source_hits=operation_utility_source_hits,
             turn_window_source_hits=turn_window_source_hits,
             pre_context_budget_hits=pre_context_budget_hits,
             retrieval_hits=hits,
@@ -2653,6 +2828,50 @@ class Stage1Pipeline:
                     ),
                     "object_slot_activation_skipped_reason": (
                         object_slot_activation_trace["skipped_reason"]
+                    ),
+                    "operation_utility_enabled": self._operation_utility_enabled,
+                    "operation_utility_applied": (
+                        operation_utility_trace["applied"]
+                    ),
+                    "operation_utility_information_needs": (
+                        self._operation_utility_information_needs
+                    ),
+                    "operation_utility_memory_types": (
+                        self._operation_utility_memory_types
+                    ),
+                    "operation_utility_operations": (
+                        self._operation_utility_operations
+                    ),
+                    "operation_utility_max_slots": (
+                        self._operation_utility_max_slots
+                    ),
+                    "operation_utility_max_sources_per_slot": (
+                        self._operation_utility_max_sources_per_slot
+                    ),
+                    "operation_utility_min_overlap_terms": (
+                        self._operation_utility_min_overlap_terms
+                    ),
+                    "operation_utility_fusion_mode": (
+                        self._operation_utility_fusion_mode
+                    ),
+                    "operation_utility_tail_exchange_protect_top_n": (
+                        self._operation_utility_tail_exchange_protect_top_n
+                    ),
+                    "operation_utility_tail_exchange_max_swaps": (
+                        self._operation_utility_tail_exchange_max_swaps
+                    ),
+                    "operation_utility_source_hits": [
+                        hit.to_dict() for hit in operation_utility_source_hits
+                    ],
+                    "operation_utility_question_scope": (
+                        operation_utility_trace["question_scope"]
+                    ),
+                    "operation_utility_operation_counts": (
+                        operation_utility_trace["operation_counts"]
+                    ),
+                    "operation_utility_slots": operation_utility_trace["slots"],
+                    "operation_utility_skipped_reason": (
+                        operation_utility_trace["skipped_reason"]
                     ),
                     "dense_hits": [hit.to_dict() for hit in dense_hits],
                     "turn_window_hits": [
@@ -3601,6 +3820,7 @@ def _context_manifest(
     evidence_rows: tuple[Any, ...],
     compiled_context_chars: int | None = None,
     object_slot_source_hits: tuple[Any, ...] = (),
+    operation_utility_source_hits: tuple[Any, ...] = (),
 ) -> dict[str, Any]:
     """Trace-only source flow manifest for memory/context organization.
 
@@ -3619,6 +3839,7 @@ def _context_manifest(
             *_source_ids_from_hits(memory_source_hits),
             *_source_ids_from_hits(memory_slot_chain_source_hits),
             *_source_ids_from_hits(object_slot_source_hits),
+            *_source_ids_from_hits(operation_utility_source_hits),
         )
     )
     typed_memory_source_ids = _ordered_unique(
@@ -3658,6 +3879,9 @@ def _context_manifest(
                 memory_slot_chain_source_hits
             ),
             "object_slot_source_hit_count": len(object_slot_source_hits),
+            "operation_utility_source_hit_count": len(
+                operation_utility_source_hits
+            ),
             "turn_window_source_hit_count": len(turn_window_source_hits),
             "pre_context_budget_hit_count": len(pre_context_budget_hits),
             "final_hit_count": len(retrieval_hits),
@@ -3675,6 +3899,9 @@ def _context_manifest(
             "memory_projected_source_ids": memory_projected_source_ids,
             "object_slot_source_ids": _source_ids_from_hits(
                 object_slot_source_hits
+            ),
+            "operation_utility_source_ids": _source_ids_from_hits(
+                operation_utility_source_hits
             ),
             "turn_window_source_ids": _source_ids_from_hits(
                 turn_window_source_hits
@@ -4452,6 +4679,306 @@ def _object_slot_activation_applies(
         "list_count",
         "profile_preference",
     }
+
+
+def _operation_utility_applies(
+    *,
+    enabled: bool,
+    route: RouteResult,
+    information_needs: tuple[str, ...],
+) -> bool:
+    if not enabled:
+        return False
+    if information_needs and route.information_need not in information_needs:
+        return False
+    return route.information_need in SUPPORTED_INFORMATION_NEEDS
+
+
+def _disabled_operation_utility_trace(
+    *,
+    enabled: bool,
+    information_needs: tuple[str, ...],
+    memory_types: tuple[str, ...],
+    operations: tuple[str, ...],
+    max_slots: int,
+    max_sources_per_slot: int,
+    min_overlap_terms: int,
+    fusion_mode: str = "tail_rescue",
+    tail_exchange_protect_top_n: int = 56,
+    tail_exchange_max_swaps: int = 0,
+    question_scope: str = "unspecified",
+    skipped_reason: str = "",
+) -> dict[str, Any]:
+    return {
+        "enabled": enabled,
+        "applied": False,
+        "information_needs": information_needs,
+        "memory_types": memory_types,
+        "operations": operations,
+        "max_slots": max_slots,
+        "max_sources_per_slot": max_sources_per_slot,
+        "min_overlap_terms": min_overlap_terms,
+        "fusion_mode": fusion_mode,
+        "tail_exchange_protect_top_n": tail_exchange_protect_top_n,
+        "tail_exchange_max_swaps": tail_exchange_max_swaps,
+        "question_scope": question_scope,
+        "operation_counts": {},
+        "skipped_reason": skipped_reason,
+        "slots": [],
+    }
+
+
+def _memory_operation_utility_source_hits(
+    *,
+    memory_hits: tuple[Any, ...],
+    built_memory_records: tuple[Any, ...],
+    question: str,
+    route: RouteResult,
+    available_source_ids: set[str],
+    max_slots: int,
+    max_sources_per_slot: int,
+    memory_types: tuple[str, ...],
+    operations: tuple[str, ...],
+    min_overlap_terms: int = 1,
+    fusion_mode: str = "tail_rescue",
+    tail_exchange_protect_top_n: int = 56,
+    tail_exchange_max_swaps: int = 0,
+    managed_memory_types: tuple[str, ...] = (),
+) -> tuple[tuple[RetrievalHit, ...], dict[str, Any]]:
+    """Activate raw source rows from build-stage memory operations.
+
+    Typed memory is used as a source-backed operation index only. The returned
+    hits always point back to raw turns and remain separately configurable from
+    the answer prompt and compiler memory records.
+    """
+
+    question_scope = _memory_slot_chain_question_scope(question)
+    trace = _disabled_operation_utility_trace(
+        enabled=True,
+        information_needs=(route.information_need,),
+        memory_types=memory_types,
+        operations=operations,
+        max_slots=max_slots,
+        max_sources_per_slot=max_sources_per_slot,
+        min_overlap_terms=min_overlap_terms,
+        fusion_mode=fusion_mode,
+        tail_exchange_protect_top_n=tail_exchange_protect_top_n,
+        tail_exchange_max_swaps=tail_exchange_max_swaps,
+        question_scope=question_scope,
+    )
+    if not memory_hits or not built_memory_records:
+        return (), trace
+    if max_slots <= 0 or max_sources_per_slot <= 0:
+        return (), {**trace, "skipped_reason": "non_positive_budget"}
+
+    question_terms = _memory_object_slot_question_terms(question)
+    if not question_terms:
+        return (), {**trace, "skipped_reason": "no_question_terms"}
+
+    allowed_operations = {
+        str(operation).strip().lower()
+        for operation in operations
+        if str(operation).strip()
+    }
+    if not allowed_operations:
+        return (), {**trace, "skipped_reason": "no_operations"}
+
+    groups, _slot_index_stats = _memory_object_slot_index(
+        built_memory_records,
+        memory_types=memory_types,
+    )
+    selected_hits: list[RetrievalHit] = []
+    slot_traces: list[dict[str, Any]] = []
+    operation_counts: dict[str, int] = {}
+    seen_sources: set[str] = set()
+    seen_keys: set[tuple[str, str, str]] = set()
+    rank = 1
+    for memory_hit in memory_hits:
+        if len(slot_traces) >= max_slots:
+            break
+        record = getattr(memory_hit, "record", None)
+        key = _memory_object_slot_key(record, memory_types=memory_types)
+        if key is None or key in seen_keys:
+            continue
+        seen_keys.add(key)
+        records = tuple(groups.get(key, ()))
+        slot_operations = _memory_operation_slot_types(
+            records,
+            managed_memory_types=managed_memory_types,
+        )
+        selected_operations = tuple(
+            operation
+            for operation in slot_operations
+            if operation in allowed_operations
+        )
+        if not selected_operations:
+            continue
+
+        matched_terms = _memory_object_slot_matched_terms(
+            question_terms=question_terms,
+            key=key,
+            records=records,
+        )
+        if len(matched_terms) < max(0, min_overlap_terms):
+            continue
+
+        source_ids = _memory_operation_slot_sources(
+            records,
+            available_source_ids=available_source_ids,
+            max_sources=max_sources_per_slot,
+            question_scope=question_scope,
+        )
+        if not source_ids:
+            continue
+
+        base_score = float(getattr(memory_hit, "score", 0.0) or 0.0)
+        emitted_sources: list[str] = []
+        for offset, source_id in enumerate(source_ids):
+            if source_id in seen_sources:
+                continue
+            seen_sources.add(source_id)
+            emitted_sources.append(source_id)
+            selected_hits.append(
+                RetrievalHit(
+                    source_id=source_id,
+                    score=base_score - (offset * 1e-6),
+                    rank=rank,
+                    retriever="build_memory_operation_utility",
+                    matched_terms=matched_terms,
+                )
+            )
+            rank += 1
+        if not emitted_sources:
+            continue
+
+        for operation in selected_operations:
+            operation_counts[operation] = operation_counts.get(operation, 0) + 1
+        slot_traces.append(
+            {
+                "slot": {
+                    "memory_type": key[0],
+                    "subject": key[1],
+                    "predicate": key[2],
+                },
+                "operations": selected_operations,
+                "matched_memory_id": str(getattr(record, "memory_id", "")),
+                "matched_terms": matched_terms,
+                "question_scope": question_scope,
+                "record_count": len(records),
+                "status_counts": _memory_operation_slot_status_counts(records),
+                "source_ids": tuple(emitted_sources),
+                "values": _memory_object_slot_values(records)[:6],
+            }
+        )
+
+    return tuple(selected_hits), {
+        **trace,
+        "applied": bool(slot_traces),
+        "operation_counts": dict(sorted(operation_counts.items())),
+        "slots": slot_traces,
+    }
+
+
+def _memory_operation_slot_types(
+    records: tuple[Any, ...],
+    *,
+    managed_memory_types: tuple[str, ...],
+) -> tuple[str, ...]:
+    if not records:
+        return ()
+    memory_type = str(getattr(records[0], "memory_type", "") or "").lower()
+    managed_types = {
+        str(item).lower()
+        for item in managed_memory_types
+        if str(item).strip()
+    } or set(_STATE_UPDATE_MEMORY_TYPES)
+    managed_slot = memory_type in managed_types
+    active_values: set[str] = set()
+    superseded_values: set[str] = set()
+    lifecycle_signal = False
+    for record in records:
+        value = _normalize_memory_slot_text(
+            str(getattr(record, "value", "") or getattr(record, "text", "") or "")
+        )
+        status = str(getattr(record, "status", "active") or "active").lower()
+        if status == "superseded":
+            lifecycle_signal = True
+            if value:
+                superseded_values.add(value)
+        else:
+            if value:
+                active_values.add(value)
+        if getattr(record, "superseded_by", None) or getattr(record, "valid_to", None):
+            lifecycle_signal = True
+
+    distinct_values = active_values | superseded_values
+    conflict_slot = (
+        managed_slot
+        and len(distinct_values) > 1
+        and (lifecycle_signal or len(active_values) > 1)
+    )
+    operations: list[str] = []
+    if lifecycle_signal:
+        operations.append("supersede")
+    if conflict_slot:
+        operations.append("conflict_slot")
+    if len(distinct_values) > 1 and not lifecycle_signal and not conflict_slot:
+        operations.append("collection_multi_value_slot")
+    return tuple(operations)
+
+
+def _memory_operation_slot_sources(
+    records: tuple[Any, ...],
+    *,
+    available_source_ids: set[str],
+    max_sources: int,
+    question_scope: str,
+) -> tuple[str, ...]:
+    if max_sources <= 0:
+        return ()
+    selected: list[str] = []
+    for record in sorted(
+        records,
+        key=lambda item: _memory_operation_slot_record_sort_key(
+            item,
+            question_scope=question_scope,
+        ),
+    ):
+        for source_id in tuple(getattr(record, "source_ids", ()) or ()):
+            source_id = str(source_id)
+            if source_id not in available_source_ids or source_id in selected:
+                continue
+            selected.append(source_id)
+            if len(selected) >= max_sources:
+                return tuple(selected)
+    return tuple(selected)
+
+
+def _memory_operation_slot_record_sort_key(
+    record: Any,
+    *,
+    question_scope: str,
+) -> tuple[int, str, str]:
+    status = str(getattr(record, "status", "active") or "active").lower()
+    if question_scope == "historical":
+        status_rank = 0 if status != "active" else 1
+    else:
+        status_rank = 0 if status == "active" else 1
+    time_value = (
+        getattr(record, "valid_from", None)
+        or getattr(record, "timestamp", None)
+        or getattr(record, "mention_time", None)
+        or ""
+    )
+    return (status_rank, str(time_value), str(getattr(record, "memory_id", "")))
+
+
+def _memory_operation_slot_status_counts(records: tuple[Any, ...]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for record in records:
+        status = str(getattr(record, "status", "active") or "active")
+        counts[status] = counts.get(status, 0) + 1
+    return dict(sorted(counts.items()))
 
 
 def _disabled_object_slot_activation_trace(

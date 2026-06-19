@@ -139,6 +139,8 @@ def main() -> int:
     total_memory_slot_chain_source_hits = 0
     total_object_slot_activation_applied = 0
     total_object_slot_activation_source_hits = 0
+    total_operation_utility_applied = 0
+    total_operation_utility_source_hits = 0
     total_answer_cache_hits = 0
     total_answer_cache_misses = 0
     total_answer_cache_writes = 0
@@ -425,6 +427,11 @@ def main() -> int:
         total_object_slot_activation_source_hits += len(
             retrieval_trace.get("object_slot_activation_source_hits") or []
         )
+        if retrieval_trace.get("operation_utility_applied"):
+            total_operation_utility_applied += 1
+        total_operation_utility_source_hits += len(
+            retrieval_trace.get("operation_utility_source_hits") or []
+        )
         answer_cache = result["trace"].get("answer_cache") or {}
         total_answer_cache_hits += int(answer_cache.get("hits") or 0)
         total_answer_cache_misses += int(answer_cache.get("misses") or 0)
@@ -614,6 +621,42 @@ def main() -> int:
             ),
             "avg_object_slot_activation_source_hits": _safe_average(
                 total_object_slot_activation_source_hits, sample_count
+            ),
+            "operation_utility_enabled": config.get("retrieval", {})
+            .get("operation_utility", {})
+            .get("enabled", False),
+            "operation_utility_information_needs": config.get("retrieval", {})
+            .get("operation_utility", {})
+            .get("information_needs"),
+            "operation_utility_memory_types": config.get("retrieval", {})
+            .get("operation_utility", {})
+            .get("memory_types"),
+            "operation_utility_operations": config.get("retrieval", {})
+            .get("operation_utility", {})
+            .get(
+                "operations",
+                config.get("retrieval", {})
+                .get("operation_utility", {})
+                .get("operation_types"),
+            ),
+            "operation_utility_max_slots": config.get("retrieval", {})
+            .get("operation_utility", {})
+            .get("max_slots"),
+            "operation_utility_max_sources_per_slot": config.get("retrieval", {})
+            .get("operation_utility", {})
+            .get("max_sources_per_slot"),
+            "operation_utility_min_overlap_terms": config.get("retrieval", {})
+            .get("operation_utility", {})
+            .get("min_overlap_terms"),
+            "operation_utility_fusion_mode": config.get("retrieval", {})
+            .get("operation_utility", {})
+            .get("fusion_mode", "tail_rescue"),
+            "operation_utility_applied_count": total_operation_utility_applied,
+            "operation_utility_applied_rate": _safe_average(
+                total_operation_utility_applied, sample_count
+            ),
+            "avg_operation_utility_source_hits": _safe_average(
+                total_operation_utility_source_hits, sample_count
             ),
             "dense_enabled": config.get("retrieval", {})
             .get("dense", {})
@@ -1929,6 +1972,10 @@ def _write_summary(
         f"- avg_active_build_memory_records: {metrics['build_memory']['avg_active_records']}",
         f"- avg_memory_hits: {metrics['retrieval']['avg_memory_hits']}",
         f"- avg_memory_source_hits: {metrics['retrieval']['avg_memory_source_hits']}",
+        f"- operation_utility_enabled: {metrics['retrieval']['operation_utility_enabled']}",
+        f"- operation_utility_fusion_mode: {metrics['retrieval']['operation_utility_fusion_mode']}",
+        f"- operation_utility_applied_count: {metrics['retrieval']['operation_utility_applied_count']}",
+        f"- avg_operation_utility_source_hits: {metrics['retrieval']['avg_operation_utility_source_hits']}",
         f"- build_memory_include_superseded: {metrics['retrieval']['build_memory_include_superseded']}",
         f"- build_memory_include_superseded_information_needs: {metrics['retrieval']['build_memory_include_superseded_information_needs']}",
         f"- neighbor_order: {metrics['retrieval']['neighbor_order']}",

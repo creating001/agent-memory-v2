@@ -50,6 +50,7 @@ from memory.pipeline import (
     _memory_lifecycle_manifest,
     _memory_object_slot_index,
     _memory_object_slot_source_hits,
+    _memory_operation_utility_source_hits,
     _memory_slot_chain_source_hits,
     _memory_records_by_source,
     _neighbor_turns_for_rerank,
@@ -3397,6 +3398,92 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual(trace["skipped_reason"], "")
         self.assertEqual(hits, ())
 
+    def test_memory_operation_utility_expands_supersede_sources(self) -> None:
+        old_record = MemoryRecord(
+            memory_id="old-city",
+            memory_type="state",
+            text="Alex lives in Austin.",
+            source_ids=("s1:t0",),
+            subject="Alex",
+            predicate="home city",
+            value="Austin",
+            timestamp="2024-01-01",
+            status="superseded",
+            superseded_by="new-city",
+        )
+        new_record = MemoryRecord(
+            memory_id="new-city",
+            memory_type="state",
+            text="Alex lives in Seattle.",
+            source_ids=("s2:t0",),
+            subject="Alex",
+            predicate="home city",
+            value="Seattle",
+            timestamp="2024-05-01",
+            status="active",
+        )
+
+        hits, trace = _memory_operation_utility_source_hits(
+            memory_hits=(MemoryHit(record=old_record, score=3.0, rank=1),),
+            built_memory_records=(old_record, new_record),
+            question="Where does Alex live now?",
+            route=RouteResult("current_state", ("current_state",)),
+            available_source_ids={"s1:t0", "s2:t0"},
+            max_slots=2,
+            max_sources_per_slot=4,
+            memory_types=("state",),
+            operations=("supersede", "conflict_slot"),
+            fusion_mode="tail_exchange",
+            managed_memory_types=("state",),
+        )
+
+        self.assertTrue(trace["applied"])
+        self.assertEqual(trace["question_scope"], "current")
+        self.assertEqual(trace["operation_counts"], {"conflict_slot": 1, "supersede": 1})
+        self.assertEqual([hit.source_id for hit in hits], ["s2:t0", "s1:t0"])
+        self.assertEqual(
+            {hit.retriever for hit in hits},
+            {"build_memory_operation_utility"},
+        )
+
+    def test_memory_operation_utility_expands_collection_sources(self) -> None:
+        first_record = MemoryRecord(
+            memory_id="dune",
+            memory_type="fact",
+            text="Alex read Dune.",
+            source_ids=("s1:t0",),
+            subject="Alex",
+            predicate="read book",
+            value="Dune",
+        )
+        second_record = MemoryRecord(
+            memory_id="foundation",
+            memory_type="fact",
+            text="Alex read Foundation.",
+            source_ids=("s2:t0",),
+            subject="Alex",
+            predicate="read book",
+            value="Foundation",
+        )
+
+        hits, trace = _memory_operation_utility_source_hits(
+            memory_hits=(MemoryHit(record=first_record, score=3.0, rank=1),),
+            built_memory_records=(first_record, second_record),
+            question="Which books did Alex read?",
+            route=RouteResult("list_count", ("list",)),
+            available_source_ids={"s1:t0", "s2:t0"},
+            max_slots=2,
+            max_sources_per_slot=4,
+            memory_types=("fact",),
+            operations=("collection_multi_value_slot",),
+            fusion_mode="tail_rescue",
+        )
+
+        self.assertTrue(trace["applied"])
+        self.assertEqual(trace["operation_counts"], {"collection_multi_value_slot": 1})
+        self.assertEqual([hit.source_id for hit in hits], ["s1:t0", "s2:t0"])
+        self.assertEqual(trace["slots"][0]["values"], ("dune", "foundation"))
+
     def test_append_tail_rescue_hits_preserves_primary_order(self) -> None:
         primary = (
             RetrievalHit(source_id="s1:t0", score=1.0, rank=1, retriever="dense"),
@@ -3587,6 +3674,114 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertTrue(retrieval["memory_slot_chain_applied"])
         self.assertEqual(
             [hit["source_id"] for hit in retrieval["memory_slot_chain_source_hits"]],
+            ["s2:t0", "s1:t0"],
+        )
+        self.assertEqual(row_ids, ["s2:t0", "s1:t0"])
+        self.assertIn("I moved to Seattle.", result["trace"]["compiled_context"]["prompt"])
+        self.assertIn("I live in Austin.", result["trace"]["compiled_context"]["prompt"])
+
+    def test_pipeline_operation_utility_can_tail_exchange_raw_rows(self) -> None:
+        old_record = MemoryRecord(
+            memory_id="old",
+            memory_type="state",
+            text="Alex lives in Austin.",
+            source_ids=("s1:t0",),
+            subject="Alex",
+            predicate="home city",
+            value="Austin",
+            timestamp="2024-01-01",
+            status="superseded",
+            superseded_by="new",
+        )
+        new_record = MemoryRecord(
+            memory_id="new",
+            memory_type="state",
+            text="Alex lives in Seattle.",
+            source_ids=("s2:t0",),
+            subject="Alex",
+            predicate="home city",
+            value="Seattle",
+            timestamp="2024-05-01",
+            status="active",
+        )
+
+        class FakeBuilder:
+            def build(self, turns: tuple[Turn, ...]) -> BuiltMemory:
+                del turns
+                return BuiltMemory(
+                    records=(new_record, old_record),
+                    token_usage=TokenUsage(),
+                    management_policy="stateful_only",
+                    managed_memory_types=("state",),
+                )
+
+        config = {
+            "build_memory": {
+                "enabled": True,
+                "mode": "openai_compatible",
+                "model": "fake",
+                "top_k": 1,
+                "max_sources_per_record": 1,
+                "include_superseded": True,
+            },
+            "retrieval": {
+                "top_k": 2,
+                "max_top_k": 2,
+                "neighbor_window": 0,
+                "lexical": {"enabled": False},
+                "operation_utility": {
+                    "enabled": True,
+                    "information_needs": ["current_state"],
+                    "memory_types": ["state"],
+                    "operations": ["supersede", "conflict_slot"],
+                    "max_slots": 1,
+                    "max_sources_per_slot": 2,
+                    "fusion_mode": "tail_exchange",
+                    "tail_exchange_protect_top_n": 1,
+                    "tail_exchange_max_swaps": 1,
+                },
+            },
+            "compiler": {
+                "prompt_mode": "external_naive",
+                "max_evidence_items": 2,
+                "max_evidence_chars": 4000,
+            },
+            "answer": {"fallback_answer": "unknown"},
+        }
+        pipeline = Stage1Pipeline(config)
+        pipeline._memory_builder = FakeBuilder()
+        request = PredictionRequest(
+            question="Where does Alex live now?",
+            turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="I live in Austin.",
+                    timestamp="2024-01-01",
+                ),
+                Turn(
+                    source_id="s2:t0",
+                    session_id="s2",
+                    turn_index=0,
+                    role="user",
+                    text="I moved to Seattle.",
+                    timestamp="2024-05-01",
+                ),
+            ),
+        )
+
+        result = pipeline.predict(request)
+        retrieval = result["trace"]["retrieval"]
+        row_ids = [
+            row["source_id"]
+            for row in result["trace"]["compiled_context"]["evidence_rows"]
+        ]
+
+        self.assertTrue(retrieval["operation_utility_applied"])
+        self.assertEqual(
+            [hit["source_id"] for hit in retrieval["operation_utility_source_hits"]],
             ["s2:t0", "s1:t0"],
         )
         self.assertEqual(row_ids, ["s2:t0", "s1:t0"])
