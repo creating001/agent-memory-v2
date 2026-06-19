@@ -84,6 +84,9 @@ def main() -> int:
     total_selected_context_budget_gate_blocked = 0
     total_selected_context_budget_gate_headroom = 0
     total_selected_context_budget_gate_headroom_count = 0
+    total_selected_context_risk_audit_applied = 0
+    total_selected_context_risk_audit_audited = 0
+    total_selected_context_risk_audit_risk = 0
     total_rerank_applied = 0
     total_rerank_candidate_count = 0
     total_rerank_returned_count = 0
@@ -229,6 +232,15 @@ def main() -> int:
         if budget_headroom is not None:
             total_selected_context_budget_gate_headroom += int(budget_headroom)
             total_selected_context_budget_gate_headroom_count += 1
+        selected_context_risk_audit = selected_context.get("risk_audit") or {}
+        if selected_context_risk_audit.get("applied"):
+            total_selected_context_risk_audit_applied += 1
+        total_selected_context_risk_audit_audited += int(
+            selected_context_risk_audit.get("audited_count") or 0
+        )
+        total_selected_context_risk_audit_risk += int(
+            selected_context_risk_audit.get("risk_count") or 0
+        )
         if retrieval_trace.get("rerank_applied"):
             total_rerank_applied += 1
         total_rerank_candidate_count += int(
@@ -507,6 +519,28 @@ def main() -> int:
             )
             .get("selected_context", {})
             .get("min_context_budget_headroom_chars"),
+            "selected_context_risk_audit_enabled": config.get("retrieval", {})
+            .get("selected_context", {})
+            .get("risk_audit", {})
+            .get("enabled", False),
+            "selected_context_risk_audit_information_needs": config.get(
+                "retrieval", {}
+            )
+            .get("selected_context", {})
+            .get("risk_audit", {})
+            .get("information_needs"),
+            "selected_context_risk_audit_source_grounded_min_terms": config.get(
+                "retrieval", {}
+            )
+            .get("selected_context", {})
+            .get("risk_audit", {})
+            .get("source_grounded_min_terms"),
+            "selected_context_risk_audit_source_grounded_min_coverage": config.get(
+                "retrieval", {}
+            )
+            .get("selected_context", {})
+            .get("risk_audit", {})
+            .get("source_grounded_min_coverage"),
             "selected_context_applied_count": total_selected_context_applied,
             "selected_context_applied_rate": _safe_average(
                 total_selected_context_applied, sample_count
@@ -532,6 +566,21 @@ def main() -> int:
                     total_selected_context_skipped_question_reference_center,
                     sample_count,
                 )
+            ),
+            "selected_context_risk_audit_applied_count": (
+                total_selected_context_risk_audit_applied
+            ),
+            "selected_context_risk_audit_applied_rate": _safe_average(
+                total_selected_context_risk_audit_applied, sample_count
+            ),
+            "selected_context_risk_audit_risk_count": (
+                total_selected_context_risk_audit_risk
+            ),
+            "avg_selected_context_risk_audit_audited_rows": _safe_average(
+                total_selected_context_risk_audit_audited, sample_count
+            ),
+            "avg_selected_context_risk_audit_risk_rows": _safe_average(
+                total_selected_context_risk_audit_risk, sample_count
             ),
             "rerank_enabled": config.get("retrieval", {})
             .get("rerank", {})
@@ -1521,6 +1570,11 @@ def _write_summary(
         f"- avg_selected_context_materialized_rows: {metrics['retrieval']['avg_selected_context_materialized_rows']}",
         f"- avg_selected_context_skipped_long_center_rows: {metrics['retrieval']['avg_selected_context_skipped_long_center_rows']}",
         f"- avg_selected_context_skipped_question_reference_center_rows: {metrics['retrieval']['avg_selected_context_skipped_question_reference_center_rows']}",
+        f"- selected_context_risk_audit_enabled: {metrics['retrieval']['selected_context_risk_audit_enabled']}",
+        f"- selected_context_risk_audit_applied_count: {metrics['retrieval']['selected_context_risk_audit_applied_count']}",
+        f"- selected_context_risk_audit_risk_count: {metrics['retrieval']['selected_context_risk_audit_risk_count']}",
+        f"- avg_selected_context_risk_audit_audited_rows: {metrics['retrieval']['avg_selected_context_risk_audit_audited_rows']}",
+        f"- avg_selected_context_risk_audit_risk_rows: {metrics['retrieval']['avg_selected_context_risk_audit_risk_rows']}",
         f"- rerank_enabled: {metrics['retrieval']['rerank_enabled']}",
         f"- rerank_model: {metrics['retrieval']['rerank_model']}",
         f"- rerank_pool_k: {metrics['retrieval']['rerank_pool_k']}",
@@ -1818,6 +1872,11 @@ def _write_diagnosis(
         f"- avg_selected_context_materialized_rows: {metrics['retrieval']['avg_selected_context_materialized_rows']}",
         f"- avg_selected_context_skipped_long_center_rows: {metrics['retrieval']['avg_selected_context_skipped_long_center_rows']}",
         f"- avg_selected_context_skipped_question_reference_center_rows: {metrics['retrieval']['avg_selected_context_skipped_question_reference_center_rows']}",
+        f"- selected_context_risk_audit_enabled: {metrics['retrieval']['selected_context_risk_audit_enabled']}",
+        f"- selected_context_risk_audit_applied_count: {metrics['retrieval']['selected_context_risk_audit_applied_count']}",
+        f"- selected_context_risk_audit_risk_count: {metrics['retrieval']['selected_context_risk_audit_risk_count']}",
+        f"- avg_selected_context_risk_audit_audited_rows: {metrics['retrieval']['avg_selected_context_risk_audit_audited_rows']}",
+        f"- avg_selected_context_risk_audit_risk_rows: {metrics['retrieval']['avg_selected_context_risk_audit_risk_rows']}",
         f"- rerank_enabled: {metrics['retrieval']['rerank_enabled']}",
         f"- rerank_model: {metrics['retrieval']['rerank_model']}",
         f"- rerank_pool_k: {metrics['retrieval']['rerank_pool_k']}",

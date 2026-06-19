@@ -93,6 +93,9 @@ class Stage1Pipeline:
         dense_config = retrieval_config.get("dense", {})
         turn_window_config = retrieval_config.get("turn_window_bm25", {})
         selected_context_config = retrieval_config.get("selected_context", {})
+        selected_context_audit_config = selected_context_config.get("risk_audit", {})
+        if not isinstance(selected_context_audit_config, Mapping):
+            raise ValueError("retrieval.selected_context.risk_audit must be an object")
         context_budget_config = retrieval_config.get("context_budget", {})
         if not isinstance(context_budget_config, Mapping):
             raise ValueError("retrieval.context_budget must be an object")
@@ -343,6 +346,18 @@ class Stage1Pipeline:
                 selected_context_config.get("route_overrides") or {}
             )
         )
+        self._selected_context_risk_audit_enabled = bool(
+            selected_context_audit_config.get("enabled", False)
+        )
+        self._selected_context_risk_audit_information_needs = _tuple_config(
+            selected_context_audit_config.get("information_needs")
+        )
+        self._selected_context_risk_audit_source_grounded_min_terms = int(
+            selected_context_audit_config.get("source_grounded_min_terms", 2)
+        )
+        self._selected_context_risk_audit_source_grounded_min_coverage = float(
+            selected_context_audit_config.get("source_grounded_min_coverage", 0.6)
+        )
         self._selected_context_trace_config = {
             "enabled": self._selected_context_enabled,
             "window_before": self._selected_context_window_before,
@@ -371,6 +386,19 @@ class Stage1Pipeline:
             ),
             "information_needs": self._selected_context_information_needs,
             "route_overrides": self._selected_context_route_overrides,
+            "risk_audit": {
+                "enabled": self._selected_context_risk_audit_enabled,
+                "information_needs": (
+                    self._selected_context_risk_audit_information_needs
+                ),
+                "source_grounded_min_terms": (
+                    self._selected_context_risk_audit_source_grounded_min_terms
+                ),
+                "source_grounded_min_coverage": (
+                    self._selected_context_risk_audit_source_grounded_min_coverage
+                ),
+                "trace_only": True,
+            },
         }
         self._context_budget_enabled = bool(
             context_budget_config.get("enabled", False)
@@ -1582,6 +1610,20 @@ class Stage1Pipeline:
         selected_context["granularity_profile"] = granularity_profile
         selected_context["route_override"] = selected_context_settings.get(
             "route_override"
+        )
+        selected_context["risk_audit"] = _selected_context_risk_audit(
+            store=store,
+            route=route,
+            question=request.question,
+            selected_context=selected_context,
+            enabled=self._selected_context_risk_audit_enabled,
+            information_needs=self._selected_context_risk_audit_information_needs,
+            source_grounded_min_terms=(
+                self._selected_context_risk_audit_source_grounded_min_terms
+            ),
+            source_grounded_min_coverage=(
+                self._selected_context_risk_audit_source_grounded_min_coverage
+            ),
         )
         compiler_memory_records = _compiler_memory_records(
             source=self._compiler_memory_record_source,
@@ -3434,6 +3476,86 @@ def _selected_context_budget_gate(
     trace["budget_gate_allowed"] = False
     trace["budget_gate_reason"] = "insufficient_headroom"
     return False, trace
+
+
+def _selected_context_risk_audit(
+    *,
+    store: RawEvidenceStore,
+    route: RouteResult,
+    question: str,
+    selected_context: Mapping[str, Any],
+    enabled: bool,
+    information_needs: tuple[str, ...],
+    source_grounded_min_terms: int,
+    source_grounded_min_coverage: float,
+) -> dict[str, Any]:
+    source_grounded_term_threshold = max(0, int(source_grounded_min_terms))
+    source_grounded_coverage_threshold = min(
+        1.0, max(0.0, float(source_grounded_min_coverage))
+    )
+    materialized_ids = tuple(
+        str(source_id)
+        for source_id in selected_context.get("materialized_source_ids") or ()
+    )
+    trace: dict[str, Any] = {
+        "enabled": enabled,
+        "trace_only": True,
+        "applied": False,
+        "skip_reason": "disabled" if not enabled else None,
+        "information_needs": information_needs,
+        "source_grounded_min_terms": source_grounded_term_threshold,
+        "source_grounded_min_coverage": source_grounded_coverage_threshold,
+        "question_reference": bool(selected_context.get("question_reference")),
+        "materialized_count": len(materialized_ids),
+        "audited_count": 0,
+        "safe_count": 0,
+        "risk_count": 0,
+        "safe_source_ids": [],
+        "risk_source_ids": [],
+        "risk_reasons": {},
+    }
+    if not enabled:
+        return trace
+    if information_needs and route.information_need not in information_needs:
+        trace["skip_reason"] = "route_not_enabled"
+        return trace
+    if not materialized_ids:
+        trace["skip_reason"] = "no_materialized_rows"
+        return trace
+    if trace["question_reference"]:
+        trace["skip_reason"] = "question_reference_present"
+        return trace
+
+    trace["applied"] = True
+    trace["skip_reason"] = None
+    safe_source_ids: list[str] = []
+    risk_source_ids: list[str] = []
+    risk_reasons: dict[str, str] = {}
+    for source_id in materialized_ids:
+        turn = store.get(source_id)
+        if turn is None:
+            risk_source_ids.append(source_id)
+            risk_reasons[source_id] = "missing_source"
+            continue
+        source_grounded_match = _selected_context_source_grounded_match(
+            question=question,
+            turn=turn,
+            min_terms=source_grounded_term_threshold,
+            min_coverage=source_grounded_coverage_threshold,
+        )
+        if source_grounded_match["matched"]:
+            safe_source_ids.append(source_id)
+        else:
+            risk_source_ids.append(source_id)
+            risk_reasons[source_id] = str(source_grounded_match["reason"])
+
+    trace["audited_count"] = len(materialized_ids)
+    trace["safe_count"] = len(safe_source_ids)
+    trace["risk_count"] = len(risk_source_ids)
+    trace["safe_source_ids"] = safe_source_ids
+    trace["risk_source_ids"] = risk_source_ids
+    trace["risk_reasons"] = risk_reasons
+    return trace
 
 
 def _compiler_context_pressure_trace(

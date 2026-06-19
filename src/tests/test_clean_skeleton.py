@@ -677,6 +677,108 @@ class CleanSkeletonTest(unittest.TestCase):
         )
         self.assertNotIn("Local dialogue context from the same session", row_text)
 
+    def test_selected_context_risk_audit_is_trace_only(self) -> None:
+        config = {
+            "retrieval": {
+                "top_k": 3,
+                "max_top_k": 3,
+                "neighbor_window": 0,
+                "selected_context": {
+                    "enabled": True,
+                    "window_before": 1,
+                    "window_after": 1,
+                    "max_rows": 3,
+                    "max_neighbor_chars": 120,
+                    "require_anaphora": True,
+                    "information_needs": ["temporal_lookup"],
+                    "risk_audit": {
+                        "enabled": True,
+                        "information_needs": ["temporal_lookup"],
+                        "source_grounded_min_terms": 2,
+                        "source_grounded_min_coverage": 0.6,
+                    },
+                },
+            },
+            "compiler": {
+                "prompt_mode": "external_naive",
+                "max_evidence_items": 3,
+                "max_evidence_chars": 4000,
+            },
+            "answer": {"fallback_answer": "unknown"},
+        }
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="James",
+                text=(
+                    "That's my sister and my dogs. We were chilling together "
+                    "yesterday."
+                ),
+                timestamp="9:49 am on 22 July, 2022",
+            ),
+            Turn(
+                source_id="s1:t1",
+                session_id="s1",
+                turn_index=1,
+                role="John",
+                text=(
+                    "Wow, they look so happy! It's awesome that you get to spend "
+                    "time with your sister and your furry friends."
+                ),
+                timestamp="9:49 am on 22 July, 2022",
+            ),
+            Turn(
+                source_id="s1:t2",
+                session_id="s1",
+                turn_index=2,
+                role="James",
+                text="I'm blessed to have a close bond with my sister and pets.",
+                timestamp="9:49 am on 22 July, 2022",
+            ),
+        )
+        request = PredictionRequest(
+            question="When did John spend time with his sister and dogs?",
+            turns=turns,
+        )
+
+        audited_result = Stage1Pipeline(config).predict(request)
+        audit_off_config = {
+            **config,
+            "retrieval": {
+                **config["retrieval"],
+                "selected_context": {
+                    **config["retrieval"]["selected_context"],
+                    "risk_audit": {
+                        **config["retrieval"]["selected_context"]["risk_audit"],
+                        "enabled": False,
+                    },
+                },
+            },
+        }
+        plain_result = Stage1Pipeline(audit_off_config).predict(request)
+
+        audited_trace = audited_result["trace"]["retrieval"]["selected_context"]
+        risk_audit = audited_trace["risk_audit"]
+        row_text = "\n".join(
+            row["text"]
+            for row in audited_result["trace"]["compiled_context"]["evidence_rows"]
+        )
+
+        self.assertTrue(audited_trace["applied"])
+        self.assertIn("s1:t1", audited_trace["materialized_source_ids"])
+        self.assertIn("Local dialogue context from the same session", row_text)
+        self.assertTrue(risk_audit["trace_only"])
+        self.assertTrue(risk_audit["applied"])
+        self.assertIn("s1:t1", risk_audit["risk_source_ids"])
+        self.assertEqual(risk_audit["risk_reasons"]["s1:t1"], "missing_self_reference")
+        self.assertEqual(
+            audited_result["trace"]["compiled_context"]["prompt"],
+            plain_result["trace"]["compiled_context"]["prompt"],
+        )
+        self.assertEqual(audited_result["answer"], plain_result["answer"])
+
     def test_selected_context_route_override_is_scoped(self) -> None:
         config = {
             "retrieval": {
