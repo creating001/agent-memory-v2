@@ -36,13 +36,6 @@ MAX_RELATIVE_TIME_SPANS = {
     "year": 100,
 }
 MEMORY_STATE_GUIDE_VALUE_CONFLICT_TYPES = {"fact", "preference", "profile", "state"}
-MEMORY_OPERATION_GUIDE_STATEFUL_TYPES = {
-    "preference",
-    "profile",
-    "relationship",
-    "state",
-}
-MEMORY_OPERATION_GUIDE_COLLECTION_TYPES = {"event", "fact", "plan"}
 MEMORY_STATE_GUIDE_ALIGNMENT_WEAK_TERMS = {
     "a",
     "about",
@@ -175,12 +168,6 @@ ROUTE_OVERRIDE_KEYS = {
     "max_evidence_chars",
     "max_evidence_items",
     "max_row_text_chars",
-    "memory_operation_guide",
-    "memory_operation_guide_candidate_records",
-    "memory_operation_guide_include_collections",
-    "memory_operation_guide_include_superseded",
-    "memory_operation_guide_max_records",
-    "memory_operation_guide_value_chars",
     "memory_state_guide",
     "memory_state_guide_candidate_records",
     "memory_state_guide_require_active_superseded_pair",
@@ -395,19 +382,6 @@ class EvidenceCompiler:
         memory_state_guide_require_active_superseded_pair: bool = False,
         memory_state_guide_require_slot_overlap: bool = False,
         memory_state_guide_require_stateful_slot: bool = False,
-        memory_operation_guide: bool = False,
-        memory_operation_guide_information_needs: tuple[str, ...] = (
-            "current_state",
-            "fact_lookup",
-            "list_count",
-            "profile_preference",
-            "temporal_lookup",
-        ),
-        memory_operation_guide_max_records: int = 8,
-        memory_operation_guide_candidate_records: int = 16,
-        memory_operation_guide_value_chars: int = 120,
-        memory_operation_guide_include_superseded: bool = True,
-        memory_operation_guide_include_collections: bool = True,
         profile_activation_guide: bool = False,
         profile_activation_guide_information_needs: tuple[str, ...] = (
             "profile_preference",
@@ -654,26 +628,6 @@ class EvidenceCompiler:
         self._memory_state_guide_require_stateful_slot = bool(
             memory_state_guide_require_stateful_slot
         )
-        self._memory_operation_guide = bool(memory_operation_guide)
-        self._memory_operation_guide_information_needs = _validate_information_needs(
-            memory_operation_guide_information_needs,
-            field_name="memory_operation_guide_information_needs",
-        )
-        self._memory_operation_guide_max_records = max(
-            1, int(memory_operation_guide_max_records)
-        )
-        self._memory_operation_guide_candidate_records = max(
-            1, int(memory_operation_guide_candidate_records)
-        )
-        self._memory_operation_guide_value_chars = max(
-            40, int(memory_operation_guide_value_chars)
-        )
-        self._memory_operation_guide_include_superseded = bool(
-            memory_operation_guide_include_superseded
-        )
-        self._memory_operation_guide_include_collections = bool(
-            memory_operation_guide_include_collections
-        )
         self._profile_activation_guide = bool(profile_activation_guide)
         self._profile_activation_guide_information_needs = _validate_information_needs(
             profile_activation_guide_information_needs,
@@ -747,7 +701,6 @@ class EvidenceCompiler:
         evidence_turns: tuple[Turn, ...],
         memory_records: tuple[MemoryRecord, ...] = (),
         memory_state_guide_records: tuple[MemoryRecord, ...] | None = None,
-        memory_operation_guide_records: tuple[MemoryRecord, ...] | None = None,
     ) -> CompiledContext:
         hit_by_source_id = {hit.source_id: hit for hit in hits}
         candidates: list[EvidenceRow] = []
@@ -848,22 +801,6 @@ class EvidenceCompiler:
         selected_memory_state_guide_records = ordered_memory_state_guide_records[
             : route_settings["memory_state_guide_candidate_records"]
         ]
-        memory_operation_guide_source_records = (
-            tuple(memory_operation_guide_records)
-            if memory_operation_guide_records is not None
-            else tuple(memory_records)
-        )
-        ordered_memory_operation_guide_records = _order_memory_records(
-            memory_operation_guide_source_records,
-            question=question,
-            route=route,
-            memory_order=self._memory_order,
-        )
-        selected_memory_operation_guide_records = (
-            ordered_memory_operation_guide_records[
-                : route_settings["memory_operation_guide_candidate_records"]
-            ]
-        )
         laid_out_rows = _layout_rows(
             tuple(rows),
             context_layout=route_settings["context_layout"],
@@ -1054,27 +991,6 @@ class EvidenceCompiler:
             memory_state_guide_require_stateful_slot=route_settings[
                 "memory_state_guide_require_stateful_slot"
             ],
-            memory_operation_guide=(
-                route_settings["memory_operation_guide"]
-                and route.information_need
-                in self._memory_operation_guide_information_needs
-            ),
-            memory_operation_guide_records=selected_memory_operation_guide_records,
-            memory_operation_guide_max_records=route_settings[
-                "memory_operation_guide_max_records"
-            ],
-            memory_operation_guide_candidate_records=route_settings[
-                "memory_operation_guide_candidate_records"
-            ],
-            memory_operation_guide_value_chars=route_settings[
-                "memory_operation_guide_value_chars"
-            ],
-            memory_operation_guide_include_superseded=route_settings[
-                "memory_operation_guide_include_superseded"
-            ],
-            memory_operation_guide_include_collections=route_settings[
-                "memory_operation_guide_include_collections"
-            ],
             profile_activation_guide=(
                 route_settings["profile_activation_guide"]
                 and route.information_need
@@ -1143,29 +1059,6 @@ class EvidenceCompiler:
             )
             if memory_state_ledger["applied"]:
                 diagnostics["source_backed_memory_state_ledger"] = memory_state_ledger
-        if (
-            route_settings["memory_operation_guide"]
-            and route.information_need
-            in self._memory_operation_guide_information_needs
-        ):
-            memory_operation_ledger = _source_backed_memory_operation_ledger(
-                question=question,
-                route=route,
-                rows=laid_out_rows,
-                memory_records=selected_memory_operation_guide_records,
-                max_records=route_settings["memory_operation_guide_max_records"],
-                max_value_chars=route_settings["memory_operation_guide_value_chars"],
-                include_superseded=route_settings[
-                    "memory_operation_guide_include_superseded"
-                ],
-                include_collections=route_settings[
-                    "memory_operation_guide_include_collections"
-                ],
-            )
-            if memory_operation_ledger["applied"]:
-                diagnostics["source_backed_memory_operation_ledger"] = (
-                    memory_operation_ledger
-                )
         if self._event_time_candidate_manifest:
             diagnostics["event_time_candidate_manifest"] = (
                 _event_time_candidate_manifest(
@@ -1278,22 +1171,6 @@ class EvidenceCompiler:
             ),
             "memory_state_guide_require_stateful_slot": (
                 self._memory_state_guide_require_stateful_slot
-            ),
-            "memory_operation_guide": self._memory_operation_guide,
-            "memory_operation_guide_max_records": (
-                self._memory_operation_guide_max_records
-            ),
-            "memory_operation_guide_candidate_records": (
-                self._memory_operation_guide_candidate_records
-            ),
-            "memory_operation_guide_value_chars": (
-                self._memory_operation_guide_value_chars
-            ),
-            "memory_operation_guide_include_superseded": (
-                self._memory_operation_guide_include_superseded
-            ),
-            "memory_operation_guide_include_collections": (
-                self._memory_operation_guide_include_collections
             ),
             "profile_activation_guide": self._profile_activation_guide,
             "profile_activation_guide_max_records": (
@@ -1697,30 +1574,6 @@ def _validate_route_overrides(
         if "memory_state_guide_require_stateful_slot" in raw_overrides:
             overrides["memory_state_guide_require_stateful_slot"] = bool(
                 raw_overrides["memory_state_guide_require_stateful_slot"]
-            )
-        if "memory_operation_guide" in raw_overrides:
-            overrides["memory_operation_guide"] = bool(
-                raw_overrides["memory_operation_guide"]
-            )
-        if "memory_operation_guide_max_records" in raw_overrides:
-            overrides["memory_operation_guide_max_records"] = max(
-                1, int(raw_overrides["memory_operation_guide_max_records"])
-            )
-        if "memory_operation_guide_candidate_records" in raw_overrides:
-            overrides["memory_operation_guide_candidate_records"] = max(
-                1, int(raw_overrides["memory_operation_guide_candidate_records"])
-            )
-        if "memory_operation_guide_value_chars" in raw_overrides:
-            overrides["memory_operation_guide_value_chars"] = max(
-                40, int(raw_overrides["memory_operation_guide_value_chars"])
-            )
-        if "memory_operation_guide_include_superseded" in raw_overrides:
-            overrides["memory_operation_guide_include_superseded"] = bool(
-                raw_overrides["memory_operation_guide_include_superseded"]
-            )
-        if "memory_operation_guide_include_collections" in raw_overrides:
-            overrides["memory_operation_guide_include_collections"] = bool(
-                raw_overrides["memory_operation_guide_include_collections"]
             )
         if "profile_activation_guide" in raw_overrides:
             overrides["profile_activation_guide"] = bool(
@@ -3020,13 +2873,6 @@ def _build_prompt(
     memory_state_guide_require_active_superseded_pair: bool,
     memory_state_guide_require_slot_overlap: bool,
     memory_state_guide_require_stateful_slot: bool,
-    memory_operation_guide: bool,
-    memory_operation_guide_records: tuple[MemoryRecord, ...],
-    memory_operation_guide_max_records: int,
-    memory_operation_guide_candidate_records: int,
-    memory_operation_guide_value_chars: int,
-    memory_operation_guide_include_superseded: bool,
-    memory_operation_guide_include_collections: bool,
     profile_activation_guide: bool,
     profile_activation_guide_max_records: int,
     profile_activation_guide_value_chars: int,
@@ -3179,19 +3025,6 @@ def _build_prompt(
             ),
             memory_state_guide_require_stateful_slot=(
                 memory_state_guide_require_stateful_slot
-            ),
-            memory_operation_guide=memory_operation_guide,
-            memory_operation_guide_records=memory_operation_guide_records,
-            memory_operation_guide_max_records=memory_operation_guide_max_records,
-            memory_operation_guide_candidate_records=(
-                memory_operation_guide_candidate_records
-            ),
-            memory_operation_guide_value_chars=memory_operation_guide_value_chars,
-            memory_operation_guide_include_superseded=(
-                memory_operation_guide_include_superseded
-            ),
-            memory_operation_guide_include_collections=(
-                memory_operation_guide_include_collections
             ),
             profile_activation_guide=profile_activation_guide,
             profile_activation_guide_max_records=profile_activation_guide_max_records,
@@ -3414,13 +3247,6 @@ def _build_external_naive_prompt(
     memory_state_guide_require_active_superseded_pair: bool,
     memory_state_guide_require_slot_overlap: bool,
     memory_state_guide_require_stateful_slot: bool,
-    memory_operation_guide: bool,
-    memory_operation_guide_records: tuple[MemoryRecord, ...],
-    memory_operation_guide_max_records: int,
-    memory_operation_guide_candidate_records: int,
-    memory_operation_guide_value_chars: int,
-    memory_operation_guide_include_superseded: bool,
-    memory_operation_guide_include_collections: bool,
     profile_activation_guide: bool,
     profile_activation_guide_max_records: int,
     profile_activation_guide_value_chars: int,
@@ -3564,22 +3390,6 @@ def _build_external_naive_prompt(
             profile_activation_guide_block = "\n".join(
                 ["", "Profile Memory Activation Guide:", *profile_activation_lines, ""]
             )
-    memory_operation_guide_block = ""
-    if memory_operation_guide:
-        memory_operation_lines = _external_memory_operation_guide_lines(
-            question=question,
-            route=route,
-            rows=rows,
-            memory_records=memory_operation_guide_records,
-            max_records=memory_operation_guide_max_records,
-            max_value_chars=memory_operation_guide_value_chars,
-            include_superseded=memory_operation_guide_include_superseded,
-            include_collections=memory_operation_guide_include_collections,
-        )
-        if memory_operation_lines:
-            memory_operation_guide_block = "\n".join(
-                ["", "Memory Operations Guide:", *memory_operation_lines, ""]
-            )
     memory_state_guide_block = ""
     if memory_state_guide:
         memory_state_lines = _external_memory_state_guide_lines(
@@ -3626,10 +3436,6 @@ def _build_external_naive_prompt(
     if profile_activation_guide_block:
         rules.append(
             "Use Profile Memory Activation Guide only as a source-backed preference/profile index into cited Memory Context rows; it is not independent evidence."
-        )
-    if memory_operation_guide_block:
-        rules.append(
-            "Use Memory Operations Guide only as a source-backed lifecycle/collection index into cited Memory Context rows; it is not independent evidence."
         )
     if memory_state_guide_block:
         rules.append(
@@ -3809,7 +3615,6 @@ def _build_external_naive_prompt(
             event_time_candidate_map_block,
             candidate_guide_block,
             profile_activation_guide_block,
-            memory_operation_guide_block,
             memory_state_guide_block,
             update_conflict_guide_block,
             event_timeline_block,
@@ -4387,271 +4192,6 @@ def _memory_record_source_labels(
         if memory_index is not None:
             labels.append(f"Memory {memory_index}")
     return tuple(dict.fromkeys(labels))
-
-
-def _external_memory_operation_guide_lines(
-    *,
-    question: str,
-    route: RouteResult,
-    rows: tuple[EvidenceRow, ...],
-    memory_records: tuple[MemoryRecord, ...],
-    max_records: int,
-    max_value_chars: int,
-    include_superseded: bool,
-    include_collections: bool,
-) -> list[str]:
-    """Source-backed build-memory operation view for prompt-time organization."""
-
-    ledger = _source_backed_memory_operation_ledger(
-        question=question,
-        route=route,
-        rows=rows,
-        memory_records=memory_records,
-        max_records=max_records,
-        max_value_chars=max_value_chars,
-        include_superseded=include_superseded,
-        include_collections=include_collections,
-    )
-    if not ledger["applied"]:
-        return []
-
-    lines = [
-        "Use this source-backed operation view to organize build-time memory lifecycle and collection records before answering.",
-        "- Every entry points to visible raw Memory Context rows; verify final claims against those rows.",
-        "- operation meanings: retain_active=latest managed state/profile/relationship/preference; supersede=older conflicting managed value; retain_collection=non-stateful fact/event/plan kept for lists, counts, history, or temporal lookup.",
-        "- records:",
-    ]
-    for entry in ledger["entries"]:
-        fields = [
-            f"operation={entry['operation']}",
-            f"layer={entry['layer']}",
-            f"type={entry['memory_type']}",
-            f"status={entry['status']}",
-        ]
-        if entry.get("subject"):
-            fields.append(f"subject={entry['subject']}")
-        if entry.get("predicate"):
-            fields.append(f"predicate={entry['predicate']}")
-        if entry.get("value"):
-            fields.append(f"value={entry['value']}")
-        if entry.get("slot_value_count", 0) > 1:
-            fields.append(f"slot_values={entry['slot_value_count']}")
-        fields.append(f"time={entry['time']}")
-        fields.append(f"valid_to={entry['valid_to']}")
-        if entry.get("superseded_by"):
-            fields.append(f"superseded_by={entry['superseded_by']}")
-        fields.append(f"sources={', '.join(entry['source_labels'][:6])}")
-        lines.append(f"  - {' | '.join(fields)}")
-    return lines
-
-
-def _source_backed_memory_operation_ledger(
-    *,
-    question: str,
-    route: RouteResult,
-    rows: tuple[EvidenceRow, ...],
-    memory_records: tuple[MemoryRecord, ...],
-    max_records: int,
-    max_value_chars: int,
-    include_superseded: bool,
-    include_collections: bool,
-) -> dict[str, Any]:
-    """Structured source-backed view of build-memory operations."""
-
-    if not rows or not memory_records or max_records <= 0:
-        return {
-            "applied": False,
-            "entries": [],
-            "entry_count": 0,
-            "reason": "no_rows_or_records",
-        }
-
-    source_to_memory_index = {
-        row.source_id: index for index, row in enumerate(rows, start=1)
-    }
-    linked_records: list[MemoryRecord] = []
-    linked_source_labels: dict[str, tuple[str, ...]] = {}
-    for record in memory_records:
-        source_labels = _memory_record_source_labels(record, source_to_memory_index)
-        if not source_labels:
-            continue
-        linked_records.append(record)
-        linked_source_labels[record.memory_id] = source_labels
-
-    if not linked_records:
-        return {
-            "applied": False,
-            "entries": [],
-            "entry_count": 0,
-            "reason": "no_source_linked_records",
-        }
-
-    slot_value_counts = _memory_operation_slot_value_counts(linked_records)
-    question_terms = _content_terms(question)
-    candidates: list[tuple[float, int, dict[str, Any]]] = []
-    for ordinal, record in enumerate(linked_records):
-        operation = _memory_operation_name(
-            record,
-            slot_value_count=slot_value_counts.get(
-                _memory_operation_slot_key(record), 1
-            ),
-            include_superseded=include_superseded,
-            include_collections=include_collections,
-        )
-        if not operation:
-            continue
-        score = _memory_operation_record_score(
-            record,
-            operation=operation,
-            question_terms=question_terms,
-            route=route,
-        )
-        if score <= 0:
-            continue
-        memory_type = (record.memory_type or "unknown").lower()
-        value = record.value or record.text
-        time_value = (
-            record.event_time
-            or record.valid_from
-            or record.mention_time
-            or record.timestamp
-            or "unknown"
-        )
-        entry = {
-            "operation": operation,
-            "layer": _memory_operation_layer(memory_type),
-            "memory_type": memory_type,
-            "status": record.status or "active",
-            "subject": _truncate_text(_single_line(record.subject), 60),
-            "predicate": _truncate_text(_single_line(record.predicate), 60),
-            "value": _truncate_text(_single_line(value), max_value_chars),
-            "time": _single_line(time_value),
-            "valid_to": record.valid_to or "open",
-            "superseded_by": record.superseded_by or "",
-            "source_labels": linked_source_labels[record.memory_id],
-            "slot_value_count": slot_value_counts.get(
-                _memory_operation_slot_key(record), 1
-            ),
-        }
-        candidates.append((score, -ordinal, entry))
-
-    if not candidates:
-        return {
-            "applied": False,
-            "entries": [],
-            "entry_count": 0,
-            "reason": "no_question_aligned_operation_records",
-        }
-
-    candidates.sort(reverse=True)
-    entries = [entry for _score, _ordinal, entry in candidates[:max_records]]
-    operation_counts: dict[str, int] = {}
-    layer_counts: dict[str, int] = {}
-    for entry in entries:
-        operation = str(entry["operation"])
-        layer = str(entry["layer"])
-        operation_counts[operation] = operation_counts.get(operation, 0) + 1
-        layer_counts[layer] = layer_counts.get(layer, 0) + 1
-    return {
-        "applied": True,
-        "entries": entries,
-        "entry_count": len(entries),
-        "operation_counts": dict(sorted(operation_counts.items())),
-        "layer_counts": dict(sorted(layer_counts.items())),
-        "clean_note": (
-            "Source-backed build-memory operation ledger. Entries are only an "
-            "organization index into cited raw Memory Context rows and are not "
-            "independent evidence."
-        ),
-    }
-
-
-def _memory_operation_name(
-    record: MemoryRecord,
-    *,
-    slot_value_count: int,
-    include_superseded: bool,
-    include_collections: bool,
-) -> str:
-    memory_type = (record.memory_type or "").lower()
-    status = record.status or "active"
-    if status == "superseded" or record.superseded_by or record.valid_to:
-        return "supersede" if include_superseded else ""
-    if memory_type in MEMORY_OPERATION_GUIDE_COLLECTION_TYPES:
-        if not include_collections:
-            return ""
-        if slot_value_count > 1:
-            return "retain_collection_multi_value_slot"
-        return "retain_collection"
-    if memory_type in MEMORY_OPERATION_GUIDE_STATEFUL_TYPES:
-        return "retain_active"
-    return "retain_active"
-
-
-def _memory_operation_record_score(
-    record: MemoryRecord,
-    *,
-    operation: str,
-    question_terms: frozenset[str],
-    route: RouteResult,
-) -> float:
-    basis_terms = _content_terms(_memory_record_hint_basis(record))
-    overlap = len(question_terms.intersection(basis_terms))
-    type_match = _memory_type_matches_route(record.memory_type, route)
-    score = float(overlap * 2)
-    if type_match:
-        score += 2.0
-    if operation.startswith("retain_collection") and route.information_need in {
-        "list_count",
-        "temporal_lookup",
-    }:
-        score += 1.0
-    if operation == "supersede" and route.information_need in {
-        "current_state",
-        "fact_lookup",
-        "profile_preference",
-    }:
-        score += 0.75
-    if record.status == "active":
-        score += 0.4
-    if record.subject or record.predicate or record.value:
-        score += 0.4
-    if overlap == 0 and not type_match:
-        return 0.0
-    return score
-
-
-def _memory_operation_slot_value_counts(
-    records: Iterable[MemoryRecord],
-) -> dict[tuple[str, str, str], int]:
-    values_by_slot: dict[tuple[str, str, str], set[str]] = {}
-    for record in records:
-        slot_key = _memory_operation_slot_key(record)
-        value = _normalize_memory_value(record)
-        if not value:
-            continue
-        values_by_slot.setdefault(slot_key, set()).add(value)
-    return {slot: len(values) for slot, values in values_by_slot.items()}
-
-
-def _memory_operation_slot_key(record: MemoryRecord) -> tuple[str, str, str]:
-    return (
-        (record.memory_type or "").lower(),
-        _normalize_version_text(record.subject),
-        _normalize_version_text(record.predicate),
-    )
-
-
-def _memory_operation_layer(memory_type: str) -> str:
-    if memory_type == "event":
-        return "episodic"
-    if memory_type in MEMORY_OPERATION_GUIDE_STATEFUL_TYPES:
-        return "profile_state"
-    if memory_type == "plan":
-        return "prospective"
-    if memory_type == "fact":
-        return "semantic"
-    return "unknown"
 
 
 def _source_backed_memory_state_ledger(

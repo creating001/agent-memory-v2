@@ -12,9 +12,7 @@
 
 | 配置 | 状态 |
 |---|---|
-| `stage1_state_profile_operation_guide_v238_seeded_qwen36_no_think_build4k_cached.json` | v238 candidate / 不升 LTS；probe passed 但 full changed judge 负向：LME `14/19 -> 6/19` strict、`15/19 -> 7/19` lenient；LoCoMo `19/26 -> 18/26`。说明 prompt-side operation guide 对 state/profile 仍过强。 |
-| `stage1_scoped_memory_operation_guide_v237_seeded_qwen36_no_think_build4k_cached.json` | v237 candidate / 不升 LTS；关闭 v236 list_count activation 后，probe50 LME changed judge 持平 `3/3 -> 3/3`，LoCoMo lenient 持平但 strict `10/11 -> 9/11`，temporal guide 在 July camping badcase 过宽。 |
-| `stage1_memory_operation_guide_v236_seeded_qwen36_no_think_build4k_cached.json` | v236 candidate / 不升 LTS；source-backed Memory Operations Guide 覆盖 current_state/list_count/profile_preference/temporal_lookup，probe50 中 LME 持平但 LoCoMo changed lenient `14/17 -> 13/17`，list_count guide 有过宽集合风险。 |
+| 暂无 | v236-v238 prompt-side operation guide 已被 full/probe 拒绝并从当前可执行配置中移除；需要复现时从对应 git commit 和 `experiments/README.md` 回溯。 |
 
 ## 保留对照
 

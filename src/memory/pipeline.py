@@ -940,36 +940,6 @@ class Stage1Pipeline:
             memory_state_guide_require_stateful_slot=bool(
                 compiler_config.get("memory_state_guide_require_stateful_slot", False)
             ),
-            memory_operation_guide=bool(
-                compiler_config.get("memory_operation_guide", False)
-            ),
-            memory_operation_guide_information_needs=_tuple_config(
-                compiler_config.get(
-                    "memory_operation_guide_information_needs",
-                    (
-                        "current_state",
-                        "fact_lookup",
-                        "list_count",
-                        "profile_preference",
-                        "temporal_lookup",
-                    ),
-                )
-            ),
-            memory_operation_guide_max_records=int(
-                compiler_config.get("memory_operation_guide_max_records", 8)
-            ),
-            memory_operation_guide_candidate_records=int(
-                compiler_config.get("memory_operation_guide_candidate_records", 16)
-            ),
-            memory_operation_guide_value_chars=int(
-                compiler_config.get("memory_operation_guide_value_chars", 120)
-            ),
-            memory_operation_guide_include_superseded=bool(
-                compiler_config.get("memory_operation_guide_include_superseded", True)
-            ),
-            memory_operation_guide_include_collections=bool(
-                compiler_config.get("memory_operation_guide_include_collections", True)
-            ),
             profile_activation_guide=bool(
                 compiler_config.get("profile_activation_guide", False)
             ),
@@ -1057,16 +1027,6 @@ class Stage1Pipeline:
                 )
             )
         )
-        self._compiler_memory_operation_guide_record_source = (
-            _validate_memory_record_source(
-                str(
-                    compiler_config.get(
-                        "memory_operation_guide_record_source",
-                        self._compiler_memory_state_guide_record_source,
-                    )
-                )
-            )
-        )
         self._compiler_context_pressure_enabled = bool(
             compiler_context_pressure_config.get("enabled", False)
         )
@@ -1094,18 +1054,12 @@ class Stage1Pipeline:
             memory_state_guide_record_source=(
                 self._compiler_memory_state_guide_record_source
             ),
-            memory_operation_guide_record_source=(
-                self._compiler_memory_operation_guide_record_source
-            ),
         )
         self._compiler_trace_config = _compiler_trace_config(
             compiler_config,
             memory_record_source=self._compiler_memory_record_source,
             memory_state_guide_record_source=(
                 self._compiler_memory_state_guide_record_source
-            ),
-            memory_operation_guide_record_source=(
-                self._compiler_memory_operation_guide_record_source
             ),
         )
         self._granularity_compilers = {
@@ -1135,9 +1089,6 @@ class Stage1Pipeline:
                 memory_state_guide_record_source=(
                     self._compiler_memory_state_guide_record_source
                 ),
-                memory_operation_guide_record_source=(
-                    self._compiler_memory_operation_guide_record_source
-                ),
             )
             for profile in self._granularity_profiles
             if profile.get("compiler")
@@ -1148,9 +1099,6 @@ class Stage1Pipeline:
                 memory_record_source=self._compiler_memory_record_source,
                 memory_state_guide_record_source=(
                     self._compiler_memory_state_guide_record_source
-                ),
-                memory_operation_guide_record_source=(
-                    self._compiler_memory_operation_guide_record_source
                 ),
             )
             for profile in self._granularity_profiles
@@ -1878,25 +1826,6 @@ class Stage1Pipeline:
                 evidence_turns=evidence_turns,
             )
         )
-        if (
-            self._compiler_memory_operation_guide_record_source
-            == self._compiler_memory_record_source
-        ):
-            compiler_memory_operation_guide_records = compiler_memory_records
-        elif (
-            self._compiler_memory_operation_guide_record_source
-            == self._compiler_memory_state_guide_record_source
-        ):
-            compiler_memory_operation_guide_records = (
-                compiler_memory_state_guide_records
-            )
-        else:
-            compiler_memory_operation_guide_records = _compiler_memory_records(
-                source=self._compiler_memory_operation_guide_record_source,
-                memory_hits=memory_hits,
-                built_memory_records=built_memory.records,
-                evidence_turns=evidence_turns,
-            )
         compiler = self._granularity_compilers.get(
             str(profile_name),
             self._compiler,
@@ -1936,9 +1865,6 @@ class Stage1Pipeline:
             evidence_turns=evidence_turns,
             memory_records=compiler_memory_records,
             memory_state_guide_records=compiler_memory_state_guide_records,
-            memory_operation_guide_records=(
-                compiler_memory_operation_guide_records
-            ),
         )
         memory_lifecycle_manifest = _memory_lifecycle_manifest(
             question=request.question,
@@ -2229,9 +2155,6 @@ class Stage1Pipeline:
                     "compiler_memory_state_guide_record_source": (
                         self._compiler_memory_state_guide_record_source
                     ),
-                    "compiler_memory_operation_guide_record_source": (
-                        self._compiler_memory_operation_guide_record_source
-                    ),
                     "compiler_profile": profile_name
                     if str(profile_name) in self._granularity_compilers
                     else None,
@@ -2241,10 +2164,6 @@ class Stage1Pipeline:
                     "compiler_memory_state_guide_records": [
                         record.to_dict()
                         for record in compiler_memory_state_guide_records
-                    ],
-                    "compiler_memory_operation_guide_records": [
-                        record.to_dict()
-                        for record in compiler_memory_operation_guide_records
                     ],
                     "memory_source_hits": [
                         hit.to_dict() for hit in memory_source_hits
@@ -5737,18 +5656,12 @@ def _compiler_trace_config(
     *,
     memory_record_source: str,
     memory_state_guide_record_source: str | None = None,
-    memory_operation_guide_record_source: str | None = None,
 ) -> dict[str, Any]:
     return {
         "prompt_mode": str(compiler_config.get("prompt_mode", "default")),
         "memory_record_source": memory_record_source,
         "memory_state_guide_record_source": (
             memory_state_guide_record_source or memory_record_source
-        ),
-        "memory_operation_guide_record_source": (
-            memory_operation_guide_record_source
-            or memory_state_guide_record_source
-            or memory_record_source
         ),
         "evidence_order": str(compiler_config.get("evidence_order", "retrieval")),
         "memory_order": str(compiler_config.get("memory_order", "retrieval")),
@@ -6033,36 +5946,6 @@ def _compiler_trace_config(
         ),
         "memory_state_guide_require_stateful_slot": bool(
             compiler_config.get("memory_state_guide_require_stateful_slot", False)
-        ),
-        "memory_operation_guide": bool(
-            compiler_config.get("memory_operation_guide", False)
-        ),
-        "memory_operation_guide_information_needs": _tuple_config(
-            compiler_config.get(
-                "memory_operation_guide_information_needs",
-                (
-                    "current_state",
-                    "fact_lookup",
-                    "list_count",
-                    "profile_preference",
-                    "temporal_lookup",
-                ),
-            )
-        ),
-        "memory_operation_guide_max_records": int(
-            compiler_config.get("memory_operation_guide_max_records", 8)
-        ),
-        "memory_operation_guide_candidate_records": int(
-            compiler_config.get("memory_operation_guide_candidate_records", 16)
-        ),
-        "memory_operation_guide_value_chars": int(
-            compiler_config.get("memory_operation_guide_value_chars", 120)
-        ),
-        "memory_operation_guide_include_superseded": bool(
-            compiler_config.get("memory_operation_guide_include_superseded", True)
-        ),
-        "memory_operation_guide_include_collections": bool(
-            compiler_config.get("memory_operation_guide_include_collections", True)
         ),
         "profile_activation_guide": bool(
             compiler_config.get("profile_activation_guide", False)
@@ -6400,36 +6283,6 @@ def _configured_compiler(compiler_config: Mapping[str, Any]) -> EvidenceCompiler
         ),
         memory_state_guide_require_stateful_slot=bool(
             compiler_config.get("memory_state_guide_require_stateful_slot", False)
-        ),
-        memory_operation_guide=bool(
-            compiler_config.get("memory_operation_guide", False)
-        ),
-        memory_operation_guide_information_needs=_tuple_config(
-            compiler_config.get(
-                "memory_operation_guide_information_needs",
-                (
-                    "current_state",
-                    "fact_lookup",
-                    "list_count",
-                    "profile_preference",
-                    "temporal_lookup",
-                ),
-            )
-        ),
-        memory_operation_guide_max_records=int(
-            compiler_config.get("memory_operation_guide_max_records", 8)
-        ),
-        memory_operation_guide_candidate_records=int(
-            compiler_config.get("memory_operation_guide_candidate_records", 16)
-        ),
-        memory_operation_guide_value_chars=int(
-            compiler_config.get("memory_operation_guide_value_chars", 120)
-        ),
-        memory_operation_guide_include_superseded=bool(
-            compiler_config.get("memory_operation_guide_include_superseded", True)
-        ),
-        memory_operation_guide_include_collections=bool(
-            compiler_config.get("memory_operation_guide_include_collections", True)
         ),
         profile_activation_guide=bool(
             compiler_config.get("profile_activation_guide", False)

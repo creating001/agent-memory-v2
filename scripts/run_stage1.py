@@ -56,10 +56,6 @@ def main() -> int:
     total_compiler_memory_records = 0
     total_context_chars = 0
     total_update_conflict_guide_applied = 0
-    total_memory_operation_guide_applied = 0
-    total_memory_operation_guide_entries = 0
-    memory_operation_guide_operation_counts: dict[str, int] = {}
-    memory_operation_guide_layer_counts: dict[str, int] = {}
     total_personalized_advice_contract_applied = 0
     total_event_time_candidate_manifest_applied = 0
     total_event_time_candidate_manifest_items = 0
@@ -183,31 +179,6 @@ def main() -> int:
         prompt_text = str(compiled.get("prompt") or "")
         if "Update/Conflict Candidate Chain:" in prompt_text:
             total_update_conflict_guide_applied += 1
-        memory_operation_ledger = (
-            (compiled.get("diagnostics") or {}).get(
-                "source_backed_memory_operation_ledger"
-            )
-            or {}
-        )
-        if memory_operation_ledger.get("applied"):
-            total_memory_operation_guide_applied += 1
-            total_memory_operation_guide_entries += int(
-                memory_operation_ledger.get("entry_count") or 0
-            )
-            for operation, count in (
-                memory_operation_ledger.get("operation_counts") or {}
-            ).items():
-                memory_operation_guide_operation_counts[str(operation)] = (
-                    memory_operation_guide_operation_counts.get(str(operation), 0)
-                    + int(count)
-                )
-            for layer, count in (
-                memory_operation_ledger.get("layer_counts") or {}
-            ).items():
-                memory_operation_guide_layer_counts[str(layer)] = (
-                    memory_operation_guide_layer_counts.get(str(layer), 0)
-                    + int(count)
-                )
         if "Personalized Advice Discipline:" in prompt_text:
             total_personalized_advice_contract_applied += 1
         if "Event-Time Candidate Map:" in prompt_text:
@@ -1303,47 +1274,6 @@ def main() -> int:
             "memory_state_guide_include_superseded": config.get(
                 "compiler", {}
             ).get("memory_state_guide_include_superseded", True),
-            "memory_operation_guide": config.get("compiler", {}).get(
-                "memory_operation_guide", False
-            ),
-            "memory_operation_guide_information_needs": config.get(
-                "compiler", {}
-            ).get("memory_operation_guide_information_needs"),
-            "memory_operation_guide_record_source": config.get("compiler", {}).get(
-                "memory_operation_guide_record_source"
-            ),
-            "memory_operation_guide_max_records": config.get("compiler", {}).get(
-                "memory_operation_guide_max_records", 8
-            ),
-            "memory_operation_guide_candidate_records": config.get(
-                "compiler", {}
-            ).get("memory_operation_guide_candidate_records", 16),
-            "memory_operation_guide_value_chars": config.get("compiler", {}).get(
-                "memory_operation_guide_value_chars", 120
-            ),
-            "memory_operation_guide_include_superseded": config.get(
-                "compiler", {}
-            ).get("memory_operation_guide_include_superseded", True),
-            "memory_operation_guide_include_collections": config.get(
-                "compiler", {}
-            ).get("memory_operation_guide_include_collections", True),
-            "memory_operation_guide_applied_count": (
-                total_memory_operation_guide_applied
-            ),
-            "memory_operation_guide_applied_rate": _safe_average(
-                total_memory_operation_guide_applied,
-                len(records),
-            ),
-            "avg_memory_operation_guide_entries": _safe_average(
-                total_memory_operation_guide_entries,
-                total_memory_operation_guide_applied,
-            ),
-            "memory_operation_guide_operation_counts": dict(
-                sorted(memory_operation_guide_operation_counts.items())
-            ),
-            "memory_operation_guide_layer_counts": dict(
-                sorted(memory_operation_guide_layer_counts.items())
-            ),
             "profile_activation_guide": config.get("compiler", {}).get(
                 "profile_activation_guide", False
             ),
@@ -2101,19 +2031,6 @@ def _write_summary(
         f"- memory_state_guide_max_records: {metrics['compiler']['memory_state_guide_max_records']}",
         f"- memory_state_guide_value_chars: {metrics['compiler']['memory_state_guide_value_chars']}",
         f"- memory_state_guide_include_superseded: {metrics['compiler']['memory_state_guide_include_superseded']}",
-        f"- memory_operation_guide: {metrics['compiler']['memory_operation_guide']}",
-        f"- memory_operation_guide_information_needs: {metrics['compiler']['memory_operation_guide_information_needs']}",
-        f"- memory_operation_guide_record_source: {metrics['compiler']['memory_operation_guide_record_source']}",
-        f"- memory_operation_guide_max_records: {metrics['compiler']['memory_operation_guide_max_records']}",
-        f"- memory_operation_guide_candidate_records: {metrics['compiler']['memory_operation_guide_candidate_records']}",
-        f"- memory_operation_guide_value_chars: {metrics['compiler']['memory_operation_guide_value_chars']}",
-        f"- memory_operation_guide_include_superseded: {metrics['compiler']['memory_operation_guide_include_superseded']}",
-        f"- memory_operation_guide_include_collections: {metrics['compiler']['memory_operation_guide_include_collections']}",
-        f"- memory_operation_guide_applied_count: {metrics['compiler']['memory_operation_guide_applied_count']}",
-        f"- memory_operation_guide_applied_rate: {metrics['compiler']['memory_operation_guide_applied_rate']}",
-        f"- avg_memory_operation_guide_entries: {metrics['compiler']['avg_memory_operation_guide_entries']}",
-        f"- memory_operation_guide_operation_counts: {metrics['compiler']['memory_operation_guide_operation_counts']}",
-        f"- memory_operation_guide_layer_counts: {metrics['compiler']['memory_operation_guide_layer_counts']}",
         f"- profile_activation_guide: {metrics['compiler']['profile_activation_guide']}",
         f"- profile_activation_guide_information_needs: {metrics['compiler']['profile_activation_guide_information_needs']}",
         f"- profile_activation_guide_max_records: {metrics['compiler']['profile_activation_guide_max_records']}",
