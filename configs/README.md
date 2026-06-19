@@ -6,13 +6,14 @@
 
 | 用途 | 配置 | 状态 |
 |---|---|---|
-| 后续新实验默认配置 | `stage1_evidence_pressure_ledger_v222_seeded_qwen36_no_think_build4k_cached.json` | 当前本地 v222 LTS。继承 v221 full accuracy，并新增 trace-only Evidence Pressure Ledger；LongMemEval-S strict/lenient `0.834000 / 0.846000`，LoCoMo `0.793506 / 0.818831`。 |
+| 后续新实验默认配置 | `stage1_state_update_organization_ledger_v225_seeded_qwen36_no_think_build4k_cached.json` | 当前本地 v225 LTS。继承 v222 full accuracy，并新增 trace-only State/Update Organization Ledger；LongMemEval-S strict/lenient `0.834000 / 0.846000`，LoCoMo `0.793506 / 0.818831`。 |
 
 ## 保留对照
 
 | 配置 | 作用 |
 |---|---|
-| `stage1_evidence_pressure_ledger_v222_seeded_qwen36_no_think_build4k_cached.json` | 当前 LTS；trace-only Evidence Pressure Ledger，LME `0.834000 / 0.846000`，LoCoMo `0.793506 / 0.818831`，相对 v221 answer/prompt/evidence rows/retrieval hits/selected-context diff `0/500`、`0/1540`。 |
+| `stage1_state_update_organization_ledger_v225_seeded_qwen36_no_think_build4k_cached.json` | 当前 LTS；trace-only State/Update Organization Ledger，LME `0.834000 / 0.846000`，LoCoMo `0.793506 / 0.818831`，相对 v222 answer/prompt/evidence rows/retrieval hits/selected-context diff `0/500`、`0/1540`。 |
+| `stage1_evidence_pressure_ledger_v222_seeded_qwen36_no_think_build4k_cached.json` | v225 父 LTS；trace-only Evidence Pressure Ledger，性能继承 v221。 |
 | `stage1_source_flow_severity_ledger_v221_seeded_qwen36_no_think_build4k_cached.json` | v222 父 LTS；trace-only Source-flow Severity Ledger，性能继承 v217。 |
 | `stage1_context_organization_ledger_v217_seeded_qwen36_no_think_build4k_cached.json` | v221 父 LTS；trace-only Context Organization Ledger，性能继承 v216。 |
 | `stage1_context_manifest_v216_seeded_qwen36_no_think_build4k_cached.json` | v217 父 LTS；trace-only Context Manifest / Memory Activation Ledger，性能继承 v214。 |
@@ -51,8 +52,8 @@
 
 | Benchmark | 配置 | 结果 | 用途 |
 |---|---|---:|---|
-| LongMemEval-S full | `stage1_evidence_pressure_ledger_v222_seeded_qwen36_no_think_build4k_cached.json` | strict `0.834000` / lenient `0.846000` | 当前 LTS；v222 vs v221 behavior diff `0/500`，性能继承 v221。 |
-| LoCoMo non-adversarial full | `stage1_evidence_pressure_ledger_v222_seeded_qwen36_no_think_build4k_cached.json` | strict `0.793506` / lenient `0.818831` | 当前 LTS；v222 vs v221 behavior diff `0/1540`，性能继承 v221。 |
+| LongMemEval-S full | `stage1_state_update_organization_ledger_v225_seeded_qwen36_no_think_build4k_cached.json` | strict `0.834000` / lenient `0.846000` | 当前 LTS；v225 vs v222 behavior diff `0/500`，性能继承 v222。 |
+| LoCoMo non-adversarial full | `stage1_state_update_organization_ledger_v225_seeded_qwen36_no_think_build4k_cached.json` | strict `0.793506` / lenient `0.818831` | 当前 LTS；v225 vs v222 behavior diff `0/1540`，性能继承 v222。 |
 
 ## 关键 Baseline
 
@@ -78,6 +79,7 @@
 - v184 新增严格 prompt-side event-time candidate map，并用 v181 full prediction traces/predictions 预种 answer cache；prompt-identical rows 命中 v181 answer，prompt-changed rows miss/write 后只对 changed answers 做 paired judge。
 - v217 只新增 trace-only Context Organization Ledger，prompt/answer/retrieval/repair 不变，显式复用 v216 answer cache；full answer diff 为 0 时继承 v216 dual judge 结果。
 - v222 只新增 trace-only Evidence Pressure Ledger，prompt/answer/retrieval/repair 不变，显式复用 v221 answer cache；full answer diff 为 0 时继承 v221 dual judge 结果。
+- v225 只新增 trace-only State/Update Organization Ledger，prompt/answer/retrieval/repair 不变，显式复用 v222 answer cache；full answer diff 为 0 时继承 v222 dual judge 结果。
 - cache 命中只能减少重复 API 调用，不能改变逻辑 token 统计。正式记录仍报告逻辑 cold-build/query token。
 - 不得使用 gold answer、judge output、benchmark 标签、sample id、test feedback 或样本级规则构造配置、cache、prediction、retrieval、compiler、answer 或 repair。
 

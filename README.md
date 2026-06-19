@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_evidence_pressure_ledger_v222_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_state_update_organization_ledger_v225_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v222 local LTS | 说明 |
+| Benchmark | 当前 v225 local LTS | 说明 |
 |---|---:|---|
-| LongMemEval-S full | strict/lenient `0.834000 / 0.846000` | v222 与 v221 answer/prompt/evidence rows/retrieval hits/selected-context diff `0/500`；Evidence Pressure Ledger `500/500`；avg build/query tokens `85393.566 / 6580.196`。 |
-| LoCoMo non-adversarial full | strict/lenient `0.793506 / 0.818831` | v222 与 v221 answer/prompt/evidence rows/retrieval hits/selected-context diff `0/1540`；Evidence Pressure Ledger `1540/1540`；tail evidence after rank `40` 为 `21780` rows / `2789101` chars；avg build/query tokens `62015.57402597403 / 6095.268181818182`。 |
+| LongMemEval-S full | strict/lenient `0.834000 / 0.846000` | v225 与 v222 answer/prompt/evidence rows/retrieval hits/selected-context diff `0/500`；State/Update Organization Ledger `500/500`；avg build/query tokens `85393.566 / 6580.196`。 |
+| LoCoMo non-adversarial full | strict/lenient `0.793506 / 0.818831` | v225 与 v222 answer/prompt/evidence rows/retrieval hits/selected-context diff `0/1540`；State/Update Organization Ledger `1540/1540`；avg build/query tokens `62015.57402597403 / 6095.268181818182`。 |
 
-v222 的 LTS 理由：继承 v221/v217 的 full answer 和 judge accuracy，同时在 Context Manifest 中新增 trace-only Evidence Pressure Ledger，把最终 evidence 的 tail-rank、session/source 集中度和相邻 turn 压力显式化。它降低 #2 后续 rerank、去噪和 context organization 的不可诊断风险；v221 的 source-flow severity、v217 的 context organization ledger、v216 的 memory activation ledger、v211 的 context-pressure selector 和 v209 的保守 context-budget 仍保留。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_evidence_pressure_ledger_v222_scope_summary.md`。
+v225 的 LTS 理由：继承 v222 的 full answer 和 judge accuracy，同时在 Memory Lifecycle Manifest 中新增 trace-only State/Update Organization Ledger，把 source-backed active/superseded state chains 与普通 multi-value memory slots 分开。它降低 #5 state/update/conflict 误分类风险；v222 的 evidence pressure、v221 的 source-flow severity、v217 的 context organization ledger、v216 的 memory activation ledger、v211 的 context-pressure selector 和 v209 的保守 context-budget 仍保留。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_state_update_organization_ledger_v225_scope_summary.md`。
 
 ## 目录
 
