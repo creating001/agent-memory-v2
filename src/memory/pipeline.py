@@ -1819,6 +1819,7 @@ class Stage1Pipeline:
             built_memory_records=built_memory.records,
             compiler_memory_records=compiler_memory_records,
             evidence_rows=compiled.evidence_rows,
+            compiled_context_chars=compiled.context_chars,
         )
         answer_cache_before = _answer_cache_stats(self._answerer)
         draft_answer = self._answerer.answer(compiled)
@@ -2875,6 +2876,7 @@ def _context_manifest(
     built_memory_records: tuple[Any, ...],
     compiler_memory_records: tuple[Any, ...],
     evidence_rows: tuple[Any, ...],
+    compiled_context_chars: int | None = None,
 ) -> dict[str, Any]:
     """Trace-only source flow manifest for memory/context organization.
 
@@ -2903,6 +2905,20 @@ def _context_manifest(
     selected_set = set(selected_context_source_ids)
     memory_projected_set = set(memory_projected_source_ids)
     typed_memory_set = set(typed_memory_source_ids)
+    context_budget_max_chars = context_budget_trace.get("max_chars")
+    context_budget_estimated_chars = context_budget_trace.get("estimated_chars")
+    try:
+        context_budget_headroom_chars = (
+            int(context_budget_max_chars) - int(context_budget_estimated_chars)
+        )
+    except (TypeError, ValueError):
+        context_budget_headroom_chars = None
+    selected_context_manifest = _selected_context_manifest(
+        selected_context=selected_context,
+        final_evidence_source_ids=final_evidence_source_ids,
+        typed_memory_source_ids=typed_memory_source_ids,
+        memory_projected_source_ids=memory_projected_source_ids,
+    )
     return {
         "enabled": True,
         "trace_only": True,
@@ -2974,10 +2990,113 @@ def _context_manifest(
                 selected_context.get("materialized_count") or 0
             ),
         },
+        "context_organization": {
+            "trace_only": True,
+            "prompt_context_chars": (
+                int(compiled_context_chars)
+                if compiled_context_chars is not None
+                else None
+            ),
+            "context_budget": {
+                "applied": bool(context_budget_trace.get("applied")),
+                "max_chars": context_budget_max_chars,
+                "estimated_chars": context_budget_estimated_chars,
+                "headroom_chars": context_budget_headroom_chars,
+                "dropped_count": int(context_budget_trace.get("dropped_count") or 0),
+                "safe_for_current_prompt": context_budget_audit.get(
+                    "safe_for_current_prompt"
+                ),
+            },
+            "selected_context": selected_context_manifest,
+            "clean_note": (
+                "Trace-only ledger for prompt-visible context organization. It "
+                "summarizes source-backed selected-context risk and context "
+                "pressure without changing prediction behavior."
+            ),
+        },
         "clean_note": (
             "Trace-only Context Manifest inspired by provenance-first memory "
             "systems. It summarizes already-selected sources and typed-memory "
             "activation; it does not alter prediction behavior."
+        ),
+    }
+
+
+def _selected_context_manifest(
+    *,
+    selected_context: Mapping[str, Any],
+    final_evidence_source_ids: tuple[str, ...],
+    typed_memory_source_ids: tuple[str, ...],
+    memory_projected_source_ids: tuple[str, ...],
+) -> dict[str, Any]:
+    risk_audit = selected_context.get("risk_audit") or {}
+    materialized_source_ids = _ordered_unique(
+        selected_context.get("materialized_source_ids") or ()
+    )
+    safe_source_ids = _ordered_unique(risk_audit.get("safe_source_ids") or ())
+    risk_source_ids = _ordered_unique(risk_audit.get("risk_source_ids") or ())
+    risk_reasons = {
+        str(source_id): str(reason)
+        for source_id, reason in (risk_audit.get("risk_reasons") or {}).items()
+    }
+    reason_counts: dict[str, int] = {}
+    for reason in risk_reasons.values():
+        reason_counts[reason] = reason_counts.get(reason, 0) + 1
+
+    final_set = set(final_evidence_source_ids)
+    typed_memory_set = set(typed_memory_source_ids)
+    memory_projected_set = set(memory_projected_source_ids)
+    materialized_set = set(materialized_source_ids)
+    risk_set = set(risk_source_ids)
+    safe_set = set(safe_source_ids)
+
+    risk_details = []
+    for source_id in risk_source_ids[:8]:
+        risk_details.append(
+            {
+                "source_id": source_id,
+                "reason": risk_reasons.get(source_id, "unknown"),
+                "in_final_evidence": source_id in final_set,
+                "from_typed_memory_source": source_id in typed_memory_set,
+                "from_memory_projection": source_id in memory_projected_set,
+            }
+        )
+
+    return {
+        "trace_only": True,
+        "enabled": bool(selected_context.get("enabled")),
+        "applied": bool(selected_context.get("applied")),
+        "eligible": bool(selected_context.get("eligible")),
+        "skip_reason": selected_context.get("skip_reason"),
+        "question_reference": bool(selected_context.get("question_reference")),
+        "materialized_count": len(materialized_source_ids),
+        "materialized_final_row_count": len(materialized_set & final_set),
+        "materialized_from_typed_memory_source_count": len(
+            materialized_set & typed_memory_set
+        ),
+        "materialized_from_memory_projection_count": len(
+            materialized_set & memory_projected_set
+        ),
+        "risk_audit_applied": bool(risk_audit.get("applied")),
+        "risk_count": len(risk_source_ids),
+        "safe_count": len(safe_source_ids),
+        "risk_reason_counts": dict(sorted(reason_counts.items())),
+        "risk_final_row_count": len(risk_set & final_set),
+        "risk_from_typed_memory_source_count": len(risk_set & typed_memory_set),
+        "risk_from_memory_projection_count": len(risk_set & memory_projected_set),
+        "safe_final_row_count": len(safe_set & final_set),
+        "safe_from_typed_memory_source_count": len(safe_set & typed_memory_set),
+        "safe_from_memory_projection_count": len(safe_set & memory_projected_set),
+        "materialized_source_ids": list(materialized_source_ids),
+        "risk_source_ids": list(risk_source_ids),
+        "safe_source_ids": list(safe_source_ids),
+        "risk_details": risk_details,
+        "text_source": risk_audit.get("text_source"),
+        "materialized_text_audit_count": int(
+            risk_audit.get("materialized_text_audit_count") or 0
+        ),
+        "raw_center_text_audit_count": int(
+            risk_audit.get("raw_center_text_audit_count") or 0
         ),
     }
 

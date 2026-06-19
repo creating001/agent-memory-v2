@@ -236,6 +236,19 @@ class CleanSkeletonTest(unittest.TestCase):
             selected_context={
                 "materialized_count": 1,
                 "materialized_source_ids": ["s1:t1"],
+                "enabled": True,
+                "applied": True,
+                "eligible": True,
+                "question_reference": False,
+                "risk_audit": {
+                    "applied": True,
+                    "safe_source_ids": [],
+                    "risk_source_ids": ["s1:t1"],
+                    "risk_reasons": {"s1:t1": "insufficient_slot_coverage"},
+                    "text_source": "prompt_visible_materialized_context",
+                    "materialized_text_audit_count": 1,
+                    "raw_center_text_audit_count": 0,
+                },
             },
             built_memory_records=(record,),
             compiler_memory_records=(record,),
@@ -251,6 +264,7 @@ class CleanSkeletonTest(unittest.TestCase):
                     retrieval_score=1.0,
                 ),
             ),
+            compiled_context_chars=1234,
         )
 
         self.assertTrue(manifest["trace_only"])
@@ -272,6 +286,24 @@ class CleanSkeletonTest(unittest.TestCase):
         )
         self.assertEqual(
             manifest["coverage"]["selected_context_final_row_count"], 1
+        )
+        organization = manifest["context_organization"]
+        self.assertTrue(organization["trace_only"])
+        self.assertEqual(organization["prompt_context_chars"], 1234)
+        self.assertEqual(organization["context_budget"]["dropped_count"], 1)
+        selected_context_ledger = organization["selected_context"]
+        self.assertTrue(selected_context_ledger["trace_only"])
+        self.assertEqual(selected_context_ledger["risk_count"], 1)
+        self.assertEqual(
+            selected_context_ledger["risk_reason_counts"],
+            {"insufficient_slot_coverage": 1},
+        )
+        self.assertEqual(
+            selected_context_ledger["risk_from_typed_memory_source_count"],
+            1,
+        )
+        self.assertEqual(
+            selected_context_ledger["risk_details"][0]["source_id"], "s1:t1"
         )
 
     def test_pipeline_can_disable_lexical_retrieval(self) -> None:
