@@ -12,6 +12,7 @@
 
 | 配置 | 状态 |
 |---|---|
+| `stage1_scoped_memory_operation_guide_v237_seeded_qwen36_no_think_build4k_cached.json` | v237 candidate；继承 v236 source-backed Memory Operations Guide，但关闭 list_count activation，保留 current_state/profile_preference/temporal_lookup，用于修复 v236 LoCoMo list-count 过宽集合风险。probe/full 未跑。 |
 | `stage1_memory_operation_guide_v236_seeded_qwen36_no_think_build4k_cached.json` | v236 candidate / 不升 LTS；source-backed Memory Operations Guide 覆盖 current_state/list_count/profile_preference/temporal_lookup，probe50 中 LME 持平但 LoCoMo changed lenient `14/17 -> 13/17`，list_count guide 有过宽集合风险。 |
 
 ## 保留对照
