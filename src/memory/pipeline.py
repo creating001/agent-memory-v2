@@ -51,6 +51,9 @@ from memory.store import RawEvidenceStore
 _LIFECYCLE_MEMORY_TYPES = frozenset(
     {"fact", "preference", "profile", "relationship", "state"}
 )
+_STATE_UPDATE_MEMORY_TYPES = frozenset(
+    {"preference", "profile", "relationship", "state"}
+)
 _LIFECYCLE_TERM_PATTERN = re.compile(r"[A-Za-z0-9_]+")
 _LIFECYCLE_TERM_STOPWORDS = frozenset(
     {
@@ -2874,6 +2877,24 @@ def _memory_lifecycle_manifest(
         question_terms=question_terms,
         evidence_source_ids=evidence_source_ids,
     )
+    state_update_organization = {
+        "trace_only": True,
+        "built": _state_update_organization_ledger(
+            built_memory_records,
+            question_terms=question_terms,
+            evidence_source_ids=evidence_source_ids,
+        ),
+        "activated": _state_update_organization_ledger(
+            compiler_memory_records,
+            question_terms=question_terms,
+            evidence_source_ids=evidence_source_ids,
+        ),
+        "clean_note": (
+            "Trace-only state/update organization ledger. It separates "
+            "source-backed superseded state chains from ordinary multi-value "
+            "memory slots and is not used by prediction modules."
+        ),
+    }
     conflict_slots = sum(1 for item in built_slot_items if item["has_conflict"])
     visible_slots = sum(
         1 for item in built_slot_items if item["visible_source_count"] > 0
@@ -2898,6 +2919,7 @@ def _memory_lifecycle_manifest(
         "activated_visible_slot_count": activated_visible_slots,
         "activated_conflict_slot_count": activated_conflict_slots,
         "activated_slots": activated_slot_items[:8],
+        "state_update_organization": state_update_organization,
         "note": (
             "Trace-only source-backed lifecycle manifest; not used by prediction "
             "modules."
@@ -3536,6 +3558,196 @@ def _memory_lifecycle_slots(
         )
     )
     return slots
+
+
+def _state_update_organization_ledger(
+    records: tuple[Any, ...],
+    *,
+    question_terms: frozenset[str],
+    evidence_source_ids: set[str],
+) -> dict[str, Any]:
+    """Classify typed-memory slots without treating every multi-value as update.
+
+    A real update/state chain has lifecycle evidence such as a superseded record,
+    a valid_to boundary, or a superseded_by pointer. Multiple active values in a
+    fact/profile slot can be a list, preference set, or extraction duplication,
+    so it is traced separately and not promoted to state-conflict logic.
+    """
+
+    grouped: dict[tuple[str, str, str], list[Any]] = {}
+    for record in records:
+        memory_type = str(getattr(record, "memory_type", "") or "unknown")
+        if memory_type not in _LIFECYCLE_MEMORY_TYPES:
+            continue
+        subject = _lifecycle_field(getattr(record, "subject", ""))
+        predicate = _lifecycle_field(getattr(record, "predicate", ""))
+        if not subject and not predicate:
+            continue
+        grouped.setdefault((memory_type, subject, predicate), []).append(record)
+
+    items: list[dict[str, Any]] = []
+    update_candidate_slot_count = 0
+    update_candidate_visible_slot_count = 0
+    update_candidate_missing_active_source_count = 0
+    update_candidate_missing_superseded_source_count = 0
+    multi_active_stateful_slot_count = 0
+    non_stateful_multi_value_slot_count = 0
+    non_stateful_multi_value_visible_slot_count = 0
+    source_linked_slot_count = 0
+    visible_slot_count = 0
+
+    for (memory_type, subject, predicate), slot_records in grouped.items():
+        status_counts: dict[str, int] = {}
+        active_values: set[str] = set()
+        superseded_values: set[str] = set()
+        active_source_ids: set[str] = set()
+        superseded_source_ids: set[str] = set()
+        source_ids: set[str] = set()
+        visible_source_ids: set[str] = set()
+        question_overlap_terms: set[str] = set()
+        lifecycle_update_signal = False
+
+        for record in slot_records:
+            status = str(getattr(record, "status", "") or "active")
+            status_counts[status] = status_counts.get(status, 0) + 1
+            value = _lifecycle_field(
+                getattr(record, "value", "") or getattr(record, "text", "")
+            )
+            record_source_ids = {
+                str(source_id) for source_id in getattr(record, "source_ids", ())
+            }
+            source_ids.update(record_source_ids)
+            visible_source_ids.update(record_source_ids & evidence_source_ids)
+            if status == "superseded":
+                if value:
+                    superseded_values.add(value)
+                superseded_source_ids.update(record_source_ids)
+            else:
+                if value:
+                    active_values.add(value)
+                active_source_ids.update(record_source_ids)
+            if (
+                status == "superseded"
+                or getattr(record, "superseded_by", None)
+                or getattr(record, "valid_to", None)
+            ):
+                lifecycle_update_signal = True
+            question_overlap_terms.update(
+                question_terms.intersection(
+                    _lifecycle_terms(
+                        " ".join(
+                            str(part)
+                            for part in (
+                                getattr(record, "subject", ""),
+                                getattr(record, "predicate", ""),
+                                getattr(record, "value", ""),
+                                getattr(record, "text", ""),
+                            )
+                            if part
+                        )
+                    )
+                )
+            )
+
+        source_linked = bool(source_ids)
+        visible = bool(visible_source_ids)
+        if source_linked:
+            source_linked_slot_count += 1
+        if visible:
+            visible_slot_count += 1
+
+        distinct_values = active_values | superseded_values
+        update_candidate = (
+            memory_type in _STATE_UPDATE_MEMORY_TYPES
+            and lifecycle_update_signal
+            and bool(distinct_values)
+        )
+        multi_active_stateful = (
+            memory_type in _STATE_UPDATE_MEMORY_TYPES
+            and len(active_values) > 1
+            and not lifecycle_update_signal
+        )
+        non_stateful_multi_value = (
+            not update_candidate
+            and not multi_active_stateful
+            and len(distinct_values) > 1
+        )
+
+        if update_candidate:
+            update_candidate_slot_count += 1
+            if visible:
+                update_candidate_visible_slot_count += 1
+            if active_source_ids and not (active_source_ids & evidence_source_ids):
+                update_candidate_missing_active_source_count += 1
+            if superseded_source_ids and not (
+                superseded_source_ids & evidence_source_ids
+            ):
+                update_candidate_missing_superseded_source_count += 1
+        if multi_active_stateful:
+            multi_active_stateful_slot_count += 1
+        if non_stateful_multi_value:
+            non_stateful_multi_value_slot_count += 1
+            if visible:
+                non_stateful_multi_value_visible_slot_count += 1
+
+        if update_candidate or multi_active_stateful or non_stateful_multi_value:
+            items.append(
+                {
+                    "memory_type": memory_type,
+                    "subject": subject,
+                    "predicate": predicate,
+                    "record_count": len(slot_records),
+                    "status_counts": dict(sorted(status_counts.items())),
+                    "active_values": sorted(active_values)[:4],
+                    "superseded_values": sorted(superseded_values)[:4],
+                    "source_count": len(source_ids),
+                    "visible_source_count": len(visible_source_ids),
+                    "active_source_visible": bool(
+                        active_source_ids & evidence_source_ids
+                    ),
+                    "superseded_source_visible": bool(
+                        superseded_source_ids & evidence_source_ids
+                    ),
+                    "state_update_candidate": update_candidate,
+                    "multi_active_stateful": multi_active_stateful,
+                    "non_stateful_multi_value": non_stateful_multi_value,
+                    "question_overlap_terms": sorted(question_overlap_terms)[:8],
+                }
+            )
+
+    items.sort(
+        key=lambda item: (
+            not item["state_update_candidate"],
+            not item["multi_active_stateful"],
+            not item["non_stateful_multi_value"],
+            -len(item["question_overlap_terms"]),
+            -item["visible_source_count"],
+            item["memory_type"],
+            item["subject"],
+            item["predicate"],
+        )
+    )
+    return {
+        "slot_count": len(grouped),
+        "source_linked_slot_count": source_linked_slot_count,
+        "visible_slot_count": visible_slot_count,
+        "state_update_candidate_slot_count": update_candidate_slot_count,
+        "state_update_candidate_visible_slot_count": (
+            update_candidate_visible_slot_count
+        ),
+        "state_update_missing_active_source_count": (
+            update_candidate_missing_active_source_count
+        ),
+        "state_update_missing_superseded_source_count": (
+            update_candidate_missing_superseded_source_count
+        ),
+        "multi_active_stateful_slot_count": multi_active_stateful_slot_count,
+        "non_stateful_multi_value_slot_count": non_stateful_multi_value_slot_count,
+        "non_stateful_multi_value_visible_slot_count": (
+            non_stateful_multi_value_visible_slot_count
+        ),
+        "items": items[:8],
+    }
 
 
 def _lifecycle_field(value: Any) -> str:

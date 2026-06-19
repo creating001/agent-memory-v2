@@ -2502,6 +2502,76 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual(manifest["slots"][0]["active_values"], ["Seattle"])
         self.assertEqual(manifest["slots"][0]["superseded_values"], ["Austin"])
         self.assertEqual(manifest["activated_slots"][0]["active_values"], ["Seattle"])
+        state_updates = manifest["state_update_organization"]
+        self.assertTrue(state_updates["trace_only"])
+        self.assertEqual(
+            state_updates["built"]["state_update_candidate_slot_count"], 1
+        )
+        self.assertEqual(
+            state_updates["activated"]["state_update_candidate_slot_count"], 1
+        )
+        self.assertEqual(
+            state_updates["activated"]["state_update_missing_active_source_count"],
+            0,
+        )
+        self.assertEqual(
+            state_updates["activated"][
+                "state_update_missing_superseded_source_count"
+            ],
+            1,
+        )
+        self.assertTrue(
+            state_updates["activated"]["items"][0]["state_update_candidate"]
+        )
+
+    def test_memory_lifecycle_manifest_separates_fact_multivalue_from_update(self) -> None:
+        first_record = MemoryRecord(
+            memory_id="first-book",
+            memory_type="fact",
+            text="Alex read Dune.",
+            source_ids=("s1:t0",),
+            subject="Alex",
+            predicate="read",
+            value="Dune",
+            status="active",
+        )
+        second_record = MemoryRecord(
+            memory_id="second-book",
+            memory_type="fact",
+            text="Alex read Foundation.",
+            source_ids=("s2:t0",),
+            subject="Alex",
+            predicate="read",
+            value="Foundation",
+            status="active",
+        )
+        manifest = _memory_lifecycle_manifest(
+            question="Which books did Alex read?",
+            route=RouteResult("list_count", ("list",)),
+            built_memory_records=(first_record, second_record),
+            compiler_memory_records=(first_record, second_record),
+            evidence_rows=(
+                EvidenceRow(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="I read Dune.",
+                    timestamp=None,
+                    retrieval_rank=None,
+                    retrieval_score=None,
+                ),
+            ),
+        )
+
+        organization = manifest["state_update_organization"]["activated"]
+        self.assertEqual(organization["state_update_candidate_slot_count"], 0)
+        self.assertEqual(organization["non_stateful_multi_value_slot_count"], 1)
+        self.assertEqual(
+            organization["non_stateful_multi_value_visible_slot_count"], 1
+        )
+        self.assertTrue(organization["items"][0]["non_stateful_multi_value"])
+        self.assertFalse(organization["items"][0]["state_update_candidate"])
 
     def test_memory_slot_chain_source_hits_expand_active_and_superseded_sources(self) -> None:
         old_record = MemoryRecord(
