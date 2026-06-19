@@ -26,7 +26,7 @@
 
 | 优先级 | 项目 | 当前状态 | 下一步 |
 |---:|---|---|---|
-| 1 | #5 memory lifecycle/state/conflict/query-time reasoning | v181 将 v180 flat event-time manifest 升级为 trace-only grouped candidate management view；v176 增加 cross-route profile/advice activation；v175/v173/v172/v171 已让 temporal arithmetic、modal、profile preference 和 occupation/role lifecycle slot 能参与 source-backed verifier/finalizer；v178/v179 说明不能强行用 temporal verifier 或 prompt timeline 扭转 source-backed evidence | 基于 v181 candidate_groups 设计更窄的 prompt-safe candidate map；只有高置信、无 event-time conflict 的 source-backed groups 才允许进入 answer prompt |
+| 1 | #5 memory lifecycle/state/conflict/query-time reasoning | v181 将 v180 flat event-time manifest 升级为 trace-only grouped candidate management view；v176 增加 cross-route profile/advice activation；v175/v173/v172/v171 已让 temporal arithmetic、modal、profile preference 和 occupation/role lifecycle slot 能参与 source-backed verifier/finalizer；v178/v179/v182 说明不能把时间线或 relative/event-time candidate 过强推入 prompt | 继续收窄 prompt-safe candidate map：剥离 selected-context 包装时间，只允许 explicit/exact event date，relative phrase 保留在 diagnostics |
 | 2 | #2 top-k/context noise/rerank | v129/v134/v140/v152 说明简单裁剪、tail snippet 或 list-count rerank pruning 会伤 accuracy；当前 query context 仍偏长 | 转向 coverage-preserving route-aware context organization：先保留覆盖证据，再做 grouping/dedup/aggregation table |
 | 3 | #1 granularity/profile + #3 selected context | v177 说明 row-length + center-row anaphora 的 selected-context gate 仍过宽；granularity profile 仍基于 avg-turn chars，v158 narrow question-gated policy 仍是较稳边界 | 继续重做更通用的 context organization；selected-context 不能只靠中心行 anaphora 扩邻居，优先做 question-side local reference 或 source-backed candidate map |
 | 4 | src cleanup | 已有多轮兼容分支，`repair.py`、compiler、pipeline 仍会继续变复杂 | 每个阶段结束后做小范围清理，删已确认无用的兼容代码，不删仍有消融价值的模块 |
@@ -63,6 +63,7 @@
 
 | 配置 | 原因 |
 |---|---|
+| `stage1_prompt_safe_event_time_candidate_map_v182_qwen36_no_think_build4k_cached.json` | prompt-safe Event-Time Candidate Map 在 LoCoMo likely-map probe `39/40` 触发、answer diff `17/40`；changed-answer dual judge 从 v181 `17/17` strict/lenient 降到 v182 `15/17`，主要风险是 selected-context 包装时间被当成事件时间、relative/vague time 被过度推进 prompt。LME probe `0/1 -> 1/1` 不足以抵消 LoCoMo 负向；不升 LTS。 |
 | `stage1_event_timeline_context_v179_qwen36_no_think_build4k_cached.json` | clean 的 Source Event Timeline context organization 将 `today`、explicit date、vague `recently` 和 mention-time-only 分开，但 prompt block 过强；4 条 order probe answer diff `3/4`，changed-answer dual judge strict/lenient `1/3 -> 0/3`，且出现半句答案和重复 airline；不升 LTS、不跑 full。 |
 | `stage1_source_grounded_temporal_order_repair_v178_qwen36_no_think_build4k_cached.json` | clean 的 temporal-order verifier 触发很窄：v176 trace 上 LME `4/500`、LoCoMo `0/1540`；4 条 clean probe repair triggered `4/4` 但 applied `0/4`、answer diff `0/4`，新增 `27233` repair query tokens；目标坏例的 visible evidence 将 MoCA 解释为 `before 2023-01-15`，强行改成 gold 顺序会违反 clean，不升 LTS、不跑 full。 |
 | `stage1_row_length_selected_context_gate_v177_qwen36_no_think_build4k_cached.json` | clean 的 row-local selected-context gate 试图减少 avg-turn profile 依赖，但 LME selected-context 从 `3/500` 扩到 `37/500`，answer diff `15/500`，changed-answer dual judge strict/lenient `12/15 -> 7/15`，avg query tokens `6291.590 -> 6318.580`；不升 LTS，不跑 LoCoMo。 |
@@ -96,6 +97,10 @@
 
 | 路径 | 内容 |
 |---|---|
+| `diagnostic/stage1_prompt_safe_event_time_candidate_map_v182_scope_summary.md` | v182 负向结论：LoCoMo changed-answer dual judge `17/17 -> 15/17`，LME 小 probe `0/1 -> 1/1`；不升 LTS，下一步收窄为 v183 |
+| `diagnostic/stage1_prompt_safe_event_time_candidate_map_v182_locomo_probe40/` | v182 LoCoMo likely-map probe；map applied `39/40`，answer diff `17/40`，avg query tokens `5459.425` |
+| `diagnostic/stage1_prompt_safe_event_time_candidate_map_v182_lme_probe2/` | v182 LME likely-map probe；map applied `2/2`，answer diff `1/2`，avg query tokens `14809.000` |
+| `diagnostic/stage1_prompt_safe_event_time_candidate_map_v182_changed_vs_v181/` | v182 vs v181 changed-answer dual judge artifacts |
 | `diagnostic/stage1_grouped_event_time_candidate_manifest_v181_scope_summary.md` | v181 LTS 晋升：trace-only grouped event-time candidate manifest，LME/LoCoMo answer diff 均为 0，性能继承 v180/v176 |
 | `diagnostic/stage1_grouped_event_time_candidate_manifest_v181_lme_s_full/` | v181 LME full cached trace run artifacts；manifest `234/500`，avg groups `7.363` |
 | `diagnostic/stage1_grouped_event_time_candidate_manifest_v181_locomo_nonadv_full/` | v181 LoCoMo full cached trace run artifacts；manifest `356/1540`，avg groups `6.753` |

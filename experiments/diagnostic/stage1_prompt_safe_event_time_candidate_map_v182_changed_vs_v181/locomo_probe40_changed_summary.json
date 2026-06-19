@@ -1,0 +1,97 @@
+{
+  "name": "locomo_probe40",
+  "benchmark": "locomo",
+  "changed": 17,
+  "labels": 17,
+  "v181_predictions": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_prompt_safe_event_time_candidate_map_v182_changed_vs_v181/locomo_probe40_v181_changed_predictions.jsonl",
+  "v182_predictions": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_prompt_safe_event_time_candidate_map_v182_changed_vs_v181/locomo_probe40_v182_changed_predictions.jsonl",
+  "labels_path": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_prompt_safe_event_time_candidate_map_v182_changed_vs_v181/locomo_probe40_labels.jsonl",
+  "clean_note": "Gold labels are copied only for offline judge after predictions; prediction pipeline did not read this directory.",
+  "changed_rows": [
+    {
+      "record_key": "05a2fa4682ace156a523b92c",
+      "v181": "Between 2023-06-02 and 2023-06-08",
+      "v182": "2023-06-02 to 2023-06-08"
+    },
+    {
+      "record_key": "04a4ca37a584ea4afde09c96",
+      "v181": "Between June 20 and June 26, 2023",
+      "v182": "2023-06-20 to 2023-06-26"
+    },
+    {
+      "record_key": "ab43e3d44c74bef52cd14f1a",
+      "v181": "Caroline went to a pride parade from June 26 to July 2, 2023, and on August 11, 2023.",
+      "v182": "Caroline went to a pride parade around June 26 to July 2, 2023, and on August 11, 2023."
+    },
+    {
+      "record_key": "e99622339c0a77d3f4af64fd",
+      "v181": "Last weekend (July 15-16, 2023)",
+      "v182": "2023-07-15 to 2023-07-16"
+    },
+    {
+      "record_key": "680eb63683a121f0f6246294",
+      "v181": "18 July 2023",
+      "v182": "2023-07-18"
+    },
+    {
+      "record_key": "9748405e4eeefe3cc1d5339c",
+      "v181": "The provided information is not enough to determine the exact date of Melanie's daughter's birthday, only that it was celebrated on August 13, 2023.",
+      "v182": "13 August 2023"
+    },
+    {
+      "record_key": "fd6de094822579ef6391673e",
+      "v181": "23 August, 2023",
+      "v182": "2023-08-23"
+    },
+    {
+      "record_key": "48ee78dba3d2e536dfabf68e",
+      "v181": "Between 2023-08-16 and 2023-08-22",
+      "v182": "Between 16 August 2023 and 22 August 2023"
+    },
+    {
+      "record_key": "1eba6e716695a528c3638586",
+      "v181": "February 2023",
+      "v182": "2023-01-20"
+    },
+    {
+      "record_key": "0dd8de2aafd79858e66310fb",
+      "v181": "2023-01-29",
+      "v182": "29 January, 2023"
+    },
+    {
+      "record_key": "bc28aee5fd8946d1ba9e6b67",
+      "v181": "8 February, 2023",
+      "v182": "2023-02-08"
+    },
+    {
+      "record_key": "416aa21dfb71a42ec833cfeb",
+      "v181": "a few years ago",
+      "v182": "The provided information is not enough."
+    },
+    {
+      "record_key": "3b2437e5c0d47d130241d482",
+      "v181": "16 March 2023",
+      "v182": "16 March, 2023"
+    },
+    {
+      "record_key": "f32506eabf8b9384df950965",
+      "v181": "June 20, 2023",
+      "v182": "2023-06-20"
+    },
+    {
+      "record_key": "9865d981c5f6c2ad320eab57",
+      "v181": "Between June 14 and June 20, 2023",
+      "v182": "2023-06-14 to 2023-06-20"
+    },
+    {
+      "record_key": "e953855b5d78ea3916294557",
+      "v181": "2023-07-23",
+      "v182": "23 July, 2023"
+    },
+    {
+      "record_key": "959fd1aea9d4cb5ea2aa1888",
+      "v181": "John got his degree last week relative to April 2, 2023 (approximately between March 26 and April 1, 2023).",
+      "v182": "John graduated last week relative to April 2, 2023, which corresponds to the period between March 26 and April 1, 2023."
+    }
+  ]
+}

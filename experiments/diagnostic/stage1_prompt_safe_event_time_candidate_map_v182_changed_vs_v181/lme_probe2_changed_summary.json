@@ -1,0 +1,17 @@
+{
+  "name": "lme_probe2",
+  "benchmark": "longmemeval",
+  "changed": 1,
+  "labels": 1,
+  "v181_predictions": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_prompt_safe_event_time_candidate_map_v182_changed_vs_v181/lme_probe2_v181_changed_predictions.jsonl",
+  "v182_predictions": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_prompt_safe_event_time_candidate_map_v182_changed_vs_v181/lme_probe2_v182_changed_predictions.jsonl",
+  "labels_path": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_prompt_safe_event_time_candidate_map_v182_changed_vs_v181/lme_probe2_labels.jsonl",
+  "clean_note": "Gold labels are copied only for offline judge after predictions; prediction pipeline did not read this directory.",
+  "changed_rows": [
+    {
+      "record_key": "04fbc2bee20a490a0e937558",
+      "v181": "7:00 pm",
+      "v182": "6:00 pm. No, I will provide"
+    }
+  ]
+}
