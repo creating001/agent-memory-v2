@@ -245,6 +245,10 @@ class EvidenceCompiler:
             "relative_phrase",
         ),
         event_time_candidate_map_strip_context_wrappers: bool = False,
+        event_time_candidate_map_segment_local_context: bool = False,
+        event_time_candidate_map_rank_by_coverage: bool = False,
+        event_time_candidate_map_normalize_terms: bool = False,
+        event_time_candidate_map_exact_today_min_coverage: float | None = None,
         event_time_candidate_map_allow_time_of_day_questions: bool = True,
         structured_guide: bool = False,
         structured_guide_max_rows: int = 12,
@@ -400,6 +404,23 @@ class EvidenceCompiler:
         ) or ("exact_today", "explicit_date", "relative_phrase")
         self._event_time_candidate_map_strip_context_wrappers = bool(
             event_time_candidate_map_strip_context_wrappers
+        )
+        self._event_time_candidate_map_segment_local_context = bool(
+            event_time_candidate_map_segment_local_context
+        )
+        self._event_time_candidate_map_rank_by_coverage = bool(
+            event_time_candidate_map_rank_by_coverage
+        )
+        self._event_time_candidate_map_normalize_terms = bool(
+            event_time_candidate_map_normalize_terms
+        )
+        self._event_time_candidate_map_exact_today_min_coverage = (
+            None
+            if event_time_candidate_map_exact_today_min_coverage is None
+            else min(
+                1.0,
+                max(0.0, float(event_time_candidate_map_exact_today_min_coverage)),
+            )
         )
         self._event_time_candidate_map_allow_time_of_day_questions = bool(
             event_time_candidate_map_allow_time_of_day_questions
@@ -696,6 +717,18 @@ class EvidenceCompiler:
             event_time_candidate_map_strip_context_wrappers=route_settings[
                 "event_time_candidate_map_strip_context_wrappers"
             ],
+            event_time_candidate_map_segment_local_context=route_settings[
+                "event_time_candidate_map_segment_local_context"
+            ],
+            event_time_candidate_map_rank_by_coverage=route_settings[
+                "event_time_candidate_map_rank_by_coverage"
+            ],
+            event_time_candidate_map_normalize_terms=route_settings[
+                "event_time_candidate_map_normalize_terms"
+            ],
+            event_time_candidate_map_exact_today_min_coverage=route_settings[
+                "event_time_candidate_map_exact_today_min_coverage"
+            ],
             structured_guide=(
                 self._structured_guide
                 and not set(route.signals).intersection(
@@ -914,6 +947,18 @@ class EvidenceCompiler:
             "event_time_candidate_map_strip_context_wrappers": (
                 self._event_time_candidate_map_strip_context_wrappers
             ),
+            "event_time_candidate_map_segment_local_context": (
+                self._event_time_candidate_map_segment_local_context
+            ),
+            "event_time_candidate_map_rank_by_coverage": (
+                self._event_time_candidate_map_rank_by_coverage
+            ),
+            "event_time_candidate_map_normalize_terms": (
+                self._event_time_candidate_map_normalize_terms
+            ),
+            "event_time_candidate_map_exact_today_min_coverage": (
+                self._event_time_candidate_map_exact_today_min_coverage
+            ),
             "event_time_candidate_map_allow_time_of_day_questions": (
                 self._event_time_candidate_map_allow_time_of_day_questions
             ),
@@ -1105,6 +1150,25 @@ def _validate_route_overrides(
         if "event_time_candidate_map_strip_context_wrappers" in raw_overrides:
             overrides["event_time_candidate_map_strip_context_wrappers"] = bool(
                 raw_overrides["event_time_candidate_map_strip_context_wrappers"]
+            )
+        if "event_time_candidate_map_segment_local_context" in raw_overrides:
+            overrides["event_time_candidate_map_segment_local_context"] = bool(
+                raw_overrides["event_time_candidate_map_segment_local_context"]
+            )
+        if "event_time_candidate_map_rank_by_coverage" in raw_overrides:
+            overrides["event_time_candidate_map_rank_by_coverage"] = bool(
+                raw_overrides["event_time_candidate_map_rank_by_coverage"]
+            )
+        if "event_time_candidate_map_normalize_terms" in raw_overrides:
+            overrides["event_time_candidate_map_normalize_terms"] = bool(
+                raw_overrides["event_time_candidate_map_normalize_terms"]
+            )
+        if "event_time_candidate_map_exact_today_min_coverage" in raw_overrides:
+            raw_value = raw_overrides[
+                "event_time_candidate_map_exact_today_min_coverage"
+            ]
+            overrides["event_time_candidate_map_exact_today_min_coverage"] = (
+                None if raw_value is None else min(1.0, max(0.0, float(raw_value)))
             )
         if "event_time_candidate_map_allow_time_of_day_questions" in raw_overrides:
             overrides["event_time_candidate_map_allow_time_of_day_questions"] = bool(
@@ -2417,6 +2481,10 @@ def _build_prompt(
     event_time_candidate_map_min_coverage: float,
     event_time_candidate_map_allowed_time_kinds: tuple[str, ...],
     event_time_candidate_map_strip_context_wrappers: bool,
+    event_time_candidate_map_segment_local_context: bool,
+    event_time_candidate_map_rank_by_coverage: bool,
+    event_time_candidate_map_normalize_terms: bool,
+    event_time_candidate_map_exact_today_min_coverage: float | None,
     structured_guide: bool,
     structured_guide_max_rows: int,
     structured_guide_include_rows: bool,
@@ -2514,6 +2582,18 @@ def _build_prompt(
             ),
             event_time_candidate_map_strip_context_wrappers=(
                 event_time_candidate_map_strip_context_wrappers
+            ),
+            event_time_candidate_map_segment_local_context=(
+                event_time_candidate_map_segment_local_context
+            ),
+            event_time_candidate_map_rank_by_coverage=(
+                event_time_candidate_map_rank_by_coverage
+            ),
+            event_time_candidate_map_normalize_terms=(
+                event_time_candidate_map_normalize_terms
+            ),
+            event_time_candidate_map_exact_today_min_coverage=(
+                event_time_candidate_map_exact_today_min_coverage
             ),
             structured_guide=structured_guide,
             structured_guide_max_rows=structured_guide_max_rows,
@@ -2723,6 +2803,10 @@ def _build_external_naive_prompt(
     event_time_candidate_map_min_coverage: float,
     event_time_candidate_map_allowed_time_kinds: tuple[str, ...],
     event_time_candidate_map_strip_context_wrappers: bool,
+    event_time_candidate_map_segment_local_context: bool,
+    event_time_candidate_map_rank_by_coverage: bool,
+    event_time_candidate_map_normalize_terms: bool,
+    event_time_candidate_map_exact_today_min_coverage: float | None,
     structured_guide: bool,
     structured_guide_max_rows: int,
     structured_guide_include_rows: bool,
@@ -2808,6 +2892,12 @@ def _build_external_naive_prompt(
             min_coverage=event_time_candidate_map_min_coverage,
             allowed_time_kinds=event_time_candidate_map_allowed_time_kinds,
             strip_context_wrappers=event_time_candidate_map_strip_context_wrappers,
+            segment_local_context=event_time_candidate_map_segment_local_context,
+            rank_by_coverage=event_time_candidate_map_rank_by_coverage,
+            normalize_terms=event_time_candidate_map_normalize_terms,
+            exact_today_min_coverage=(
+                event_time_candidate_map_exact_today_min_coverage
+            ),
         )
         if event_time_candidate_map_lines:
             event_time_candidate_map_block = "\n".join(
@@ -4421,29 +4511,48 @@ def _external_event_time_candidate_map_lines(
     min_coverage: float,
     allowed_time_kinds: tuple[str, ...],
     strip_context_wrappers: bool,
+    segment_local_context: bool,
+    rank_by_coverage: bool,
+    normalize_terms: bool,
+    exact_today_min_coverage: float | None,
 ) -> list[str]:
+    target_terms = _event_time_candidate_map_target_terms(
+        question,
+        normalize_terms=normalize_terms,
+    )
+    if not target_terms:
+        return []
+
     candidates = _event_timeline_candidate_rows(
         question=question,
         rows=rows,
         snippet_chars=snippet_chars,
         strip_context_wrappers=strip_context_wrappers,
+        segment_local_context=segment_local_context,
+        normalize_slot_terms=normalize_terms,
     )
     if len(candidates) < 1:
         return []
 
-    selected = sorted(
-        candidates,
-        key=lambda item: (-int(item["score"]), int(item["memory_index"])),
-    )[: max(2, max_groups * 8)]
+    if rank_by_coverage:
+        selected = sorted(
+            candidates,
+            key=lambda item: _event_time_candidate_map_pool_sort_key(
+                item,
+                target_terms,
+            ),
+        )[: max(2, max_groups * 16)]
+    else:
+        selected = sorted(
+            candidates,
+            key=lambda item: (-int(item["score"]), int(item["memory_index"])),
+        )[: max(2, max_groups * 8)]
     conflict_groups = _event_time_candidate_conflict_groups(selected)
     groups = _event_time_candidate_groups(
         selected,
         conflict_groups=conflict_groups,
         max_groups=max(1, max_groups * 8),
     )
-    target_terms = _event_time_candidate_map_target_terms(question)
-    if not target_terms:
-        return []
 
     high_confidence_resolutions = {
         "high_confidence_single",
@@ -4473,6 +4582,12 @@ def _external_event_time_candidate_map_lines(
             continue
         coverage = len(matched_terms) / max(1, len(target_terms))
         if coverage < min_coverage:
+            continue
+        if (
+            str(group.get("best_time_kind")) == "exact_today"
+            and exact_today_min_coverage is not None
+            and coverage < exact_today_min_coverage
+        ):
             continue
         best = item_by_source_id.get(str(group.get("best_source_id") or ""))
         if best is None:
@@ -4564,7 +4679,33 @@ def _asks_event_time_candidate_map(
     )
 
 
-def _event_time_candidate_map_target_terms(question: str) -> frozenset[str]:
+def _event_time_candidate_map_pool_sort_key(
+    item: dict[str, object],
+    target_terms: frozenset[str],
+) -> tuple[float, int, int, int, int]:
+    key_terms = _event_time_candidate_map_key_terms(str(item.get("slot_key") or ""))
+    matched_terms = key_terms.intersection(target_terms)
+    coverage = len(matched_terms) / max(1, len(target_terms))
+    return (
+        -coverage,
+        -len(matched_terms),
+        int(item.get("precision_rank") or 99),
+        -int(item.get("score") or 0),
+        int(item["memory_index"]),
+    )
+
+
+def _event_time_candidate_map_key_terms(slot_key: str) -> frozenset[str]:
+    if slot_key.startswith("q:"):
+        return frozenset(slot_key[2:].split("|")).difference(_EVENT_SLOT_WEAK_TERMS)
+    return frozenset()
+
+
+def _event_time_candidate_map_target_terms(
+    question: str,
+    *,
+    normalize_terms: bool = False,
+) -> frozenset[str]:
     extra_weak_terms = {
         "date",
         "day",
@@ -4580,7 +4721,10 @@ def _event_time_candidate_map_target_terms(question: str) -> frozenset[str]:
     }
     return frozenset(
         term
-        for term in _content_terms(question).difference(_EVENT_SLOT_WEAK_TERMS)
+        for term in _event_candidate_content_terms(
+            question,
+            normalize_terms=normalize_terms,
+        ).difference(_EVENT_SLOT_WEAK_TERMS)
         if term not in extra_weak_terms and len(term) > 1
     )
 
@@ -4922,8 +5066,12 @@ def _event_candidate_slot_key(
     question_terms: frozenset[str],
     row_text: str,
     source_id: str,
+    normalize_terms: bool = False,
 ) -> str:
-    row_terms = _content_terms(row_text).difference(_EVENT_SLOT_WEAK_TERMS)
+    row_terms = _event_candidate_content_terms(
+        row_text,
+        normalize_terms=normalize_terms,
+    ).difference(_EVENT_SLOT_WEAK_TERMS)
     matched_terms = tuple(
         sorted(
             question_terms.intersection(row_terms).difference(_EVENT_SLOT_WEAK_TERMS)
@@ -4940,6 +5088,39 @@ def _event_candidate_slot_key(
     if fallback_terms:
         return "terms:" + "|".join(fallback_terms)
     return f"source:{source_id}"
+
+
+def _event_candidate_content_terms(
+    text: str,
+    *,
+    normalize_terms: bool,
+) -> frozenset[str]:
+    terms = _content_terms(text)
+    if not normalize_terms:
+        return terms
+    expanded: set[str] = set()
+    for term in terms:
+        expanded.update(_event_candidate_term_variants(term))
+    return frozenset(expanded)
+
+
+def _event_candidate_term_variants(term: str) -> tuple[str, ...]:
+    variants = [term]
+    if len(term) > 4 and term.endswith("ing"):
+        base = term[:-3]
+        if len(base) > 2 and base[-1] == base[-2]:
+            base = base[:-1]
+        variants.append(base)
+        variants.append(base + "e")
+    if len(term) > 3 and term.endswith("ed"):
+        base = term[:-2]
+        if len(base) > 2 and base[-1] == base[-2]:
+            base = base[:-1]
+        variants.append(base)
+        variants.append(base + "e")
+    if len(term) > 3 and term.endswith("s"):
+        variants.append(term[:-1])
+    return tuple(dict.fromkeys(value for value in variants if len(value) > 1))
 
 
 def _proper_phrase_signatures(text: str) -> tuple[str, ...]:
@@ -4965,59 +5146,133 @@ def _event_timeline_candidate_rows(
     rows: tuple[EvidenceRow, ...],
     snippet_chars: int,
     strip_context_wrappers: bool = False,
+    segment_local_context: bool = False,
+    normalize_slot_terms: bool = False,
 ) -> list[dict[str, object]]:
-    question_terms = _content_terms(question)
+    question_terms = _event_candidate_content_terms(
+        question,
+        normalize_terms=normalize_slot_terms,
+    )
     candidates: list[dict[str, object]] = []
     for index, row in enumerate(rows, start=1):
         row_date = _parse_date(row.timestamp)
         if row_date is None:
             continue
-        candidate_text = (
-            _strip_local_context_timestamp_wrappers(row.text)
-            if strip_context_wrappers
-            else row.text
-        )
-        markers = _event_time_markers(candidate_text, row_date)
-        row_terms = _content_terms(candidate_text)
-        matched_terms = tuple(
-            sorted(question_terms.intersection(row_terms))
-        )[:8]
-        if not markers and not matched_terms:
+        row_candidates: list[dict[str, object]] = []
+        for segment_index, (candidate_text, segment_role) in enumerate(
+            _event_time_candidate_text_segments(
+                row.text,
+                strip_context_wrappers=strip_context_wrappers,
+                segment_local_context=segment_local_context,
+            )
+        ):
+            markers = _event_time_markers(candidate_text, row_date)
+            row_terms = _event_candidate_content_terms(
+                candidate_text,
+                normalize_terms=normalize_slot_terms,
+            )
+            matched_terms = tuple(sorted(question_terms.intersection(row_terms)))[:8]
+            if not markers and not matched_terms:
+                continue
+            primary = markers[0] if markers else _mention_time_marker(row_date)
+            snippet = _single_line(candidate_text)
+            if len(snippet) > snippet_chars:
+                snippet = (snippet[: max(0, snippet_chars - 3)].rstrip() + "...")[
+                    :snippet_chars
+                ]
+            marker_text = tuple(
+                f'{marker["kind"]}: phrase="{marker["phrase"]}" event_time="{marker["value"]}"'
+                for marker in markers
+            )
+            retrieval_bonus = 1 if row.retrieval_rank is not None else 0
+            row_candidates.append(
+                {
+                    "event_sort_date": primary["sort_date"],
+                    "event_time": primary["value"],
+                    "index": index,
+                    "markers": marker_text,
+                    "matched_terms": matched_terms,
+                    "memory_index": index,
+                    "mention_time": row_date.isoformat(),
+                    "precision_rank": primary["precision_rank"],
+                    "role": segment_role or row.role,
+                    "score": (
+                        len(matched_terms) + retrieval_bonus + (2 * len(markers))
+                    ),
+                    "segment_index": segment_index,
+                    "slot_key": _event_candidate_slot_key(
+                        question_terms=question_terms,
+                        row_text=candidate_text,
+                        source_id=row.source_id,
+                        normalize_terms=normalize_slot_terms,
+                    ),
+                    "source_id": row.source_id,
+                    "snippet": snippet,
+                    "time_kind": primary["kind"],
+                }
+            )
+        if not row_candidates:
             continue
-        primary = markers[0] if markers else _mention_time_marker(row_date)
-        snippet = _single_line(candidate_text)
-        if len(snippet) > snippet_chars:
-            snippet = (snippet[: max(0, snippet_chars - 3)].rstrip() + "...")[
-                :snippet_chars
+        if segment_local_context and len(row_candidates) > 1:
+            row_candidates = [
+                sorted(
+                    row_candidates,
+                    key=lambda item: _event_time_candidate_segment_sort_key(
+                        item,
+                        question_terms,
+                    ),
+                )[0]
             ]
-        marker_text = tuple(
-            f'{marker["kind"]}: phrase="{marker["phrase"]}" event_time="{marker["value"]}"'
-            for marker in markers
-        )
-        retrieval_bonus = 1 if row.retrieval_rank is not None else 0
-        candidates.append(
-            {
-                "event_sort_date": primary["sort_date"],
-                "event_time": primary["value"],
-                "index": index,
-                "markers": marker_text,
-                "matched_terms": matched_terms,
-                "memory_index": index,
-                "mention_time": row_date.isoformat(),
-                "precision_rank": primary["precision_rank"],
-                "role": row.role,
-                "score": len(matched_terms) + retrieval_bonus + (2 * len(markers)),
-                "slot_key": _event_candidate_slot_key(
-                    question_terms=question_terms,
-                    row_text=candidate_text,
-                    source_id=row.source_id,
-                ),
-                "source_id": row.source_id,
-                "snippet": snippet,
-                "time_kind": primary["kind"],
-            }
-        )
+        candidates.extend(row_candidates)
     return candidates
+
+
+def _event_time_candidate_segment_sort_key(
+    item: dict[str, object],
+    question_terms: frozenset[str],
+) -> tuple[int, int, int, int]:
+    key_terms = _event_time_candidate_map_key_terms(str(item.get("slot_key") or ""))
+    matched_terms = key_terms.intersection(question_terms)
+    return (
+        -len(matched_terms),
+        -len(tuple(item.get("markers") or ())),
+        -int(item.get("score") or 0),
+        int(item.get("segment_index") or 0),
+    )
+
+
+def _event_time_candidate_text_segments(
+    text: str,
+    *,
+    strip_context_wrappers: bool,
+    segment_local_context: bool,
+) -> tuple[tuple[str, str | None], ...]:
+    if not segment_local_context:
+        candidate_text = (
+            _strip_local_context_timestamp_wrappers(text)
+            if strip_context_wrappers
+            else text
+        )
+        return ((candidate_text, None),)
+    if "Local dialogue context from the same session:" not in text:
+        return ((text, None),)
+
+    segments: list[tuple[str, str | None]] = []
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line or line == "Local dialogue context from the same session:":
+            continue
+        match = re.match(
+            r"^-\s+(?:nearby|selected) turn \([^)]+\)\s*\|\s*(?P<body>.*)$",
+            line,
+        )
+        body = match.group("body") if match else line
+        role = None
+        role_match = re.match(r"^(?P<role>[^:]{1,40}):\s*(?P<rest>.*)$", body)
+        if role_match:
+            role = role_match.group("role").strip()
+        segments.append((body, role))
+    return tuple(segments) if segments else ((text, None),)
 
 
 def _strip_local_context_timestamp_wrappers(text: str) -> str:

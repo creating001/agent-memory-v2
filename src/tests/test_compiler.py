@@ -841,6 +841,102 @@ class CompilerTest(unittest.TestCase):
 
         self.assertNotIn("Event-Time Candidate Map:", compiled.prompt)
 
+    def test_event_time_candidate_map_segment_local_blocks_nearby_today(
+        self,
+    ) -> None:
+        wrapped_text = (
+            "Local dialogue context from the same session:\n"
+            "- selected turn (12:48 am on 1 February, 2023) | Jon: "
+            "I am still searching for a place to open my dance studio.\n"
+            "- nearby turn (12:48 am on 1 February, 2023) | Gina: "
+            "A wholesaler replied yes today.\n"
+        )
+
+        compiled = EvidenceCompiler(
+            max_evidence_items=1,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            event_time_candidate_map=True,
+            event_time_candidate_map_allowed_time_kinds=("exact_today",),
+            event_time_candidate_map_strip_context_wrappers=True,
+            event_time_candidate_map_segment_local_context=True,
+            event_time_candidate_map_rank_by_coverage=True,
+            event_time_candidate_map_normalize_terms=True,
+        ).compile(
+            question="When is Jon planning to open his dance studio?",
+            question_time=None,
+            route=RouteResult("temporal_lookup", ("temporal",)),
+            hits=(),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="Jon",
+                    text=wrapped_text,
+                    timestamp="2023-02-01",
+                ),
+            ),
+        )
+
+        self.assertNotIn("Event-Time Candidate Map:", compiled.prompt)
+        self.assertNotIn("event_time=2023-02-01", compiled.prompt)
+
+    def test_event_time_candidate_map_rank_by_coverage_prefers_specific_slot(
+        self,
+    ) -> None:
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="Nate",
+                text=(
+                    "Nate said today that pets are great companions and that "
+                    "chilling with pets is relaxing."
+                ),
+                timestamp="2022-03-18",
+            ),
+            Turn(
+                source_id="s2:t0",
+                session_id="s2",
+                turn_index=0,
+                role="Nate",
+                text=(
+                    "Nate will take time off to chill with his pets on "
+                    "August 22, 2022."
+                ),
+                timestamp="2022-08-20",
+            ),
+        )
+
+        compiled = EvidenceCompiler(
+            max_evidence_items=2,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            event_time_candidate_map=True,
+            event_time_candidate_map_allowed_time_kinds=(
+                "exact_today",
+                "explicit_date",
+            ),
+            event_time_candidate_map_rank_by_coverage=True,
+            event_time_candidate_map_normalize_terms=True,
+            event_time_candidate_map_exact_today_min_coverage=0.85,
+        ).compile(
+            question="When did Nate take time off to chill with pets?",
+            question_time=None,
+            route=RouteResult("temporal_lookup", ("temporal",)),
+            hits=(),
+            evidence_turns=turns,
+        )
+
+        self.assertIn("Event-Time Candidate Map:", compiled.prompt)
+        self.assertIn("Memory 2: event_time=2022-08-22", compiled.prompt)
+        self.assertIn("matched_terms=chill, nate, off", compiled.prompt)
+        self.assertIn("pets", compiled.prompt)
+        self.assertIn("take", compiled.prompt)
+        self.assertNotIn("event_time=2022-03-18", compiled.prompt)
+
     def test_memory_tail_filter_preserves_retrieval_order(self) -> None:
         compiler = EvidenceCompiler(
             max_evidence_items=10,

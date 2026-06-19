@@ -821,6 +821,18 @@ def main() -> int:
             "event_time_candidate_map_strip_context_wrappers": config.get(
                 "compiler", {}
             ).get("event_time_candidate_map_strip_context_wrappers", False),
+            "event_time_candidate_map_segment_local_context": config.get(
+                "compiler", {}
+            ).get("event_time_candidate_map_segment_local_context", False),
+            "event_time_candidate_map_rank_by_coverage": config.get(
+                "compiler", {}
+            ).get("event_time_candidate_map_rank_by_coverage", False),
+            "event_time_candidate_map_normalize_terms": config.get(
+                "compiler", {}
+            ).get("event_time_candidate_map_normalize_terms", False),
+            "event_time_candidate_map_exact_today_min_coverage": config.get(
+                "compiler", {}
+            ).get("event_time_candidate_map_exact_today_min_coverage"),
             "event_time_candidate_map_allow_time_of_day_questions": config.get(
                 "compiler", {}
             ).get("event_time_candidate_map_allow_time_of_day_questions", True),
@@ -1589,6 +1601,10 @@ def _write_summary(
         f"- event_time_candidate_map_min_coverage: {metrics['compiler']['event_time_candidate_map_min_coverage']}",
         f"- event_time_candidate_map_allowed_time_kinds: {metrics['compiler']['event_time_candidate_map_allowed_time_kinds']}",
         f"- event_time_candidate_map_strip_context_wrappers: {metrics['compiler']['event_time_candidate_map_strip_context_wrappers']}",
+        f"- event_time_candidate_map_segment_local_context: {metrics['compiler']['event_time_candidate_map_segment_local_context']}",
+        f"- event_time_candidate_map_rank_by_coverage: {metrics['compiler']['event_time_candidate_map_rank_by_coverage']}",
+        f"- event_time_candidate_map_normalize_terms: {metrics['compiler']['event_time_candidate_map_normalize_terms']}",
+        f"- event_time_candidate_map_exact_today_min_coverage: {metrics['compiler']['event_time_candidate_map_exact_today_min_coverage']}",
         f"- event_time_candidate_map_allow_time_of_day_questions: {metrics['compiler']['event_time_candidate_map_allow_time_of_day_questions']}",
         f"- event_time_candidate_map_applied_count: {metrics['compiler']['event_time_candidate_map_applied_count']}",
         f"- event_time_candidate_map_applied_rate: {metrics['compiler']['event_time_candidate_map_applied_rate']}",
