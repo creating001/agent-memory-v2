@@ -9915,9 +9915,17 @@ def _apply_workspace_policy_context_settings(
     selected_context_settings: Mapping[str, Any],
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     settings = dict(selected_context_settings)
+    selected_context_policy_keys = (
+        "context_format",
+        "timestamp_policy",
+        "max_rows",
+        "max_neighbor_chars",
+        "max_center_chars",
+        "window_before",
+        "window_after",
+    )
     selected_context_before = {
-        "context_format": settings.get("context_format"),
-        "timestamp_policy": settings.get("timestamp_policy"),
+        key: settings.get(key) for key in selected_context_policy_keys
     }
     trace: dict[str, Any] = {
         "enabled": enabled,
@@ -9983,6 +9991,22 @@ def _apply_workspace_policy_context_settings(
         except ValueError:
             trace["reason"] = "invalid_selected_context_timestamp_policy"
             return settings, trace
+    int_policy_keys = {
+        "selected_context_max_rows": "max_rows",
+        "selected_context_max_neighbor_chars": "max_neighbor_chars",
+        "selected_context_max_center_chars": "max_center_chars",
+        "selected_context_window_before": "window_before",
+        "selected_context_window_after": "window_after",
+    }
+    for policy_key, setting_key in int_policy_keys.items():
+        raw_value = pressure_policy.get(policy_key)
+        if raw_value is None:
+            continue
+        try:
+            overrides[setting_key] = max(0, int(raw_value))
+        except (TypeError, ValueError):
+            trace["reason"] = f"invalid_{policy_key}"
+            return settings, trace
     if not overrides:
         trace["reason"] = "no_selected_context_pressure_policy"
         return settings, trace
@@ -9992,8 +10016,7 @@ def _apply_workspace_policy_context_settings(
     trace["reason"] = "workspace_policy_pressure_policy"
     trace["selected_context_overrides"] = dict(overrides)
     trace["selected_context_after"] = {
-        "context_format": settings.get("context_format"),
-        "timestamp_policy": settings.get("timestamp_policy"),
+        key: settings.get(key) for key in selected_context_policy_keys
     }
     return settings, trace
 

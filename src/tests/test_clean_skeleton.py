@@ -1404,15 +1404,47 @@ class CleanSkeletonTest(unittest.TestCase):
             policy_context["reason"], "workspace_policy_pressure_policy"
         )
         self.assertEqual(
-            policy_context["selected_context_before"],
+            {
+                "context_format": policy_context["selected_context_before"][
+                    "context_format"
+                ],
+                "timestamp_policy": policy_context["selected_context_before"][
+                    "timestamp_policy"
+                ],
+            },
             {"context_format": "verbose", "timestamp_policy": "all"},
         )
         self.assertEqual(
-            policy_context["selected_context_after"],
-            {"context_format": "compact", "timestamp_policy": "center_only"},
+            {
+                "context_format": policy_context["selected_context_after"][
+                    "context_format"
+                ],
+                "timestamp_policy": policy_context["selected_context_after"][
+                    "timestamp_policy"
+                ],
+                "max_rows": policy_context["selected_context_after"][
+                    "max_rows"
+                ],
+                "max_neighbor_chars": policy_context["selected_context_after"][
+                    "max_neighbor_chars"
+                ],
+                "window_after": policy_context["selected_context_after"][
+                    "window_after"
+                ],
+            },
+            {
+                "context_format": "compact",
+                "timestamp_policy": "center_only",
+                "max_rows": 4,
+                "max_neighbor_chars": 140,
+                "window_after": 1,
+            },
         )
         self.assertEqual(selected_context["context_format"], "compact")
         self.assertEqual(selected_context["timestamp_policy"], "center_only")
+        self.assertEqual(selected_context["max_rows"], 4)
+        self.assertEqual(selected_context["max_neighbor_chars"], 140)
+        self.assertEqual(selected_context["window_after"], 1)
         self.assertIn("Same-session context:", row_text)
         self.assertIn("- center (2024-01-02) | assistant:", row_text)
         self.assertIn("- near | user:", row_text)
