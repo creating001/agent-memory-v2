@@ -672,6 +672,36 @@ class CleanSkeletonTest(unittest.TestCase):
                         ]
                     },
                 },
+                "memory_workspace_policy": {
+                    "applied": True,
+                    "schema_version": "memory_workspace_policy_v1",
+                    "stage_count": 5,
+                    "stage_order": [
+                        "candidate_activation",
+                        "context_pack",
+                        "source_expansion",
+                        "answer_verification",
+                        "audit",
+                    ],
+                    "query_component_count": 6,
+                    "state_worklist_counts": {
+                        "current_state": 1,
+                        "conflict_chain": 1,
+                    },
+                    "verifier_worklist_counts": {"state_conflict": 1},
+                    "operation_readiness": {
+                        "retrieve": True,
+                        "expand": True,
+                        "verify": True,
+                    },
+                    "pressure_policy": {
+                        "selected_context_format": "compact",
+                        "final_evidence_policy": "raw_source_rows",
+                    },
+                    "source_policy": {
+                        "final_evidence_policy": "raw_source_rows",
+                    },
+                },
             },
         )
 
@@ -753,6 +783,22 @@ class CleanSkeletonTest(unittest.TestCase):
             manifest["coverage"]["final_evidence_from_memory_workspace_snapshot_count"],
             1,
         )
+        self.assertTrue(operations["memory_workspace_policy_available"])
+        self.assertEqual(
+            operations["memory_workspace_policy_schema_version"],
+            "memory_workspace_policy_v1",
+        )
+        self.assertEqual(operations["memory_workspace_policy_stage_count"], 5)
+        self.assertEqual(
+            operations["memory_workspace_policy_query_component_count"],
+            6,
+        )
+        self.assertEqual(
+            operations["memory_workspace_policy_pressure_policy"][
+                "selected_context_format"
+            ],
+            "compact",
+        )
         self.assertTrue(
             manifest["context_organization"]["memory_operations"][
                 "operation_api_available"
@@ -771,6 +817,11 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertTrue(
             manifest["context_organization"]["memory_operations"][
                 "memory_workspace_snapshot_available"
+            ]
+        )
+        self.assertTrue(
+            manifest["context_organization"]["memory_operations"][
+                "memory_workspace_policy_available"
             ]
         )
 
@@ -4116,6 +4167,11 @@ class CleanSkeletonTest(unittest.TestCase):
             memory_object_index["memory_workspace_snapshot_verifier_worklist_count"],
             0,
         )
+        self.assertEqual(memory_object_index["memory_workspace_policy_stage_count"], 5)
+        self.assertEqual(
+            memory_object_index["memory_workspace_policy_query_component_count"],
+            6,
+        )
         self.assertEqual(
             memory_object_index["source_backed_object_count"],
             3,
@@ -4424,6 +4480,12 @@ class CleanSkeletonTest(unittest.TestCase):
             ],
             "memory_workspace_snapshot",
         )
+        self.assertEqual(
+            memory_object_index["index_contract"]["memory_workspace_policy_contract"][
+                "policy_field"
+            ],
+            "memory_workspace_policy",
+        )
         working_compiler_plan = memory_object_index["memory_working_compiler_plan"]
         self.assertEqual(
             working_compiler_plan["schema_version"],
@@ -4612,6 +4674,28 @@ class CleanSkeletonTest(unittest.TestCase):
         )
         self.assertTrue(
             workspace_snapshot["system_design"]["memory_is_system_state"]
+        )
+        workspace_policy = memory_object_index["memory_workspace_policy"]
+        self.assertEqual(
+            workspace_policy["schema_version"],
+            "memory_workspace_policy_v1",
+        )
+        self.assertFalse(workspace_policy["trace_only"])
+        self.assertTrue(workspace_policy["applied"])
+        self.assertEqual(workspace_policy["stage_count"], 5)
+        self.assertEqual(workspace_policy["query_component_count"], 6)
+        self.assertIn("context_pack", workspace_policy["stages"])
+        self.assertIn(
+            "memory_state_guide",
+            workspace_policy["query_component_migration"],
+        )
+        self.assertEqual(
+            workspace_policy["pressure_policy"]["selected_context_format"],
+            "compact",
+        )
+        self.assertEqual(
+            workspace_policy["source_policy"]["final_evidence_policy"],
+            "raw_source_rows",
         )
         city_operation_api = next(
             entry

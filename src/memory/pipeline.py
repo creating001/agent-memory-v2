@@ -4960,6 +4960,24 @@ def _context_manifest(
                         "memory_workspace_snapshot_operation_readiness"
                     ]
                 ),
+                "memory_workspace_policy_available": memory_operations_manifest[
+                    "memory_workspace_policy_available"
+                ],
+                "memory_workspace_policy_stage_count": (
+                    memory_operations_manifest[
+                        "memory_workspace_policy_stage_count"
+                    ]
+                ),
+                "memory_workspace_policy_query_component_count": (
+                    memory_operations_manifest[
+                        "memory_workspace_policy_query_component_count"
+                    ]
+                ),
+                "memory_workspace_policy_pressure_policy": (
+                    memory_operations_manifest[
+                        "memory_workspace_policy_pressure_policy"
+                    ]
+                ),
             },
             "evidence_pressure": _evidence_pressure_manifest(evidence_rows),
             "clean_note": (
@@ -5030,6 +5048,7 @@ def _memory_operations_context_manifest(
     memory_operation_journal = {}
     memory_workspace_contract = {}
     memory_workspace_snapshot = {}
+    memory_workspace_policy = {}
     if isinstance(memory_object_index, Mapping):
         raw_registry = memory_object_index.get("operation_registry")
         if isinstance(raw_registry, Mapping):
@@ -5072,6 +5091,11 @@ def _memory_operations_context_manifest(
         )
         if isinstance(raw_memory_workspace_snapshot, Mapping):
             memory_workspace_snapshot = raw_memory_workspace_snapshot
+        raw_memory_workspace_policy = memory_object_index.get(
+            "memory_workspace_policy"
+        )
+        if isinstance(raw_memory_workspace_policy, Mapping):
+            memory_workspace_policy = raw_memory_workspace_policy
     registry_available = bool(operation_registry.get("applied"))
     working_view_available = bool(working_memory_view.get("applied"))
     lifecycle_audit_available = bool(lifecycle_audit.get("applied"))
@@ -5089,6 +5113,7 @@ def _memory_operations_context_manifest(
     memory_workspace_snapshot_available = bool(
         memory_workspace_snapshot.get("applied")
     )
+    memory_workspace_policy_available = bool(memory_workspace_policy.get("applied"))
     lifecycle_audit_source_ids = _ordered_unique(
         source_id
         for entry in lifecycle_audit.get("entries") or ()
@@ -5508,6 +5533,39 @@ def _memory_operations_context_manifest(
         ),
         "memory_workspace_snapshot_final_source_count": len(
             memory_workspace_snapshot_final_source_ids
+        ),
+        "memory_workspace_policy_available": memory_workspace_policy_available,
+        "memory_workspace_policy_schema_version": str(
+            memory_workspace_policy.get("schema_version") or ""
+        ),
+        "memory_workspace_policy_stage_count": int(
+            memory_workspace_policy.get("stage_count") or 0
+        ),
+        "memory_workspace_policy_stage_order": tuple(
+            memory_workspace_policy.get("stage_order") or ()
+        ),
+        "memory_workspace_policy_query_component_count": int(
+            memory_workspace_policy.get("query_component_count") or 0
+        ),
+        "memory_workspace_policy_state_worklist_counts": _mapping_int_counts(
+            memory_workspace_policy.get("state_worklist_counts")
+        ),
+        "memory_workspace_policy_verifier_worklist_counts": _mapping_int_counts(
+            memory_workspace_policy.get("verifier_worklist_counts")
+        ),
+        "memory_workspace_policy_operation_readiness": {
+            str(key): bool(value)
+            for key, value in (
+                memory_workspace_policy.get("operation_readiness") or {}
+            ).items()
+        }
+        if isinstance(memory_workspace_policy.get("operation_readiness"), Mapping)
+        else {},
+        "memory_workspace_policy_pressure_policy": dict(
+            memory_workspace_policy.get("pressure_policy") or {}
+        ),
+        "memory_workspace_policy_source_policy": dict(
+            memory_workspace_policy.get("source_policy") or {}
         ),
         "operation_utility_slot_source": operation_slot_source,
         "graph_utility_slot_source": graph_slot_source,

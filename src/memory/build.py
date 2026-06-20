@@ -1216,6 +1216,7 @@ def _memory_system_object_schema() -> dict[str, Any]:
             "memory_operation_journal",
             "memory_workspace_contract",
             "memory_workspace_snapshot",
+            "memory_workspace_policy",
         ],
         "governance_signals": [
             "source_activation_ready",
@@ -1244,6 +1245,7 @@ def _memory_system_object_schema() -> dict[str, Any]:
             "build_owned_memory_operation_journal",
             "build_owned_memory_workspace_contract",
             "build_owned_memory_workspace_snapshot",
+            "build_owned_memory_workspace_policy",
         ],
     }
 
@@ -1369,6 +1371,10 @@ def _memory_object_index_manifest(
         memory_system_state=memory_system_state,
         memory_operation_journal=operation_journal,
         memory_workspace_contract=workspace_contract,
+    )
+    workspace_policy = _memory_workspace_policy(
+        memory_workspace_contract=workspace_contract,
+        memory_workspace_snapshot=workspace_snapshot,
     )
     object_samples = [
         {
@@ -1497,6 +1503,10 @@ def _memory_object_index_manifest(
         ],
         "memory_workspace_snapshot_verifier_worklist_count": workspace_snapshot[
             "verifier_worklist_count"
+        ],
+        "memory_workspace_policy_stage_count": workspace_policy["stage_count"],
+        "memory_workspace_policy_query_component_count": workspace_policy[
+            "query_component_count"
         ],
         "source_backed_object_count": sum(
             1 for record in managed_records if record.source_ids
@@ -1702,6 +1712,22 @@ def _memory_object_index_manifest(
                     "still resolve through raw Memory rows"
                 ),
             },
+            "memory_workspace_policy_contract": {
+                "policy_field": "memory_workspace_policy",
+                "schema_version": "memory_workspace_policy_v1",
+                "sources": [
+                    "memory_workspace_contract",
+                    "memory_workspace_snapshot",
+                ],
+                "stages": workspace_policy["stage_order"],
+                "policy": (
+                    "build-owned query policy for candidate activation, context "
+                    "packing, source expansion, answer verification, and audit; "
+                    "it marks which legacy query guides can be represented by "
+                    "workspace operations while final facts still resolve through "
+                    "raw Memory rows"
+                ),
+            },
             "state_conflict_contract": {
                 "slot_index_field": "state_conflict_slot_index",
                 "slot_scope": "same memory_type, subject, predicate",
@@ -1727,6 +1753,7 @@ def _memory_object_index_manifest(
         "memory_operation_journal": operation_journal,
         "memory_workspace_contract": workspace_contract,
         "memory_workspace_snapshot": workspace_snapshot,
+        "memory_workspace_policy": workspace_policy,
         "state_conflict_slot_ids": sorted(str(slot_id) for slot_id in conflict_slot_ids),
         "clean_note": (
             "Question-independent build memory object index. It unifies tier, "
@@ -3682,6 +3709,152 @@ def _memory_workspace_snapshot(
             "memory state and never uses question text, gold answers, judge "
             "outputs, benchmark labels, sample ids, or test feedback; final "
             "answer evidence remains raw source rows."
+        ),
+    }
+
+
+def _memory_workspace_policy(
+    *,
+    memory_workspace_contract: dict[str, Any],
+    memory_workspace_snapshot: dict[str, Any],
+) -> dict[str, Any]:
+    """Build-owned query policy over the compact memory workspace.
+
+    This policy does not pick benchmark-specific rows. It names the generic
+    memory operations that query-time modules should consume before adding new
+    guide text, so later versions can delete duplicated query compatibility
+    layers with a concrete replacement surface.
+    """
+
+    operation_readiness = {
+        str(key): bool(value)
+        for key, value in (
+            memory_workspace_snapshot.get("operation_readiness") or {}
+        ).items()
+    }
+    state_worklist_counts = _mapping_int_counts(
+        memory_workspace_snapshot.get("state_worklist_counts")
+    )
+    verifier_worklist_counts = _mapping_int_counts(
+        memory_workspace_snapshot.get("verifier_worklist_counts")
+    )
+    layer_counts = _mapping_int_counts(memory_workspace_snapshot.get("layer_counts"))
+    stage_order = [
+        "candidate_activation",
+        "context_pack",
+        "source_expansion",
+        "answer_verification",
+        "audit",
+    ]
+    stages = {
+        "candidate_activation": {
+            "owner": "build_workspace",
+            "operation": "retrieve",
+            "inputs": ["state_worklists", "context_lanes", "source_expansion_ids"],
+            "policy": "activate source-backed working and long-term memory before tail evidence",
+            "ready": operation_readiness.get("retrieve", False),
+        },
+        "context_pack": {
+            "owner": "build_workspace",
+            "operation": "expand",
+            "inputs": ["context_lanes", "layer_context_policy"],
+            "policy": "pack raw source rows by short/working/long/archival lanes under query budget",
+            "ready": operation_readiness.get("expand", False),
+        },
+        "source_expansion": {
+            "owner": "raw_evidence_store",
+            "operation": "expand",
+            "inputs": ["source_expansion_source_ids"],
+            "policy": "memory objects are only activation handles and must expand to raw rows",
+            "ready": bool(memory_workspace_snapshot.get("source_expansion_source_ids")),
+        },
+        "answer_verification": {
+            "owner": "source_grounded_verifier",
+            "operation": "verify",
+            "inputs": ["verifier_worklists", "final_evidence_rows"],
+            "policy": "check support, conflicts, temporal validity, and unsupported claims against raw rows",
+            "ready": operation_readiness.get("verify", False),
+        },
+        "audit": {
+            "owner": "trace_audit",
+            "operation": "audit",
+            "inputs": ["operation_journal", "workspace_snapshot", "context_manifest"],
+            "policy": "record policy and risk decisions without using judge output or labels",
+            "ready": operation_readiness.get("audit", False),
+        },
+    }
+    query_components = {
+        "memory_state_guide": {
+            "workspace_replacement": "state_worklists.current_state + conflict_chain",
+            "status": "replaceable_when_final_rows_cover_sources",
+        },
+        "memory_value_slot_guide": {
+            "workspace_replacement": "working_memory state slots + scalar value manifest",
+            "status": "replaceable_for_source_backed_state_slots",
+        },
+        "update_conflict_guide": {
+            "workspace_replacement": "state_worklists.conflict_chain + archival_history",
+            "status": "replaceable_when_conflict_chain_ready",
+        },
+        "operation_workpad": {
+            "workspace_replacement": "operation_journal + verifier_worklists",
+            "status": "trace_or_private_only_after_policy_adoption",
+        },
+        "selected_context": {
+            "workspace_replacement": "context_pack lane expansion",
+            "status": "compact_or_gate_when_raw_rows_and_workspace_sources_overlap",
+        },
+        "context_budget": {
+            "workspace_replacement": "candidate_activation pressure policy",
+            "status": "owned_by_workspace_anchor_retention",
+        },
+    }
+    pressure_policy = {
+        "selected_context_format": "compact",
+        "selected_context_timestamp_policy": "center_only",
+        "context_pressure_action": "tighten_compiler_when_budget_headroom_is_low",
+        "tail_policy": "trim tail rows before dropping workspace-backed anchors",
+        "final_evidence_policy": "raw_source_rows",
+        "memory_object_policy": "activation_only_not_final_evidence",
+    }
+
+    return {
+        "schema_version": "memory_workspace_policy_v1",
+        "trace_only": False,
+        "applied": bool(memory_workspace_snapshot.get("applied")),
+        "interface_sources": [
+            "memory_workspace_contract",
+            "memory_workspace_snapshot",
+        ],
+        "stage_order": stage_order,
+        "stage_count": len(stage_order),
+        "stages": stages,
+        "query_component_count": len(query_components),
+        "query_component_migration": query_components,
+        "state_worklist_counts": state_worklist_counts,
+        "verifier_worklist_counts": verifier_worklist_counts,
+        "operation_readiness": operation_readiness,
+        "layer_counts": layer_counts,
+        "pressure_policy": pressure_policy,
+        "risk_reduction": {
+            "memory_system_depth": "layers + worklists + operations + verifier lanes",
+            "query_complexity": "move guide responsibilities to build-owned policy surface",
+            "benchmark_design": "question-independent build policy with raw-row final evidence",
+            "token_budget": "prefer compact context and pressure-triggered compiler tightening",
+        },
+        "source_policy": {
+            "raw_evidence_required": True,
+            "final_evidence_policy": "raw_source_rows",
+            "question_independent_build": True,
+            "memory_objects_are_not_final_evidence": True,
+        },
+        "clean_note": (
+            "Question-independent workspace query policy. It maps activation, "
+            "context packing, source expansion, verification, and audit to "
+            "build-owned memory operations so query-time guide text can be "
+            "reduced without changing clean evidence rules. It uses no question "
+            "text, gold answers, judge outputs, benchmark labels, sample ids, "
+            "or test feedback."
         ),
     }
 
