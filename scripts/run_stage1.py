@@ -176,6 +176,7 @@ def main() -> int:
     total_build_memory_system_graph_index_activation_priority_ids = 0
     total_build_memory_system_graph_index_slots = 0
     total_build_memory_system_graph_index_value_slots = 0
+    total_build_memory_system_graph_index_operation_slots = 0
     total_build_memory_system_graph_index_state_conflict_slots = 0
     total_build_memory_system_graph_source_backed_records = 0
     total_build_memory_system_graph_complete_slot_key_records = 0
@@ -608,6 +609,10 @@ def main() -> int:
                 )
                 total_build_memory_system_graph_index_value_slots += int(
                     memory_object_index.get("value_slot_count") or 0
+                )
+                total_build_memory_system_graph_index_operation_slots += int(
+                    memory_object_index.get("operation_slot_count")
+                    or len(memory_object_index.get("operation_slot_index") or ())
                 )
                 total_build_memory_system_graph_index_state_conflict_slots += int(
                     memory_object_index.get("state_conflict_slot_count") or 0
@@ -1614,6 +1619,12 @@ def main() -> int:
             "avg_memory_system_graph_memory_object_index_value_slots": _safe_average(
                 total_build_memory_system_graph_index_value_slots,
                 total_build_memory_system_graph_memory_object_index_applied,
+            ),
+            "avg_memory_system_graph_memory_object_index_operation_slots": (
+                _safe_average(
+                    total_build_memory_system_graph_index_operation_slots,
+                    total_build_memory_system_graph_memory_object_index_applied,
+                )
             ),
             "avg_memory_system_graph_memory_object_index_state_conflict_slots": (
                 _safe_average(
@@ -2641,6 +2652,7 @@ def _write_summary(
         f"- build_memory_system_graph_memory_object_index_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_applied_count']}",
         f"- avg_build_memory_system_graph_memory_object_index_activation_ready_ids: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_activation_ready_ids']}",
         f"- avg_build_memory_system_graph_memory_object_index_activation_priority_ids: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_activation_priority_ids']}",
+        f"- avg_build_memory_system_graph_memory_object_index_operation_slots: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_operation_slots']}",
         f"- avg_build_memory_system_graph_value_objects: {metrics['build_memory']['avg_memory_system_graph_value_objects']}",
         f"- avg_build_memory_system_graph_source_backed_value_objects: {metrics['build_memory']['avg_memory_system_graph_source_backed_value_objects']}",
         f"- avg_build_memory_system_graph_source_incomplete_value_objects: {metrics['build_memory']['avg_memory_system_graph_source_incomplete_value_objects']}",
@@ -3065,6 +3077,7 @@ def _write_diagnosis(
         f"- build_memory_system_graph_memory_object_index_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_applied_count']}",
         f"- avg_build_memory_system_graph_memory_object_index_activation_ready_ids: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_activation_ready_ids']}",
         f"- avg_build_memory_system_graph_memory_object_index_activation_priority_ids: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_activation_priority_ids']}",
+        f"- avg_build_memory_system_graph_memory_object_index_operation_slots: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_operation_slots']}",
         f"- avg_build_memory_system_graph_value_objects: {metrics['build_memory']['avg_memory_system_graph_value_objects']}",
         f"- avg_build_memory_system_graph_source_backed_value_objects: {metrics['build_memory']['avg_memory_system_graph_source_backed_value_objects']}",
         f"- avg_build_memory_system_graph_source_incomplete_value_objects: {metrics['build_memory']['avg_memory_system_graph_source_incomplete_value_objects']}",

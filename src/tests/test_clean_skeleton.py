@@ -2975,6 +2975,10 @@ class CleanSkeletonTest(unittest.TestCase):
             "build_owned_scalar_value_manifest",
             system_graph["object_schema"]["governance_signals"],
         )
+        self.assertIn(
+            "build_owned_operation_slot_index",
+            system_graph["object_schema"]["governance_signals"],
+        )
         self.assertEqual(
             system_graph["governance"]["final_evidence_policy"],
             "raw_source_rows_only",
@@ -3149,6 +3153,7 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual(memory_object_index["object_count"], 3)
         self.assertEqual(memory_object_index["slot_count"], 2)
         self.assertEqual(memory_object_index["value_slot_count"], 2)
+        self.assertEqual(memory_object_index["operation_slot_count"], 2)
         self.assertEqual(memory_object_index["state_conflict_slot_count"], 1)
         self.assertEqual(
             memory_object_index["source_backed_object_count"],
@@ -3191,6 +3196,26 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual(city_object_slot["memory_tier"], "working_memory")
         self.assertEqual(
             city_object_slot["current_source_order"],
+            ["s2:t1", "s2:t2", "s1:t1"],
+        )
+        city_operation_slot = next(
+            slot
+            for slot in memory_object_index["operation_slot_index"]
+            if slot["predicate"] == "location"
+        )
+        self.assertEqual(city_operation_slot["operations"], ["supersede", "conflict_slot"])
+        self.assertIn("supersede", city_operation_slot["graph_signals"])
+        self.assertIn("conflict_slot", city_operation_slot["graph_signals"])
+        self.assertEqual(
+            city_operation_slot["operation_current_source_order"],
+            ["s2:t1", "s2:t2", "s1:t1"],
+        )
+        self.assertEqual(
+            city_operation_slot["operation_historical_source_order"],
+            ["s1:t1", "s2:t1", "s2:t2"],
+        )
+        self.assertEqual(
+            city_operation_slot["validity_current_source_order"],
             ["s2:t1", "s2:t2", "s1:t1"],
         )
         city_value_slot = next(
@@ -4327,6 +4352,56 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual([hit.source_id for hit in hits], ["s1:t0", "s2:t0"])
         self.assertEqual(trace["slots"][0]["values"], ("dune", "foundation"))
 
+    def test_memory_operation_utility_prefers_object_index_slots(self) -> None:
+        old_record = MemoryRecord(
+            memory_id="old-city",
+            memory_type="state",
+            text="Alex lives in Austin.",
+            source_ids=("s1:t0",),
+            subject="Alex",
+            predicate="home city",
+            value="Austin",
+            timestamp="2024-01-01",
+            status="superseded",
+            superseded_by="new-city",
+        )
+        new_record = MemoryRecord(
+            memory_id="new-city",
+            memory_type="state",
+            text="Alex lives in Seattle.",
+            source_ids=("s2:t0",),
+            subject="Alex",
+            predicate="home city",
+            value="Seattle",
+            timestamp="2024-05-01",
+            status="active",
+        )
+        management = _management_summary(
+            (old_record, new_record),
+            policy="stateful_only",
+            managed_memory_types=frozenset({"state"}),
+            include_memory_system_graph=True,
+        )
+
+        hits, trace = _memory_operation_utility_source_hits(
+            memory_hits=(MemoryHit(record=old_record, score=3.0, rank=1),),
+            built_memory_records=(),
+            question="Where does Alex live now?",
+            route=RouteResult("current_state", ("current_state",)),
+            available_source_ids={"s1:t0", "s2:t0"},
+            max_slots=2,
+            max_sources_per_slot=4,
+            memory_types=("state",),
+            operations=("supersede", "conflict_slot"),
+            fusion_mode="tail_exchange",
+            managed_memory_types=("state",),
+            memory_object_index=management["memory_system_graph"]["memory_object_index"],
+        )
+
+        self.assertTrue(trace["applied"])
+        self.assertEqual(trace["slot_index"]["source"], "memory_object_index")
+        self.assertEqual([hit.source_id for hit in hits], ["s2:t0", "s1:t0"])
+
     def test_memory_graph_utility_adds_only_missing_slot_sources(self) -> None:
         old_record = MemoryRecord(
             memory_id="old-city",
@@ -4378,6 +4453,60 @@ class CleanSkeletonTest(unittest.TestCase):
         )
         self.assertIn("supersede", trace["slots"][0]["signals"])
         self.assertEqual(trace["slots"][0]["status_counts"], {"active": 1, "superseded": 1})
+
+    def test_memory_graph_utility_prefers_object_index_slots(self) -> None:
+        old_record = MemoryRecord(
+            memory_id="old-city",
+            memory_type="state",
+            text="Alex lives in Austin.",
+            source_ids=("s1:t0",),
+            subject="Alex",
+            predicate="home city",
+            value="Austin",
+            timestamp="2024-01-01",
+            status="superseded",
+            superseded_by="new-city",
+        )
+        new_record = MemoryRecord(
+            memory_id="new-city",
+            memory_type="state",
+            text="Alex lives in Seattle.",
+            source_ids=("s2:t0",),
+            subject="Alex",
+            predicate="home city",
+            value="Seattle",
+            timestamp="2024-05-01",
+            status="active",
+        )
+        management = _management_summary(
+            (new_record, old_record),
+            policy="stateful_only",
+            managed_memory_types=frozenset({"state"}),
+            include_memory_system_graph=True,
+        )
+
+        hits, trace = _memory_graph_utility_source_hits(
+            memory_hits=(MemoryHit(record=new_record, score=3.0, rank=1),),
+            built_memory_records=(),
+            question="Where does Alex live now?",
+            route=RouteResult("current_state", ("current_state",)),
+            available_source_ids={"s1:t0", "s2:t0"},
+            candidate_source_ids={"s2:t0"},
+            max_slots=2,
+            max_sources_per_slot=4,
+            memory_types=("state",),
+            min_overlap_terms=1,
+            require_new_source=True,
+            required_signals=("supersede", "conflict_slot"),
+            fusion_mode="tail_rescue",
+            source_selection_policy="validity_aware",
+            memory_object_index=management["memory_system_graph"]["memory_object_index"],
+        )
+
+        self.assertTrue(trace["applied"])
+        self.assertEqual(trace["slot_index"]["source"], "memory_object_index")
+        self.assertEqual([hit.source_id for hit in hits], ["s1:t0"])
+        self.assertIn("conflict_slot", trace["slots"][0]["signals"])
 
     def test_memory_graph_utility_can_require_lifecycle_signal(self) -> None:
         record = MemoryRecord(

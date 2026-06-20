@@ -2105,6 +2105,9 @@ class Stage1Pipeline:
                     managed_memory_types=tuple(
                         getattr(built_memory, "managed_memory_types", ()) or ()
                     ),
+                    memory_object_index=_memory_object_index_from_management(
+                        built_memory.management
+                    ),
                 )
         turn_window_hits = ()
         turn_window_source_hits = ()
@@ -2400,6 +2403,9 @@ class Stage1Pipeline:
                 overflow_max_hits=self._graph_utility_overflow_max_hits,
                 source_selection_policy=(
                     self._graph_utility_source_selection_policy
+                ),
+                memory_object_index=_memory_object_index_from_management(
+                    built_memory.management
                 ),
             )
             if (
@@ -3151,6 +3157,9 @@ class Stage1Pipeline:
                     ],
                     "operation_utility_question_scope": (
                         operation_utility_trace["question_scope"]
+                    ),
+                    "operation_utility_slot_index": (
+                        operation_utility_trace.get("slot_index")
                     ),
                     "operation_utility_operation_counts": (
                         operation_utility_trace["operation_counts"]
@@ -5083,6 +5092,129 @@ def _operation_utility_applies(
     return route.information_need in SUPPORTED_INFORMATION_NEEDS
 
 
+def _memory_operation_slot_empty_index_stats(*, enabled: bool) -> dict[str, Any]:
+    return {
+        "enabled": enabled,
+        "source": "memory_object_index" if enabled else "query_record_grouping",
+        "schema_version": "",
+        "slot_count": 0,
+        "source_backed_slot_count": 0,
+        "operation_slot_count": 0,
+        "graph_signal_slot_count": 0,
+    }
+
+
+def _memory_operation_slots_from_object_index(
+    memory_object_index: Mapping[str, Any] | None,
+    *,
+    memory_types: tuple[str, ...],
+) -> tuple[dict[tuple[str, str, str], Mapping[str, Any]], dict[str, Any]]:
+    if not isinstance(memory_object_index, Mapping):
+        return {}, _memory_operation_slot_empty_index_stats(enabled=False)
+    raw_slots = memory_object_index.get("operation_slot_index")
+    if not isinstance(raw_slots, list):
+        return {}, _memory_operation_slot_empty_index_stats(enabled=False)
+    allowed_types = {str(item).lower() for item in memory_types if str(item).strip()}
+    slots: dict[tuple[str, str, str], Mapping[str, Any]] = {}
+    source_backed_slot_count = 0
+    operation_slot_count = 0
+    graph_signal_slot_count = 0
+    for raw_slot in raw_slots:
+        if not isinstance(raw_slot, Mapping):
+            continue
+        memory_type = _normalize_memory_slot_text(
+            str(raw_slot.get("memory_type") or "")
+        )
+        if allowed_types and memory_type not in allowed_types:
+            continue
+        subject = _normalize_memory_slot_text(str(raw_slot.get("subject") or ""))
+        predicate = _normalize_memory_slot_text(str(raw_slot.get("predicate") or ""))
+        if not memory_type or not subject or not predicate:
+            continue
+        key = (memory_type, subject, predicate)
+        slots[key] = raw_slot
+        if raw_slot.get("source_backed") or raw_slot.get("source_ids"):
+            source_backed_slot_count += 1
+        if raw_slot.get("operations"):
+            operation_slot_count += 1
+        if raw_slot.get("graph_signals"):
+            graph_signal_slot_count += 1
+    return slots, {
+        **_memory_operation_slot_empty_index_stats(enabled=True),
+        "schema_version": str(memory_object_index.get("schema_version") or ""),
+        "slot_count": len(slots),
+        "source_backed_slot_count": source_backed_slot_count,
+        "operation_slot_count": operation_slot_count,
+        "graph_signal_slot_count": graph_signal_slot_count,
+    }
+
+
+def _memory_operation_index_slot_matched_terms(
+    *,
+    question_terms: frozenset[str],
+    key: tuple[str, str, str],
+    slot: Mapping[str, Any] | None,
+    ignored_overlap_terms: frozenset[str] = frozenset(),
+) -> tuple[str, ...]:
+    if not isinstance(slot, Mapping):
+        return ()
+    _memory_type, subject, _predicate = key
+    subject_terms = _memory_slot_chain_text_terms(subject)
+    scoped_question_terms = question_terms.difference(subject_terms).difference(
+        ignored_overlap_terms
+    )
+    if not scoped_question_terms:
+        return ()
+    slot_terms = {
+        _normalize_memory_slot_text(str(term))
+        for term in (slot.get("lexical_terms") or ())
+        if str(term).strip()
+    }
+    if not slot_terms:
+        slot_terms = _memory_slot_chain_text_terms(
+            " ".join(
+                str(part)
+                for part in (
+                    slot.get("predicate") or "",
+                    " ".join(str(value) for value in (slot.get("values") or ())),
+                )
+                if part
+            )
+        )
+    slot_terms.difference_update(ignored_overlap_terms)
+    return tuple(sorted(scoped_question_terms.intersection(slot_terms)))
+
+
+def _memory_operation_index_slot_sources(
+    slot: Mapping[str, Any] | None,
+    *,
+    available_source_ids: set[str],
+    max_sources: int,
+    question_scope: str,
+    source_selection_policy: str,
+    existing_source_ids: set[str] | None = None,
+) -> tuple[str, ...]:
+    if not isinstance(slot, Mapping) or max_sources <= 0:
+        return ()
+    prefix = "validity" if source_selection_policy == "validity_aware" else "operation"
+    scope = "historical" if question_scope == "historical" else "current"
+    field = f"{prefix}_{scope}_source_order"
+    selected: list[str] = []
+    blocked = existing_source_ids or set()
+    for raw_source_id in slot.get(field) or slot.get("source_ids") or ():
+        source_id = str(raw_source_id)
+        if (
+            source_id not in available_source_ids
+            or source_id in blocked
+            or source_id in selected
+        ):
+            continue
+        selected.append(source_id)
+        if len(selected) >= max_sources:
+            break
+    return tuple(selected)
+
+
 def _disabled_operation_utility_trace(
     *,
     enabled: bool,
@@ -5111,6 +5243,7 @@ def _disabled_operation_utility_trace(
         "tail_exchange_protect_top_n": tail_exchange_protect_top_n,
         "tail_exchange_max_swaps": tail_exchange_max_swaps,
         "question_scope": question_scope,
+        "slot_index": _memory_operation_slot_empty_index_stats(enabled=False),
         "operation_counts": {},
         "skipped_reason": skipped_reason,
         "slots": [],
@@ -5133,6 +5266,7 @@ def _memory_operation_utility_source_hits(
     tail_exchange_protect_top_n: int = 56,
     tail_exchange_max_swaps: int = 0,
     managed_memory_types: tuple[str, ...] = (),
+    memory_object_index: Mapping[str, Any] | None = None,
 ) -> tuple[tuple[RetrievalHit, ...], dict[str, Any]]:
     """Activate raw source rows from build-stage memory operations.
 
@@ -5155,7 +5289,12 @@ def _memory_operation_utility_source_hits(
         tail_exchange_max_swaps=tail_exchange_max_swaps,
         question_scope=question_scope,
     )
-    if not memory_hits or not built_memory_records:
+    indexed_slots, slot_index_stats = _memory_operation_slots_from_object_index(
+        memory_object_index,
+        memory_types=memory_types,
+    )
+    use_index_slots = bool(indexed_slots)
+    if not memory_hits or (not built_memory_records and not use_index_slots):
         return (), trace
     if max_slots <= 0 or max_sources_per_slot <= 0:
         return (), {**trace, "skipped_reason": "non_positive_budget"}
@@ -5172,10 +5311,15 @@ def _memory_operation_utility_source_hits(
     if not allowed_operations:
         return (), {**trace, "skipped_reason": "no_operations"}
 
-    groups, _slot_index_stats = _memory_object_slot_index(
-        built_memory_records,
-        memory_types=memory_types,
-    )
+    groups: dict[tuple[str, str, str], tuple[Any, ...]] = {}
+    if use_index_slots:
+        trace = {**trace, "slot_index": slot_index_stats}
+    else:
+        groups, slot_index_stats = _memory_object_slot_index(
+            built_memory_records,
+            memory_types=memory_types,
+        )
+        trace = {**trace, "slot_index": slot_index_stats}
     selected_hits: list[RetrievalHit] = []
     slot_traces: list[dict[str, Any]] = []
     operation_counts: dict[str, int] = {}
@@ -5190,10 +5334,15 @@ def _memory_operation_utility_source_hits(
         if key is None or key in seen_keys:
             continue
         seen_keys.add(key)
+        slot = indexed_slots.get(key) if use_index_slots else None
         records = tuple(groups.get(key, ()))
-        slot_operations = _memory_operation_slot_types(
-            records,
-            managed_memory_types=managed_memory_types,
+        slot_operations = (
+            tuple(str(item) for item in slot.get("operations", ()) if str(item))
+            if isinstance(slot, Mapping)
+            else _memory_operation_slot_types(
+                records,
+                managed_memory_types=managed_memory_types,
+            )
         )
         selected_operations = tuple(
             operation
@@ -5203,19 +5352,37 @@ def _memory_operation_utility_source_hits(
         if not selected_operations:
             continue
 
-        matched_terms = _memory_object_slot_matched_terms(
-            question_terms=question_terms,
-            key=key,
-            records=records,
+        matched_terms = (
+            _memory_operation_index_slot_matched_terms(
+                question_terms=question_terms,
+                key=key,
+                slot=slot,
+            )
+            if isinstance(slot, Mapping)
+            else _memory_object_slot_matched_terms(
+                question_terms=question_terms,
+                key=key,
+                records=records,
+            )
         )
         if len(matched_terms) < max(0, min_overlap_terms):
             continue
 
-        source_ids = _memory_operation_slot_sources(
-            records,
-            available_source_ids=available_source_ids,
-            max_sources=max_sources_per_slot,
-            question_scope=question_scope,
+        source_ids = (
+            _memory_operation_index_slot_sources(
+                slot,
+                available_source_ids=available_source_ids,
+                max_sources=max_sources_per_slot,
+                question_scope=question_scope,
+                source_selection_policy="legacy",
+            )
+            if isinstance(slot, Mapping)
+            else _memory_operation_slot_sources(
+                records,
+                available_source_ids=available_source_ids,
+                max_sources=max_sources_per_slot,
+                question_scope=question_scope,
+            )
         )
         if not source_ids:
             continue
@@ -5253,10 +5420,20 @@ def _memory_operation_utility_source_hits(
                 "matched_memory_id": str(getattr(record, "memory_id", "")),
                 "matched_terms": matched_terms,
                 "question_scope": question_scope,
-                "record_count": len(records),
-                "status_counts": _memory_operation_slot_status_counts(records),
+                "record_count": int(
+                    slot.get("record_count") or 0
+                )
+                if isinstance(slot, Mapping)
+                else len(records),
+                "status_counts": dict(
+                    slot.get("status_counts") or {}
+                )
+                if isinstance(slot, Mapping)
+                else _memory_operation_slot_status_counts(records),
                 "source_ids": tuple(emitted_sources),
-                "values": _memory_object_slot_values(records)[:6],
+                "values": tuple(slot.get("values") or ())[:6]
+                if isinstance(slot, Mapping)
+                else _memory_object_slot_values(records)[:6],
             }
         )
 
@@ -5340,6 +5517,7 @@ def _memory_graph_utility_source_hits(
     fusion_mode: str = "tail_rescue",
     overflow_max_hits: int = 0,
     source_selection_policy: str = "legacy",
+    memory_object_index: Mapping[str, Any] | None = None,
 ) -> tuple[tuple[RetrievalHit, ...], dict[str, Any]]:
     """Use the build memory graph as a source-backed evidence utility index.
 
@@ -5369,7 +5547,12 @@ def _memory_graph_utility_source_hits(
         **trace,
         "candidate_source_count": len(candidate_source_ids),
     }
-    if not memory_hits or not built_memory_records:
+    indexed_slots, slot_index_stats = _memory_operation_slots_from_object_index(
+        memory_object_index,
+        memory_types=memory_types,
+    )
+    use_index_slots = bool(indexed_slots)
+    if not memory_hits or (not built_memory_records and not use_index_slots):
         return (), trace
     if max_slots <= 0 or max_sources_per_slot <= 0:
         return (), {**trace, "skipped_reason": "non_positive_budget"}
@@ -5389,11 +5572,15 @@ def _memory_graph_utility_source_hits(
     if not question_terms:
         return (), {**trace, "skipped_reason": "no_question_terms"}
 
-    groups, slot_index_stats = _memory_object_slot_index(
-        built_memory_records,
-        memory_types=memory_types,
-    )
-    trace = {**trace, "slot_index": slot_index_stats}
+    groups: dict[tuple[str, str, str], tuple[Any, ...]] = {}
+    if use_index_slots:
+        trace = {**trace, "slot_index": slot_index_stats}
+    else:
+        groups, slot_index_stats = _memory_object_slot_index(
+            built_memory_records,
+            memory_types=memory_types,
+        )
+        trace = {**trace, "slot_index": slot_index_stats}
 
     selected_hits: list[RetrievalHit] = []
     slot_traces: list[dict[str, Any]] = []
@@ -5408,30 +5595,59 @@ def _memory_graph_utility_source_hits(
         if key is None or key in seen_keys:
             continue
         seen_keys.add(key)
+        slot = indexed_slots.get(key) if use_index_slots else None
         records = tuple(groups.get(key, ()))
-        if not records:
+        if not records and not isinstance(slot, Mapping):
             continue
 
-        matched_terms = _memory_object_slot_matched_terms(
-            question_terms=question_terms,
-            key=key,
-            records=records,
-            ignored_overlap_terms=ignored_terms,
+        matched_terms = (
+            _memory_operation_index_slot_matched_terms(
+                question_terms=question_terms,
+                key=key,
+                slot=slot,
+                ignored_overlap_terms=ignored_terms,
+            )
+            if isinstance(slot, Mapping)
+            else _memory_object_slot_matched_terms(
+                question_terms=question_terms,
+                key=key,
+                records=records,
+                ignored_overlap_terms=ignored_terms,
+            )
         )
         if len(matched_terms) < max(0, min_overlap_terms):
             continue
 
-        signals = _memory_graph_slot_signals(records)
+        signals = (
+            tuple(str(item) for item in slot.get("graph_signals", ()) if str(item))
+            if isinstance(slot, Mapping)
+            else _memory_graph_slot_signals(records)
+        )
         if required_signal_set and not required_signal_set.intersection(signals):
             continue
 
-        source_ids = _memory_graph_slot_sources(
-            records,
-            available_source_ids=available_source_ids,
-            existing_source_ids=candidate_source_ids if require_new_source else set(),
-            max_sources=max_sources_per_slot,
-            question_scope=question_scope,
-            source_selection_policy=source_selection_policy,
+        source_ids = (
+            _memory_operation_index_slot_sources(
+                slot,
+                available_source_ids=available_source_ids,
+                existing_source_ids=(
+                    candidate_source_ids if require_new_source else set()
+                ),
+                max_sources=max_sources_per_slot,
+                question_scope=question_scope,
+                source_selection_policy=source_selection_policy,
+            )
+            if isinstance(slot, Mapping)
+            else _memory_graph_slot_sources(
+                records,
+                available_source_ids=available_source_ids,
+                existing_source_ids=(
+                    candidate_source_ids if require_new_source else set()
+                ),
+                max_sources=max_sources_per_slot,
+                question_scope=question_scope,
+                source_selection_policy=source_selection_policy,
+            )
         )
         if not source_ids:
             continue
@@ -5475,8 +5691,16 @@ def _memory_graph_utility_source_hits(
                 "matched_memory_id": str(getattr(record, "memory_id", "")),
                 "matched_terms": matched_terms,
                 "question_scope": question_scope,
-                "record_count": len(records),
-                "status_counts": _memory_operation_slot_status_counts(records),
+                "record_count": int(
+                    slot.get("record_count") or 0
+                )
+                if isinstance(slot, Mapping)
+                else len(records),
+                "status_counts": dict(
+                    slot.get("status_counts") or {}
+                )
+                if isinstance(slot, Mapping)
+                else _memory_operation_slot_status_counts(records),
                 "source_ids": tuple(emitted_sources),
                 "source_selection_policy": source_selection_policy,
                 "candidate_source_ids": tuple(
@@ -5488,7 +5712,9 @@ def _memory_graph_utility_source_hits(
                     1 for source_id in emitted_sources if source_id not in candidate_source_ids
                 ),
                 "score": slot_score,
-                "values": _memory_object_slot_values(records)[:6],
+                "values": tuple(slot.get("values") or ())[:6]
+                if isinstance(slot, Mapping)
+                else _memory_object_slot_values(records)[:6],
             }
         )
 

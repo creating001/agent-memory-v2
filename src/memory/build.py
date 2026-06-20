@@ -1216,6 +1216,7 @@ def _memory_system_object_schema() -> dict[str, Any]:
             "build_owned_operation_manifest",
             "build_owned_scalar_value_manifest",
             "build_owned_memory_object_index",
+            "build_owned_operation_slot_index",
         ],
 }
 
@@ -1277,6 +1278,10 @@ def _memory_object_index_manifest(
             }
         )
 
+    operation_slots = _memory_object_operation_slot_index(
+        groups,
+        managed_memory_types=managed_memory_types,
+    )
     object_samples = [
         {
             "memory_id": record.memory_id,
@@ -1328,6 +1333,7 @@ def _memory_object_index_manifest(
         "object_count": len(managed_records),
         "slot_count": len(groups),
         "value_slot_count": len(value_slots),
+        "operation_slot_count": len(operation_slots),
         "state_conflict_slot_count": len(conflict_slot_ids),
         "source_backed_object_count": sum(
             1 for record in managed_records if record.source_ids
@@ -1365,11 +1371,23 @@ def _memory_object_index_manifest(
                 "priority_ids_field": "activation_priority_memory_ids",
                 "policy": "source_backed_activation_ready_first",
             },
+            "operation_slot_contract": {
+                "slot_index_field": "operation_slot_index",
+                "slot_scope": "same memory_type, subject, predicate",
+                "source_order_fields": [
+                    "operation_current_source_order",
+                    "operation_historical_source_order",
+                    "validity_current_source_order",
+                    "validity_historical_source_order",
+                ],
+                "policy": "query_consumers_choose_scope_and_expand_to_raw_sources",
+            },
         },
         "activation_ready_memory_ids": activation_ready_memory_ids,
         "activation_priority_memory_ids": activation_priority_memory_ids,
         "object_index_samples": object_samples,
         "value_slot_index": value_slots,
+        "operation_slot_index": operation_slots,
         "state_conflict_slot_ids": sorted(str(slot_id) for slot_id in conflict_slot_ids),
         "clean_note": (
             "Question-independent build memory object index. It unifies tier, "
@@ -1380,6 +1398,246 @@ def _memory_object_index_manifest(
             "sample-level rules; final answer evidence remains raw source rows."
         ),
     }
+
+
+def _memory_object_operation_slot_index(
+    groups: dict[tuple[str, str, str], list[MemoryRecord]],
+    *,
+    managed_memory_types: frozenset[str],
+) -> list[dict[str, Any]]:
+    slots: list[dict[str, Any]] = []
+    for key, records in sorted(groups.items()):
+        record_tuple = tuple(records)
+        source_ids = _ordered_strings(
+            source_id for record in record_tuple for source_id in record.source_ids
+        )
+        memory_type, subject, predicate = key
+        slots.append(
+            {
+                "slot_id": _slot_id(key),
+                "memory_type": memory_type,
+                "namespace": _memory_namespace(record_tuple[0]),
+                "layer": _memory_layer(memory_type),
+                "managed": memory_type in managed_memory_types,
+                "subject": subject,
+                "predicate": predicate,
+                "record_count": len(record_tuple),
+                "status_counts": _memory_operation_slot_status_counts(record_tuple),
+                "operations": _memory_operation_slot_types_for_index(
+                    record_tuple,
+                    managed_memory_types=managed_memory_types,
+                ),
+                "graph_signals": _memory_graph_slot_signals_for_index(
+                    record_tuple,
+                    managed_memory_types=managed_memory_types,
+                ),
+                "lexical_terms": _memory_operation_slot_lexical_terms(record_tuple)[:32],
+                "source_backed": bool(source_ids),
+                "source_ids": source_ids[:12],
+                "operation_current_source_order": _memory_operation_slot_source_order(
+                    record_tuple,
+                    question_scope="current",
+                    source_selection_policy="legacy",
+                )[:12],
+                "operation_historical_source_order": _memory_operation_slot_source_order(
+                    record_tuple,
+                    question_scope="historical",
+                    source_selection_policy="legacy",
+                )[:12],
+                "validity_current_source_order": _memory_operation_slot_source_order(
+                    record_tuple,
+                    question_scope="current",
+                    source_selection_policy="validity_aware",
+                )[:12],
+                "validity_historical_source_order": _memory_operation_slot_source_order(
+                    record_tuple,
+                    question_scope="historical",
+                    source_selection_policy="validity_aware",
+                )[:12],
+                "memory_ids": [record.memory_id for record in record_tuple[:12]],
+                "active_memory_ids": [
+                    record.memory_id
+                    for record in record_tuple
+                    if record.status == "active"
+                ][:12],
+                "superseded_memory_ids": [
+                    record.memory_id
+                    for record in record_tuple
+                    if record.status == "superseded"
+                ][:12],
+                "values": _ordered_normalized_values(
+                    record.value or record.text for record in record_tuple
+                )[:12],
+                "temporal_anchors": _ordered_strings(
+                    _record_time_value(record) for record in record_tuple
+                )[:12],
+                "source_policy": {
+                    "legacy_operation_order": "active_or_historical_status_then_time",
+                    "validity_aware_order": "memory_slot_source_policy_v1",
+                    "raw_evidence_required": True,
+                },
+            }
+        )
+    return slots
+
+
+def _memory_operation_slot_lexical_terms(
+    records: tuple[MemoryRecord, ...],
+) -> list[str]:
+    terms: set[str] = set()
+    for record in records:
+        terms.update(
+            _memory_operation_slot_text_terms(
+                " ".join(
+                    part
+                    for part in (
+                        record.predicate,
+                        record.value,
+                        record.text,
+                        " ".join(record.entities),
+                    )
+                    if part
+                )
+            )
+        )
+    return sorted(term for term in terms if term)
+
+
+def _memory_operation_slot_text_terms(value: str) -> set[str]:
+    normalized = re.sub(r"[_/\\-]+", " ", value.lower())
+    terms: set[str] = set()
+    for token in re.findall(r"[a-z0-9]+", normalized):
+        if len(token) <= 1:
+            continue
+        terms.add(token)
+        if token.endswith("ves") and len(token) > 4:
+            terms.add(token[:-1])
+        if token.endswith("ies") and len(token) > 4:
+            terms.add(token[:-3] + "y")
+        if token.endswith("ed") and len(token) > 4:
+            terms.add(token[:-1])
+            terms.add(token[:-2])
+        if token.endswith("ing") and len(token) > 5:
+            terms.add(token[:-3])
+        if token.endswith("s") and len(token) > 3:
+            terms.add(token[:-1])
+    return terms
+
+
+def _memory_operation_slot_types_for_index(
+    records: tuple[MemoryRecord, ...],
+    *,
+    managed_memory_types: frozenset[str],
+) -> list[str]:
+    if not records:
+        return []
+    memory_type = str(records[0].memory_type or "").lower()
+    managed_slot = memory_type in managed_memory_types
+    active_values: set[str] = set()
+    superseded_values: set[str] = set()
+    lifecycle_signal = False
+    for record in records:
+        value = _normalize_key_text(record.value or record.text)
+        status = str(record.status or "active").lower()
+        if status == "superseded":
+            lifecycle_signal = True
+            if value:
+                superseded_values.add(value)
+        else:
+            if value:
+                active_values.add(value)
+        if record.superseded_by or record.valid_to:
+            lifecycle_signal = True
+
+    distinct_values = active_values | superseded_values
+    conflict_slot = (
+        managed_slot
+        and len(distinct_values) > 1
+        and (lifecycle_signal or len(active_values) > 1)
+    )
+    operations: list[str] = []
+    if lifecycle_signal:
+        operations.append("supersede")
+    if conflict_slot:
+        operations.append("conflict_slot")
+    if len(distinct_values) > 1 and not lifecycle_signal and not conflict_slot:
+        operations.append("collection_multi_value_slot")
+    return operations
+
+
+def _memory_graph_slot_signals_for_index(
+    records: tuple[MemoryRecord, ...],
+    *,
+    managed_memory_types: frozenset[str],
+) -> list[str]:
+    if not records:
+        return []
+    signals: list[str] = []
+    if any(record.source_ids for record in records):
+        signals.append("source_support")
+    if any(
+        record.status == "superseded" or record.superseded_by or record.valid_to
+        for record in records
+    ):
+        signals.append("supersede")
+    if len(_ordered_normalized_values(record.value or record.text for record in records)) > 1:
+        signals.append("multi_value_slot")
+    for signal in _memory_operation_slot_types_for_index(
+        records,
+        managed_memory_types=managed_memory_types,
+    ):
+        if signal not in signals:
+            signals.append(signal)
+    return signals
+
+
+def _memory_operation_slot_source_order(
+    records: tuple[MemoryRecord, ...],
+    *,
+    question_scope: str,
+    source_selection_policy: str,
+) -> list[str]:
+    if source_selection_policy == "validity_aware":
+        return _memory_slot_policy_source_ids(
+            records,
+            question_scope=question_scope,
+        )
+    source_ids: list[str] = []
+    for record in sorted(
+        records,
+        key=lambda item: _memory_operation_slot_record_sort_key_for_index(
+            item,
+            question_scope=question_scope,
+        ),
+    ):
+        for source_id in record.source_ids:
+            if source_id not in source_ids:
+                source_ids.append(source_id)
+    return source_ids
+
+
+def _memory_operation_slot_record_sort_key_for_index(
+    record: MemoryRecord,
+    *,
+    question_scope: str,
+) -> tuple[int, str, str]:
+    status = str(record.status or "active").lower()
+    if question_scope == "historical":
+        status_rank = 0 if status != "active" else 1
+    else:
+        status_rank = 0 if status == "active" else 1
+    time_value = record.valid_from or record.timestamp or record.mention_time or ""
+    return (status_rank, str(time_value), str(record.memory_id))
+
+
+def _memory_operation_slot_status_counts(
+    records: tuple[MemoryRecord, ...],
+) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for record in records:
+        status = str(record.status or "active")
+        counts[status] = counts.get(status, 0) + 1
+    return dict(sorted(counts.items()))
 
 
 def _slot_memory_tier(
