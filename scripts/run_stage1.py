@@ -220,6 +220,8 @@ def main() -> int:
     total_answer_verifier_risk_flags = 0
     total_answer_verifier_support_items = 0
     total_answer_verifier_evidence_report_items = 0
+    total_answer_verifier_registry_backed_final_evidence = 0
+    total_answer_verifier_registry_backed_support_refs = 0
     answer_verifier_risk_reasons: dict[str, int] = {}
     total_answer_repair_triggered = 0
     total_answer_repair_applied = 0
@@ -757,6 +759,12 @@ def main() -> int:
             )
             total_answer_verifier_evidence_report_items += int(
                 answer_verifier.get("evidence_report_count") or 0
+            )
+            total_answer_verifier_registry_backed_final_evidence += int(
+                answer_verifier.get("registry_backed_final_evidence_count") or 0
+            )
+            total_answer_verifier_registry_backed_support_refs += int(
+                answer_verifier.get("registry_backed_support_reference_count") or 0
             )
             risk_count = int(answer_verifier.get("risk_count") or 0)
             total_answer_verifier_risk_flags += risk_count
@@ -1834,6 +1842,14 @@ def main() -> int:
             ),
             "verifier_avg_evidence_report_items": _safe_average(
                 total_answer_verifier_evidence_report_items,
+                total_answer_verifier_applied,
+            ),
+            "verifier_avg_registry_backed_final_evidence": _safe_average(
+                total_answer_verifier_registry_backed_final_evidence,
+                total_answer_verifier_applied,
+            ),
+            "verifier_avg_registry_backed_support_refs": _safe_average(
+                total_answer_verifier_registry_backed_support_refs,
                 total_answer_verifier_applied,
             ),
             "repair_triggered_count": total_answer_repair_triggered,
@@ -2916,6 +2932,8 @@ def _write_summary(
         f"- answer_verifier_risk_reasons: {metrics['answer']['verifier_risk_reasons']}",
         f"- answer_verifier_avg_support_items: {metrics['answer']['verifier_avg_support_items']}",
         f"- answer_verifier_avg_evidence_report_items: {metrics['answer']['verifier_avg_evidence_report_items']}",
+        f"- answer_verifier_avg_registry_backed_final_evidence: {metrics['answer']['verifier_avg_registry_backed_final_evidence']}",
+        f"- answer_verifier_avg_registry_backed_support_refs: {metrics['answer']['verifier_avg_registry_backed_support_refs']}",
         f"- answer_repair_enabled: {metrics['answer']['repair_enabled']}",
         f"- answer_repair_mode: {metrics['answer']['repair_mode']}",
         f"- answer_repair_model: {metrics['answer']['repair_model']}",

@@ -387,6 +387,82 @@ class CleanSkeletonTest(unittest.TestCase):
             selected_context_ledger["risk_details"][0]["source_id"], "s1:t1"
         )
 
+    def test_context_manifest_tracks_registry_backed_memory_operations(self) -> None:
+        turns = (
+            Turn("s1:t0", "s1", 0, "user", "Alex lived in Austin."),
+            Turn("s2:t0", "s2", 0, "user", "Alex moved to Seattle."),
+        )
+        store = RawEvidenceStore(turns)
+        route = RouteResult("current_state", ("current_state",))
+        manifest = _context_manifest(
+            store=store,
+            route=route,
+            lexical_hits=(),
+            dense_hits=(),
+            memory_hits=(),
+            memory_source_hits=(),
+            memory_slot_chain_source_hits=(),
+            turn_window_source_hits=(),
+            pre_context_budget_hits=(),
+            retrieval_hits=(RetrievalHit("s2:t0", 1.0, 1, "dense"),),
+            context_budget_trace={"applied": False},
+            context_budget_audit={},
+            evidence_turns=(turns[1],),
+            selected_context={
+                "materialized_source_ids": [],
+                "risk_audit": {"applied": False},
+            },
+            built_memory_records=(),
+            compiler_memory_records=(),
+            evidence_rows=(
+                EvidenceRow(
+                    source_id="s2:t0",
+                    session_id="s2",
+                    turn_index=0,
+                    role="user",
+                    text="Alex moved to Seattle.",
+                    timestamp=None,
+                    retrieval_rank=1,
+                    retrieval_score=1.0,
+                ),
+            ),
+            operation_utility_source_hits=(RetrievalHit("s1:t0", 0.5, 1, "op"),),
+            graph_utility_source_hits=(RetrievalHit("s2:t0", 0.8, 1, "graph"),),
+            operation_utility_trace={
+                "slot_index": {"source": "memory_operation_registry"}
+            },
+            graph_utility_trace={
+                "slot_index": {"source": "memory_operation_registry"}
+            },
+            memory_object_index={
+                "operation_registry": {
+                    "applied": True,
+                    "schema_version": "memory_operation_registry_v1",
+                    "entry_count": 2,
+                    "source_backed_entry_count": 2,
+                }
+            },
+        )
+
+        operations = manifest["memory_operations"]
+        self.assertTrue(operations["registry_available"])
+        self.assertEqual(
+            operations["registry_schema_version"],
+            "memory_operation_registry_v1",
+        )
+        self.assertEqual(
+            operations["registry_projected_source_ids"],
+            ("s1:t0", "s2:t0"),
+        )
+        self.assertEqual(
+            operations["registry_projected_final_source_ids"],
+            ("s2:t0",),
+        )
+        self.assertEqual(
+            manifest["coverage"]["final_evidence_from_operation_registry_count"],
+            1,
+        )
+
     def test_context_manifest_tracks_evidence_pressure(self) -> None:
         turns = (
             Turn("s1:t0", "s1", 0, "user", "Alex booked the cafe."),

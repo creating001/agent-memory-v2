@@ -2711,6 +2711,11 @@ class Stage1Pipeline:
             compiler_memory_records=compiler_memory_records,
             evidence_rows=compiled.evidence_rows,
             compiled_context_chars=compiled.context_chars,
+            operation_utility_trace=operation_utility_trace,
+            graph_utility_trace=graph_utility_trace,
+            memory_object_index=_memory_object_index_from_management(
+                built_memory.management
+            ),
         )
         answer_cache_before = _answer_cache_stats(self._answerer)
         draft_answer = self._answerer.answer(compiled)
@@ -2837,6 +2842,7 @@ class Stage1Pipeline:
             check_memory_references=(
                 self._answer_verifier_check_memory_references
             ),
+            context_manifest=context_manifest,
         )
         token_usage = built_memory.token_usage + answer.token_usage
         return {
@@ -4214,6 +4220,9 @@ def _context_manifest(
     object_slot_source_hits: tuple[Any, ...] = (),
     operation_utility_source_hits: tuple[Any, ...] = (),
     graph_utility_source_hits: tuple[Any, ...] = (),
+    operation_utility_trace: Mapping[str, Any] | None = None,
+    graph_utility_trace: Mapping[str, Any] | None = None,
+    memory_object_index: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Trace-only source flow manifest for memory/context organization.
 
@@ -4258,6 +4267,14 @@ def _context_manifest(
         final_evidence_source_ids=final_evidence_source_ids,
         typed_memory_source_ids=typed_memory_source_ids,
         memory_projected_source_ids=memory_projected_source_ids,
+    )
+    memory_operations_manifest = _memory_operations_context_manifest(
+        memory_object_index=memory_object_index,
+        operation_utility_trace=operation_utility_trace,
+        graph_utility_trace=graph_utility_trace,
+        operation_utility_source_hits=operation_utility_source_hits,
+        graph_utility_source_hits=graph_utility_source_hits,
+        final_evidence_source_ids=final_evidence_source_ids,
     )
     return {
         "enabled": True,
@@ -4329,6 +4346,7 @@ def _context_manifest(
                 final_evidence_source_ids=final_evidence_source_ids,
             ),
         },
+        "memory_operations": memory_operations_manifest,
         "coverage": {
             "final_evidence_row_count": len(final_evidence_source_ids),
             "evidence_turn_count": len(evidence_turn_source_ids),
@@ -4338,6 +4356,9 @@ def _context_manifest(
             ),
             "final_evidence_from_typed_memory_source_count": len(
                 final_set & typed_memory_set
+            ),
+            "final_evidence_from_operation_registry_count": len(
+                memory_operations_manifest["registry_projected_final_source_ids"]
             ),
             "typed_memory_source_count": len(typed_memory_source_ids),
             "selected_context_materialized_count": int(
@@ -4362,6 +4383,22 @@ def _context_manifest(
                 ),
             },
             "selected_context": selected_context_manifest,
+            "memory_operations": {
+                "registry_available": memory_operations_manifest[
+                    "registry_available"
+                ],
+                "registry_projected_final_source_count": len(
+                    memory_operations_manifest[
+                        "registry_projected_final_source_ids"
+                    ]
+                ),
+                "operation_utility_slot_source": memory_operations_manifest[
+                    "operation_utility_slot_source"
+                ],
+                "graph_utility_slot_source": memory_operations_manifest[
+                    "graph_utility_slot_source"
+                ],
+            },
             "evidence_pressure": _evidence_pressure_manifest(evidence_rows),
             "clean_note": (
                 "Trace-only ledger for prompt-visible context organization. It "
@@ -4375,6 +4412,82 @@ def _context_manifest(
             "activation; it does not alter prediction behavior."
         ),
     }
+
+
+def _memory_operations_context_manifest(
+    *,
+    memory_object_index: Mapping[str, Any] | None,
+    operation_utility_trace: Mapping[str, Any] | None,
+    graph_utility_trace: Mapping[str, Any] | None,
+    operation_utility_source_hits: tuple[Any, ...],
+    graph_utility_source_hits: tuple[Any, ...],
+    final_evidence_source_ids: tuple[str, ...],
+) -> dict[str, Any]:
+    operation_utility_trace = (
+        operation_utility_trace if isinstance(operation_utility_trace, Mapping) else {}
+    )
+    graph_utility_trace = (
+        graph_utility_trace if isinstance(graph_utility_trace, Mapping) else {}
+    )
+    operation_slot_source = _operation_consumer_slot_source(operation_utility_trace)
+    graph_slot_source = _operation_consumer_slot_source(graph_utility_trace)
+    registry_projected_source_ids = _ordered_unique(
+        (
+            *(
+                _source_ids_from_hits(operation_utility_source_hits)
+                if operation_slot_source == "memory_operation_registry"
+                else ()
+            ),
+            *(
+                _source_ids_from_hits(graph_utility_source_hits)
+                if graph_slot_source == "memory_operation_registry"
+                else ()
+            ),
+        )
+    )
+    final_set = set(final_evidence_source_ids)
+    registry_projected_final_source_ids = tuple(
+        source_id
+        for source_id in registry_projected_source_ids
+        if source_id in final_set
+    )
+    operation_registry = {}
+    if isinstance(memory_object_index, Mapping):
+        raw_registry = memory_object_index.get("operation_registry")
+        if isinstance(raw_registry, Mapping):
+            operation_registry = raw_registry
+    registry_available = bool(operation_registry.get("applied"))
+    return {
+        "trace_only": True,
+        "registry_available": registry_available,
+        "registry_schema_version": str(
+            operation_registry.get("schema_version") or ""
+        ),
+        "registry_entry_count": int(operation_registry.get("entry_count") or 0),
+        "registry_source_backed_entry_count": int(
+            operation_registry.get("source_backed_entry_count") or 0
+        ),
+        "operation_utility_slot_source": operation_slot_source,
+        "graph_utility_slot_source": graph_slot_source,
+        "registry_projected_source_ids": registry_projected_source_ids,
+        "registry_projected_final_source_ids": registry_projected_final_source_ids,
+        "registry_projected_final_source_count": len(
+            registry_projected_final_source_ids
+        ),
+        "final_evidence_policy": "raw_source_rows",
+        "clean_note": (
+            "Trace-only audit of registry-backed memory operations after they "
+            "have expanded to raw source rows. It never treats operation "
+            "registry entries as final answer evidence."
+        ),
+    }
+
+
+def _operation_consumer_slot_source(trace: Mapping[str, Any]) -> str:
+    slot_index = trace.get("slot_index")
+    if not isinstance(slot_index, Mapping):
+        return ""
+    return str(slot_index.get("source") or "")
 
 
 def _evidence_pressure_manifest(evidence_rows: tuple[Any, ...]) -> dict[str, Any]:

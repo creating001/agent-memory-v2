@@ -45,6 +45,10 @@ class AnswerSupportAudit:
     final_evidence_row_count: int
     memory_reference_count: int
     unresolved_memory_references: tuple[str, ...]
+    context_manifest_present: bool
+    registry_backed_final_evidence_count: int
+    registry_backed_support_reference_count: int
+    registry_backed_support_references: tuple[int, ...]
     risks: tuple[str, ...]
 
     @property
@@ -68,6 +72,7 @@ def audit_answer_support(
     check_support_presence: bool = True,
     check_sufficiency_consistency: bool = True,
     check_memory_references: bool = True,
+    context_manifest: dict[str, Any] | None = None,
 ) -> AnswerSupportAudit:
     """Audit whether the final answer is structurally backed by prompt evidence.
 
@@ -96,6 +101,14 @@ def audit_answer_support(
     memory_references, unresolved = _memory_references(
         report,
         final_evidence_row_count=final_evidence_row_count,
+    )
+    registry_backed_final_source_ids = _registry_backed_final_source_ids(
+        context_manifest
+    )
+    registry_backed_support_references = _registry_backed_support_refs(
+        support_items,
+        compiled=compiled,
+        registry_backed_final_source_ids=registry_backed_final_source_ids,
     )
 
     risks: list[str] = []
@@ -142,6 +155,10 @@ def audit_answer_support(
         final_evidence_row_count=final_evidence_row_count,
         memory_reference_count=len(memory_references),
         unresolved_memory_references=unresolved,
+        context_manifest_present=isinstance(context_manifest, dict),
+        registry_backed_final_evidence_count=len(registry_backed_final_source_ids),
+        registry_backed_support_reference_count=len(registry_backed_support_references),
+        registry_backed_support_references=registry_backed_support_references,
         risks=tuple(dict.fromkeys(risks)),
     )
 
@@ -163,6 +180,10 @@ def _audit_noop(*, enabled: bool, mode: str, reason: str) -> AnswerSupportAudit:
         final_evidence_row_count=0,
         memory_reference_count=0,
         unresolved_memory_references=(),
+        context_manifest_present=False,
+        registry_backed_final_evidence_count=0,
+        registry_backed_support_reference_count=0,
+        registry_backed_support_references=(),
         risks=(),
     )
 
@@ -220,6 +241,43 @@ def _memory_reference_numbers(item: dict[str, Any]) -> tuple[int, ...]:
     if re.fullmatch(r"\s*\d+(?:\s*,\s*\d+)*\s*", text):
         return tuple(int(value) for value in re.findall(r"\d+", text))
     return ()
+
+
+def _registry_backed_final_source_ids(
+    context_manifest: dict[str, Any] | None,
+) -> frozenset[str]:
+    if not isinstance(context_manifest, dict):
+        return frozenset()
+    memory_operations = context_manifest.get("memory_operations")
+    if not isinstance(memory_operations, dict):
+        return frozenset()
+    return frozenset(
+        str(source_id)
+        for source_id in (
+            memory_operations.get("registry_projected_final_source_ids") or ()
+        )
+        if str(source_id).strip()
+    )
+
+
+def _registry_backed_support_refs(
+    support_items: tuple[dict[str, Any], ...],
+    *,
+    compiled: CompiledContext,
+    registry_backed_final_source_ids: frozenset[str],
+) -> tuple[int, ...]:
+    if not support_items or not registry_backed_final_source_ids:
+        return ()
+    refs: list[int] = []
+    for item in support_items:
+        for ref in _memory_reference_numbers(item):
+            index = ref - 1
+            if index < 0 or index >= len(compiled.evidence_rows):
+                continue
+            source_id = str(getattr(compiled.evidence_rows[index], "source_id", "") or "")
+            if source_id in registry_backed_final_source_ids:
+                refs.append(ref)
+    return tuple(dict.fromkeys(refs))
 
 
 def _answer_is_insufficient(answer: str) -> bool:

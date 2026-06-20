@@ -112,6 +112,29 @@ class AnswerVerifyTest(unittest.TestCase):
         self.assertNotIn("unresolved_memory_reference", audit.risks)
         self.assertEqual(audit.memory_reference_count, 1)
 
+    def test_source_grounded_audit_tracks_registry_backed_support(self) -> None:
+        audit = audit_answer_support(
+            compiled=_compiled(row_count=3),
+            answer=_answer(
+                {
+                    "sufficient": True,
+                    "evidence_report": [{"memory": "Memory 2", "status": "support"}],
+                    "answer": "jasmine tea",
+                }
+            ),
+            enabled=True,
+            context_manifest={
+                "memory_operations": {
+                    "registry_projected_final_source_ids": ("s1:t1", "s1:t2")
+                }
+            },
+        )
+
+        self.assertTrue(audit.context_manifest_present)
+        self.assertEqual(audit.registry_backed_final_evidence_count, 2)
+        self.assertEqual(audit.registry_backed_support_reference_count, 1)
+        self.assertEqual(audit.registry_backed_support_references, (2,))
+
     def test_source_grounded_audit_uses_final_answer_when_json_answer_missing(
         self,
     ) -> None:
