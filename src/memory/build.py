@@ -1012,6 +1012,10 @@ def _memory_system_graph_summary(
             managed_records,
             managed_memory_types=managed_memory_types,
         ),
+        "source_policy": _memory_slot_source_policy_manifest(
+            groups,
+            managed_memory_types=managed_memory_types,
+        ),
         "governance": {
             "raw_evidence_policy": "immutable_final_authority",
             "derived_memory_policy": "source_backed_activation_and_audit",
@@ -1088,11 +1092,13 @@ def _memory_system_object_schema() -> dict[str, Any]:
             "source_confidence_bucket",
             "activation_utility_score",
             "activation_utility_bucket",
+            "slot_source_policy",
         ],
         "governance_signals": [
             "source_activation_ready",
             "activation_role",
             "activation_priority",
+            "question_scope_source_order",
             "temporal_scope_counts",
             "validity_status_counts",
             "raw_evidence_required",
@@ -1101,6 +1107,227 @@ def _memory_system_object_schema() -> dict[str, Any]:
             "incomplete_slot_key_audited",
         ],
     }
+
+
+def _memory_slot_source_policy_manifest(
+    groups: dict[tuple[str, str, str], list[MemoryRecord]],
+    *,
+    managed_memory_types: frozenset[str],
+) -> dict[str, Any]:
+    """Build-side source policy for graph utility slot activation.
+
+    The policy is question-independent: build records current/open and
+    historical/closed source preferences for each slot. Query-time graph utility
+    only chooses the broad question scope, while final evidence remains raw rows.
+    """
+
+    current_ordered_slots = 0
+    historical_ordered_slots = 0
+    lifecycle_slots = 0
+    multi_source_slots = 0
+    slot_samples: list[dict[str, Any]] = []
+    for key, records in sorted(groups.items()):
+        record_tuple = tuple(records)
+        current_order = _memory_slot_policy_source_ids(
+            record_tuple,
+            question_scope="current",
+        )
+        historical_order = _memory_slot_policy_source_ids(
+            record_tuple,
+            question_scope="historical",
+        )
+        if current_order:
+            current_ordered_slots += 1
+        if historical_order:
+            historical_ordered_slots += 1
+        if _slot_has_lifecycle(records):
+            lifecycle_slots += 1
+        source_ids = _ordered_strings(
+            source_id for record in records for source_id in record.source_ids
+        )
+        if len(source_ids) > 1:
+            multi_source_slots += 1
+        if len(slot_samples) >= 12:
+            continue
+        memory_type, subject, predicate = key
+        slot_samples.append(
+            {
+                "slot_id": _slot_id(key),
+                "memory_type": memory_type,
+                "layer": _memory_layer(memory_type),
+                "managed": memory_type in managed_memory_types,
+                "subject": subject,
+                "predicate": predicate,
+                "record_count": len(records),
+                "current_source_order": current_order[:8],
+                "historical_source_order": historical_order[:8],
+                "current_memory_order": [
+                    record.memory_id
+                    for record in sorted(
+                        record_tuple,
+                        key=lambda item: memory_slot_record_source_policy_sort_key(
+                            item,
+                            question_scope="current",
+                        ),
+                    )
+                ][:8],
+                "historical_memory_order": [
+                    record.memory_id
+                    for record in sorted(
+                        record_tuple,
+                        key=lambda item: memory_slot_record_source_policy_sort_key(
+                            item,
+                            question_scope="historical",
+                        ),
+                    )
+                ][:8],
+            }
+        )
+    return {
+        "schema_version": "memory_slot_source_policy_v1",
+        "trace_only": False,
+        "applied": True,
+        "slot_count": len(groups),
+        "current_scope_ordered_slot_count": current_ordered_slots,
+        "historical_scope_ordered_slot_count": historical_ordered_slots,
+        "lifecycle_slot_count": lifecycle_slots,
+        "multi_source_slot_count": multi_source_slots,
+        "question_scopes": ["current", "historical"],
+        "policy": {
+            "current_scope": [
+                "open_state",
+                "event_scoped",
+                "active_or_open",
+                "closed",
+            ],
+            "historical_scope": [
+                "closed",
+                "event_scoped",
+                "open_state",
+                "active_or_open",
+            ],
+            "tie_breakers": [
+                "source_confidence",
+                "temporal_anchor",
+                "time_rank",
+                "memory_id",
+            ],
+            "final_evidence_policy": "raw_source_rows",
+        },
+        "slot_samples": slot_samples,
+        "clean_note": (
+            "Build-side source policy over source-backed memory slots. It "
+            "precomputes current and historical source orderings from validity, "
+            "confidence, temporal anchors, lifecycle status, and source ids; "
+            "query modules may use only the ordering, while final answer "
+            "evidence still resolves to raw source rows."
+        ),
+    }
+
+
+def _memory_slot_policy_source_ids(
+    records: tuple[MemoryRecord, ...],
+    *,
+    question_scope: str,
+) -> list[str]:
+    source_ids: list[str] = []
+    for record in sorted(
+        records,
+        key=lambda item: memory_slot_record_source_policy_sort_key(
+            item,
+            question_scope=question_scope,
+        ),
+    ):
+        for source_id in record.source_ids:
+            if source_id not in source_ids:
+                source_ids.append(source_id)
+    return source_ids
+
+
+def memory_slot_record_source_policy_sort_key(
+    record: Any,
+    *,
+    question_scope: str,
+) -> tuple[Any, ...]:
+    """Sort a source-backed memory record for slot source activation."""
+
+    return (
+        _memory_record_validity_rank(record, question_scope=question_scope),
+        _memory_record_source_confidence_rank(record),
+        _memory_record_temporal_anchor_rank(record),
+        *_memory_record_time_rank(record, question_scope=question_scope),
+        str(getattr(record, "memory_id", "")),
+    )
+
+
+def _memory_record_validity_rank(record: Any, *, question_scope: str) -> int:
+    status = str(getattr(record, "status", "active") or "active").lower()
+    memory_type = str(getattr(record, "memory_type", "") or "").lower()
+    closed = bool(
+        status == "superseded"
+        or getattr(record, "superseded_by", None)
+        or getattr(record, "valid_to", None)
+    )
+    event_scoped = bool(getattr(record, "event_time", None))
+    open_state = memory_type in _STATEFUL_MEMORY_TYPES and not closed
+    if question_scope == "historical":
+        if closed:
+            return 0
+        if event_scoped:
+            return 1
+        if open_state:
+            return 2
+        return 3
+    if open_state:
+        return 0
+    if event_scoped:
+        return 1
+    if not closed:
+        return 2
+    return 3
+
+
+def _memory_record_source_confidence_rank(record: Any) -> int:
+    if not tuple(getattr(record, "source_ids", ()) or ()):
+        return 3
+    confidence = float(getattr(record, "confidence", 1.0) or 0.0)
+    if confidence >= 0.8:
+        return 0
+    if confidence >= 0.5:
+        return 1
+    return 2
+
+
+def _memory_record_temporal_anchor_rank(record: Any) -> int:
+    if (
+        getattr(record, "valid_from", None)
+        or getattr(record, "valid_to", None)
+        or getattr(record, "event_time", None)
+        or getattr(record, "mention_time", None)
+        or getattr(record, "timestamp", None)
+    ):
+        return 0
+    return 1
+
+
+def _memory_record_time_rank(record: Any, *, question_scope: str) -> tuple[int, str]:
+    time_value = str(
+        getattr(record, "valid_from", None)
+        or getattr(record, "event_time", None)
+        or getattr(record, "timestamp", None)
+        or getattr(record, "mention_time", None)
+        or ""
+    )
+    if question_scope == "historical":
+        return (0, time_value)
+    return (-_sortable_time_digits(time_value), time_value)
+
+
+def _sortable_time_digits(value: str) -> int:
+    digits = "".join(ch for ch in value if ch.isdigit())
+    if not digits:
+        return 0
+    return int(digits[:12])
 
 
 def _memory_system_governance_manifest(

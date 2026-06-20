@@ -10,7 +10,11 @@ from typing import Any
 
 from memory.answer import CachedAnswerer, NullAnswerer, OpenAICompatibleAnswerer
 from memory.answer_verify import audit_answer_support
-from memory.build import NullMemoryBuilder, OpenAICompatibleMemoryBuilder
+from memory.build import (
+    NullMemoryBuilder,
+    OpenAICompatibleMemoryBuilder,
+    memory_slot_record_source_policy_sort_key,
+)
 from memory.compiler import EvidenceCompiler, SUPPORTED_INFORMATION_NEEDS
 from memory.embeddings import CachedEmbeddingClient, OpenAICompatibleEmbeddingClient
 from memory.finalize import (
@@ -5481,83 +5485,10 @@ def _memory_graph_slot_record_sort_key(
     )
     if source_selection_policy != "validity_aware":
         return legacy_key
-    return (
-        _memory_record_validity_rank(record, question_scope=question_scope),
-        _memory_record_source_confidence_rank(record),
-        _memory_record_temporal_anchor_rank(record),
-        *_memory_record_time_rank(record, question_scope=question_scope),
-        str(getattr(record, "memory_id", "")),
+    return memory_slot_record_source_policy_sort_key(
+        record,
+        question_scope=question_scope,
     )
-
-
-def _memory_record_validity_rank(record: Any, *, question_scope: str) -> int:
-    status = str(getattr(record, "status", "active") or "active").lower()
-    memory_type = str(getattr(record, "memory_type", "") or "").lower()
-    closed = bool(
-        status == "superseded"
-        or getattr(record, "superseded_by", None)
-        or getattr(record, "valid_to", None)
-    )
-    event_scoped = bool(getattr(record, "event_time", None))
-    open_state = memory_type in _STATE_UPDATE_MEMORY_TYPES and not closed
-    if question_scope == "historical":
-        if closed:
-            return 0
-        if event_scoped:
-            return 1
-        if open_state:
-            return 2
-        return 3
-    if open_state:
-        return 0
-    if event_scoped:
-        return 1
-    if not closed:
-        return 2
-    return 3
-
-
-def _memory_record_source_confidence_rank(record: Any) -> int:
-    if not tuple(getattr(record, "source_ids", ()) or ()):
-        return 3
-    confidence = float(getattr(record, "confidence", 1.0) or 0.0)
-    if confidence >= 0.8:
-        return 0
-    if confidence >= 0.5:
-        return 1
-    return 2
-
-
-def _memory_record_temporal_anchor_rank(record: Any) -> int:
-    if (
-        getattr(record, "valid_from", None)
-        or getattr(record, "valid_to", None)
-        or getattr(record, "event_time", None)
-        or getattr(record, "mention_time", None)
-        or getattr(record, "timestamp", None)
-    ):
-        return 0
-    return 1
-
-
-def _memory_record_time_rank(record: Any, *, question_scope: str) -> tuple[int, str]:
-    time_value = str(
-        getattr(record, "valid_from", None)
-        or getattr(record, "event_time", None)
-        or getattr(record, "timestamp", None)
-        or getattr(record, "mention_time", None)
-        or ""
-    )
-    if question_scope == "historical":
-        return (0, time_value)
-    return (-_sortable_time_digits(time_value), time_value)
-
-
-def _sortable_time_digits(value: str) -> int:
-    digits = "".join(ch for ch in value if ch.isdigit())
-    if not digits:
-        return 0
-    return int(digits[:12])
 
 
 def _memory_graph_slot_signals(records: tuple[Any, ...]) -> tuple[str, ...]:

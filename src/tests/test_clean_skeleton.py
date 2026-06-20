@@ -2921,7 +2921,15 @@ class CleanSkeletonTest(unittest.TestCase):
             system_graph["object_schema"]["quality_signals"],
         )
         self.assertIn(
+            "slot_source_policy",
+            system_graph["object_schema"]["quality_signals"],
+        )
+        self.assertIn(
             "activation_role",
+            system_graph["object_schema"]["governance_signals"],
+        )
+        self.assertIn(
+            "question_scope_source_order",
             system_graph["object_schema"]["governance_signals"],
         )
         self.assertEqual(
@@ -2967,6 +2975,30 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual(
             system_graph["slot_quality"]["active_superseded_pair_slot_count"],
             1,
+        )
+        source_policy = system_graph["source_policy"]
+        self.assertEqual(
+            source_policy["schema_version"],
+            "memory_slot_source_policy_v1",
+        )
+        self.assertFalse(source_policy["trace_only"])
+        self.assertEqual(source_policy["lifecycle_slot_count"], 1)
+        self.assertEqual(
+            source_policy["policy"]["final_evidence_policy"],
+            "raw_source_rows",
+        )
+        city_policy = next(
+            slot
+            for slot in source_policy["slot_samples"]
+            if slot["predicate"] == "location"
+        )
+        self.assertEqual(
+            city_policy["current_source_order"],
+            ["s2:t1", "s2:t2", "s1:t1"],
+        )
+        self.assertEqual(
+            city_policy["historical_source_order"],
+            ["s1:t1", "s2:t1", "s2:t2"],
         )
         governance_manifest = system_graph["governance_manifest"]
         self.assertEqual(
