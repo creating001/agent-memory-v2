@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_lifecycle_graph_overflow_v264_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_memory_system_quality_v265_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v264 local LTS |
+| Benchmark | 当前 v265 local LTS |
 |---|---:|
 | LongMemEval-S full | strict/lenient `0.832000 / 0.844000`，avg build/query tokens `85393.566 / 6462.478` |
 | LoCoMo non-adversarial full | strict/lenient `0.794156 / 0.819481`，avg build/query tokens `62015.57402597403 / 6094.017532467533` |
 
-v264 的 LTS 理由：在 v262 的 source-backed memory system graph 基础上，新增 lifecycle-gated graph overflow。Graph utility 只有在 slot 明确带有 `supersede` 或 `conflict_slot` 等生命周期信号时，才把对应 raw source rows 作为 tail-rescue 候选；typed/graph memory 仍只做激活和审计，不直接替代原文证据。full changed-answer judge 与 v262 持平，LoCoMo answer-identical，性能不退，同时比 v263 的简单 overflow 风险更低。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_lifecycle_graph_overflow_v264_full_summary.md`。
+v265 的 LTS 理由：继承 v264 的 lifecycle-gated graph overflow，并把 build-stage `memory_system_graph` 升级为带 schema version、source quality、slot quality 和 governance policy 的系统化记忆对象视图。v265 与 v264 full 的 answer、prompt、final evidence、retrieval 和 token 全等，性能不退；新增字段只用于 trace/diagnosis，不进入 prompt 或 cache key。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_memory_system_quality_v265_full_summary.md`。
 
 ## 目录
 

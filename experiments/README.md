@@ -6,15 +6,15 @@
 
 | 项目 | 结果 |
 |---|---|
-| 当前 LTS 配置 | `configs/stage1_lifecycle_graph_overflow_v264_seeded_qwen36_no_think_build4k_cached.json` |
+| 当前 LTS 配置 | `configs/stage1_memory_system_quality_v265_seeded_qwen36_no_think_build4k_cached.json` |
 | Backbone | `Qwen/Qwen3.6-35B-A3B` answer/build，`chat_template_kwargs.enable_thinking=false` |
-| 方法定位 | source-backed build memory management + operation ledger + memory system graph + lifecycle-gated graph evidence utility + raw evidence compiler + source-grounded answer audit。Graph/typed memory 只做 source-backed activation、ranking hint 和 audit；最终 evidence 仍回到 raw Memory rows。 |
+| 方法定位 | source-backed build memory management + operation ledger + schema/quality-aware memory system graph + lifecycle-gated graph evidence utility + raw evidence compiler + source-grounded answer audit。Graph/typed memory 只做 source-backed activation、ranking hint 和 audit；最终 evidence 仍回到 raw Memory rows。 |
 | LongMemEval-S full | strict/lenient `0.832000 / 0.844000`，`416/500` strict，`422/500` lenient；avg build/query tokens `85393.566 / 6462.478` |
 | LoCoMo non-adversarial full | strict/lenient `0.794156 / 0.819481`，`1223/1540` strict，`1262/1540` lenient；avg build/query tokens `62015.57402597403 / 6094.017532467533` |
-| LTS 理由 | v264 把 v262 的 passive graph utility 推进为 lifecycle-gated tail-rescue：只有显式 `supersede` / `conflict_slot` slot 才能投射 raw source rows，避免 v263 简单 overflow 的噪声风险。LME full changed-answer judge 与 v262 持平，LoCoMo answer-identical；性能不退，系统风险更低。 |
-| 主要局限 | Build memory schema 仍偏 typed-record 后处理；query stack 还有 route/selected-context/state-guide/ledger/audit 兼容层；LME query tokens 仍略高于 6K 目标但低于 8K hard diagnostic 线。 |
+| LTS 理由 | v265 与 v264 full 的 answer/prompt/final-evidence/retrieval/token diff 全为 `0`，继承 v264 accuracy；同时给 build-time memory system graph 增加 schema version、source quality、slot quality 和 governance policy，让 build 阶段更像可治理系统而不是浅 typed memory 后处理。 |
+| 主要局限 | 新 quality metadata 仍是 trace/diagnosis，不直接改善 retrieval；query stack 还有 route/selected-context/state-guide/ledger/audit 兼容层；LME query tokens 仍略高于 6K 目标但低于 8K hard diagnostic 线。 |
 
-v264 关键证据见 `experiments/diagnostic/stage1_lifecycle_graph_overflow_v264_full_summary.md`。如果论文级最终汇报需要 fresh full judge，再对最终 LTS 配置完整重跑 dual judge；日常迭代优先用 full diff + changed-answer paired judge，避免无意义重跑。
+v265 关键证据见 `experiments/diagnostic/stage1_memory_system_quality_v265_full_summary.md`。如果论文级最终汇报需要 fresh full judge，再对最终 LTS 配置完整重跑 dual judge；日常迭代优先用 full diff + changed-answer paired judge，避免无意义重跑。
 
 ## 口径
 
@@ -38,7 +38,8 @@ v264 关键证据见 `experiments/diagnostic/stage1_lifecycle_graph_overflow_v26
 
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
-| `configs/stage1_lifecycle_graph_overflow_v264_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_lifecycle_graph_overflow_v264_full_summary.md` | current LTS | LME answer diff `5/500`，changed-answer judge strict/lenient `1/5 -> 1/5`；LoCoMo answer diff `0/1540`；graph utility applied LME `130/500`、LoCoMo `439/1540` | 当前 LTS；性能不退，生命周期 gate 降低 v263 overflow 风险 |
+| `configs/stage1_memory_system_quality_v265_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_memory_system_quality_v265_full_summary.md` | current LTS | vs v264 full answer/prompt/final-evidence/retrieval/token diff `0`；quality schema seen LME `500/500`、LoCoMo `1540/1540`; answer cache hits LME `500/500`、LoCoMo `1540/1540` | 当前 LTS；性能不退，build memory system 风险更低 |
+| `configs/stage1_lifecycle_graph_overflow_v264_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_lifecycle_graph_overflow_v264_full_summary.md` | previous LTS | LME answer diff `5/500`，changed-answer judge strict/lenient `1/5 -> 1/5`；LoCoMo answer diff `0/1540`；graph utility applied LME `130/500`、LoCoMo `439/1540` | 被 v265 继承；生命周期 gate 降低 v263 overflow 风险 |
 | `configs/stage1_graph_evidence_overflow_v263_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_graph_evidence_overflow_v263_scope_summary.md` | rejected full | LME answer diff `15/500`，changed-answer judge delta strict/lenient `-2/-1`；LoCoMo answer-identical | 不升 LTS；简单 overflow 即使 source-backed 也会引入干扰 evidence |
 | `configs/stage1_graph_evidence_utility_v262_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_graph_evidence_utility_v262_full_summary.md` | previous LTS | answer/retrieval/final-evidence/token diff 均为 `0`；graph utility applied LME `341/500`、LoCoMo `1373/1540` | 被 v264 替代；保留为 passive graph utility 父锚点 |
 | v257-v261 build ledger / lifecycle utility / memory graph line | previous LTS anchors | operation ledger、append-only lifecycle utility、memory system graph 都以 answer-identical 方式降低系统风险 | 被 v264 继承；详细见对应 scope summary |
