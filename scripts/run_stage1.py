@@ -151,6 +151,18 @@ def main() -> int:
     build_memory_system_graph_memory_object_index_registry_operation_counts: dict[
         str, int
     ] = {}
+    build_memory_system_graph_memory_object_index_working_view_layer_counts: dict[
+        str, int
+    ] = {}
+    build_memory_system_graph_memory_object_index_working_view_role_counts: dict[
+        str, int
+    ] = {}
+    build_memory_system_graph_memory_object_index_working_view_target_counts: dict[
+        str, int
+    ] = {}
+    build_memory_system_graph_memory_object_index_working_view_operation_counts: dict[
+        str, int
+    ] = {}
     total_build_memory_operation_ledger_applied = 0
     total_build_memory_operation_ledger_source_backed = 0
     total_build_memory_operation_ledger_source_unbacked = 0
@@ -195,6 +207,10 @@ def main() -> int:
     total_build_memory_system_graph_index_operation_registry_slot_entries = 0
     total_build_memory_system_graph_index_operation_registry_conflict_entries = 0
     total_build_memory_system_graph_index_operation_registry_source_backed_entries = 0
+    total_build_memory_system_graph_index_working_memory_view_applied = 0
+    total_build_memory_system_graph_index_working_memory_view_entries = 0
+    total_build_memory_system_graph_index_working_memory_view_source_backed_entries = 0
+    total_build_memory_system_graph_index_working_memory_view_source_incomplete_entries = 0
     total_build_memory_system_graph_source_backed_records = 0
     total_build_memory_system_graph_complete_slot_key_records = 0
     total_build_memory_system_graph_temporal_anchor_records = 0
@@ -720,6 +736,38 @@ def main() -> int:
                     )
                     total_build_memory_system_graph_index_operation_registry_source_backed_entries += int(
                         operation_registry.get("source_backed_entry_count") or 0
+                    )
+                working_memory_view = (
+                    memory_object_index.get("working_memory_view") or {}
+                )
+                if isinstance(working_memory_view, Mapping) and working_memory_view.get(
+                    "applied"
+                ):
+                    total_build_memory_system_graph_index_working_memory_view_applied += 1
+                    _merge_int_counts(
+                        build_memory_system_graph_memory_object_index_working_view_layer_counts,
+                        working_memory_view.get("layer_counts") or {},
+                    )
+                    _merge_int_counts(
+                        build_memory_system_graph_memory_object_index_working_view_role_counts,
+                        working_memory_view.get("role_counts") or {},
+                    )
+                    _merge_int_counts(
+                        build_memory_system_graph_memory_object_index_working_view_target_counts,
+                        working_memory_view.get("target_counts") or {},
+                    )
+                    _merge_int_counts(
+                        build_memory_system_graph_memory_object_index_working_view_operation_counts,
+                        working_memory_view.get("operation_counts") or {},
+                    )
+                    total_build_memory_system_graph_index_working_memory_view_entries += int(
+                        working_memory_view.get("entry_count") or 0
+                    )
+                    total_build_memory_system_graph_index_working_memory_view_source_backed_entries += int(
+                        working_memory_view.get("source_backed_entry_count") or 0
+                    )
+                    total_build_memory_system_graph_index_working_memory_view_source_incomplete_entries += int(
+                        working_memory_view.get("source_incomplete_entry_count") or 0
                     )
             source_quality = memory_system_graph.get("source_quality") or {}
             total_build_memory_system_graph_source_backed_records += int(
@@ -1665,6 +1713,25 @@ def main() -> int:
             "memory_system_graph_memory_object_index_registry_operation_counts": (
                 build_memory_system_graph_memory_object_index_registry_operation_counts
             ),
+            "memory_system_graph_memory_object_index_working_memory_view_applied_count": (
+                total_build_memory_system_graph_index_working_memory_view_applied
+            ),
+            "memory_system_graph_memory_object_index_working_memory_view_applied_rate": _safe_average(
+                total_build_memory_system_graph_index_working_memory_view_applied,
+                sample_count,
+            ),
+            "memory_system_graph_memory_object_index_working_memory_view_layer_counts": (
+                build_memory_system_graph_memory_object_index_working_view_layer_counts
+            ),
+            "memory_system_graph_memory_object_index_working_memory_view_role_counts": (
+                build_memory_system_graph_memory_object_index_working_view_role_counts
+            ),
+            "memory_system_graph_memory_object_index_working_memory_view_target_counts": (
+                build_memory_system_graph_memory_object_index_working_view_target_counts
+            ),
+            "memory_system_graph_memory_object_index_working_memory_view_operation_counts": (
+                build_memory_system_graph_memory_object_index_working_view_operation_counts
+            ),
             "avg_memory_system_graph_objects": _safe_average(
                 total_build_memory_system_graph_objects,
                 total_build_memory_system_graph_applied,
@@ -1831,6 +1898,24 @@ def main() -> int:
                 _safe_average(
                     total_build_memory_system_graph_index_operation_registry_source_backed_entries,
                     total_build_memory_system_graph_memory_object_index_applied,
+                )
+            ),
+            "avg_memory_system_graph_memory_object_index_working_memory_view_entries": (
+                _safe_average(
+                    total_build_memory_system_graph_index_working_memory_view_entries,
+                    total_build_memory_system_graph_index_working_memory_view_applied,
+                )
+            ),
+            "avg_memory_system_graph_memory_object_index_working_memory_view_source_backed_entries": (
+                _safe_average(
+                    total_build_memory_system_graph_index_working_memory_view_source_backed_entries,
+                    total_build_memory_system_graph_index_working_memory_view_applied,
+                )
+            ),
+            "avg_memory_system_graph_memory_object_index_working_memory_view_source_incomplete_entries": (
+                _safe_average(
+                    total_build_memory_system_graph_index_working_memory_view_source_incomplete_entries,
+                    total_build_memory_system_graph_index_working_memory_view_applied,
                 )
             ),
             "avg_memory_system_graph_source_backed_records": _safe_average(

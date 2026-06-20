@@ -1199,6 +1199,7 @@ def _memory_system_object_schema() -> dict[str, Any]:
             "value_object",
             "scalar_value",
             "build_owned_scalar_value_manifest",
+            "working_memory_view",
         ],
         "governance_signals": [
             "source_activation_ready",
@@ -1218,6 +1219,7 @@ def _memory_system_object_schema() -> dict[str, Any]:
             "build_owned_memory_object_index",
             "build_owned_operation_slot_index",
             "build_owned_operation_registry",
+            "build_owned_working_memory_view",
         ],
 }
 
@@ -1294,6 +1296,7 @@ def _memory_object_index_manifest(
         state_conflict_slots=state_conflict_slots,
         operation_manifest=operation_manifest,
     )
+    working_memory_view = _memory_working_memory_view(operation_registry)
     object_samples = [
         {
             "memory_id": record.memory_id,
@@ -1358,6 +1361,10 @@ def _memory_object_index_manifest(
         "operation_registry_source_backed_entry_count": (
             operation_registry["source_backed_entry_count"]
         ),
+        "working_memory_view_entry_count": working_memory_view["entry_count"],
+        "working_memory_view_source_backed_entry_count": (
+            working_memory_view["source_backed_entry_count"]
+        ),
         "source_backed_object_count": sum(
             1 for record in managed_records if record.source_ids
         ),
@@ -1416,6 +1423,21 @@ def _memory_object_index_manifest(
                 "operation_scope": "source_backed_memory_management_and_context_use",
                 "policy": "operations_expand_to_raw_sources_before_final_evidence",
             },
+            "working_memory_view_contract": {
+                "view_field": "working_memory_view",
+                "schema_version": "memory_working_view_v1",
+                "layers": [
+                    "short_term_memory",
+                    "working_memory",
+                    "long_term_memory",
+                    "archival_memory",
+                    "quarantine_memory",
+                ],
+                "policy": (
+                    "query compiler consumes source-backed workspace entries; "
+                    "short-term memory is supplied by visible raw rows at query time"
+                ),
+            },
             "state_conflict_contract": {
                 "slot_index_field": "state_conflict_slot_index",
                 "slot_scope": "same memory_type, subject, predicate",
@@ -1430,6 +1452,7 @@ def _memory_object_index_manifest(
         "operation_slot_index": operation_slots,
         "state_conflict_slot_index": state_conflict_slots,
         "operation_registry": operation_registry,
+        "working_memory_view": working_memory_view,
         "state_conflict_slot_ids": sorted(str(slot_id) for slot_id in conflict_slot_ids),
         "clean_note": (
             "Question-independent build memory object index. It unifies tier, "
@@ -1466,6 +1489,166 @@ def _memory_object_state_conflict_slot_index(
             }
         )
     return slots
+
+
+def _memory_working_memory_view(
+    operation_registry: dict[str, Any],
+) -> dict[str, Any]:
+    """Workspace view over source-backed memory operations for query consumers."""
+
+    entries: list[dict[str, Any]] = []
+    for raw_entry in operation_registry.get("entries") or ():
+        if not isinstance(raw_entry, dict):
+            continue
+        source_ids = _ordered_strings(
+            raw_entry.get("expand_source_order") or raw_entry.get("source_ids") or ()
+        )[:12]
+        workspace_layer = _memory_workspace_layer(raw_entry)
+        workspace_role = _memory_workspace_role(raw_entry)
+        entries.append(
+            {
+                "entry_id": f"wm:{raw_entry.get('entry_id') or len(entries)}",
+                "registry_entry_id": str(raw_entry.get("entry_id") or ""),
+                "target_type": str(raw_entry.get("target_type") or "object"),
+                "target_id": str(raw_entry.get("target_id") or ""),
+                "slot_id": str(raw_entry.get("slot_id") or ""),
+                "memory_id": str(raw_entry.get("memory_id") or ""),
+                "memory_type": str(raw_entry.get("memory_type") or ""),
+                "namespace": str(raw_entry.get("namespace") or ""),
+                "layer": str(raw_entry.get("layer") or ""),
+                "memory_tier": str(raw_entry.get("memory_tier") or ""),
+                "workspace_layer": workspace_layer,
+                "workspace_role": workspace_role,
+                "status": str(raw_entry.get("status") or ""),
+                "subject": _normalize_key_text(str(raw_entry.get("subject") or "")),
+                "predicate": _normalize_key_text(str(raw_entry.get("predicate") or "")),
+                "values": _ordered_strings(raw_entry.get("values") or ())[:12],
+                "operations": _ordered_strings(raw_entry.get("operations") or ()),
+                "source_backed": bool(raw_entry.get("source_backed") or source_ids),
+                "source_ids": source_ids,
+                "expand_source_order": source_ids,
+                "verify_policy": "expand_to_raw_source_rows",
+                "audit_policy": "source_support_status_slot_and_lifecycle",
+                "source_policy": {
+                    "raw_evidence_required": True,
+                    "final_evidence_policy": "raw_source_rows",
+                },
+            }
+        )
+
+    layer_counts: dict[str, int] = defaultdict(int)
+    role_counts: dict[str, int] = defaultdict(int)
+    target_counts: dict[str, int] = defaultdict(int)
+    operation_counts: dict[str, int] = defaultdict(int)
+    source_backed_count = 0
+    for entry in entries:
+        layer_counts[str(entry.get("workspace_layer") or "unknown")] += 1
+        role_counts[str(entry.get("workspace_role") or "unknown")] += 1
+        target_counts[str(entry.get("target_type") or "unknown")] += 1
+        if entry.get("source_backed"):
+            source_backed_count += 1
+        for operation in entry.get("operations") or ():
+            operation_counts[str(operation)] += 1
+
+    return {
+        "schema_version": "memory_working_view_v1",
+        "trace_only": False,
+        "applied": True,
+        "entry_count": len(entries),
+        "source_backed_entry_count": source_backed_count,
+        "source_incomplete_entry_count": max(0, len(entries) - source_backed_count),
+        "layer_counts": dict(sorted(layer_counts.items())),
+        "role_counts": dict(sorted(role_counts.items())),
+        "target_counts": dict(sorted(target_counts.items())),
+        "operation_counts": dict(sorted(operation_counts.items())),
+        "layer_contract": {
+            "short_term_memory": (
+                "query-local raw turns and cited Memory rows; not persisted by "
+                "build memory"
+            ),
+            "working_memory": (
+                "active source-backed objects, value slots, conflict slots, and "
+                "operation targets for current state organization"
+            ),
+            "long_term_memory": (
+                "source-backed stable recall objects and slots; retrieved or "
+                "expanded through raw source ids"
+            ),
+            "archival_memory": (
+                "superseded or historical objects retained for conflict audit "
+                "and temporal comparison"
+            ),
+            "quarantine_memory": (
+                "low-confidence or source-incomplete objects; not eligible as "
+                "independent evidence"
+            ),
+        },
+        "operation_contract": [
+            "create",
+            "update",
+            "merge",
+            "supersede",
+            "retrieve",
+            "expand",
+            "verify",
+            "audit",
+        ],
+        "source_policy": {
+            "raw_evidence_required": True,
+            "final_evidence_policy": "raw_source_rows",
+            "question_independent_build": True,
+        },
+        "entries": entries,
+        "clean_note": (
+            "Question-independent working-memory view over the operation registry. "
+            "It organizes build memory into layer/role/target entries for state "
+            "management, conflict handling, context organization, and answer audit; "
+            "all entries must expand to raw source rows before final evidence."
+        ),
+    }
+
+
+def _memory_workspace_layer(entry: dict[str, Any]) -> str:
+    memory_tier = str(entry.get("memory_tier") or "")
+    if memory_tier in {
+        "working_memory",
+        "long_term_memory",
+        "archival_memory",
+        "quarantine_memory",
+    }:
+        return memory_tier
+    if str(entry.get("target_type") or "") in {"value_slot", "conflict_slot"}:
+        return "working_memory"
+    return "long_term_memory"
+
+
+def _memory_workspace_role(entry: dict[str, Any]) -> str:
+    target_type = str(entry.get("target_type") or "")
+    operations = {str(item) for item in entry.get("operations") or ()}
+    status = str(entry.get("status") or "")
+    if target_type == "conflict_slot":
+        return "conflict_resolution"
+    if target_type == "value_slot":
+        return "state_value_tracking"
+    if target_type == "operation_slot":
+        if operations.intersection(
+            {
+                "supersede",
+                "conflict_slot",
+                "audit_supersede",
+                "audit_conflict_slot",
+                "audit_state_conflict_slot",
+            }
+        ):
+            return "lifecycle_operation"
+        return "retrieval_operation"
+    if status == "superseded":
+        return "archival_object"
+    if str(entry.get("memory_tier") or "") == "quarantine_memory":
+        return "quarantine_object"
+    if str(entry.get("memory_tier") or "") == "working_memory":
+        return "active_state_object"
+    return "long_term_recall_object"
 
 
 def _memory_object_operation_registry(
@@ -1702,6 +1885,16 @@ def _memory_object_operation_slot_index(
                 "memory_type": memory_type,
                 "namespace": _memory_namespace(record_tuple[0]),
                 "layer": _memory_layer(memory_type),
+                "memory_tier": _slot_memory_tier(
+                    {
+                        "memory_type": memory_type,
+                        "managed": memory_type in managed_memory_types,
+                        "status_counts": _memory_operation_slot_status_counts(
+                            record_tuple
+                        ),
+                    },
+                    managed_memory_types=managed_memory_types,
+                ),
                 "managed": memory_type in managed_memory_types,
                 "subject": subject,
                 "predicate": predicate,

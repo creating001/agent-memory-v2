@@ -3134,6 +3134,10 @@ class CleanSkeletonTest(unittest.TestCase):
             "build_owned_operation_registry",
             system_graph["object_schema"]["governance_signals"],
         )
+        self.assertIn(
+            "build_owned_working_memory_view",
+            system_graph["object_schema"]["governance_signals"],
+        )
         self.assertEqual(
             system_graph["governance"]["final_evidence_policy"],
             "raw_source_rows_only",
@@ -3318,6 +3322,11 @@ class CleanSkeletonTest(unittest.TestCase):
             memory_object_index["operation_registry_source_backed_entry_count"],
             8,
         )
+        self.assertEqual(memory_object_index["working_memory_view_entry_count"], 8)
+        self.assertEqual(
+            memory_object_index["working_memory_view_source_backed_entry_count"],
+            8,
+        )
         self.assertEqual(
             memory_object_index["source_backed_object_count"],
             3,
@@ -3354,6 +3363,12 @@ class CleanSkeletonTest(unittest.TestCase):
             ],
             "operation_registry",
         )
+        self.assertEqual(
+            memory_object_index["index_contract"]["working_memory_view_contract"][
+                "view_field"
+            ],
+            "working_memory_view",
+        )
         operation_registry = memory_object_index["operation_registry"]
         self.assertEqual(
             operation_registry["schema_version"],
@@ -3374,6 +3389,39 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual(
             operation_registry["source_policy"]["final_evidence_policy"],
             "raw_source_rows",
+        )
+        working_memory_view = memory_object_index["working_memory_view"]
+        self.assertEqual(
+            working_memory_view["schema_version"],
+            "memory_working_view_v1",
+        )
+        self.assertFalse(working_memory_view["trace_only"])
+        self.assertTrue(working_memory_view["applied"])
+        self.assertEqual(working_memory_view["entry_count"], 8)
+        self.assertEqual(working_memory_view["source_backed_entry_count"], 8)
+        self.assertIn("short_term_memory", working_memory_view["layer_contract"])
+        self.assertEqual(
+            working_memory_view["target_counts"],
+            {
+                "conflict_slot": 1,
+                "object": 3,
+                "operation_slot": 2,
+                "value_slot": 2,
+            },
+        )
+        city_workspace_conflict = next(
+            entry
+            for entry in working_memory_view["entries"]
+            if entry["target_type"] == "conflict_slot"
+            and entry["predicate"] == "location"
+        )
+        self.assertEqual(
+            city_workspace_conflict["workspace_role"],
+            "conflict_resolution",
+        )
+        self.assertEqual(
+            city_workspace_conflict["expand_source_order"],
+            ["s2:t1", "s2:t2", "s1:t1"],
         )
         city_object_operation = next(
             entry
@@ -3432,6 +3480,7 @@ class CleanSkeletonTest(unittest.TestCase):
             for slot in memory_object_index["operation_slot_index"]
             if slot["predicate"] == "location"
         )
+        self.assertEqual(city_operation_slot["memory_tier"], "working_memory")
         self.assertEqual(city_operation_slot["operations"], ["supersede", "conflict_slot"])
         self.assertIn("supersede", city_operation_slot["graph_signals"])
         self.assertIn("conflict_slot", city_operation_slot["graph_signals"])
@@ -10128,6 +10177,9 @@ class CleanSkeletonTest(unittest.TestCase):
 
         self.assertIn("Working Memory Packet:", compiled.prompt)
         self.assertIn("tier=working_memory", compiled.prompt)
+        self.assertIn("workspace=working_memory", compiled.prompt)
+        self.assertIn("role=conflict_resolution", compiled.prompt)
+        self.assertIn("role=state_value_tracking", compiled.prompt)
         self.assertIn("target=conflict_slot", compiled.prompt)
         self.assertIn("target=value_slot", compiled.prompt)
         packet = compiled.prompt[compiled.prompt.index("Working Memory Packet:") :]

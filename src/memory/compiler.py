@@ -4370,16 +4370,22 @@ def _external_working_memory_packet_lines(
 
     if not rows or max_items <= 0 or not isinstance(memory_object_index, Mapping):
         return []
-    registry = memory_object_index.get("operation_registry")
-    if not isinstance(registry, Mapping) or not registry.get("applied"):
-        return []
+    raw_entries: Iterable[Any] = ()
+    working_memory_view = memory_object_index.get("working_memory_view")
+    if isinstance(working_memory_view, Mapping) and working_memory_view.get("applied"):
+        raw_entries = working_memory_view.get("entries") or ()
+    if not raw_entries:
+        registry = memory_object_index.get("operation_registry")
+        if not isinstance(registry, Mapping) or not registry.get("applied"):
+            return []
+        raw_entries = registry.get("entries") or ()
 
     source_to_memory_index = {
         row.source_id: index for index, row in enumerate(rows, start=1)
     }
     question_terms = _content_terms(question)
     candidates: list[tuple[float, float, int, Mapping[str, Any], tuple[str, ...]]] = []
-    for ordinal, entry in enumerate(registry.get("entries") or ()):
+    for ordinal, entry in enumerate(raw_entries):
         if not isinstance(entry, Mapping):
             continue
         if not entry.get("source_backed"):
@@ -4432,6 +4438,12 @@ def _external_working_memory_packet_lines(
             f"target={str(entry.get('target_type') or 'object')}",
             f"type={str(entry.get('memory_type') or 'unknown')}",
         ]
+        workspace_layer = str(entry.get("workspace_layer") or "")
+        if workspace_layer:
+            fields.insert(1, f"workspace={workspace_layer}")
+        workspace_role = str(entry.get("workspace_role") or "")
+        if workspace_role:
+            fields.append(f"role={workspace_role}")
         tier = str(entry.get("memory_tier") or "")
         if tier:
             fields.insert(1, f"tier={tier}")
@@ -4533,6 +4545,8 @@ def _working_memory_packet_entry_score(
             str(part)
             for part in (
                 entry.get("target_type"),
+                entry.get("workspace_layer"),
+                entry.get("workspace_role"),
                 entry.get("memory_type"),
                 entry.get("subject"),
                 entry.get("predicate"),
