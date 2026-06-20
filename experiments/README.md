@@ -6,15 +6,15 @@
 
 | 项目 | 结果 |
 |---|---|
-| 当前 LTS 配置 | `configs/stage1_validity_aware_graph_utility_v274_seeded_qwen36_no_think_build4k_cached.json` |
+| 当前 LTS 配置 | `configs/stage1_build_slot_source_policy_v275_seeded_qwen36_no_think_build4k_cached.json` |
 | Backbone | `Qwen/Qwen3.6-35B-A3B` answer/build，`chat_template_kwargs.enable_thinking=false` |
-| 方法定位 | source-backed build memory management + operation ledger + schema/quality-aware memory system graph v3 + temporal-scope/validity/source-confidence manifest + validity-aware graph utility source selection + governed typed-memory activation + build-stage activation utility manifest + narrow explicit-date/recent route conflict resolver + lifecycle-gated graph evidence utility + raw evidence compiler + source-grounded answer audit。Typed memory 只能作为受 governance/utility 约束的 activation、ranking hint 和 audit；最终 evidence 仍回到 raw Memory rows。 |
+| 方法定位 | source-backed build memory management + operation ledger + schema/quality-aware memory system graph v3 + temporal-scope/validity/source-confidence manifest + build-owned slot source policy + validity-aware graph utility source selection + governed typed-memory activation + build-stage activation utility manifest + narrow explicit-date/recent route conflict resolver + lifecycle-gated graph evidence utility + raw evidence compiler + source-grounded answer audit。Typed memory 只能作为受 governance/utility 约束的 activation、ranking hint 和 audit；最终 evidence 仍回到 raw Memory rows。 |
 | LongMemEval-S full | strict/lenient `0.832000 / 0.844000`，`416/500` strict，`422/500` lenient；avg build/query tokens `85393.566 / 6463.04` |
 | LoCoMo non-adversarial full | strict/lenient `0.794156 / 0.819481`，`1223/1540` strict，`1262/1540` lenient；avg build/query tokens `62015.57402597403 / 6093.8493506493505` |
-| LTS 理由 | v274 相对 v273：LME full changed answer `1/500`，changed-answer dual judge delta strict/lenient `0/0`；LoCoMo full answer diff `0/1540`。它把 v273 的 validity/source-confidence manifest 用进 graph utility 源选择，性能主指标不退，同时减少 build memory 只记录不参与 activation 的系统风险。 |
-| 主要局限 | v274 仍是保守小步，不是直接提分；query stack 仍有 route/selected-context/state-guide/ledger/audit 兼容层；LME query tokens 仍略高于 6K 目标但低于 8K hard diagnostic 线。 |
+| LTS 理由 | v275 相对 v274：LME/LoCoMo full answer、prompt、route、evidence、retrieval、token 全部 `0` diff，answer cache `2040/0`；build graph `source_policy` 覆盖 `2040/2040`。它把 graph utility source ordering 收敛到 build memory system，性能主指标不退，同时减少 query-side scattered policy 风险。 |
+| 主要局限 | v275 仍是结构性小步，不是直接提分；query stack 仍有 route/selected-context/state-guide/ledger/audit 兼容层；LME query tokens 仍略高于 6K 目标但低于 8K hard diagnostic 线。 |
 
-v274 关键证据见 `experiments/diagnostic/stage1_validity_aware_graph_utility_v274_full_summary.md`。如果论文级最终汇报需要 fresh full judge，再对最终 LTS 配置完整重跑 dual judge；日常迭代优先用 full diff + changed-answer paired judge，避免无意义重跑。
+v275 关键证据见 `experiments/diagnostic/stage1_build_slot_source_policy_v275_full_summary.md`。如果论文级最终汇报需要 fresh full judge，再对最终 LTS 配置完整重跑 dual judge；日常迭代优先用 full diff + changed-answer paired judge，避免无意义重跑。
 
 ## 口径
 
@@ -38,11 +38,11 @@ v274 关键证据见 `experiments/diagnostic/stage1_validity_aware_graph_utility
 
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
-| `configs/stage1_validity_aware_graph_utility_v274_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_validity_aware_graph_utility_v274_full_summary.md` | current LTS | LME changed answers `1/500`，changed-answer dual judge delta strict/lenient `0/0`；LoCoMo answer diff `0/1540`；graph policy trace seen LME `500/500`、LoCoMo `1540/1540` | 升 LTS；validity/source-confidence 不再只是 manifest，而是参与 graph utility source selection；性能主指标不退 |
+| `configs/stage1_build_slot_source_policy_v275_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_build_slot_source_policy_v275_full_summary.md` | current LTS | v275 vs v274 full answer/prompt/route/evidence/retrieval/token diff `0`；source_policy seen LME `500/500`、LoCoMo `1540/1540`；answer cache `2040/0` | 升 LTS；把 validity-aware source ordering 收敛到 build memory system，性能主指标不退 |
+| `configs/stage1_validity_aware_graph_utility_v274_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_validity_aware_graph_utility_v274_full_summary.md` | previous LTS | LME changed answers `1/500`，changed-answer dual judge delta strict/lenient `0/0`；LoCoMo answer diff `0/1540`；graph policy trace seen LME `500/500`、LoCoMo `1540/1540` | 被 v275 继承；validity/source-confidence 参与 graph utility source selection |
 | `configs/stage1_memory_object_validity_manifest_v273_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_memory_object_validity_manifest_v273_full_summary.md` | previous LTS | LME full diff `0/500`；LoCoMo changed answers `1/1540`，changed-answer dual judge delta strict/lenient `0/0`；manifest schema seen LME `500/500`、LoCoMo `1540/1540` | 被 v274 继承；build memory object 有 temporal scope / validity / source confidence |
 | `configs/stage1_explicit_date_recent_route_v272_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_explicit_date_recent_route_v272_full_summary.md` | previous LTS | LME full diff `0/500`；LoCoMo changed answers `2/1540`，changed-answer dual judge delta strict/lenient `0/0`；LoCoMo avg query tokens `6093.84025974026` | 被 v273 继承；把 v271 的 broad 显式日期路由收窄成 clean conflict resolver |
 | `configs/stage1_explicit_date_temporal_route_v271_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_explicit_date_temporal_route_v271_full_summary.md` | rejected full | full changed answers: LME `5/500`、LoCoMo `75/1540`；changed-answer dual judge delta LME strict/lenient `-2/-2`，LoCoMo `-13/-14`；query tokens 下降但 accuracy 回退 | 不升 LTS；显式日期无条件抢过 fact/list/current 路由过宽 |
-| `configs/stage1_priority_memory_retrieval_v270_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_priority_memory_retrieval_v270_full_summary.md` | evaluated candidate | full changed answers: LME `1/500`、LoCoMo `8/1540`；changed-answer dual judge delta strict/lenient 均为 `0/0`；priority reordered LME `6`、LoCoMo `46` | 不升 LTS；未带来 accuracy 提升，且增加 query-side prior |
 | v264-v267 memory governance / lifecycle graph line | previous anchors | lifecycle-gated graph utility、memory system quality、query surface simplification、governance manifest 均以 clean/answer-identical 或 changed-answer judge 不退方式降低风险 | 保留为可追溯锚点，详细见对应 full summary 和 git |
 | v216-v263 rejected context/retrieval/prompt/object-slot lines | historical lessons | hard gate、prompt-side operation guide、wide selected context、tail-exchange replacement、simple overflow 多次造成 changed-answer 回退 | 不再逐版展开；需要时查对应 scope summary 和 git |
 

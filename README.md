@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_validity_aware_graph_utility_v274_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_build_slot_source_policy_v275_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v274 local LTS |
+| Benchmark | 当前 v275 local LTS |
 |---|---:|
 | LongMemEval-S full | strict/lenient `0.832000 / 0.844000`，avg build/query tokens `85393.566 / 6463.04` |
 | LoCoMo non-adversarial full | strict/lenient `0.794156 / 0.819481`，avg build/query tokens `62015.57402597403 / 6093.8493506493505` |
 
-v274 的 LTS 理由：继承 v273 的 build memory object validity manifest，并让 source-backed validity、source confidence 和 temporal scope 参与 graph utility 的源选择。v274 没有改变 route、top-k、answer prompt 或最终 evidence 口径；LongMemEval-S full 只有 `1/500` answer diff，changed-answer dual judge strict/lenient delta `0/0`；LoCoMo full answer diff `0/1540`。性能主指标不退，同时减少 typed memory 只记录不参与 activation 的系统风险。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_validity_aware_graph_utility_v274_full_summary.md`。
+v275 的 LTS 理由：继承 v274 的 accuracy，并把 validity-aware graph source ordering 从 query pipeline 收敛到 build memory system 的 slot source policy manifest。v275 相对 v274 在 LongMemEval-S full 和 LoCoMo full 上 answer、prompt、route、evidence、retrieval、token 全部 `0` diff；source policy trace 覆盖 `500/500` 和 `1540/1540`。性能主指标不退，同时减少 build memory 只是记录、query 端散落决策的系统风险。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_build_slot_source_policy_v275_full_summary.md`。
 
 ## 目录
 
