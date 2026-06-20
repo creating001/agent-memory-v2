@@ -1,0 +1,39 @@
+{
+  "changed_count": 7,
+  "total_count": 50,
+  "labels": "outputs/prepare_longmemeval_s_cleaned/labels.jsonl",
+  "old_predictions": "outputs/diagnostic/v336_answer_contract_slot_guard_lme_probe50/predictions.jsonl",
+  "new_predictions": "outputs/diagnostic/v338_compact_workspace_packet_lme_probe50/predictions.jsonl",
+  "old_traces": "outputs/diagnostic/v336_answer_contract_slot_guard_lme_probe50/traces.jsonl",
+  "new_traces": "outputs/diagnostic/v338_compact_workspace_packet_lme_probe50/traces.jsonl",
+  "record_keys": [
+    "ea4e66b0d90b6834b4168cfe",
+    "d823172b5baf1eff81acb20c",
+    "4f59d44ad8458660ea315a98",
+    "d4bfe0f95ae6b5d7a565a8c1",
+    "acd2357eb392d2850a5d582e",
+    "8ff24d864a7513f4c6eb5f33",
+    "1c1b3d9d72cd50c2f6bdf23c"
+  ],
+  "route_counts": {
+    "fact_lookup": 31,
+    "list_count": 5,
+    "profile_preference": 2,
+    "temporal_lookup": 12
+  },
+  "changed_route_counts": {
+    "fact_lookup": 5,
+    "list_count": 1,
+    "temporal_lookup": 1
+  },
+  "avg_query_total_tokens": {
+    "old_v336_probe50": 5555.76,
+    "new_v338_probe50": 5395.32,
+    "delta": -160.4400000000005
+  },
+  "avg_compiled_prompt_chars": {
+    "old_v336_probe50": 18312.98,
+    "new_v338_probe50": 18035.6,
+    "delta": -277.380000000001
+  }
+}

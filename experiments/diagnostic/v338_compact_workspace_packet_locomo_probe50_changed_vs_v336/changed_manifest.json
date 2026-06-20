@@ -1,0 +1,57 @@
+{
+  "changed_count": 23,
+  "total_count": 50,
+  "labels": "outputs/prepare_locomo_non_adversarial/labels.jsonl",
+  "old_predictions": "outputs/diagnostic/v336_answer_contract_slot_guard_locomo_probe50/predictions.jsonl",
+  "new_predictions": "outputs/diagnostic/v338_compact_workspace_packet_locomo_probe50/predictions.jsonl",
+  "old_traces": "outputs/diagnostic/v336_answer_contract_slot_guard_locomo_probe50/traces.jsonl",
+  "new_traces": "outputs/diagnostic/v338_compact_workspace_packet_locomo_probe50/traces.jsonl",
+  "record_keys": [
+    "628d9b1436fa405b91ee2820",
+    "d41bb903497cfadc9e9f9682",
+    "0ef0216553b4eeff9be57e45",
+    "28821506df08ca36f78e989a",
+    "2726a17928daef593183a90f",
+    "f5e68c54090a60fac1b80246",
+    "daf5a3f4af72f6e342152a73",
+    "050de4d029518a005ce9e39a",
+    "6b6d09d7e82567bbb2a34cf0",
+    "7a46c72efd3f51977889864f",
+    "ba331f90bfc607beb8a0925c",
+    "663162cd2f331f7d572f90cd",
+    "aa45726d66b7f0d1b42abace",
+    "67f27e2361af6fb035a30c94",
+    "04a4ca37a584ea4afde09c96",
+    "aa88e50253b91ab0fc834727",
+    "f07b4728d028a1bce5489f14",
+    "d5068b3c68a955ba6cdfe705",
+    "b12aa2943787d18801882e7b",
+    "d3a8d12b5be57abcc6ef6dc6",
+    "c4049c9255ddeada782ae37e",
+    "c76a54d6c47bee06e2bee3d8",
+    "97e324be3e76a7dc37e954fd"
+  ],
+  "route_counts": {
+    "current_state": 1,
+    "fact_lookup": 16,
+    "list_count": 8,
+    "profile_preference": 1,
+    "temporal_lookup": 24
+  },
+  "changed_route_counts": {
+    "fact_lookup": 15,
+    "list_count": 4,
+    "profile_preference": 1,
+    "temporal_lookup": 3
+  },
+  "avg_query_total_tokens": {
+    "old_v336_probe50": 5700.88,
+    "new_v338_probe50": 5575.84,
+    "delta": -125.03999999999996
+  },
+  "avg_compiled_prompt_chars": {
+    "old_v336_probe50": 16545.2,
+    "new_v338_probe50": 16339.8,
+    "delta": -205.40000000000146
+  }
+}
