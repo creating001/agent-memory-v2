@@ -9941,6 +9941,8 @@ def _apply_workspace_policy_context_settings(
         "pressure_policy": {},
         "selected_context_before": selected_context_before,
         "selected_context_overrides": {},
+        "selected_context_no_widen_existing_profile": False,
+        "selected_context_no_widen_kept": {},
         "selected_context_after": dict(selected_context_before),
     }
     if not enabled:
@@ -9973,6 +9975,13 @@ def _apply_workspace_policy_context_settings(
         return settings, trace
 
     overrides: dict[str, Any] = {}
+    no_widen_existing_profile = bool(
+        pressure_policy.get("selected_context_no_widen_existing_profile")
+    )
+    trace["selected_context_no_widen_existing_profile"] = (
+        no_widen_existing_profile
+    )
+    no_widen_kept: dict[str, Any] = {}
     raw_context_format = pressure_policy.get("selected_context_format")
     if raw_context_format:
         try:
@@ -10003,10 +10012,23 @@ def _apply_workspace_policy_context_settings(
         if raw_value is None:
             continue
         try:
-            overrides[setting_key] = max(0, int(raw_value))
+            value = max(0, int(raw_value))
         except (TypeError, ValueError):
             trace["reason"] = f"invalid_{policy_key}"
             return settings, trace
+        current_value = settings.get(setting_key)
+        if (
+            no_widen_existing_profile
+            and isinstance(current_value, int)
+            and current_value > 0
+            and value > current_value
+        ):
+            no_widen_kept[setting_key] = {
+                "policy_value": value,
+                "kept_value": current_value,
+            }
+            continue
+        overrides[setting_key] = value
     if not overrides:
         trace["reason"] = "no_selected_context_pressure_policy"
         return settings, trace
@@ -10015,6 +10037,7 @@ def _apply_workspace_policy_context_settings(
     trace["applied"] = True
     trace["reason"] = "workspace_policy_pressure_policy"
     trace["selected_context_overrides"] = dict(overrides)
+    trace["selected_context_no_widen_kept"] = dict(no_widen_kept)
     trace["selected_context_after"] = {
         key: settings.get(key) for key in selected_context_policy_keys
     }

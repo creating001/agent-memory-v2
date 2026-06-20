@@ -3810,8 +3810,10 @@ def _memory_workspace_policy(
         },
     }
     pressure_policy = {
+        "selected_context_pack_policy": "profile_cap_no_widen",
         "selected_context_format": "compact",
         "selected_context_timestamp_policy": "center_only",
+        "selected_context_no_widen_existing_profile": True,
         "selected_context_max_rows": 5,
         "selected_context_max_neighbor_chars": 160,
         "selected_context_max_center_chars": 300,

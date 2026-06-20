@@ -1435,15 +1435,15 @@ class CleanSkeletonTest(unittest.TestCase):
             {
                 "context_format": "compact",
                 "timestamp_policy": "center_only",
-                "max_rows": 5,
-                "max_neighbor_chars": 160,
+                "max_rows": 2,
+                "max_neighbor_chars": 80,
                 "window_after": 2,
             },
         )
         self.assertEqual(selected_context["context_format"], "compact")
         self.assertEqual(selected_context["timestamp_policy"], "center_only")
-        self.assertEqual(selected_context["max_rows"], 5)
-        self.assertEqual(selected_context["max_neighbor_chars"], 160)
+        self.assertEqual(selected_context["max_rows"], 2)
+        self.assertEqual(selected_context["max_neighbor_chars"], 80)
         self.assertEqual(selected_context["window_after"], 2)
         self.assertIn("Same-session context:", row_text)
         self.assertIn("- center (2024-01-02) | assistant:", row_text)
@@ -1455,6 +1455,103 @@ class CleanSkeletonTest(unittest.TestCase):
                 "context_format"
             ],
             "compact",
+        )
+
+    def test_workspace_policy_context_caps_without_widening_existing_profile(
+        self,
+    ) -> None:
+        memory_record = MemoryRecord(
+            memory_id="m-book",
+            memory_type="fact",
+            text="Alex said the short book inspired training.",
+            source_ids=("s1:0",),
+            subject="Alex",
+            predicate="inspired_by",
+            value="short book",
+            status="active",
+        )
+
+        class FakeBuilder:
+            def build(self, turns: tuple[Turn, ...]) -> BuiltMemory:
+                del turns
+                return BuiltMemory(
+                    records=(memory_record,),
+                    token_usage=TokenUsage(),
+                    management=_management_summary(
+                        (memory_record,),
+                        policy="stateful_only",
+                        managed_memory_types=frozenset({"fact"}),
+                        include_memory_system_graph=True,
+                    ),
+                )
+
+        config = {
+            "build_memory": {
+                "enabled": True,
+                "mode": "openai_compatible",
+                "model": "fake",
+                "top_k": 1,
+                "max_sources_per_record": 1,
+            },
+            "retrieval": {
+                "top_k": 1,
+                "max_top_k": 1,
+                "neighbor_window": 0,
+                "workspace_policy_context": {
+                    "enabled": True,
+                    "apply_selected_context_pressure_policy": True,
+                    "information_needs": ["fact_lookup"],
+                },
+                "selected_context": {
+                    "enabled": True,
+                    "information_needs": ["fact_lookup"],
+                    "require_anaphora": False,
+                    "max_rows": 4,
+                    "max_neighbor_chars": 140,
+                    "max_center_chars": 260,
+                    "window_before": 1,
+                    "window_after": 1,
+                },
+            },
+            "compiler": {
+                "prompt_mode": "external_naive",
+                "max_evidence_items": 4,
+                "max_evidence_chars": 4000,
+            },
+            "answer": {"fallback_answer": "unknown"},
+        }
+        request = PredictionRequest(
+            question="What inspired Alex?",
+            turns=(
+                Turn(
+                    source_id="s1:0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Alex said the short book inspired training.",
+                    timestamp="2024-01-01",
+                ),
+            ),
+        )
+        pipeline = Stage1Pipeline(config)
+        pipeline._memory_builder = FakeBuilder()
+        result = pipeline.predict(request)
+        policy_context = result["trace"]["retrieval"]["workspace_policy_context"]
+        selected_context = result["trace"]["retrieval"]["selected_context"]
+
+        self.assertTrue(policy_context["applied"])
+        self.assertEqual(selected_context["max_rows"], 4)
+        self.assertEqual(selected_context["max_neighbor_chars"], 140)
+        self.assertEqual(selected_context["max_center_chars"], 260)
+        self.assertEqual(selected_context["window_after"], 1)
+        self.assertEqual(
+            policy_context["selected_context_no_widen_kept"],
+            {
+                "max_rows": {"kept_value": 4, "policy_value": 5},
+                "max_neighbor_chars": {"kept_value": 140, "policy_value": 160},
+                "max_center_chars": {"kept_value": 260, "policy_value": 300},
+                "window_after": {"kept_value": 1, "policy_value": 2},
+            },
         )
 
     def test_selected_context_can_require_question_reference(self) -> None:
