@@ -36,6 +36,7 @@ MAX_RELATIVE_TIME_SPANS = {
     "year": 100,
 }
 MEMORY_STATE_GUIDE_VALUE_CONFLICT_TYPES = {"fact", "preference", "profile", "state"}
+MEMORY_STATE_GUIDE_CONFLICT_SOURCES = {"records", "build_manifest"}
 MEMORY_STATE_GUIDE_ALIGNMENT_WEAK_TERMS = {
     "a",
     "about",
@@ -173,6 +174,7 @@ ROUTE_OVERRIDE_KEYS = {
     "memory_state_guide_require_active_superseded_pair",
     "memory_state_guide_require_slot_overlap",
     "memory_state_guide_require_conflict",
+    "memory_state_guide_conflict_source",
     "memory_state_guide_require_stateful_slot",
     "memory_state_guide_include_superseded",
     "memory_state_guide_max_records",
@@ -379,6 +381,7 @@ class EvidenceCompiler:
         memory_state_guide_value_chars: int = 120,
         memory_state_guide_include_superseded: bool = True,
         memory_state_guide_require_conflict: bool = False,
+        memory_state_guide_conflict_source: str = "records",
         memory_state_guide_require_active_superseded_pair: bool = False,
         memory_state_guide_require_slot_overlap: bool = False,
         memory_state_guide_require_stateful_slot: bool = False,
@@ -619,6 +622,11 @@ class EvidenceCompiler:
         self._memory_state_guide_require_conflict = bool(
             memory_state_guide_require_conflict
         )
+        self._memory_state_guide_conflict_source = (
+            _validate_memory_state_guide_conflict_source(
+                memory_state_guide_conflict_source
+            )
+        )
         self._memory_state_guide_require_active_superseded_pair = bool(
             memory_state_guide_require_active_superseded_pair
         )
@@ -701,6 +709,7 @@ class EvidenceCompiler:
         evidence_turns: tuple[Turn, ...],
         memory_records: tuple[MemoryRecord, ...] = (),
         memory_state_guide_records: tuple[MemoryRecord, ...] | None = None,
+        memory_state_conflict_manifest: Mapping[str, Any] | None = None,
     ) -> CompiledContext:
         hit_by_source_id = {hit.source_id: hit for hit in hits}
         candidates: list[EvidenceRow] = []
@@ -970,6 +979,7 @@ class EvidenceCompiler:
                 "memory_state_guide_max_records"
             ],
             memory_state_guide_records=selected_memory_state_guide_records,
+            memory_state_conflict_manifest=memory_state_conflict_manifest,
             memory_state_guide_candidate_records=route_settings[
                 "memory_state_guide_candidate_records"
             ],
@@ -981,6 +991,9 @@ class EvidenceCompiler:
             ],
             memory_state_guide_require_conflict=route_settings[
                 "memory_state_guide_require_conflict"
+            ],
+            memory_state_guide_conflict_source=route_settings[
+                "memory_state_guide_conflict_source"
             ],
             memory_state_guide_require_active_superseded_pair=route_settings[
                 "memory_state_guide_require_active_superseded_pair"
@@ -1163,6 +1176,9 @@ class EvidenceCompiler:
             "memory_state_guide_require_conflict": (
                 self._memory_state_guide_require_conflict
             ),
+            "memory_state_guide_conflict_source": (
+                self._memory_state_guide_conflict_source
+            ),
             "memory_state_guide_require_active_superseded_pair": (
                 self._memory_state_guide_require_active_superseded_pair
             ),
@@ -1292,6 +1308,15 @@ class EvidenceCompiler:
         }
         settings.update(self._route_overrides.get(route.information_need, {}))
         return settings
+
+
+def _validate_memory_state_guide_conflict_source(value: str) -> str:
+    if value not in MEMORY_STATE_GUIDE_CONFLICT_SOURCES:
+        raise ValueError(
+            "Unsupported memory_state_guide_conflict_source: "
+            f"{value}. Expected one of {sorted(MEMORY_STATE_GUIDE_CONFLICT_SOURCES)}"
+        )
+    return value
 
 
 def _validate_route_overrides(
@@ -1562,6 +1587,12 @@ def _validate_route_overrides(
         if "memory_state_guide_require_conflict" in raw_overrides:
             overrides["memory_state_guide_require_conflict"] = bool(
                 raw_overrides["memory_state_guide_require_conflict"]
+            )
+        if "memory_state_guide_conflict_source" in raw_overrides:
+            overrides["memory_state_guide_conflict_source"] = (
+                _validate_memory_state_guide_conflict_source(
+                    str(raw_overrides["memory_state_guide_conflict_source"])
+                )
             )
         if "memory_state_guide_require_active_superseded_pair" in raw_overrides:
             overrides["memory_state_guide_require_active_superseded_pair"] = bool(
@@ -2865,11 +2896,13 @@ def _build_prompt(
     update_conflict_guide_snippet_chars: int,
     memory_state_guide: bool,
     memory_state_guide_records: tuple[MemoryRecord, ...],
+    memory_state_conflict_manifest: Mapping[str, Any] | None,
     memory_state_guide_max_records: int,
     memory_state_guide_candidate_records: int,
     memory_state_guide_value_chars: int,
     memory_state_guide_include_superseded: bool,
     memory_state_guide_require_conflict: bool,
+    memory_state_guide_conflict_source: str,
     memory_state_guide_require_active_superseded_pair: bool,
     memory_state_guide_require_slot_overlap: bool,
     memory_state_guide_require_stateful_slot: bool,
@@ -3006,6 +3039,7 @@ def _build_prompt(
             ),
             memory_state_guide=memory_state_guide,
             memory_state_guide_records=memory_state_guide_records,
+            memory_state_conflict_manifest=memory_state_conflict_manifest,
             memory_state_guide_max_records=memory_state_guide_max_records,
             memory_state_guide_candidate_records=(
                 memory_state_guide_candidate_records
@@ -3017,6 +3051,7 @@ def _build_prompt(
             memory_state_guide_require_conflict=(
                 memory_state_guide_require_conflict
             ),
+            memory_state_guide_conflict_source=memory_state_guide_conflict_source,
             memory_state_guide_require_active_superseded_pair=(
                 memory_state_guide_require_active_superseded_pair
             ),
@@ -3239,11 +3274,13 @@ def _build_external_naive_prompt(
     update_conflict_guide_snippet_chars: int,
     memory_state_guide: bool,
     memory_state_guide_records: tuple[MemoryRecord, ...],
+    memory_state_conflict_manifest: Mapping[str, Any] | None,
     memory_state_guide_max_records: int,
     memory_state_guide_candidate_records: int,
     memory_state_guide_value_chars: int,
     memory_state_guide_include_superseded: bool,
     memory_state_guide_require_conflict: bool,
+    memory_state_guide_conflict_source: str,
     memory_state_guide_require_active_superseded_pair: bool,
     memory_state_guide_require_slot_overlap: bool,
     memory_state_guide_require_stateful_slot: bool,
@@ -3397,10 +3434,12 @@ def _build_external_naive_prompt(
             route=route,
             rows=rows,
             memory_records=memory_state_guide_records,
+            state_conflict_manifest=memory_state_conflict_manifest,
             max_records=memory_state_guide_max_records,
             max_value_chars=memory_state_guide_value_chars,
             include_superseded=memory_state_guide_include_superseded,
             require_conflict=memory_state_guide_require_conflict,
+            conflict_source=memory_state_guide_conflict_source,
             require_active_superseded_pair=(
                 memory_state_guide_require_active_superseded_pair
             ),
@@ -4074,10 +4113,12 @@ def _external_memory_state_guide_lines(
     route: RouteResult,
     rows: tuple[EvidenceRow, ...],
     memory_records: tuple[MemoryRecord, ...],
+    state_conflict_manifest: Mapping[str, Any] | None,
     max_records: int,
     max_value_chars: int,
     include_superseded: bool,
     require_conflict: bool = False,
+    conflict_source: str = "records",
     require_active_superseded_pair: bool = False,
     require_slot_overlap: bool = False,
     require_stateful_slot: bool = False,
@@ -4110,13 +4151,29 @@ def _external_memory_state_guide_lines(
     if not candidates:
         return []
     if require_conflict:
-        conflict_slot_keys = _memory_state_conflict_slot_keys(
-            (record for _, _, record, _ in candidates),
-            question_terms=question_terms,
-            require_active_superseded_pair=require_active_superseded_pair,
-            require_slot_overlap=require_slot_overlap,
-            require_stateful_slot=require_stateful_slot,
-        )
+        candidate_records_by_slot: dict[tuple[str, str, str], list[MemoryRecord]] = {}
+        for _, _, record, _ in candidates:
+            candidate_records_by_slot.setdefault(
+                _memory_state_slot_key(record),
+                [],
+            ).append(record)
+        if conflict_source == "build_manifest":
+            conflict_slot_keys = _memory_state_manifest_conflict_slot_keys(
+                state_conflict_manifest,
+                candidate_records_by_slot=candidate_records_by_slot,
+                question_terms=question_terms,
+                require_active_superseded_pair=require_active_superseded_pair,
+                require_slot_overlap=require_slot_overlap,
+                require_stateful_slot=require_stateful_slot,
+            )
+        else:
+            conflict_slot_keys = _memory_state_conflict_slot_keys(
+                (record for _, _, record, _ in candidates),
+                question_terms=question_terms,
+                require_active_superseded_pair=require_active_superseded_pair,
+                require_slot_overlap=require_slot_overlap,
+                require_stateful_slot=require_stateful_slot,
+            )
         if not conflict_slot_keys:
             return []
         candidates = [
@@ -4423,6 +4480,49 @@ def _memory_state_slot_key(record: MemoryRecord) -> tuple[str, str, str]:
         _single_line(record.subject).lower(),
         _single_line(record.predicate).lower(),
     )
+
+
+def _memory_state_manifest_conflict_slot_keys(
+    state_conflict_manifest: Mapping[str, Any] | None,
+    *,
+    candidate_records_by_slot: Mapping[tuple[str, str, str], list[MemoryRecord]],
+    question_terms: frozenset[str],
+    require_active_superseded_pair: bool,
+    require_slot_overlap: bool,
+    require_stateful_slot: bool,
+) -> set[tuple[str, str, str]]:
+    if not state_conflict_manifest or not state_conflict_manifest.get("applied"):
+        return set()
+    keys: set[tuple[str, str, str]] = set()
+    for cluster in state_conflict_manifest.get("clusters") or ():
+        if not isinstance(cluster, Mapping):
+            continue
+        if not cluster.get("source_backed"):
+            continue
+        key = (
+            _single_line(str(cluster.get("memory_type") or "")).lower(),
+            _single_line(str(cluster.get("subject") or "")).lower(),
+            _single_line(str(cluster.get("predicate") or "")).lower(),
+        )
+        slot_records = candidate_records_by_slot.get(key) or []
+        if not slot_records:
+            continue
+        if require_slot_overlap and not _memory_state_slot_matches_question(
+            slot_records,
+            question_terms=question_terms,
+        ):
+            continue
+        if require_stateful_slot and not _memory_state_slot_is_stateful(
+            key[0],
+            slot_records,
+        ):
+            continue
+        if require_active_superseded_pair and not _memory_state_slot_has_update_pair(
+            slot_records
+        ):
+            continue
+        keys.add(key)
+    return keys
 
 
 def _external_candidate_guide_lines(

@@ -297,6 +297,93 @@ class CompilerTest(unittest.TestCase):
         self.assertIn("sources=Memory 2", compiled.prompt)
         self.assertIn("not independent evidence", compiled.prompt)
 
+    def test_memory_state_guide_can_use_build_conflict_manifest(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=4,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            max_memory_records=4,
+            memory_state_guide=True,
+            memory_state_guide_information_needs=("current_state",),
+            memory_state_guide_require_conflict=True,
+            memory_state_guide_conflict_source="build_manifest",
+            memory_state_guide_require_active_superseded_pair=True,
+            memory_state_guide_require_slot_overlap=True,
+            memory_state_guide_require_stateful_slot=True,
+        )
+        records = (
+            MemoryRecord(
+                memory_id="old",
+                memory_type="state",
+                text="Alex lives in Austin.",
+                source_ids=("s1:t0",),
+                subject="Alex",
+                predicate="lives_in",
+                value="Austin",
+                timestamp="2023-03-01",
+                status="superseded",
+                superseded_by="new",
+            ),
+            MemoryRecord(
+                memory_id="new",
+                memory_type="state",
+                text="Alex lives in Seattle.",
+                source_ids=("s2:t0",),
+                subject="Alex",
+                predicate="lives_in",
+                value="Seattle",
+                timestamp="2024-04-01",
+                status="active",
+            ),
+        )
+
+        compiled = compiler.compile(
+            question="Where does Alex live now?",
+            question_time=None,
+            route=RouteResult("current_state", ("current_state",)),
+            hits=(
+                RetrievalHit("s1:t0", 1.0, 1, "test"),
+                RetrievalHit("s2:t0", 0.9, 2, "test"),
+            ),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="I live in Austin.",
+                    timestamp="2023-03-01",
+                ),
+                Turn(
+                    source_id="s2:t0",
+                    session_id="s2",
+                    turn_index=0,
+                    role="user",
+                    text="I moved to Seattle last month.",
+                    timestamp="2024-04-01",
+                ),
+            ),
+            memory_records=records,
+            memory_state_conflict_manifest={
+                "schema_version": "memory_state_conflict_manifest_v1",
+                "applied": True,
+                "clusters": [
+                    {
+                        "memory_type": "state",
+                        "subject": "alex",
+                        "predicate": "lives_in",
+                        "source_backed": True,
+                    }
+                ],
+            },
+        )
+
+        self.assertIn("Managed Memory State Guide:", compiled.prompt)
+        self.assertIn("value=Seattle", compiled.prompt)
+        self.assertIn("value=Austin", compiled.prompt)
+        self.assertIn("sources=Memory 1", compiled.prompt)
+        self.assertIn("sources=Memory 2", compiled.prompt)
+
     def test_source_backed_memory_state_ledger_diagnostics_use_visible_sources(
         self,
     ) -> None:

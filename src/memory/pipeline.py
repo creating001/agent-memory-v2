@@ -2616,6 +2616,9 @@ class Stage1Pipeline:
             evidence_turns=evidence_turns,
             memory_records=compiler_memory_records,
             memory_state_guide_records=compiler_memory_state_guide_records,
+            memory_state_conflict_manifest=_memory_state_conflict_manifest_from_management(
+                built_memory.management
+            ),
         )
         memory_lifecycle_manifest = _memory_lifecycle_manifest(
             question=request.question,
@@ -4014,6 +4017,20 @@ def _compiler_memory_records(
         if any(source_id in evidence_source_ids for source_id in record.source_ids):
             records.append(record)
     return _dedupe_memory_records(tuple(records))
+
+
+def _memory_state_conflict_manifest_from_management(
+    management: Mapping[str, Any] | None,
+) -> Mapping[str, Any] | None:
+    if not isinstance(management, Mapping):
+        return None
+    memory_system_graph = management.get("memory_system_graph")
+    if not isinstance(memory_system_graph, Mapping):
+        return None
+    state_conflict_manifest = memory_system_graph.get("state_conflict_manifest")
+    if not isinstance(state_conflict_manifest, Mapping):
+        return None
+    return state_conflict_manifest
 
 
 def _dedupe_memory_records(records: tuple[Any, ...]) -> tuple[Any, ...]:
@@ -8311,6 +8328,9 @@ def _compiler_trace_config(
         "memory_state_guide_require_conflict": bool(
             compiler_config.get("memory_state_guide_require_conflict", False)
         ),
+        "memory_state_guide_conflict_source": str(
+            compiler_config.get("memory_state_guide_conflict_source", "records")
+        ),
         "memory_state_guide_require_active_superseded_pair": bool(
             compiler_config.get(
                 "memory_state_guide_require_active_superseded_pair", False
@@ -8647,6 +8667,9 @@ def _configured_compiler(compiler_config: Mapping[str, Any]) -> EvidenceCompiler
         ),
         memory_state_guide_require_conflict=bool(
             compiler_config.get("memory_state_guide_require_conflict", False)
+        ),
+        memory_state_guide_conflict_source=str(
+            compiler_config.get("memory_state_guide_conflict_source", "records")
         ),
         memory_state_guide_require_active_superseded_pair=bool(
             compiler_config.get(
