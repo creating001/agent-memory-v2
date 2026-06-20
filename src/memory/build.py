@@ -1211,6 +1211,7 @@ def _memory_system_object_schema() -> dict[str, Any]:
             "lifecycle_audit",
             "memory_layer_manifest",
             "memory_operation_api",
+            "memory_operation_lifecycle",
         ],
         "governance_signals": [
             "source_activation_ready",
@@ -1234,6 +1235,7 @@ def _memory_system_object_schema() -> dict[str, Any]:
             "build_owned_lifecycle_audit",
             "build_owned_memory_layer_manifest",
             "build_owned_memory_operation_api",
+            "build_owned_memory_operation_lifecycle",
         ],
 }
 
@@ -1332,6 +1334,10 @@ def _memory_object_index_manifest(
         layer_manifest=layer_manifest,
         operation_api=operation_api,
     )
+    operation_lifecycle = _memory_operation_lifecycle(
+        operation_api=operation_api,
+        context_interface=context_interface,
+    )
     object_samples = [
         {
             "memory_id": record.memory_id,
@@ -1425,6 +1431,10 @@ def _memory_object_index_manifest(
         ),
         "context_interface_operation_slot_count": (
             context_interface["operation_slot_count"]
+        ),
+        "operation_lifecycle_entry_count": operation_lifecycle["entry_count"],
+        "operation_lifecycle_source_backed_entry_count": (
+            operation_lifecycle["source_backed_entry_count"]
         ),
         "source_backed_object_count": sum(
             1 for record in managed_records if record.source_ids
@@ -1530,6 +1540,7 @@ def _memory_object_index_manifest(
                 "source": "memory_layer_manifest_and_memory_operation_api",
                 "anchor_source_field": "context_anchor_source_ids",
                 "operation_slot_field": "operation_slots",
+                "operation_lifecycle_field": "memory_operation_lifecycle",
                 "roles": [
                     "query_short_term",
                     "working_state",
@@ -1539,8 +1550,10 @@ def _memory_object_index_manifest(
                 ],
                 "policy": (
                     "query modules consume source-backed memory roles and "
-                    "operation views through one stable context interface, then "
-                    "expand to raw rows before final evidence"
+                    "operation views through one stable context interface; "
+                    "operation lifecycle records define build-time management "
+                    "decisions, then query modules expand to raw rows before "
+                    "final evidence"
                 ),
             },
             "state_conflict_contract": {
@@ -1562,6 +1575,7 @@ def _memory_object_index_manifest(
         "memory_layer_manifest": layer_manifest,
         "memory_operation_api": operation_api,
         "memory_context_interface": context_interface,
+        "memory_operation_lifecycle": operation_lifecycle,
         "state_conflict_slot_ids": sorted(str(slot_id) for slot_id in conflict_slot_ids),
         "clean_note": (
             "Question-independent build memory object index. It unifies tier, "
@@ -2346,6 +2360,213 @@ def _memory_context_interface_operation_slots(
             }
         )
     return slots
+
+
+def _memory_operation_lifecycle(
+    *,
+    operation_api: dict[str, Any],
+    context_interface: dict[str, Any],
+) -> dict[str, Any]:
+    """Build-time memory manager decision plane over operation API entries."""
+
+    entries = [
+        entry for entry in operation_api.get("entries") or () if isinstance(entry, dict)
+    ]
+    context_operation_ids = {
+        str(slot.get("interface_entry_id") or slot.get("operation_id") or "")
+        for slot in context_interface.get("operation_slots") or ()
+        if isinstance(slot, dict)
+        and str(slot.get("interface_entry_id") or slot.get("operation_id") or "")
+    }
+    decisions: list[dict[str, Any]] = []
+    decision_counts: dict[str, int] = defaultdict(int)
+    phase_counts: dict[str, int] = defaultdict(int)
+    layer_counts: dict[str, int] = defaultdict(int)
+    target_counts: dict[str, int] = defaultdict(int)
+    transition_counts: dict[str, int] = defaultdict(int)
+    consumer_counts: dict[str, int] = defaultdict(int)
+    source_backed_count = 0
+
+    for ordinal, entry in enumerate(entries):
+        decision = _memory_operation_lifecycle_decision(entry)
+        phase = _memory_operation_lifecycle_phase(decision)
+        transition = _memory_operation_lifecycle_transition(entry, decision)
+        consumers = _memory_operation_lifecycle_consumers(entry, decision)
+        source_ids = _ordered_strings(entry.get("source_ids") or ())[:12]
+        memory_layer = str(entry.get("memory_layer") or "long_term_memory")
+        target_type = str(entry.get("target_type") or "object")
+        if entry.get("source_backed") or source_ids:
+            source_backed_count += 1
+        decision_counts[decision] += 1
+        phase_counts[phase] += 1
+        layer_counts[memory_layer] += 1
+        target_counts[target_type] += 1
+        transition_counts[transition] += 1
+        for consumer in consumers:
+            consumer_counts[consumer] += 1
+        decisions.append(
+            {
+                "lifecycle_id": f"life:{entry.get('operation_id') or ordinal}",
+                "interface_source": "memory_operation_lifecycle",
+                "operation_id": str(entry.get("operation_id") or ""),
+                "context_interface_slot": str(entry.get("operation_id") or "")
+                in context_operation_ids,
+                "target_type": target_type,
+                "target_id": str(entry.get("target_id") or ""),
+                "slot_id": str(entry.get("slot_id") or ""),
+                "memory_id": str(entry.get("memory_id") or ""),
+                "memory_type": str(entry.get("memory_type") or ""),
+                "memory_layer": memory_layer,
+                "lifecycle_stage": str(entry.get("lifecycle_stage") or ""),
+                "status": str(entry.get("status") or ""),
+                "subject": _normalize_key_text(str(entry.get("subject") or "")),
+                "predicate": _normalize_key_text(str(entry.get("predicate") or "")),
+                "values": _ordered_strings(entry.get("values") or ())[:8],
+                "manager_decision": decision,
+                "phase": phase,
+                "state_transition": transition,
+                "operation_actions": _ordered_strings(
+                    entry.get("operation_actions") or ()
+                ),
+                "operations": _ordered_strings(entry.get("operations") or ()),
+                "query_consumers": consumers,
+                "source_backed": bool(entry.get("source_backed") or source_ids),
+                "source_ids": source_ids,
+                "source_policy": {
+                    "raw_evidence_required": True,
+                    "final_evidence_policy": "raw_source_rows",
+                    "physical_delete_allowed": False,
+                    "delete_maps_to": "supersede_or_quarantine",
+                },
+            }
+        )
+
+    return {
+        "schema_version": "memory_operation_lifecycle_v1",
+        "trace_only": False,
+        "applied": bool(decisions),
+        "interface_sources": [
+            "memory_operation_api",
+            "memory_context_interface",
+        ],
+        "entry_count": len(decisions),
+        "source_backed_entry_count": source_backed_count,
+        "source_incomplete_entry_count": max(0, len(decisions) - source_backed_count),
+        "context_interface_slot_count": sum(
+            1 for decision in decisions if decision["context_interface_slot"]
+        ),
+        "decision_counts": dict(sorted(decision_counts.items())),
+        "phase_counts": dict(sorted(phase_counts.items())),
+        "layer_counts": dict(sorted(layer_counts.items())),
+        "target_counts": dict(sorted(target_counts.items())),
+        "transition_counts": dict(sorted(transition_counts.items())),
+        "query_consumer_counts": dict(sorted(consumer_counts.items())),
+        "operation_model": {
+            "add": "create",
+            "update": "update_or_merge",
+            "delete": "non_destructive_supersede_or_quarantine",
+            "noop": "retain_source_backed_memory",
+            "inspired_by": [
+                "Mem0 ADD/UPDATE/DELETE/NOOP",
+                "MemoryOS short/mid/long layering",
+                "memory consolidation merge/rewrite/audit passes",
+            ],
+        },
+        "operation_contract": _memory_working_view_operation_contract(),
+        "source_policy": {
+            "raw_evidence_required": True,
+            "final_evidence_policy": "raw_source_rows",
+            "question_independent_build": True,
+            "physical_delete_allowed": False,
+        },
+        "decisions": decisions,
+        "clean_note": (
+            "Question-independent memory manager lifecycle over source-backed "
+            "operation API entries. It turns create/update/merge/supersede/"
+            "retrieve/expand/verify/audit into explicit build-time decisions, "
+            "maps physical delete to non-destructive supersede or quarantine, "
+            "and exposes query consumers without using questions, labels, gold "
+            "answers, judge outputs, sample ids, or test feedback."
+        ),
+    }
+
+
+def _memory_operation_lifecycle_decision(entry: dict[str, Any]) -> str:
+    actions = {str(action) for action in entry.get("operation_actions") or ()}
+    operations = {str(operation) for operation in entry.get("operations") or ()}
+    graph_signals = {str(signal) for signal in entry.get("graph_signals") or ()}
+    status_counts = entry.get("status_counts") or {}
+    target_type = str(entry.get("target_type") or "")
+    status = str(entry.get("status") or "")
+    if not (entry.get("source_backed") or entry.get("source_ids")):
+        return "quarantine_audit"
+    if (
+        "supersede" in actions
+        or "supersede" in operations
+        or "supersede" in graph_signals
+        or status == "superseded"
+        or status_counts.get("superseded")
+    ):
+        return "supersede"
+    if target_type == "conflict_slot" or "conflict_slot" in graph_signals:
+        return "audit_conflict"
+    if "merge" in actions or "merge" in operations or "merge_value_slot" in operations:
+        return "merge"
+    if "update" in actions or "update" in operations or "update_value_slot" in operations:
+        return "update"
+    if "create" in actions:
+        return "create"
+    if target_type in {"value_slot", "operation_slot"}:
+        return "retain_slot"
+    return "retain"
+
+
+def _memory_operation_lifecycle_phase(decision: str) -> str:
+    if decision == "create":
+        return "write"
+    if decision in {"update", "merge", "supersede"}:
+        return "consolidate"
+    if decision in {"audit_conflict", "quarantine_audit"}:
+        return "verify_audit"
+    return "retain"
+
+
+def _memory_operation_lifecycle_transition(
+    entry: dict[str, Any],
+    decision: str,
+) -> str:
+    if decision == "create":
+        return "raw_observation_to_memory_object"
+    if decision == "update":
+        return "source_backed_state_update"
+    if decision == "merge":
+        return "duplicate_or_parallel_values_to_canonical_slot"
+    if decision == "supersede":
+        return "active_to_archival_non_destructive"
+    if decision == "audit_conflict":
+        return "conflicting_slot_to_verification_audit"
+    if decision == "quarantine_audit":
+        return "source_incomplete_to_quarantine_audit"
+    if str(entry.get("target_type") or "") in {"value_slot", "operation_slot"}:
+        return "source_backed_slot_retention"
+    return "source_backed_memory_retention"
+
+
+def _memory_operation_lifecycle_consumers(
+    entry: dict[str, Any],
+    decision: str,
+) -> list[str]:
+    operations = {str(operation) for operation in entry.get("operations") or ()}
+    consumers: list[str] = []
+    if operations.intersection({"retrieve", "expand"}):
+        consumers.append("retrieval")
+    if operations.intersection({"verify", "audit"}):
+        consumers.append("verifier")
+    if decision in {"update", "merge", "supersede", "audit_conflict"}:
+        consumers.append("context_organization")
+    if decision in {"quarantine_audit", "audit_conflict"}:
+        consumers.append("audit")
+    return _ordered_strings(consumers)
 
 
 def _memory_context_interface_role_operations(layer: str) -> list[str]:

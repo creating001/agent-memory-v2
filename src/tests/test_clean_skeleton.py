@@ -3654,6 +3654,11 @@ class CleanSkeletonTest(unittest.TestCase):
             8,
         )
         self.assertGreater(memory_object_index["operation_api_anchor_source_count"], 0)
+        self.assertEqual(memory_object_index["operation_lifecycle_entry_count"], 8)
+        self.assertEqual(
+            memory_object_index["operation_lifecycle_source_backed_entry_count"],
+            8,
+        )
         self.assertEqual(
             memory_object_index["source_backed_object_count"],
             3,
@@ -3895,11 +3900,48 @@ class CleanSkeletonTest(unittest.TestCase):
             context_interface["context_anchor_source_ids"],
             operation_api["context_anchor_source_ids"],
         )
+        operation_lifecycle = memory_object_index["memory_operation_lifecycle"]
+        self.assertEqual(
+            operation_lifecycle["schema_version"],
+            "memory_operation_lifecycle_v1",
+        )
+        self.assertFalse(operation_lifecycle["trace_only"])
+        self.assertTrue(operation_lifecycle["applied"])
+        self.assertEqual(operation_lifecycle["entry_count"], 8)
+        self.assertEqual(operation_lifecycle["source_backed_entry_count"], 8)
+        self.assertEqual(operation_lifecycle["context_interface_slot_count"], 2)
+        self.assertIn("create", operation_lifecycle["decision_counts"])
+        self.assertIn("supersede", operation_lifecycle["decision_counts"])
+        self.assertEqual(
+            operation_lifecycle["operation_model"]["delete"],
+            "non_destructive_supersede_or_quarantine",
+        )
+        self.assertFalse(
+            operation_lifecycle["source_policy"]["physical_delete_allowed"]
+        )
+        city_lifecycle_decision = next(
+            decision
+            for decision in operation_lifecycle["decisions"]
+            if decision["target_type"] == "operation_slot"
+            and decision["predicate"] == "location"
+        )
+        self.assertEqual(city_lifecycle_decision["manager_decision"], "supersede")
+        self.assertEqual(
+            city_lifecycle_decision["state_transition"],
+            "active_to_archival_non_destructive",
+        )
+        self.assertIn("context_organization", city_lifecycle_decision["query_consumers"])
         self.assertEqual(
             memory_object_index["index_contract"]["context_interface_contract"][
                 "interface_field"
             ],
             "memory_context_interface",
+        )
+        self.assertEqual(
+            memory_object_index["index_contract"]["context_interface_contract"][
+                "operation_lifecycle_field"
+            ],
+            "memory_operation_lifecycle",
         )
         city_operation_api = next(
             entry
