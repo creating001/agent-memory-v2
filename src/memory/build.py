@@ -1338,6 +1338,11 @@ def _memory_object_index_manifest(
         operation_api=operation_api,
         context_interface=context_interface,
     )
+    working_compiler_plan = _memory_working_memory_compiler_plan(
+        context_interface=context_interface,
+        operation_lifecycle=operation_lifecycle,
+        layer_manifest=layer_manifest,
+    )
     object_samples = [
         {
             "memory_id": record.memory_id,
@@ -1435,6 +1440,13 @@ def _memory_object_index_manifest(
         "operation_lifecycle_entry_count": operation_lifecycle["entry_count"],
         "operation_lifecycle_source_backed_entry_count": (
             operation_lifecycle["source_backed_entry_count"]
+        ),
+        "working_compiler_plan_entry_count": working_compiler_plan["entry_count"],
+        "working_compiler_plan_source_backed_entry_count": (
+            working_compiler_plan["source_backed_entry_count"]
+        ),
+        "working_compiler_plan_context_slot_count": (
+            working_compiler_plan["context_interface_slot_count"]
         ),
         "source_backed_object_count": sum(
             1 for record in managed_records if record.source_ids
@@ -1541,6 +1553,7 @@ def _memory_object_index_manifest(
                 "anchor_source_field": "context_anchor_source_ids",
                 "operation_slot_field": "operation_slots",
                 "operation_lifecycle_field": "memory_operation_lifecycle",
+                "working_compiler_plan_field": "memory_working_compiler_plan",
                 "roles": [
                     "query_short_term",
                     "working_state",
@@ -1554,6 +1567,25 @@ def _memory_object_index_manifest(
                     "operation lifecycle records define build-time management "
                     "decisions, then query modules expand to raw rows before "
                     "final evidence"
+                ),
+            },
+            "working_compiler_plan_contract": {
+                "plan_field": "memory_working_compiler_plan",
+                "schema_version": "memory_working_compiler_plan_v1",
+                "source": "memory_context_interface_and_memory_operation_lifecycle",
+                "focuses": [
+                    "current_state",
+                    "conflict_chain",
+                    "temporal_validity",
+                    "long_term_recall",
+                    "audit_only",
+                ],
+                "operations": _memory_working_view_operation_contract(),
+                "policy": (
+                    "build produces source-backed context organization, source "
+                    "expansion, and verifier check plans; query compiler may "
+                    "consume the plan but final evidence still expands to raw "
+                    "source rows"
                 ),
             },
             "state_conflict_contract": {
@@ -1576,6 +1608,7 @@ def _memory_object_index_manifest(
         "memory_operation_api": operation_api,
         "memory_context_interface": context_interface,
         "memory_operation_lifecycle": operation_lifecycle,
+        "memory_working_compiler_plan": working_compiler_plan,
         "state_conflict_slot_ids": sorted(str(slot_id) for slot_id in conflict_slot_ids),
         "clean_note": (
             "Question-independent build memory object index. It unifies tier, "
@@ -2489,6 +2522,292 @@ def _memory_operation_lifecycle(
             "answers, judge outputs, sample ids, or test feedback."
         ),
     }
+
+
+def _memory_working_memory_compiler_plan(
+    *,
+    context_interface: dict[str, Any],
+    operation_lifecycle: dict[str, Any],
+    layer_manifest: dict[str, Any],
+) -> dict[str, Any]:
+    """Build-owned plan for state, conflict, context, and verification use."""
+
+    decisions = [
+        decision
+        for decision in operation_lifecycle.get("decisions") or ()
+        if isinstance(decision, dict)
+    ]
+    source_roles = context_interface.get("source_roles")
+    if not isinstance(source_roles, dict):
+        source_roles = {}
+    layer_summaries = layer_manifest.get("layers")
+    if not isinstance(layer_summaries, dict):
+        layer_summaries = {}
+
+    entries: list[dict[str, Any]] = []
+    focus_counts: dict[str, int] = defaultdict(int)
+    layer_counts: dict[str, int] = defaultdict(int)
+    decision_counts: dict[str, int] = defaultdict(int)
+    context_action_counts: dict[str, int] = defaultdict(int)
+    verifier_check_counts: dict[str, int] = defaultdict(int)
+    source_backed_count = 0
+    context_slot_count = 0
+    source_expansion_ids: list[str] = []
+
+    for ordinal, decision in enumerate(decisions):
+        focus = _memory_working_compiler_plan_focus(decision)
+        secondary_focuses = _memory_working_compiler_plan_secondary_focuses(
+            decision,
+            focus,
+        )
+        context_actions = _memory_working_compiler_plan_context_actions(
+            decision,
+            focus,
+        )
+        verifier_checks = _memory_working_compiler_plan_verifier_checks(
+            decision,
+            focus,
+        )
+        source_ids = _ordered_strings(decision.get("source_ids") or ())[:16]
+        memory_layer = str(decision.get("memory_layer") or "long_term_memory")
+        context_role = _memory_context_interface_role_name(memory_layer)
+        manager_decision = str(decision.get("manager_decision") or "retain")
+        if source_ids or decision.get("source_backed"):
+            source_backed_count += 1
+        if decision.get("context_interface_slot"):
+            context_slot_count += 1
+        _memory_layer_manifest_extend_unique(
+            source_expansion_ids,
+            source_ids,
+            max_items=128,
+        )
+        focus_counts[focus] += 1
+        layer_counts[memory_layer] += 1
+        decision_counts[manager_decision] += 1
+        for action in context_actions:
+            context_action_counts[action] += 1
+        for check in verifier_checks:
+            verifier_check_counts[check] += 1
+
+        entries.append(
+            {
+                "plan_id": f"wmcp:{decision.get('operation_id') or ordinal}",
+                "interface_source": "memory_working_compiler_plan",
+                "source_lifecycle_id": str(decision.get("lifecycle_id") or ""),
+                "source_operation_id": str(decision.get("operation_id") or ""),
+                "context_interface_slot": bool(
+                    decision.get("context_interface_slot")
+                ),
+                "target_type": str(decision.get("target_type") or ""),
+                "target_id": str(decision.get("target_id") or ""),
+                "slot_id": str(decision.get("slot_id") or ""),
+                "memory_id": str(decision.get("memory_id") or ""),
+                "memory_type": str(decision.get("memory_type") or ""),
+                "memory_layer": memory_layer,
+                "context_role": context_role,
+                "focus": focus,
+                "secondary_focuses": secondary_focuses,
+                "manager_decision": manager_decision,
+                "phase": str(decision.get("phase") or ""),
+                "state_transition": str(decision.get("state_transition") or ""),
+                "lifecycle_stage": str(decision.get("lifecycle_stage") or ""),
+                "status": str(decision.get("status") or ""),
+                "subject": _normalize_key_text(str(decision.get("subject") or "")),
+                "predicate": _normalize_key_text(str(decision.get("predicate") or "")),
+                "values": _ordered_strings(decision.get("values") or ())[:8],
+                "context_actions": context_actions,
+                "source_expansion": {
+                    "policy": "expand_to_raw_source_rows",
+                    "source_ids": source_ids,
+                    "source_count": len(source_ids),
+                    "prefer_context_interface_slot": bool(
+                        decision.get("context_interface_slot")
+                    ),
+                },
+                "verifier_checks": verifier_checks,
+                "query_consumers": _ordered_strings(
+                    decision.get("query_consumers") or ()
+                ),
+                "operation_actions": _ordered_strings(
+                    decision.get("operation_actions") or ()
+                ),
+                "operations": _ordered_strings(decision.get("operations") or ()),
+                "source_backed": bool(decision.get("source_backed") or source_ids),
+                "source_ids": source_ids,
+                "source_policy": {
+                    "raw_evidence_required": True,
+                    "final_evidence_policy": "raw_source_rows",
+                    "memory_objects_are_not_final_evidence": True,
+                    "question_independent_build": True,
+                },
+            }
+        )
+
+    return {
+        "schema_version": "memory_working_compiler_plan_v1",
+        "trace_only": False,
+        "applied": bool(entries),
+        "interface_sources": [
+            "memory_context_interface",
+            "memory_operation_lifecycle",
+            "memory_layer_manifest",
+        ],
+        "entry_count": len(entries),
+        "source_backed_entry_count": source_backed_count,
+        "source_incomplete_entry_count": max(0, len(entries) - source_backed_count),
+        "context_interface_slot_count": context_slot_count,
+        "focus_counts": dict(sorted(focus_counts.items())),
+        "layer_counts": dict(sorted(layer_counts.items())),
+        "decision_counts": dict(sorted(decision_counts.items())),
+        "context_action_counts": dict(sorted(context_action_counts.items())),
+        "verifier_check_counts": dict(sorted(verifier_check_counts.items())),
+        "source_expansion_source_ids": source_expansion_ids,
+        "source_expansion_source_count": len(source_expansion_ids),
+        "source_roles": {
+            str(role): {
+                "memory_layer": str(summary.get("memory_layer") or ""),
+                "source_count": int(summary.get("source_count") or 0),
+                "allowed_operations": _ordered_strings(
+                    summary.get("allowed_operations") or ()
+                ),
+            }
+            for role, summary in source_roles.items()
+            if isinstance(summary, dict)
+        },
+        "layer_plan": {
+            str(layer): {
+                "entry_count": int(summary.get("entry_count") or 0),
+                "source_backed_entry_count": int(
+                    summary.get("source_backed_entry_count") or 0
+                ),
+                "query_supplied": bool(summary.get("query_supplied")),
+                "persisted_by_build": bool(summary.get("persisted_by_build")),
+            }
+            for layer, summary in layer_summaries.items()
+            if isinstance(summary, dict)
+        },
+        "operation_contract": _memory_working_view_operation_contract(),
+        "context_organization_policy": {
+            "short_term_memory": "query_visible_raw_rows",
+            "working_memory": "pack_current_state_and_conflict_chain",
+            "long_term_memory": "retrieve_stable_recall_with_source_expansion",
+            "archival_memory": "separate_historical_state_for_temporal_validity",
+            "quarantine_memory": "audit_only_not_final_evidence",
+            "conflict_policy": "compare_active_superseded_then_expand_sources",
+            "verification_policy": "attach_source_grounded_checks_before_answer",
+        },
+        "source_policy": {
+            "raw_evidence_required": True,
+            "final_evidence_policy": "raw_source_rows",
+            "question_independent_build": True,
+            "memory_objects_are_not_final_evidence": True,
+        },
+        "entries": entries,
+        "clean_note": (
+            "Question-independent working-memory compiler plan derived from "
+            "memory lifecycle and context-interface artifacts. It turns memory "
+            "objects into a source-backed plan for current state, conflict "
+            "chains, temporal validity, long-term recall, source expansion, "
+            "and verifier checks. It does not use question text, gold answers, "
+            "judge outputs, benchmark labels, sample ids, or test feedback; "
+            "final answer evidence remains raw source rows."
+        ),
+    }
+
+
+def _memory_working_compiler_plan_focus(decision: dict[str, Any]) -> str:
+    manager_decision = str(decision.get("manager_decision") or "")
+    target_type = str(decision.get("target_type") or "")
+    memory_layer = str(decision.get("memory_layer") or "")
+    lifecycle_stage = str(decision.get("lifecycle_stage") or "")
+    state_transition = str(decision.get("state_transition") or "")
+    if manager_decision in {"audit_conflict", "supersede"}:
+        return "conflict_chain"
+    if target_type == "conflict_slot":
+        return "conflict_chain"
+    if state_transition == "active_to_archival_non_destructive":
+        return "conflict_chain"
+    if manager_decision == "quarantine_audit" or memory_layer == "quarantine_memory":
+        return "audit_only"
+    if memory_layer == "archival_memory" or lifecycle_stage == "archival_state":
+        return "temporal_validity"
+    if memory_layer == "long_term_memory":
+        return "long_term_recall"
+    if memory_layer == "working_memory":
+        return "current_state"
+    return "long_term_recall"
+
+
+def _memory_working_compiler_plan_secondary_focuses(
+    decision: dict[str, Any],
+    focus: str,
+) -> list[str]:
+    focuses: list[str] = []
+    manager_decision = str(decision.get("manager_decision") or "")
+    memory_layer = str(decision.get("memory_layer") or "")
+    if focus == "conflict_chain":
+        focuses.extend(["current_state", "temporal_validity"])
+    if manager_decision in {"update", "merge", "retain_slot"}:
+        focuses.append("current_state")
+    if memory_layer == "archival_memory":
+        focuses.append("temporal_validity")
+    return [item for item in _ordered_strings(focuses) if item != focus]
+
+
+def _memory_working_compiler_plan_context_actions(
+    decision: dict[str, Any],
+    focus: str,
+) -> list[str]:
+    actions = ["retrieve_source_rows", "expand_memory_sources"]
+    manager_decision = str(decision.get("manager_decision") or "")
+    target_type = str(decision.get("target_type") or "")
+    if focus == "current_state":
+        actions.extend(["prefer_active_state", "pack_working_state"])
+    elif focus == "conflict_chain":
+        actions.extend(["compare_active_superseded", "organize_supersession_chain"])
+    elif focus == "temporal_validity":
+        actions.extend(["order_by_source_time", "separate_current_from_historical"])
+    elif focus == "long_term_recall":
+        actions.append("retrieve_stable_recall")
+    elif focus == "audit_only":
+        actions.extend(["quarantine_from_final_evidence", "audit_source_backing"])
+    if manager_decision == "create":
+        actions.append("write_new_memory_object")
+    elif manager_decision == "update":
+        actions.append("refresh_working_state")
+    elif manager_decision == "merge":
+        actions.append("merge_parallel_slot_values")
+    elif manager_decision == "supersede":
+        actions.append("retain_superseded_as_archival_context")
+    elif manager_decision == "retain_slot" or target_type.endswith("_slot"):
+        actions.append("retain_slot_for_context")
+    return _ordered_strings(actions)
+
+
+def _memory_working_compiler_plan_verifier_checks(
+    decision: dict[str, Any],
+    focus: str,
+) -> list[str]:
+    checks = ["source_backing", "raw_row_expansion"]
+    values = _ordered_strings(decision.get("values") or ())
+    manager_decision = str(decision.get("manager_decision") or "")
+    if focus == "current_state":
+        checks.extend(["current_state_supported", "unsupported_answer"])
+    elif focus == "conflict_chain":
+        checks.extend(
+            ["state_conflict", "active_superseded_consistency", "source_order"]
+        )
+    elif focus == "temporal_validity":
+        checks.extend(["temporal_validity", "source_order"])
+    elif focus == "long_term_recall":
+        checks.extend(["profile_fact_consistency", "source_grounding"])
+    elif focus == "audit_only":
+        checks.extend(["quarantine_not_final_evidence", "source_completeness"])
+    if len(values) > 1:
+        checks.append("multi_value_slot")
+    if manager_decision in {"merge", "supersede", "audit_conflict"}:
+        checks.append("manager_decision_consistency")
+    return _ordered_strings(checks)
 
 
 def _memory_operation_lifecycle_decision(entry: dict[str, Any]) -> str:

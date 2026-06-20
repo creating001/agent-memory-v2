@@ -3659,6 +3659,12 @@ class CleanSkeletonTest(unittest.TestCase):
             memory_object_index["operation_lifecycle_source_backed_entry_count"],
             8,
         )
+        self.assertEqual(memory_object_index["working_compiler_plan_entry_count"], 8)
+        self.assertEqual(
+            memory_object_index["working_compiler_plan_source_backed_entry_count"],
+            8,
+        )
+        self.assertEqual(memory_object_index["working_compiler_plan_context_slot_count"], 2)
         self.assertEqual(
             memory_object_index["source_backed_object_count"],
             3,
@@ -3942,6 +3948,64 @@ class CleanSkeletonTest(unittest.TestCase):
                 "operation_lifecycle_field"
             ],
             "memory_operation_lifecycle",
+        )
+        self.assertEqual(
+            memory_object_index["index_contract"]["context_interface_contract"][
+                "working_compiler_plan_field"
+            ],
+            "memory_working_compiler_plan",
+        )
+        self.assertEqual(
+            memory_object_index["index_contract"]["working_compiler_plan_contract"][
+                "plan_field"
+            ],
+            "memory_working_compiler_plan",
+        )
+        working_compiler_plan = memory_object_index["memory_working_compiler_plan"]
+        self.assertEqual(
+            working_compiler_plan["schema_version"],
+            "memory_working_compiler_plan_v1",
+        )
+        self.assertFalse(working_compiler_plan["trace_only"])
+        self.assertTrue(working_compiler_plan["applied"])
+        self.assertEqual(working_compiler_plan["entry_count"], 8)
+        self.assertEqual(working_compiler_plan["source_backed_entry_count"], 8)
+        self.assertEqual(working_compiler_plan["context_interface_slot_count"], 2)
+        self.assertIn("current_state", working_compiler_plan["focus_counts"])
+        self.assertIn("conflict_chain", working_compiler_plan["focus_counts"])
+        self.assertIn("working_state", working_compiler_plan["source_roles"])
+        self.assertEqual(
+            working_compiler_plan["source_policy"]["final_evidence_policy"],
+            "raw_source_rows",
+        )
+        city_compiler_plan = next(
+            entry
+            for entry in working_compiler_plan["entries"]
+            if entry["target_type"] == "operation_slot"
+            and entry["predicate"] == "location"
+        )
+        self.assertEqual(city_compiler_plan["focus"], "conflict_chain")
+        self.assertEqual(city_compiler_plan["context_role"], "working_state")
+        self.assertIn(
+            "compare_active_superseded",
+            city_compiler_plan["context_actions"],
+        )
+        self.assertIn(
+            "retain_superseded_as_archival_context",
+            city_compiler_plan["context_actions"],
+        )
+        self.assertIn("state_conflict", city_compiler_plan["verifier_checks"])
+        self.assertEqual(
+            city_compiler_plan["source_expansion"]["policy"],
+            "expand_to_raw_source_rows",
+        )
+        self.assertEqual(
+            city_compiler_plan["source_expansion"]["source_ids"],
+            ["s2:t1", "s2:t2", "s1:t1"],
+        )
+        self.assertEqual(
+            city_compiler_plan["source_policy"]["final_evidence_policy"],
+            "raw_source_rows",
         )
         city_operation_api = next(
             entry

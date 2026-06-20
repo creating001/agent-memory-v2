@@ -261,6 +261,20 @@ def main() -> int:
     build_memory_system_graph_memory_object_index_operation_lifecycle_phase_counts: dict[
         str, int
     ] = {}
+    total_build_memory_system_graph_index_working_compiler_plan_applied = 0
+    total_build_memory_system_graph_index_working_compiler_plan_entries = 0
+    total_build_memory_system_graph_index_working_compiler_plan_source_backed_entries = 0
+    total_build_memory_system_graph_index_working_compiler_plan_context_slots = 0
+    total_build_memory_system_graph_index_working_compiler_plan_source_expansion_sources = 0
+    build_memory_system_graph_memory_object_index_working_compiler_plan_focus_counts: dict[
+        str, int
+    ] = {}
+    build_memory_system_graph_memory_object_index_working_compiler_plan_context_action_counts: dict[
+        str, int
+    ] = {}
+    build_memory_system_graph_memory_object_index_working_compiler_plan_verifier_check_counts: dict[
+        str, int
+    ] = {}
     total_build_memory_system_graph_index_layer_manifest_applied = 0
     total_build_memory_system_graph_index_layer_manifest_entries = 0
     build_memory_system_graph_memory_object_index_layer_manifest_layer_entries: dict[
@@ -991,6 +1005,37 @@ def main() -> int:
                     _merge_int_counts(
                         build_memory_system_graph_memory_object_index_operation_lifecycle_phase_counts,
                         operation_lifecycle.get("phase_counts") or {},
+                    )
+                working_compiler_plan = (
+                    memory_object_index.get("memory_working_compiler_plan") or {}
+                )
+                if isinstance(working_compiler_plan, Mapping) and working_compiler_plan.get(
+                    "applied"
+                ):
+                    total_build_memory_system_graph_index_working_compiler_plan_applied += 1
+                    total_build_memory_system_graph_index_working_compiler_plan_entries += int(
+                        working_compiler_plan.get("entry_count") or 0
+                    )
+                    total_build_memory_system_graph_index_working_compiler_plan_source_backed_entries += int(
+                        working_compiler_plan.get("source_backed_entry_count") or 0
+                    )
+                    total_build_memory_system_graph_index_working_compiler_plan_context_slots += int(
+                        working_compiler_plan.get("context_interface_slot_count") or 0
+                    )
+                    total_build_memory_system_graph_index_working_compiler_plan_source_expansion_sources += int(
+                        working_compiler_plan.get("source_expansion_source_count") or 0
+                    )
+                    _merge_int_counts(
+                        build_memory_system_graph_memory_object_index_working_compiler_plan_focus_counts,
+                        working_compiler_plan.get("focus_counts") or {},
+                    )
+                    _merge_int_counts(
+                        build_memory_system_graph_memory_object_index_working_compiler_plan_context_action_counts,
+                        working_compiler_plan.get("context_action_counts") or {},
+                    )
+                    _merge_int_counts(
+                        build_memory_system_graph_memory_object_index_working_compiler_plan_verifier_check_counts,
+                        working_compiler_plan.get("verifier_check_counts") or {},
                     )
                 layer_manifest = memory_object_index.get("memory_layer_manifest") or {}
                 if isinstance(layer_manifest, Mapping) and layer_manifest.get(
@@ -2407,6 +2452,48 @@ def main() -> int:
                     build_memory_system_graph_memory_object_index_operation_lifecycle_phase_counts.items()
                 )
             ),
+            "memory_system_graph_memory_object_index_working_compiler_plan_applied_count": (
+                total_build_memory_system_graph_index_working_compiler_plan_applied
+            ),
+            "avg_memory_system_graph_memory_object_index_working_compiler_plan_entries": (
+                _safe_average(
+                    total_build_memory_system_graph_index_working_compiler_plan_entries,
+                    total_build_memory_system_graph_index_working_compiler_plan_applied,
+                )
+            ),
+            "avg_memory_system_graph_memory_object_index_working_compiler_plan_source_backed_entries": (
+                _safe_average(
+                    total_build_memory_system_graph_index_working_compiler_plan_source_backed_entries,
+                    total_build_memory_system_graph_index_working_compiler_plan_applied,
+                )
+            ),
+            "avg_memory_system_graph_memory_object_index_working_compiler_plan_context_slots": (
+                _safe_average(
+                    total_build_memory_system_graph_index_working_compiler_plan_context_slots,
+                    total_build_memory_system_graph_index_working_compiler_plan_applied,
+                )
+            ),
+            "avg_memory_system_graph_memory_object_index_working_compiler_plan_source_expansion_sources": (
+                _safe_average(
+                    total_build_memory_system_graph_index_working_compiler_plan_source_expansion_sources,
+                    total_build_memory_system_graph_index_working_compiler_plan_applied,
+                )
+            ),
+            "memory_system_graph_memory_object_index_working_compiler_plan_focus_counts": dict(
+                sorted(
+                    build_memory_system_graph_memory_object_index_working_compiler_plan_focus_counts.items()
+                )
+            ),
+            "memory_system_graph_memory_object_index_working_compiler_plan_context_action_counts": dict(
+                sorted(
+                    build_memory_system_graph_memory_object_index_working_compiler_plan_context_action_counts.items()
+                )
+            ),
+            "memory_system_graph_memory_object_index_working_compiler_plan_verifier_check_counts": dict(
+                sorted(
+                    build_memory_system_graph_memory_object_index_working_compiler_plan_verifier_check_counts.items()
+                )
+            ),
             "avg_memory_system_graph_memory_object_index_layer_manifest_entries": (
                 _safe_average(
                     total_build_memory_system_graph_index_layer_manifest_entries,
@@ -3478,6 +3565,13 @@ def _write_summary(
         f"- avg_build_memory_system_graph_memory_object_index_operation_lifecycle_context_slots: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_operation_lifecycle_context_slots']}",
         f"- build_memory_system_graph_memory_object_index_operation_lifecycle_decision_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_operation_lifecycle_decision_counts']}",
         f"- build_memory_system_graph_memory_object_index_operation_lifecycle_phase_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_operation_lifecycle_phase_counts']}",
+        f"- build_memory_system_graph_memory_object_index_working_compiler_plan_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_working_compiler_plan_applied_count']}",
+        f"- avg_build_memory_system_graph_memory_object_index_working_compiler_plan_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_working_compiler_plan_entries']}",
+        f"- avg_build_memory_system_graph_memory_object_index_working_compiler_plan_source_backed_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_working_compiler_plan_source_backed_entries']}",
+        f"- avg_build_memory_system_graph_memory_object_index_working_compiler_plan_context_slots: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_working_compiler_plan_context_slots']}",
+        f"- build_memory_system_graph_memory_object_index_working_compiler_plan_focus_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_working_compiler_plan_focus_counts']}",
+        f"- build_memory_system_graph_memory_object_index_working_compiler_plan_context_action_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_working_compiler_plan_context_action_counts']}",
+        f"- build_memory_system_graph_memory_object_index_working_compiler_plan_verifier_check_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_working_compiler_plan_verifier_check_counts']}",
         f"- build_memory_system_graph_memory_object_index_layer_manifest_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_layer_manifest_applied_count']}",
         f"- avg_build_memory_system_graph_memory_object_index_layer_manifest_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_layer_manifest_entries']}",
         f"- build_memory_system_graph_memory_object_index_layer_manifest_layer_entries: {metrics['build_memory']['memory_system_graph_memory_object_index_layer_manifest_layer_entries']}",
@@ -3958,6 +4052,13 @@ def _write_diagnosis(
         f"- avg_build_memory_system_graph_memory_object_index_operation_lifecycle_context_slots: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_operation_lifecycle_context_slots']}",
         f"- build_memory_system_graph_memory_object_index_operation_lifecycle_decision_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_operation_lifecycle_decision_counts']}",
         f"- build_memory_system_graph_memory_object_index_operation_lifecycle_phase_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_operation_lifecycle_phase_counts']}",
+        f"- build_memory_system_graph_memory_object_index_working_compiler_plan_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_working_compiler_plan_applied_count']}",
+        f"- avg_build_memory_system_graph_memory_object_index_working_compiler_plan_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_working_compiler_plan_entries']}",
+        f"- avg_build_memory_system_graph_memory_object_index_working_compiler_plan_source_backed_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_working_compiler_plan_source_backed_entries']}",
+        f"- avg_build_memory_system_graph_memory_object_index_working_compiler_plan_context_slots: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_working_compiler_plan_context_slots']}",
+        f"- build_memory_system_graph_memory_object_index_working_compiler_plan_focus_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_working_compiler_plan_focus_counts']}",
+        f"- build_memory_system_graph_memory_object_index_working_compiler_plan_context_action_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_working_compiler_plan_context_action_counts']}",
+        f"- build_memory_system_graph_memory_object_index_working_compiler_plan_verifier_check_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_working_compiler_plan_verifier_check_counts']}",
         f"- build_memory_system_graph_memory_object_index_layer_manifest_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_layer_manifest_applied_count']}",
         f"- avg_build_memory_system_graph_memory_object_index_layer_manifest_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_layer_manifest_entries']}",
         f"- build_memory_system_graph_memory_object_index_layer_manifest_layer_entries: {metrics['build_memory']['memory_system_graph_memory_object_index_layer_manifest_layer_entries']}",
