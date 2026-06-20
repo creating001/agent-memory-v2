@@ -5092,10 +5092,20 @@ def _operation_utility_applies(
     return route.information_need in SUPPORTED_INFORMATION_NEEDS
 
 
-def _memory_operation_slot_empty_index_stats(*, enabled: bool) -> dict[str, Any]:
+_MEMORY_OPERATION_REGISTRY_BASE_OPERATIONS = frozenset(
+    {"retrieve", "expand", "verify", "audit"}
+)
+
+
+def _memory_operation_slot_empty_index_stats(
+    *,
+    enabled: bool,
+    source: str | None = None,
+) -> dict[str, Any]:
     return {
         "enabled": enabled,
-        "source": "memory_object_index" if enabled else "query_record_grouping",
+        "source": source
+        or ("memory_object_index" if enabled else "query_record_grouping"),
         "schema_version": "",
         "slot_count": 0,
         "source_backed_slot_count": 0,
@@ -5111,6 +5121,12 @@ def _memory_operation_slots_from_object_index(
 ) -> tuple[dict[tuple[str, str, str], Mapping[str, Any]], dict[str, Any]]:
     if not isinstance(memory_object_index, Mapping):
         return {}, _memory_operation_slot_empty_index_stats(enabled=False)
+    registry_slots, registry_stats = _memory_operation_slots_from_registry(
+        memory_object_index,
+        memory_types=memory_types,
+    )
+    if registry_stats["enabled"]:
+        return registry_slots, registry_stats
     raw_slots = memory_object_index.get("operation_slot_index")
     if not isinstance(raw_slots, list):
         return {}, _memory_operation_slot_empty_index_stats(enabled=False)
@@ -5142,6 +5158,65 @@ def _memory_operation_slots_from_object_index(
     return slots, {
         **_memory_operation_slot_empty_index_stats(enabled=True),
         "schema_version": str(memory_object_index.get("schema_version") or ""),
+        "slot_count": len(slots),
+        "source_backed_slot_count": source_backed_slot_count,
+        "operation_slot_count": operation_slot_count,
+        "graph_signal_slot_count": graph_signal_slot_count,
+    }
+
+
+def _memory_operation_slots_from_registry(
+    memory_object_index: Mapping[str, Any],
+    *,
+    memory_types: tuple[str, ...],
+) -> tuple[dict[tuple[str, str, str], Mapping[str, Any]], dict[str, Any]]:
+    registry = memory_object_index.get("operation_registry")
+    if not isinstance(registry, Mapping) or not registry.get("applied"):
+        return {}, _memory_operation_slot_empty_index_stats(enabled=False)
+    raw_entries = registry.get("entries")
+    if not isinstance(raw_entries, list):
+        return {}, _memory_operation_slot_empty_index_stats(
+            enabled=True,
+            source="memory_operation_registry",
+        )
+    allowed_types = {str(item).lower() for item in memory_types if str(item).strip()}
+    slots: dict[tuple[str, str, str], Mapping[str, Any]] = {}
+    source_backed_slot_count = 0
+    operation_slot_count = 0
+    graph_signal_slot_count = 0
+    for raw_entry in raw_entries:
+        if not isinstance(raw_entry, Mapping):
+            continue
+        if raw_entry.get("target_type") != "operation_slot":
+            continue
+        memory_type = _normalize_memory_slot_text(
+            str(raw_entry.get("memory_type") or "")
+        )
+        if allowed_types and memory_type not in allowed_types:
+            continue
+        subject = _normalize_memory_slot_text(str(raw_entry.get("subject") or ""))
+        predicate = _normalize_memory_slot_text(str(raw_entry.get("predicate") or ""))
+        if not memory_type or not subject or not predicate:
+            continue
+        key = (memory_type, subject, predicate)
+        slots[key] = raw_entry
+        if raw_entry.get("source_backed") or raw_entry.get("source_ids"):
+            source_backed_slot_count += 1
+        operations = {
+            str(operation).strip().lower()
+            for operation in raw_entry.get("operations") or ()
+            if str(operation).strip()
+        }
+        if operations.difference(_MEMORY_OPERATION_REGISTRY_BASE_OPERATIONS):
+            operation_slot_count += 1
+        if raw_entry.get("graph_signals"):
+            graph_signal_slot_count += 1
+    return slots, {
+        **_memory_operation_slot_empty_index_stats(
+            enabled=True,
+            source="memory_operation_registry",
+        ),
+        "schema_version": str(registry.get("schema_version") or ""),
         "slot_count": len(slots),
         "source_backed_slot_count": source_backed_slot_count,
         "operation_slot_count": operation_slot_count,

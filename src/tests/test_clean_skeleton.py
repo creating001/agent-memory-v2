@@ -4442,7 +4442,7 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual([hit.source_id for hit in hits], ["s1:t0", "s2:t0"])
         self.assertEqual(trace["slots"][0]["values"], ("dune", "foundation"))
 
-    def test_memory_operation_utility_prefers_object_index_slots(self) -> None:
+    def test_memory_operation_utility_prefers_operation_registry_slots(self) -> None:
         old_record = MemoryRecord(
             memory_id="old-city",
             memory_type="state",
@@ -4489,7 +4489,11 @@ class CleanSkeletonTest(unittest.TestCase):
         )
 
         self.assertTrue(trace["applied"])
-        self.assertEqual(trace["slot_index"]["source"], "memory_object_index")
+        self.assertEqual(trace["slot_index"]["source"], "memory_operation_registry")
+        self.assertEqual(
+            trace["slot_index"]["schema_version"],
+            "memory_operation_registry_v1",
+        )
         self.assertEqual([hit.source_id for hit in hits], ["s2:t0", "s1:t0"])
 
     def test_memory_graph_utility_adds_only_missing_slot_sources(self) -> None:
@@ -4544,7 +4548,7 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertIn("supersede", trace["slots"][0]["signals"])
         self.assertEqual(trace["slots"][0]["status_counts"], {"active": 1, "superseded": 1})
 
-    def test_memory_graph_utility_prefers_object_index_slots(self) -> None:
+    def test_memory_graph_utility_prefers_operation_registry_slots(self) -> None:
         old_record = MemoryRecord(
             memory_id="old-city",
             memory_type="state",
@@ -4594,7 +4598,11 @@ class CleanSkeletonTest(unittest.TestCase):
         )
 
         self.assertTrue(trace["applied"])
-        self.assertEqual(trace["slot_index"]["source"], "memory_object_index")
+        self.assertEqual(trace["slot_index"]["source"], "memory_operation_registry")
+        self.assertEqual(
+            trace["slot_index"]["schema_version"],
+            "memory_operation_registry_v1",
+        )
         self.assertEqual([hit.source_id for hit in hits], ["s1:t0"])
         self.assertIn("conflict_slot", trace["slots"][0]["signals"])
 

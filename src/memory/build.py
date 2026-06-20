@@ -1628,24 +1628,41 @@ def _memory_object_operation_registry_slot_entry(
         "entry_id": f"op:{target_type}:{target_id}",
         "target_type": target_type,
         "target_id": target_id,
+        "slot_id": target_id,
         "memory_type": str(slot.get("memory_type") or ""),
         "namespace": str(slot.get("namespace") or ""),
         "layer": str(
             slot.get("layer") or _memory_layer(str(slot.get("memory_type") or ""))
         ),
         "memory_tier": str(slot.get("memory_tier") or ""),
+        "managed": bool(slot.get("managed")),
         "subject": _normalize_key_text(str(slot.get("subject") or "")),
         "predicate": _normalize_key_text(str(slot.get("predicate") or "")),
         "operations": _ordered_strings(operations),
         "graph_signals": _ordered_strings(slot.get("graph_signals") or ()),
+        "lexical_terms": _ordered_strings(slot.get("lexical_terms") or ())[:32],
         "source_backed": bool(slot.get("source_backed") or source_ids),
         "source_ids": source_ids[:12],
         "expand_source_order": source_ids[:12],
+        "operation_current_source_order": _ordered_strings(
+            slot.get("operation_current_source_order") or ()
+        )[:12],
+        "operation_historical_source_order": _ordered_strings(
+            slot.get("operation_historical_source_order") or ()
+        )[:12],
+        "validity_current_source_order": _ordered_strings(
+            slot.get("validity_current_source_order") or ()
+        )[:12],
+        "validity_historical_source_order": _ordered_strings(
+            slot.get("validity_historical_source_order") or ()
+        )[:12],
         "active_memory_ids": _ordered_strings(slot.get("active_memory_ids") or ())[:12],
         "superseded_memory_ids": _ordered_strings(
             slot.get("superseded_memory_ids") or ()
         )[:12],
         "record_count": int(slot.get("record_count") or 0),
+        "status_counts": dict(slot.get("status_counts") or {}),
+        "values": _ordered_strings(slot.get("values") or ())[:12],
         "source_policy": {
             **dict(slot.get("source_policy") or {}),
             "raw_evidence_required": True,
