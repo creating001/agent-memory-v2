@@ -569,6 +569,83 @@ class CompilerTest(unittest.TestCase):
         self.assertNotIn("type=plan", guide_block)
         self.assertNotIn("NAS device", guide_block)
 
+    def test_memory_value_slot_guide_can_use_memory_object_index(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=4,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            memory_value_slot_guide=True,
+            memory_value_slot_guide_information_needs=("current_state",),
+            memory_value_slot_guide_memory_types=("state",),
+        )
+
+        compiled = compiler.compile(
+            question="Where does Alex live now?",
+            question_time=None,
+            route=RouteResult("current_state", ("current_state",)),
+            hits=(
+                RetrievalHit("s1:t0", 1.0, 1, "test"),
+                RetrievalHit("s2:t0", 0.9, 2, "test"),
+            ),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Alex lived in Austin before.",
+                    timestamp="2024-01-01",
+                ),
+                Turn(
+                    source_id="s2:t0",
+                    session_id="s2",
+                    turn_index=0,
+                    role="user",
+                    text="Alex now lives in Seattle.",
+                    timestamp="2024-02-01",
+                ),
+            ),
+            memory_object_index={
+                "schema_version": "memory_object_index_v1",
+                "applied": True,
+                "value_slot_index": [
+                    {
+                        "memory_type": "state",
+                        "subject": "Alex",
+                        "predicate": "lives in",
+                        "source_backed": True,
+                        "conflict_cluster": True,
+                        "operation_hints": [
+                            "retrieve",
+                            "expand",
+                            "verify",
+                            "audit",
+                        ],
+                        "value_objects": [
+                            {
+                                "status": "superseded",
+                                "value": "Austin",
+                                "source_ids": ["s1:t0"],
+                                "time": "2024-01-01",
+                            },
+                            {
+                                "status": "active",
+                                "value": "Seattle",
+                                "source_ids": ["s2:t0"],
+                                "time": "2024-02-01",
+                            },
+                        ],
+                    }
+                ],
+            },
+        )
+
+        self.assertIn("Memory Value Slot Guide:", compiled.prompt)
+        self.assertIn("active_values=Seattle", compiled.prompt)
+        self.assertIn("superseded_values=Austin", compiled.prompt)
+        self.assertIn("sources=Memory 1, Memory 2", compiled.prompt)
+        self.assertIn("not independent evidence", compiled.prompt)
+
     def test_source_backed_memory_state_ledger_diagnostics_use_visible_sources(
         self,
     ) -> None:

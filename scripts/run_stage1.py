@@ -138,6 +138,7 @@ def main() -> int:
     build_memory_system_graph_tier_manifest_tier_counts: dict[str, int] = {}
     build_memory_system_graph_operation_manifest_counts: dict[str, int] = {}
     build_memory_system_graph_scalar_value_manifest_counts: dict[str, int] = {}
+    build_memory_system_graph_memory_object_index_operation_counts: dict[str, int] = {}
     total_build_memory_operation_ledger_applied = 0
     total_build_memory_operation_ledger_source_backed = 0
     total_build_memory_operation_ledger_source_unbacked = 0
@@ -147,6 +148,7 @@ def main() -> int:
     total_build_memory_system_graph_operation_manifest_applied = 0
     total_build_memory_system_graph_state_conflict_manifest_applied = 0
     total_build_memory_system_graph_scalar_value_manifest_applied = 0
+    total_build_memory_system_graph_memory_object_index_applied = 0
     total_build_memory_system_graph_objects = 0
     total_build_memory_system_graph_sources = 0
     total_build_memory_system_graph_slots = 0
@@ -167,6 +169,12 @@ def main() -> int:
     total_build_memory_system_graph_lifecycle_value_slots = 0
     total_build_memory_system_graph_active_superseded_value_slots = 0
     total_build_memory_system_graph_scalar_active_superseded_value_slots = 0
+    total_build_memory_system_graph_index_objects = 0
+    total_build_memory_system_graph_index_source_backed_objects = 0
+    total_build_memory_system_graph_index_activation_ready_objects = 0
+    total_build_memory_system_graph_index_slots = 0
+    total_build_memory_system_graph_index_value_slots = 0
+    total_build_memory_system_graph_index_state_conflict_slots = 0
     total_build_memory_system_graph_source_backed_records = 0
     total_build_memory_system_graph_complete_slot_key_records = 0
     total_build_memory_system_graph_temporal_anchor_records = 0
@@ -566,6 +574,31 @@ def main() -> int:
                         "scalar_active_superseded_value_slot_count"
                     )
                     or 0
+                )
+            memory_object_index = memory_system_graph.get("memory_object_index") or {}
+            if memory_object_index.get("applied"):
+                total_build_memory_system_graph_memory_object_index_applied += 1
+                _merge_int_counts(
+                    build_memory_system_graph_memory_object_index_operation_counts,
+                    memory_object_index.get("operation_counts") or {},
+                )
+                total_build_memory_system_graph_index_objects += int(
+                    memory_object_index.get("object_count") or 0
+                )
+                total_build_memory_system_graph_index_source_backed_objects += int(
+                    memory_object_index.get("source_backed_object_count") or 0
+                )
+                total_build_memory_system_graph_index_activation_ready_objects += int(
+                    memory_object_index.get("activation_ready_object_count") or 0
+                )
+                total_build_memory_system_graph_index_slots += int(
+                    memory_object_index.get("slot_count") or 0
+                )
+                total_build_memory_system_graph_index_value_slots += int(
+                    memory_object_index.get("value_slot_count") or 0
+                )
+                total_build_memory_system_graph_index_state_conflict_slots += int(
+                    memory_object_index.get("state_conflict_slot_count") or 0
                 )
             source_quality = memory_system_graph.get("source_quality") or {}
             total_build_memory_system_graph_source_backed_records += int(
@@ -1434,6 +1467,16 @@ def main() -> int:
             "memory_system_graph_scalar_value_manifest_counts": (
                 build_memory_system_graph_scalar_value_manifest_counts
             ),
+            "memory_system_graph_memory_object_index_applied_count": (
+                total_build_memory_system_graph_memory_object_index_applied
+            ),
+            "memory_system_graph_memory_object_index_applied_rate": _safe_average(
+                total_build_memory_system_graph_memory_object_index_applied,
+                sample_count,
+            ),
+            "memory_system_graph_memory_object_index_operation_counts": (
+                build_memory_system_graph_memory_object_index_operation_counts
+            ),
             "avg_memory_system_graph_objects": _safe_average(
                 total_build_memory_system_graph_objects,
                 total_build_memory_system_graph_applied,
@@ -1522,6 +1565,36 @@ def main() -> int:
                 _safe_average(
                     total_build_memory_system_graph_scalar_active_superseded_value_slots,
                     total_build_memory_system_graph_scalar_value_manifest_applied,
+                )
+            ),
+            "avg_memory_system_graph_memory_object_index_objects": _safe_average(
+                total_build_memory_system_graph_index_objects,
+                total_build_memory_system_graph_memory_object_index_applied,
+            ),
+            "avg_memory_system_graph_memory_object_index_source_backed_objects": (
+                _safe_average(
+                    total_build_memory_system_graph_index_source_backed_objects,
+                    total_build_memory_system_graph_memory_object_index_applied,
+                )
+            ),
+            "avg_memory_system_graph_memory_object_index_activation_ready_objects": (
+                _safe_average(
+                    total_build_memory_system_graph_index_activation_ready_objects,
+                    total_build_memory_system_graph_memory_object_index_applied,
+                )
+            ),
+            "avg_memory_system_graph_memory_object_index_slots": _safe_average(
+                total_build_memory_system_graph_index_slots,
+                total_build_memory_system_graph_memory_object_index_applied,
+            ),
+            "avg_memory_system_graph_memory_object_index_value_slots": _safe_average(
+                total_build_memory_system_graph_index_value_slots,
+                total_build_memory_system_graph_memory_object_index_applied,
+            ),
+            "avg_memory_system_graph_memory_object_index_state_conflict_slots": (
+                _safe_average(
+                    total_build_memory_system_graph_index_state_conflict_slots,
+                    total_build_memory_system_graph_memory_object_index_applied,
                 )
             ),
             "avg_memory_system_graph_source_backed_records": _safe_average(

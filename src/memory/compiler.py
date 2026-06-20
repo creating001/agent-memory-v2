@@ -792,6 +792,7 @@ class EvidenceCompiler:
         memory_state_guide_records: tuple[MemoryRecord, ...] | None = None,
         memory_state_conflict_manifest: Mapping[str, Any] | None = None,
         memory_scalar_value_manifest: Mapping[str, Any] | None = None,
+        memory_object_index: Mapping[str, Any] | None = None,
     ) -> CompiledContext:
         hit_by_source_id = {hit.source_id: hit for hit in hits}
         candidates: list[EvidenceRow] = []
@@ -1063,6 +1064,7 @@ class EvidenceCompiler:
             memory_state_guide_records=selected_memory_state_guide_records,
             memory_state_conflict_manifest=memory_state_conflict_manifest,
             memory_scalar_value_manifest=memory_scalar_value_manifest,
+            memory_object_index=memory_object_index,
             memory_state_guide_candidate_records=route_settings[
                 "memory_state_guide_candidate_records"
             ],
@@ -3029,6 +3031,7 @@ def _build_prompt(
     memory_state_guide_records: tuple[MemoryRecord, ...],
     memory_state_conflict_manifest: Mapping[str, Any] | None,
     memory_scalar_value_manifest: Mapping[str, Any] | None,
+    memory_object_index: Mapping[str, Any] | None,
     memory_state_guide_max_records: int,
     memory_state_guide_candidate_records: int,
     memory_state_guide_value_chars: int,
@@ -3177,6 +3180,7 @@ def _build_prompt(
             memory_state_guide_records=memory_state_guide_records,
             memory_state_conflict_manifest=memory_state_conflict_manifest,
             memory_scalar_value_manifest=memory_scalar_value_manifest,
+            memory_object_index=memory_object_index,
             memory_state_guide_max_records=memory_state_guide_max_records,
             memory_state_guide_candidate_records=(
                 memory_state_guide_candidate_records
@@ -3417,6 +3421,7 @@ def _build_external_naive_prompt(
     memory_state_guide_records: tuple[MemoryRecord, ...],
     memory_state_conflict_manifest: Mapping[str, Any] | None,
     memory_scalar_value_manifest: Mapping[str, Any] | None,
+    memory_object_index: Mapping[str, Any] | None,
     memory_state_guide_max_records: int,
     memory_state_guide_candidate_records: int,
     memory_state_guide_value_chars: int,
@@ -3603,6 +3608,7 @@ def _build_external_naive_prompt(
             route=route,
             rows=rows,
             scalar_value_manifest=memory_scalar_value_manifest,
+            memory_object_index=memory_object_index,
             max_slots=memory_value_slot_guide_max_slots,
             max_values=memory_value_slot_guide_max_values,
             memory_types=memory_value_slot_guide_memory_types,
@@ -4411,16 +4417,26 @@ def _external_memory_value_slot_guide_lines(
     route: RouteResult,
     rows: tuple[EvidenceRow, ...],
     scalar_value_manifest: Mapping[str, Any] | None,
+    memory_object_index: Mapping[str, Any] | None = None,
     max_slots: int,
     max_values: int,
     memory_types: tuple[str, ...] = (),
 ) -> list[str]:
     """Compact build-owned value slot view grounded in visible raw rows."""
 
+    value_slot_index: Any = ()
+    if memory_object_index and memory_object_index.get("applied"):
+        value_slot_index = memory_object_index.get("value_slot_index") or ()
+    elif scalar_value_manifest and scalar_value_manifest.get("applied"):
+        value_slot_index = (
+            scalar_value_manifest.get("slot_index")
+            or scalar_value_manifest.get("slot_samples")
+            or ()
+        )
+
     if (
         not rows
-        or not scalar_value_manifest
-        or not scalar_value_manifest.get("applied")
+        or not value_slot_index
         or max_slots <= 0
         or max_values <= 0
     ):
@@ -4436,11 +4452,7 @@ def _external_memory_value_slot_guide_lines(
         str(value).strip().lower() for value in memory_types if str(value).strip()
     )
     candidates: list[tuple[float, int, Mapping[str, Any], tuple[dict[str, Any], ...]]] = []
-    for ordinal, raw_slot in enumerate(
-        scalar_value_manifest.get("slot_index")
-        or scalar_value_manifest.get("slot_samples")
-        or ()
-    ):
+    for ordinal, raw_slot in enumerate(value_slot_index):
         if not isinstance(raw_slot, Mapping):
             continue
         memory_type = str(raw_slot.get("memory_type") or "").strip().lower()

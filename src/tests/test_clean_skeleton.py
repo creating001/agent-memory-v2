@@ -3139,6 +3139,50 @@ class CleanSkeletonTest(unittest.TestCase):
             scalar_value_manifest["object_contract"]["final_evidence_policy"],
             "raw_source_rows",
         )
+        memory_object_index = system_graph["memory_object_index"]
+        self.assertEqual(
+            memory_object_index["schema_version"],
+            "memory_object_index_v1",
+        )
+        self.assertFalse(memory_object_index["trace_only"])
+        self.assertTrue(memory_object_index["applied"])
+        self.assertEqual(memory_object_index["object_count"], 3)
+        self.assertEqual(memory_object_index["slot_count"], 2)
+        self.assertEqual(memory_object_index["value_slot_count"], 2)
+        self.assertEqual(memory_object_index["state_conflict_slot_count"], 1)
+        self.assertEqual(
+            memory_object_index["source_backed_object_count"],
+            3,
+        )
+        self.assertEqual(
+            memory_object_index["activation_ready_object_count"],
+            2,
+        )
+        self.assertEqual(
+            memory_object_index["index_contract"]["final_evidence_policy"],
+            "raw_source_rows",
+        )
+        self.assertIn(
+            "working_memory",
+            memory_object_index["index_contract"]["memory_layers"],
+        )
+        self.assertIn(
+            "expand",
+            memory_object_index["index_contract"]["object_operations"],
+        )
+        city_object_slot = next(
+            slot
+            for slot in memory_object_index["value_slot_index"]
+            if slot["predicate"] == "location"
+        )
+        self.assertEqual(city_object_slot["active_values"], ["seattle"])
+        self.assertEqual(city_object_slot["superseded_values"], ["austin"])
+        self.assertTrue(city_object_slot["conflict_cluster"])
+        self.assertEqual(city_object_slot["memory_tier"], "working_memory")
+        self.assertEqual(
+            city_object_slot["current_source_order"],
+            ["s2:t1", "s2:t2", "s1:t1"],
+        )
         city_value_slot = next(
             slot
             for slot in scalar_value_manifest["slot_samples"]

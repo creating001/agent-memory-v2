@@ -1011,6 +1011,37 @@ def _memory_system_graph_summary(
         groups,
         managed_memory_types=managed_memory_types,
     )
+    state_conflict_manifest = _memory_state_conflict_manifest(
+        groups,
+        managed_memory_types=managed_memory_types,
+    )
+    tier_manifest = _memory_system_tier_manifest(
+        managed_records,
+        managed_memory_types=managed_memory_types,
+    )
+    source_policy = _memory_slot_source_policy_manifest(
+        groups,
+        managed_memory_types=managed_memory_types,
+    )
+    operation_manifest = _memory_system_operation_manifest(
+        raw_records=raw_records,
+        deduped_records=deduped_records,
+        managed_records=managed_records,
+        groups=groups,
+        managed_memory_types=managed_memory_types,
+        merge_groups=merge_groups,
+        supersede_pairs=supersede_pairs,
+    )
+    memory_object_index = _memory_object_index_manifest(
+        managed_records=managed_records,
+        groups=groups,
+        managed_memory_types=managed_memory_types,
+        tier_manifest=tier_manifest,
+        source_policy=source_policy,
+        operation_manifest=operation_manifest,
+        state_conflict_manifest=state_conflict_manifest,
+        scalar_value_manifest=scalar_value_manifest,
+    )
     operation_edge_counts = {
         "create": len(deduped_records),
         "merge": sum(len(group.get("merged") or ()) for group in merge_groups),
@@ -1072,28 +1103,12 @@ def _memory_system_graph_summary(
             managed_records,
             managed_memory_types=managed_memory_types,
         ),
-        "source_policy": _memory_slot_source_policy_manifest(
-            groups,
-            managed_memory_types=managed_memory_types,
-        ),
-        "tier_manifest": _memory_system_tier_manifest(
-            managed_records,
-            managed_memory_types=managed_memory_types,
-        ),
-        "operation_manifest": _memory_system_operation_manifest(
-            raw_records=raw_records,
-            deduped_records=deduped_records,
-            managed_records=managed_records,
-            groups=groups,
-            managed_memory_types=managed_memory_types,
-            merge_groups=merge_groups,
-            supersede_pairs=supersede_pairs,
-        ),
-        "state_conflict_manifest": _memory_state_conflict_manifest(
-            groups,
-            managed_memory_types=managed_memory_types,
-        ),
+        "source_policy": source_policy,
+        "tier_manifest": tier_manifest,
+        "operation_manifest": operation_manifest,
+        "state_conflict_manifest": state_conflict_manifest,
         "scalar_value_manifest": scalar_value_manifest,
+        "memory_object_index": memory_object_index,
         "governance": {
             "raw_evidence_policy": "immutable_final_authority",
             "derived_memory_policy": "source_backed_activation_and_audit",
@@ -1198,8 +1213,179 @@ def _memory_system_object_schema() -> dict[str, Any]:
             "build_owned_conflict_cluster",
             "build_owned_operation_manifest",
             "build_owned_scalar_value_manifest",
+            "build_owned_memory_object_index",
         ],
 }
+
+
+def _memory_object_index_manifest(
+    *,
+    managed_records: tuple[MemoryRecord, ...],
+    groups: dict[tuple[str, str, str], list[MemoryRecord]],
+    managed_memory_types: frozenset[str],
+    tier_manifest: dict[str, Any],
+    source_policy: dict[str, Any],
+    operation_manifest: dict[str, Any],
+    state_conflict_manifest: dict[str, Any],
+    scalar_value_manifest: dict[str, Any],
+) -> dict[str, Any]:
+    """Unified build-owned memory object index for query-time consumers.
+
+    The index is a stable interface over the lower-level manifests. It does not
+    create new facts: every object and slot remains source-backed and final
+    answer evidence must still expand to raw source rows.
+    """
+
+    source_policy_by_slot = {
+        slot.get("slot_id"): slot
+        for slot in source_policy.get("slot_samples", ())
+        if isinstance(slot, dict) and slot.get("slot_id")
+    }
+    conflict_slot_ids = {
+        cluster.get("cluster_id")
+        for cluster in state_conflict_manifest.get("clusters", ())
+        if isinstance(cluster, dict) and cluster.get("cluster_id")
+    }
+    value_slots = []
+    for raw_slot in scalar_value_manifest.get("slot_index", ()):
+        if not isinstance(raw_slot, dict):
+            continue
+        slot_id = str(raw_slot.get("slot_id") or "")
+        slot_policy = source_policy_by_slot.get(slot_id, {})
+        value_slots.append(
+            {
+                **raw_slot,
+                "index_source": "scalar_value_manifest",
+                "memory_tier": _slot_memory_tier(
+                    raw_slot,
+                    managed_memory_types=managed_memory_types,
+                ),
+                "conflict_cluster": slot_id in conflict_slot_ids,
+                "current_source_order": raw_slot.get("current_source_order")
+                or slot_policy.get("current_source_order")
+                or [],
+                "historical_source_order": raw_slot.get("historical_source_order")
+                or slot_policy.get("historical_source_order")
+                or [],
+                "source_policy": {
+                    "source_order_policy": "memory_slot_source_policy_v1",
+                    "raw_evidence_required": True,
+                },
+            }
+        )
+
+    object_samples = [
+        {
+            "memory_id": record.memory_id,
+            "memory_type": record.memory_type,
+            "namespace": _memory_namespace(record),
+            "layer": _memory_layer(record.memory_type),
+            "memory_tier": _memory_tier(
+                record,
+                managed_memory_types=managed_memory_types,
+            ),
+            "status": record.status,
+            "subject": _normalize_key_text(record.subject),
+            "predicate": _normalize_key_text(record.predicate),
+            "value": _normalize_key_text(record.value or record.text)[:160],
+            "source_ids": list(record.source_ids[:8]),
+            "source_backed": bool(record.source_ids),
+            "activation_ready": bool(
+                _memory_system_record_governance(
+                    record,
+                    managed_memory_types=managed_memory_types,
+                )["source_activation_ready"]
+            ),
+            "operation_hints": _memory_object_operation_hints(record),
+        }
+        for record in managed_records[:24]
+    ]
+    layer_counts: dict[str, int] = defaultdict(int)
+    for record in managed_records:
+        layer_counts[_memory_layer(record.memory_type)] += 1
+
+    return {
+        "schema_version": "memory_object_index_v1",
+        "trace_only": False,
+        "applied": True,
+        "object_count": len(managed_records),
+        "slot_count": len(groups),
+        "value_slot_count": len(value_slots),
+        "state_conflict_slot_count": len(conflict_slot_ids),
+        "source_backed_object_count": sum(
+            1 for record in managed_records if record.source_ids
+        ),
+        "activation_ready_object_count": sum(
+            1
+            for record in managed_records
+            if _memory_system_record_governance(
+                record,
+                managed_memory_types=managed_memory_types,
+            )["source_activation_ready"]
+        ),
+        "tier_counts": dict(tier_manifest.get("tier_counts") or {}),
+        "layer_counts": dict(sorted(layer_counts.items())),
+        "operation_counts": dict(operation_manifest.get("operation_counts") or {}),
+        "index_contract": {
+            "memory_layers": dict(
+                operation_manifest.get("object_contract", {}).get("memory_layers")
+                or {}
+            ),
+            "object_operations": [
+                "create",
+                "update",
+                "merge",
+                "supersede",
+                "retrieve",
+                "expand",
+                "verify",
+                "audit",
+            ],
+            "query_use_policy": (
+                "Use as source-backed activation, state organization, conflict "
+                "resolution, context packing, and audit interface only."
+            ),
+            "final_evidence_policy": "raw_source_rows",
+            "question_independent": True,
+        },
+        "object_index_samples": object_samples,
+        "value_slot_index": value_slots,
+        "state_conflict_slot_ids": sorted(str(slot_id) for slot_id in conflict_slot_ids),
+        "clean_note": (
+            "Question-independent build memory object index. It unifies tier, "
+            "operation, state-conflict, source-policy, and value-slot manifests "
+            "into one source-backed interface for retrieval, compiler, context "
+            "organization, verifier, and audit. It does not use gold answers, "
+            "judge outputs, benchmark labels, sample ids, test feedback, or "
+            "sample-level rules; final answer evidence remains raw source rows."
+        ),
+    }
+
+
+def _slot_memory_tier(
+    slot: dict[str, Any],
+    *,
+    managed_memory_types: frozenset[str],
+) -> str:
+    memory_type = str(slot.get("memory_type") or "")
+    if not bool(slot.get("source_backed", True)):
+        return "quarantine_memory"
+    if slot.get("superseded_memory_ids") and not slot.get("active_memory_ids"):
+        return "archival_memory"
+    if memory_type in managed_memory_types or memory_type == "plan":
+        return "working_memory"
+    return "long_term_memory"
+
+
+def _memory_object_operation_hints(record: MemoryRecord) -> list[str]:
+    hints = ["create", "retrieve", "verify", "audit"]
+    if record.source_ids:
+        hints.append("expand")
+    if record.status == "superseded":
+        hints.append("supersede")
+    if not record.source_ids or record.confidence < 0.5:
+        hints.append("quarantine")
+    return hints
 
 
 def _memory_system_operation_manifest(

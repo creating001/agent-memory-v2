@@ -2640,6 +2640,9 @@ class Stage1Pipeline:
             memory_scalar_value_manifest=_memory_scalar_value_manifest_from_management(
                 built_memory.management
             ),
+            memory_object_index=_memory_object_index_from_management(
+                built_memory.management
+            ),
         )
         memory_lifecycle_manifest = _memory_lifecycle_manifest(
             question=request.question,
@@ -4066,6 +4069,20 @@ def _memory_scalar_value_manifest_from_management(
     if not isinstance(scalar_value_manifest, Mapping):
         return None
     return scalar_value_manifest
+
+
+def _memory_object_index_from_management(
+    management: Mapping[str, Any] | None,
+) -> Mapping[str, Any] | None:
+    if not isinstance(management, Mapping):
+        return None
+    memory_system_graph = management.get("memory_system_graph")
+    if not isinstance(memory_system_graph, Mapping):
+        return None
+    memory_object_index = memory_system_graph.get("memory_object_index")
+    if not isinstance(memory_object_index, Mapping):
+        return None
+    return memory_object_index
 
 
 def _dedupe_memory_records(records: tuple[Any, ...]) -> tuple[Any, ...]:
