@@ -3425,6 +3425,9 @@ def main() -> int:
         },
         "compiler": {
             "prompt_mode": config.get("compiler", {}).get("prompt_mode", "default"),
+            "compact_query_contract": config.get("compiler", {}).get(
+                "compact_query_contract", False
+            ),
             "answer_style": config.get("compiler", {}).get("answer_style", "grounded"),
             "memory_record_source": config.get("compiler", {}).get(
                 "memory_record_source", "retrieval"
@@ -4726,6 +4729,7 @@ def _write_summary(
         f"- avg_event_time_candidate_manifest_groups: {metrics['compiler']['avg_event_time_candidate_manifest_groups']}",
         f"- avg_event_time_candidate_manifest_conflict_groups: {metrics['compiler']['avg_event_time_candidate_manifest_conflict_groups']}",
         f"- event_time_candidate_manifest_safe_order_count: {metrics['compiler']['event_time_candidate_manifest_safe_order_count']}",
+        f"- compact_query_contract: {metrics['compiler']['compact_query_contract']}",
         f"- operation_workpad_question_gate: {metrics['compiler']['operation_workpad_question_gate']}",
         f"- personalized_advice_contract: {metrics['compiler']['personalized_advice_contract']}",
         f"- personalized_advice_contract_applied: {metrics['compiler']['personalized_advice_contract_applied']}",
@@ -5072,6 +5076,7 @@ def _write_diagnosis(
         f"- final_answer_checklist: {metrics['compiler']['final_answer_checklist']}",
         f"- max_memory_records: {metrics['compiler']['max_memory_records']}",
         f"- route_guidance: {metrics['compiler']['route_guidance']}",
+        f"- compact_query_contract: {metrics['compiler']['compact_query_contract']}",
         f"- temporal_workpad: {metrics['compiler']['temporal_workpad']}",
         f"- temporal_text_normalization: {metrics['compiler']['temporal_text_normalization']}",
         f"- temporal_event_contract: {metrics['compiler']['temporal_event_contract']}",

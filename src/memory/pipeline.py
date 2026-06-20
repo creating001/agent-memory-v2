@@ -1451,6 +1451,9 @@ class Stage1Pipeline:
             memory_context_newlines_after_blocks=int(
                 compiler_config.get("memory_context_newlines_after_blocks", 3)
             ),
+            compact_query_contract=bool(
+                compiler_config.get("compact_query_contract", False)
+            ),
             prompt_mode=str(compiler_config.get("prompt_mode", "default")),
             route_overrides=compiler_config.get("route_overrides") or {},
         )
@@ -11174,6 +11177,9 @@ def _compiler_trace_config(
         "memory_context_newlines_after_blocks": int(
             compiler_config.get("memory_context_newlines_after_blocks", 3)
         ),
+        "compact_query_contract": bool(
+            compiler_config.get("compact_query_contract", False)
+        ),
         "max_memory_records": int(compiler_config.get("max_memory_records", 12)),
         "route_overrides": compiler_config.get("route_overrides") or {},
     }
@@ -11566,6 +11572,9 @@ def _configured_compiler(compiler_config: Mapping[str, Any]) -> EvidenceCompiler
         ),
         memory_context_newlines_after_blocks=int(
             compiler_config.get("memory_context_newlines_after_blocks", 3)
+        ),
+        compact_query_contract=bool(
+            compiler_config.get("compact_query_contract", False)
         ),
         prompt_mode=str(compiler_config.get("prompt_mode", "default")),
         route_overrides=compiler_config.get("route_overrides") or {},

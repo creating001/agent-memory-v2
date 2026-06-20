@@ -506,6 +506,7 @@ class EvidenceCompiler:
         final_answer_checklist: bool = False,
         max_memory_records: int = 12,
         memory_context_newlines_after_blocks: int = 3,
+        compact_query_contract: bool = False,
         prompt_mode: str = "default",
         route_overrides: Mapping[str, Mapping[str, Any]] | None = None,
     ):
@@ -811,6 +812,7 @@ class EvidenceCompiler:
         self._memory_context_newlines_after_blocks = max(
             2, int(memory_context_newlines_after_blocks)
         )
+        self._compact_query_contract = bool(compact_query_contract)
         if prompt_mode not in SUPPORTED_PROMPT_MODES:
             raise ValueError(f"Unsupported prompt_mode: {prompt_mode}")
         self._prompt_mode = prompt_mode
@@ -1201,6 +1203,7 @@ class EvidenceCompiler:
             memory_context_newlines_after_blocks=(
                 self._memory_context_newlines_after_blocks
             ),
+            compact_query_contract=self._compact_query_contract,
             prompt_mode=self._prompt_mode,
         )
         diagnostics: dict[str, Any] = {}
@@ -3153,6 +3156,7 @@ def _build_prompt(
     evidence_row_labels: bool,
     final_answer_checklist: bool,
     memory_context_newlines_after_blocks: int,
+    compact_query_contract: bool,
     prompt_mode: str,
 ) -> str:
     if prompt_mode == "raw_context_only":
@@ -3311,6 +3315,7 @@ def _build_prompt(
             memory_context_newlines_after_blocks=(
                 memory_context_newlines_after_blocks
             ),
+            compact_query_contract=compact_query_contract,
             context_layout=context_layout,
         )
 
@@ -3542,6 +3547,7 @@ def _build_external_naive_prompt(
     temporal_order_contract: bool,
     final_answer_checklist: bool,
     memory_context_newlines_after_blocks: int,
+    compact_query_contract: bool,
     context_layout: str,
 ) -> str:
     use_temporal_event_contract = (
@@ -3565,6 +3571,7 @@ def _build_external_naive_prompt(
             include_relative_text=temporal_text_normalization,
             event_contract=use_temporal_event_contract,
             enable_weekend_relative_time=enable_weekend_relative_time,
+            compact=compact_query_contract,
         )
         if temporal_aid_lines:
             temporal_aid = "\n".join(["", "Temporal Aid:", *temporal_aid_lines, ""])
@@ -3636,6 +3643,7 @@ def _build_external_naive_prompt(
             include_inline_memory_hints=structured_guide_memory_hints,
             max_memory_hints_per_row=structured_guide_max_memory_hints_per_row,
             memory_hint_chars=structured_guide_memory_hint_chars,
+            compact=compact_query_contract,
         )
         if guide_lines:
             structured_guide_block = "\n".join(
@@ -3741,46 +3749,65 @@ def _build_external_naive_prompt(
                 ["", "Update/Conflict Candidate Chain:", *update_conflict_lines, ""]
             )
     rules = ["Use only the memory context."]
-    if structured_guide_block:
-        rules.append(
-            "Use Structured Evidence Guide only as an index into Memory Context; it is not independent evidence."
+    guide_or_aid_block_present = any(
+        (
+            structured_guide_block,
+            candidate_guide_block,
+            profile_activation_guide_block,
+            working_memory_packet_block,
+            memory_state_guide_block,
+            memory_value_slot_guide_block,
+            update_conflict_guide_block,
+            temporal_aid,
+            event_timeline_block,
+            event_time_candidate_map_block,
         )
-    if candidate_guide_block:
+    )
+    if compact_query_contract and guide_or_aid_block_present:
         rules.append(
-            "Use Candidate Evidence Map only as a compact index into Memory Context; it is not independent evidence."
+            "Guide, aid, packet, timeline, and workpad blocks are indexes/checklists only; verify final facts in Memory Context."
         )
-    if profile_activation_guide_block:
-        rules.append(
-            "Use Profile Memory Activation Guide only as a source-backed preference/profile index into cited Memory Context rows; it is not independent evidence."
-        )
-    if working_memory_packet_block:
-        rules.append(
-            "Use Working Memory Packet only as a source-backed state and operation index into cited Memory Context rows; it is not independent evidence."
-        )
-    if memory_state_guide_block:
-        rules.append(
-            "Use Managed Memory State Guide only as a state/conflict index into cited Memory Context rows; it is not independent evidence."
-        )
-    if memory_value_slot_guide_block:
-        rules.append(
-            "Use Memory Value Slot Guide only as a build-owned value/state index into cited Memory Context rows; it is not independent evidence."
-        )
-    if update_conflict_guide_block:
-        rules.append(
-            "Use Update/Conflict Candidate Chain only as a compact index into Memory Context; it is not independent evidence."
-        )
-    if temporal_aid:
-        rules.append(
-            "Use Temporal Aid only to interpret row dates and relative time phrases in the memory context; it is not independent evidence."
-        )
-    if event_timeline_block:
-        rules.append(
-            "Use Source Event Timeline only as a source-backed index into cited Memory Context rows; it is not independent evidence."
-        )
-    if event_time_candidate_map_block:
-        rules.append(
-            "Use Event-Time Candidate Map only as a high-confidence source-backed index into cited Memory Context rows; it is not independent evidence."
-        )
+    else:
+        if structured_guide_block:
+            rules.append(
+                "Use Structured Evidence Guide only as an index into Memory Context; it is not independent evidence."
+            )
+        if candidate_guide_block:
+            rules.append(
+                "Use Candidate Evidence Map only as a compact index into Memory Context; it is not independent evidence."
+            )
+        if profile_activation_guide_block:
+            rules.append(
+                "Use Profile Memory Activation Guide only as a source-backed preference/profile index into cited Memory Context rows; it is not independent evidence."
+            )
+        if working_memory_packet_block:
+            rules.append(
+                "Use Working Memory Packet only as a source-backed state and operation index into cited Memory Context rows; it is not independent evidence."
+            )
+        if memory_state_guide_block:
+            rules.append(
+                "Use Managed Memory State Guide only as a state/conflict index into cited Memory Context rows; it is not independent evidence."
+            )
+        if memory_value_slot_guide_block:
+            rules.append(
+                "Use Memory Value Slot Guide only as a build-owned value/state index into cited Memory Context rows; it is not independent evidence."
+            )
+        if update_conflict_guide_block:
+            rules.append(
+                "Use Update/Conflict Candidate Chain only as a compact index into Memory Context; it is not independent evidence."
+            )
+        if temporal_aid:
+            rules.append(
+                "Use Temporal Aid only to interpret row dates and relative time phrases in the memory context; it is not independent evidence."
+            )
+        if event_timeline_block:
+            rules.append(
+                "Use Source Event Timeline only as a source-backed index into cited Memory Context rows; it is not independent evidence."
+            )
+        if event_time_candidate_map_block:
+            rules.append(
+                "Use Event-Time Candidate Map only as a high-confidence source-backed index into cited Memory Context rows; it is not independent evidence."
+            )
     personalized_advice_block = ""
     if personalized_advice_contract:
         personalized_advice_block = "\n".join(
@@ -3794,11 +3821,20 @@ def _build_external_naive_prompt(
         grounded_inference_block = "\n".join(
             ["", "Grounded Inference Discipline:", *_grounded_inference_lines(), ""]
         )
-        rules.append(
-            "Use Grounded Inference Discipline only to interpret Memory Context rows; it is not independent evidence."
-        )
+        if compact_query_contract:
+            rules.append(
+                "Use Grounded Inference Discipline only as a checklist over Memory Context."
+            )
+        else:
+            rules.append(
+                "Use Grounded Inference Discipline only to interpret Memory Context rows; it is not independent evidence."
+            )
     if context_layout in {"session_thread", "chronological_session_thread"}:
-        if context_layout == "chronological_session_thread":
+        if compact_query_contract:
+            rules.append(
+                "Memory Context is grouped by session in chronological order; use nearby same-session turns for implicit references and do not merge unrelated sessions."
+            )
+        elif context_layout == "chronological_session_thread":
             rules.append(
                 "Memory Context is grouped by session; sessions and turns are shown in chronological order. Use nearby turns in the same session to resolve implicit references, but do not merge unrelated sessions."
             )
@@ -3807,31 +3843,52 @@ def _build_external_naive_prompt(
                 "Memory Context is grouped by session in chronological turn order within each session; use nearby turns in the same session to resolve implicit references, but do not merge unrelated sessions."
             )
     if structured_answer_contract:
-        rules.extend(
-            [
-                "Before the final answer, identify the in-scope evidence items needed for count, list, sum, duration, order, or date questions.",
-                "For count/list/sum questions, mark each candidate as included or excluded, merge duplicates under one canonical_item, and show compact arithmetic when needed.",
-                "For temporal questions, prefer an event date or time phrase stated in the content over the Memory row Date; resolve relative phrases from that row Date and preserve the original phrase when useful.",
-                "Keep evidence_items compact; include excluded candidates only when they explain a duplicate or out-of-scope decision.",
-            ]
-        )
+        if compact_query_contract:
+            rules.extend(
+                [
+                    "Before answering, identify in-scope evidence_items; mark include/exclude, merge duplicates by canonical_item, and show compact arithmetic when needed.",
+                    "For temporal items, prefer event dates or text time phrases over row Date; resolve relative phrases from that row Date.",
+                ]
+            )
+        else:
+            rules.extend(
+                [
+                    "Before the final answer, identify the in-scope evidence items needed for count, list, sum, duration, order, or date questions.",
+                    "For count/list/sum questions, mark each candidate as included or excluded, merge duplicates under one canonical_item, and show compact arithmetic when needed.",
+                    "For temporal questions, prefer an event date or time phrase stated in the content over the Memory row Date; resolve relative phrases from that row Date and preserve the original phrase when useful.",
+                    "Keep evidence_items compact; include excluded candidates only when they explain a duplicate or out-of-scope decision.",
+                ]
+            )
     use_aggregation_report_contract = (
         evidence_report_contract
         and aggregation_report_contract
         and not structured_answer_contract
     )
     if evidence_report_contract and not structured_answer_contract:
-        rules.extend(
-            _external_evidence_report_rules(
-                question,
-                route,
-                temporal_event_contract=use_temporal_event_contract,
-                detailed=evidence_report_detail,
-                current_state_update_contract=current_state_update_contract,
-                dialogue_inference_contract=dialogue_inference_contract,
-                temporal_order_contract=temporal_order_contract,
+        if compact_query_contract:
+            rules.extend(
+                _external_compact_evidence_report_rules(
+                    question,
+                    route,
+                    temporal_event_contract=use_temporal_event_contract,
+                    detailed=evidence_report_detail,
+                    current_state_update_contract=current_state_update_contract,
+                    dialogue_inference_contract=dialogue_inference_contract,
+                    temporal_order_contract=temporal_order_contract,
+                )
             )
-        )
+        else:
+            rules.extend(
+                _external_evidence_report_rules(
+                    question,
+                    route,
+                    temporal_event_contract=use_temporal_event_contract,
+                    detailed=evidence_report_detail,
+                    current_state_update_contract=current_state_update_contract,
+                    dialogue_inference_contract=dialogue_inference_contract,
+                    temporal_order_contract=temporal_order_contract,
+                )
+            )
     if use_aggregation_report_contract:
         rules.extend(_external_aggregation_report_rules())
     operation_workpad_block = ""
@@ -3841,9 +3898,14 @@ def _build_external_naive_prompt(
             operation_workpad_block = "\n".join(
                 ["", "Private Operation Discipline:", *operation_lines, ""]
             )
-            rules.append(
-                "Use Private Operation Discipline as an internal checklist only; do not add checklist fields to the output JSON."
-            )
+            if compact_query_contract:
+                rules.append(
+                    "Use Private Operation Discipline internally; do not add checklist fields."
+                )
+            else:
+                rules.append(
+                    "Use Private Operation Discipline as an internal checklist only; do not add checklist fields to the output JSON."
+                )
     final_answer_checklist_block = ""
     if final_answer_checklist:
         checklist_lines = _final_answer_checklist_lines(route)
@@ -3851,31 +3913,51 @@ def _build_external_naive_prompt(
             final_answer_checklist_block = "\n".join(
                 ["", "Final Answer Checklist:", *checklist_lines, ""]
             )
-            rules.append(
-                "Use Final Answer Checklist as an internal validation step only; do not add checklist fields to the output JSON."
-            )
-    rules.extend(
-        [
-            "If the context is insufficient, say the provided information is not enough.",
-            "Keep the answer concise and specific.",
-            "Return only valid JSON.",
-        ]
-    )
+            if compact_query_contract:
+                rules.append(
+                    "Use Final Answer Checklist internally; do not add checklist fields."
+                )
+            else:
+                rules.append(
+                    "Use Final Answer Checklist as an internal validation step only; do not add checklist fields to the output JSON."
+                )
+    if compact_query_contract:
+        rules.extend(
+            [
+                "If insufficient, set sufficient=false and say the provided information is not enough.",
+                "Keep the answer concise.",
+                "Return only valid JSON.",
+            ]
+        )
+    else:
+        rules.extend(
+            [
+                "If the context is insufficient, say the provided information is not enough.",
+                "Keep the answer concise and specific.",
+                "Return only valid JSON.",
+            ]
+        )
     rule_lines = [f"{index}. {rule}" for index, rule in enumerate(rules, start=1)]
     if structured_answer_contract:
-        output_json_lines = [
-            "{",
-            '  "reasoning": "one short sentence",',
-            '  "sufficient": true,',
-            '  "answer_type": "fact|count|list|sum|duration|date|order|preference|unknown",',
-            '  "evidence_items": [',
-            '    {"memory": "Memory 1", "canonical_item": "item/event/operand", "date": "date or empty", "value": "number/name/date/unit or empty", "include": true, "reason": "why it counts or is excluded"}',
-            "  ],",
-            '  "calculation": "short arithmetic or selection rule; empty if none",',
-            '  "answer": "concise answer"',
-            "}",
-            f"Use at most {structured_answer_contract_max_items} evidence_items.",
-        ]
+        if compact_query_contract:
+            output_json_lines = [
+                '{"reasoning":"one short sentence","sufficient":true,"answer_type":"fact|count|list|sum|duration|date|order|preference|unknown","evidence_items":[{"memory":"Memory 1","canonical_item":"item/event/operand","date":"date or empty","value":"number/name/date/unit or empty","include":true,"reason":"why it counts or is excluded"}],"calculation":"short arithmetic or selection rule; empty if none","answer":"concise answer"}',
+                f"Use at most {structured_answer_contract_max_items} evidence_items.",
+            ]
+        else:
+            output_json_lines = [
+                "{",
+                '  "reasoning": "one short sentence",',
+                '  "sufficient": true,',
+                '  "answer_type": "fact|count|list|sum|duration|date|order|preference|unknown",',
+                '  "evidence_items": [',
+                '    {"memory": "Memory 1", "canonical_item": "item/event/operand", "date": "date or empty", "value": "number/name/date/unit or empty", "include": true, "reason": "why it counts or is excluded"}',
+                "  ],",
+                '  "calculation": "short arithmetic or selection rule; empty if none",',
+                '  "answer": "concise answer"',
+                "}",
+                f"Use at most {structured_answer_contract_max_items} evidence_items.",
+            ]
     elif evidence_report_contract:
         if use_temporal_event_contract:
             evidence_item_schema = (
@@ -3901,31 +3983,74 @@ def _build_external_naive_prompt(
                 '"slot": "requested answer slot", "value": "number/name/date/unit or empty", '
                 '"reason": "why it supports or is excluded"}'
             )
-        output_json_lines = [
-            "{",
-            '  "reasoning": "compact evidence decision",',
-            '  "sufficient": true,',
-            '  "answer_type": "fact|count|list|sum|duration|date|order|preference|unknown",',
-            '  "evidence_report": [',
-            evidence_item_schema,
-            "  ],",
-            '  "missing": "missing required target/operand/endpoint or empty",',
-            '  "answer": "concise answer"',
-            "}",
-            f"Use at most {evidence_report_max_items} evidence_report items.",
-        ]
-        if use_aggregation_report_contract:
-            output_json_lines.insert(
-                -4,
-                '  "calculation": "count/sum/difference/duration/order calculation or empty",',
+        if compact_query_contract:
+            if use_temporal_event_contract:
+                item_schema = (
+                    '{"memory":"Memory 1","status":"support|exclude",'
+                    '"slot":"requested answer slot","mention_time":"Memory Date or empty",'
+                    '"time_phrase":"explicit/relative phrase or empty",'
+                    '"event_time":"target event date/time/span/duration or empty",'
+                    '"value":"answer value or empty","reason":"support/exclude reason"}'
+                )
+            elif use_aggregation_report_contract:
+                item_schema = (
+                    '{"memory":"Memory 1","status":"support|exclude",'
+                    '"canonical_item":"distinct item/event/operand or empty",'
+                    '"slot":"counted_item|operand|date|duration|order|exclude",'
+                    '"count_increment":"integer or empty",'
+                    '"operand_value":"number/unit or empty",'
+                    '"value":"final value/date/name if not count increment",'
+                    '"reason":"support/exclude reason"}'
+                )
+            else:
+                item_schema = (
+                    '{"memory":"Memory 1","status":"support|exclude",'
+                    '"slot":"requested answer slot","value":"number/name/date/unit or empty",'
+                    '"reason":"support/exclude reason"}'
+                )
+            calculation = (
+                ',"calculation":"count/sum/difference/duration/order calculation or empty"'
+                if use_aggregation_report_contract
+                else ""
             )
+            output_json_lines = [
+                '{"reasoning":"compact evidence decision","sufficient":true,'
+                '"answer_type":"fact|count|list|sum|duration|date|order|preference|unknown",'
+                f'"evidence_report":[{item_schema}],"missing":"missing required target/operand/endpoint or empty"'
+                f'{calculation},"answer":"concise answer"}}',
+                f"Use at most {evidence_report_max_items} evidence_report items.",
+            ]
+        else:
+            output_json_lines = [
+                "{",
+                '  "reasoning": "compact evidence decision",',
+                '  "sufficient": true,',
+                '  "answer_type": "fact|count|list|sum|duration|date|order|preference|unknown",',
+                '  "evidence_report": [',
+                evidence_item_schema,
+                "  ],",
+                '  "missing": "missing required target/operand/endpoint or empty",',
+                '  "answer": "concise answer"',
+                "}",
+                f"Use at most {evidence_report_max_items} evidence_report items.",
+            ]
+            if use_aggregation_report_contract:
+                output_json_lines.insert(
+                    -4,
+                    '  "calculation": "count/sum/difference/duration/order calculation or empty",',
+                )
     else:
-        output_json_lines = [
-            "{",
-            '  "reasoning": "one short sentence",',
-            '  "answer": "concise answer"',
-            "}",
-        ]
+        if compact_query_contract:
+            output_json_lines = [
+                '{"reasoning":"one short sentence","answer":"concise answer"}',
+            ]
+        else:
+            output_json_lines = [
+                "{",
+                '  "reasoning": "one short sentence",',
+                '  "answer": "concise answer"',
+                "}",
+            ]
     prompt_parts = [
         "Answer the user's question using only the provided memory context.",
         "",
@@ -4076,6 +4201,72 @@ def _external_evidence_report_rules(
     return rules
 
 
+def _external_compact_evidence_report_rules(
+    question: str,
+    route: RouteResult,
+    *,
+    temporal_event_contract: bool = False,
+    detailed: bool = False,
+    current_state_update_contract: bool = False,
+    dialogue_inference_contract: bool = False,
+    temporal_order_contract: bool = False,
+) -> list[str]:
+    """Short source-grounded report contract for lower query-token prompts."""
+
+    rules = [
+        "Build evidence_report before answering: support must match requested entity, object, action, relation, speaker, time scope, and slot; mark close wrong candidates as exclude.",
+        "If a required target, operand, endpoint, or speaker source is missing, set sufficient=false and name the missing part.",
+    ]
+    if detailed:
+        rules.append(
+            "Preserve exact names, numbers, dates, units, and event wording; do not turn related discussion/plans/suggestions into completed facts unless confirmed."
+        )
+        lowered = question.lower()
+        if _asks_collection_operation(lowered) or _looks_like_plural_slot_question(
+            lowered
+        ):
+            rules.append(
+                "For list-style questions, preserve all distinct in-scope values; merge duplicates and treat ambiguous duplicates as exclude unless giving a lower bound."
+            )
+    if dialogue_inference_contract:
+        rules.append(
+            "Same-session neighbors may resolve omitted slots only in the same exchange; assistant suggestions/examples support only when asked or user-confirmed."
+        )
+    if route.information_need == "list_count":
+        rules.append(
+            "For count/list/sum/comparison, enumerate distinct in-scope items or operands, merge duplicates, exclude unconfirmed suggestions/hypotheticals, and answer from the calculation."
+        )
+    elif route.information_need == "temporal_lookup":
+        rules.append(
+            "For date/duration/order, identify the exact target event/state; row Date is mention_time, while text dates/relative phrases give event_time when they match."
+        )
+        if temporal_order_contract:
+            rules.append(
+                "For order/comparison, normalize each candidate event/state time before comparing; started/since/for-N-ago phrases indicate earlier start times."
+            )
+        if temporal_event_contract:
+            rules.append(
+                "In evidence_report, keep mention_time separate from event_time; answer with event_time or direct duration unless asked when it was mentioned."
+            )
+    elif route.information_need == "current_state":
+        rules.append(
+            "For current/latest/recent, compare older and newer directly relevant candidates and answer the newest supported state."
+        )
+        if current_state_update_contract:
+            rules.append(
+                "Newer approximate or self-reported states can support current state; preserve qualifiers such as about, close to, almost, or nearing."
+            )
+    elif route.information_need == "profile_preference":
+        rules.append(
+            "For preference/advice, use stated preferences, dislikes, constraints, habits, owned resources, and prior experiences; do not invent absent named recommendations."
+        )
+    else:
+        rules.append(
+            "For fact lookup, match the exact requested slot; do not substitute related source, method, topic, or explanation."
+        )
+    return rules
+
+
 def _external_aggregation_report_rules() -> list[str]:
     """Schema discipline for question-derived aggregation, without labels."""
 
@@ -4140,13 +4331,17 @@ def _external_structured_guide_lines(
     include_inline_memory_hints: bool,
     max_memory_hints_per_row: int,
     memory_hint_chars: int,
+    compact: bool = False,
 ) -> list[str]:
     if (not include_rows and not include_memory) or (not rows and not memory_records):
         return []
 
-    lines = [
-        "Use this compact guide to locate relevant raw Memory Context rows; verify final facts in those rows."
-    ]
+    if compact:
+        lines = ["Index only; verify final facts in Memory Context rows."]
+    else:
+        lines = [
+            "Use this compact guide to locate relevant raw Memory Context rows; verify final facts in those rows."
+        ]
     question_terms = _content_terms(question)
     source_to_memory_index = {
         row.source_id: index for index, row in enumerate(rows, start=1)
@@ -4176,7 +4371,13 @@ def _external_structured_guide_lines(
                     )
                 )
                 if relative_times:
-                    if event_contract:
+                    if compact:
+                        label = "ev" if event_contract else "rel"
+                        relative_text = f" | {label}=" + "; ".join(
+                            f'"{phrase}"->{normalized}'
+                            for phrase, normalized in relative_times[:4]
+                        )
+                    elif event_contract:
                         relative_text = " | event_time_candidates=" + "; ".join(
                             f'phrase="{phrase}" event_time="{normalized}"'
                             for phrase, normalized in relative_times[:4]
@@ -4195,10 +4396,16 @@ def _external_structured_guide_lines(
             )
             if memory_hint:
                 memory_hint_text = f" | memory_hint={memory_hint}"
-            lines.append(
-                f"  - Memory {index}: row_date={row_date_text} role={row.role} "
-                f"matched_terms={matched_text}{relative_text}{memory_hint_text}"
-            )
+            if compact:
+                lines.append(
+                    f"  - Memory {index}: date={row_date_text} role={row.role} "
+                    f"terms={matched_text}{relative_text}{memory_hint_text}"
+                )
+            else:
+                lines.append(
+                    f"  - Memory {index}: row_date={row_date_text} role={row.role} "
+                    f"matched_terms={matched_text}{relative_text}{memory_hint_text}"
+                )
 
     if include_memory:
         memory_lines = _external_memory_guide_lines(
@@ -7587,6 +7794,7 @@ def _external_temporal_aid_lines(
     include_relative_text: bool,
     event_contract: bool = False,
     enable_weekend_relative_time: bool = False,
+    compact: bool = False,
 ) -> list[str]:
     candidates = _external_dated_candidate_rows(
         question,
@@ -7597,7 +7805,13 @@ def _external_temporal_aid_lines(
     if not candidates:
         return []
 
-    if event_contract:
+    if compact and event_contract:
+        lines = [
+            "Date aid only; mention_time=Memory Date, event_time=matched text date/relative phrase; verify in Memory Context."
+        ]
+    elif compact:
+        lines = ["Date aid only; verify in Memory Context."]
+    elif event_contract:
         lines = [
             "Use this only as a date arithmetic aid derived from Memory Context row timestamps and relative phrases; final facts must still come from Memory Context.",
             "- mention_time is the Memory Date. event_time_candidates come from relative or explicit time phrases in the row text and should answer the target event time when they match the question.",
@@ -7608,16 +7822,23 @@ def _external_temporal_aid_lines(
         ]
     question_date = _parse_date(question_time)
     if question_date is not None:
-        lines.append(f"- question_date={question_date.isoformat()}")
+        label = "q_date" if compact else "question_date"
+        lines.append(f"- {label}={question_date.isoformat()}")
 
     selected = candidates[:max(1, max_rows)]
-    lines.append("- memory_dates:")
+    lines.append("- dates:" if compact else "- memory_dates:")
     for candidate in selected:
         matched = ", ".join(candidate["matched_terms"]) or "none"
         relative = ""
         relative_times = candidate.get("relative_times", ())
         if include_relative_text and relative_times:
-            if event_contract:
+            if compact:
+                label = "ev" if event_contract else "rel"
+                relative = f" | {label}=" + "; ".join(
+                    f'"{phrase}"->{normalized}'
+                    for phrase, normalized in relative_times
+                )
+            elif event_contract:
                 relative = " | event_time_candidates=" + "; ".join(
                     f'phrase="{phrase}" event_time="{normalized}"'
                     for phrase, normalized in relative_times
@@ -7628,10 +7849,17 @@ def _external_temporal_aid_lines(
                     for phrase, normalized in relative_times
                 )
         date_label = "mention_time" if event_contract else "row_date"
-        lines.append(
-            f"  - Memory {candidate['memory_index']}: {date_label}={candidate['date']} "
-            f"role={candidate['role']} matched_terms={matched}{relative}"
-        )
+        if compact:
+            date_label = "mention" if event_contract else "date"
+            lines.append(
+                f"  - Memory {candidate['memory_index']}: {date_label}={candidate['date']} "
+                f"role={candidate['role']} terms={matched}{relative}"
+            )
+        else:
+            lines.append(
+                f"  - Memory {candidate['memory_index']}: {date_label}={candidate['date']} "
+                f"role={candidate['role']} matched_terms={matched}{relative}"
+            )
 
     chronological = sorted(
         selected,
@@ -7641,10 +7869,11 @@ def _external_temporal_aid_lines(
         order = " -> ".join(
             f"Memory {item['memory_index']}({item['date']})" for item in chronological
         )
-        lines.append(f"- chronological_order_by_row_date: {order}")
+        label = "chrono_by_row_date" if compact else "chronological_order_by_row_date"
+        lines.append(f"- {label}: {order}")
 
     if max_pairs > 0 and _asks_pairwise_duration(question) and len(selected) >= 2:
-        lines.append("- pairwise_date_gaps:")
+        lines.append("- date_gaps:" if compact else "- pairwise_date_gaps:")
         for left, right in _external_pairwise_temporal_gaps(selected)[:max_pairs]:
             start = _parse_date(str(left["date"]))
             end = _parse_date(str(right["date"]))
@@ -7652,12 +7881,20 @@ def _external_temporal_aid_lines(
                 continue
             days = abs((end - start).days)
             inclusive_days = days + 1
-            lines.append(
-                f"  - Memory {left['memory_index']}({start.isoformat()}) <-> "
-                f"Memory {right['memory_index']}({end.isoformat()}): {days} days "
-                f"({inclusive_days} inclusive), {days / 7:.2f} weeks, "
-                f"{days / 30.44:.2f} approx months, {days / 365.25:.2f} approx years"
-            )
+            if compact:
+                lines.append(
+                    f"  - Memory {left['memory_index']}({start.isoformat()}) <-> "
+                    f"Memory {right['memory_index']}({end.isoformat()}): {days}d "
+                    f"({inclusive_days} incl), {days / 7:.2f}w, "
+                    f"{days / 30.44:.2f}mo, {days / 365.25:.2f}y"
+                )
+            else:
+                lines.append(
+                    f"  - Memory {left['memory_index']}({start.isoformat()}) <-> "
+                    f"Memory {right['memory_index']}({end.isoformat()}): {days} days "
+                    f"({inclusive_days} inclusive), {days / 7:.2f} weeks, "
+                    f"{days / 30.44:.2f} approx months, {days / 365.25:.2f} approx years"
+                )
     return lines
 
 
