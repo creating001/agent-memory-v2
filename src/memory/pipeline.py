@@ -166,6 +166,9 @@ class Stage1Pipeline:
             temporal_priority_over_recent=bool(
                 route_config.get("temporal_priority_over_recent", False)
             ),
+            explicit_date_priority_over_recent=bool(
+                route_config.get("explicit_date_priority_over_recent", False)
+            ),
         )
         self._route_trace_config = {
             "enable_broad_list_patterns": bool(
@@ -179,6 +182,9 @@ class Stage1Pipeline:
             ),
             "temporal_priority_over_recent": bool(
                 route_config.get("temporal_priority_over_recent", False)
+            ),
+            "explicit_date_priority_over_recent": bool(
+                route_config.get("explicit_date_priority_over_recent", False)
             ),
         }
         self._base_top_k = int(retrieval_config.get("top_k", 8))
@@ -7964,6 +7970,9 @@ def _configured_router(route_config: Mapping[str, Any]) -> QuestionRouter:
         temporal_priority_over_recent=bool(
             route_config.get("temporal_priority_over_recent", False)
         ),
+        explicit_date_priority_over_recent=bool(
+            route_config.get("explicit_date_priority_over_recent", False)
+        ),
     )
 
 
@@ -8842,6 +8851,7 @@ def _validate_granularity_profiles(value: object) -> tuple[dict[str, Any], ...]:
             "enable_recommendation_profile_patterns",
             "enable_advice_profile_patterns",
             "temporal_priority_over_recent",
+            "explicit_date_priority_over_recent",
         }
         unknown_route = set(route).difference(allowed_route)
         if unknown_route:

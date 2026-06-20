@@ -128,6 +128,36 @@ class RouteTest(unittest.TestCase):
         self.assertIn("explicit_date", route.signals)
         self.assertNotIn("recent_or_current", route.signals)
 
+    def test_explicit_month_year_can_narrowly_override_latest_when_enabled(self) -> None:
+        route = QuestionRouter(explicit_date_priority_over_recent=True).route(
+            "What did Mel and her kids paint in their latest project in July 2023?"
+        )
+
+        self.assertEqual(route.information_need, "temporal_lookup")
+        self.assertIn("temporal", route.signals)
+        self.assertIn("explicit_date", route.signals)
+        self.assertIn("recent_or_current", route.signals)
+        self.assertIn("explicit_date_recent_conflict", route.signals)
+
+    def test_explicit_month_year_does_not_preempt_fact_route(self) -> None:
+        route = QuestionRouter(explicit_date_priority_over_recent=True).route(
+            "What achievement did John share with Tim in January 2024?"
+        )
+
+        self.assertEqual(route.information_need, "fact_lookup")
+        self.assertNotIn("temporal", route.signals)
+        self.assertNotIn("explicit_date", route.signals)
+
+    def test_explicit_month_year_does_not_preempt_list_route(self) -> None:
+        route = QuestionRouter(
+            enable_broad_list_patterns=True,
+            explicit_date_priority_over_recent=True,
+        ).route("What books has Melanie read in July 2023?")
+
+        self.assertEqual(route.information_need, "list_count")
+        self.assertIn("list_or_count", route.signals)
+        self.assertNotIn("temporal", route.signals)
+
     def test_plain_latest_question_still_routes_to_current_state(self) -> None:
         route = QuestionRouter().route("What is my latest phone model?")
 

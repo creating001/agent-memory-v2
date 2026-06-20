@@ -93,6 +93,7 @@ class QuestionRouter:
         enable_recommendation_profile_patterns: bool = False,
         enable_advice_profile_patterns: bool = False,
         temporal_priority_over_recent: bool = False,
+        explicit_date_priority_over_recent: bool = False,
     ):
         self._enable_broad_list_patterns = enable_broad_list_patterns
         self._enable_recommendation_profile_patterns = (
@@ -100,6 +101,9 @@ class QuestionRouter:
         )
         self._enable_advice_profile_patterns = enable_advice_profile_patterns
         self._temporal_priority_over_recent = temporal_priority_over_recent
+        self._explicit_date_priority_over_recent = (
+            explicit_date_priority_over_recent
+        )
 
     def route(self, question: str, question_time: str | None = None) -> RouteResult:
         del question_time
@@ -108,16 +112,40 @@ class QuestionRouter:
         temporal_signals = _temporal_route_signals(
             normalized,
             temporal_patterns=self._TEMPORAL_PATTERNS,
-            explicit_date_patterns=self._EXPLICIT_DATE_PATTERNS,
         )
+        has_explicit_date = _matches_any(normalized, self._EXPLICIT_DATE_PATTERNS)
+        has_recent_or_current = _matches_any(normalized, self._RECENT_PATTERNS)
 
-        if self._temporal_priority_over_recent and temporal_signals:
+        if self._temporal_priority_over_recent and (
+            temporal_signals or has_explicit_date
+        ):
             return RouteResult(
                 information_need="temporal_lookup",
-                signals=temporal_signals,
+                signals=_with_explicit_date_signal(
+                    temporal_signals,
+                    has_explicit_date=has_explicit_date,
+                ),
                 retrieval_multiplier=2,
             )
-        if _matches_any(normalized, self._RECENT_PATTERNS):
+        if (
+            self._explicit_date_priority_over_recent
+            and has_recent_or_current
+            and has_explicit_date
+        ):
+            priority_signals = list(
+                _with_explicit_date_signal(
+                    temporal_signals,
+                    has_explicit_date=True,
+                )
+            )
+            priority_signals.append("recent_or_current")
+            priority_signals.append("explicit_date_recent_conflict")
+            return RouteResult(
+                information_need="temporal_lookup",
+                signals=tuple(priority_signals),
+                retrieval_multiplier=2,
+            )
+        if has_recent_or_current:
             signals.append("recent_or_current")
             return RouteResult(
                 information_need="current_state",
@@ -186,13 +214,23 @@ def _temporal_route_signals(
     text: str,
     *,
     temporal_patterns: tuple[str, ...],
-    explicit_date_patterns: tuple[str, ...],
 ) -> tuple[str, ...]:
     signals: list[str] = []
     if _matches_any(text, temporal_patterns):
         signals.append("temporal")
-    if _matches_any(text, explicit_date_patterns):
-        if "temporal" not in signals:
-            signals.append("temporal")
-        signals.append("explicit_date")
     return tuple(signals)
+
+
+def _with_explicit_date_signal(
+    signals: tuple[str, ...],
+    *,
+    has_explicit_date: bool,
+) -> tuple[str, ...]:
+    if not has_explicit_date:
+        return signals
+    merged = list(signals)
+    if "temporal" not in merged:
+        merged.append("temporal")
+    if "explicit_date" not in merged:
+        merged.append("explicit_date")
+    return tuple(merged)
