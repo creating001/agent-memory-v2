@@ -8663,6 +8663,16 @@ class CleanSkeletonTest(unittest.TestCase):
             "7",
         )
 
+    def test_json_answer_output_handles_very_long_integer_answer(self) -> None:
+        raw = '{"reasoning":"model emitted a pathological number","answer":' + (
+            "1" * 5000
+        ) + "}"
+
+        self.assertEqual(
+            _parse_answer_content(raw, output_format="json_answer"),
+            "1" * 5000,
+        )
+
     def test_json_answer_output_salvages_final_answer_marker_from_malformed_json(self) -> None:
         raw = (
             '{"reasoning":"The model kept reasoning and never closed JSON. '
