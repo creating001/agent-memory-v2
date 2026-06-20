@@ -28,7 +28,7 @@
 
 | 优先级 | 方向 | 当前问题 | 下一步 |
 |---:|---|---|---|
-| 1 | Evidence utility selection | v262 已有 source-backed graph utility audit/selector，但保守 tail-rescue 在 full 上未进入最终 evidence | 设计 bounded overflow 或 strong source-support-gated tail exchange；保护 lexical/dense/memory anchors，changed-answer judge 后再考虑 LTS |
+| 1 | Evidence utility selection | v263 证明简单 overflow 会让 LME changed-answer judge 回退；v262 的 graph utility 仍适合作为 audit/selector 入口 | 下一步只允许强 gate：显式 lifecycle conflict/supersede、同 slot/session evidence pressure 或 verifier risk 触发；任何 answer diff 都先跑 changed-answer judge |
 | 2 | Build memory system | v262 继承了 memory objects、namespaces、lifecycle states 和 operation edges，但 memory object schema 还偏 typed-record 后处理 | 继续把 event/state/profile/relation object schema 标准化，加入 confidence、validity、source span、usage utility 的可消融字段 |
 | 3 | Query-time 简化 | route、selected context、state guide、ledger、audit 多层叠加，后续维护成本高 | 收敛为 candidate activation、context compiler、source-grounded answer、consistency verifier 四层，删除确认无用的兼容分支 |
 | 4 | Answer/verifier 统一 | source-grounded support audit 仍是 trace-only；repair/finalizer 默认关闭后还残留兼容面 | 基于 audit 风险做通用 verifier，只检查数值、时间、说话人、实体、状态冲突、unsupported answer，不写 benchmark-specific rewrite |
@@ -39,6 +39,7 @@
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
 | `configs/stage1_graph_evidence_utility_v262_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_graph_evidence_utility_v262_full_summary.md` | current LTS / graph-backed evidence utility | v262 vs v261 full LME/LoCoMo answer/hits/final-evidence/token diff 全为 `0`; full accuracy 继承 `0.832000/0.844000`、`0.794156/0.819481`; graph utility applied LME `341/500`、LoCoMo `1373/1540` | 当前 LTS；把 memory system graph 从 trace-only governance 推进为 source-backed evidence utility selector/audit |
+| `configs/stage1_graph_evidence_overflow_v263_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_graph_evidence_overflow_v263_scope_summary.md` | rejected full / graph overflow lesson | LME answer diff `15/500`; changed-answer judge delta strict/lenient `-2/-1`; derived LME `0.828000/0.842000`; LoCoMo answer-identical | 不升 LTS；简单 overflow 即使 source-backed 也会引入干扰 evidence，需要更强 utility gate |
 | `configs/stage1_memory_system_graph_v261_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_memory_system_graph_v261_full_summary.md` | previous LTS / memory system graph | v261 vs v260 full LME/LoCoMo answer/hits/final-evidence/token diff 全为 `0`; graph applied LME `500/500`、LoCoMo `1540/1540` | 被 v262 替代；保留为 build memory system graph 父锚点 |
 | `configs/stage1_lifecycle_operation_utility_tail_rescue_v260_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_lifecycle_operation_utility_tail_rescue_v260_full_summary.md` | previous LTS / lifecycle operation utility | v260 vs v257 full answer/hits/final-evidence/token diff 全为 `0`; operation utility applied LME `14/500`、LoCoMo `22/1540` | 被 v261/v262 继承；保留为 append-only operation utility 父锚点 |
 | `configs/stage1_lifecycle_operation_utility_v259_seeded_qwen36_no_think_build4k_cached.json` | rejected full / lifecycle tail-exchange lesson | LME answer diff `4/500`，changed lenient loss `1`; LoCoMo answer diff `10/1540`，changed strict/lenient loss `2/2` | 不升 LTS；`tail_exchange` 即使只替换 1 条 evidence 仍会伤害 accuracy |
@@ -54,6 +55,7 @@
 
 | 文档/目录 | 教训 |
 |---|---|
+| `diagnostic/stage1_graph_evidence_overflow_v263_scope_summary.md` | source-backed graph utility 可以进入 candidate tail，但简单 overflow 会伤 LME accuracy；下一步必须强 gate |
 | `diagnostic/stage1_lifecycle_operation_utility_v259_*_changed_vs_v257/` | lifecycle/source-backed operation utility 可以 clean，但不应替换高置信 evidence；优先 append-only 或 stronger utility gate |
 | `diagnostic/stage1_operation_utility_tail_exchange_v258_locomo_probe50_seeded_changed_vs_v257/` | collection/list operation slot 噪声高，不能直接进入 tail-exchange |
 | `diagnostic/stage1_profile_aware_gated_fact_list_rerank_v228_scope_summary.md` | profile-aware gated fact/list rerank clean，但 LoCoMo changed judge `-1/-5` |

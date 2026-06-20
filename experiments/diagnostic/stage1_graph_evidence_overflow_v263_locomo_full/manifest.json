@@ -1,0 +1,31 @@
+{
+  "benchmark": "locomo_non_adversarial",
+  "clean_assertions": [
+    "Prediction loader rejects gold/reference/target answers.",
+    "Prediction loader rejects judge outputs and benchmark labels.",
+    "Prediction loader rejects sample ids, qids, and row indices.",
+    "record_key is copied only by the runner and is not passed into pipeline modules.",
+    "Derived context rows always retain raw source_id back-links.",
+    "Build-stage typed memory is created only from raw dialogue turns and visible metadata."
+  ],
+  "config_path": "/data/home_new/wujinqi/agent-memory/configs/stage1_graph_evidence_overflow_v263_seeded_qwen36_no_think_build4k_cached.json",
+  "created_at_utc": "2026-06-20T00:07:34+00:00",
+  "experiment_dir": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_graph_evidence_overflow_v263_locomo_full",
+  "experiment_kind": "diagnostic",
+  "git": {
+    "commit": "8e793d47c6aa186f3ddf4317e46c5770102f5585",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "?? experiments/diagnostic/stage1_graph_evidence_overflow_v263_lme_probe50/\n?? experiments/diagnostic/stage1_graph_evidence_overflow_v263_locomo_probe50/"
+  },
+  "input_path": "/data/home_new/wujinqi/agent-memory/outputs/prepare_locomo_non_adversarial/prediction_input.jsonl",
+  "output_path": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_graph_evidence_overflow_v263_locomo_full/predictions.jsonl",
+  "outputs": {
+    "predictions": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_graph_evidence_overflow_v263_locomo_full/predictions.jsonl",
+    "traces": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_graph_evidence_overflow_v263_locomo_full/traces.jsonl"
+  },
+  "run_id": "stage1_graph_evidence_overflow_v263_locomo_full",
+  "subset": "full",
+  "trace_path": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_graph_evidence_overflow_v263_locomo_full/traces.jsonl"
+}
