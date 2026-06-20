@@ -94,6 +94,50 @@ MEMORY_STATE_GUIDE_STATEFUL_SLOT_PATTERN = re.compile(
     r")\b",
     re.IGNORECASE,
 )
+UPDATE_CONFLICT_VALUE_UNIT_STOPWORDS = {
+    "a",
+    "about",
+    "after",
+    "an",
+    "ago",
+    "and",
+    "around",
+    "at",
+    "before",
+    "by",
+    "for",
+    "from",
+    "in",
+    "is",
+    "later",
+    "last",
+    "next",
+    "now",
+    "of",
+    "on",
+    "or",
+    "per",
+    "the",
+    "this",
+    "to",
+    "today",
+    "tomorrow",
+    "was",
+    "were",
+    "with",
+    "yesterday",
+}
+UPDATE_CONFLICT_VALUE_PATTERNS = (
+    r"\b\d{1,2}:\d{2}\b",
+    r"(?:[$€£]\s*)?\b\d{1,3}(?:,\d{3})+(?:\.\d+)?(?:\s+(?:[A-Za-z][A-Za-z0-9%/-]*|%)){0,2}\b",
+    r"(?:[$€£]\s*)?\b\d+(?:\.\d+)?\s*k\b",
+    r"(?:[$€£]\s*)?\b\d+(?:\.\d+)?\s*(?:percent|%)\b",
+    r"\b(?:every other week|every week|weekly|monthly|yearly|once a week|twice a week|once a month|twice a month)\b",
+)
+UPDATE_CONFLICT_GENERIC_VALUE_PATTERN = (
+    r"(?:[$€£]\s*)?\b\d+(?:,\d{3})*(?:\.\d+)?"
+    r"(?:\s+(?:[A-Za-z][A-Za-z0-9%/-]*|%)){0,2}\b"
+)
 TOKEN_PATTERN = re.compile(r"[\w]+", re.UNICODE)
 PERSONALIZED_ADVICE_PATTERN = re.compile(
     r"\b("
@@ -5051,18 +5095,15 @@ def _update_conflict_signals(text: str) -> tuple[str, ...]:
 def _update_conflict_values(text: str) -> tuple[str, ...]:
     values: list[str] = []
     spans: list[tuple[int, int]] = []
-    for pattern in (
-        r"\b\d{1,2}:\d{2}\b",
-        r"(?:\$\s*)?\b\d{1,3}(?:,\d{3})+(?:\.\d+)?\b",
-        r"(?:\$\s*)?\b\d+(?:\.\d+)?\s*k\b",
-        r"(?:\$\s*)?\b\d+(?:\.\d+)?\s*(?:stars?|followers?|pages?|miles?|minutes?|hours?|weeks?|months?|years?|gallons?|coins?|baseballs?|plants?|projects?|times?|dollars?|percent|%|lbs?|kg|km)\b",
-        r"\b(?:every other week|every week|weekly|monthly|yearly|once a week|twice a week|once a month|twice a month)\b",
-        r"(?:\$\s*)?\b\d+(?:\.\d+)?\b",
+    for pattern in UPDATE_CONFLICT_VALUE_PATTERNS + (
+        UPDATE_CONFLICT_GENERIC_VALUE_PATTERN,
     ):
         for match in re.finditer(pattern, text, flags=re.IGNORECASE):
             if any(match.start() < end and match.end() > start for start, end in spans):
                 continue
-            value = _single_line(match.group(0))
+            value = _clean_update_conflict_value_candidate(match.group(0))
+            if not value:
+                continue
             if _looks_like_standalone_year(value):
                 continue
             spans.append((match.start(), match.end()))
@@ -5070,6 +5111,36 @@ def _update_conflict_values(text: str) -> tuple[str, ...]:
             if len(values) >= 6:
                 return tuple(dict.fromkeys(values))
     return tuple(dict.fromkeys(values))
+
+
+def _clean_update_conflict_value_candidate(value: str) -> str:
+    compact = _single_line(value).strip(" ,.;:!?")
+    if not compact:
+        return ""
+    if re.fullmatch(
+        r"(?:[$€£]\s*)?\d+(?:,\d{3})*(?:\.\d+)?\s*(?:k|%)?",
+        compact,
+        flags=re.IGNORECASE,
+    ):
+        return compact
+
+    parts = compact.split()
+    if len(parts) <= 1:
+        return compact
+
+    kept = [parts[0]]
+    for token in parts[1:]:
+        normalized = re.sub(r"^[^\w%]+|[^\w%/-]+$", "", token).lower()
+        if not normalized:
+            break
+        if normalized in UPDATE_CONFLICT_VALUE_UNIT_STOPWORDS:
+            break
+        if re.fullmatch(r"\d{1,4}", normalized):
+            break
+        kept.append(token.strip(" ,.;:!?"))
+        if len(kept) >= 3:
+            break
+    return " ".join(part for part in kept if part)
 
 
 def _looks_like_standalone_year(value: str) -> bool:

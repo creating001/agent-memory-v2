@@ -9000,6 +9000,44 @@ class CleanSkeletonTest(unittest.TestCase):
 
         self.assertNotIn("Update/Conflict Candidate Chain:", compiled.prompt)
 
+    def test_update_conflict_guide_keeps_domain_specific_units(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=3,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            update_conflict_guide=True,
+            update_conflict_guide_information_needs=("current_state",),
+            update_conflict_guide_max_rows=3,
+        )
+        compiled = compiler.compile(
+            question="How many pullups can Morgan do now?",
+            question_time=None,
+            route=RouteResult(information_need="current_state", signals=()),
+            hits=(),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Morgan could do 14 pullups before the summer program.",
+                    timestamp="2024-05-10",
+                ),
+                Turn(
+                    source_id="s2:t0",
+                    session_id="s2",
+                    turn_index=0,
+                    role="user",
+                    text="Morgan updated her personal record to 18 pullups now.",
+                    timestamp="2024-06-02",
+                ),
+            ),
+        )
+
+        self.assertIn("Update/Conflict Candidate Chain:", compiled.prompt)
+        self.assertIn("values=14 pullups", compiled.prompt)
+        self.assertIn("values=18 pullups", compiled.prompt)
+
     def test_update_conflict_guide_skips_non_value_slots(self) -> None:
         compiler = EvidenceCompiler(
             max_evidence_items=3,
