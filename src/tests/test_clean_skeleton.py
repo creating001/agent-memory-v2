@@ -441,7 +441,22 @@ class CleanSkeletonTest(unittest.TestCase):
                     "schema_version": "memory_operation_registry_v1",
                     "entry_count": 2,
                     "source_backed_entry_count": 2,
-                }
+                },
+                "lifecycle_audit": {
+                    "applied": True,
+                    "schema_version": "memory_lifecycle_audit_v1",
+                    "interface_source": "memory_operation_registry",
+                    "entry_count": 1,
+                    "source_backed_entry_count": 1,
+                    "conflict_entry_count": 1,
+                    "entries": [
+                        {
+                            "target_type": "conflict_slot",
+                            "source_ids": ["s2:t0", "s3:t0"],
+                            "audit_flags": ["source_backed", "conflict_resolution"],
+                        }
+                    ],
+                },
             },
         )
 
@@ -461,6 +476,19 @@ class CleanSkeletonTest(unittest.TestCase):
         )
         self.assertEqual(
             manifest["coverage"]["final_evidence_from_operation_registry_count"],
+            1,
+        )
+        self.assertTrue(operations["lifecycle_audit_available"])
+        self.assertEqual(
+            operations["lifecycle_audit_schema_version"],
+            "memory_lifecycle_audit_v1",
+        )
+        self.assertEqual(
+            operations["lifecycle_audit_final_source_ids"],
+            ("s2:t0",),
+        )
+        self.assertEqual(
+            manifest["coverage"]["final_evidence_from_lifecycle_audit_count"],
             1,
         )
 
@@ -3327,6 +3355,12 @@ class CleanSkeletonTest(unittest.TestCase):
             memory_object_index["working_memory_view_source_backed_entry_count"],
             8,
         )
+        self.assertEqual(memory_object_index["lifecycle_audit_entry_count"], 8)
+        self.assertEqual(
+            memory_object_index["lifecycle_audit_source_backed_entry_count"],
+            8,
+        )
+        self.assertEqual(memory_object_index["lifecycle_audit_conflict_entry_count"], 2)
         self.assertEqual(
             memory_object_index["source_backed_object_count"],
             3,
@@ -3368,6 +3402,12 @@ class CleanSkeletonTest(unittest.TestCase):
                 "view_field"
             ],
             "working_memory_view",
+        )
+        self.assertEqual(
+            memory_object_index["index_contract"]["lifecycle_audit_contract"][
+                "audit_field"
+            ],
+            "lifecycle_audit",
         )
         operation_registry = memory_object_index["operation_registry"]
         self.assertEqual(
@@ -3422,6 +3462,34 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual(
             city_workspace_conflict["expand_source_order"],
             ["s2:t1", "s2:t2", "s1:t1"],
+        )
+        lifecycle_audit = memory_object_index["lifecycle_audit"]
+        self.assertEqual(
+            lifecycle_audit["schema_version"],
+            "memory_lifecycle_audit_v1",
+        )
+        self.assertEqual(lifecycle_audit["interface_source"], "memory_working_view")
+        self.assertEqual(lifecycle_audit["entry_count"], 8)
+        self.assertEqual(lifecycle_audit["conflict_entry_count"], 2)
+        self.assertEqual(lifecycle_audit["source_incomplete_entry_count"], 0)
+        self.assertIn("supersede", lifecycle_audit["operation_coverage"])
+        city_lifecycle_conflict = next(
+            entry
+            for entry in lifecycle_audit["entries"]
+            if entry["target_type"] == "conflict_slot"
+            and entry["predicate"] == "location"
+        )
+        self.assertEqual(
+            city_lifecycle_conflict["lifecycle_stage"],
+            "conflict_resolution",
+        )
+        self.assertIn(
+            "active_superseded_pair",
+            city_lifecycle_conflict["audit_flags"],
+        )
+        self.assertEqual(
+            city_lifecycle_conflict["current_source_order"],
+            ("s2:t1", "s2:t2", "s1:t1"),
         )
         city_object_operation = next(
             entry
@@ -3726,6 +3794,15 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertTrue(operation_registry["applied"])
         self.assertEqual(operation_registry["operation_slot_entry_count"], 1)
         self.assertEqual(operation_registry["source_backed_entry_count"], 5)
+        lifecycle_audit = memory_object_index["lifecycle_audit"]
+        self.assertTrue(lifecycle_audit["applied"])
+        self.assertEqual(
+            lifecycle_audit["interface_source"],
+            "memory_operation_registry",
+        )
+        self.assertEqual(lifecycle_audit["entry_count"], 5)
+        self.assertEqual(lifecycle_audit["source_backed_entry_count"], 5)
+        self.assertEqual(lifecycle_audit["conflict_entry_count"], 2)
 
     def test_memory_scalar_value_manifest_tracks_source_backed_values(self) -> None:
         old_followers = MemoryRecord(

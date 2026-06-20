@@ -135,6 +135,28 @@ class AnswerVerifyTest(unittest.TestCase):
         self.assertEqual(audit.registry_backed_support_reference_count, 1)
         self.assertEqual(audit.registry_backed_support_references, (2,))
 
+    def test_source_grounded_audit_tracks_lifecycle_audit_support(self) -> None:
+        audit = audit_answer_support(
+            compiled=_compiled(row_count=3),
+            answer=_answer(
+                {
+                    "sufficient": True,
+                    "evidence_report": [{"memory": "Memory 3", "status": "support"}],
+                    "answer": "jasmine tea",
+                }
+            ),
+            enabled=True,
+            context_manifest={
+                "memory_operations": {
+                    "lifecycle_audit_final_source_ids": ("s1:t2",)
+                }
+            },
+        )
+
+        self.assertEqual(audit.registry_backed_final_evidence_count, 1)
+        self.assertEqual(audit.registry_backed_support_reference_count, 1)
+        self.assertEqual(audit.registry_backed_support_references, (3,))
+
     def test_source_grounded_audit_uses_final_answer_when_json_answer_missing(
         self,
     ) -> None:

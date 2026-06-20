@@ -251,13 +251,21 @@ def _registry_backed_final_source_ids(
     memory_operations = context_manifest.get("memory_operations")
     if not isinstance(memory_operations, dict):
         return frozenset()
-    return frozenset(
+    registry_sources = {
         str(source_id)
         for source_id in (
             memory_operations.get("registry_projected_final_source_ids") or ()
         )
         if str(source_id).strip()
-    )
+    }
+    lifecycle_sources = {
+        str(source_id)
+        for source_id in (
+            memory_operations.get("lifecycle_audit_final_source_ids") or ()
+        )
+        if str(source_id).strip()
+    }
+    return frozenset((*registry_sources, *lifecycle_sources))
 
 
 def _registry_backed_support_refs(

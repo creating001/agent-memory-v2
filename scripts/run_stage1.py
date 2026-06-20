@@ -163,6 +163,9 @@ def main() -> int:
     build_memory_system_graph_memory_object_index_working_view_operation_counts: dict[
         str, int
     ] = {}
+    build_memory_system_graph_memory_object_index_lifecycle_audit_operation_coverage: dict[
+        str, int
+    ] = {}
     total_build_memory_operation_ledger_applied = 0
     total_build_memory_operation_ledger_source_backed = 0
     total_build_memory_operation_ledger_source_unbacked = 0
@@ -211,6 +214,10 @@ def main() -> int:
     total_build_memory_system_graph_index_working_memory_view_entries = 0
     total_build_memory_system_graph_index_working_memory_view_source_backed_entries = 0
     total_build_memory_system_graph_index_working_memory_view_source_incomplete_entries = 0
+    total_build_memory_system_graph_index_lifecycle_audit_applied = 0
+    total_build_memory_system_graph_index_lifecycle_audit_entries = 0
+    total_build_memory_system_graph_index_lifecycle_audit_source_backed_entries = 0
+    total_build_memory_system_graph_index_lifecycle_audit_conflict_entries = 0
     total_build_memory_system_graph_source_backed_records = 0
     total_build_memory_system_graph_complete_slot_key_records = 0
     total_build_memory_system_graph_temporal_anchor_records = 0
@@ -768,6 +775,26 @@ def main() -> int:
                     )
                     total_build_memory_system_graph_index_working_memory_view_source_incomplete_entries += int(
                         working_memory_view.get("source_incomplete_entry_count") or 0
+                    )
+                lifecycle_audit = (
+                    memory_object_index.get("lifecycle_audit") or {}
+                )
+                if isinstance(lifecycle_audit, Mapping) and lifecycle_audit.get(
+                    "applied"
+                ):
+                    total_build_memory_system_graph_index_lifecycle_audit_applied += 1
+                    _merge_int_counts(
+                        build_memory_system_graph_memory_object_index_lifecycle_audit_operation_coverage,
+                        lifecycle_audit.get("operation_coverage") or {},
+                    )
+                    total_build_memory_system_graph_index_lifecycle_audit_entries += int(
+                        lifecycle_audit.get("entry_count") or 0
+                    )
+                    total_build_memory_system_graph_index_lifecycle_audit_source_backed_entries += int(
+                        lifecycle_audit.get("source_backed_entry_count") or 0
+                    )
+                    total_build_memory_system_graph_index_lifecycle_audit_conflict_entries += int(
+                        lifecycle_audit.get("conflict_entry_count") or 0
                     )
             source_quality = memory_system_graph.get("source_quality") or {}
             total_build_memory_system_graph_source_backed_records += int(
@@ -1732,6 +1759,16 @@ def main() -> int:
             "memory_system_graph_memory_object_index_working_memory_view_operation_counts": (
                 build_memory_system_graph_memory_object_index_working_view_operation_counts
             ),
+            "memory_system_graph_memory_object_index_lifecycle_audit_applied_count": (
+                total_build_memory_system_graph_index_lifecycle_audit_applied
+            ),
+            "memory_system_graph_memory_object_index_lifecycle_audit_applied_rate": _safe_average(
+                total_build_memory_system_graph_index_lifecycle_audit_applied,
+                sample_count,
+            ),
+            "memory_system_graph_memory_object_index_lifecycle_audit_operation_coverage": (
+                build_memory_system_graph_memory_object_index_lifecycle_audit_operation_coverage
+            ),
             "avg_memory_system_graph_objects": _safe_average(
                 total_build_memory_system_graph_objects,
                 total_build_memory_system_graph_applied,
@@ -1916,6 +1953,24 @@ def main() -> int:
                 _safe_average(
                     total_build_memory_system_graph_index_working_memory_view_source_incomplete_entries,
                     total_build_memory_system_graph_index_working_memory_view_applied,
+                )
+            ),
+            "avg_memory_system_graph_memory_object_index_lifecycle_audit_entries": (
+                _safe_average(
+                    total_build_memory_system_graph_index_lifecycle_audit_entries,
+                    total_build_memory_system_graph_index_lifecycle_audit_applied,
+                )
+            ),
+            "avg_memory_system_graph_memory_object_index_lifecycle_audit_source_backed_entries": (
+                _safe_average(
+                    total_build_memory_system_graph_index_lifecycle_audit_source_backed_entries,
+                    total_build_memory_system_graph_index_lifecycle_audit_applied,
+                )
+            ),
+            "avg_memory_system_graph_memory_object_index_lifecycle_audit_conflict_entries": (
+                _safe_average(
+                    total_build_memory_system_graph_index_lifecycle_audit_conflict_entries,
+                    total_build_memory_system_graph_index_lifecycle_audit_applied,
                 )
             ),
             "avg_memory_system_graph_source_backed_records": _safe_average(
@@ -2962,6 +3017,9 @@ def _write_summary(
         f"- avg_build_memory_system_graph_memory_object_index_operation_slots: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_operation_slots']}",
         f"- avg_build_memory_system_graph_memory_object_index_operation_registry_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_operation_registry_entries']}",
         f"- avg_build_memory_system_graph_memory_object_index_operation_registry_source_backed_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_operation_registry_source_backed_entries']}",
+        f"- build_memory_system_graph_memory_object_index_lifecycle_audit_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_lifecycle_audit_applied_count']}",
+        f"- avg_build_memory_system_graph_memory_object_index_lifecycle_audit_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_lifecycle_audit_entries']}",
+        f"- avg_build_memory_system_graph_memory_object_index_lifecycle_audit_conflict_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_lifecycle_audit_conflict_entries']}",
         f"- avg_build_memory_system_graph_value_objects: {metrics['build_memory']['avg_memory_system_graph_value_objects']}",
         f"- avg_build_memory_system_graph_source_backed_value_objects: {metrics['build_memory']['avg_memory_system_graph_source_backed_value_objects']}",
         f"- avg_build_memory_system_graph_source_incomplete_value_objects: {metrics['build_memory']['avg_memory_system_graph_source_incomplete_value_objects']}",
@@ -3406,6 +3464,9 @@ def _write_diagnosis(
         f"- avg_build_memory_system_graph_memory_object_index_operation_slots: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_operation_slots']}",
         f"- avg_build_memory_system_graph_memory_object_index_operation_registry_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_operation_registry_entries']}",
         f"- avg_build_memory_system_graph_memory_object_index_operation_registry_source_backed_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_operation_registry_source_backed_entries']}",
+        f"- build_memory_system_graph_memory_object_index_lifecycle_audit_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_lifecycle_audit_applied_count']}",
+        f"- avg_build_memory_system_graph_memory_object_index_lifecycle_audit_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_lifecycle_audit_entries']}",
+        f"- avg_build_memory_system_graph_memory_object_index_lifecycle_audit_conflict_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_lifecycle_audit_conflict_entries']}",
         f"- avg_build_memory_system_graph_value_objects: {metrics['build_memory']['avg_memory_system_graph_value_objects']}",
         f"- avg_build_memory_system_graph_source_backed_value_objects: {metrics['build_memory']['avg_memory_system_graph_source_backed_value_objects']}",
         f"- avg_build_memory_system_graph_source_incomplete_value_objects: {metrics['build_memory']['avg_memory_system_graph_source_incomplete_value_objects']}",

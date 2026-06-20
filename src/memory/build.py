@@ -1208,6 +1208,7 @@ def _memory_system_object_schema() -> dict[str, Any]:
             "scalar_value",
             "build_owned_scalar_value_manifest",
             "working_memory_view",
+            "lifecycle_audit",
         ],
         "governance_signals": [
             "source_activation_ready",
@@ -1228,6 +1229,7 @@ def _memory_system_object_schema() -> dict[str, Any]:
             "build_owned_operation_slot_index",
             "build_owned_operation_registry",
             "build_owned_working_memory_view",
+            "build_owned_lifecycle_audit",
         ],
 }
 
@@ -1310,6 +1312,10 @@ def _memory_object_index_manifest(
         if include_working_memory_view
         else _disabled_memory_working_memory_view()
     )
+    lifecycle_audit = _memory_lifecycle_audit(
+        operation_registry=operation_registry,
+        working_memory_view=working_memory_view,
+    )
     object_samples = [
         {
             "memory_id": record.memory_id,
@@ -1378,6 +1384,13 @@ def _memory_object_index_manifest(
         "working_memory_view_source_backed_entry_count": (
             working_memory_view["source_backed_entry_count"]
         ),
+        "lifecycle_audit_entry_count": lifecycle_audit["entry_count"],
+        "lifecycle_audit_source_backed_entry_count": (
+            lifecycle_audit["source_backed_entry_count"]
+        ),
+        "lifecycle_audit_conflict_entry_count": lifecycle_audit[
+            "conflict_entry_count"
+        ],
         "source_backed_object_count": sum(
             1 for record in managed_records if record.source_ids
         ),
@@ -1445,6 +1458,16 @@ def _memory_object_index_manifest(
                     "short-term memory is supplied by visible raw rows at query time"
                 ),
             },
+            "lifecycle_audit_contract": {
+                "audit_field": "lifecycle_audit",
+                "schema_version": "memory_lifecycle_audit_v1",
+                "source": "working_memory_view_or_operation_registry",
+                "operations": _memory_working_view_operation_contract(),
+                "policy": (
+                    "audit state, conflict, source, and operation readiness; "
+                    "final evidence still expands to raw source rows"
+                ),
+            },
             "state_conflict_contract": {
                 "slot_index_field": "state_conflict_slot_index",
                 "slot_scope": "same memory_type, subject, predicate",
@@ -1460,6 +1483,7 @@ def _memory_object_index_manifest(
         "state_conflict_slot_index": state_conflict_slots,
         "operation_registry": operation_registry,
         "working_memory_view": working_memory_view,
+        "lifecycle_audit": lifecycle_audit,
         "state_conflict_slot_ids": sorted(str(slot_id) for slot_id in conflict_slot_ids),
         "clean_note": (
             "Question-independent build memory object index. It unifies tier, "
@@ -1677,6 +1701,284 @@ def _memory_working_view_operation_contract() -> list[str]:
         "verify",
         "audit",
     ]
+
+
+def _memory_lifecycle_audit(
+    *,
+    operation_registry: dict[str, Any],
+    working_memory_view: dict[str, Any],
+) -> dict[str, Any]:
+    interface_source, raw_entries = _memory_lifecycle_audit_source_entries(
+        operation_registry=operation_registry,
+        working_memory_view=working_memory_view,
+    )
+    entries: list[dict[str, Any]] = []
+    for ordinal, raw_entry in enumerate(raw_entries):
+        if not isinstance(raw_entry, dict):
+            continue
+        source_ids = _ordered_strings(
+            raw_entry.get("expand_source_order") or raw_entry.get("source_ids") or ()
+        )[:12]
+        status_counts = _memory_lifecycle_entry_status_counts(raw_entry)
+        operations = _ordered_strings(raw_entry.get("operations") or ())
+        audit_actions = _memory_lifecycle_entry_actions(raw_entry, operations)
+        flags = _memory_lifecycle_entry_flags(
+            raw_entry,
+            source_ids=source_ids,
+            status_counts=status_counts,
+            operations=operations,
+        )
+        entries.append(
+            {
+                "audit_id": f"audit:{raw_entry.get('entry_id') or ordinal}",
+                "interface_source": interface_source,
+                "interface_entry_id": str(raw_entry.get("entry_id") or ""),
+                "target_type": str(raw_entry.get("target_type") or "object"),
+                "target_id": str(raw_entry.get("target_id") or ""),
+                "slot_id": str(raw_entry.get("slot_id") or ""),
+                "memory_id": str(raw_entry.get("memory_id") or ""),
+                "memory_type": str(raw_entry.get("memory_type") or ""),
+                "namespace": str(raw_entry.get("namespace") or ""),
+                "layer": str(raw_entry.get("layer") or ""),
+                "memory_tier": str(raw_entry.get("memory_tier") or ""),
+                "workspace_layer": str(raw_entry.get("workspace_layer") or ""),
+                "workspace_role": str(raw_entry.get("workspace_role") or ""),
+                "lifecycle_stage": _memory_lifecycle_entry_stage(raw_entry, flags),
+                "status": str(raw_entry.get("status") or ""),
+                "status_counts": status_counts,
+                "subject": _normalize_key_text(str(raw_entry.get("subject") or "")),
+                "predicate": _normalize_key_text(str(raw_entry.get("predicate") or "")),
+                "values": _ordered_strings(raw_entry.get("values") or ())[:12],
+                "operations": operations,
+                "audit_actions": audit_actions,
+                "audit_flags": flags,
+                "active_memory_ids": _ordered_strings(
+                    raw_entry.get("active_memory_ids") or ()
+                )[:12],
+                "superseded_memory_ids": _ordered_strings(
+                    raw_entry.get("superseded_memory_ids") or ()
+                )[:12],
+                "source_backed": bool(raw_entry.get("source_backed") or source_ids),
+                "source_ids": source_ids,
+                "current_source_order": _memory_lifecycle_entry_source_order(
+                    raw_entry,
+                    scope="current",
+                    fallback=source_ids,
+                ),
+                "historical_source_order": _memory_lifecycle_entry_source_order(
+                    raw_entry,
+                    scope="historical",
+                    fallback=source_ids,
+                ),
+                "verify_policy": "expand_to_raw_source_rows",
+                "audit_policy": "source_support_status_slot_lifecycle_and_conflict",
+            }
+        )
+
+    source_backed_count = sum(1 for entry in entries if entry["source_backed"])
+    flag_counts: dict[str, int] = defaultdict(int)
+    operation_coverage: dict[str, int] = defaultdict(int)
+    stage_counts: dict[str, int] = defaultdict(int)
+    for entry in entries:
+        stage_counts[str(entry.get("lifecycle_stage") or "unknown")] += 1
+        for flag in entry.get("audit_flags") or ():
+            flag_counts[str(flag)] += 1
+        for action in entry.get("audit_actions") or ():
+            operation_coverage[str(action)] += 1
+
+    return {
+        "schema_version": "memory_lifecycle_audit_v1",
+        "trace_only": False,
+        "applied": bool(entries),
+        "interface_source": interface_source,
+        "entry_count": len(entries),
+        "source_backed_entry_count": source_backed_count,
+        "source_incomplete_entry_count": max(0, len(entries) - source_backed_count),
+        "conflict_entry_count": flag_counts.get("conflict_resolution", 0),
+        "stateful_entry_count": flag_counts.get("stateful_memory", 0),
+        "active_entry_count": flag_counts.get("active_state", 0),
+        "superseded_entry_count": flag_counts.get("superseded_state", 0),
+        "operation_coverage": dict(sorted(operation_coverage.items())),
+        "flag_counts": dict(sorted(flag_counts.items())),
+        "stage_counts": dict(sorted(stage_counts.items())),
+        "operation_contract": _memory_working_view_operation_contract(),
+        "source_policy": {
+            "raw_evidence_required": True,
+            "final_evidence_policy": "raw_source_rows",
+            "question_independent_build": True,
+        },
+        "entries": entries,
+        "clean_note": (
+            "Question-independent lifecycle audit over the build-owned memory "
+            "operation interface. It organizes create/update/merge/supersede/"
+            "retrieve/expand/verify/audit readiness, source backing, state "
+            "conflicts, and current/historical source order without using "
+            "questions, labels, gold answers, judge outputs, sample ids, or "
+            "test feedback."
+        ),
+    }
+
+
+def _memory_lifecycle_audit_source_entries(
+    *,
+    operation_registry: dict[str, Any],
+    working_memory_view: dict[str, Any],
+) -> tuple[str, tuple[dict[str, Any], ...]]:
+    if working_memory_view.get("applied"):
+        return (
+            "memory_working_view",
+            tuple(
+                entry
+                for entry in working_memory_view.get("entries") or ()
+                if isinstance(entry, dict)
+            ),
+        )
+    if operation_registry.get("applied"):
+        return (
+            "memory_operation_registry",
+            tuple(
+                entry
+                for entry in operation_registry.get("entries") or ()
+                if isinstance(entry, dict)
+            ),
+        )
+    return "", ()
+
+
+def _memory_lifecycle_entry_status_counts(entry: dict[str, Any]) -> dict[str, int]:
+    raw_counts = entry.get("status_counts")
+    if isinstance(raw_counts, dict) and raw_counts:
+        result: dict[str, int] = {}
+        for key, value in raw_counts.items():
+            try:
+                count = int(value)
+            except (TypeError, ValueError):
+                continue
+            if count > 0:
+                result[str(key)] = count
+        if result:
+            return dict(sorted(result.items()))
+    status = str(entry.get("status") or "")
+    return {status: 1} if status else {}
+
+
+def _memory_lifecycle_entry_actions(
+    entry: dict[str, Any],
+    operations: tuple[str, ...],
+) -> tuple[str, ...]:
+    operation_set = {str(operation) for operation in operations}
+    actions: list[str] = []
+    if str(entry.get("target_type") or "") == "object":
+        actions.append("create")
+    if "update" in operation_set or "update_value_slot" in operation_set:
+        actions.append("update")
+    if "merge" in operation_set or "merge_value_slot" in operation_set:
+        actions.append("merge")
+    if (
+        "supersede" in operation_set
+        or "supersede_value" in operation_set
+        or str(entry.get("status") or "") == "superseded"
+    ):
+        actions.append("supersede")
+    for operation in ("retrieve", "expand", "verify", "audit"):
+        if operation in operation_set or entry.get("source_backed"):
+            actions.append(operation)
+    return tuple(
+        action
+        for action in _ordered_strings(actions)
+        if action in set(_memory_working_view_operation_contract())
+    )
+
+
+def _memory_lifecycle_entry_flags(
+    entry: dict[str, Any],
+    *,
+    source_ids: tuple[str, ...],
+    status_counts: dict[str, int],
+    operations: tuple[str, ...],
+) -> tuple[str, ...]:
+    flags: list[str] = []
+    target_type = str(entry.get("target_type") or "")
+    memory_type = str(entry.get("memory_type") or "")
+    operation_set = {str(operation) for operation in operations}
+    has_active = bool(
+        status_counts.get("active")
+        or entry.get("active_memory_ids")
+        or entry.get("active_values")
+        or str(entry.get("status") or "") == "active"
+    )
+    has_superseded = bool(
+        status_counts.get("superseded")
+        or entry.get("superseded_memory_ids")
+        or entry.get("superseded_values")
+        or str(entry.get("status") or "") == "superseded"
+    )
+    if entry.get("source_backed") or source_ids:
+        flags.append("source_backed")
+    else:
+        flags.append("source_incomplete")
+    if memory_type in _STATEFUL_MEMORY_TYPES:
+        flags.append("stateful_memory")
+    if has_active:
+        flags.append("active_state")
+    if has_superseded:
+        flags.append("superseded_state")
+    if has_active and has_superseded:
+        flags.append("active_superseded_pair")
+    if target_type == "conflict_slot" or operation_set.intersection(
+        {"conflict_slot", "audit_conflict_slot", "audit_state_conflict_slot"}
+    ):
+        flags.append("conflict_resolution")
+    if target_type in {"operation_slot", "value_slot", "conflict_slot"}:
+        flags.append("slot_level_audit")
+    if str(entry.get("memory_tier") or "") == "quarantine_memory":
+        flags.append("quarantine_memory")
+    return tuple(_ordered_strings(flags))
+
+
+def _memory_lifecycle_entry_stage(
+    entry: dict[str, Any],
+    flags: tuple[str, ...],
+) -> str:
+    target_type = str(entry.get("target_type") or "")
+    if "conflict_resolution" in flags:
+        return "conflict_resolution"
+    if target_type == "value_slot":
+        return "state_value_management"
+    if target_type == "operation_slot":
+        return "operation_management"
+    if "superseded_state" in flags and "active_state" not in flags:
+        return "archival_state"
+    if "active_state" in flags:
+        return "active_state"
+    if "quarantine_memory" in flags:
+        return "quarantine"
+    return "long_term_recall"
+
+
+def _memory_lifecycle_entry_source_order(
+    entry: dict[str, Any],
+    *,
+    scope: str,
+    fallback: tuple[str, ...],
+) -> tuple[str, ...]:
+    if scope == "historical":
+        fields = (
+            "validity_historical_source_order",
+            "operation_historical_source_order",
+            "historical_source_order",
+        )
+    else:
+        fields = (
+            "validity_current_source_order",
+            "operation_current_source_order",
+            "current_source_order",
+        )
+    for field in fields:
+        source_ids = _ordered_strings(entry.get(field) or ())
+        if source_ids:
+            return source_ids[:12]
+    return tuple(fallback[:12])
 
 
 def _memory_workspace_layer(entry: dict[str, Any]) -> str:

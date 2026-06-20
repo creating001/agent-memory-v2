@@ -4468,6 +4468,9 @@ def _context_manifest(
             "final_evidence_from_operation_registry_count": len(
                 memory_operations_manifest["registry_projected_final_source_ids"]
             ),
+            "final_evidence_from_lifecycle_audit_count": len(
+                memory_operations_manifest["lifecycle_audit_final_source_ids"]
+            ),
             "typed_memory_source_count": len(typed_memory_source_ids),
             "selected_context_materialized_count": int(
                 selected_context.get("materialized_count") or 0
@@ -4506,6 +4509,12 @@ def _context_manifest(
                 "graph_utility_slot_source": memory_operations_manifest[
                     "graph_utility_slot_source"
                 ],
+                "lifecycle_audit_available": memory_operations_manifest[
+                    "lifecycle_audit_available"
+                ],
+                "lifecycle_audit_final_source_count": len(
+                    memory_operations_manifest["lifecycle_audit_final_source_ids"]
+                ),
             },
             "evidence_pressure": _evidence_pressure_manifest(evidence_rows),
             "clean_note": (
@@ -4562,6 +4571,7 @@ def _memory_operations_context_manifest(
     )
     operation_registry = {}
     working_memory_view = {}
+    lifecycle_audit = {}
     if isinstance(memory_object_index, Mapping):
         raw_registry = memory_object_index.get("operation_registry")
         if isinstance(raw_registry, Mapping):
@@ -4569,8 +4579,21 @@ def _memory_operations_context_manifest(
         raw_working_view = memory_object_index.get("working_memory_view")
         if isinstance(raw_working_view, Mapping):
             working_memory_view = raw_working_view
+        raw_lifecycle_audit = memory_object_index.get("lifecycle_audit")
+        if isinstance(raw_lifecycle_audit, Mapping):
+            lifecycle_audit = raw_lifecycle_audit
     registry_available = bool(operation_registry.get("applied"))
     working_view_available = bool(working_memory_view.get("applied"))
+    lifecycle_audit_available = bool(lifecycle_audit.get("applied"))
+    lifecycle_audit_source_ids = _ordered_unique(
+        source_id
+        for entry in lifecycle_audit.get("entries") or ()
+        if isinstance(entry, Mapping)
+        for source_id in (entry.get("source_ids") or ())
+    )
+    lifecycle_audit_final_source_ids = tuple(
+        source_id for source_id in lifecycle_audit_source_ids if source_id in final_set
+    )
     return {
         "trace_only": True,
         "registry_available": registry_available,
@@ -4591,6 +4614,22 @@ def _memory_operations_context_manifest(
         "working_memory_view_source_backed_entry_count": int(
             working_memory_view.get("source_backed_entry_count") or 0
         ),
+        "lifecycle_audit_available": lifecycle_audit_available,
+        "lifecycle_audit_schema_version": str(
+            lifecycle_audit.get("schema_version") or ""
+        ),
+        "lifecycle_audit_interface_source": str(
+            lifecycle_audit.get("interface_source") or ""
+        ),
+        "lifecycle_audit_entry_count": int(lifecycle_audit.get("entry_count") or 0),
+        "lifecycle_audit_source_backed_entry_count": int(
+            lifecycle_audit.get("source_backed_entry_count") or 0
+        ),
+        "lifecycle_audit_conflict_entry_count": int(
+            lifecycle_audit.get("conflict_entry_count") or 0
+        ),
+        "lifecycle_audit_final_source_ids": lifecycle_audit_final_source_ids,
+        "lifecycle_audit_final_source_count": len(lifecycle_audit_final_source_ids),
         "operation_utility_slot_source": operation_slot_source,
         "graph_utility_slot_source": graph_slot_source,
         "operation_interface_sources": sorted(operation_interface_sources),
