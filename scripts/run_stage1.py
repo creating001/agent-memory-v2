@@ -717,6 +717,9 @@ def main() -> int:
             "graph_utility_require_new_source": config.get("retrieval", {})
             .get("graph_utility", {})
             .get("require_new_source", True),
+            "graph_utility_required_signals": config.get("retrieval", {})
+            .get("graph_utility", {})
+            .get("required_signals"),
             "graph_utility_fusion_mode": config.get("retrieval", {})
             .get("graph_utility", {})
             .get("fusion_mode", "tail_rescue"),
@@ -2092,6 +2095,7 @@ def _write_summary(
         f"- graph_utility_fusion_mode: {metrics['retrieval']['graph_utility_fusion_mode']}",
         f"- graph_utility_overflow_max_hits: {metrics['retrieval']['graph_utility_overflow_max_hits']}",
         f"- graph_utility_require_new_source: {metrics['retrieval']['graph_utility_require_new_source']}",
+        f"- graph_utility_required_signals: {metrics['retrieval']['graph_utility_required_signals']}",
         f"- graph_utility_applied_count: {metrics['retrieval']['graph_utility_applied_count']}",
         f"- avg_graph_utility_source_hits: {metrics['retrieval']['avg_graph_utility_source_hits']}",
         f"- build_memory_include_superseded: {metrics['retrieval']['build_memory_include_superseded']}",
@@ -2462,6 +2466,7 @@ def _write_diagnosis(
         f"- graph_utility_enabled: {metrics['retrieval']['graph_utility_enabled']}",
         f"- graph_utility_fusion_mode: {metrics['retrieval']['graph_utility_fusion_mode']}",
         f"- graph_utility_overflow_max_hits: {metrics['retrieval']['graph_utility_overflow_max_hits']}",
+        f"- graph_utility_required_signals: {metrics['retrieval']['graph_utility_required_signals']}",
         f"- graph_utility_applied_count: {metrics['retrieval']['graph_utility_applied_count']}",
         f"- avg_graph_utility_source_hits: {metrics['retrieval']['avg_graph_utility_source_hits']}",
         f"- build_memory_include_superseded: {metrics['retrieval']['build_memory_include_superseded']}",

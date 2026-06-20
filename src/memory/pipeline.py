@@ -513,6 +513,9 @@ class Stage1Pipeline:
         self._graph_utility_ignored_overlap_terms = _tuple_config(
             graph_utility_config.get("ignored_overlap_terms")
         )
+        self._graph_utility_required_signals = _tuple_config(
+            graph_utility_config.get("required_signals")
+        )
         self._graph_utility_fusion_mode = str(
             graph_utility_config.get("fusion_mode", "tail_rescue")
         )
@@ -1896,6 +1899,7 @@ class Stage1Pipeline:
             min_overlap_terms=self._graph_utility_min_overlap_terms,
             require_new_source=self._graph_utility_require_new_source,
             ignored_overlap_terms=self._graph_utility_ignored_overlap_terms,
+            required_signals=self._graph_utility_required_signals,
             fusion_mode=self._graph_utility_fusion_mode,
             overflow_max_hits=self._graph_utility_overflow_max_hits,
         )
@@ -2310,6 +2314,7 @@ class Stage1Pipeline:
                 ignored_overlap_terms=(
                     self._graph_utility_ignored_overlap_terms
                 ),
+                required_signals=self._graph_utility_required_signals,
                 fusion_mode=self._graph_utility_fusion_mode,
                 overflow_max_hits=self._graph_utility_overflow_max_hits,
             )
@@ -3029,6 +3034,9 @@ class Stage1Pipeline:
                     ),
                     "graph_utility_ignored_overlap_terms": (
                         self._graph_utility_ignored_overlap_terms
+                    ),
+                    "graph_utility_required_signals": (
+                        self._graph_utility_required_signals
                     ),
                     "graph_utility_fusion_mode": (
                         self._graph_utility_fusion_mode
@@ -5093,6 +5101,7 @@ def _disabled_graph_utility_trace(
     min_overlap_terms: int,
     require_new_source: bool,
     ignored_overlap_terms: tuple[str, ...],
+    required_signals: tuple[str, ...] = (),
     fusion_mode: str = "tail_rescue",
     overflow_max_hits: int = 0,
     question_scope: str = "unspecified",
@@ -5108,6 +5117,7 @@ def _disabled_graph_utility_trace(
         "min_overlap_terms": min_overlap_terms,
         "require_new_source": require_new_source,
         "ignored_overlap_terms": ignored_overlap_terms,
+        "required_signals": required_signals,
         "fusion_mode": fusion_mode,
         "overflow_max_hits": overflow_max_hits,
         "question_scope": question_scope,
@@ -5134,6 +5144,7 @@ def _memory_graph_utility_source_hits(
     min_overlap_terms: int = 1,
     require_new_source: bool = True,
     ignored_overlap_terms: tuple[str, ...] = (),
+    required_signals: tuple[str, ...] = (),
     fusion_mode: str = "tail_rescue",
     overflow_max_hits: int = 0,
 ) -> tuple[tuple[RetrievalHit, ...], dict[str, Any]]:
@@ -5155,6 +5166,7 @@ def _memory_graph_utility_source_hits(
         min_overlap_terms=min_overlap_terms,
         require_new_source=require_new_source,
         ignored_overlap_terms=ignored_overlap_terms,
+        required_signals=required_signals,
         fusion_mode=fusion_mode,
         overflow_max_hits=overflow_max_hits,
         question_scope=question_scope,
@@ -5171,6 +5183,11 @@ def _memory_graph_utility_source_hits(
     ignored_terms = frozenset(
         _memory_slot_chain_text_terms(" ".join(ignored_overlap_terms))
     )
+    required_signal_set = {
+        str(signal).strip().lower()
+        for signal in required_signals
+        if str(signal).strip()
+    }
     question_terms = _memory_object_slot_question_terms(
         question,
         ignored_overlap_terms=ignored_terms,
@@ -5210,6 +5227,10 @@ def _memory_graph_utility_source_hits(
         if len(matched_terms) < max(0, min_overlap_terms):
             continue
 
+        signals = _memory_graph_slot_signals(records)
+        if required_signal_set and not required_signal_set.intersection(signals):
+            continue
+
         source_ids = _memory_graph_slot_sources(
             records,
             available_source_ids=available_source_ids,
@@ -5220,7 +5241,6 @@ def _memory_graph_utility_source_hits(
         if not source_ids:
             continue
 
-        signals = _memory_graph_slot_signals(records)
         base_score = float(getattr(memory_hit, "score", 0.0) or 0.0)
         slot_score = _memory_graph_slot_score(
             base_score=base_score,
