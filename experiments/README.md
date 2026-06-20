@@ -38,6 +38,7 @@ v269 关键证据见 `experiments/diagnostic/stage1_memory_activation_utility_v2
 
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
+| `configs/stage1_priority_memory_retrieval_v270_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_priority_memory_retrieval_v270_full_summary.md` | evaluated candidate | full changed answers: LME `1/500`、LoCoMo `8/1540`；changed-answer dual judge delta strict/lenient 均为 `0/0`；priority reordered LME `6`、LoCoMo `46` | 不升 LTS；未带来 accuracy 提升，且增加 query-side prior |
 | `configs/stage1_memory_activation_utility_v269_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_memory_activation_utility_v269_full_summary.md` | current LTS | vs v268 full answer/prompt/final-evidence/retrieval/token diff `0`；activation utility manifest applied LME `500/500`、LoCoMo `1540/1540`；answer cache hits LME `500/500`、LoCoMo `1540/1540` | 当前 LTS；性能不退，build memory object 有了 utility/role/priority 结构 |
 | `configs/stage1_governed_memory_activation_v268_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_governed_memory_activation_v268_full_summary.md` | previous LTS | vs v267 full diff `0`；governance activation applied LME `500/500`、LoCoMo `1540/1540`；filtered records `0` | 被 v269 继承；typed-memory activation 从诊断推进到真实 gate |
 | v264-v267 memory governance / lifecycle graph line | previous anchors | lifecycle-gated graph utility、memory system quality、query surface simplification、governance manifest 均以 clean/answer-identical 或 changed-answer judge 不退方式降低风险 | 保留为可追溯锚点，详细见对应 full summary 和 git |
