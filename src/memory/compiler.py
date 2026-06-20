@@ -4378,7 +4378,7 @@ def _external_working_memory_packet_lines(
         row.source_id: index for index, row in enumerate(rows, start=1)
     }
     question_terms = _content_terms(question)
-    candidates: list[tuple[float, int, Mapping[str, Any], tuple[str, ...]]] = []
+    candidates: list[tuple[float, float, int, Mapping[str, Any], tuple[str, ...]]] = []
     for ordinal, entry in enumerate(registry.get("entries") or ()):
         if not isinstance(entry, Mapping):
             continue
@@ -4406,16 +4406,28 @@ def _external_working_memory_packet_lines(
         )
         if score <= 0:
             continue
-        candidates.append((score, -ordinal, entry, source_labels))
+        candidates.append(
+            (
+                score,
+                _working_memory_packet_target_priority(
+                    str(entry.get("target_type") or "")
+                ),
+                ordinal,
+                entry,
+                source_labels,
+            )
+        )
     if not candidates:
         return []
 
-    candidates.sort(reverse=True)
+    selected_candidates = _select_working_memory_packet_candidates(
+        candidates, max_items=max_items
+    )
     lines = [
         "Source-backed memory organization packet; use it to track active working state, long-term recall, archival conflicts, and operation targets before verifying final facts in cited rows.",
         "- items:",
     ]
-    for _, _, entry, source_labels in candidates[:max_items]:
+    for _, _, _, entry, source_labels in selected_candidates:
         fields = [
             f"target={str(entry.get('target_type') or 'object')}",
             f"type={str(entry.get('memory_type') or 'unknown')}",
@@ -4449,6 +4461,45 @@ def _external_working_memory_packet_lines(
         fields.append(f"sources={', '.join(source_labels)}")
         lines.append(f"  - {' | '.join(fields)}")
     return lines
+
+
+def _select_working_memory_packet_candidates(
+    candidates: list[tuple[float, float, int, Mapping[str, Any], tuple[str, ...]]],
+    *,
+    max_items: int,
+) -> list[tuple[float, float, int, Mapping[str, Any], tuple[str, ...]]]:
+    ranked = sorted(
+        candidates,
+        key=lambda item: (item[0], item[1], -item[2]),
+        reverse=True,
+    )
+    selected: list[
+        tuple[float, float, int, Mapping[str, Any], tuple[str, ...]]
+    ] = []
+    selected_ordinals: set[int] = set()
+
+    for target_type in ("conflict_slot", "value_slot", "operation_slot", "object"):
+        for candidate in ranked:
+            _, _, ordinal, entry, _ = candidate
+            if ordinal in selected_ordinals:
+                continue
+            if str(entry.get("target_type") or "object") != target_type:
+                continue
+            selected.append(candidate)
+            selected_ordinals.add(ordinal)
+            break
+        if len(selected) >= max_items:
+            return selected[:max_items]
+
+    for candidate in ranked:
+        _, _, ordinal, _, _ = candidate
+        if ordinal in selected_ordinals:
+            continue
+        selected.append(candidate)
+        selected_ordinals.add(ordinal)
+        if len(selected) >= max_items:
+            break
+    return selected
 
 
 def _source_labels_for_source_ids(
@@ -4506,6 +4557,9 @@ def _working_memory_packet_entry_score(
     }.get(str(entry.get("memory_tier") or ""), 0.0)
     if str(entry.get("target_type") or "") in {"operation_slot", "conflict_slot"}:
         score += 1.0
+    score += _working_memory_packet_target_priority(
+        str(entry.get("target_type") or "")
+    )
     operations = {str(item) for item in entry.get("operations") or ()}
     if route.information_need == "current_state" and operations.intersection(
         {"supersede", "conflict_slot", "audit_conflict_slot"}
@@ -4514,6 +4568,15 @@ def _working_memory_packet_entry_score(
     if str(entry.get("status") or "") == "active":
         score += 0.25
     return score
+
+
+def _working_memory_packet_target_priority(target_type: str) -> float:
+    return {
+        "conflict_slot": 3.0,
+        "value_slot": 2.0,
+        "operation_slot": 1.0,
+        "object": 0.5,
+    }.get(target_type, 0.0)
 
 
 def _external_memory_state_guide_lines(

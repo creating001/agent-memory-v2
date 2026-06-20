@@ -10128,13 +10128,127 @@ class CleanSkeletonTest(unittest.TestCase):
 
         self.assertIn("Working Memory Packet:", compiled.prompt)
         self.assertIn("tier=working_memory", compiled.prompt)
-        self.assertIn("target=operation_slot", compiled.prompt)
+        self.assertIn("target=conflict_slot", compiled.prompt)
+        self.assertIn("target=value_slot", compiled.prompt)
+        packet = compiled.prompt[compiled.prompt.index("Working Memory Packet:") :]
+        self.assertLess(
+            packet.index("target=conflict_slot"),
+            packet.index("target=value_slot"),
+        )
+        if "target=operation_slot" in packet:
+            self.assertLess(
+                packet.index("target=value_slot"),
+                packet.index("target=operation_slot"),
+            )
         self.assertIn("value=1250 followers; 1300 followers", compiled.prompt)
         self.assertIn("sources=Memory 2, Memory 1", compiled.prompt)
         self.assertIn(
             "Use Working Memory Packet only as a source-backed state and operation index",
             compiled.prompt,
         )
+
+    def test_working_memory_packet_can_replace_state_and_value_guides(self) -> None:
+        old_record = MemoryRecord(
+            memory_id="old-followers",
+            memory_type="state",
+            text="Alex had 1250 followers.",
+            source_ids=("s1:t0",),
+            subject="Alex",
+            predicate="follower count",
+            value="1250 followers",
+            timestamp="2024-05-20",
+            status="superseded",
+            superseded_by="new-followers",
+        )
+        new_record = MemoryRecord(
+            memory_id="new-followers",
+            memory_type="state",
+            text="Alex is close to 1300 followers now.",
+            source_ids=("s1:t1",),
+            subject="Alex",
+            predicate="follower count",
+            value="1300 followers",
+            timestamp="2024-05-30",
+            status="active",
+        )
+
+        class FakeBuilder:
+            def build(self, turns: tuple[Turn, ...]) -> BuiltMemory:
+                del turns
+                return BuiltMemory(
+                    records=(new_record, old_record),
+                    token_usage=TokenUsage(),
+                    management_policy="stateful_only",
+                    managed_memory_types=("state",),
+                    management=_management_summary(
+                        (old_record, new_record),
+                        policy="stateful_only",
+                        managed_memory_types=frozenset({"state"}),
+                        include_memory_system_graph=True,
+                    ),
+                )
+
+        config = {
+            "build_memory": {
+                "enabled": True,
+                "mode": "openai_compatible",
+                "model": "fake",
+                "top_k": 2,
+                "max_sources_per_record": 2,
+                "include_superseded": True,
+            },
+            "retrieval": {
+                "top_k": 2,
+                "max_top_k": 2,
+                "neighbor_window": 0,
+                "lexical": {"enabled": False},
+            },
+            "compiler": {
+                "prompt_mode": "external_naive",
+                "max_evidence_items": 2,
+                "max_evidence_chars": 4000,
+                "memory_record_source": "retrieval",
+                "memory_state_guide": False,
+                "memory_value_slot_guide": False,
+                "working_memory_packet": True,
+                "working_memory_packet_information_needs": ["current_state"],
+                "working_memory_packet_max_items": 4,
+            },
+            "answer": {"fallback_answer": "unknown"},
+        }
+        pipeline = Stage1Pipeline(config)
+        pipeline._memory_builder = FakeBuilder()
+
+        result = pipeline.predict(
+            PredictionRequest(
+                question="What is Alex's current follower count?",
+                turns=(
+                    Turn(
+                        source_id="s1:t0",
+                        session_id="s1",
+                        turn_index=0,
+                        role="user",
+                        text="Alex had 1250 followers earlier this month.",
+                        timestamp="2024-05-20",
+                    ),
+                    Turn(
+                        source_id="s1:t1",
+                        session_id="s1",
+                        turn_index=1,
+                        role="user",
+                        text="Alex is close to 1300 followers now.",
+                        timestamp="2024-05-30",
+                    ),
+                ),
+            )
+        )
+
+        prompt = result["trace"]["compiled_context"]["prompt"]
+        self.assertIn("Working Memory Packet:", prompt)
+        self.assertIn("target=conflict_slot", prompt)
+        self.assertIn("target=value_slot", prompt)
+        self.assertNotIn("Managed Memory State Guide:", prompt)
+        self.assertNotIn("Memory Value Slot Guide:", prompt)
 
     def test_memory_state_guide_uses_object_index_conflict_slots(self) -> None:
         old_record = MemoryRecord(
