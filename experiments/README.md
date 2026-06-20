@@ -56,6 +56,7 @@ v288 关键证据见 `experiments/diagnostic/stage1_memory_object_index_v288_ful
 | `diagnostic/stage1_temporal_materialized_context_source_gate_v219_scope_summary.md` | selected-context hard gate 降 token / risk，但 answer regression 明显。 |
 | `diagnostic/stage1_workspace_policy_pack_v323_lme_full_changed_vs_v288/summary.md` | 大范围 context pressure 能降 query token，但 LME full changed-answer judge 明显回退；token 策略必须 source-pressure-aware，不能只按 headroom 剪 evidence。 |
 | `diagnostic/v331_inline_memory_header_probe_summary/summary.md` / `diagnostic/v332_route_gated_structured_guide_probe_summary/summary.md` | query micro-compression 收益小且容易触发 specificity / strict 回退；后续 query 降 token 应下沉 guide 责任，不再继续做 header 或 max-row 微调。 |
+| `diagnostic/v337_workspace_packet_structured_replacement_lme_probe50_changed_vs_v336/summary.md` / `diagnostic/v337_workspace_packet_structured_replacement_locomo_probe50_changed_vs_v336/summary.md` | 直接用 verbose Working Memory Packet 替换 fact/profile/current_state Structured Guide 会涨 query token，并在 LoCoMo changed judge 回退；后续需要短版、slot-conservative workspace packet。 |
 
 ## 输出路径
 
