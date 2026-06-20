@@ -2903,6 +2903,14 @@ class CleanSkeletonTest(unittest.TestCase):
         system_graph = summary["memory_system_graph"]
         self.assertEqual(system_graph["schema_version"], "memory_system_graph_v2")
         self.assertIn("source_backed", system_graph["object_schema"]["quality_signals"])
+        self.assertIn(
+            "activation_utility_score",
+            system_graph["object_schema"]["quality_signals"],
+        )
+        self.assertIn(
+            "activation_role",
+            system_graph["object_schema"]["governance_signals"],
+        )
         self.assertEqual(
             system_graph["governance"]["final_evidence_policy"],
             "raw_source_rows_only",
@@ -2966,11 +2974,43 @@ class CleanSkeletonTest(unittest.TestCase):
             governance_manifest["risk_memory_ids_by_flag"],
             {"low_confidence": ["m-low"]},
         )
+        self.assertEqual(
+            governance_manifest["activation_priority_memory_ids"],
+            ["m-new-city", "m-old-city"],
+        )
+        self.assertEqual(
+            governance_manifest["activation_role_counts"],
+            {
+                "blocked": 1,
+                "lifecycle_context": 1,
+                "stateful_candidate": 1,
+            },
+        )
+        self.assertEqual(
+            governance_manifest["activation_utility_bucket_counts"],
+            {"blocked": 1, "high": 2},
+        )
+        self.assertEqual(
+            governance_manifest["activation_utility_policy"]["schema_version"],
+            "memory_activation_utility_v1",
+        )
         self.assertEqual(governance_manifest["risk_record_count"], 1)
         self.assertEqual(
             governance_manifest["risk_counts"],
             {"low_confidence": 1},
         )
+        new_sample = next(
+            sample
+            for sample in governance_manifest["record_samples"]
+            if sample["memory_id"] == "m-new-city"
+        )
+        self.assertEqual(new_sample["activation_role"], "stateful_candidate")
+        self.assertEqual(new_sample["activation_utility_bucket"], "high")
+        self.assertGreater(
+            new_sample["activation_utility_score"],
+            0,
+        )
+        self.assertIn("multi_source", new_sample["activation_utility_reasons"])
         low_sample = next(
             sample
             for sample in governance_manifest["record_samples"]
@@ -2979,6 +3019,8 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertFalse(low_sample["source_activation_ready"])
         self.assertTrue(low_sample["raw_evidence_required"])
         self.assertEqual(low_sample["confidence_bucket"], "low")
+        self.assertEqual(low_sample["activation_role"], "blocked")
+        self.assertEqual(low_sample["activation_utility_bucket"], "blocked")
         self.assertEqual(low_sample["risk_flags"], ("low_confidence",))
 
     def test_memory_lifecycle_manifest_is_trace_only_and_source_grounded(self) -> None:

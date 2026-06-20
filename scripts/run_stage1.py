@@ -131,6 +131,8 @@ def main() -> int:
     build_memory_system_graph_namespace_counts: dict[str, int] = {}
     build_memory_system_graph_lifecycle_counts: dict[str, int] = {}
     build_memory_system_graph_governance_risk_counts: dict[str, int] = {}
+    build_memory_system_graph_activation_role_counts: dict[str, int] = {}
+    build_memory_system_graph_activation_utility_bucket_counts: dict[str, int] = {}
     total_build_memory_operation_ledger_applied = 0
     total_build_memory_operation_ledger_source_backed = 0
     total_build_memory_operation_ledger_source_unbacked = 0
@@ -476,6 +478,14 @@ def main() -> int:
             _merge_int_counts(
                 build_memory_system_graph_governance_risk_counts,
                 governance_manifest.get("risk_counts") or {},
+            )
+            _merge_int_counts(
+                build_memory_system_graph_activation_role_counts,
+                governance_manifest.get("activation_role_counts") or {},
+            )
+            _merge_int_counts(
+                build_memory_system_graph_activation_utility_bucket_counts,
+                governance_manifest.get("activation_utility_bucket_counts") or {},
             )
         total_build_memory_collection_retained += int(
             operation_counts.get("retain_collection_multi_value_slot") or 0
@@ -1263,6 +1273,12 @@ def main() -> int:
             ),
             "memory_system_graph_governance_risk_counts": (
                 build_memory_system_graph_governance_risk_counts
+            ),
+            "memory_system_graph_activation_role_counts": (
+                build_memory_system_graph_activation_role_counts
+            ),
+            "memory_system_graph_activation_utility_bucket_counts": (
+                build_memory_system_graph_activation_utility_bucket_counts
             ),
             "total_collection_retained_records": (
                 total_build_memory_collection_retained
@@ -2215,6 +2231,8 @@ def _write_summary(
         f"- avg_build_memory_system_graph_activation_ready_records: {metrics['build_memory']['avg_memory_system_graph_activation_ready_records']}",
         f"- avg_build_memory_system_graph_governance_risk_records: {metrics['build_memory']['avg_memory_system_graph_governance_risk_records']}",
         f"- build_memory_system_graph_governance_risk_counts: {metrics['build_memory']['memory_system_graph_governance_risk_counts']}",
+        f"- build_memory_system_graph_activation_role_counts: {metrics['build_memory']['memory_system_graph_activation_role_counts']}",
+        f"- build_memory_system_graph_activation_utility_bucket_counts: {metrics['build_memory']['memory_system_graph_activation_utility_bucket_counts']}",
         f"- avg_build_memory_collection_retained_records: {metrics['build_memory']['avg_collection_retained_records']}",
         f"- avg_build_memory_managed_lifecycle_slots: {metrics['build_memory']['avg_managed_lifecycle_slots']}",
         f"- avg_build_memory_nonmanaged_multi_value_slots: {metrics['build_memory']['avg_nonmanaged_multi_value_slots']}",
@@ -2607,6 +2625,8 @@ def _write_diagnosis(
         f"- avg_build_memory_system_graph_activation_ready_records: {metrics['build_memory']['avg_memory_system_graph_activation_ready_records']}",
         f"- avg_build_memory_system_graph_governance_risk_records: {metrics['build_memory']['avg_memory_system_graph_governance_risk_records']}",
         f"- build_memory_system_graph_governance_risk_counts: {metrics['build_memory']['memory_system_graph_governance_risk_counts']}",
+        f"- build_memory_system_graph_activation_role_counts: {metrics['build_memory']['memory_system_graph_activation_role_counts']}",
+        f"- build_memory_system_graph_activation_utility_bucket_counts: {metrics['build_memory']['memory_system_graph_activation_utility_bucket_counts']}",
         f"- avg_build_memory_collection_retained_records: {metrics['build_memory']['avg_collection_retained_records']}",
         f"- avg_build_memory_managed_lifecycle_slots: {metrics['build_memory']['avg_managed_lifecycle_slots']}",
         f"- avg_build_memory_nonmanaged_multi_value_slots: {metrics['build_memory']['avg_nonmanaged_multi_value_slots']}",

@@ -1076,9 +1076,13 @@ def _memory_system_object_schema() -> dict[str, Any]:
             "confidence_bucket",
             "lifecycle_signal",
             "source_coverage",
+            "activation_utility_score",
+            "activation_utility_bucket",
         ],
         "governance_signals": [
             "source_activation_ready",
+            "activation_role",
+            "activation_priority",
             "raw_evidence_required",
             "low_confidence_blocked",
             "unbacked_blocked",
@@ -1100,7 +1104,13 @@ def _memory_system_governance_manifest(
         for record in records
     ]
     risk_counts: dict[str, int] = defaultdict(int)
+    activation_role_counts: dict[str, int] = defaultdict(int)
+    activation_utility_bucket_counts: dict[str, int] = defaultdict(int)
     for assessment in assessments:
+        activation_role_counts[str(assessment["activation_role"])] += 1
+        activation_utility_bucket_counts[
+            str(assessment["activation_utility_bucket"])
+        ] += 1
         for risk in assessment["risk_flags"]:
             risk_counts[str(risk)] += 1
     activation_ready_count = sum(
@@ -1125,6 +1135,14 @@ def _memory_system_governance_manifest(
     for assessment in assessments:
         for risk in assessment["risk_flags"]:
             risk_memory_ids_by_flag[str(risk)].append(str(assessment["memory_id"]))
+    activation_priority_memory_ids = [
+        str(assessment["memory_id"])
+        for assessment in sorted(
+            assessments,
+            key=_memory_activation_priority_sort_key,
+        )
+        if assessment["source_activation_ready"]
+    ]
     return {
         "schema_version": "memory_system_governance_v1",
         "trace_only": False,
@@ -1142,6 +1160,18 @@ def _memory_system_governance_manifest(
         "risk_memory_ids_by_flag": {
             key: value for key, value in sorted(risk_memory_ids_by_flag.items())
         },
+        "activation_role_counts": dict(sorted(activation_role_counts.items())),
+        "activation_utility_bucket_counts": dict(
+            sorted(activation_utility_bucket_counts.items())
+        ),
+        "activation_priority_memory_ids": activation_priority_memory_ids,
+        "high_utility_memory_ids": [
+            str(assessment["memory_id"])
+            for assessment in assessments
+            if assessment["source_activation_ready"]
+            and assessment["activation_utility_bucket"] == "high"
+        ],
+        "activation_utility_policy": _memory_activation_utility_policy(),
         "activation_policy": {
             "typed_memory_role": "source_backed_activation_hint",
             "final_answer_evidence": "raw_source_rows",
@@ -1149,13 +1179,15 @@ def _memory_system_governance_manifest(
             "blocks_unbacked_activation": True,
             "blocks_low_confidence_activation": True,
             "audits_incomplete_slot_keys": True,
+            "rank_manifest_available": True,
         },
         "record_samples": assessments[:10],
         "clean_note": (
             "Question-independent governance manifest. Typed memory can be "
             "treated as an activation hint only when it is source-backed and "
-            "not low confidence; explicit retrieval policies may consume these "
-            "ids, while final answer evidence must still resolve to raw source rows."
+            "not low confidence. The manifest also exposes activation role and "
+            "utility signals for future retrieval policies, while final answer "
+            "evidence must still resolve to raw source rows."
         ),
     }
 
@@ -1192,6 +1224,15 @@ def _memory_system_record_governance(
     ):
         risk_flags.append("managed_active_without_temporal_anchor")
     source_activation_ready = source_backed and record.confidence >= 0.5
+    activation_utility = _memory_activation_utility(
+        record,
+        source_backed=source_backed,
+        complete_slot_key=complete_slot_key,
+        temporal_anchor=temporal_anchor,
+        lifecycle_signal=lifecycle_signal,
+        source_activation_ready=source_activation_ready,
+        managed_memory_types=managed_memory_types,
+    )
     return {
         "memory_id": record.memory_id,
         "memory_type": record.memory_type,
@@ -1205,6 +1246,10 @@ def _memory_system_record_governance(
         "temporal_anchor": temporal_anchor,
         "lifecycle_signal": lifecycle_signal,
         "confidence_bucket": confidence_bucket,
+        "activation_role": activation_utility["role"],
+        "activation_utility_score": activation_utility["score"],
+        "activation_utility_bucket": activation_utility["bucket"],
+        "activation_utility_reasons": activation_utility["reasons"],
         "risk_flags": tuple(risk_flags),
         "source_ids": list(record.source_ids[:6]),
         "slot_key": {
@@ -1212,6 +1257,155 @@ def _memory_system_record_governance(
             "predicate": _normalize_key_text(record.predicate),
         },
     }
+
+
+def _memory_activation_utility_policy() -> dict[str, Any]:
+    return {
+        "schema_version": "memory_activation_utility_v1",
+        "score_weights": {
+            "source_backed": 3,
+            "high_confidence": 2,
+            "medium_confidence": 1,
+            "low_confidence": -4,
+            "complete_slot_key": 1,
+            "value_or_text": 1,
+            "temporal_anchor": 1,
+            "multi_source": 1,
+            "active": 1,
+            "lifecycle_signal": 1,
+            "managed_memory_type": 1,
+        },
+        "bucket_thresholds": {
+            "high": 9,
+            "medium": 6,
+            "low": 0,
+        },
+        "role_order": [
+            "stateful_candidate",
+            "semantic_candidate",
+            "episodic_candidate",
+            "prospective_candidate",
+            "lifecycle_context",
+            "general_candidate",
+            "blocked",
+        ],
+        "clean_note": (
+            "Question-independent activation utility over typed memory metadata. "
+            "It uses source support, confidence, slot completeness, temporal "
+            "anchors, lifecycle state, and memory type only."
+        ),
+    }
+
+
+def _memory_activation_utility(
+    record: MemoryRecord,
+    *,
+    source_backed: bool,
+    complete_slot_key: bool,
+    temporal_anchor: bool,
+    lifecycle_signal: bool,
+    source_activation_ready: bool,
+    managed_memory_types: frozenset[str],
+) -> dict[str, Any]:
+    weights = _memory_activation_utility_policy()["score_weights"]
+    score = 0
+    reasons: list[str] = []
+
+    def add(reason: str) -> None:
+        nonlocal score
+        score += int(weights[reason])
+        reasons.append(reason)
+
+    if source_backed:
+        add("source_backed")
+    if record.confidence >= 0.8:
+        add("high_confidence")
+    elif record.confidence >= 0.5:
+        add("medium_confidence")
+    else:
+        add("low_confidence")
+    if complete_slot_key:
+        add("complete_slot_key")
+    if record.value or record.text:
+        add("value_or_text")
+    if temporal_anchor:
+        add("temporal_anchor")
+    if len(record.source_ids) > 1:
+        add("multi_source")
+    if record.status == "active":
+        add("active")
+    if lifecycle_signal:
+        add("lifecycle_signal")
+    if record.memory_type in managed_memory_types:
+        add("managed_memory_type")
+
+    role = _memory_activation_role(
+        record,
+        source_activation_ready=source_activation_ready,
+        lifecycle_signal=lifecycle_signal,
+    )
+    bucket = _memory_activation_utility_bucket(
+        score,
+        source_activation_ready=source_activation_ready,
+    )
+    return {
+        "role": role,
+        "score": score,
+        "bucket": bucket,
+        "reasons": tuple(reasons),
+    }
+
+
+def _memory_activation_role(
+    record: MemoryRecord,
+    *,
+    source_activation_ready: bool,
+    lifecycle_signal: bool,
+) -> str:
+    if not source_activation_ready:
+        return "blocked"
+    if lifecycle_signal or record.status == "superseded":
+        return "lifecycle_context"
+    if record.memory_type in _STATEFUL_MEMORY_TYPES:
+        return "stateful_candidate"
+    if record.memory_type == "fact":
+        return "semantic_candidate"
+    if record.memory_type == "event":
+        return "episodic_candidate"
+    if record.memory_type == "plan":
+        return "prospective_candidate"
+    return "general_candidate"
+
+
+def _memory_activation_utility_bucket(
+    score: int,
+    *,
+    source_activation_ready: bool,
+) -> str:
+    if not source_activation_ready:
+        return "blocked"
+    thresholds = _memory_activation_utility_policy()["bucket_thresholds"]
+    if score >= int(thresholds["high"]):
+        return "high"
+    if score >= int(thresholds["medium"]):
+        return "medium"
+    return "low"
+
+
+def _memory_activation_priority_sort_key(assessment: dict[str, Any]) -> tuple[Any, ...]:
+    role_order = {
+        role: index
+        for index, role in enumerate(_memory_activation_utility_policy()["role_order"])
+    }
+    role = str(assessment.get("activation_role") or "")
+    status = str(assessment.get("status") or "")
+    return (
+        -int(assessment.get("activation_utility_score") or 0),
+        role_order.get(role, 99),
+        0 if status == "active" else 1,
+        str(assessment.get("memory_type") or ""),
+        str(assessment.get("memory_id") or ""),
+    )
 
 
 def _confidence_bucket(confidence: float) -> str:

@@ -803,6 +803,22 @@ class BuildMemoryTest(unittest.TestCase):
             graph["governance_manifest"]["source_activation_ready_memory_ids"],
             ["event-visit", "profile-new", "profile-old"],
         )
+        self.assertEqual(
+            graph["governance_manifest"]["activation_priority_memory_ids"],
+            ["profile-new", "profile-old", "event-visit"],
+        )
+        self.assertEqual(
+            graph["governance_manifest"]["activation_role_counts"],
+            {
+                "episodic_candidate": 1,
+                "lifecycle_context": 1,
+                "stateful_candidate": 1,
+            },
+        )
+        self.assertEqual(
+            graph["governance_manifest"]["activation_utility_bucket_counts"],
+            {"high": 3},
+        )
 
     def test_builder_can_keep_parallel_facts_active_without_temporal_fields(self) -> None:
         class FakeBuilder(OpenAICompatibleMemoryBuilder):
