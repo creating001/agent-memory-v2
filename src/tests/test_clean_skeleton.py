@@ -51,6 +51,7 @@ from memory.pipeline import (
     _context_budget_anchor_source_ids,
     _context_manifest,
     _memory_context_interface_anchor_source_ids,
+    _memory_workspace_contract_anchor_source_ids,
     _memory_activation_priority_hits,
     _memory_layer_manifest_anchor_source_ids,
     _memory_operation_api_anchor_source_ids,
@@ -2699,6 +2700,62 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual(auto_source_ids, state_source_ids)
         self.assertEqual(auto_trace["anchor_selected_source"], "memory_system_state")
 
+    def test_context_budget_anchor_source_ids_can_use_memory_workspace_contract(
+        self,
+    ) -> None:
+        memory_object_index = {
+            "memory_workspace_contract": {
+                "applied": True,
+                "schema_version": "memory_workspace_contract_v1",
+                "context_anchor_source_ids": [
+                    "old:t0",
+                    "current:t0",
+                    "stable:t0",
+                ],
+                "source_expansion_source_ids": ["expanded:t0"],
+                "layers": {
+                    "working_memory": {"source_ids": ["current:t0", "work:t0"]},
+                    "long_term_memory": {"source_ids": ["stable:t0"]},
+                },
+            },
+            "memory_system_state": {
+                "applied": True,
+                "source_expansion_source_ids": ["state:t0"],
+            },
+        }
+
+        contract_source_ids = _memory_workspace_contract_anchor_source_ids(
+            memory_object_index
+        )
+        selected_source_ids, trace = _context_budget_anchor_source_ids(
+            anchor_source="memory_workspace_contract",
+            memory_object_index=memory_object_index,
+            operation_utility_trace=None,
+            graph_utility_trace=None,
+        )
+        auto_source_ids, auto_trace = _context_budget_anchor_source_ids(
+            anchor_source="auto",
+            memory_object_index=memory_object_index,
+            operation_utility_trace=None,
+            graph_utility_trace=None,
+        )
+
+        self.assertEqual(
+            contract_source_ids,
+            ("old:t0", "current:t0", "stable:t0", "expanded:t0", "work:t0"),
+        )
+        self.assertEqual(selected_source_ids, contract_source_ids)
+        self.assertEqual(trace["anchor_selected_source"], "memory_workspace_contract")
+        self.assertEqual(
+            trace["anchor_memory_workspace_contract_source_count"],
+            5,
+        )
+        self.assertEqual(auto_source_ids, contract_source_ids)
+        self.assertEqual(
+            auto_trace["anchor_selected_source"],
+            "memory_workspace_contract",
+        )
+
     def test_context_budget_audit_is_trace_only(self) -> None:
         base_config = {
             "retrieval": {
@@ -4392,6 +4449,36 @@ class CleanSkeletonTest(unittest.TestCase):
         )
         self.assertEqual(
             operation_journal["source_policy"]["final_evidence_policy"],
+            "raw_source_rows",
+        )
+        workspace_contract = memory_object_index["memory_workspace_contract"]
+        self.assertEqual(
+            workspace_contract["schema_version"],
+            "memory_workspace_contract_v1",
+        )
+        self.assertFalse(workspace_contract["trace_only"])
+        self.assertTrue(workspace_contract["applied"])
+        self.assertEqual(
+            workspace_contract["entry_count"],
+            memory_system_state["entry_count"],
+        )
+        self.assertEqual(
+            workspace_contract["journal_entry_count"],
+            operation_journal["entry_count"],
+        )
+        self.assertEqual(
+            workspace_contract["source_backed_entry_count"],
+            workspace_contract["entry_count"],
+        )
+        self.assertIn("working_memory", workspace_contract["layers"])
+        self.assertIn("long_term_memory", workspace_contract["layers"])
+        self.assertIn("supersede", workspace_contract["operation_counts"])
+        self.assertIn("verify", workspace_contract["operation_counts"])
+        self.assertTrue(workspace_contract["readiness"]["source_expansion_ready"])
+        self.assertTrue(workspace_contract["readiness"]["verification_ready"])
+        self.assertTrue(workspace_contract["readiness"]["audit_ready"])
+        self.assertEqual(
+            workspace_contract["source_policy"]["final_evidence_policy"],
             "raw_source_rows",
         )
         city_operation_api = next(

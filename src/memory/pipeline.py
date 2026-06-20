@@ -67,6 +67,7 @@ _CONTEXT_BUDGET_ANCHOR_SOURCES = frozenset(
         "context_interface",
         "working_compiler_plan",
         "memory_system_state",
+        "memory_workspace_contract",
         "auto",
     }
 )
@@ -2616,6 +2617,9 @@ class Stage1Pipeline:
             anchor_memory_system_state_source_count=context_budget_anchor_trace[
                 "anchor_memory_system_state_source_count"
             ],
+            anchor_memory_workspace_contract_source_count=context_budget_anchor_trace[
+                "anchor_memory_workspace_contract_source_count"
+            ],
         )
         if _context_budget_applies(
             route=route,
@@ -2663,6 +2667,11 @@ class Stage1Pipeline:
                 anchor_memory_system_state_source_count=(
                     context_budget_anchor_trace[
                         "anchor_memory_system_state_source_count"
+                    ]
+                ),
+                anchor_memory_workspace_contract_source_count=(
+                    context_budget_anchor_trace[
+                        "anchor_memory_workspace_contract_source_count"
                     ]
                 ),
             )
@@ -2851,6 +2860,11 @@ class Stage1Pipeline:
                     "anchor_memory_system_state_source_count"
                 ]
             ),
+            anchor_memory_workspace_contract_source_count=(
+                context_budget_audit_anchor_trace[
+                    "anchor_memory_workspace_contract_source_count"
+                ]
+            ),
         )
         if _context_budget_applies(
             route=route,
@@ -2904,6 +2918,11 @@ class Stage1Pipeline:
                 anchor_memory_system_state_source_count=(
                     context_budget_audit_anchor_trace[
                         "anchor_memory_system_state_source_count"
+                    ]
+                ),
+                anchor_memory_workspace_contract_source_count=(
+                    context_budget_audit_anchor_trace[
+                        "anchor_memory_workspace_contract_source_count"
                     ]
                 ),
             )
@@ -3593,6 +3612,11 @@ class Stage1Pipeline:
                     "context_budget_anchor_memory_system_state_source_count": (
                         context_budget_trace[
                             "anchor_memory_system_state_source_count"
+                        ]
+                    ),
+                    "context_budget_anchor_memory_workspace_contract_source_count": (
+                        context_budget_trace[
+                            "anchor_memory_workspace_contract_source_count"
                         ]
                     ),
                     "context_budget_anchor_candidate_source_ids": (
@@ -4617,6 +4641,12 @@ def _context_manifest(
                 context_budget_trace.get("anchor_memory_system_state_source_count")
                 or 0
             ),
+            "context_budget_anchor_memory_workspace_contract_source_count": int(
+                context_budget_trace.get(
+                    "anchor_memory_workspace_contract_source_count"
+                )
+                or 0
+            ),
             "context_budget_anchor_candidate_count": len(
                 context_budget_trace.get("anchor_candidate_source_ids") or ()
             ),
@@ -4744,6 +4774,11 @@ def _context_manifest(
             "final_evidence_from_memory_operation_journal_count": len(
                 memory_operations_manifest[
                     "memory_operation_journal_final_source_ids"
+                ]
+            ),
+            "final_evidence_from_memory_workspace_contract_count": len(
+                memory_operations_manifest[
+                    "memory_workspace_contract_final_source_ids"
                 ]
             ),
             "typed_memory_source_count": len(typed_memory_source_ids),
@@ -4874,6 +4909,29 @@ def _context_manifest(
                         "memory_operation_journal_family_counts"
                     ]
                 ),
+                "memory_workspace_contract_available": memory_operations_manifest[
+                    "memory_workspace_contract_available"
+                ],
+                "memory_workspace_contract_final_source_count": len(
+                    memory_operations_manifest[
+                        "memory_workspace_contract_final_source_ids"
+                    ]
+                ),
+                "memory_workspace_contract_operation_counts": (
+                    memory_operations_manifest[
+                        "memory_workspace_contract_operation_counts"
+                    ]
+                ),
+                "memory_workspace_contract_family_counts": (
+                    memory_operations_manifest[
+                        "memory_workspace_contract_family_counts"
+                    ]
+                ),
+                "memory_workspace_contract_readiness": (
+                    memory_operations_manifest[
+                        "memory_workspace_contract_readiness"
+                    ]
+                ),
             },
             "evidence_pressure": _evidence_pressure_manifest(evidence_rows),
             "clean_note": (
@@ -4942,6 +5000,7 @@ def _memory_operations_context_manifest(
     working_compiler_plan = {}
     memory_system_state = {}
     memory_operation_journal = {}
+    memory_workspace_contract = {}
     if isinstance(memory_object_index, Mapping):
         raw_registry = memory_object_index.get("operation_registry")
         if isinstance(raw_registry, Mapping):
@@ -4974,6 +5033,11 @@ def _memory_operations_context_manifest(
         )
         if isinstance(raw_memory_operation_journal, Mapping):
             memory_operation_journal = raw_memory_operation_journal
+        raw_memory_workspace_contract = memory_object_index.get(
+            "memory_workspace_contract"
+        )
+        if isinstance(raw_memory_workspace_contract, Mapping):
+            memory_workspace_contract = raw_memory_workspace_contract
     registry_available = bool(operation_registry.get("applied"))
     working_view_available = bool(working_memory_view.get("applied"))
     lifecycle_audit_available = bool(lifecycle_audit.get("applied"))
@@ -4984,6 +5048,9 @@ def _memory_operations_context_manifest(
     memory_system_state_available = bool(memory_system_state.get("applied"))
     memory_operation_journal_available = bool(
         memory_operation_journal.get("applied")
+    )
+    memory_workspace_contract_available = bool(
+        memory_workspace_contract.get("applied")
     )
     lifecycle_audit_source_ids = _ordered_unique(
         source_id
@@ -5122,6 +5189,26 @@ def _memory_operations_context_manifest(
     memory_operation_journal_final_source_ids = tuple(
         source_id
         for source_id in memory_operation_journal_source_ids
+        if source_id in final_set
+    )
+    memory_workspace_contract_layers = memory_workspace_contract.get("layers")
+    if not isinstance(memory_workspace_contract_layers, Mapping):
+        memory_workspace_contract_layers = {}
+    memory_workspace_contract_source_ids = _ordered_unique(
+        (
+            *(memory_workspace_contract.get("context_anchor_source_ids") or ()),
+            *(memory_workspace_contract.get("source_expansion_source_ids") or ()),
+            *(
+                source_id
+                for layer in _mapping_values(memory_workspace_contract_layers)
+                if isinstance(layer, Mapping)
+                for source_id in (layer.get("source_ids") or ())
+            ),
+        )
+    )
+    memory_workspace_contract_final_source_ids = tuple(
+        source_id
+        for source_id in memory_workspace_contract_source_ids
         if source_id in final_set
     )
     return {
@@ -5285,6 +5372,38 @@ def _memory_operations_context_manifest(
         ),
         "memory_operation_journal_final_source_count": len(
             memory_operation_journal_final_source_ids
+        ),
+        "memory_workspace_contract_available": memory_workspace_contract_available,
+        "memory_workspace_contract_schema_version": str(
+            memory_workspace_contract.get("schema_version") or ""
+        ),
+        "memory_workspace_contract_entry_count": int(
+            memory_workspace_contract.get("entry_count") or 0
+        ),
+        "memory_workspace_contract_source_backed_entry_count": int(
+            memory_workspace_contract.get("source_backed_entry_count") or 0
+        ),
+        "memory_workspace_contract_layer_count": int(
+            memory_workspace_contract.get("layer_count") or 0
+        ),
+        "memory_workspace_contract_context_anchor_source_count": int(
+            memory_workspace_contract.get("context_anchor_source_count") or 0
+        ),
+        "memory_workspace_contract_operation_counts": _mapping_int_counts(
+            memory_workspace_contract.get("operation_counts")
+        ),
+        "memory_workspace_contract_family_counts": _mapping_int_counts(
+            memory_workspace_contract.get("family_counts")
+        ),
+        "memory_workspace_contract_readiness": dict(
+            memory_workspace_contract.get("readiness") or {}
+        ),
+        "memory_workspace_contract_source_ids": memory_workspace_contract_source_ids,
+        "memory_workspace_contract_final_source_ids": (
+            memory_workspace_contract_final_source_ids
+        ),
+        "memory_workspace_contract_final_source_count": len(
+            memory_workspace_contract_final_source_ids
         ),
         "operation_utility_slot_source": operation_slot_source,
         "graph_utility_slot_source": graph_slot_source,
@@ -8802,6 +8921,32 @@ def _memory_system_state_anchor_source_ids(
     )
 
 
+def _memory_workspace_contract_anchor_source_ids(
+    memory_object_index: Mapping[str, Any] | None,
+) -> tuple[str, ...]:
+    if not isinstance(memory_object_index, Mapping):
+        return ()
+    workspace_contract = memory_object_index.get("memory_workspace_contract")
+    if (
+        not isinstance(workspace_contract, Mapping)
+        or not workspace_contract.get("applied")
+    ):
+        return ()
+    layer_sources = _ordered_unique(
+        source_id
+        for layer in _mapping_values(workspace_contract.get("layers"))
+        if isinstance(layer, Mapping)
+        for source_id in (layer.get("source_ids") or ())
+    )
+    return _ordered_unique(
+        (
+            *(workspace_contract.get("context_anchor_source_ids") or ()),
+            *(workspace_contract.get("source_expansion_source_ids") or ()),
+            *layer_sources,
+        )
+    )
+
+
 def _working_compiler_plan_anchor_entry_sort_key(
     entry: Mapping[str, Any],
 ) -> tuple[int, int, int, str]:
@@ -8862,9 +9007,15 @@ def _context_budget_anchor_source_ids(
     memory_system_state_source_ids = _memory_system_state_anchor_source_ids(
         memory_object_index
     )
+    memory_workspace_contract_source_ids = (
+        _memory_workspace_contract_anchor_source_ids(memory_object_index)
+    )
     selected_source = anchor_source
     if anchor_source == "auto":
-        if working_compiler_plan_source_ids:
+        if memory_workspace_contract_source_ids:
+            selected_source = "memory_workspace_contract"
+            selected_source_ids = memory_workspace_contract_source_ids
+        elif working_compiler_plan_source_ids:
             selected_source = "working_compiler_plan"
             selected_source_ids = working_compiler_plan_source_ids
         elif memory_system_state_source_ids:
@@ -8890,6 +9041,8 @@ def _context_budget_anchor_source_ids(
         selected_source_ids = working_compiler_plan_source_ids
     elif anchor_source == "memory_system_state":
         selected_source_ids = memory_system_state_source_ids
+    elif anchor_source == "memory_workspace_contract":
+        selected_source_ids = memory_workspace_contract_source_ids
     elif anchor_source == "layer_manifest":
         selected_source_ids = layer_manifest_source_ids
     else:
@@ -8907,6 +9060,9 @@ def _context_budget_anchor_source_ids(
             working_compiler_plan_source_ids
         ),
         "anchor_memory_system_state_source_count": len(memory_system_state_source_ids),
+        "anchor_memory_workspace_contract_source_count": len(
+            memory_workspace_contract_source_ids
+        ),
     }
 
 
@@ -8927,6 +9083,7 @@ def _disabled_context_budget_trace(
     anchor_context_interface_source_count: int = 0,
     anchor_working_compiler_plan_source_count: int = 0,
     anchor_memory_system_state_source_count: int = 0,
+    anchor_memory_workspace_contract_source_count: int = 0,
 ) -> dict[str, Any]:
     return {
         "enabled": enabled,
@@ -8955,6 +9112,9 @@ def _disabled_context_budget_trace(
         "anchor_memory_system_state_source_count": (
             anchor_memory_system_state_source_count
         ),
+        "anchor_memory_workspace_contract_source_count": (
+            anchor_memory_workspace_contract_source_count
+        ),
         "anchor_candidate_source_ids": [],
         "anchor_retained_source_ids": [],
         "anchor_dropped_source_ids": [],
@@ -8982,6 +9142,7 @@ def _disabled_context_budget_audit_trace(
     anchor_context_interface_source_count: int = 0,
     anchor_working_compiler_plan_source_count: int = 0,
     anchor_memory_system_state_source_count: int = 0,
+    anchor_memory_workspace_contract_source_count: int = 0,
 ) -> dict[str, Any]:
     return {
         "enabled": enabled,
@@ -9011,6 +9172,9 @@ def _disabled_context_budget_audit_trace(
         ),
         "anchor_memory_system_state_source_count": (
             anchor_memory_system_state_source_count
+        ),
+        "anchor_memory_workspace_contract_source_count": (
+            anchor_memory_workspace_contract_source_count
         ),
         "anchor_candidate_source_ids": [],
         "anchor_retained_source_ids": [],
@@ -9053,6 +9217,7 @@ def _apply_context_budget(
     anchor_context_interface_source_count: int = 0,
     anchor_working_compiler_plan_source_count: int = 0,
     anchor_memory_system_state_source_count: int = 0,
+    anchor_memory_workspace_contract_source_count: int = 0,
 ) -> tuple[tuple[RetrievalHit, ...], dict[str, Any]]:
     protected_source_ids = _ordered_unique(protected_source_ids)
     if not hits:
@@ -9080,6 +9245,9 @@ def _apply_context_budget(
                 ),
                 anchor_memory_system_state_source_count=(
                     anchor_memory_system_state_source_count
+                ),
+                anchor_memory_workspace_contract_source_count=(
+                    anchor_memory_workspace_contract_source_count
                 ),
             ),
             "applied": True,
@@ -9175,6 +9343,9 @@ def _apply_context_budget(
         "anchor_memory_system_state_source_count": (
             anchor_memory_system_state_source_count
         ),
+        "anchor_memory_workspace_contract_source_count": (
+            anchor_memory_workspace_contract_source_count
+        ),
         "anchor_candidate_source_ids": list(anchor_candidate_source_ids),
         "anchor_retained_source_ids": list(anchor_retained_source_ids),
         "anchor_dropped_source_ids": list(anchor_dropped_source_ids),
@@ -9255,6 +9426,9 @@ def _context_budget_audit_trace(
         ),
         "anchor_memory_system_state_source_count": projected_budget.get(
             "anchor_memory_system_state_source_count"
+        ),
+        "anchor_memory_workspace_contract_source_count": projected_budget.get(
+            "anchor_memory_workspace_contract_source_count"
         ),
         "anchor_candidate_source_ids": projected_budget.get(
             "anchor_candidate_source_ids"

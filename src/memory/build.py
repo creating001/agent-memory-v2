@@ -1214,6 +1214,7 @@ def _memory_system_object_schema() -> dict[str, Any]:
             "memory_operation_lifecycle",
             "memory_system_state",
             "memory_operation_journal",
+            "memory_workspace_contract",
         ],
         "governance_signals": [
             "source_activation_ready",
@@ -1240,6 +1241,7 @@ def _memory_system_object_schema() -> dict[str, Any]:
             "build_owned_memory_operation_lifecycle",
             "build_owned_memory_system_state",
             "build_owned_memory_operation_journal",
+            "build_owned_memory_workspace_contract",
         ],
     }
 
@@ -1356,6 +1358,11 @@ def _memory_object_index_manifest(
     operation_journal = _memory_operation_journal(
         memory_system_state=memory_system_state,
     )
+    workspace_contract = _memory_workspace_contract(
+        memory_system_state=memory_system_state,
+        memory_operation_journal=operation_journal,
+        layer_manifest=layer_manifest,
+    )
     object_samples = [
         {
             "memory_id": record.memory_id,
@@ -1469,6 +1476,14 @@ def _memory_object_index_manifest(
         "memory_operation_journal_entry_count": operation_journal["entry_count"],
         "memory_operation_journal_source_backed_entry_count": (
             operation_journal["source_backed_entry_count"]
+        ),
+        "memory_workspace_contract_entry_count": workspace_contract["entry_count"],
+        "memory_workspace_contract_source_backed_entry_count": (
+            workspace_contract["source_backed_entry_count"]
+        ),
+        "memory_workspace_contract_layer_count": workspace_contract["layer_count"],
+        "memory_workspace_contract_anchor_source_count": (
+            workspace_contract["context_anchor_source_count"]
         ),
         "source_backed_object_count": sum(
             1 for record in managed_records if record.source_ids
@@ -1640,6 +1655,25 @@ def _memory_object_index_manifest(
                     "records still expand to raw source rows before final evidence"
                 ),
             },
+            "memory_workspace_contract_contract": {
+                "contract_field": "memory_workspace_contract",
+                "schema_version": "memory_workspace_contract_v1",
+                "sources": [
+                    "memory_system_state",
+                    "memory_operation_journal",
+                    "memory_layer_manifest",
+                ],
+                "layers": layer_manifest["layer_order"],
+                "operations": _memory_working_view_operation_contract(),
+                "anchor_source_field": "context_anchor_source_ids",
+                "policy": (
+                    "stable build-owned workspace contract for query consumers; "
+                    "it summarizes short/working/long/archival/quarantine memory "
+                    "roles, create/update/merge/supersede/retrieve/expand/verify/"
+                    "audit readiness, and raw-row expansion policy without making "
+                    "memory objects final evidence"
+                ),
+            },
             "state_conflict_contract": {
                 "slot_index_field": "state_conflict_slot_index",
                 "slot_scope": "same memory_type, subject, predicate",
@@ -1663,6 +1697,7 @@ def _memory_object_index_manifest(
         "memory_working_compiler_plan": working_compiler_plan,
         "memory_system_state": memory_system_state,
         "memory_operation_journal": operation_journal,
+        "memory_workspace_contract": workspace_contract,
         "state_conflict_slot_ids": sorted(str(slot_id) for slot_id in conflict_slot_ids),
         "clean_note": (
             "Question-independent build memory object index. It unifies tier, "
@@ -3156,6 +3191,247 @@ def _memory_operation_journal(
             "answer evidence remains raw source rows."
         ),
     }
+
+
+def _memory_workspace_contract(
+    *,
+    memory_system_state: dict[str, Any],
+    memory_operation_journal: dict[str, Any],
+    layer_manifest: dict[str, Any],
+) -> dict[str, Any]:
+    """Stable build-owned workspace contract for query consumers."""
+
+    state_entries = [
+        entry
+        for entry in memory_system_state.get("entries") or ()
+        if isinstance(entry, dict)
+    ]
+    journal_entries = [
+        entry
+        for entry in memory_operation_journal.get("entries") or ()
+        if isinstance(entry, dict)
+    ]
+    state_layers = memory_system_state.get("layers")
+    if not isinstance(state_layers, dict):
+        state_layers = {}
+    layer_order = _ordered_strings(
+        layer_manifest.get("layer_order")
+        or state_layers.keys()
+        or _memory_working_view_layer_contract().keys()
+    )
+    source_expansion_ids: list[str] = []
+    state_entry_counts: dict[str, int] = defaultdict(int)
+    state_source_backed_counts: dict[str, int] = defaultdict(int)
+    layer_source_ids: dict[str, list[str]] = defaultdict(list)
+    layer_operation_counts: dict[str, dict[str, int]] = defaultdict(
+        lambda: defaultdict(int)
+    )
+    layer_family_counts: dict[str, dict[str, int]] = defaultdict(
+        lambda: defaultdict(int)
+    )
+    operation_counts: dict[str, int] = defaultdict(int)
+    family_counts: dict[str, int] = defaultdict(int)
+    decision_counts: dict[str, int] = defaultdict(int)
+    context_action_counts: dict[str, int] = defaultdict(int)
+    verifier_check_counts: dict[str, int] = defaultdict(int)
+    memory_type_counts: dict[str, int] = defaultdict(int)
+    source_backed_count = 0
+
+    for entry in state_entries:
+        layer = str(entry.get("memory_layer") or "long_term_memory")
+        state_entry_counts[layer] += 1
+        if entry.get("source_backed"):
+            state_source_backed_counts[layer] += 1
+            source_backed_count += 1
+        memory_type = str(entry.get("memory_type") or "unknown")
+        memory_type_counts[memory_type] += 1
+        decision = str(entry.get("manager_decision") or "unknown")
+        decision_counts[decision] += 1
+        for action in _ordered_strings(entry.get("context_actions") or ()):
+            context_action_counts[action] += 1
+        for check in _ordered_strings(entry.get("verifier_checks") or ()):
+            verifier_check_counts[check] += 1
+        source_ids = _memory_workspace_contract_entry_source_ids(entry)
+        _memory_layer_manifest_extend_unique(
+            layer_source_ids[layer],
+            source_ids,
+            max_items=64,
+        )
+        _memory_layer_manifest_extend_unique(
+            source_expansion_ids,
+            source_ids,
+            max_items=128,
+        )
+
+    for entry in journal_entries:
+        layer = str(entry.get("memory_layer") or "long_term_memory")
+        operation_type = str(entry.get("operation_type") or "unknown")
+        family = str(entry.get("operation_family") or "unknown")
+        operation_counts[operation_type] += 1
+        family_counts[family] += 1
+        layer_operation_counts[layer][operation_type] += 1
+        layer_family_counts[layer][family] += 1
+        source_ids = _memory_workspace_contract_entry_source_ids(entry)
+        _memory_layer_manifest_extend_unique(
+            layer_source_ids[layer],
+            source_ids,
+            max_items=64,
+        )
+        _memory_layer_manifest_extend_unique(
+            source_expansion_ids,
+            source_ids,
+            max_items=128,
+        )
+
+    layer_contracts: dict[str, dict[str, Any]] = {}
+    for layer in layer_order:
+        state_layer = state_layers.get(layer)
+        if not isinstance(state_layer, dict):
+            state_layer = {}
+        layer_sources = list(layer_source_ids.get(layer, []))
+        if not layer_sources:
+            layer_sources = _ordered_strings(state_layer.get("source_ids") or ())
+        layer_ops = dict(sorted(layer_operation_counts.get(layer, {}).items()))
+        layer_families = dict(sorted(layer_family_counts.get(layer, {}).items()))
+        layer_contracts[layer] = {
+            "memory_layer": layer,
+            "context_role": _memory_context_interface_role_name(layer),
+            "entry_count": int(
+                state_entry_counts.get(layer)
+                or state_layer.get("entry_count")
+                or 0
+            ),
+            "source_backed_entry_count": int(
+                state_source_backed_counts.get(layer)
+                or state_layer.get("source_backed_entry_count")
+                or 0
+            ),
+            "source_ids": layer_sources,
+            "source_count": len(layer_sources),
+            "allowed_operations": _memory_context_interface_role_operations(layer),
+            "operation_counts": layer_ops,
+            "operation_family_counts": layer_families,
+            "activation_policy": _memory_workspace_layer_activation_policy(layer),
+            "context_policy": _memory_workspace_layer_context_policy(layer),
+            "final_evidence_policy": "raw_source_rows",
+        }
+
+    readiness = {
+        "source_expansion_ready": bool(source_expansion_ids),
+        "context_pack_ready": bool(source_expansion_ids),
+        "verification_ready": bool(
+            operation_counts.get("verify") or verifier_check_counts
+        ),
+        "audit_ready": bool(operation_counts.get("audit")),
+        "conflict_ready": bool(
+            operation_counts.get("supersede")
+            or operation_counts.get("merge")
+            or operation_counts.get("update")
+            or verifier_check_counts.get("state_conflict")
+        ),
+    }
+
+    return {
+        "schema_version": "memory_workspace_contract_v1",
+        "trace_only": False,
+        "applied": bool(layer_contracts or state_entries or journal_entries),
+        "interface_sources": [
+            "memory_system_state",
+            "memory_operation_journal",
+            "memory_layer_manifest",
+        ],
+        "layer_count": len(layer_contracts),
+        "entry_count": len(state_entries),
+        "journal_entry_count": len(journal_entries),
+        "source_backed_entry_count": source_backed_count,
+        "source_incomplete_entry_count": max(0, len(state_entries) - source_backed_count),
+        "context_anchor_source_ids": source_expansion_ids,
+        "context_anchor_source_count": len(source_expansion_ids),
+        "source_expansion_source_ids": source_expansion_ids,
+        "source_expansion_source_count": len(source_expansion_ids),
+        "layer_order": layer_order,
+        "layers": layer_contracts,
+        "operation_counts": dict(sorted(operation_counts.items())),
+        "family_counts": dict(sorted(family_counts.items())),
+        "decision_counts": dict(sorted(decision_counts.items())),
+        "context_action_counts": dict(sorted(context_action_counts.items())),
+        "verifier_check_counts": dict(sorted(verifier_check_counts.items())),
+        "memory_type_counts": dict(sorted(memory_type_counts.items())),
+        "readiness": readiness,
+        "operation_contract": _memory_working_view_operation_contract(),
+        "memory_object_contract": {
+            "object_types": [
+                "profile",
+                "preference",
+                "state",
+                "event",
+                "fact",
+                "relationship",
+                "plan",
+            ],
+            "source_policy": "source_backed_activation_expand_to_raw_rows",
+            "version_policy": "non_destructive_supersede_and_archive",
+            "conflict_policy": "state_conflict_requires_verify_and_audit",
+        },
+        "workspace_policy": {
+            "short_term_memory": "query_visible_raw_rows",
+            "working_memory": "active_state_and_conflict_workspace",
+            "long_term_memory": "stable_source_backed_recall",
+            "archival_memory": "historical_state_kept_for_supersede_chains",
+            "quarantine_memory": "audit_only_not_final_evidence",
+            "operation_flow": (
+                "create_update_merge_supersede_then_retrieve_expand_verify_audit"
+            ),
+        },
+        "source_policy": {
+            "raw_evidence_required": True,
+            "final_evidence_policy": "raw_source_rows",
+            "question_independent_build": True,
+            "memory_objects_are_not_final_evidence": True,
+        },
+        "clean_note": (
+            "Question-independent memory workspace contract. It summarizes "
+            "short-term, working, long-term, archival, and quarantine memory "
+            "roles plus create/update/merge/supersede/retrieve/expand/verify/"
+            "audit readiness for query consumers. It does not use question text, "
+            "gold answers, judge outputs, benchmark labels, sample ids, or test "
+            "feedback; final answer evidence remains raw source rows."
+        ),
+    }
+
+
+def _memory_workspace_contract_entry_source_ids(entry: dict[str, Any]) -> list[str]:
+    source_ids = list(_ordered_strings(entry.get("source_ids") or ()))
+    source_expansion = entry.get("source_expansion")
+    if isinstance(source_expansion, dict):
+        _memory_layer_manifest_extend_unique(
+            source_ids,
+            _ordered_strings(source_expansion.get("source_ids") or ()),
+            max_items=64,
+        )
+    return source_ids[:16]
+
+
+def _memory_workspace_layer_activation_policy(layer: str) -> str:
+    policies = {
+        "short_term_memory": "always_query_visible_raw_rows",
+        "working_memory": "activate_current_state_and_conflict_sources",
+        "long_term_memory": "activate_source_backed_recall_candidates",
+        "archival_memory": "activate_for_supersede_or_temporal_audit",
+        "quarantine_memory": "audit_only_block_final_evidence",
+    }
+    return policies.get(layer, "source_backed_activation")
+
+
+def _memory_workspace_layer_context_policy(layer: str) -> str:
+    policies = {
+        "short_term_memory": "raw_rows_supplied_by_query_context",
+        "working_memory": "pack_state_and_conflict_sources_before_tail_rows",
+        "long_term_memory": "pack_stable_recall_sources_under_budget",
+        "archival_memory": "pack_when_update_chain_or_historical_state_needed",
+        "quarantine_memory": "exclude_from_final_evidence_unless_audit_only",
+    }
+    return policies.get(layer, "expand_to_raw_source_rows")
 
 
 def _memory_operation_journal_operation_types(entry: dict[str, Any]) -> list[str]:
