@@ -25,6 +25,7 @@ Clean note: no gold answer, judge output, benchmark label, sample id, test feedb
 | LME op21 | `87656.19 / 5611.38` | `21/21` | `0/21` | `0/21` | `0/21` | `21/0` hit/miss |
 | LoCoMo smoke5 | `45868.0 / 5520.8` | `5/5` | `5/5`, avg rows `4.0` | `0/5` | `2/5` | `0/5` hit/miss |
 | LME full | `85393.566 / 6454.482` | `500/500` | `3/500`, avg rows `0.024` | `0/500` | `1/500` | `497/3` hit/miss |
+| LoCoMo full | `62015.574 / 5547.798` | `1540/1540` | `1537/1540`, avg rows `3.992` | `0/1540` | `691/1540` | `19/1521` hit/miss |
 
 Compared with v288:
 
@@ -32,6 +33,7 @@ Compared with v288:
 - LME op21: prompt/evidence/route/answer/query-token diff all `0/21`.
 - LME full: prompt/evidence diff `3/500`, answer diff `1/500`, route diff `0/500`, avg query tokens `6455.588 -> 6454.482`.
 - LoCoMo smoke5: prompt/evidence/query-token diff `5/5`, answer diff `2/5`, avg query tokens `6048.2 -> 5520.8`, avg context chars `17405.0 -> 15788.8`.
+- LoCoMo full: prompt/evidence diff `1537/1540`, answer diff `691/1540`, route diff `0/1540`, avg query tokens `6093.962 -> 5547.798`.
 
 Compared with v323:
 
@@ -48,9 +50,13 @@ Changed-answer dual DeepSeek flash judge was run only where answers changed vs v
 | LME full | new v324 | `1/1` | `1/1` | `experiments/diagnostic/stage1_workspace_policy_safe_pack_v324_lme_full_changed_vs_v288/new_v324_dual_judge.json` |
 | LoCoMo smoke5 | old v288 | `2/2` | `2/2` | `experiments/diagnostic/stage1_workspace_policy_safe_pack_v324_locomo_smoke5_changed_vs_v288/old_v288_dual_judge.json` |
 | LoCoMo smoke5 | new v324 | `2/2` | `2/2` | `experiments/diagnostic/stage1_workspace_policy_safe_pack_v324_locomo_smoke5_changed_vs_v288/new_v324_dual_judge.json` |
+| LoCoMo full | old v288 | `505/691` | `530/691` | `experiments/diagnostic/stage1_workspace_policy_safe_pack_v324_locomo_full_changed_vs_v288/old_v288_dual_judge.json` |
+| LoCoMo full | new v324 | `488/691` | `507/691` | `experiments/diagnostic/stage1_workspace_policy_safe_pack_v324_locomo_full_changed_vs_v288/new_v324_dual_judge.json` |
 
 ## Decision
 
-V324 is a safer candidate than v323, not a new LTS yet. It keeps the system improvement that selected-context packing is build-policy-owned, avoids v323's broad evidence compression, and inherits v288 LongMemEval-S full accuracy.
+V324 is safer than v323 for LongMemEval-S but is not a new LTS. It keeps the system improvement that selected-context packing is build-policy-owned, avoids v323's broad evidence compression, and inherits v288 LongMemEval-S full accuracy.
 
-Next step: decide whether LoCoMo full prediction/judge is worth the cost, because selected-context policy changes most LoCoMo prompts.
+LoCoMo full shows the selected-context pack is too tight: query tokens improve, but projected LoCoMo full drops from v288 strict/lenient `0.794156 / 0.819481` to about `0.783117 / 0.804545`.
+
+Next step: create a more conservative v325 policy that keeps build-owned selected-context control but relaxes rows/window/chars before any LTS decision.
