@@ -4187,6 +4187,48 @@ class CleanSkeletonTest(unittest.TestCase):
             city_compiler_plan["source_policy"]["final_evidence_policy"],
             "raw_source_rows",
         )
+        memory_system_state = memory_object_index["memory_system_state"]
+        self.assertEqual(
+            memory_system_state["schema_version"],
+            "memory_system_state_v1",
+        )
+        self.assertFalse(memory_system_state["trace_only"])
+        self.assertTrue(memory_system_state["applied"])
+        self.assertEqual(memory_system_state["entry_count"], 8)
+        self.assertEqual(memory_system_state["source_backed_entry_count"], 8)
+        self.assertIn("working_memory", memory_system_state["layers"])
+        self.assertIn("archival_memory", memory_system_state["layers"])
+        self.assertEqual(
+            memory_system_state["layers"]["working_memory"]["context_role"],
+            "working_state",
+        )
+        self.assertIn("conflict_chain", memory_system_state["focus_counts"])
+        self.assertIn("supersede", memory_system_state["decision_counts"])
+        self.assertIn(
+            "compare_active_superseded",
+            memory_system_state["context_action_counts"],
+        )
+        self.assertIn(
+            "state_conflict",
+            memory_system_state["verifier_check_counts"],
+        )
+        city_system_state = next(
+            entry
+            for entry in memory_system_state["entries"]
+            if entry["target_type"] == "operation_slot"
+            and entry["predicate"] == "location"
+        )
+        self.assertEqual(city_system_state["focus"], "conflict_chain")
+        self.assertEqual(city_system_state["manager_decision"], "supersede")
+        self.assertEqual(city_system_state["context_role"], "working_state")
+        self.assertEqual(
+            city_system_state["source_expansion"]["source_ids"],
+            ["s2:t1", "s2:t2", "s1:t1"],
+        )
+        self.assertEqual(
+            memory_system_state["source_policy"]["final_evidence_policy"],
+            "raw_source_rows",
+        )
         city_operation_api = next(
             entry
             for entry in operation_api["entries"]
@@ -11780,6 +11822,85 @@ class CleanSkeletonTest(unittest.TestCase):
             "Use Working Memory Packet only as a source-backed state and operation index",
             compiled.prompt,
         )
+
+    def test_working_memory_packet_can_use_working_compiler_plan(self) -> None:
+        old_record = MemoryRecord(
+            memory_id="old-followers",
+            memory_type="state",
+            text="Alex had 1250 followers.",
+            source_ids=("s1:t0",),
+            subject="Alex",
+            predicate="follower count",
+            value="1250 followers",
+            timestamp="2024-05-20",
+            status="superseded",
+            superseded_by="new-followers",
+        )
+        new_record = MemoryRecord(
+            memory_id="new-followers",
+            memory_type="state",
+            text="Alex is close to 1300 followers now.",
+            source_ids=("s1:t1",),
+            subject="Alex",
+            predicate="follower count",
+            value="1300 followers",
+            timestamp="2024-05-30",
+            status="active",
+        )
+        management = _management_summary(
+            (old_record, new_record),
+            policy="stateful_only",
+            managed_memory_types=frozenset({"state"}),
+            include_memory_system_graph=True,
+        )
+        compiler = EvidenceCompiler(
+            max_evidence_items=2,
+            max_evidence_chars=3000,
+            prompt_mode="external_naive",
+            working_memory_packet=True,
+            working_memory_packet_information_needs=("current_state",),
+            working_memory_packet_max_items=3,
+            working_memory_packet_value_chars=80,
+            working_memory_packet_source="working_compiler_plan",
+        )
+
+        compiled = compiler.compile(
+            question="What is Alex's current follower count?",
+            question_time=None,
+            route=RouteResult("current_state", ("current_state",)),
+            hits=(),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Alex had 1250 followers earlier this month.",
+                    timestamp="2024-05-20",
+                ),
+                Turn(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="Alex is close to 1300 followers now.",
+                    timestamp="2024-05-30",
+                ),
+            ),
+            memory_object_index=management["memory_system_graph"]["memory_object_index"],
+        )
+
+        self.assertIn("Working Memory Packet:", compiled.prompt)
+        self.assertIn("source=working_compiler_plan", compiled.prompt)
+        self.assertIn("memory_layer=working_memory", compiled.prompt)
+        self.assertIn("role=working_state", compiled.prompt)
+        self.assertIn("focus=conflict_chain", compiled.prompt)
+        self.assertIn("decision=supersede", compiled.prompt)
+        self.assertIn("context=retrieve_source_rows, expand_memory_sources", compiled.prompt)
+        self.assertIn("compare_active_superseded", compiled.prompt)
+        self.assertIn("checks=source_backing, raw_row_expansion", compiled.prompt)
+        self.assertIn("state_conflict", compiled.prompt)
+        self.assertIn("sources=Memory 2, Memory 1", compiled.prompt)
 
     def test_working_memory_packet_auto_falls_back_to_operation_registry(self) -> None:
         old_record = MemoryRecord(

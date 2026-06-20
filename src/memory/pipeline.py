@@ -4710,6 +4710,9 @@ def _context_manifest(
                     "working_compiler_plan_final_source_ids"
                 ]
             ),
+            "final_evidence_from_memory_system_state_count": len(
+                memory_operations_manifest["memory_system_state_final_source_ids"]
+            ),
             "typed_memory_source_count": len(typed_memory_source_ids),
             "selected_context_materialized_count": int(
                 selected_context.get("materialized_count") or 0
@@ -4796,6 +4799,17 @@ def _context_manifest(
                         "working_compiler_plan_verifier_check_counts"
                     ]
                 ),
+                "memory_system_state_available": memory_operations_manifest[
+                    "memory_system_state_available"
+                ],
+                "memory_system_state_final_source_count": len(
+                    memory_operations_manifest[
+                        "memory_system_state_final_source_ids"
+                    ]
+                ),
+                "memory_system_state_focus_counts": memory_operations_manifest[
+                    "memory_system_state_focus_counts"
+                ],
             },
             "evidence_pressure": _evidence_pressure_manifest(evidence_rows),
             "clean_note": (
@@ -4862,6 +4876,7 @@ def _memory_operations_context_manifest(
     operation_api = {}
     context_interface = {}
     working_compiler_plan = {}
+    memory_system_state = {}
     if isinstance(memory_object_index, Mapping):
         raw_registry = memory_object_index.get("operation_registry")
         if isinstance(raw_registry, Mapping):
@@ -4886,6 +4901,9 @@ def _memory_operations_context_manifest(
         )
         if isinstance(raw_working_compiler_plan, Mapping):
             working_compiler_plan = raw_working_compiler_plan
+        raw_memory_system_state = memory_object_index.get("memory_system_state")
+        if isinstance(raw_memory_system_state, Mapping):
+            memory_system_state = raw_memory_system_state
     registry_available = bool(operation_registry.get("applied"))
     working_view_available = bool(working_memory_view.get("applied"))
     lifecycle_audit_available = bool(lifecycle_audit.get("applied"))
@@ -4893,6 +4911,7 @@ def _memory_operations_context_manifest(
     operation_api_available = bool(operation_api.get("applied"))
     context_interface_available = bool(context_interface.get("applied"))
     working_compiler_plan_available = bool(working_compiler_plan.get("applied"))
+    memory_system_state_available = bool(memory_system_state.get("applied"))
     lifecycle_audit_source_ids = _ordered_unique(
         source_id
         for entry in lifecycle_audit.get("entries") or ()
@@ -4983,6 +5002,29 @@ def _memory_operations_context_manifest(
         source_id
         for source_id in working_compiler_plan_source_ids
         if source_id in final_set
+    )
+    memory_system_state_source_ids = _ordered_unique(
+        (
+            *(memory_system_state.get("source_expansion_source_ids") or ()),
+            *(
+                source_id
+                for entry in memory_system_state.get("entries") or ()
+                if isinstance(entry, Mapping)
+                for source_id in (entry.get("source_ids") or ())
+            ),
+            *(
+                source_id
+                for entry in memory_system_state.get("entries") or ()
+                if isinstance(entry, Mapping)
+                and isinstance(entry.get("source_expansion"), Mapping)
+                for source_id in (
+                    entry.get("source_expansion", {}).get("source_ids") or ()
+                )
+            ),
+        )
+    )
+    memory_system_state_final_source_ids = tuple(
+        source_id for source_id in memory_system_state_source_ids if source_id in final_set
     )
     return {
         "trace_only": True,
@@ -5089,6 +5131,36 @@ def _memory_operations_context_manifest(
         ),
         "working_compiler_plan_final_source_count": len(
             working_compiler_plan_final_source_ids
+        ),
+        "memory_system_state_available": memory_system_state_available,
+        "memory_system_state_schema_version": str(
+            memory_system_state.get("schema_version") or ""
+        ),
+        "memory_system_state_entry_count": int(
+            memory_system_state.get("entry_count") or 0
+        ),
+        "memory_system_state_source_backed_entry_count": int(
+            memory_system_state.get("source_backed_entry_count") or 0
+        ),
+        "memory_system_state_layer_count": int(
+            memory_system_state.get("layer_count") or 0
+        ),
+        "memory_system_state_focus_counts": _mapping_int_counts(
+            memory_system_state.get("focus_counts")
+        ),
+        "memory_system_state_decision_counts": _mapping_int_counts(
+            memory_system_state.get("decision_counts")
+        ),
+        "memory_system_state_context_action_counts": _mapping_int_counts(
+            memory_system_state.get("context_action_counts")
+        ),
+        "memory_system_state_verifier_check_counts": _mapping_int_counts(
+            memory_system_state.get("verifier_check_counts")
+        ),
+        "memory_system_state_source_ids": memory_system_state_source_ids,
+        "memory_system_state_final_source_ids": memory_system_state_final_source_ids,
+        "memory_system_state_final_source_count": len(
+            memory_system_state_final_source_ids
         ),
         "operation_utility_slot_source": operation_slot_source,
         "graph_utility_slot_source": graph_slot_source,

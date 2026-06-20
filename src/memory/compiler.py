@@ -40,6 +40,8 @@ MEMORY_STATE_GUIDE_CONFLICT_SOURCES = {"records", "build_manifest"}
 WORKING_MEMORY_PACKET_SOURCES = {
     "auto",
     "lifecycle_audit",
+    "working_compiler_plan",
+    "memory_system_state",
     "working_view",
     "operation_registry",
 }
@@ -4471,10 +4473,19 @@ def _external_working_memory_packet_lines(
         lifecycle_stage = str(entry.get("lifecycle_stage") or "")
         if lifecycle_stage:
             fields.append(f"stage={lifecycle_stage}")
+        focus = str(entry.get("focus") or "")
+        if focus:
+            fields.append(f"focus={focus}")
+        manager_decision = str(entry.get("manager_decision") or "")
+        if manager_decision:
+            fields.append(f"decision={manager_decision}")
         workspace_layer = str(entry.get("workspace_layer") or "")
         if workspace_layer:
             fields.insert(1, f"workspace={workspace_layer}")
-        workspace_role = str(entry.get("workspace_role") or "")
+        memory_layer = str(entry.get("memory_layer") or "")
+        if memory_layer and not workspace_layer:
+            fields.insert(1, f"memory_layer={memory_layer}")
+        workspace_role = str(entry.get("workspace_role") or entry.get("context_role") or "")
         if workspace_role:
             fields.append(f"role={workspace_role}")
         tier = str(entry.get("memory_tier") or "")
@@ -4508,6 +4519,16 @@ def _external_working_memory_packet_lines(
         )
         if audit_actions:
             fields.append(f"actions={', '.join(audit_actions[:6])}")
+        context_actions = tuple(
+            str(item) for item in entry.get("context_actions") or () if item
+        )
+        if context_actions:
+            fields.append(f"context={', '.join(context_actions[:6])}")
+        verifier_checks = tuple(
+            str(item) for item in entry.get("verifier_checks") or () if item
+        )
+        if verifier_checks:
+            fields.append(f"checks={', '.join(verifier_checks[:6])}")
         fields.append(f"sources={', '.join(source_labels)}")
         lines.append(f"  - {' | '.join(fields)}")
     return lines
@@ -4522,6 +4543,8 @@ def _working_memory_packet_source_entries(
         ("lifecycle_audit", "lifecycle_audit"),
         ("working_view", "working_memory_view"),
         ("operation_registry", "operation_registry"),
+        ("working_compiler_plan", "memory_working_compiler_plan"),
+        ("memory_system_state", "memory_system_state"),
     )
     if source != "auto":
         source_order = tuple(item for item in source_order if item[0] == source)
@@ -4590,6 +4613,12 @@ def _source_labels_for_source_ids(
 
 def _working_memory_packet_entry_source_ids(entry: Mapping[str, Any]) -> tuple[str, ...]:
     ordered_sources: list[str] = []
+    source_expansion = entry.get("source_expansion")
+    if isinstance(source_expansion, Mapping):
+        for source_id in source_expansion.get("source_ids") or ():
+            source_text = str(source_id).strip()
+            if source_text:
+                ordered_sources.append(source_text)
     for key in (
         "expand_source_order",
         "current_source_order",
@@ -4626,11 +4655,17 @@ def _working_memory_packet_entry_score(
                 entry.get("slot_id"),
                 entry.get("workspace_layer"),
                 entry.get("workspace_role"),
+                entry.get("memory_layer"),
+                entry.get("context_role"),
                 entry.get("memory_type"),
+                entry.get("focus"),
+                entry.get("manager_decision"),
                 entry.get("lifecycle_stage"),
                 entry.get("subject"),
                 entry.get("predicate"),
                 _working_memory_packet_entry_value(entry),
+                " ".join(str(item) for item in entry.get("context_actions") or ()),
+                " ".join(str(item) for item in entry.get("verifier_checks") or ()),
                 " ".join(str(item) for item in entry.get("operations") or ()),
                 " ".join(str(item) for item in entry.get("audit_actions") or ()),
                 " ".join(str(item) for item in entry.get("audit_flags") or ()),
@@ -4646,13 +4681,25 @@ def _working_memory_packet_entry_score(
     score = float(overlap * 2)
     if type_match:
         score += 2.0
+    memory_layer = str(
+        entry.get("memory_tier")
+        or entry.get("memory_layer")
+        or entry.get("workspace_layer")
+        or ""
+    )
     score += {
         "working_memory": 1.5,
         "long_term_memory": 1.0,
         "archival_memory": 0.5,
-    }.get(str(entry.get("memory_tier") or ""), 0.0)
+    }.get(memory_layer, 0.0)
     if str(entry.get("target_type") or "") in {"operation_slot", "conflict_slot"}:
         score += 1.0
+    score += {
+        "conflict_chain": 1.25,
+        "current_state": 1.0,
+        "temporal_validity": 0.8,
+        "long_term_recall": 0.4,
+    }.get(str(entry.get("focus") or ""), 0.0)
     score += _working_memory_packet_target_priority(
         str(entry.get("target_type") or "")
     )
