@@ -2049,6 +2049,57 @@ def _repair_answer_config_for_metrics(
     return merged
 
 
+_DISABLED_FINALIZER_DETAIL_PREFIXES = (
+    "- answer_finalizer_mode:",
+    "- answer_finalizer_enable_",
+)
+
+_DISABLED_REPAIR_DETAIL_PREFIXES = (
+    "- answer_repair_mode:",
+    "- answer_repair_model:",
+    "- answer_repair_base_url:",
+    "- answer_repair_max_input_tokens:",
+    "- answer_repair_max_output_tokens:",
+    "- answer_repair_chat_template_kwargs:",
+    "- answer_repair_output_format:",
+    "- answer_repair_information_needs:",
+    "- answer_repair_uncertain_trigger_information_needs:",
+    "- answer_repair_enable_",
+    "- answer_repair_cross_route_profile_advice_abstention_information_needs:",
+    "- answer_repair_modal_abstention_information_needs:",
+    "- answer_repair_source_grounded_modal_inference_information_needs:",
+    "- answer_repair_source_grounded_modal_min_support_items:",
+    "- answer_repair_source_grounded_temporal_calculation_information_needs:",
+    "- answer_repair_source_grounded_temporal_calculation_min_support_items:",
+    "- answer_repair_source_grounded_temporal_order_information_needs:",
+    "- answer_repair_source_grounded_temporal_order_min_support_items:",
+    "- answer_repair_max_context_chars:",
+    "- answer_repair_max_row_text_chars:",
+    "- answer_repair_cache_enabled:",
+    "- answer_repair_cache_path:",
+    "- answer_repair_cache_namespace:",
+)
+
+
+def _compact_disabled_answer_auxiliary_lines(
+    lines: list[str],
+    metrics: dict[str, Any],
+) -> list[str]:
+    answer = metrics.get("answer", {})
+    finalizer_enabled = bool(answer.get("finalizer_enabled", False))
+    repair_enabled = bool(answer.get("repair_enabled", False))
+    compacted: list[str] = []
+    for line in lines:
+        if not finalizer_enabled and line.startswith(
+            _DISABLED_FINALIZER_DETAIL_PREFIXES
+        ):
+            continue
+        if not repair_enabled and line.startswith(_DISABLED_REPAIR_DETAIL_PREFIXES):
+            continue
+        compacted.append(line)
+    return compacted
+
+
 def _write_summary(
     path: Path,
     manifest: dict[str, Any],
@@ -2481,6 +2532,7 @@ def _write_summary(
         "- Raw context remains available for fallback and diagnosis; build memory records keep source back-links when produced by the current builder.",
         "- Accuracy is intentionally not computed by the prediction runner; any gold or judge metrics must be produced offline after prediction.",
     ]
+    lines = _compact_disabled_answer_auxiliary_lines(lines, metrics)
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
@@ -2740,6 +2792,7 @@ def _write_diagnosis(
         "- Compare typed build memory on/off before adding more expensive answer-time reasoning.",
         "- Keep each new method behind explicit config toggles for ablation.",
     ]
+    lines = _compact_disabled_answer_auxiliary_lines(lines, metrics)
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 

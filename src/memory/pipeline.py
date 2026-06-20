@@ -1363,106 +1363,14 @@ class Stage1Pipeline:
         self._answer_finalizer_enabled = bool(
             answer_finalizer_config.get("enabled", False)
         )
-        self._answer_finalizer_mode = str(
-            answer_finalizer_config.get("mode", "structured_evidence_mechanical")
-        )
-        self._answer_finalizer_enable_count_correction = bool(
-            answer_finalizer_config.get("enable_count_correction", False)
-        )
-        self._answer_finalizer_enable_evidence_report_count_correction = bool(
-            answer_finalizer_config.get(
-                "enable_evidence_report_count_correction", False
+        if self._answer_finalizer_enabled:
+            self._answer_finalizer_trace_config = (
+                _answer_finalizer_settings_from_config(answer_finalizer_config)
             )
-        )
-        self._answer_finalizer_enable_money_sum_correction = bool(
-            answer_finalizer_config.get("enable_money_sum_correction", True)
-        )
-        self._answer_finalizer_enable_duration_rounding_correction = bool(
-            answer_finalizer_config.get(
-                "enable_duration_rounding_correction",
-                False,
+        else:
+            self._answer_finalizer_trace_config = (
+                _disabled_answer_finalizer_trace_config()
             )
-        )
-        self._answer_finalizer_enable_missing_detail = bool(
-            answer_finalizer_config.get("enable_missing_detail", False)
-        )
-        self._answer_finalizer_enable_count_answer_detail = bool(
-            answer_finalizer_config.get("enable_count_answer_detail", False)
-        )
-        self._answer_finalizer_enable_average_calculation = bool(
-            answer_finalizer_config.get("enable_average_calculation", False)
-        )
-        self._answer_finalizer_enable_money_difference_calculation = bool(
-            answer_finalizer_config.get("enable_money_difference_calculation", False)
-        )
-        self._answer_finalizer_enable_date_endpoint_duration_calculation = bool(
-            answer_finalizer_config.get(
-                "enable_date_endpoint_duration_calculation",
-                False,
-            )
-        )
-        self._answer_finalizer_enable_relative_time_calculation = bool(
-            answer_finalizer_config.get("enable_relative_time_calculation", False)
-        )
-        self._answer_finalizer_enable_numeric_slot_label_preservation = bool(
-            answer_finalizer_config.get(
-                "enable_numeric_slot_label_preservation",
-                False,
-            )
-        )
-        self._answer_finalizer_enable_source_value_specificity_preservation = bool(
-            answer_finalizer_config.get(
-                "enable_source_value_specificity_preservation",
-                False,
-            )
-        )
-        self._answer_finalizer_enable_profile_preference_value_preservation = bool(
-            answer_finalizer_config.get(
-                "enable_profile_preference_value_preservation",
-                False,
-            )
-        )
-        self._answer_finalizer_trace_config = {
-            "enabled": self._answer_finalizer_enabled,
-            "mode": self._answer_finalizer_mode,
-            "enable_count_correction": (
-                self._answer_finalizer_enable_count_correction
-            ),
-            "enable_evidence_report_count_correction": (
-                self._answer_finalizer_enable_evidence_report_count_correction
-            ),
-            "enable_money_sum_correction": (
-                self._answer_finalizer_enable_money_sum_correction
-            ),
-            "enable_duration_rounding_correction": (
-                self._answer_finalizer_enable_duration_rounding_correction
-            ),
-            "enable_missing_detail": self._answer_finalizer_enable_missing_detail,
-            "enable_count_answer_detail": (
-                self._answer_finalizer_enable_count_answer_detail
-            ),
-            "enable_average_calculation": (
-                self._answer_finalizer_enable_average_calculation
-            ),
-            "enable_money_difference_calculation": (
-                self._answer_finalizer_enable_money_difference_calculation
-            ),
-            "enable_date_endpoint_duration_calculation": (
-                self._answer_finalizer_enable_date_endpoint_duration_calculation
-            ),
-            "enable_relative_time_calculation": (
-                self._answer_finalizer_enable_relative_time_calculation
-            ),
-            "enable_numeric_slot_label_preservation": (
-                self._answer_finalizer_enable_numeric_slot_label_preservation
-            ),
-            "enable_source_value_specificity_preservation": (
-                self._answer_finalizer_enable_source_value_specificity_preservation
-            ),
-            "enable_profile_preference_value_preservation": (
-                self._answer_finalizer_enable_profile_preference_value_preservation
-            ),
-        }
         self._answer_finalizer_profile_settings = {
             profile["name"]: _answer_finalizer_settings_from_config(
                 _merged_config(answer_finalizer_config, profile["answer_finalizer"])
@@ -1514,213 +1422,249 @@ class Stage1Pipeline:
             ),
         }
         self._answer_repair_enabled = bool(answer_repair_config.get("enabled", False))
-        self._answer_repair_information_needs = _tuple_config(
-            answer_repair_config.get(
-                "information_needs",
-                (
-                    "current_state",
-                    "fact_lookup",
-                    "list_count",
-                    "profile_preference",
-                    "temporal_lookup",
-                ),
-            )
-        )
-        self._answer_repair_enable_uncertain_trigger = bool(
-            answer_repair_config.get("enable_uncertain_trigger", True)
-        )
-        self._answer_repair_uncertain_trigger_information_needs = _tuple_config(
-            answer_repair_config.get("uncertain_trigger_information_needs")
-        )
-        self._answer_repair_enable_short_list_trigger = bool(
-            answer_repair_config.get("enable_short_list_trigger", True)
-        )
-        self._answer_repair_enable_temporal_conflict_trigger = bool(
-            answer_repair_config.get("enable_temporal_conflict_trigger", True)
-        )
-        self._answer_repair_enable_profile_preference_trigger = bool(
-            answer_repair_config.get("enable_profile_preference_trigger", False)
-        )
-        self._answer_repair_enable_profile_advice_abstention_trigger = bool(
-            answer_repair_config.get(
-                "enable_profile_advice_abstention_trigger", False
-            )
-        )
-        self._answer_repair_enable_cross_route_profile_advice_abstention_trigger = (
-            bool(
-                answer_repair_config.get(
-                    "enable_cross_route_profile_advice_abstention_trigger",
-                    False,
-                )
-            )
-        )
-        self._answer_repair_cross_route_profile_advice_abstention_information_needs = (
-            _tuple_config(
-                answer_repair_config.get(
-                    "cross_route_profile_advice_abstention_information_needs"
-                )
-            )
-        )
-        self._answer_repair_enable_modal_abstention_trigger = bool(
-            answer_repair_config.get("enable_modal_abstention_trigger", False)
-        )
-        self._answer_repair_modal_abstention_information_needs = _tuple_config(
-            answer_repair_config.get("modal_abstention_information_needs")
-        )
-        self._answer_repair_enable_source_grounded_modal_inference_trigger = bool(
-            answer_repair_config.get(
-                "enable_source_grounded_modal_inference_trigger", False
-            )
-        )
-        self._answer_repair_source_grounded_modal_inference_information_needs = (
-            _tuple_config(
-                answer_repair_config.get(
-                    "source_grounded_modal_inference_information_needs"
-                )
-            )
-        )
-        self._answer_repair_enable_source_grounded_temporal_calculation_trigger = bool(
-            answer_repair_config.get(
-                "enable_source_grounded_temporal_calculation_trigger", False
-            )
-        )
-        self._answer_repair_source_grounded_temporal_calculation_information_needs = (
-            _tuple_config(
-                answer_repair_config.get(
-                    "source_grounded_temporal_calculation_information_needs"
-                )
-            )
-        )
-        self._answer_repair_enable_source_grounded_temporal_order_trigger = bool(
-            answer_repair_config.get(
-                "enable_source_grounded_temporal_order_trigger", False
-            )
-        )
-        self._answer_repair_source_grounded_temporal_order_information_needs = (
-            _tuple_config(
-                answer_repair_config.get(
-                    "source_grounded_temporal_order_information_needs"
-                )
-            )
-        )
-        self._answer_repair_enable_lifecycle_ledger = bool(
-            answer_repair_config.get("enable_lifecycle_ledger", False)
-        )
-        self._answer_repair_enable_lifecycle_slot_trigger = bool(
-            answer_repair_config.get("enable_lifecycle_slot_trigger", False)
-        )
-        self._answer_repair_enable_source_backed_lifecycle_memory_trigger = bool(
-            answer_repair_config.get(
-                "enable_source_backed_lifecycle_memory_trigger", False
-            )
-        )
-        self._answer_repair_uncertain_min_support_items = int(
-            answer_repair_config.get("uncertain_min_support_items", 0)
-        )
-        self._answer_repair_source_grounded_modal_min_support_items = int(
-            answer_repair_config.get("source_grounded_modal_min_support_items", 2)
-        )
-        self._answer_repair_source_grounded_temporal_calculation_min_support_items = (
-            int(
-                answer_repair_config.get(
-                    "source_grounded_temporal_calculation_min_support_items", 1
-                )
-            )
-        )
-        self._answer_repair_source_grounded_temporal_order_min_support_items = int(
-            answer_repair_config.get(
-                "source_grounded_temporal_order_min_support_items", 3
-            )
-        )
-        self._answer_repair_max_context_chars = int(
-            answer_repair_config.get("max_context_chars", 14000)
-        )
-        self._answer_repair_max_row_text_chars = int(
-            answer_repair_config.get("max_row_text_chars", 700)
-        )
-        self._answer_repair_mode = str(answer_repair_config.get("mode", answer_mode))
-        self._answer_repair_trace_config = {
-            "enabled": self._answer_repair_enabled,
-            "mode": self._answer_repair_mode if self._answer_repair_enabled else None,
-            "information_needs": self._answer_repair_information_needs,
-            "enable_uncertain_trigger": self._answer_repair_enable_uncertain_trigger,
-            "uncertain_trigger_information_needs": (
-                self._answer_repair_uncertain_trigger_information_needs
-            ),
-            "enable_short_list_trigger": (
-                self._answer_repair_enable_short_list_trigger
-            ),
-            "enable_temporal_conflict_trigger": (
-                self._answer_repair_enable_temporal_conflict_trigger
-            ),
-            "enable_profile_preference_trigger": (
-                self._answer_repair_enable_profile_preference_trigger
-            ),
-            "enable_profile_advice_abstention_trigger": (
-                self._answer_repair_enable_profile_advice_abstention_trigger
-            ),
-            "enable_cross_route_profile_advice_abstention_trigger": (
-                self._answer_repair_enable_cross_route_profile_advice_abstention_trigger
-            ),
-            "cross_route_profile_advice_abstention_information_needs": (
-                self._answer_repair_cross_route_profile_advice_abstention_information_needs
-            ),
-            "enable_modal_abstention_trigger": (
-                self._answer_repair_enable_modal_abstention_trigger
-            ),
-            "modal_abstention_information_needs": (
-                self._answer_repair_modal_abstention_information_needs
-            ),
-            "enable_source_grounded_modal_inference_trigger": (
-                self._answer_repair_enable_source_grounded_modal_inference_trigger
-            ),
-            "source_grounded_modal_inference_information_needs": (
-                self._answer_repair_source_grounded_modal_inference_information_needs
-            ),
-            "enable_source_grounded_temporal_calculation_trigger": (
-                self._answer_repair_enable_source_grounded_temporal_calculation_trigger
-            ),
-            "source_grounded_temporal_calculation_information_needs": (
-                self._answer_repair_source_grounded_temporal_calculation_information_needs
-            ),
-            "enable_source_grounded_temporal_order_trigger": (
-                self._answer_repair_enable_source_grounded_temporal_order_trigger
-            ),
-            "source_grounded_temporal_order_information_needs": (
-                self._answer_repair_source_grounded_temporal_order_information_needs
-            ),
-            "enable_lifecycle_ledger": (
-                self._answer_repair_enable_lifecycle_ledger
-            ),
-            "enable_lifecycle_slot_trigger": (
-                self._answer_repair_enable_lifecycle_slot_trigger
-            ),
-            "enable_source_backed_lifecycle_memory_trigger": (
-                self._answer_repair_enable_source_backed_lifecycle_memory_trigger
-            ),
-            "uncertain_min_support_items": (
-                self._answer_repair_uncertain_min_support_items
-            ),
-            "source_grounded_modal_min_support_items": (
-                self._answer_repair_source_grounded_modal_min_support_items
-            ),
-            "source_grounded_temporal_calculation_min_support_items": (
-                self._answer_repair_source_grounded_temporal_calculation_min_support_items
-            ),
-            "source_grounded_temporal_order_min_support_items": (
-                self._answer_repair_source_grounded_temporal_order_min_support_items
-            ),
-            "max_context_chars": self._answer_repair_max_context_chars,
-            "max_row_text_chars": self._answer_repair_max_row_text_chars,
-        }
         self._answer_repairer = None
-        self._answer_repair_cache_enabled = bool(
-            answer_repair_config.get("cache", {}).get("enabled", False)
-        )
-        self._answer_repair_cache_path = answer_repair_config.get("cache", {}).get(
-            "path"
-        )
+        self._answer_repair_cache_enabled = False
+        self._answer_repair_cache_path = None
         self._answer_repair_cache_namespace = ""
+        if self._answer_repair_enabled:
+            self._answer_repair_information_needs = _tuple_config(
+                answer_repair_config.get(
+                    "information_needs",
+                    (
+                        "current_state",
+                        "fact_lookup",
+                        "list_count",
+                        "profile_preference",
+                        "temporal_lookup",
+                    ),
+                )
+            )
+            self._answer_repair_enable_uncertain_trigger = bool(
+                answer_repair_config.get("enable_uncertain_trigger", True)
+            )
+            self._answer_repair_uncertain_trigger_information_needs = _tuple_config(
+                answer_repair_config.get("uncertain_trigger_information_needs")
+            )
+            self._answer_repair_enable_short_list_trigger = bool(
+                answer_repair_config.get("enable_short_list_trigger", True)
+            )
+            self._answer_repair_enable_temporal_conflict_trigger = bool(
+                answer_repair_config.get("enable_temporal_conflict_trigger", True)
+            )
+            self._answer_repair_enable_profile_preference_trigger = bool(
+                answer_repair_config.get("enable_profile_preference_trigger", False)
+            )
+            self._answer_repair_enable_profile_advice_abstention_trigger = bool(
+                answer_repair_config.get(
+                    "enable_profile_advice_abstention_trigger", False
+                )
+            )
+            self._answer_repair_enable_cross_route_profile_advice_abstention_trigger = (
+                bool(
+                    answer_repair_config.get(
+                        "enable_cross_route_profile_advice_abstention_trigger",
+                        False,
+                    )
+                )
+            )
+            self._answer_repair_cross_route_profile_advice_abstention_information_needs = (
+                _tuple_config(
+                    answer_repair_config.get(
+                        "cross_route_profile_advice_abstention_information_needs"
+                    )
+                )
+            )
+            self._answer_repair_enable_modal_abstention_trigger = bool(
+                answer_repair_config.get("enable_modal_abstention_trigger", False)
+            )
+            self._answer_repair_modal_abstention_information_needs = _tuple_config(
+                answer_repair_config.get("modal_abstention_information_needs")
+            )
+            self._answer_repair_enable_source_grounded_modal_inference_trigger = bool(
+                answer_repair_config.get(
+                    "enable_source_grounded_modal_inference_trigger", False
+                )
+            )
+            self._answer_repair_source_grounded_modal_inference_information_needs = (
+                _tuple_config(
+                    answer_repair_config.get(
+                        "source_grounded_modal_inference_information_needs"
+                    )
+                )
+            )
+            self._answer_repair_enable_source_grounded_temporal_calculation_trigger = bool(
+                answer_repair_config.get(
+                    "enable_source_grounded_temporal_calculation_trigger", False
+                )
+            )
+            self._answer_repair_source_grounded_temporal_calculation_information_needs = (
+                _tuple_config(
+                    answer_repair_config.get(
+                        "source_grounded_temporal_calculation_information_needs"
+                    )
+                )
+            )
+            self._answer_repair_enable_source_grounded_temporal_order_trigger = bool(
+                answer_repair_config.get(
+                    "enable_source_grounded_temporal_order_trigger", False
+                )
+            )
+            self._answer_repair_source_grounded_temporal_order_information_needs = (
+                _tuple_config(
+                    answer_repair_config.get(
+                        "source_grounded_temporal_order_information_needs"
+                    )
+                )
+            )
+            self._answer_repair_enable_lifecycle_ledger = bool(
+                answer_repair_config.get("enable_lifecycle_ledger", False)
+            )
+            self._answer_repair_enable_lifecycle_slot_trigger = bool(
+                answer_repair_config.get("enable_lifecycle_slot_trigger", False)
+            )
+            self._answer_repair_enable_source_backed_lifecycle_memory_trigger = bool(
+                answer_repair_config.get(
+                    "enable_source_backed_lifecycle_memory_trigger", False
+                )
+            )
+            self._answer_repair_uncertain_min_support_items = int(
+                answer_repair_config.get("uncertain_min_support_items", 0)
+            )
+            self._answer_repair_source_grounded_modal_min_support_items = int(
+                answer_repair_config.get("source_grounded_modal_min_support_items", 2)
+            )
+            self._answer_repair_source_grounded_temporal_calculation_min_support_items = (
+                int(
+                    answer_repair_config.get(
+                        "source_grounded_temporal_calculation_min_support_items", 1
+                    )
+                )
+            )
+            self._answer_repair_source_grounded_temporal_order_min_support_items = int(
+                answer_repair_config.get(
+                    "source_grounded_temporal_order_min_support_items", 3
+                )
+            )
+            self._answer_repair_max_context_chars = int(
+                answer_repair_config.get("max_context_chars", 14000)
+            )
+            self._answer_repair_max_row_text_chars = int(
+                answer_repair_config.get("max_row_text_chars", 700)
+            )
+            self._answer_repair_mode = str(
+                answer_repair_config.get("mode", answer_mode)
+            )
+            self._answer_repair_trace_config = {
+                "enabled": True,
+                "mode": self._answer_repair_mode,
+                "information_needs": self._answer_repair_information_needs,
+                "enable_uncertain_trigger": (
+                    self._answer_repair_enable_uncertain_trigger
+                ),
+                "uncertain_trigger_information_needs": (
+                    self._answer_repair_uncertain_trigger_information_needs
+                ),
+                "enable_short_list_trigger": (
+                    self._answer_repair_enable_short_list_trigger
+                ),
+                "enable_temporal_conflict_trigger": (
+                    self._answer_repair_enable_temporal_conflict_trigger
+                ),
+                "enable_profile_preference_trigger": (
+                    self._answer_repair_enable_profile_preference_trigger
+                ),
+                "enable_profile_advice_abstention_trigger": (
+                    self._answer_repair_enable_profile_advice_abstention_trigger
+                ),
+                "enable_cross_route_profile_advice_abstention_trigger": (
+                    self._answer_repair_enable_cross_route_profile_advice_abstention_trigger
+                ),
+                "cross_route_profile_advice_abstention_information_needs": (
+                    self._answer_repair_cross_route_profile_advice_abstention_information_needs
+                ),
+                "enable_modal_abstention_trigger": (
+                    self._answer_repair_enable_modal_abstention_trigger
+                ),
+                "modal_abstention_information_needs": (
+                    self._answer_repair_modal_abstention_information_needs
+                ),
+                "enable_source_grounded_modal_inference_trigger": (
+                    self._answer_repair_enable_source_grounded_modal_inference_trigger
+                ),
+                "source_grounded_modal_inference_information_needs": (
+                    self._answer_repair_source_grounded_modal_inference_information_needs
+                ),
+                "enable_source_grounded_temporal_calculation_trigger": (
+                    self._answer_repair_enable_source_grounded_temporal_calculation_trigger
+                ),
+                "source_grounded_temporal_calculation_information_needs": (
+                    self._answer_repair_source_grounded_temporal_calculation_information_needs
+                ),
+                "enable_source_grounded_temporal_order_trigger": (
+                    self._answer_repair_enable_source_grounded_temporal_order_trigger
+                ),
+                "source_grounded_temporal_order_information_needs": (
+                    self._answer_repair_source_grounded_temporal_order_information_needs
+                ),
+                "enable_lifecycle_ledger": (
+                    self._answer_repair_enable_lifecycle_ledger
+                ),
+                "enable_lifecycle_slot_trigger": (
+                    self._answer_repair_enable_lifecycle_slot_trigger
+                ),
+                "enable_source_backed_lifecycle_memory_trigger": (
+                    self._answer_repair_enable_source_backed_lifecycle_memory_trigger
+                ),
+                "uncertain_min_support_items": (
+                    self._answer_repair_uncertain_min_support_items
+                ),
+                "source_grounded_modal_min_support_items": (
+                    self._answer_repair_source_grounded_modal_min_support_items
+                ),
+                "source_grounded_temporal_calculation_min_support_items": (
+                    self._answer_repair_source_grounded_temporal_calculation_min_support_items
+                ),
+                "source_grounded_temporal_order_min_support_items": (
+                    self._answer_repair_source_grounded_temporal_order_min_support_items
+                ),
+                "max_context_chars": self._answer_repair_max_context_chars,
+                "max_row_text_chars": self._answer_repair_max_row_text_chars,
+            }
+            self._answer_repair_cache_enabled = bool(
+                answer_repair_config.get("cache", {}).get("enabled", False)
+            )
+            self._answer_repair_cache_path = answer_repair_config.get(
+                "cache", {}
+            ).get("path")
+        else:
+            self._answer_repair_mode = None
+            self._answer_repair_information_needs = ()
+            self._answer_repair_enable_uncertain_trigger = False
+            self._answer_repair_uncertain_trigger_information_needs = ()
+            self._answer_repair_enable_short_list_trigger = False
+            self._answer_repair_enable_temporal_conflict_trigger = False
+            self._answer_repair_enable_profile_preference_trigger = False
+            self._answer_repair_enable_profile_advice_abstention_trigger = False
+            self._answer_repair_enable_cross_route_profile_advice_abstention_trigger = False
+            self._answer_repair_cross_route_profile_advice_abstention_information_needs = ()
+            self._answer_repair_enable_modal_abstention_trigger = False
+            self._answer_repair_modal_abstention_information_needs = ()
+            self._answer_repair_enable_source_grounded_modal_inference_trigger = False
+            self._answer_repair_source_grounded_modal_inference_information_needs = ()
+            self._answer_repair_enable_source_grounded_temporal_calculation_trigger = False
+            self._answer_repair_source_grounded_temporal_calculation_information_needs = ()
+            self._answer_repair_enable_source_grounded_temporal_order_trigger = False
+            self._answer_repair_source_grounded_temporal_order_information_needs = ()
+            self._answer_repair_enable_lifecycle_ledger = False
+            self._answer_repair_enable_lifecycle_slot_trigger = False
+            self._answer_repair_enable_source_backed_lifecycle_memory_trigger = False
+            self._answer_repair_uncertain_min_support_items = 0
+            self._answer_repair_source_grounded_modal_min_support_items = 0
+            self._answer_repair_source_grounded_temporal_calculation_min_support_items = 0
+            self._answer_repair_source_grounded_temporal_order_min_support_items = 0
+            self._answer_repair_max_context_chars = 0
+            self._answer_repair_max_row_text_chars = 0
+            self._answer_repair_trace_config = _disabled_answer_repair_trace_config()
         self._answer_cache_enabled = bool(
             answer_config.get("cache", {}).get("enabled", False)
         )
@@ -8356,6 +8300,8 @@ def _configured_compiler(compiler_config: Mapping[str, Any]) -> EvidenceCompiler
 def _answer_finalizer_settings_from_config(
     config: Mapping[str, Any],
 ) -> dict[str, Any]:
+    if not bool(config.get("enabled", False)):
+        return _disabled_answer_finalizer_trace_config()
     return {
         "enabled": bool(config.get("enabled", False)),
         "mode": str(config.get("mode", "structured_evidence_mechanical")),
@@ -8394,6 +8340,22 @@ def _answer_finalizer_settings_from_config(
         "enable_profile_preference_value_preservation": bool(
             config.get("enable_profile_preference_value_preservation", False)
         ),
+    }
+
+
+def _disabled_answer_finalizer_trace_config() -> dict[str, Any]:
+    return {
+        "enabled": False,
+        "mode": None,
+        "disabled_reason": "answer_finalizer_disabled",
+    }
+
+
+def _disabled_answer_repair_trace_config() -> dict[str, Any]:
+    return {
+        "enabled": False,
+        "mode": None,
+        "disabled_reason": "answer_repair_disabled",
     }
 
 

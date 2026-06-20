@@ -170,6 +170,66 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual(result["trace"]["token_cost"]["query_tokens"], 0)
         self.assertTrue(result["trace"]["memory_lifecycle_manifest"]["trace_only"])
 
+    def test_disabled_answer_auxiliaries_ignore_nested_config(self) -> None:
+        config = {
+            "retrieval": {"top_k": 2, "max_top_k": 2, "neighbor_window": 0},
+            "compiler": {"max_evidence_items": 2, "max_evidence_chars": 2000},
+            "answer": {
+                "fallback_answer": "unknown",
+                "finalizer": {
+                    "enabled": False,
+                    "mode": "source_grounded_consistency_guard",
+                    "enable_source_value_specificity_preservation": True,
+                },
+                "repair": {
+                    "enabled": False,
+                    "mode": "null_answerer",
+                    "cache": {
+                        "enabled": True,
+                        "path": "unused.sqlite",
+                        "namespace": "unused",
+                    },
+                    "enable_uncertain_trigger": True,
+                    "information_needs": ["current_state"],
+                },
+            },
+        }
+        request = PredictionRequest(
+            question="What tea does Alex prefer?",
+            turns=(
+                Turn(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="Alex prefers jasmine tea.",
+                ),
+            ),
+        )
+
+        result = Stage1Pipeline(config).predict(request)
+        answer_repair = result["trace"]["answer_repair"]
+        answer_finalizer = result["trace"]["answer_finalizer"]
+
+        self.assertFalse(answer_repair["enabled"])
+        self.assertIsNone(answer_repair["mode"])
+        self.assertEqual(answer_repair["disabled_reason"], "answer_repair_disabled")
+        self.assertEqual(answer_repair["reason"], "disabled")
+        self.assertNotIn("information_needs", answer_repair)
+        self.assertNotIn("cache_enabled", answer_repair)
+        self.assertIsNone(answer_repair["cache"])
+        self.assertFalse(answer_finalizer["enabled"])
+        self.assertIsNone(answer_finalizer["mode"])
+        self.assertEqual(
+            answer_finalizer["disabled_reason"],
+            "answer_finalizer_disabled",
+        )
+        self.assertEqual(answer_finalizer["reason"], "disabled")
+        self.assertNotIn(
+            "enable_source_value_specificity_preservation",
+            answer_finalizer,
+        )
+
     def test_context_manifest_tracks_source_backed_memory_activation(self) -> None:
         turns = (
             Turn(
