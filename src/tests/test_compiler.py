@@ -71,6 +71,69 @@ class CompilerTest(unittest.TestCase):
         self.assertIn("### Memory 1", compact.prompt)
         self.assertIn('"evidence_report"', compact.prompt)
 
+    def test_compact_query_can_keep_answer_contract_detailed(self) -> None:
+        kwargs = {
+            "max_evidence_items": 4,
+            "max_evidence_chars": 4000,
+            "prompt_mode": "external_naive",
+            "structured_guide": True,
+            "temporal_workpad": True,
+            "temporal_text_normalization": True,
+            "temporal_event_contract": True,
+            "evidence_report_contract": True,
+            "evidence_report_information_needs": ("temporal_lookup",),
+        }
+        evidence_turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text="I visited the clinic yesterday for the follow-up.",
+                timestamp="2024-01-08",
+            ),
+            Turn(
+                source_id="s1:t1",
+                session_id="s1",
+                turn_index=1,
+                role="assistant",
+                text="Good to know the follow-up was yesterday.",
+                timestamp="2024-01-08",
+            ),
+        )
+        compile_kwargs = {
+            "question": "When was the clinic follow-up?",
+            "question_time": "2024-01-09",
+            "route": RouteResult("temporal_lookup", ("temporal",)),
+            "hits": (
+                RetrievalHit("s1:t0", 1.0, 1, "test"),
+                RetrievalHit("s1:t1", 0.9, 2, "test"),
+            ),
+            "evidence_turns": evidence_turns,
+        }
+
+        verbose = EvidenceCompiler(**kwargs).compile(**compile_kwargs)
+        full_compact = EvidenceCompiler(
+            **kwargs,
+            compact_query_contract=True,
+        ).compile(**compile_kwargs)
+        guide_compact = EvidenceCompiler(
+            **kwargs,
+            compact_query_contract=True,
+            compact_query_answer_contract=False,
+        ).compile(**compile_kwargs)
+
+        self.assertLess(len(guide_compact.prompt), len(verbose.prompt))
+        self.assertGreater(len(guide_compact.prompt), len(full_compact.prompt))
+        self.assertIn(
+            "Use Structured Evidence Guide only as an index into Memory Context",
+            guide_compact.prompt,
+        )
+        self.assertIn('  "evidence_report": [', guide_compact.prompt)
+        self.assertNotIn(
+            '{"reasoning":"compact evidence decision"', guide_compact.prompt
+        )
+
     def test_structured_guide_memory_hints_are_opt_in(self) -> None:
         compiler = EvidenceCompiler(
             max_evidence_items=4,

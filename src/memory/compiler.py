@@ -507,6 +507,8 @@ class EvidenceCompiler:
         max_memory_records: int = 12,
         memory_context_newlines_after_blocks: int = 3,
         compact_query_contract: bool = False,
+        compact_query_guide_blocks: bool | None = None,
+        compact_query_answer_contract: bool | None = None,
         prompt_mode: str = "default",
         route_overrides: Mapping[str, Mapping[str, Any]] | None = None,
     ):
@@ -813,6 +815,16 @@ class EvidenceCompiler:
             2, int(memory_context_newlines_after_blocks)
         )
         self._compact_query_contract = bool(compact_query_contract)
+        self._compact_query_guide_blocks = (
+            self._compact_query_contract
+            if compact_query_guide_blocks is None
+            else bool(compact_query_guide_blocks)
+        )
+        self._compact_query_answer_contract = (
+            self._compact_query_contract
+            if compact_query_answer_contract is None
+            else bool(compact_query_answer_contract)
+        )
         if prompt_mode not in SUPPORTED_PROMPT_MODES:
             raise ValueError(f"Unsupported prompt_mode: {prompt_mode}")
         self._prompt_mode = prompt_mode
@@ -1204,6 +1216,8 @@ class EvidenceCompiler:
                 self._memory_context_newlines_after_blocks
             ),
             compact_query_contract=self._compact_query_contract,
+            compact_query_guide_blocks=self._compact_query_guide_blocks,
+            compact_query_answer_contract=self._compact_query_answer_contract,
             prompt_mode=self._prompt_mode,
         )
         diagnostics: dict[str, Any] = {}
@@ -3157,6 +3171,8 @@ def _build_prompt(
     final_answer_checklist: bool,
     memory_context_newlines_after_blocks: int,
     compact_query_contract: bool,
+    compact_query_guide_blocks: bool,
+    compact_query_answer_contract: bool,
     prompt_mode: str,
 ) -> str:
     if prompt_mode == "raw_context_only":
@@ -3316,6 +3332,8 @@ def _build_prompt(
                 memory_context_newlines_after_blocks
             ),
             compact_query_contract=compact_query_contract,
+            compact_query_guide_blocks=compact_query_guide_blocks,
+            compact_query_answer_contract=compact_query_answer_contract,
             context_layout=context_layout,
         )
 
@@ -3548,6 +3566,8 @@ def _build_external_naive_prompt(
     final_answer_checklist: bool,
     memory_context_newlines_after_blocks: int,
     compact_query_contract: bool,
+    compact_query_guide_blocks: bool,
+    compact_query_answer_contract: bool,
     context_layout: str,
 ) -> str:
     use_temporal_event_contract = (
@@ -3571,7 +3591,7 @@ def _build_external_naive_prompt(
             include_relative_text=temporal_text_normalization,
             event_contract=use_temporal_event_contract,
             enable_weekend_relative_time=enable_weekend_relative_time,
-            compact=compact_query_contract,
+            compact=compact_query_guide_blocks,
         )
         if temporal_aid_lines:
             temporal_aid = "\n".join(["", "Temporal Aid:", *temporal_aid_lines, ""])
@@ -3643,7 +3663,7 @@ def _build_external_naive_prompt(
             include_inline_memory_hints=structured_guide_memory_hints,
             max_memory_hints_per_row=structured_guide_max_memory_hints_per_row,
             memory_hint_chars=structured_guide_memory_hint_chars,
-            compact=compact_query_contract,
+            compact=compact_query_guide_blocks,
         )
         if guide_lines:
             structured_guide_block = "\n".join(
@@ -3763,7 +3783,7 @@ def _build_external_naive_prompt(
             event_time_candidate_map_block,
         )
     )
-    if compact_query_contract and guide_or_aid_block_present:
+    if compact_query_answer_contract and guide_or_aid_block_present:
         rules.append(
             "Guide, aid, packet, timeline, and workpad blocks are indexes/checklists only; verify final facts in Memory Context."
         )
@@ -3821,7 +3841,7 @@ def _build_external_naive_prompt(
         grounded_inference_block = "\n".join(
             ["", "Grounded Inference Discipline:", *_grounded_inference_lines(), ""]
         )
-        if compact_query_contract:
+        if compact_query_answer_contract:
             rules.append(
                 "Use Grounded Inference Discipline only as a checklist over Memory Context."
             )
@@ -3830,7 +3850,7 @@ def _build_external_naive_prompt(
                 "Use Grounded Inference Discipline only to interpret Memory Context rows; it is not independent evidence."
             )
     if context_layout in {"session_thread", "chronological_session_thread"}:
-        if compact_query_contract:
+        if compact_query_answer_contract:
             rules.append(
                 "Memory Context is grouped by session in chronological order; use nearby same-session turns for implicit references and do not merge unrelated sessions."
             )
@@ -3843,7 +3863,7 @@ def _build_external_naive_prompt(
                 "Memory Context is grouped by session in chronological turn order within each session; use nearby turns in the same session to resolve implicit references, but do not merge unrelated sessions."
             )
     if structured_answer_contract:
-        if compact_query_contract:
+        if compact_query_answer_contract:
             rules.extend(
                 [
                     "Before answering, identify in-scope evidence_items; mark include/exclude, merge duplicates by canonical_item, and show compact arithmetic when needed.",
@@ -3865,7 +3885,7 @@ def _build_external_naive_prompt(
         and not structured_answer_contract
     )
     if evidence_report_contract and not structured_answer_contract:
-        if compact_query_contract:
+        if compact_query_answer_contract:
             rules.extend(
                 _external_compact_evidence_report_rules(
                     question,
@@ -3898,7 +3918,7 @@ def _build_external_naive_prompt(
             operation_workpad_block = "\n".join(
                 ["", "Private Operation Discipline:", *operation_lines, ""]
             )
-            if compact_query_contract:
+            if compact_query_answer_contract:
                 rules.append(
                     "Use Private Operation Discipline internally; do not add checklist fields."
                 )
@@ -3913,7 +3933,7 @@ def _build_external_naive_prompt(
             final_answer_checklist_block = "\n".join(
                 ["", "Final Answer Checklist:", *checklist_lines, ""]
             )
-            if compact_query_contract:
+            if compact_query_answer_contract:
                 rules.append(
                     "Use Final Answer Checklist internally; do not add checklist fields."
                 )
@@ -3921,7 +3941,7 @@ def _build_external_naive_prompt(
                 rules.append(
                     "Use Final Answer Checklist as an internal validation step only; do not add checklist fields to the output JSON."
                 )
-    if compact_query_contract:
+    if compact_query_answer_contract:
         rules.extend(
             [
                 "If insufficient, set sufficient=false and say the provided information is not enough.",
@@ -3939,7 +3959,7 @@ def _build_external_naive_prompt(
         )
     rule_lines = [f"{index}. {rule}" for index, rule in enumerate(rules, start=1)]
     if structured_answer_contract:
-        if compact_query_contract:
+        if compact_query_answer_contract:
             output_json_lines = [
                 '{"reasoning":"one short sentence","sufficient":true,"answer_type":"fact|count|list|sum|duration|date|order|preference|unknown","evidence_items":[{"memory":"Memory 1","canonical_item":"item/event/operand","date":"date or empty","value":"number/name/date/unit or empty","include":true,"reason":"why it counts or is excluded"}],"calculation":"short arithmetic or selection rule; empty if none","answer":"concise answer"}',
                 f"Use at most {structured_answer_contract_max_items} evidence_items.",
@@ -3983,7 +4003,7 @@ def _build_external_naive_prompt(
                 '"slot": "requested answer slot", "value": "number/name/date/unit or empty", '
                 '"reason": "why it supports or is excluded"}'
             )
-        if compact_query_contract:
+        if compact_query_answer_contract:
             if use_temporal_event_contract:
                 item_schema = (
                     '{"memory":"Memory 1","status":"support|exclude",'
@@ -4040,7 +4060,7 @@ def _build_external_naive_prompt(
                     '  "calculation": "count/sum/difference/duration/order calculation or empty",',
                 )
     else:
-        if compact_query_contract:
+        if compact_query_answer_contract:
             output_json_lines = [
                 '{"reasoning":"one short sentence","answer":"concise answer"}',
             ]

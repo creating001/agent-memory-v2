@@ -1454,6 +1454,12 @@ class Stage1Pipeline:
             compact_query_contract=bool(
                 compiler_config.get("compact_query_contract", False)
             ),
+            compact_query_guide_blocks=compiler_config.get(
+                "compact_query_guide_blocks"
+            ),
+            compact_query_answer_contract=compiler_config.get(
+                "compact_query_answer_contract"
+            ),
             prompt_mode=str(compiler_config.get("prompt_mode", "default")),
             route_overrides=compiler_config.get("route_overrides") or {},
         )
@@ -11180,6 +11186,18 @@ def _compiler_trace_config(
         "compact_query_contract": bool(
             compiler_config.get("compact_query_contract", False)
         ),
+        "compact_query_guide_blocks": bool(
+            compiler_config.get(
+                "compact_query_guide_blocks",
+                compiler_config.get("compact_query_contract", False),
+            )
+        ),
+        "compact_query_answer_contract": bool(
+            compiler_config.get(
+                "compact_query_answer_contract",
+                compiler_config.get("compact_query_contract", False),
+            )
+        ),
         "max_memory_records": int(compiler_config.get("max_memory_records", 12)),
         "route_overrides": compiler_config.get("route_overrides") or {},
     }
@@ -11575,6 +11593,12 @@ def _configured_compiler(compiler_config: Mapping[str, Any]) -> EvidenceCompiler
         ),
         compact_query_contract=bool(
             compiler_config.get("compact_query_contract", False)
+        ),
+        compact_query_guide_blocks=compiler_config.get(
+            "compact_query_guide_blocks"
+        ),
+        compact_query_answer_contract=compiler_config.get(
+            "compact_query_answer_contract"
         ),
         prompt_mode=str(compiler_config.get("prompt_mode", "default")),
         route_overrides=compiler_config.get("route_overrides") or {},
