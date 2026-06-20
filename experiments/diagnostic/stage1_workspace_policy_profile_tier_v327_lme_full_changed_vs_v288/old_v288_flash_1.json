@@ -1,0 +1,59 @@
+{
+  "api_key_env": "DEEPSEEK_API_KEY",
+  "base_url": "https://api.deepseek.com",
+  "benchmark": "longmemeval",
+  "clean_note": "Offline judge reads gold labels only after prediction. This output must not be consumed by prediction, retrieval, compiler, answer, or verifier.",
+  "created_at_utc": "2026-06-20T19:41:09+00:00",
+  "dry_run": false,
+  "git": {
+    "commit": "cd35fcdd6be6fbc99730ff53e901dc1dc8bd98f8",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "?? experiments/diagnostic/stage1_workspace_policy_profile_tier_v327_lme_full/\n?? experiments/diagnostic/stage1_workspace_policy_profile_tier_v327_lme_full_changed_vs_v288/"
+  },
+  "judgments": [
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "5b8d0f1c21ffb532",
+      "question_type": "single-session-assistant",
+      "raw_response": "yes",
+      "record_key": "ca58d3822fef67b8df2c3fe3",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 47,
+        "completion_tokens_details": {
+          "reasoning_tokens": 45
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 23,
+        "prompt_tokens": 151,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "total_tokens": 198
+      }
+    }
+  ],
+  "labels": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_workspace_policy_profile_tier_v327_lme_full_changed_vs_v288/labels.jsonl",
+  "metrics": {
+    "accuracy": 1.0,
+    "n_invalid": 0,
+    "n_judgments": 1,
+    "n_valid": 1
+  },
+  "model": "deepseek-v4-flash",
+  "partial_output": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_workspace_policy_profile_tier_v327_lme_full_changed_vs_v288/old_v288_flash_1.json.partial.jsonl",
+  "predictions": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_workspace_policy_profile_tier_v327_lme_full_changed_vs_v288/old_v288_predictions.jsonl",
+  "request_body_options": {},
+  "temperature": 0.0,
+  "thinking": null,
+  "usage": {
+    "completion_tokens": 47,
+    "prompt_tokens": 151,
+    "total_tokens": 198
+  },
+  "workers": 2
+}

@@ -1,0 +1,7 @@
+{
+  "base_run": "stage1_memory_object_index_v288_lme_full",
+  "changed_answers": 1,
+  "clean_note": "Offline eval only; labels and judge outputs are not used by prediction, retrieval, compiler, answer, verifier, memory build, or cache construction.",
+  "new_run": "stage1_workspace_policy_profile_tier_v327_lme_full",
+  "outputs": "outputs/diagnostic/stage1_workspace_policy_profile_tier_v327_lme_full_changed_vs_v288"
+}
