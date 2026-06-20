@@ -4474,6 +4474,9 @@ def _context_manifest(
             "final_evidence_from_lifecycle_audit_count": len(
                 memory_operations_manifest["lifecycle_audit_final_source_ids"]
             ),
+            "final_evidence_from_layer_manifest_count": len(
+                memory_operations_manifest["layer_manifest_final_source_ids"]
+            ),
             "typed_memory_source_count": len(typed_memory_source_ids),
             "selected_context_materialized_count": int(
                 selected_context.get("materialized_count") or 0
@@ -4575,6 +4578,7 @@ def _memory_operations_context_manifest(
     operation_registry = {}
     working_memory_view = {}
     lifecycle_audit = {}
+    layer_manifest = {}
     if isinstance(memory_object_index, Mapping):
         raw_registry = memory_object_index.get("operation_registry")
         if isinstance(raw_registry, Mapping):
@@ -4585,9 +4589,13 @@ def _memory_operations_context_manifest(
         raw_lifecycle_audit = memory_object_index.get("lifecycle_audit")
         if isinstance(raw_lifecycle_audit, Mapping):
             lifecycle_audit = raw_lifecycle_audit
+        raw_layer_manifest = memory_object_index.get("memory_layer_manifest")
+        if isinstance(raw_layer_manifest, Mapping):
+            layer_manifest = raw_layer_manifest
     registry_available = bool(operation_registry.get("applied"))
     working_view_available = bool(working_memory_view.get("applied"))
     lifecycle_audit_available = bool(lifecycle_audit.get("applied"))
+    layer_manifest_available = bool(layer_manifest.get("applied"))
     lifecycle_audit_source_ids = _ordered_unique(
         source_id
         for entry in lifecycle_audit.get("entries") or ()
@@ -4597,6 +4605,23 @@ def _memory_operations_context_manifest(
     lifecycle_audit_final_source_ids = tuple(
         source_id for source_id in lifecycle_audit_source_ids if source_id in final_set
     )
+    layer_manifest_layers = layer_manifest.get("layers")
+    if not isinstance(layer_manifest_layers, Mapping):
+        layer_manifest_layers = {}
+    layer_manifest_source_ids = _ordered_unique(
+        source_id
+        for layer_summary in layer_manifest_layers.values()
+        if isinstance(layer_summary, Mapping)
+        for source_id in (layer_summary.get("source_ids") or ())
+    )
+    layer_manifest_final_source_ids = tuple(
+        source_id for source_id in layer_manifest_source_ids if source_id in final_set
+    )
+    layer_manifest_entry_counts = {
+        str(layer): int(summary.get("entry_count") or 0)
+        for layer, summary in layer_manifest_layers.items()
+        if isinstance(summary, Mapping)
+    }
     return {
         "trace_only": True,
         "registry_available": registry_available,
@@ -4633,6 +4658,17 @@ def _memory_operations_context_manifest(
         ),
         "lifecycle_audit_final_source_ids": lifecycle_audit_final_source_ids,
         "lifecycle_audit_final_source_count": len(lifecycle_audit_final_source_ids),
+        "layer_manifest_available": layer_manifest_available,
+        "layer_manifest_schema_version": str(
+            layer_manifest.get("schema_version") or ""
+        ),
+        "layer_manifest_layer_order": tuple(layer_manifest.get("layer_order") or ()),
+        "layer_manifest_entry_count": int(layer_manifest.get("entry_count") or 0),
+        "layer_manifest_entry_counts": dict(
+            sorted(layer_manifest_entry_counts.items())
+        ),
+        "layer_manifest_final_source_ids": layer_manifest_final_source_ids,
+        "layer_manifest_final_source_count": len(layer_manifest_final_source_ids),
         "operation_utility_slot_source": operation_slot_source,
         "graph_utility_slot_source": graph_slot_source,
         "operation_interface_sources": sorted(operation_interface_sources),

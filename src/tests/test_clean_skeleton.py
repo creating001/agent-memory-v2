@@ -457,6 +457,22 @@ class CleanSkeletonTest(unittest.TestCase):
                         }
                     ],
                 },
+                "memory_layer_manifest": {
+                    "applied": True,
+                    "schema_version": "memory_layer_manifest_v1",
+                    "entry_count": 2,
+                    "layer_order": ["short_term_memory", "working_memory"],
+                    "layers": {
+                        "short_term_memory": {
+                            "entry_count": 0,
+                            "source_ids": [],
+                        },
+                        "working_memory": {
+                            "entry_count": 2,
+                            "source_ids": ["s2:t0", "s4:t0"],
+                        },
+                    },
+                },
             },
         )
 
@@ -489,6 +505,23 @@ class CleanSkeletonTest(unittest.TestCase):
         )
         self.assertEqual(
             manifest["coverage"]["final_evidence_from_lifecycle_audit_count"],
+            1,
+        )
+        self.assertTrue(operations["layer_manifest_available"])
+        self.assertEqual(
+            operations["layer_manifest_schema_version"],
+            "memory_layer_manifest_v1",
+        )
+        self.assertEqual(
+            operations["layer_manifest_final_source_ids"],
+            ("s2:t0",),
+        )
+        self.assertEqual(
+            operations["layer_manifest_entry_counts"],
+            {"short_term_memory": 0, "working_memory": 2},
+        )
+        self.assertEqual(
+            manifest["coverage"]["final_evidence_from_layer_manifest_count"],
             1,
         )
 

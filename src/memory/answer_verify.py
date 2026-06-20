@@ -265,7 +265,14 @@ def _registry_backed_final_source_ids(
         )
         if str(source_id).strip()
     }
-    return frozenset((*registry_sources, *lifecycle_sources))
+    layer_sources = {
+        str(source_id)
+        for source_id in (
+            memory_operations.get("layer_manifest_final_source_ids") or ()
+        )
+        if str(source_id).strip()
+    }
+    return frozenset((*registry_sources, *lifecycle_sources, *layer_sources))
 
 
 def _registry_backed_support_refs(
