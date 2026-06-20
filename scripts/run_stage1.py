@@ -218,6 +218,11 @@ def main() -> int:
     total_build_memory_system_graph_index_lifecycle_audit_entries = 0
     total_build_memory_system_graph_index_lifecycle_audit_source_backed_entries = 0
     total_build_memory_system_graph_index_lifecycle_audit_conflict_entries = 0
+    total_build_memory_system_graph_index_layer_manifest_applied = 0
+    total_build_memory_system_graph_index_layer_manifest_entries = 0
+    build_memory_system_graph_memory_object_index_layer_manifest_layer_entries: dict[
+        str, int
+    ] = {}
     total_build_memory_system_graph_source_backed_records = 0
     total_build_memory_system_graph_complete_slot_key_records = 0
     total_build_memory_system_graph_temporal_anchor_records = 0
@@ -796,6 +801,24 @@ def main() -> int:
                     total_build_memory_system_graph_index_lifecycle_audit_conflict_entries += int(
                         lifecycle_audit.get("conflict_entry_count") or 0
                     )
+                layer_manifest = memory_object_index.get("memory_layer_manifest") or {}
+                if isinstance(layer_manifest, Mapping) and layer_manifest.get(
+                    "applied"
+                ):
+                    total_build_memory_system_graph_index_layer_manifest_applied += 1
+                    total_build_memory_system_graph_index_layer_manifest_entries += int(
+                        layer_manifest.get("entry_count") or 0
+                    )
+                    layers = layer_manifest.get("layers") or {}
+                    if isinstance(layers, Mapping):
+                        _merge_int_counts(
+                            build_memory_system_graph_memory_object_index_layer_manifest_layer_entries,
+                            {
+                                str(layer): int(summary.get("entry_count") or 0)
+                                for layer, summary in layers.items()
+                                if isinstance(summary, Mapping)
+                            },
+                        )
             source_quality = memory_system_graph.get("source_quality") or {}
             total_build_memory_system_graph_source_backed_records += int(
                 source_quality.get("source_backed_record_count") or 0
@@ -1769,6 +1792,16 @@ def main() -> int:
             "memory_system_graph_memory_object_index_lifecycle_audit_operation_coverage": (
                 build_memory_system_graph_memory_object_index_lifecycle_audit_operation_coverage
             ),
+            "memory_system_graph_memory_object_index_layer_manifest_applied_count": (
+                total_build_memory_system_graph_index_layer_manifest_applied
+            ),
+            "memory_system_graph_memory_object_index_layer_manifest_applied_rate": _safe_average(
+                total_build_memory_system_graph_index_layer_manifest_applied,
+                sample_count,
+            ),
+            "memory_system_graph_memory_object_index_layer_manifest_layer_entries": (
+                build_memory_system_graph_memory_object_index_layer_manifest_layer_entries
+            ),
             "avg_memory_system_graph_objects": _safe_average(
                 total_build_memory_system_graph_objects,
                 total_build_memory_system_graph_applied,
@@ -1971,6 +2004,12 @@ def main() -> int:
                 _safe_average(
                     total_build_memory_system_graph_index_lifecycle_audit_conflict_entries,
                     total_build_memory_system_graph_index_lifecycle_audit_applied,
+                )
+            ),
+            "avg_memory_system_graph_memory_object_index_layer_manifest_entries": (
+                _safe_average(
+                    total_build_memory_system_graph_index_layer_manifest_entries,
+                    total_build_memory_system_graph_index_layer_manifest_applied,
                 )
             ),
             "avg_memory_system_graph_source_backed_records": _safe_average(
@@ -3023,6 +3062,9 @@ def _write_summary(
         f"- build_memory_system_graph_memory_object_index_lifecycle_audit_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_lifecycle_audit_applied_count']}",
         f"- avg_build_memory_system_graph_memory_object_index_lifecycle_audit_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_lifecycle_audit_entries']}",
         f"- avg_build_memory_system_graph_memory_object_index_lifecycle_audit_conflict_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_lifecycle_audit_conflict_entries']}",
+        f"- build_memory_system_graph_memory_object_index_layer_manifest_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_layer_manifest_applied_count']}",
+        f"- avg_build_memory_system_graph_memory_object_index_layer_manifest_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_layer_manifest_entries']}",
+        f"- build_memory_system_graph_memory_object_index_layer_manifest_layer_entries: {metrics['build_memory']['memory_system_graph_memory_object_index_layer_manifest_layer_entries']}",
         f"- avg_build_memory_system_graph_value_objects: {metrics['build_memory']['avg_memory_system_graph_value_objects']}",
         f"- avg_build_memory_system_graph_source_backed_value_objects: {metrics['build_memory']['avg_memory_system_graph_source_backed_value_objects']}",
         f"- avg_build_memory_system_graph_source_incomplete_value_objects: {metrics['build_memory']['avg_memory_system_graph_source_incomplete_value_objects']}",
@@ -3471,6 +3513,9 @@ def _write_diagnosis(
         f"- build_memory_system_graph_memory_object_index_lifecycle_audit_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_lifecycle_audit_applied_count']}",
         f"- avg_build_memory_system_graph_memory_object_index_lifecycle_audit_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_lifecycle_audit_entries']}",
         f"- avg_build_memory_system_graph_memory_object_index_lifecycle_audit_conflict_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_lifecycle_audit_conflict_entries']}",
+        f"- build_memory_system_graph_memory_object_index_layer_manifest_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_layer_manifest_applied_count']}",
+        f"- avg_build_memory_system_graph_memory_object_index_layer_manifest_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_layer_manifest_entries']}",
+        f"- build_memory_system_graph_memory_object_index_layer_manifest_layer_entries: {metrics['build_memory']['memory_system_graph_memory_object_index_layer_manifest_layer_entries']}",
         f"- avg_build_memory_system_graph_value_objects: {metrics['build_memory']['avg_memory_system_graph_value_objects']}",
         f"- avg_build_memory_system_graph_source_backed_value_objects: {metrics['build_memory']['avg_memory_system_graph_source_backed_value_objects']}",
         f"- avg_build_memory_system_graph_source_incomplete_value_objects: {metrics['build_memory']['avg_memory_system_graph_source_incomplete_value_objects']}",

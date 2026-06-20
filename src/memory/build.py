@@ -1209,6 +1209,7 @@ def _memory_system_object_schema() -> dict[str, Any]:
             "build_owned_scalar_value_manifest",
             "working_memory_view",
             "lifecycle_audit",
+            "memory_layer_manifest",
         ],
         "governance_signals": [
             "source_activation_ready",
@@ -1230,6 +1231,7 @@ def _memory_system_object_schema() -> dict[str, Any]:
             "build_owned_operation_registry",
             "build_owned_working_memory_view",
             "build_owned_lifecycle_audit",
+            "build_owned_memory_layer_manifest",
         ],
 }
 
@@ -1316,6 +1318,9 @@ def _memory_object_index_manifest(
         operation_registry=operation_registry,
         working_memory_view=working_memory_view,
     )
+    layer_manifest = _memory_layer_manifest(
+        lifecycle_audit=lifecycle_audit,
+    )
     object_samples = [
         {
             "memory_id": record.memory_id,
@@ -1391,6 +1396,11 @@ def _memory_object_index_manifest(
         "lifecycle_audit_conflict_entry_count": lifecycle_audit[
             "conflict_entry_count"
         ],
+        "layer_manifest_layer_count": layer_manifest["layer_count"],
+        "layer_manifest_entry_count": layer_manifest["entry_count"],
+        "layer_manifest_source_backed_entry_count": (
+            layer_manifest["source_backed_entry_count"]
+        ),
         "source_backed_object_count": sum(
             1 for record in managed_records if record.source_ids
         ),
@@ -1468,6 +1478,16 @@ def _memory_object_index_manifest(
                     "final evidence still expands to raw source rows"
                 ),
             },
+            "layer_manifest_contract": {
+                "manifest_field": "memory_layer_manifest",
+                "schema_version": "memory_layer_manifest_v1",
+                "layers": layer_manifest["layer_order"],
+                "short_term_policy": "query_supplied_raw_rows_not_persisted_by_build",
+                "policy": (
+                    "organize memory operations by layer before query consumers "
+                    "choose retrieval, context packing, verification, or audit actions"
+                ),
+            },
             "state_conflict_contract": {
                 "slot_index_field": "state_conflict_slot_index",
                 "slot_scope": "same memory_type, subject, predicate",
@@ -1484,6 +1504,7 @@ def _memory_object_index_manifest(
         "operation_registry": operation_registry,
         "working_memory_view": working_memory_view,
         "lifecycle_audit": lifecycle_audit,
+        "memory_layer_manifest": layer_manifest,
         "state_conflict_slot_ids": sorted(str(slot_id) for slot_id in conflict_slot_ids),
         "clean_note": (
             "Question-independent build memory object index. It unifies tier, "
@@ -1664,6 +1685,149 @@ def _disabled_memory_working_memory_view() -> dict[str, Any]:
             "slot index, and final answer evidence still resolves to raw rows."
         ),
     }
+
+
+def _memory_layer_manifest(
+    *,
+    lifecycle_audit: dict[str, Any],
+) -> dict[str, Any]:
+    layer_order = tuple(_memory_working_view_layer_contract().keys())
+    layers = {
+        layer: {
+            "layer": layer,
+            "description": _memory_working_view_layer_contract()[layer],
+            "query_supplied": layer == "short_term_memory",
+            "persisted_by_build": layer != "short_term_memory",
+            "entry_count": 0,
+            "source_backed_entry_count": 0,
+            "source_incomplete_entry_count": 0,
+            "memory_ids": [],
+            "source_ids": [],
+            "target_counts": {},
+            "stage_counts": {},
+            "operation_counts": {},
+        }
+        for layer in layer_order
+    }
+    for entry in lifecycle_audit.get("entries") or ():
+        if not isinstance(entry, dict):
+            continue
+        layer = _memory_layer_manifest_entry_layer(entry)
+        summary = layers[layer]
+        summary["entry_count"] += 1
+        if entry.get("source_backed"):
+            summary["source_backed_entry_count"] += 1
+        else:
+            summary["source_incomplete_entry_count"] += 1
+        _memory_layer_manifest_extend_unique(
+            summary["memory_ids"],
+            (
+                entry.get("memory_id"),
+                *(entry.get("active_memory_ids") or ()),
+                *(entry.get("superseded_memory_ids") or ()),
+            ),
+            max_items=64,
+        )
+        _memory_layer_manifest_extend_unique(
+            summary["source_ids"],
+            (
+                *(entry.get("current_source_order") or ()),
+                *(entry.get("historical_source_order") or ()),
+                *(entry.get("source_ids") or ()),
+            ),
+            max_items=96,
+        )
+        _memory_layer_manifest_increment(
+            summary["target_counts"],
+            str(entry.get("target_type") or "unknown"),
+        )
+        _memory_layer_manifest_increment(
+            summary["stage_counts"],
+            str(entry.get("lifecycle_stage") or "unknown"),
+        )
+        for action in entry.get("audit_actions") or ():
+            _memory_layer_manifest_increment(
+                summary["operation_counts"],
+                str(action or "unknown"),
+            )
+
+    for layer in layer_order:
+        summary = layers[layer]
+        summary["target_counts"] = dict(sorted(summary["target_counts"].items()))
+        summary["stage_counts"] = dict(sorted(summary["stage_counts"].items()))
+        summary["operation_counts"] = dict(sorted(summary["operation_counts"].items()))
+
+    entry_count = sum(layers[layer]["entry_count"] for layer in layer_order)
+    source_backed_count = sum(
+        layers[layer]["source_backed_entry_count"] for layer in layer_order
+    )
+    return {
+        "schema_version": "memory_layer_manifest_v1",
+        "trace_only": False,
+        "applied": bool(lifecycle_audit.get("applied")),
+        "layer_order": list(layer_order),
+        "layer_count": len(layer_order),
+        "entry_count": entry_count,
+        "source_backed_entry_count": source_backed_count,
+        "source_incomplete_entry_count": max(0, entry_count - source_backed_count),
+        "layers": layers,
+        "source_policy": {
+            "raw_evidence_required": True,
+            "final_evidence_policy": "raw_source_rows",
+            "question_independent_build": True,
+            "short_term_memory_source": "query_visible_raw_rows",
+        },
+        "operation_contract": _memory_working_view_operation_contract(),
+        "clean_note": (
+            "Question-independent memory layer manifest over lifecycle audit entries. "
+            "It separates short-term raw row memory, working state/conflict memory, "
+            "long-term recall, archival history, and quarantine policy without "
+            "using questions, labels, gold answers, judge outputs, sample ids, or "
+            "test feedback."
+        ),
+    }
+
+
+def _memory_layer_manifest_entry_layer(entry: dict[str, Any]) -> str:
+    workspace_layer = str(entry.get("workspace_layer") or "")
+    if workspace_layer in _memory_working_view_layer_contract():
+        return workspace_layer
+    memory_tier = str(entry.get("memory_tier") or "")
+    if memory_tier in _memory_working_view_layer_contract():
+        return memory_tier
+    lifecycle_stage = str(entry.get("lifecycle_stage") or "")
+    if lifecycle_stage == "quarantine":
+        return "quarantine_memory"
+    if lifecycle_stage == "archival_state":
+        return "archival_memory"
+    if lifecycle_stage in {
+        "active_state",
+        "conflict_resolution",
+        "state_value_management",
+    }:
+        return "working_memory"
+    return "long_term_memory"
+
+
+def _memory_layer_manifest_extend_unique(
+    target: list[str],
+    values: Any,
+    *,
+    max_items: int,
+) -> None:
+    seen = set(target)
+    for value in values:
+        text = str(value or "").strip()
+        if not text or text in seen:
+            continue
+        target.append(text)
+        seen.add(text)
+        if len(target) >= max_items:
+            return
+
+
+def _memory_layer_manifest_increment(counts: dict[str, int], key: str) -> None:
+    counts[key] = int(counts.get(key) or 0) + 1
 
 
 def _memory_working_view_layer_contract() -> dict[str, str]:

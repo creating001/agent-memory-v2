@@ -3361,6 +3361,11 @@ class CleanSkeletonTest(unittest.TestCase):
             8,
         )
         self.assertEqual(memory_object_index["lifecycle_audit_conflict_entry_count"], 2)
+        self.assertEqual(memory_object_index["layer_manifest_entry_count"], 8)
+        self.assertEqual(
+            memory_object_index["layer_manifest_source_backed_entry_count"],
+            8,
+        )
         self.assertEqual(
             memory_object_index["source_backed_object_count"],
             3,
@@ -3408,6 +3413,12 @@ class CleanSkeletonTest(unittest.TestCase):
                 "audit_field"
             ],
             "lifecycle_audit",
+        )
+        self.assertEqual(
+            memory_object_index["index_contract"]["layer_manifest_contract"][
+                "manifest_field"
+            ],
+            "memory_layer_manifest",
         )
         operation_registry = memory_object_index["operation_registry"]
         self.assertEqual(
@@ -3490,6 +3501,32 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual(
             city_lifecycle_conflict["current_source_order"],
             ("s2:t1", "s2:t2", "s1:t1"),
+        )
+        layer_manifest = memory_object_index["memory_layer_manifest"]
+        self.assertEqual(
+            layer_manifest["schema_version"],
+            "memory_layer_manifest_v1",
+        )
+        self.assertTrue(layer_manifest["applied"])
+        self.assertEqual(layer_manifest["entry_count"], 8)
+        self.assertIn("short_term_memory", layer_manifest["layer_order"])
+        self.assertTrue(
+            layer_manifest["layers"]["short_term_memory"]["query_supplied"]
+        )
+        self.assertFalse(
+            layer_manifest["layers"]["short_term_memory"]["persisted_by_build"]
+        )
+        self.assertEqual(
+            layer_manifest["source_policy"]["final_evidence_policy"],
+            "raw_source_rows",
+        )
+        self.assertGreater(
+            layer_manifest["layers"]["working_memory"]["entry_count"],
+            0,
+        )
+        self.assertGreater(
+            layer_manifest["layers"]["archival_memory"]["entry_count"],
+            0,
         )
         city_object_operation = next(
             entry
