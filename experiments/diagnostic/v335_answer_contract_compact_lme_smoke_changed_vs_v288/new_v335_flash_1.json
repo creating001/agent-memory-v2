@@ -1,0 +1,59 @@
+{
+  "api_key_env": "DEEPSEEK_API_KEY",
+  "base_url": "https://api.deepseek.com",
+  "benchmark": "longmemeval",
+  "clean_note": "Offline judge reads gold labels only after prediction. This output must not be consumed by prediction, retrieval, compiler, answer, or verifier.",
+  "created_at_utc": "2026-06-20T23:01:05+00:00",
+  "dry_run": false,
+  "git": {
+    "commit": "d825357ba9318f9ca03836577bae7af1388777f5",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "?? experiments/diagnostic/v335_answer_contract_compact_lme_smoke5/\n?? experiments/diagnostic/v335_answer_contract_compact_lme_smoke_changed_vs_v288/\n?? experiments/diagnostic/v335_answer_contract_compact_locomo_smoke5/\n?? experiments/diagnostic/v335_answer_contract_compact_locomo_smoke_changed_vs_v288/"
+  },
+  "judgments": [
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "c0318875f91ccdd6",
+      "question_type": "single-session-user",
+      "raw_response": "yes",
+      "record_key": "ea4e66b0d90b6834b4168cfe",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 31,
+        "completion_tokens_details": {
+          "reasoning_tokens": 29
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 120,
+        "prompt_tokens": 120,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "total_tokens": 151
+      }
+    }
+  ],
+  "labels": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/v335_answer_contract_compact_lme_smoke_changed_vs_v288/changed_labels.jsonl",
+  "metrics": {
+    "accuracy": 1.0,
+    "n_invalid": 0,
+    "n_judgments": 1,
+    "n_valid": 1
+  },
+  "model": "deepseek-v4-flash",
+  "partial_output": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/v335_answer_contract_compact_lme_smoke_changed_vs_v288/new_v335_flash_1.json.partial.jsonl",
+  "predictions": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/v335_answer_contract_compact_lme_smoke_changed_vs_v288/new_v335_changed_predictions.jsonl",
+  "request_body_options": {},
+  "temperature": 0.0,
+  "thinking": null,
+  "usage": {
+    "completion_tokens": 31,
+    "prompt_tokens": 120,
+    "total_tokens": 151
+  },
+  "workers": 2
+}

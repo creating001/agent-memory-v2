@@ -1,0 +1,115 @@
+{
+  "benchmark": "longmemeval",
+  "by_group": {
+    "single-session-user": {
+      "judge_1_correct": 0,
+      "judge_2_correct": 0,
+      "judge_agreement": 1.0,
+      "lenient_accuracy": 0.0,
+      "lenient_accuracy_both_valid": 0.0,
+      "lenient_correct": 0,
+      "n_any_invalid": 0,
+      "n_both_valid": 1,
+      "n_joined": 1,
+      "strict_accuracy": 0.0,
+      "strict_accuracy_both_valid": 0.0,
+      "strict_correct": 0
+    }
+  },
+  "clean_note": "Dual flash judge is an offline evaluation-only aggregation. It reads gold labels after prediction and must not feed prediction, retrieval, compiler, answer, verifier, or cache construction.",
+  "created_at_utc": "2026-06-20T23:01:07+00:00",
+  "git": {
+    "commit": "d825357ba9318f9ca03836577bae7af1388777f5",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "?? experiments/diagnostic/v335_answer_contract_compact_lme_smoke5/\n?? experiments/diagnostic/v335_answer_contract_compact_lme_smoke_changed_vs_v288/\n?? experiments/diagnostic/v335_answer_contract_compact_locomo_smoke5/\n?? experiments/diagnostic/v335_answer_contract_compact_locomo_smoke_changed_vs_v288/"
+  },
+  "judge_models": {
+    "flash_1": "deepseek-v4-flash",
+    "flash_2": "deepseek-v4-flash"
+  },
+  "judge_outputs": {
+    "flash_1": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/v335_answer_contract_compact_lme_smoke_changed_vs_v288/old_v288_flash_1.json",
+    "flash_2": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/v335_answer_contract_compact_lme_smoke_changed_vs_v288/old_v288_flash_2.json"
+  },
+  "judge_request_body_options": {
+    "flash_1": {},
+    "flash_2": {}
+  },
+  "judge_thinking": {
+    "flash_1": null,
+    "flash_2": null
+  },
+  "labels": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/v335_answer_contract_compact_lme_smoke_changed_vs_v288/changed_labels.jsonl",
+  "metrics": {
+    "judge_1_correct": 0,
+    "judge_1_name": "flash_1",
+    "judge_2_correct": 0,
+    "judge_2_name": "flash_2",
+    "judge_agreement": 1.0,
+    "lenient_accuracy": 0.0,
+    "lenient_accuracy_both_valid": 0.0,
+    "lenient_correct": 0,
+    "n_any_invalid": 0,
+    "n_both_valid": 1,
+    "n_joined": 1,
+    "n_judge_1_judgments": 1,
+    "n_judge_2_judgments": 1,
+    "n_missing_judge_1": 0,
+    "n_missing_judge_2": 0,
+    "strict_accuracy": 0.0,
+    "strict_accuracy_both_valid": 0.0,
+    "strict_correct": 0
+  },
+  "predictions": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/v335_answer_contract_compact_lme_smoke_changed_vs_v288/old_v288_changed_predictions.jsonl",
+  "records": [
+    {
+      "both_valid": true,
+      "group": "single-session-user",
+      "judge_1_correct": false,
+      "judge_1_label": "WRONG",
+      "judge_1_name": "flash_1",
+      "judge_1_valid": true,
+      "judge_2_correct": false,
+      "judge_2_label": "WRONG",
+      "judge_2_name": "flash_2",
+      "judge_2_valid": true,
+      "lenient_correct": false,
+      "record_key": "ea4e66b0d90b6834b4168cfe",
+      "strict_correct": false
+    }
+  ],
+  "single_judge_metrics": {
+    "flash_1": {
+      "accuracy": 0.0,
+      "n_invalid": 0,
+      "n_judgments": 1,
+      "n_valid": 1
+    },
+    "flash_2": {
+      "accuracy": 0.0,
+      "n_invalid": 0,
+      "n_judgments": 1,
+      "n_valid": 1
+    }
+  },
+  "temperature": 0.0,
+  "usage": {
+    "flash_1": {
+      "completion_tokens": 45,
+      "prompt_tokens": 148,
+      "total_tokens": 193
+    },
+    "flash_2": {
+      "completion_tokens": 48,
+      "prompt_tokens": 148,
+      "total_tokens": 196
+    },
+    "total": {
+      "completion_tokens": 93,
+      "prompt_tokens": 296,
+      "total_tokens": 389
+    }
+  }
+}
