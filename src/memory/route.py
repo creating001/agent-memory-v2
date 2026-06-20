@@ -23,6 +23,18 @@ class QuestionRouter:
         r"多久",
         r"多长时间",
     )
+    _MONTH_NAME_PATTERN = (
+        r"(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|"
+        r"jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|"
+        r"oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)"
+    )
+    _EXPLICIT_DATE_PATTERNS = (
+        rf"\b{_MONTH_NAME_PATTERN}\s+\d{{1,2}}(?:st|nd|rd|th)?(?:,\s*\d{{4}})?\b",
+        rf"\b\d{{1,2}}(?:st|nd|rd|th)?\s+{_MONTH_NAME_PATTERN}(?:\s+\d{{4}})?\b",
+        rf"\b{_MONTH_NAME_PATTERN}\s+\d{{4}}\b",
+        r"\b\d{4}-\d{1,2}-\d{1,2}\b",
+        r"\b\d{1,2}/\d{1,2}/(?:\d{2}|\d{4})\b",
+    )
     _RECENT_PATTERNS = (
         r"\bcurrent\b",
         r"\blatest\b",
@@ -93,14 +105,16 @@ class QuestionRouter:
         del question_time
         normalized = question.lower()
         signals: list[str] = []
+        temporal_signals = _temporal_route_signals(
+            normalized,
+            temporal_patterns=self._TEMPORAL_PATTERNS,
+            explicit_date_patterns=self._EXPLICIT_DATE_PATTERNS,
+        )
 
-        if self._temporal_priority_over_recent and _matches_any(
-            normalized, self._TEMPORAL_PATTERNS
-        ):
-            signals.append("temporal")
+        if self._temporal_priority_over_recent and temporal_signals:
             return RouteResult(
                 information_need="temporal_lookup",
-                signals=tuple(signals),
+                signals=temporal_signals,
                 retrieval_multiplier=2,
             )
         if _matches_any(normalized, self._RECENT_PATTERNS):
@@ -110,11 +124,10 @@ class QuestionRouter:
                 signals=tuple(signals),
                 retrieval_multiplier=2,
             )
-        if _matches_any(normalized, self._TEMPORAL_PATTERNS):
-            signals.append("temporal")
+        if temporal_signals:
             return RouteResult(
                 information_need="temporal_lookup",
-                signals=tuple(signals),
+                signals=temporal_signals,
                 retrieval_multiplier=2,
             )
         if (
@@ -167,3 +180,19 @@ class QuestionRouter:
 
 def _matches_any(text: str, patterns: tuple[str, ...]) -> bool:
     return any(re.search(pattern, text) for pattern in patterns)
+
+
+def _temporal_route_signals(
+    text: str,
+    *,
+    temporal_patterns: tuple[str, ...],
+    explicit_date_patterns: tuple[str, ...],
+) -> tuple[str, ...]:
+    signals: list[str] = []
+    if _matches_any(text, temporal_patterns):
+        signals.append("temporal")
+    if _matches_any(text, explicit_date_patterns):
+        if "temporal" not in signals:
+            signals.append("temporal")
+        signals.append("explicit_date")
+    return tuple(signals)
