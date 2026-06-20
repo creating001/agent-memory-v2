@@ -1378,6 +1378,9 @@ class Stage1Pipeline:
             working_memory_packet_source=str(
                 compiler_config.get("working_memory_packet_source", "working_view")
             ),
+            working_memory_packet_format=str(
+                compiler_config.get("working_memory_packet_format", "verbose")
+            ),
             profile_activation_guide=bool(
                 compiler_config.get("profile_activation_guide", False)
             ),
@@ -11163,6 +11166,9 @@ def _compiler_trace_config(
         "working_memory_packet_source": str(
             compiler_config.get("working_memory_packet_source", "working_view")
         ),
+        "working_memory_packet_format": str(
+            compiler_config.get("working_memory_packet_format", "verbose")
+        ),
         "profile_activation_guide": bool(
             compiler_config.get("profile_activation_guide", False)
         ),
@@ -11556,6 +11562,9 @@ def _configured_compiler(compiler_config: Mapping[str, Any]) -> EvidenceCompiler
         ),
         working_memory_packet_source=str(
             compiler_config.get("working_memory_packet_source", "working_view")
+        ),
+        working_memory_packet_format=str(
+            compiler_config.get("working_memory_packet_format", "verbose")
         ),
         profile_activation_guide=bool(
             compiler_config.get("profile_activation_guide", False)

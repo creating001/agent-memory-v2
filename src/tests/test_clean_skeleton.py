@@ -12947,6 +12947,81 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertIn("state_conflict", compiled.prompt)
         self.assertIn("sources=Memory 2, Memory 1", compiled.prompt)
 
+    def test_working_memory_packet_compact_format_is_slot_source_backed(self) -> None:
+        old_record = MemoryRecord(
+            memory_id="old-followers",
+            memory_type="state",
+            text="Alex had 1250 followers.",
+            source_ids=("s1:t0",),
+            subject="Alex",
+            predicate="follower count",
+            value="1250 followers",
+            timestamp="2024-05-20",
+            status="superseded",
+            superseded_by="new-followers",
+        )
+        new_record = MemoryRecord(
+            memory_id="new-followers",
+            memory_type="state",
+            text="Alex is close to 1300 followers now.",
+            source_ids=("s1:t1",),
+            subject="Alex",
+            predicate="follower count",
+            value="1300 followers",
+            timestamp="2024-05-30",
+            status="active",
+        )
+        management = _management_summary(
+            (old_record, new_record),
+            policy="stateful_only",
+            managed_memory_types=frozenset({"state"}),
+            include_memory_system_graph=True,
+        )
+        compiler = EvidenceCompiler(
+            max_evidence_items=2,
+            max_evidence_chars=3000,
+            prompt_mode="external_naive",
+            working_memory_packet=True,
+            working_memory_packet_information_needs=("current_state",),
+            working_memory_packet_max_items=3,
+            working_memory_packet_value_chars=80,
+            working_memory_packet_source="memory_system_state",
+            working_memory_packet_format="compact",
+        )
+
+        compiled = compiler.compile(
+            question="What is Alex's current follower count?",
+            question_time=None,
+            route=RouteResult("current_state", ("current_state",)),
+            hits=(),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Alex had 1250 followers earlier this month.",
+                    timestamp="2024-05-20",
+                ),
+                Turn(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="Alex is close to 1300 followers now.",
+                    timestamp="2024-05-30",
+                ),
+            ),
+            memory_object_index=management["memory_system_graph"]["memory_object_index"],
+        )
+
+        self.assertIn("Compact source-backed workspace packet", compiled.prompt)
+        self.assertIn("slot=alex/follower count", compiled.prompt)
+        self.assertIn("hint=1250 followers; 1300 followers", compiled.prompt)
+        self.assertIn("src=Memory 2, Memory 1", compiled.prompt)
+        self.assertNotIn("context=retrieve_source_rows", compiled.prompt)
+        self.assertNotIn("checks=source_backing", compiled.prompt)
+
     def test_working_memory_packet_auto_falls_back_to_operation_registry(self) -> None:
         old_record = MemoryRecord(
             memory_id="old-followers",

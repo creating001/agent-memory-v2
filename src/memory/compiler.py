@@ -45,6 +45,7 @@ WORKING_MEMORY_PACKET_SOURCES = {
     "working_view",
     "operation_registry",
 }
+WORKING_MEMORY_PACKET_FORMATS = {"verbose", "compact"}
 MEMORY_STATE_GUIDE_ALIGNMENT_WEAK_TERMS = {
     "a",
     "about",
@@ -267,6 +268,7 @@ ROUTE_OVERRIDE_KEYS = {
     "update_conflict_guide_max_rows",
     "update_conflict_guide_snippet_chars",
     "working_memory_packet",
+    "working_memory_packet_format",
     "working_memory_packet_max_items",
     "working_memory_packet_source",
     "working_memory_packet_value_chars",
@@ -473,6 +475,7 @@ class EvidenceCompiler:
         working_memory_packet_max_items: int = 4,
         working_memory_packet_value_chars: int = 120,
         working_memory_packet_source: str = "working_view",
+        working_memory_packet_format: str = "verbose",
         profile_activation_guide: bool = False,
         profile_activation_guide_information_needs: tuple[str, ...] = (
             "profile_preference",
@@ -757,6 +760,9 @@ class EvidenceCompiler:
         )
         self._working_memory_packet_source = _validate_working_memory_packet_source(
             working_memory_packet_source
+        )
+        self._working_memory_packet_format = _validate_working_memory_packet_format(
+            working_memory_packet_format
         )
         self._profile_activation_guide = bool(profile_activation_guide)
         self._profile_activation_guide_information_needs = _validate_information_needs(
@@ -1173,6 +1179,7 @@ class EvidenceCompiler:
                 "working_memory_packet_value_chars"
             ],
             working_memory_packet_source=route_settings["working_memory_packet_source"],
+            working_memory_packet_format=route_settings["working_memory_packet_format"],
             profile_activation_guide=(
                 route_settings["profile_activation_guide"]
                 and route.information_need
@@ -1372,6 +1379,7 @@ class EvidenceCompiler:
                 self._memory_value_slot_guide_memory_types
             ),
             "working_memory_packet": self._working_memory_packet,
+            "working_memory_packet_format": self._working_memory_packet_format,
             "working_memory_packet_max_items": (
                 self._working_memory_packet_max_items
             ),
@@ -1516,6 +1524,15 @@ def _validate_working_memory_packet_source(value: str) -> str:
         raise ValueError(
             "Unsupported working_memory_packet_source: "
             f"{value}. Expected one of {sorted(WORKING_MEMORY_PACKET_SOURCES)}"
+        )
+    return value
+
+
+def _validate_working_memory_packet_format(value: str) -> str:
+    if value not in WORKING_MEMORY_PACKET_FORMATS:
+        raise ValueError(
+            "Unsupported working_memory_packet_format: "
+            f"{value}. Expected one of {sorted(WORKING_MEMORY_PACKET_FORMATS)}"
         )
     return value
 
@@ -1849,6 +1866,12 @@ def _validate_route_overrides(
             overrides["working_memory_packet_source"] = (
                 _validate_working_memory_packet_source(
                     str(raw_overrides["working_memory_packet_source"])
+                )
+            )
+        if "working_memory_packet_format" in raw_overrides:
+            overrides["working_memory_packet_format"] = (
+                _validate_working_memory_packet_format(
+                    str(raw_overrides["working_memory_packet_format"])
                 )
             )
         if "profile_activation_guide" in raw_overrides:
@@ -3161,6 +3184,7 @@ def _build_prompt(
     working_memory_packet_max_items: int,
     working_memory_packet_value_chars: int,
     working_memory_packet_source: str,
+    working_memory_packet_format: str,
     profile_activation_guide: bool,
     profile_activation_guide_max_records: int,
     profile_activation_guide_value_chars: int,
@@ -3330,6 +3354,7 @@ def _build_prompt(
             working_memory_packet_max_items=working_memory_packet_max_items,
             working_memory_packet_value_chars=working_memory_packet_value_chars,
             working_memory_packet_source=working_memory_packet_source,
+            working_memory_packet_format=working_memory_packet_format,
             profile_activation_guide=profile_activation_guide,
             profile_activation_guide_max_records=profile_activation_guide_max_records,
             profile_activation_guide_value_chars=profile_activation_guide_value_chars,
@@ -3567,6 +3592,7 @@ def _build_external_naive_prompt(
     working_memory_packet_max_items: int,
     working_memory_packet_value_chars: int,
     working_memory_packet_source: str,
+    working_memory_packet_format: str,
     profile_activation_guide: bool,
     profile_activation_guide_max_records: int,
     profile_activation_guide_value_chars: int,
@@ -3726,6 +3752,7 @@ def _build_external_naive_prompt(
             max_items=working_memory_packet_max_items,
             max_value_chars=working_memory_packet_value_chars,
             source=working_memory_packet_source,
+            packet_format=working_memory_packet_format,
         )
         if working_memory_packet_lines:
             working_memory_packet_block = "\n".join(
@@ -4665,11 +4692,13 @@ def _external_working_memory_packet_lines(
     max_items: int,
     max_value_chars: int,
     source: str,
+    packet_format: str,
 ) -> list[str]:
     """Source-backed memory organization packet grounded in visible rows."""
 
     if not rows or max_items <= 0 or not isinstance(memory_object_index, Mapping):
         return []
+    packet_format = _validate_working_memory_packet_format(packet_format)
     raw_entries, selected_source = _working_memory_packet_source_entries(
         memory_object_index,
         source=_validate_working_memory_packet_source(source),
@@ -4720,6 +4749,12 @@ def _external_working_memory_packet_lines(
     selected_candidates = _select_working_memory_packet_candidates(
         candidates, max_items=max_items
     )
+    if packet_format == "compact":
+        return _compact_working_memory_packet_lines(
+            selected_candidates,
+            selected_source=selected_source,
+            max_value_chars=max_value_chars,
+        )
     lines = [
         "Source-backed memory organization packet "
         f"(source={selected_source}); use it to track active working state, "
@@ -4792,6 +4827,58 @@ def _external_working_memory_packet_lines(
         if verifier_checks:
             fields.append(f"checks={', '.join(verifier_checks[:6])}")
         fields.append(f"sources={', '.join(source_labels)}")
+        lines.append(f"  - {' | '.join(fields)}")
+    return lines
+
+
+def _compact_working_memory_packet_lines(
+    selected_candidates: list[
+        tuple[float, float, int, Mapping[str, Any], tuple[str, ...]]
+    ],
+    *,
+    selected_source: str,
+    max_value_chars: int,
+) -> list[str]:
+    lines = [
+        "Compact source-backed workspace packet "
+        f"(source={selected_source}); activation hints only. Use slot/source "
+        "links to choose rows, then preserve final qualifiers from Memory Context.",
+        "- slots:",
+    ]
+    for _, _, _, entry, source_labels in selected_candidates:
+        subject = _truncate_text(_single_line(str(entry.get("subject") or "")), 48)
+        predicate = _truncate_text(
+            _single_line(
+                str(
+                    entry.get("predicate")
+                    or entry.get("slot_id")
+                    or entry.get("target_id")
+                    or entry.get("target_type")
+                    or "memory"
+                )
+            ),
+            48,
+        )
+        value = _working_memory_packet_entry_value(entry)
+        fields = [
+            f"slot={subject + '/' if subject else ''}{predicate}",
+            f"type={str(entry.get('memory_type') or 'unknown')}",
+        ]
+        focus = str(entry.get("focus") or "")
+        if focus:
+            fields.append(f"focus={focus}")
+        decision = str(entry.get("manager_decision") or "")
+        if decision:
+            fields.append(f"decision={decision}")
+        status = str(entry.get("status") or "")
+        if status:
+            fields.append(f"status={status}")
+        if value:
+            fields.append(
+                "hint="
+                + _truncate_text(_single_line(value), max(40, int(max_value_chars)))
+            )
+        fields.append(f"src={', '.join(source_labels)}")
         lines.append(f"  - {' | '.join(fields)}")
     return lines
 
