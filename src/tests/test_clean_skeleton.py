@@ -2925,6 +2925,10 @@ class CleanSkeletonTest(unittest.TestCase):
             system_graph["object_schema"]["quality_signals"],
         )
         self.assertIn(
+            "memory_tier",
+            system_graph["object_schema"]["quality_signals"],
+        )
+        self.assertIn(
             "activation_role",
             system_graph["object_schema"]["governance_signals"],
         )
@@ -2932,9 +2936,21 @@ class CleanSkeletonTest(unittest.TestCase):
             "question_scope_source_order",
             system_graph["object_schema"]["governance_signals"],
         )
+        self.assertIn(
+            "tier_counts",
+            system_graph["object_schema"]["governance_signals"],
+        )
         self.assertEqual(
             system_graph["governance"]["final_evidence_policy"],
             "raw_source_rows_only",
+        )
+        self.assertEqual(
+            system_graph["tier_counts"],
+            {
+                "archival_memory": 1,
+                "quarantine_memory": 1,
+                "working_memory": 1,
+            },
         )
         self.assertEqual(
             system_graph["source_quality"]["source_backed_record_count"],
@@ -3000,6 +3016,33 @@ class CleanSkeletonTest(unittest.TestCase):
             city_policy["historical_source_order"],
             ["s1:t1", "s2:t1", "s2:t2"],
         )
+        tier_manifest = system_graph["tier_manifest"]
+        self.assertEqual(
+            tier_manifest["schema_version"],
+            "memory_tier_manifest_v1",
+        )
+        self.assertFalse(tier_manifest["trace_only"])
+        self.assertEqual(
+            tier_manifest["tier_counts"],
+            {
+                "working_memory": 1,
+                "long_term_memory": 0,
+                "archival_memory": 1,
+                "quarantine_memory": 1,
+            },
+        )
+        self.assertEqual(
+            tier_manifest["record_ids_by_tier"]["working_memory"],
+            ["m-new-city"],
+        )
+        self.assertEqual(
+            tier_manifest["record_ids_by_tier"]["archival_memory"],
+            ["m-old-city"],
+        )
+        self.assertEqual(
+            tier_manifest["record_ids_by_tier"]["quarantine_memory"],
+            ["m-low"],
+        )
         governance_manifest = system_graph["governance_manifest"]
         self.assertEqual(
             governance_manifest["schema_version"],
@@ -3058,6 +3101,14 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual(
             governance_manifest["source_confidence_bucket_counts"],
             {"high": 2, "low": 1},
+        )
+        self.assertEqual(
+            governance_manifest["tier_counts"],
+            {
+                "archival_memory": 1,
+                "quarantine_memory": 1,
+                "working_memory": 1,
+            },
         )
         self.assertEqual(
             governance_manifest["activation_utility_policy"]["schema_version"],

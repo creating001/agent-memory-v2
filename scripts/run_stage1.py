@@ -129,17 +129,22 @@ def main() -> int:
     build_memory_operation_ledger_counts: dict[str, int] = {}
     build_memory_system_graph_operation_edge_counts: dict[str, int] = {}
     build_memory_system_graph_namespace_counts: dict[str, int] = {}
+    build_memory_system_graph_tier_counts: dict[str, int] = {}
     build_memory_system_graph_lifecycle_counts: dict[str, int] = {}
     build_memory_system_graph_governance_risk_counts: dict[str, int] = {}
     build_memory_system_graph_activation_role_counts: dict[str, int] = {}
     build_memory_system_graph_activation_utility_bucket_counts: dict[str, int] = {}
+    build_memory_system_graph_tier_manifest_tier_counts: dict[str, int] = {}
     total_build_memory_operation_ledger_applied = 0
     total_build_memory_operation_ledger_source_backed = 0
     total_build_memory_operation_ledger_source_unbacked = 0
     total_build_memory_system_graph_applied = 0
+    total_build_memory_system_graph_tier_manifest_applied = 0
+    total_build_memory_system_graph_source_policy_applied = 0
     total_build_memory_system_graph_objects = 0
     total_build_memory_system_graph_sources = 0
     total_build_memory_system_graph_slots = 0
+    total_build_memory_system_graph_source_policy_slots = 0
     total_build_memory_system_graph_source_backed_records = 0
     total_build_memory_system_graph_complete_slot_key_records = 0
     total_build_memory_system_graph_temporal_anchor_records = 0
@@ -442,9 +447,26 @@ def main() -> int:
                 memory_system_graph.get("namespace_counts") or {},
             )
             _merge_int_counts(
+                build_memory_system_graph_tier_counts,
+                memory_system_graph.get("tier_counts") or {},
+            )
+            _merge_int_counts(
                 build_memory_system_graph_lifecycle_counts,
                 memory_system_graph.get("lifecycle_counts") or {},
             )
+            tier_manifest = memory_system_graph.get("tier_manifest") or {}
+            if tier_manifest.get("applied"):
+                total_build_memory_system_graph_tier_manifest_applied += 1
+            source_policy = memory_system_graph.get("source_policy") or {}
+            if source_policy.get("applied"):
+                total_build_memory_system_graph_source_policy_applied += 1
+                total_build_memory_system_graph_source_policy_slots += int(
+                    source_policy.get("slot_count") or 0
+                )
+                _merge_int_counts(
+                    build_memory_system_graph_tier_manifest_tier_counts,
+                    tier_manifest.get("tier_counts") or {},
+                )
             source_quality = memory_system_graph.get("source_quality") or {}
             total_build_memory_system_graph_source_backed_records += int(
                 source_quality.get("source_backed_record_count") or 0
@@ -1262,8 +1284,28 @@ def main() -> int:
             "memory_system_graph_namespace_counts": (
                 build_memory_system_graph_namespace_counts
             ),
+            "memory_system_graph_tier_counts": (
+                build_memory_system_graph_tier_counts
+            ),
             "memory_system_graph_lifecycle_counts": (
                 build_memory_system_graph_lifecycle_counts
+            ),
+            "memory_system_graph_tier_manifest_applied_count": (
+                total_build_memory_system_graph_tier_manifest_applied
+            ),
+            "memory_system_graph_tier_manifest_applied_rate": _safe_average(
+                total_build_memory_system_graph_tier_manifest_applied,
+                sample_count,
+            ),
+            "memory_system_graph_source_policy_applied_count": (
+                total_build_memory_system_graph_source_policy_applied
+            ),
+            "memory_system_graph_source_policy_applied_rate": _safe_average(
+                total_build_memory_system_graph_source_policy_applied,
+                sample_count,
+            ),
+            "memory_system_graph_tier_manifest_tier_counts": (
+                build_memory_system_graph_tier_manifest_tier_counts
             ),
             "avg_memory_system_graph_objects": _safe_average(
                 total_build_memory_system_graph_objects,
@@ -1276,6 +1318,10 @@ def main() -> int:
             "avg_memory_system_graph_slots": _safe_average(
                 total_build_memory_system_graph_slots,
                 total_build_memory_system_graph_applied,
+            ),
+            "avg_memory_system_graph_source_policy_slots": _safe_average(
+                total_build_memory_system_graph_source_policy_slots,
+                total_build_memory_system_graph_source_policy_applied,
             ),
             "avg_memory_system_graph_source_backed_records": _safe_average(
                 total_build_memory_system_graph_source_backed_records,

@@ -954,10 +954,14 @@ def _memory_system_graph_summary(
     namespace_counts: dict[str, int] = defaultdict(int)
     lifecycle_counts: dict[str, int] = defaultdict(int)
     layer_counts: dict[str, int] = defaultdict(int)
+    tier_counts: dict[str, int] = defaultdict(int)
     for record in managed_records:
         namespace_counts[_memory_namespace(record)] += 1
         lifecycle_counts[record.status] += 1
         layer_counts[_memory_layer(record.memory_type)] += 1
+        tier_counts[
+            _memory_tier(record, managed_memory_types=managed_memory_types)
+        ] += 1
 
     slot_member_edges = sum(len(records) for records in groups.values())
     source_support_edges = sum(len(record.source_ids) for record in managed_records)
@@ -998,6 +1002,7 @@ def _memory_system_graph_summary(
         ),
         "namespace_counts": dict(sorted(namespace_counts.items())),
         "layer_counts": dict(sorted(layer_counts.items())),
+        "tier_counts": dict(sorted(tier_counts.items())),
         "lifecycle_counts": dict(sorted(lifecycle_counts.items())),
         "operation_edge_counts": operation_edge_counts,
         "source_quality": _memory_system_source_quality(
@@ -1014,6 +1019,10 @@ def _memory_system_graph_summary(
         ),
         "source_policy": _memory_slot_source_policy_manifest(
             groups,
+            managed_memory_types=managed_memory_types,
+        ),
+        "tier_manifest": _memory_system_tier_manifest(
+            managed_records,
             managed_memory_types=managed_memory_types,
         ),
         "governance": {
@@ -1070,6 +1079,7 @@ def _memory_system_object_schema() -> dict[str, Any]:
             "entities",
             "confidence",
             "superseded_by",
+            "memory_tier",
         ],
         "edge_types": [
             "create",
@@ -1093,12 +1103,14 @@ def _memory_system_object_schema() -> dict[str, Any]:
             "activation_utility_score",
             "activation_utility_bucket",
             "slot_source_policy",
+            "memory_tier",
         ],
         "governance_signals": [
             "source_activation_ready",
             "activation_role",
             "activation_priority",
             "question_scope_source_order",
+            "tier_counts",
             "temporal_scope_counts",
             "validity_status_counts",
             "raw_evidence_required",
@@ -1106,7 +1118,84 @@ def _memory_system_object_schema() -> dict[str, Any]:
             "unbacked_blocked",
             "incomplete_slot_key_audited",
         ],
+}
+
+
+def _memory_system_tier_manifest(
+    records: tuple[MemoryRecord, ...],
+    *,
+    managed_memory_types: frozenset[str],
+) -> dict[str, Any]:
+    tier_records: dict[str, list[MemoryRecord]] = defaultdict(list)
+    for record in records:
+        tier_records[
+            _memory_tier(record, managed_memory_types=managed_memory_types)
+        ].append(record)
+
+    ordered_tiers = (
+        "working_memory",
+        "long_term_memory",
+        "archival_memory",
+        "quarantine_memory",
+    )
+    record_ids_by_tier = {
+        tier: [record.memory_id for record in tier_records.get(tier, ())[:24]]
+        for tier in ordered_tiers
     }
+    source_counts_by_tier = {
+        tier: sum(len(record.source_ids) for record in tier_records.get(tier, ()))
+        for tier in ordered_tiers
+    }
+    return {
+        "schema_version": "memory_tier_manifest_v1",
+        "trace_only": False,
+        "applied": True,
+        "tier_order": list(ordered_tiers),
+        "tier_counts": {
+            tier: len(tier_records.get(tier, ())) for tier in ordered_tiers
+        },
+        "source_counts_by_tier": source_counts_by_tier,
+        "record_ids_by_tier": record_ids_by_tier,
+        "tier_policy": {
+            "working_memory": (
+                "Active state, profile, preference, relationship, and plan "
+                "objects that may affect current behavior or unresolved future "
+                "intent."
+            ),
+            "long_term_memory": (
+                "Durable source-backed semantic, episodic, and stable profile "
+                "objects retained for recall and context organization."
+            ),
+            "archival_memory": (
+                "Closed or superseded objects retained for historical lookup, "
+                "conflict chains, and audit."
+            ),
+            "quarantine_memory": (
+                "Low-confidence or source-unbacked objects blocked from normal "
+                "activation until audited."
+            ),
+        },
+        "clean_note": (
+            "Question-independent memory tier manifest inspired by working/"
+            "long-term/archival memory systems. Tiers organize source-backed "
+            "memory objects for future activation policies; raw source rows "
+            "remain final answer authority."
+        ),
+    }
+
+
+def _memory_tier(
+    record: MemoryRecord,
+    *,
+    managed_memory_types: frozenset[str],
+) -> str:
+    if not record.source_ids or record.confidence < 0.5:
+        return "quarantine_memory"
+    if record.status == "superseded" or record.superseded_by or record.valid_to:
+        return "archival_memory"
+    if record.memory_type in managed_memory_types or record.memory_type == "plan":
+        return "working_memory"
+    return "long_term_memory"
 
 
 def _memory_slot_source_policy_manifest(
@@ -1348,6 +1437,7 @@ def _memory_system_governance_manifest(
     temporal_scope_counts: dict[str, int] = defaultdict(int)
     validity_status_counts: dict[str, int] = defaultdict(int)
     source_confidence_bucket_counts: dict[str, int] = defaultdict(int)
+    tier_counts: dict[str, int] = defaultdict(int)
     for assessment in assessments:
         activation_role_counts[str(assessment["activation_role"])] += 1
         activation_utility_bucket_counts[
@@ -1358,6 +1448,7 @@ def _memory_system_governance_manifest(
         source_confidence_bucket_counts[
             str(assessment["source_confidence_bucket"])
         ] += 1
+        tier_counts[str(assessment["memory_tier"])] += 1
         for risk in assessment["risk_flags"]:
             risk_counts[str(risk)] += 1
     activation_ready_count = sum(
@@ -1416,6 +1507,7 @@ def _memory_system_governance_manifest(
         "source_confidence_bucket_counts": dict(
             sorted(source_confidence_bucket_counts.items())
         ),
+        "tier_counts": dict(sorted(tier_counts.items())),
         "activation_priority_memory_ids": activation_priority_memory_ids,
         "high_utility_memory_ids": [
             str(assessment["memory_id"])
@@ -1465,6 +1557,7 @@ def _memory_system_record_governance(
     temporal_scope_kind = _temporal_scope_kind(record)
     validity_status = _validity_status(record, managed_memory_types=managed_memory_types)
     source_confidence_bucket = _source_confidence_bucket(record)
+    memory_tier = _memory_tier(record, managed_memory_types=managed_memory_types)
     risk_flags: list[str] = []
     if not source_backed:
         risk_flags.append("unbacked")
@@ -1494,6 +1587,7 @@ def _memory_system_record_governance(
         "namespace": _memory_namespace(record),
         "layer": _memory_layer(record.memory_type),
         "status": record.status,
+        "memory_tier": memory_tier,
         "source_activation_ready": source_activation_ready,
         "raw_evidence_required": True,
         "source_backed": source_backed,
@@ -1863,6 +1957,10 @@ def _memory_object_sample(
         "memory_type": record.memory_type,
         "namespace": _memory_namespace(record),
         "layer": _memory_layer(record.memory_type),
+        "memory_tier": _memory_tier(
+            record,
+            managed_memory_types=managed_memory_types,
+        ),
         "status": record.status,
         "subject": _normalize_key_text(record.subject),
         "predicate": _normalize_key_text(record.predicate),
