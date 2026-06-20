@@ -137,6 +137,13 @@ def main() -> int:
     total_build_memory_system_graph_objects = 0
     total_build_memory_system_graph_sources = 0
     total_build_memory_system_graph_slots = 0
+    total_build_memory_system_graph_source_backed_records = 0
+    total_build_memory_system_graph_complete_slot_key_records = 0
+    total_build_memory_system_graph_temporal_anchor_records = 0
+    total_build_memory_system_graph_multi_source_records = 0
+    total_build_memory_system_graph_low_confidence_records = 0
+    total_build_memory_system_graph_source_backed_slots = 0
+    total_build_memory_system_graph_active_superseded_pair_slots = 0
     total_build_memory_collection_retained = 0
     total_build_memory_managed_lifecycle_slots = 0
     total_build_memory_nonmanaged_multi_value_slots = 0
@@ -429,6 +436,29 @@ def main() -> int:
             _merge_int_counts(
                 build_memory_system_graph_lifecycle_counts,
                 memory_system_graph.get("lifecycle_counts") or {},
+            )
+            source_quality = memory_system_graph.get("source_quality") or {}
+            total_build_memory_system_graph_source_backed_records += int(
+                source_quality.get("source_backed_record_count") or 0
+            )
+            total_build_memory_system_graph_complete_slot_key_records += int(
+                source_quality.get("complete_slot_key_record_count") or 0
+            )
+            total_build_memory_system_graph_temporal_anchor_records += int(
+                source_quality.get("temporal_anchor_record_count") or 0
+            )
+            total_build_memory_system_graph_multi_source_records += int(
+                source_quality.get("multi_source_record_count") or 0
+            )
+            total_build_memory_system_graph_low_confidence_records += int(
+                source_quality.get("low_confidence_record_count") or 0
+            )
+            slot_quality = memory_system_graph.get("slot_quality") or {}
+            total_build_memory_system_graph_source_backed_slots += int(
+                slot_quality.get("source_backed_slot_count") or 0
+            )
+            total_build_memory_system_graph_active_superseded_pair_slots += int(
+                slot_quality.get("active_superseded_pair_slot_count") or 0
             )
         total_build_memory_collection_retained += int(
             operation_counts.get("retain_collection_multi_value_slot") or 0
@@ -1176,6 +1206,34 @@ def main() -> int:
             ),
             "avg_memory_system_graph_slots": _safe_average(
                 total_build_memory_system_graph_slots,
+                total_build_memory_system_graph_applied,
+            ),
+            "avg_memory_system_graph_source_backed_records": _safe_average(
+                total_build_memory_system_graph_source_backed_records,
+                total_build_memory_system_graph_applied,
+            ),
+            "avg_memory_system_graph_complete_slot_key_records": _safe_average(
+                total_build_memory_system_graph_complete_slot_key_records,
+                total_build_memory_system_graph_applied,
+            ),
+            "avg_memory_system_graph_temporal_anchor_records": _safe_average(
+                total_build_memory_system_graph_temporal_anchor_records,
+                total_build_memory_system_graph_applied,
+            ),
+            "avg_memory_system_graph_multi_source_records": _safe_average(
+                total_build_memory_system_graph_multi_source_records,
+                total_build_memory_system_graph_applied,
+            ),
+            "avg_memory_system_graph_low_confidence_records": _safe_average(
+                total_build_memory_system_graph_low_confidence_records,
+                total_build_memory_system_graph_applied,
+            ),
+            "avg_memory_system_graph_source_backed_slots": _safe_average(
+                total_build_memory_system_graph_source_backed_slots,
+                total_build_memory_system_graph_applied,
+            ),
+            "avg_memory_system_graph_active_superseded_pair_slots": _safe_average(
+                total_build_memory_system_graph_active_superseded_pair_slots,
                 total_build_memory_system_graph_applied,
             ),
             "total_collection_retained_records": (
@@ -2068,6 +2126,13 @@ def _write_summary(
         f"- avg_build_memory_system_graph_objects: {metrics['build_memory']['avg_memory_system_graph_objects']}",
         f"- avg_build_memory_system_graph_source_spans: {metrics['build_memory']['avg_memory_system_graph_source_spans']}",
         f"- avg_build_memory_system_graph_slots: {metrics['build_memory']['avg_memory_system_graph_slots']}",
+        f"- avg_build_memory_system_graph_source_backed_records: {metrics['build_memory']['avg_memory_system_graph_source_backed_records']}",
+        f"- avg_build_memory_system_graph_complete_slot_key_records: {metrics['build_memory']['avg_memory_system_graph_complete_slot_key_records']}",
+        f"- avg_build_memory_system_graph_temporal_anchor_records: {metrics['build_memory']['avg_memory_system_graph_temporal_anchor_records']}",
+        f"- avg_build_memory_system_graph_multi_source_records: {metrics['build_memory']['avg_memory_system_graph_multi_source_records']}",
+        f"- avg_build_memory_system_graph_low_confidence_records: {metrics['build_memory']['avg_memory_system_graph_low_confidence_records']}",
+        f"- avg_build_memory_system_graph_source_backed_slots: {metrics['build_memory']['avg_memory_system_graph_source_backed_slots']}",
+        f"- avg_build_memory_system_graph_active_superseded_pair_slots: {metrics['build_memory']['avg_memory_system_graph_active_superseded_pair_slots']}",
         f"- avg_build_memory_collection_retained_records: {metrics['build_memory']['avg_collection_retained_records']}",
         f"- avg_build_memory_managed_lifecycle_slots: {metrics['build_memory']['avg_managed_lifecycle_slots']}",
         f"- avg_build_memory_nonmanaged_multi_value_slots: {metrics['build_memory']['avg_nonmanaged_multi_value_slots']}",
@@ -2449,6 +2514,13 @@ def _write_diagnosis(
         f"- build_memory_management_policy_counts: {metrics['build_memory']['management_policy_counts']}",
         f"- build_memory_management_operation_counts: {metrics['build_memory']['management_operation_counts']}",
         f"- build_memory_management_layer_counts: {metrics['build_memory']['management_layer_counts']}",
+        f"- avg_build_memory_system_graph_source_backed_records: {metrics['build_memory']['avg_memory_system_graph_source_backed_records']}",
+        f"- avg_build_memory_system_graph_complete_slot_key_records: {metrics['build_memory']['avg_memory_system_graph_complete_slot_key_records']}",
+        f"- avg_build_memory_system_graph_temporal_anchor_records: {metrics['build_memory']['avg_memory_system_graph_temporal_anchor_records']}",
+        f"- avg_build_memory_system_graph_multi_source_records: {metrics['build_memory']['avg_memory_system_graph_multi_source_records']}",
+        f"- avg_build_memory_system_graph_low_confidence_records: {metrics['build_memory']['avg_memory_system_graph_low_confidence_records']}",
+        f"- avg_build_memory_system_graph_source_backed_slots: {metrics['build_memory']['avg_memory_system_graph_source_backed_slots']}",
+        f"- avg_build_memory_system_graph_active_superseded_pair_slots: {metrics['build_memory']['avg_memory_system_graph_active_superseded_pair_slots']}",
         f"- avg_build_memory_collection_retained_records: {metrics['build_memory']['avg_collection_retained_records']}",
         f"- avg_build_memory_managed_lifecycle_slots: {metrics['build_memory']['avg_managed_lifecycle_slots']}",
         f"- avg_build_memory_nonmanaged_multi_value_slots: {metrics['build_memory']['avg_nonmanaged_multi_value_slots']}",

@@ -2794,6 +2794,87 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual(city_slot["active_values"], ["seattle"])
         self.assertEqual(city_slot["superseded_values"], ["austin"])
 
+    def test_memory_system_graph_records_schema_and_quality(self) -> None:
+        old_city = MemoryRecord(
+            memory_id="m-old-city",
+            memory_type="state",
+            text="User lived in Austin.",
+            source_ids=("s1:t1",),
+            subject="user",
+            predicate="location",
+            value="Austin",
+            timestamp="2024-01-01",
+            status="superseded",
+            superseded_by="m-new-city",
+        )
+        new_city = MemoryRecord(
+            memory_id="m-new-city",
+            memory_type="state",
+            text="User now lives in Seattle.",
+            source_ids=("s2:t1", "s2:t2"),
+            subject="user",
+            predicate="location",
+            value="Seattle",
+            timestamp="2024-03-01",
+            status="active",
+        )
+        low_confidence_fact = MemoryRecord(
+            memory_id="m-low",
+            memory_type="fact",
+            text="User may like pottery.",
+            source_ids=("s3:t1",),
+            subject="user",
+            predicate="possible hobby",
+            value="pottery",
+            confidence=0.4,
+            status="active",
+        )
+
+        summary = _management_summary(
+            (old_city, new_city, low_confidence_fact),
+            policy="stateful_only",
+            managed_memory_types=frozenset(
+                {"preference", "profile", "relationship", "state"}
+            ),
+            include_memory_system_graph=True,
+        )
+
+        system_graph = summary["memory_system_graph"]
+        self.assertEqual(system_graph["schema_version"], "memory_system_graph_v2")
+        self.assertIn("source_backed", system_graph["object_schema"]["quality_signals"])
+        self.assertEqual(
+            system_graph["governance"]["final_evidence_policy"],
+            "raw_source_rows_only",
+        )
+        self.assertEqual(
+            system_graph["source_quality"]["source_backed_record_count"],
+            3,
+        )
+        self.assertEqual(
+            system_graph["source_quality"]["complete_slot_key_record_count"],
+            3,
+        )
+        self.assertEqual(
+            system_graph["source_quality"]["temporal_anchor_record_count"],
+            2,
+        )
+        self.assertEqual(
+            system_graph["source_quality"]["multi_source_record_count"],
+            1,
+        )
+        self.assertEqual(
+            system_graph["source_quality"]["low_confidence_record_count"],
+            1,
+        )
+        self.assertEqual(
+            system_graph["slot_quality"]["source_backed_slot_count"],
+            2,
+        )
+        self.assertEqual(
+            system_graph["slot_quality"]["active_superseded_pair_slot_count"],
+            1,
+        )
+
     def test_memory_lifecycle_manifest_is_trace_only_and_source_grounded(self) -> None:
         old_record = MemoryRecord(
             memory_id="old-location",

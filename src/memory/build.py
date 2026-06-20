@@ -976,6 +976,8 @@ def _memory_system_graph_summary(
         "enabled": True,
         "trace_only": True,
         "applied": True,
+        "schema_version": "memory_system_graph_v2",
+        "object_schema": _memory_system_object_schema(),
         "raw_record_count": len(raw_records),
         "deduped_record_count": len(deduped_records),
         "memory_object_count": len(managed_records),
@@ -997,6 +999,17 @@ def _memory_system_graph_summary(
         "layer_counts": dict(sorted(layer_counts.items())),
         "lifecycle_counts": dict(sorted(lifecycle_counts.items())),
         "operation_edge_counts": operation_edge_counts,
+        "source_quality": _memory_system_source_quality(managed_records),
+        "slot_quality": _memory_system_slot_quality(
+            groups,
+            managed_memory_types=managed_memory_types,
+        ),
+        "governance": {
+            "raw_evidence_policy": "immutable_final_authority",
+            "derived_memory_policy": "source_backed_activation_and_audit",
+            "final_evidence_policy": "raw_source_rows_only",
+            "question_independent_build": True,
+        },
         "memory_object_samples": [
             _memory_object_sample(record) for record in managed_records[:10]
         ],
@@ -1013,10 +1026,153 @@ def _memory_system_graph_summary(
         "clean_note": (
             "Trace-only build memory system graph. It organizes source-backed "
             "typed memories into namespaces, lifecycle states, object slots, "
-            "source-support edges, merge edges, and supersede edges. It is not "
-            "used by retrieval, compiler, answer, repair, finalizer, or cache "
-            "keys."
+            "source-support edges, merge edges, supersede edges, and quality "
+            "signals. The graph summary is not used by retrieval, compiler, "
+            "answer, repair, finalizer, or cache keys."
         ),
+    }
+
+
+def _memory_system_object_schema() -> dict[str, Any]:
+    return {
+        "memory_object_fields": [
+            "memory_id",
+            "memory_type",
+            "namespace",
+            "layer",
+            "status",
+            "subject",
+            "predicate",
+            "value",
+            "source_ids",
+            "timestamp",
+            "mention_time",
+            "event_time",
+            "valid_from",
+            "valid_to",
+            "entities",
+            "confidence",
+            "superseded_by",
+        ],
+        "edge_types": [
+            "create",
+            "merge",
+            "supersede",
+            "source_support",
+            "slot_member",
+            "verify_source_backed",
+            "audit_slot",
+        ],
+        "quality_signals": [
+            "source_backed",
+            "complete_slot_key",
+            "temporal_anchor",
+            "confidence_bucket",
+            "lifecycle_signal",
+            "source_coverage",
+        ],
+    }
+
+
+def _memory_system_source_quality(
+    records: tuple[MemoryRecord, ...],
+) -> dict[str, Any]:
+    source_counts = [len(record.source_ids) for record in records]
+    confidence_buckets = {"high": 0, "medium": 0, "low": 0}
+    for record in records:
+        if record.confidence >= 0.8:
+            confidence_buckets["high"] += 1
+        elif record.confidence >= 0.5:
+            confidence_buckets["medium"] += 1
+        else:
+            confidence_buckets["low"] += 1
+
+    source_backed_count = sum(1 for count in source_counts if count > 0)
+    complete_slot_key_count = sum(
+        1
+        for record in records
+        if record.memory_type and record.subject and record.predicate
+    )
+    value_backed_count = sum(1 for record in records if record.value or record.text)
+    temporal_anchor_count = sum(
+        1
+        for record in records
+        if record.timestamp
+        or record.mention_time
+        or record.event_time
+        or record.valid_from
+        or record.valid_to
+    )
+    lifecycle_signal_count = sum(
+        1
+        for record in records
+        if record.status == "superseded" or record.superseded_by or record.valid_to
+    )
+    return {
+        "record_count": len(records),
+        "source_backed_record_count": source_backed_count,
+        "source_unbacked_record_count": max(0, len(records) - source_backed_count),
+        "single_source_record_count": sum(1 for count in source_counts if count == 1),
+        "multi_source_record_count": sum(1 for count in source_counts if count > 1),
+        "complete_slot_key_record_count": complete_slot_key_count,
+        "value_backed_record_count": value_backed_count,
+        "temporal_anchor_record_count": temporal_anchor_count,
+        "lifecycle_signal_record_count": lifecycle_signal_count,
+        "low_confidence_record_count": confidence_buckets["low"],
+        "confidence_buckets": confidence_buckets,
+        "avg_sources_per_record": (
+            sum(source_counts) / len(source_counts) if source_counts else 0.0
+        ),
+    }
+
+
+def _memory_system_slot_quality(
+    groups: dict[tuple[str, str, str], list[MemoryRecord]],
+    *,
+    managed_memory_types: frozenset[str],
+) -> dict[str, Any]:
+    source_backed_slot_count = 0
+    complete_value_slot_count = 0
+    active_superseded_pair_count = 0
+    managed_lifecycle_slot_count = 0
+    collection_slot_count = 0
+    multi_source_slot_count = 0
+    for key, records in groups.items():
+        active_values = _ordered_normalized_values(
+            record.value or record.text
+            for record in records
+            if record.status == "active"
+        )
+        superseded_values = _ordered_normalized_values(
+            record.value or record.text
+            for record in records
+            if record.status == "superseded"
+        )
+        source_ids = _ordered_strings(
+            source_id for record in records for source_id in record.source_ids
+        )
+        if source_ids:
+            source_backed_slot_count += 1
+        if any(record.value or record.text for record in records):
+            complete_value_slot_count += 1
+        if active_values and superseded_values:
+            active_superseded_pair_count += 1
+        if _slot_has_lifecycle(records):
+            if key[0] in managed_memory_types:
+                managed_lifecycle_slot_count += 1
+            else:
+                collection_slot_count += 1
+        if len(source_ids) > 1:
+            multi_source_slot_count += 1
+    return {
+        "slot_count": len(groups),
+        "source_backed_slot_count": source_backed_slot_count,
+        "source_unbacked_slot_count": max(0, len(groups) - source_backed_slot_count),
+        "complete_value_slot_count": complete_value_slot_count,
+        "managed_lifecycle_slot_count": managed_lifecycle_slot_count,
+        "collection_slot_count": collection_slot_count,
+        "active_superseded_pair_slot_count": active_superseded_pair_count,
+        "multi_source_slot_count": multi_source_slot_count,
     }
 
 
