@@ -1,0 +1,200 @@
+[
+  {
+    "answer_diff_count": 0,
+    "benchmark": "longmemeval",
+    "build_memory_management_diff_after_removing_scalar_manifest_count": 0,
+    "build_memory_management_diff_count": 500,
+    "build_memory_records_diff_count": 0,
+    "compiled_evidence_rows_diff_count": 0,
+    "compiled_memory_records_diff_count": 0,
+    "missing_prediction_keys": [],
+    "missing_trace_keys": [],
+    "n_keys": 500,
+    "note": "materialized retrieval diff excludes cache counters, embedding token counters, and raw rerank_response scores; compiled evidence rows are compared separately.",
+    "prompt_diff_count": 0,
+    "rerank_response_diff_count": 0,
+    "retrieval_materialized_diff_count": 0,
+    "route_diff_count": 0,
+    "sample_diffs": [
+      {
+        "diffs": [
+          "build_memory_management"
+        ],
+        "new_answer": "The provided information is not enough to answer the question: No information regarding violin practice duration is present in the memory context",
+        "old_answer": "The provided information is not enough to answer the question: No information regarding violin practice duration is present in the memory context",
+        "record_key": "004224772b616dd627a96a35"
+      },
+      {
+        "diffs": [
+          "build_memory_management"
+        ],
+        "new_answer": "$200",
+        "old_answer": "$200",
+        "record_key": "00c7a05a91938a123f46650c"
+      },
+      {
+        "diffs": [
+          "build_memory_management"
+        ],
+        "new_answer": "Close to 1300",
+        "old_answer": "Close to 1300",
+        "record_key": "02e16bd2f4719927af0b2006"
+      },
+      {
+        "diffs": [
+          "build_memory_management"
+        ],
+        "new_answer": "1. Billie Eilish concert (2023/03/18), 2. Free outdoor concert series (2023/03/25), 3. Music festival in Brooklyn (before 2023/04/01), 4. Jazz night at a local bar (2023/04/08)",
+        "old_answer": "1. Billie Eilish concert (2023/03/18), 2. Free outdoor concert series (2023/03/25), 3. Music festival in Brooklyn (before 2023/04/01), 4. Jazz night at a local bar (2023/04/08)",
+        "record_key": "040a4510206229039b25c860"
+      },
+      {
+        "diffs": [
+          "build_memory_management"
+        ],
+        "new_answer": "my aunt",
+        "old_answer": "my aunt",
+        "record_key": "043303ed21aae98eeeba9d0e"
+      },
+      {
+        "diffs": [
+          "build_memory_management"
+        ],
+        "new_answer": "polymer clay and resin",
+        "old_answer": "polymer clay and resin",
+        "record_key": "047fc041db62b22233bcc704"
+      },
+      {
+        "diffs": [
+          "build_memory_management"
+        ],
+        "new_answer": "Doc Martin",
+        "old_answer": "Doc Martin",
+        "record_key": "048d128357cd80bce017b187"
+      },
+      {
+        "diffs": [
+          "build_memory_management"
+        ],
+        "new_answer": "7:00 pm",
+        "old_answer": "7:00 pm",
+        "record_key": "04fbc2bee20a490a0e937558"
+      },
+      {
+        "diffs": [
+          "build_memory_management"
+        ],
+        "new_answer": "The provided information is not enough to identify the specific artist, as the memory only describes them as 'a bluegrass band that features a banjo player' discovered on 2023/03/31.",
+        "old_answer": "The provided information is not enough to identify the specific artist, as the memory only describes them as 'a bluegrass band that features a banjo player' discovered on 2023/03/31.",
+        "record_key": "059b8bb4fb1e6194a5d9bea5"
+      },
+      {
+        "diffs": [
+          "build_memory_management"
+        ],
+        "new_answer": "Harvard University",
+        "old_answer": "Harvard University",
+        "record_key": "05ba10108a37f6c2e841d368"
+      }
+    ]
+  },
+  {
+    "answer_diff_count": 0,
+    "benchmark": "locomo",
+    "build_memory_management_diff_after_removing_scalar_manifest_count": 0,
+    "build_memory_management_diff_count": 1540,
+    "build_memory_records_diff_count": 0,
+    "compiled_evidence_rows_diff_count": 0,
+    "compiled_memory_records_diff_count": 0,
+    "missing_prediction_keys": [],
+    "missing_trace_keys": [],
+    "n_keys": 1540,
+    "note": "materialized retrieval diff excludes cache counters, embedding token counters, and raw rerank_response scores; compiled evidence rows are compared separately.",
+    "prompt_diff_count": 0,
+    "rerank_response_diff_count": 2,
+    "retrieval_materialized_diff_count": 0,
+    "route_diff_count": 0,
+    "sample_diffs": [
+      {
+        "diffs": [
+          "build_memory_management"
+        ],
+        "new_answer": "The provided information is not enough to answer the question fully; while John played basketball in high school for four years, the specific school names are not mentioned.",
+        "old_answer": "The provided information is not enough to answer the question fully; while John played basketball in high school for four years, the specific school names are not mentioned.",
+        "record_key": "00314c7eed1f53455d0d7bb6"
+      },
+      {
+        "diffs": [
+          "build_memory_management"
+        ],
+        "new_answer": "5K charity run",
+        "old_answer": "5K charity run",
+        "record_key": "0063882ab0a923bfdb529626"
+      },
+      {
+        "diffs": [
+          "build_memory_management"
+        ],
+        "new_answer": "Gina offers to create cool content and manage Jon's social media accounts.",
+        "old_answer": "Gina offers to create cool content and manage Jon's social media accounts.",
+        "record_key": "00cb2762eabaf86347b3330f"
+      },
+      {
+        "diffs": [
+          "build_memory_management"
+        ],
+        "new_answer": "a suspenseful thriller set in a small Midwestern town",
+        "old_answer": "a suspenseful thriller set in a small Midwestern town",
+        "record_key": "00d3ade031c967a337a45caa"
+      },
+      {
+        "diffs": [
+          "build_memory_management"
+        ],
+        "new_answer": "It enabled needed repairs and renovations, making the learning environment safer and more modern for students.",
+        "old_answer": "It enabled needed repairs and renovations, making the learning environment safer and more modern for students.",
+        "record_key": "0103488090eae48e0eec23b5"
+      },
+      {
+        "diffs": [
+          "build_memory_management"
+        ],
+        "new_answer": "2010",
+        "old_answer": "2010",
+        "record_key": "011630aeaba84df9d30ac67e"
+      },
+      {
+        "diffs": [
+          "build_memory_management"
+        ],
+        "new_answer": "vegan ice cream",
+        "old_answer": "vegan ice cream",
+        "record_key": "019578d5697849a38f3c55b0"
+      },
+      {
+        "diffs": [
+          "build_memory_management"
+        ],
+        "new_answer": "UK",
+        "old_answer": "UK",
+        "record_key": "0196ecc32015c2e221188b39"
+      },
+      {
+        "diffs": [
+          "build_memory_management"
+        ],
+        "new_answer": "The provided information is not enough.",
+        "old_answer": "The provided information is not enough.",
+        "record_key": "019e094a5e94175b0e5c7d4c"
+      },
+      {
+        "diffs": [
+          "build_memory_management"
+        ],
+        "new_answer": "Jean went through a divorce, lost her job, and became homeless.",
+        "old_answer": "Jean went through a divorce, lost her job, and became homeless.",
+        "record_key": "01a8e9c6eaf81609dee164a1"
+      }
+    ]
+  }
+]

@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_order_safe_value_parser_v283_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_scalar_value_manifest_v284_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v283 local LTS |
+| Benchmark | 当前 v284 local LTS |
 |---|---:|
 | LongMemEval-S full | strict/lenient `0.834000 / 0.846000`，avg build/query tokens `85393.566 / 6464.954` |
 | LoCoMo non-adversarial full | strict/lenient `0.794156 / 0.819481`，avg build/query tokens `62015.57402597403 / 6093.794155844156` |
 
-v283 的 LTS 理由：继承 v280 的 build-owned state/operation manifests，并把 `Update/Conflict Candidate Chain` 的数值抽取从固定单位白名单改为通用 source-text value parser；event-order/timeline 场景使用 scalar-only extraction，避免把非事件单位短语误提升为冲突值。v283 相对 v280：LongMemEval-S full answer diff `3/500`，changed-answer dual judge strict/lenient `+1/+1`；LoCoMo full answer/prompt/route/evidence/retrieval/token/build_memory diff 全部 `0`。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_order_safe_value_parser_v283_full_summary.md`。
+v284 的 LTS 理由：继承 v283 的 answer/prompt/evidence 行为，并在 build 阶段新增 source-backed `scalar_value_manifest`，把 typed memory 组织成 value objects / value slots，显式记录 lifecycle、source order、create/update/merge/supersede/retrieve/expand/verify/audit 操作。v284 相对 v283：LongMemEval-S 和 LoCoMo full answer/prompt/evidence diff 全部 `0`，因此继承 v283 dual judge accuracy，同时减少“typed memory 只是 retrieval hint”的系统风险。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_scalar_value_manifest_v284_full_summary.md`。
 
 ## 目录
 
