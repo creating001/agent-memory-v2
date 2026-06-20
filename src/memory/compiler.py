@@ -5024,13 +5024,39 @@ def _asks_advice_or_recommendation(question: str) -> bool:
 
 def _asks_update_conflict_value_slot(question: str) -> bool:
     lowered = question.lower()
-    return bool(
+    if _asks_event_order_or_sequence(question):
+        return False
+    scalar_intent = bool(
         re.search(
             r"\b(how many|how much|how long|how often|total|sum|combined|"
             r"difference|cost|price|amount|number|count|percentage|discount|"
-            r"followers?|views?|comments?|stars?|level|score|goal|time|duration|"
-            r"distance|miles?|minutes?|hours?|days?|weeks?|months?|years?|"
-            r"pre-approved|spent|spend|save|saved|raise|raised)\b",
+            r"duration|spent|spend|save|saved|raise|raised)\b",
+            lowered,
+        )
+    )
+    if scalar_intent:
+        return True
+    return bool(
+        re.search(
+            r"\b(followers?|views?|comments?|stars?|level|score|goal|time|"
+            r"distance|pre-approved)\b",
+            lowered,
+        )
+    )
+
+
+def _asks_event_order_or_sequence(question: str) -> bool:
+    lowered = question.lower()
+    if not re.search(
+        r"\b(order|sequence|chronological|earliest|latest|timeline|from earliest to latest|from oldest to newest|from first to last)\b",
+        lowered,
+    ):
+        return False
+    return bool(
+        re.search(
+            r"\b(trips?|travels?|visits?|vacations?|events?|activities?|"
+            r"meetings?|appointments?|places?|restaurants?|concerts?|"
+            r"movies?|books?|projects?|tasks?)\b",
             lowered,
         )
     )

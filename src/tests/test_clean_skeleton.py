@@ -9038,6 +9038,51 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertIn("values=14 pullups", compiled.prompt)
         self.assertIn("values=18 pullups", compiled.prompt)
 
+    def test_update_conflict_guide_skips_event_order_questions(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=3,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            update_conflict_guide=True,
+            update_conflict_guide_information_needs=("current_state",),
+            update_conflict_guide_max_rows=3,
+        )
+        compiled = compiler.compile(
+            question=(
+                "What is the order of the three trips I took in the past "
+                "three months, from earliest to latest?"
+            ),
+            question_time=None,
+            route=RouteResult(
+                information_need="current_state",
+                signals=("recent_or_current",),
+            ),
+            hits=(),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text=(
+                        "I need a backpack suitable for 3-4 day trips after "
+                        "my day hike to Muir Woods."
+                    ),
+                    timestamp="2024-03-10",
+                ),
+                Turn(
+                    source_id="s2:t0",
+                    session_id="s2",
+                    turn_index=0,
+                    role="user",
+                    text="I visited Big Sur in April and Yosemite in May.",
+                    timestamp="2024-05-15",
+                ),
+            ),
+        )
+
+        self.assertNotIn("Update/Conflict Candidate Chain:", compiled.prompt)
+
     def test_update_conflict_guide_skips_non_value_slots(self) -> None:
         compiler = EvidenceCompiler(
             max_evidence_items=3,
