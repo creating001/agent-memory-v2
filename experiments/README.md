@@ -6,15 +6,15 @@
 
 | 项目 | 结果 |
 |---|---|
-| 当前 LTS 配置 | `configs/stage1_memory_tier_manifest_v276_seeded_qwen36_no_think_build4k_cached.json` |
+| 当前 LTS 配置 | `configs/stage1_state_profile_tier_activation_v278_seeded_qwen36_no_think_build4k_cached.json` |
 | Backbone | `Qwen/Qwen3.6-35B-A3B` answer/build，`chat_template_kwargs.enable_thinking=false` |
-| 方法定位 | source-backed build memory management + operation ledger + schema/quality-aware memory system graph v3 + temporal-scope/validity/source-confidence manifest + working/long-term/archival/quarantine tier manifest + build-owned slot source policy + validity-aware graph utility source selection + governed typed-memory activation + build-stage activation utility manifest + narrow explicit-date/recent route conflict resolver + lifecycle-gated graph evidence utility + raw evidence compiler + source-grounded answer audit。Typed memory 只能作为受 governance/utility/tier 约束的 activation、ranking hint 和 audit；最终 evidence 仍回到 raw Memory rows。 |
-| LongMemEval-S full | strict/lenient `0.832000 / 0.844000`，`416/500` strict，`422/500` lenient；avg build/query tokens `85393.566 / 6463.04` |
-| LoCoMo non-adversarial full | strict/lenient `0.794156 / 0.819481`，`1223/1540` strict，`1262/1540` lenient；avg build/query tokens `62015.57402597403 / 6093.8493506493505` |
-| LTS 理由 | v276 相对 v275：LME/LoCoMo full answer、prompt、route、evidence、retrieval、token 全部 `0` diff，answer cache `2040/0`；build graph `tier_manifest` 和 `source_policy` 均覆盖 `2040/2040`。它把 memory tier/lifecycle 作为 build memory system 的显式状态，性能主指标不退，同时减少 typed memory 过浅和 query-side scattered policy 风险。 |
-| 主要局限 | v276 仍是结构性小步，不是直接提分；query stack 仍有 route/selected-context/state-guide/ledger/audit 兼容层；LME query tokens 仍略高于 6K 目标但低于 8K hard diagnostic 线，LoCoMo 也略高于 6K 目标。 |
+| 方法定位 | source-backed build memory management + operation ledger + schema/quality-aware memory system graph v3 + temporal-scope/validity/source-confidence manifest + working/long-term/archival/quarantine tier manifest + tier-aware state/profile activation priority + build-owned slot source policy + validity-aware graph utility source selection + governed typed-memory activation + build-stage activation utility manifest + narrow explicit-date/recent route conflict resolver + lifecycle-gated graph evidence utility + raw evidence compiler + source-grounded answer audit。Typed memory 只能作为受 governance/utility/tier 约束的 activation、ranking hint 和 audit；最终 evidence 仍回到 raw Memory rows。 |
+| LongMemEval-S full | strict/lenient `0.832000 / 0.844000`，`416/500` strict，`422/500` lenient；avg build/query tokens `85393.566 / 6463.628` |
+| LoCoMo non-adversarial full | strict/lenient `0.794156 / 0.819481`，`1223/1540` strict，`1262/1540` lenient；avg build/query tokens `62015.57402597403 / 6093.794155844156` |
+| LTS 理由 | v278 相对 v276：LME/LoCoMo full answer diff `2/500`、`4/1540`，changed-answer dual judge strict/lenient delta 均 `0/0`；build graph `tier_manifest` 和 `source_policy` 均覆盖 `2040/2040`。它让 tier/utility 真实参与 state/profile activation，性能主指标不退，同时避免 v277 在 list/temporal 上过宽激活的高 churn。 |
+| 主要局限 | v278 仍是小步激活，不是大幅提分；query stack 仍有 route/selected-context/state-guide/ledger/audit 兼容层；LME/LoCoMo query tokens 仍略高于 6K 目标但低于 8K hard diagnostic 线。 |
 
-v276 关键证据见 `experiments/diagnostic/stage1_memory_tier_manifest_v276_full_summary.md`。如果论文级最终汇报需要 fresh full judge，再对最终 LTS 配置完整重跑 dual judge；日常迭代优先用 full diff + changed-answer paired judge，避免无意义重跑。
+v278 关键证据见 `experiments/diagnostic/stage1_state_profile_tier_activation_v278_full_summary.md`。如果论文级最终汇报需要 fresh full judge，再对最终 LTS 配置完整重跑 dual judge；日常迭代优先用 full diff + changed-answer paired judge，避免无意义重跑。
 
 ## 口径
 
@@ -28,7 +28,7 @@ v276 关键证据见 `experiments/diagnostic/stage1_memory_tier_manifest_v276_fu
 
 | 优先级 | 方向 | 下一步 |
 |---:|---|---|
-| 1 | Build memory system | 在 v276 tier/source policy 基础上继续做 build-owned consolidation、conflict clustering、working-memory activation，不写 benchmark 规则。 |
+| 1 | Build memory system | 在 v278 scoped tier activation 基础上继续做 build-owned consolidation、conflict clustering、working-memory activation，不写 benchmark 规则。 |
 | 2 | Query-time 简化 | 收敛为 candidate activation、context compiler、source-grounded answer、consistency verifier 四层；把能前移的判断前移到 build/management。 |
 | 3 | Evidence utility | 用 build-stage utility/role 替代简单 overflow 或固定 top-k，增加 source pressure、same-slot coverage、temporal validity 和 utility ablation。 |
 | 4 | Answer/verifier | 把 audit 推进为通用 consistency verifier：检查数值、时间、说话人、实体、状态冲突和 unsupported answer，不写 benchmark-specific rewrite。 |
@@ -38,9 +38,9 @@ v276 关键证据见 `experiments/diagnostic/stage1_memory_tier_manifest_v276_fu
 
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
-| `configs/stage1_memory_tier_manifest_v276_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_memory_tier_manifest_v276_full_summary.md` | current LTS | v276 vs v275 full answer/prompt/route/evidence/retrieval/token diff `0`；tier_manifest seen LME `500/500`、LoCoMo `1540/1540`；answer cache `2040/0` | 升 LTS；把 working/long-term/archival/quarantine tier 纳入 build memory system，性能主指标不退 |
-| `configs/stage1_build_slot_source_policy_v275_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_build_slot_source_policy_v275_full_summary.md` | previous LTS | v275 vs v274 full answer/prompt/route/evidence/retrieval/token diff `0`；source_policy seen LME `500/500`、LoCoMo `1540/1540` | 被 v276 继承；把 validity-aware source ordering 收敛到 build memory system |
-| `configs/stage1_validity_aware_graph_utility_v274_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_validity_aware_graph_utility_v274_full_summary.md` | previous LTS | LME changed answers `1/500`，changed-answer dual judge delta strict/lenient `0/0`；LoCoMo answer diff `0/1540` | 被 v275/v276 继承；validity/source-confidence 参与 graph utility source selection |
+| `configs/stage1_state_profile_tier_activation_v278_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_state_profile_tier_activation_v278_full_summary.md` | current LTS | v278 vs v276 full answer diff LME `2/500`、LoCoMo `4/1540`；changed-answer dual judge delta strict/lenient `0/0`；avg query tokens LME `6463.628`、LoCoMo `6093.794155844156` | 升 LTS；tier/utility 真实参与 state/profile activation，性能主指标不退 |
+| `configs/stage1_tier_activation_priority_v277_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_tier_activation_priority_v277_probe_summary.md` | rejected probe | LoCoMo probe50 answer diff `8/50`，changed-answer dual judge delta `0/0`，但 prompt diff `18/50`、retrieval diff `31/50` | 不跑 full；list/temporal tier activation 过宽，被 v278 收窄 |
+| `configs/stage1_memory_tier_manifest_v276_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_memory_tier_manifest_v276_full_summary.md` | previous LTS | v276 vs v275 full answer/prompt/route/evidence/retrieval/token diff `0`；tier_manifest seen LME `500/500`、LoCoMo `1540/1540` | 被 v278 继承；把 working/long-term/archival/quarantine tier 纳入 build memory system |
 | `configs/stage1_explicit_date_temporal_route_v271_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_explicit_date_temporal_route_v271_full_summary.md` | rejected full | full changed answers: LME `5/500`、LoCoMo `75/1540`；changed-answer dual judge delta LME strict/lenient `-2/-2`，LoCoMo `-13/-14`；query tokens 下降但 accuracy 回退 | 不升 LTS；显式日期无条件抢过 fact/list/current 路由过宽 |
 | v264-v267 memory governance / lifecycle graph line | previous anchors | lifecycle-gated graph utility、memory system quality、query surface simplification、governance manifest 均以 clean/answer-identical 或 changed-answer judge 不退方式降低风险 | 保留为可追溯锚点，详细见对应 full summary 和 git |
 | v216-v263 rejected context/retrieval/prompt/object-slot lines | historical lessons | hard gate、prompt-side operation guide、wide selected context、tail-exchange replacement、simple overflow 多次造成 changed-answer 回退 | 不再逐版展开；需要时查对应 scope summary 和 git |
