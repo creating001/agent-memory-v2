@@ -6,15 +6,15 @@
 
 | 项目 | 结果 |
 |---|---|
-| 当前 LTS 配置 | `configs/stage1_memory_system_ops_v279_seeded_qwen36_no_think_build4k_cached.json` |
+| 当前 LTS 配置 | `configs/stage1_manifest_state_guide_v280_seeded_qwen36_no_think_build4k_cached.json` |
 | Backbone | `Qwen/Qwen3.6-35B-A3B` answer/build，`chat_template_kwargs.enable_thinking=false` |
 | 方法定位 | source-backed Agent Memory system view：build memory management + memory system graph v3 + working/long-term/archival/quarantine tier manifest + operation_manifest_v1 + state_conflict_manifest_v1 + source policy + governance/activation utility + scoped tier-aware state/profile activation + raw evidence compiler + source-grounded answer audit。Typed memory 只能作为受 governance/utility/tier/operation 约束的 activation、ranking hint 和 audit；最终 evidence 仍回到 raw Memory rows。 |
 | LongMemEval-S full | strict/lenient `0.832000 / 0.844000`，`416/500` strict，`422/500` lenient；avg build/query tokens `85393.566 / 6463.628` |
 | LoCoMo non-adversarial full | strict/lenient `0.794156 / 0.819481`，`1223/1540` strict，`1262/1540` lenient；avg build/query tokens `62015.57402597403 / 6093.794155844156` |
-| LTS 理由 | v279 相对 v278：LME/LoCoMo full answer/prompt/route/evidence/retrieval/token diff 全部 `0`，继承 v278 dual judge accuracy；build graph `operation_manifest` 和 `state_conflict_manifest` 覆盖 `2040/2040`，state-conflict clusters `2814 + 8514` 且 source-incomplete `0`。它降低“build 只是 typed-memory hint”的系统风险，性能主指标不退。 |
-| 主要局限 | query stack 仍有 route/selected-context/state-guide/ledger/audit 兼容层；v279 先建立 build-owned system contract，还没有大幅删除 query 侧复杂度；LME/LoCoMo query tokens 仍略高于 6K 目标但低于 8K hard diagnostic 线。 |
+| LTS 理由 | v280 相对 v279：LME/LoCoMo full answer/prompt/route/evidence/retrieval/token/build_memory diff 全部 `0`，继承 v279/v278 dual judge accuracy；state guide 的 conflict slot source 已从 query-side records recomputation 前移到 build-owned `state_conflict_manifest_v1`。它进一步降低 query stack 重复状态冲突逻辑风险，性能主指标不退。 |
+| 主要局限 | query stack 仍有 route/selected-context/state-guide/ledger/audit 兼容层；v280 只把 state guide 的 conflict source 前移到 build manifest，还没有大幅删除旧兼容分支；LME/LoCoMo query tokens 仍略高于 6K 目标但低于 8K hard diagnostic 线。 |
 
-v279 关键证据见 `experiments/diagnostic/stage1_memory_system_ops_v279_full_summary.md`。如果论文级最终汇报需要 fresh full judge，再对最终 LTS 配置完整重跑 dual judge；日常迭代优先用 full diff + changed-answer paired judge，避免无意义重跑。
+v280 关键证据见 `experiments/diagnostic/stage1_manifest_state_guide_v280_full_summary.md`。如果论文级最终汇报需要 fresh full judge，再对最终 LTS 配置完整重跑 dual judge；日常迭代优先用 full diff + changed-answer paired judge，避免无意义重跑。
 
 ## 口径
 
@@ -28,8 +28,8 @@ v279 关键证据见 `experiments/diagnostic/stage1_memory_system_ops_v279_full_
 
 | 优先级 | 方向 | 下一步 |
 |---:|---|---|
-| 1 | Build memory system | 让 query 直接消费 v279 `operation_manifest` / `state_conflict_manifest`，继续前移 consolidation、conflict clustering、working-memory activation，不写 benchmark 规则。 |
-| 2 | Query-time 简化 | 收敛为 candidate activation、context compiler、source-grounded answer、consistency verifier 四层；删除与 build-owned manifests 重叠的 state-guide/operation-guide 兼容层。 |
+| 1 | Build memory system | 继续让 query 消费 v280 `state_conflict_manifest` 和 v279 `operation_manifest`，前移 consolidation、conflict clustering、working-memory activation，不写 benchmark 规则。 |
+| 2 | Query-time 简化 | 收敛为 candidate activation、context compiler、source-grounded answer、consistency verifier 四层；删除已被 build-owned manifests 覆盖的 state-guide/operation-guide 兼容层。 |
 | 3 | Evidence utility | 用 build-stage utility/role 替代简单 overflow 或固定 top-k，增加 source pressure、same-slot coverage、temporal validity 和 utility ablation。 |
 | 4 | Answer/verifier | 把 audit 推进为通用 consistency verifier：检查数值、时间、说话人、实体、状态冲突和 unsupported answer，不写 benchmark-specific rewrite。 |
 | 5 | src cleanup | 每阶段小范围清理 `src/`，只删除已确认无用且不影响复现/消融的代码。 |
@@ -38,7 +38,8 @@ v279 关键证据见 `experiments/diagnostic/stage1_memory_system_ops_v279_full_
 
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
-| `configs/stage1_memory_system_ops_v279_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_memory_system_ops_v279_full_summary.md` | current LTS | v279 vs v278 full answer/prompt/route/evidence/retrieval/token diff `0`；operation/state-conflict manifest 覆盖 `2040/2040`；avg query tokens LME `6463.628`、LoCoMo `6093.794155844156` | 升 LTS；build memory 成为 source-backed system view，性能主指标不退 |
+| `configs/stage1_manifest_state_guide_v280_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_manifest_state_guide_v280_full_summary.md` | current LTS | v280 vs v279 full answer/prompt/route/evidence/retrieval/token/build_memory diff `0`；state guide conflict source 改为 build manifest；avg query tokens LME `6463.628`、LoCoMo `6093.794155844156` | 升 LTS；减少 query 侧重复冲突推导，性能主指标不退 |
+| `configs/stage1_memory_system_ops_v279_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_memory_system_ops_v279_full_summary.md` | previous LTS | v279 vs v278 full answer/prompt/route/evidence/retrieval/token diff `0`；operation/state-conflict manifest 覆盖 `2040/2040` | 被 v280 继承；build memory 成为 source-backed system view |
 | `configs/stage1_state_profile_tier_activation_v278_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_state_profile_tier_activation_v278_full_summary.md` | previous LTS | v278 vs v276 full answer diff LME `2/500`、LoCoMo `4/1540`；changed-answer dual judge delta strict/lenient `0/0` | 被 v279 继承；tier/utility 真实参与 state/profile activation |
 | `configs/stage1_tier_activation_priority_v277_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_tier_activation_priority_v277_probe_summary.md` | rejected probe | LoCoMo probe50 answer diff `8/50`，changed-answer dual judge delta `0/0`，但 prompt diff `18/50`、retrieval diff `31/50` | 不跑 full；list/temporal tier activation 过宽，被 v278 收窄 |
 | `configs/stage1_memory_tier_manifest_v276_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_memory_tier_manifest_v276_full_summary.md` | previous LTS | v276 vs v275 full answer/prompt/route/evidence/retrieval/token diff `0`；tier_manifest seen LME `500/500`、LoCoMo `1540/1540` | 被 v278 继承；把 working/long-term/archival/quarantine tier 纳入 build memory system |
