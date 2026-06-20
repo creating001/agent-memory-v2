@@ -1,0 +1,194 @@
+{
+  "longmemeval_s": {
+    "old_run": "stage1_memory_object_index_v288_lme_full",
+    "new_run": "stage1_memory_workspace_contract_v318_lme_full",
+    "predictions": {
+      "n_old": 500,
+      "n_new": 500,
+      "diff_counts": {
+        "answer": 19,
+        "prediction_object": 19
+      },
+      "first_diffs": {
+        "answer": {
+          "idx": 132,
+          "old_record_key": "cd06f284ad43094e95945ab4",
+          "new_record_key": "cd06f284ad43094e95945ab4",
+          "old_preview": "\"Based on your use of Adobe Premiere Pro, recommended resources include: Adobe Premiere Pro's official documentation and tutorials; YouTube channels like Premiere Bro, Video Copilot, and Adobe Creative Cloud; online courses on platforms like Udemy, LinkedIn Learning, and Skillshare; and communities such as Reddit's r/premierepro and Adobe's Premiere Pro forum.\"",
+          "new_preview": "\"Based on your interest in Adobe Premiere Pro, recommended resources include: Adobe Premiere Pro's official documentation and tutorials; YouTube channels like Premiere Bro, Video Copilot, and Adobe Creative Cloud; online courses on platforms like Udemy, LinkedIn Learning, and Skillshare; and communities such as Reddit's r/premierepro and Adobe's Premiere Pro forum.\""
+        },
+        "prediction_object": {
+          "idx": 132,
+          "old_record_key": "cd06f284ad43094e95945ab4",
+          "new_record_key": "cd06f284ad43094e95945ab4",
+          "old_preview": "{\"answer\":\"Based on your use of Adobe Premiere Pro, recommended resources include: Adobe Premiere Pro's official documentation and tutorials; YouTube channels like Premiere Bro, Video Copilot, and Adobe Creative Cloud; online courses on platforms like Udemy, LinkedIn Learning, and Skillshare; and communities such as Reddit's r/premierepro and Adobe's Premiere Pro forum.\",\"record_key\":\"cd06f284ad43",
+          "new_preview": "{\"answer\":\"Based on your interest in Adobe Premiere Pro, recommended resources include: Adobe Premiere Pro's official documentation and tutorials; YouTube channels like Premiere Bro, Video Copilot, and Adobe Creative Cloud; online courses on platforms like Udemy, LinkedIn Learning, and Skillshare; and communities such as Reddit's r/premierepro and Adobe's Premiere Pro forum.\",\"record_key\":\"cd06f28"
+        }
+      }
+    },
+    "traces": {
+      "n_old": 500,
+      "n_new": 500,
+      "diff_counts": {
+        "prompt": 37,
+        "evidence_rows": 1,
+        "memory_records": 0,
+        "route": 0,
+        "context_chars": 37,
+        "final_hits": 67,
+        "pre_context_budget_hits": 37,
+        "token_cost": 37,
+        "answer_cache": 36,
+        "source_grounded_audit": 0,
+        "consistency_verifier_audit": 0
+      },
+      "first_diffs": {
+        "final_hits": {
+          "idx": 6,
+          "old_record_key": "e15bea5c068bec66283c7674",
+          "new_record_key": "e15bea5c068bec66283c7674",
+          "old_preview": "[{\"matched_terms\":[],\"rank\":1,\"retriever\":\"dense_embedding\",\"score\":0.6942412191638938,\"source_id\":\"answer_9398da02:turn_0002\"},{\"matched_terms\":[],\"rank\":2,\"retriever\":\"dense_embedding\",\"score\":0.6859190679780102,\"source_id\":\"answer_9398da02:turn_0006\"},{\"matched_terms\":[],\"rank\":3,\"retriever\":\"dense_embedding\",\"score\":0.6590942429702848,\"source_id\":\"answer_9398da02:turn_0000\"},{\"matched_terms\":[",
+          "new_preview": "[{\"matched_terms\":[],\"rank\":1,\"retriever\":\"dense_embedding\",\"score\":0.6942412191638938,\"source_id\":\"answer_9398da02:turn_0002\"},{\"matched_terms\":[],\"rank\":2,\"retriever\":\"dense_embedding\",\"score\":0.6859190679780102,\"source_id\":\"answer_9398da02:turn_0006\"},{\"matched_terms\":[],\"rank\":3,\"retriever\":\"dense_embedding\",\"score\":0.6590942429702848,\"source_id\":\"answer_9398da02:turn_0000\"},{\"matched_terms\":["
+        },
+        "pre_context_budget_hits": {
+          "idx": 6,
+          "old_record_key": "e15bea5c068bec66283c7674",
+          "new_record_key": "e15bea5c068bec66283c7674",
+          "old_preview": "[{\"matched_terms\":[],\"rank\":1,\"retriever\":\"dense_embedding\",\"score\":0.6942412191638938,\"source_id\":\"answer_9398da02:turn_0002\"},{\"matched_terms\":[],\"rank\":2,\"retriever\":\"dense_embedding\",\"score\":0.6859190679780102,\"source_id\":\"answer_9398da02:turn_0006\"},{\"matched_terms\":[],\"rank\":3,\"retriever\":\"dense_embedding\",\"score\":0.6590942429702848,\"source_id\":\"answer_9398da02:turn_0000\"},{\"matched_terms\":[",
+          "new_preview": "[{\"matched_terms\":[],\"rank\":1,\"retriever\":\"dense_embedding\",\"score\":0.6942412191638938,\"source_id\":\"answer_9398da02:turn_0002\"},{\"matched_terms\":[],\"rank\":2,\"retriever\":\"dense_embedding\",\"score\":0.6859190679780102,\"source_id\":\"answer_9398da02:turn_0006\"},{\"matched_terms\":[],\"rank\":3,\"retriever\":\"dense_embedding\",\"score\":0.6590942429702848,\"source_id\":\"answer_9398da02:turn_0000\"},{\"matched_terms\":["
+        },
+        "prompt": {
+          "idx": 20,
+          "old_record_key": "be89496871c2b9edcce09c6b",
+          "new_record_key": "be89496871c2b9edcce09c6b",
+          "old_preview": "\"Answer the user's question using only the provided memory context.\\n\\nUser Question:\\nCurrent Date: 2023/05/30 (Tue) 23:27\\nQuestion: What brand are my favorite running shoes?\\n\\nStructured Evidence Guide:\\nUse this compact guide to locate relevant raw Memory Context rows; verify final facts in those rows.\\n- row_index:\\n  - Memory 1: row_date=2023-05-29 role=user matched_terms=brand, running, sh",
+          "new_preview": "\"Answer the user's question using only the provided memory context.\\n\\nUser Question:\\nCurrent Date: 2023/05/30 (Tue) 23:27\\nQuestion: What brand are my favorite running shoes?\\n\\nStructured Evidence Guide:\\nUse this compact guide to locate relevant raw Memory Context rows; verify final facts in those rows.\\n- row_index:\\n  - Memory 1: row_date=2023-05-29 role=user matched_terms=brand, running, sh"
+        },
+        "context_chars": {
+          "idx": 20,
+          "old_record_key": "be89496871c2b9edcce09c6b",
+          "new_record_key": "be89496871c2b9edcce09c6b",
+          "old_preview": "19102",
+          "new_preview": "22842"
+        },
+        "token_cost": {
+          "idx": 20,
+          "old_record_key": "be89496871c2b9edcce09c6b",
+          "new_record_key": "be89496871c2b9edcce09c6b",
+          "old_preview": "{\"build_think_tokens\":0,\"build_tokens\":83069,\"build_total_tokens\":83069,\"query_think_tokens\":0,\"query_tokens\":5941,\"query_total_tokens\":5941}",
+          "new_preview": "{\"build_think_tokens\":0,\"build_tokens\":83069,\"build_total_tokens\":83069,\"query_think_tokens\":0,\"query_tokens\":6723,\"query_total_tokens\":6723}"
+        },
+        "answer_cache": {
+          "idx": 35,
+          "old_record_key": "dbfea355f09572ac6a7492db",
+          "new_record_key": "dbfea355f09572ac6a7492db",
+          "old_preview": "{\"hits\":1,\"misses\":0,\"writes\":0}",
+          "new_preview": "{\"hits\":0,\"misses\":1,\"writes\":1}"
+        },
+        "evidence_rows": {
+          "idx": 149,
+          "old_record_key": "dd0bbac643885d79aa0ac2a2",
+          "new_record_key": "dd0bbac643885d79aa0ac2a2",
+          "old_preview": "[{\"retrieval_rank\":1,\"retrieval_score\":0.5926016672202847,\"role\":\"user\",\"session_id\":\"answer_5e613445\",\"source_id\":\"answer_5e613445:turn_0000\",\"text\":\"I'm considering upgrading from a Fender Stratocaster to a Gibson Les Paul. Can you tell me the main differences between these two guitars?\",\"timestamp\":\"2023/05/25 (Thu) 23:11\",\"turn_index\":0},{\"retrieval_rank\":2,\"retrieval_score\":0.5714887024023723",
+          "new_preview": "[{\"retrieval_rank\":1,\"retrieval_score\":0.5926016672202847,\"role\":\"user\",\"session_id\":\"answer_5e613445\",\"source_id\":\"answer_5e613445:turn_0000\",\"text\":\"I'm considering upgrading from a Fender Stratocaster to a Gibson Les Paul. Can you tell me the main differences between these two guitars?\",\"timestamp\":\"2023/05/25 (Thu) 23:11\",\"turn_index\":0},{\"retrieval_rank\":2,\"retrieval_score\":0.5714887024023723"
+        }
+      }
+    }
+  },
+  "locomo_nonadversarial": {
+    "old_run": "stage1_memory_object_index_v288_locomo_full",
+    "new_run": "stage1_memory_workspace_contract_v318_locomo_full",
+    "predictions": {
+      "n_old": 1540,
+      "n_new": 1540,
+      "diff_counts": {
+        "answer": 59,
+        "prediction_object": 59
+      },
+      "first_diffs": {
+        "answer": {
+          "idx": 19,
+          "old_record_key": "6b6d09d7e82567bbb2a34cf0",
+          "new_record_key": "6b6d09d7e82567bbb2a34cf0",
+          "old_preview": "\"Melanie's kids like pottery workshops, the dinosaur exhibit (learning about animals), camping trips (roasting marshmallows), the beach, and painting.\"",
+          "new_preview": "\"Melanie's kids like pottery workshops (making things with clay), the dinosaur exhibit (learning about animals), and painting together.\""
+        },
+        "prediction_object": {
+          "idx": 19,
+          "old_record_key": "6b6d09d7e82567bbb2a34cf0",
+          "new_record_key": "6b6d09d7e82567bbb2a34cf0",
+          "old_preview": "{\"answer\":\"Melanie's kids like pottery workshops, the dinosaur exhibit (learning about animals), camping trips (roasting marshmallows), the beach, and painting.\",\"record_key\":\"6b6d09d7e82567bbb2a34cf0\"}",
+          "new_preview": "{\"answer\":\"Melanie's kids like pottery workshops (making things with clay), the dinosaur exhibit (learning about animals), and painting together.\",\"record_key\":\"6b6d09d7e82567bbb2a34cf0\"}"
+        }
+      }
+    },
+    "traces": {
+      "n_old": 1540,
+      "n_new": 1540,
+      "diff_counts": {
+        "prompt": 124,
+        "evidence_rows": 91,
+        "memory_records": 0,
+        "route": 0,
+        "context_chars": 124,
+        "final_hits": 117,
+        "pre_context_budget_hits": 10,
+        "token_cost": 123,
+        "answer_cache": 123,
+        "source_grounded_audit": 0,
+        "consistency_verifier_audit": 0
+      },
+      "first_diffs": {
+        "prompt": {
+          "idx": 10,
+          "old_record_key": "2e1bec427ee013ed30f80431",
+          "new_record_key": "2e1bec427ee013ed30f80431",
+          "old_preview": "\"Answer the user's question using only the provided memory context.\\n\\nUser Question:\\nHow long has Caroline had her current group of friends for?\\n\\nStructured Evidence Guide:\\nUse this compact guide to locate relevant raw Memory Context rows; verify final facts in those rows.\\n- row_index:\\n  - Memory 1: row_date=2023-06-09 role=Caroline matched_terms=friends\\n  - Memory 2: row_date=2023-08-25 r",
+          "new_preview": "\"Answer the user's question using only the provided memory context.\\n\\nUser Question:\\nHow long has Caroline had her current group of friends for?\\n\\nStructured Evidence Guide:\\nUse this compact guide to locate relevant raw Memory Context rows; verify final facts in those rows.\\n- row_index:\\n  - Memory 1: row_date=2023-06-09 role=Caroline matched_terms=friends\\n  - Memory 2: row_date=2023-08-25 r"
+        },
+        "context_chars": {
+          "idx": 10,
+          "old_record_key": "2e1bec427ee013ed30f80431",
+          "new_record_key": "2e1bec427ee013ed30f80431",
+          "old_preview": "17878",
+          "new_preview": "21590"
+        },
+        "token_cost": {
+          "idx": 10,
+          "old_record_key": "2e1bec427ee013ed30f80431",
+          "new_record_key": "2e1bec427ee013ed30f80431",
+          "old_preview": "{\"build_think_tokens\":0,\"build_tokens\":45868,\"build_total_tokens\":45868,\"query_think_tokens\":0,\"query_tokens\":6387,\"query_total_tokens\":6387}",
+          "new_preview": "{\"build_think_tokens\":0,\"build_tokens\":45868,\"build_total_tokens\":45868,\"query_think_tokens\":0,\"query_tokens\":7334,\"query_total_tokens\":7334}"
+        },
+        "answer_cache": {
+          "idx": 10,
+          "old_record_key": "2e1bec427ee013ed30f80431",
+          "new_record_key": "2e1bec427ee013ed30f80431",
+          "old_preview": "{\"hits\":1,\"misses\":0,\"writes\":0}",
+          "new_preview": "{\"hits\":0,\"misses\":1,\"writes\":1}"
+        },
+        "final_hits": {
+          "idx": 34,
+          "old_record_key": "5e011cc0e92cdb6f16e40633",
+          "new_record_key": "5e011cc0e92cdb6f16e40633",
+          "old_preview": "[{\"matched_terms\":[],\"rank\":1,\"retriever\":\"dense_embedding\",\"score\":0.5973429005952545,\"source_id\":\"D15:9\"},{\"matched_terms\":[],\"rank\":2,\"retriever\":\"dense_embedding\",\"score\":0.575854805274596,\"source_id\":\"D15:10\"},{\"matched_terms\":[],\"rank\":3,\"retriever\":\"dense_embedding\",\"score\":0.5693675046415333,\"source_id\":\"D9:3\"},{\"matched_terms\":[],\"rank\":4,\"retriever\":\"dense_embedding\",\"score\":0.5689893248",
+          "new_preview": "[{\"matched_terms\":[],\"rank\":1,\"retriever\":\"dense_embedding\",\"score\":0.5973429005952545,\"source_id\":\"D15:9\"},{\"matched_terms\":[],\"rank\":2,\"retriever\":\"dense_embedding\",\"score\":0.575854805274596,\"source_id\":\"D15:10\"},{\"matched_terms\":[],\"rank\":3,\"retriever\":\"dense_embedding\",\"score\":0.5693675046415333,\"source_id\":\"D9:3\"},{\"matched_terms\":[],\"rank\":4,\"retriever\":\"dense_embedding\",\"score\":0.5689893248"
+        },
+        "evidence_rows": {
+          "idx": 38,
+          "old_record_key": "d5068b3c68a955ba6cdfe705",
+          "new_record_key": "d5068b3c68a955ba6cdfe705",
+          "old_preview": "[{\"retrieval_rank\":1,\"retrieval_score\":0.6335891779108138,\"role\":\"Melanie\",\"session_id\":\"session_12\",\"source_id\":\"D12:16\",\"text\":\"Local dialogue context from the same session:\\n- nearby turn (1:50 pm on 17 August, 2023) | Caroline: I'm always here for you, Mel! We had a blast last year at the Pride fest. Those supportive friends definitely make everything worth it!\\n- selected turn (1:50 pm on 17 ",
+          "new_preview": "[{\"retrieval_rank\":1,\"retrieval_score\":0.6335891779108138,\"role\":\"Melanie\",\"session_id\":\"session_12\",\"source_id\":\"D12:16\",\"text\":\"Local dialogue context from the same session:\\n- nearby turn (1:50 pm on 17 August, 2023) | Caroline: I'm always here for you, Mel! We had a blast last year at the Pride fest. Those supportive friends definitely make everything worth it!\\n- selected turn (1:50 pm on 17 "
+        },
+        "pre_context_budget_hits": {
+          "idx": 38,
+          "old_record_key": "d5068b3c68a955ba6cdfe705",
+          "new_record_key": "d5068b3c68a955ba6cdfe705",
+          "old_preview": "[{\"matched_terms\":[],\"rank\":1,\"retriever\":\"dense_embedding\",\"score\":0.6335891779108138,\"source_id\":\"D12:16\"},{\"matched_terms\":[],\"rank\":2,\"retriever\":\"dense_embedding\",\"score\":0.6310073700048425,\"source_id\":\"D8:29\"},{\"matched_terms\":[],\"rank\":3,\"retriever\":\"dense_embedding\",\"score\":0.6062302593752052,\"source_id\":\"D18:15\"},{\"matched_terms\":[],\"rank\":4,\"retriever\":\"dense_embedding\",\"score\":0.6039400",
+          "new_preview": "[{\"matched_terms\":[],\"rank\":1,\"retriever\":\"dense_embedding\",\"score\":0.6335891779108138,\"source_id\":\"D12:16\"},{\"matched_terms\":[],\"rank\":2,\"retriever\":\"dense_embedding\",\"score\":0.6310073700048425,\"source_id\":\"D8:29\"},{\"matched_terms\":[],\"rank\":3,\"retriever\":\"dense_embedding\",\"score\":0.6062302593752052,\"source_id\":\"D18:15\"},{\"matched_terms\":[],\"rank\":4,\"retriever\":\"dense_embedding\",\"score\":0.6039400"
+        }
+      }
+    }
+  }
+}

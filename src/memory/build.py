@@ -1215,6 +1215,7 @@ def _memory_system_object_schema() -> dict[str, Any]:
             "memory_system_state",
             "memory_operation_journal",
             "memory_workspace_contract",
+            "memory_workspace_snapshot",
         ],
         "governance_signals": [
             "source_activation_ready",
@@ -1242,6 +1243,7 @@ def _memory_system_object_schema() -> dict[str, Any]:
             "build_owned_memory_system_state",
             "build_owned_memory_operation_journal",
             "build_owned_memory_workspace_contract",
+            "build_owned_memory_workspace_snapshot",
         ],
     }
 
@@ -1362,6 +1364,11 @@ def _memory_object_index_manifest(
         memory_system_state=memory_system_state,
         memory_operation_journal=operation_journal,
         layer_manifest=layer_manifest,
+    )
+    workspace_snapshot = _memory_workspace_snapshot(
+        memory_system_state=memory_system_state,
+        memory_operation_journal=operation_journal,
+        memory_workspace_contract=workspace_contract,
     )
     object_samples = [
         {
@@ -1485,6 +1492,12 @@ def _memory_object_index_manifest(
         "memory_workspace_contract_anchor_source_count": (
             workspace_contract["context_anchor_source_count"]
         ),
+        "memory_workspace_snapshot_state_worklist_count": workspace_snapshot[
+            "state_worklist_count"
+        ],
+        "memory_workspace_snapshot_verifier_worklist_count": workspace_snapshot[
+            "verifier_worklist_count"
+        ],
         "source_backed_object_count": sum(
             1 for record in managed_records if record.source_ids
         ),
@@ -1674,6 +1687,21 @@ def _memory_object_index_manifest(
                     "memory objects final evidence"
                 ),
             },
+            "memory_workspace_snapshot_contract": {
+                "snapshot_field": "memory_workspace_snapshot",
+                "schema_version": "memory_workspace_snapshot_v1",
+                "sources": [
+                    "memory_system_state",
+                    "memory_operation_journal",
+                    "memory_workspace_contract",
+                ],
+                "policy": (
+                    "compact system-level snapshot for state management, "
+                    "conflict handling, context organization, answer verifier "
+                    "worklists, and audit; it is source-backed and final facts "
+                    "still resolve through raw Memory rows"
+                ),
+            },
             "state_conflict_contract": {
                 "slot_index_field": "state_conflict_slot_index",
                 "slot_scope": "same memory_type, subject, predicate",
@@ -1698,6 +1726,7 @@ def _memory_object_index_manifest(
         "memory_system_state": memory_system_state,
         "memory_operation_journal": operation_journal,
         "memory_workspace_contract": workspace_contract,
+        "memory_workspace_snapshot": workspace_snapshot,
         "state_conflict_slot_ids": sorted(str(slot_id) for slot_id in conflict_slot_ids),
         "clean_note": (
             "Question-independent build memory object index. It unifies tier, "
@@ -2021,6 +2050,18 @@ def _memory_layer_manifest_extend_unique(
 
 def _memory_layer_manifest_increment(counts: dict[str, int], key: str) -> None:
     counts[key] = int(counts.get(key) or 0) + 1
+
+
+def _mapping_int_counts(value: Any) -> dict[str, int]:
+    if not isinstance(value, dict):
+        return {}
+    counts: dict[str, int] = {}
+    for key, raw_count in value.items():
+        try:
+            counts[str(key)] = int(raw_count)
+        except (TypeError, ValueError):
+            counts[str(key)] = 0
+    return dict(sorted(counts.items()))
 
 
 def _memory_operation_api(
@@ -3398,6 +3439,296 @@ def _memory_workspace_contract(
             "feedback; final answer evidence remains raw source rows."
         ),
     }
+
+
+def _memory_workspace_snapshot(
+    *,
+    memory_system_state: dict[str, Any],
+    memory_operation_journal: dict[str, Any],
+    memory_workspace_contract: dict[str, Any],
+) -> dict[str, Any]:
+    """Compact system snapshot over layered memory state and operations.
+
+    The snapshot is intentionally small: it exposes the system's memory model
+    and bounded worklists without copying all lower-level entries into another
+    large object.
+    """
+
+    state_entries = [
+        entry
+        for entry in memory_system_state.get("entries") or ()
+        if isinstance(entry, dict)
+    ]
+    journal_entries = [
+        entry
+        for entry in memory_operation_journal.get("entries") or ()
+        if isinstance(entry, dict)
+    ]
+    contract_layers = memory_workspace_contract.get("layers")
+    if not isinstance(contract_layers, dict):
+        contract_layers = {}
+
+    layer_order = _ordered_strings(
+        memory_workspace_contract.get("layer_order")
+        or memory_system_state.get("layer_order")
+        or contract_layers.keys()
+        or _memory_working_view_layer_contract().keys()
+    )
+    operation_counts = _mapping_int_counts(
+        memory_workspace_contract.get("operation_counts")
+        or memory_operation_journal.get("operation_counts")
+    )
+    family_counts = _mapping_int_counts(
+        memory_workspace_contract.get("family_counts")
+        or memory_operation_journal.get("family_counts")
+    )
+    decision_counts = _mapping_int_counts(memory_system_state.get("decision_counts"))
+    context_action_counts = _mapping_int_counts(
+        memory_system_state.get("context_action_counts")
+    )
+    verifier_check_counts = _mapping_int_counts(
+        memory_system_state.get("verifier_check_counts")
+    )
+
+    memory_type_counts: dict[str, int] = defaultdict(int)
+    layer_counts: dict[str, int] = defaultdict(int)
+    source_expansion_ids: list[str] = []
+    state_worklists = {
+        "current_state": [],
+        "conflict_chain": [],
+        "temporal_validity": [],
+        "long_term_recall": [],
+        "archival_history": [],
+        "quarantine_audit": [],
+    }
+    verifier_worklists = {
+        "source_backing": [],
+        "raw_row_expansion": [],
+        "state_conflict": [],
+        "temporal_validity": [],
+        "audit_only": [],
+    }
+
+    for entry in state_entries:
+        memory_type = str(entry.get("memory_type") or "unknown")
+        memory_layer = str(entry.get("memory_layer") or "long_term_memory")
+        focus = str(entry.get("focus") or "long_term_recall")
+        memory_type_counts[memory_type] += 1
+        layer_counts[memory_layer] += 1
+        source_ids = _memory_workspace_contract_entry_source_ids(entry)
+        _memory_layer_manifest_extend_unique(
+            source_expansion_ids,
+            source_ids,
+            max_items=128,
+        )
+        _memory_workspace_snapshot_add_worklist_item(
+            state_worklists,
+            key=_memory_workspace_snapshot_state_key(focus, memory_layer),
+            entry=entry,
+            source_ids=source_ids,
+            max_items=16,
+        )
+        for check in _ordered_strings(entry.get("verifier_checks") or ()):
+            _memory_workspace_snapshot_add_worklist_item(
+                verifier_worklists,
+                key=_memory_workspace_snapshot_verifier_key(check),
+                entry=entry,
+                source_ids=source_ids,
+                max_items=16,
+            )
+
+    for entry in journal_entries:
+        source_ids = _memory_workspace_contract_entry_source_ids(entry)
+        _memory_layer_manifest_extend_unique(
+            source_expansion_ids,
+            source_ids,
+            max_items=128,
+        )
+
+    layers = {}
+    for layer in layer_order:
+        summary = contract_layers.get(layer)
+        if not isinstance(summary, dict):
+            summary = {}
+        layers[layer] = {
+            "memory_layer": layer,
+            "context_role": _memory_context_interface_role_name(layer),
+            "entry_count": int(
+                layer_counts.get(layer)
+                or summary.get("entry_count")
+                or 0
+            ),
+            "source_count": int(summary.get("source_count") or 0),
+            "query_supplied": layer == "short_term_memory",
+            "persisted_by_build": layer != "short_term_memory",
+            "allowed_operations": _memory_context_interface_role_operations(layer),
+            "context_policy": summary.get("context_policy")
+            or _memory_workspace_layer_context_policy(layer),
+        }
+
+    state_worklists = {
+        key: items for key, items in state_worklists.items() if items
+    }
+    verifier_worklists = {
+        key: items for key, items in verifier_worklists.items() if items
+    }
+    state_worklist_counts = {
+        key: len(items) for key, items in state_worklists.items()
+    }
+    verifier_worklist_counts = {
+        key: len(items) for key, items in verifier_worklists.items()
+    }
+    operation_readiness = {
+        operation: bool(operation_counts.get(operation))
+        for operation in _memory_working_view_operation_contract()
+    }
+    context_lanes = {
+        "short_term": {
+            "memory_layer": "short_term_memory",
+            "source": "query_visible_raw_rows",
+            "purpose": "preserve recent raw evidence without build-time rewrite",
+        },
+        "working_state": {
+            "memory_layer": "working_memory",
+            "worklists": [
+                key
+                for key in ("current_state", "conflict_chain")
+                if key in state_worklists
+            ],
+            "purpose": "activate current state and conflicts before answer",
+        },
+        "long_term": {
+            "memory_layer": "long_term_memory",
+            "worklists": [
+                key
+                for key in ("long_term_recall", "temporal_validity")
+                if key in state_worklists
+            ],
+            "purpose": "recall stable source-backed memory with raw expansion",
+        },
+        "archival": {
+            "memory_layer": "archival_memory",
+            "worklists": [
+                key for key in ("archival_history",) if key in state_worklists
+            ],
+            "purpose": "keep superseded history for temporal and update questions",
+        },
+        "verifier": {
+            "memory_layer": "working_memory",
+            "worklists": sorted(verifier_worklists.keys()),
+            "purpose": "feed source-backed checks to answer verifier and audit",
+        },
+    }
+
+    return {
+        "schema_version": "memory_workspace_snapshot_v1",
+        "trace_only": False,
+        "applied": bool(state_entries or journal_entries or layers),
+        "interface_sources": [
+            "memory_system_state",
+            "memory_operation_journal",
+            "memory_workspace_contract",
+        ],
+        "layer_count": len(layers),
+        "state_entry_count": len(state_entries),
+        "journal_entry_count": len(journal_entries),
+        "source_expansion_source_ids": source_expansion_ids,
+        "source_expansion_source_count": len(source_expansion_ids),
+        "operation_counts": operation_counts,
+        "operation_family_counts": family_counts,
+        "operation_readiness": operation_readiness,
+        "decision_counts": decision_counts,
+        "context_action_counts": context_action_counts,
+        "verifier_check_counts": verifier_check_counts,
+        "memory_type_counts": dict(sorted(memory_type_counts.items())),
+        "layer_counts": dict(sorted(layer_counts.items())),
+        "layers": layers,
+        "state_worklists": state_worklists,
+        "state_worklist_counts": state_worklist_counts,
+        "state_worklist_count": sum(state_worklist_counts.values()),
+        "verifier_worklists": verifier_worklists,
+        "verifier_worklist_counts": verifier_worklist_counts,
+        "verifier_worklist_count": sum(verifier_worklist_counts.values()),
+        "context_lanes": context_lanes,
+        "system_design": {
+            "memory_is_system_state": True,
+            "build_stage_roles": [
+                "organize_memory_layers",
+                "maintain_lifecycle_operations",
+                "prepare_state_and_conflict_worklists",
+                "prepare_context_organization_lanes",
+                "prepare_verifier_worklists",
+            ],
+            "inspired_by": [
+                "MemoryOS layered short/mid/long memory",
+                "MIRIX multi-type memory sectors",
+                "Graphiti/Zep temporal provenance and non-destructive invalidation",
+                "Hindsight multi-view source-backed recall",
+                "LightMem/SimpleMem token-aware context activation",
+            ],
+        },
+        "source_policy": {
+            "raw_evidence_required": True,
+            "final_evidence_policy": "raw_source_rows",
+            "question_independent_build": True,
+            "memory_objects_are_not_final_evidence": True,
+            "physical_delete_allowed": False,
+        },
+        "clean_note": (
+            "Question-independent compact memory workspace snapshot. It makes "
+            "build memory behave as a layered system with state/conflict/"
+            "temporal/long-term worklists, context lanes, operation readiness, "
+            "and verifier worklists. It uses only raw conversation-derived "
+            "memory state and never uses question text, gold answers, judge "
+            "outputs, benchmark labels, sample ids, or test feedback; final "
+            "answer evidence remains raw source rows."
+        ),
+    }
+
+
+def _memory_workspace_snapshot_add_worklist_item(
+    worklists: dict[str, list[dict[str, Any]]],
+    *,
+    key: str,
+    entry: dict[str, Any],
+    source_ids: list[str],
+    max_items: int,
+) -> None:
+    if key not in worklists or len(worklists[key]) >= max_items:
+        return
+    worklists[key].append(
+        {
+            "state_id": str(entry.get("state_id") or ""),
+            "memory_layer": str(entry.get("memory_layer") or ""),
+            "memory_type": str(entry.get("memory_type") or ""),
+            "manager_decision": str(entry.get("manager_decision") or ""),
+            "focus": str(entry.get("focus") or ""),
+            "target_type": str(entry.get("target_type") or ""),
+            "source_ids": source_ids[:8],
+            "source_count": len(source_ids),
+        }
+    )
+
+
+def _memory_workspace_snapshot_state_key(focus: str, memory_layer: str) -> str:
+    if focus in {"current_state", "conflict_chain", "temporal_validity"}:
+        return focus
+    if memory_layer == "archival_memory":
+        return "archival_history"
+    if memory_layer == "quarantine_memory":
+        return "quarantine_audit"
+    return "long_term_recall"
+
+
+def _memory_workspace_snapshot_verifier_key(check: str) -> str:
+    if check in {
+        "source_backing",
+        "raw_row_expansion",
+        "state_conflict",
+        "temporal_validity",
+    }:
+        return check
+    return "audit_only"
 
 
 def _memory_workspace_contract_entry_source_ids(entry: dict[str, Any]) -> list[str]:

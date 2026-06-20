@@ -325,6 +325,19 @@ def main() -> int:
     build_memory_system_graph_memory_object_index_memory_workspace_contract_readiness_counts: dict[
         str, int
     ] = {}
+    total_build_memory_system_graph_index_memory_workspace_snapshot_applied = 0
+    total_build_memory_system_graph_index_memory_workspace_snapshot_state_worklists = 0
+    total_build_memory_system_graph_index_memory_workspace_snapshot_verifier_worklists = 0
+    total_build_memory_system_graph_index_memory_workspace_snapshot_source_expansion_sources = 0
+    build_memory_system_graph_memory_object_index_memory_workspace_snapshot_state_worklist_counts: dict[
+        str, int
+    ] = {}
+    build_memory_system_graph_memory_object_index_memory_workspace_snapshot_verifier_worklist_counts: dict[
+        str, int
+    ] = {}
+    build_memory_system_graph_memory_object_index_memory_workspace_snapshot_operation_readiness_counts: dict[
+        str, int
+    ] = {}
     total_build_memory_system_graph_index_layer_manifest_applied = 0
     total_build_memory_system_graph_index_layer_manifest_entries = 0
     build_memory_system_graph_memory_object_index_layer_manifest_layer_entries: dict[
@@ -382,6 +395,11 @@ def main() -> int:
     total_answer_verifier_memory_operation_journal_final_evidence = 0
     answer_verifier_memory_operation_journal_operation_counts: dict[str, int] = {}
     answer_verifier_memory_operation_journal_family_counts: dict[str, int] = {}
+    total_answer_verifier_memory_workspace_snapshot_available = 0
+    total_answer_verifier_memory_workspace_snapshot_final_evidence = 0
+    answer_verifier_memory_workspace_snapshot_state_worklist_counts: dict[str, int] = {}
+    answer_verifier_memory_workspace_snapshot_verifier_worklist_counts: dict[str, int] = {}
+    answer_verifier_memory_workspace_snapshot_operation_readiness_counts: dict[str, int] = {}
     total_answer_verifier_consistency_audit_applied = 0
     total_answer_verifier_consistency_valid_support_rows = 0
     total_answer_verifier_consistency_risk_samples = 0
@@ -1243,6 +1261,43 @@ def main() -> int:
                                     )
                                     + 1
                                 )
+                workspace_snapshot = (
+                    memory_object_index.get("memory_workspace_snapshot") or {}
+                )
+                if isinstance(
+                    workspace_snapshot, Mapping
+                ) and workspace_snapshot.get("applied"):
+                    total_build_memory_system_graph_index_memory_workspace_snapshot_applied += 1
+                    total_build_memory_system_graph_index_memory_workspace_snapshot_state_worklists += int(
+                        workspace_snapshot.get("state_worklist_count") or 0
+                    )
+                    total_build_memory_system_graph_index_memory_workspace_snapshot_verifier_worklists += int(
+                        workspace_snapshot.get("verifier_worklist_count") or 0
+                    )
+                    total_build_memory_system_graph_index_memory_workspace_snapshot_source_expansion_sources += int(
+                        workspace_snapshot.get("source_expansion_source_count") or 0
+                    )
+                    _merge_int_counts(
+                        build_memory_system_graph_memory_object_index_memory_workspace_snapshot_state_worklist_counts,
+                        workspace_snapshot.get("state_worklist_counts") or {},
+                    )
+                    _merge_int_counts(
+                        build_memory_system_graph_memory_object_index_memory_workspace_snapshot_verifier_worklist_counts,
+                        workspace_snapshot.get("verifier_worklist_counts") or {},
+                    )
+                    readiness = workspace_snapshot.get("operation_readiness") or {}
+                    if isinstance(readiness, Mapping):
+                        for key, value in readiness.items():
+                            if bool(value):
+                                build_memory_system_graph_memory_object_index_memory_workspace_snapshot_operation_readiness_counts[
+                                    str(key)
+                                ] = (
+                                    build_memory_system_graph_memory_object_index_memory_workspace_snapshot_operation_readiness_counts.get(
+                                        str(key),
+                                        0,
+                                    )
+                                    + 1
+                                )
                 layer_manifest = memory_object_index.get("memory_layer_manifest") or {}
                 if isinstance(layer_manifest, Mapping) and layer_manifest.get(
                     "applied"
@@ -1452,6 +1507,43 @@ def main() -> int:
                 answer_verifier_memory_operation_journal_family_counts,
                 answer_verifier.get("memory_operation_journal_family_counts") or {},
             )
+            if answer_verifier.get("memory_workspace_snapshot_available"):
+                total_answer_verifier_memory_workspace_snapshot_available += 1
+            total_answer_verifier_memory_workspace_snapshot_final_evidence += int(
+                answer_verifier.get(
+                    "memory_workspace_snapshot_final_evidence_count"
+                )
+                or 0
+            )
+            _merge_int_counts(
+                answer_verifier_memory_workspace_snapshot_state_worklist_counts,
+                answer_verifier.get(
+                    "memory_workspace_snapshot_state_worklist_counts"
+                )
+                or {},
+            )
+            _merge_int_counts(
+                answer_verifier_memory_workspace_snapshot_verifier_worklist_counts,
+                answer_verifier.get(
+                    "memory_workspace_snapshot_verifier_worklist_counts"
+                )
+                or {},
+            )
+            readiness = answer_verifier.get(
+                "memory_workspace_snapshot_operation_readiness"
+            )
+            if isinstance(readiness, Mapping):
+                for key, value in readiness.items():
+                    if bool(value):
+                        answer_verifier_memory_workspace_snapshot_operation_readiness_counts[
+                            str(key)
+                        ] = (
+                            answer_verifier_memory_workspace_snapshot_operation_readiness_counts.get(
+                                str(key),
+                                0,
+                            )
+                            + 1
+                        )
             if answer_verifier.get("consistency_audit_applied"):
                 total_answer_verifier_consistency_audit_applied += 1
             total_answer_verifier_consistency_valid_support_rows += int(
@@ -2938,6 +3030,42 @@ def main() -> int:
                     build_memory_system_graph_memory_object_index_memory_workspace_contract_readiness_counts.items()
                 )
             ),
+            "memory_system_graph_memory_object_index_memory_workspace_snapshot_applied_count": (
+                total_build_memory_system_graph_index_memory_workspace_snapshot_applied
+            ),
+            "avg_memory_system_graph_memory_object_index_memory_workspace_snapshot_state_worklists": (
+                _safe_average(
+                    total_build_memory_system_graph_index_memory_workspace_snapshot_state_worklists,
+                    total_build_memory_system_graph_index_memory_workspace_snapshot_applied,
+                )
+            ),
+            "avg_memory_system_graph_memory_object_index_memory_workspace_snapshot_verifier_worklists": (
+                _safe_average(
+                    total_build_memory_system_graph_index_memory_workspace_snapshot_verifier_worklists,
+                    total_build_memory_system_graph_index_memory_workspace_snapshot_applied,
+                )
+            ),
+            "avg_memory_system_graph_memory_object_index_memory_workspace_snapshot_source_expansion_sources": (
+                _safe_average(
+                    total_build_memory_system_graph_index_memory_workspace_snapshot_source_expansion_sources,
+                    total_build_memory_system_graph_index_memory_workspace_snapshot_applied,
+                )
+            ),
+            "memory_system_graph_memory_object_index_memory_workspace_snapshot_state_worklist_counts": dict(
+                sorted(
+                    build_memory_system_graph_memory_object_index_memory_workspace_snapshot_state_worklist_counts.items()
+                )
+            ),
+            "memory_system_graph_memory_object_index_memory_workspace_snapshot_verifier_worklist_counts": dict(
+                sorted(
+                    build_memory_system_graph_memory_object_index_memory_workspace_snapshot_verifier_worklist_counts.items()
+                )
+            ),
+            "memory_system_graph_memory_object_index_memory_workspace_snapshot_operation_readiness_counts": dict(
+                sorted(
+                    build_memory_system_graph_memory_object_index_memory_workspace_snapshot_operation_readiness_counts.items()
+                )
+            ),
             "avg_memory_system_graph_memory_object_index_layer_manifest_entries": (
                 _safe_average(
                     total_build_memory_system_graph_index_layer_manifest_entries,
@@ -3152,6 +3280,32 @@ def main() -> int:
             ),
             "verifier_memory_operation_journal_family_counts": dict(
                 sorted(answer_verifier_memory_operation_journal_family_counts.items())
+            ),
+            "verifier_memory_workspace_snapshot_available_count": (
+                total_answer_verifier_memory_workspace_snapshot_available
+            ),
+            "verifier_memory_workspace_snapshot_available_rate": _safe_average(
+                total_answer_verifier_memory_workspace_snapshot_available,
+                total_answer_verifier_applied,
+            ),
+            "verifier_avg_memory_workspace_snapshot_final_evidence": _safe_average(
+                total_answer_verifier_memory_workspace_snapshot_final_evidence,
+                total_answer_verifier_applied,
+            ),
+            "verifier_memory_workspace_snapshot_state_worklist_counts": dict(
+                sorted(
+                    answer_verifier_memory_workspace_snapshot_state_worklist_counts.items()
+                )
+            ),
+            "verifier_memory_workspace_snapshot_verifier_worklist_counts": dict(
+                sorted(
+                    answer_verifier_memory_workspace_snapshot_verifier_worklist_counts.items()
+                )
+            ),
+            "verifier_memory_workspace_snapshot_operation_readiness_counts": dict(
+                sorted(
+                    answer_verifier_memory_workspace_snapshot_operation_readiness_counts.items()
+                )
             ),
             "verifier_consistency_audit_applied_count": (
                 total_answer_verifier_consistency_audit_applied
@@ -4128,6 +4282,12 @@ def _write_summary(
         f"- avg_build_memory_system_graph_memory_object_index_memory_workspace_contract_anchor_sources: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_memory_workspace_contract_anchor_sources']}",
         f"- build_memory_system_graph_memory_object_index_memory_workspace_contract_operation_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_workspace_contract_operation_counts']}",
         f"- build_memory_system_graph_memory_object_index_memory_workspace_contract_readiness_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_workspace_contract_readiness_counts']}",
+        f"- build_memory_system_graph_memory_object_index_memory_workspace_snapshot_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_workspace_snapshot_applied_count']}",
+        f"- avg_build_memory_system_graph_memory_object_index_memory_workspace_snapshot_state_worklists: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_memory_workspace_snapshot_state_worklists']}",
+        f"- avg_build_memory_system_graph_memory_object_index_memory_workspace_snapshot_verifier_worklists: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_memory_workspace_snapshot_verifier_worklists']}",
+        f"- build_memory_system_graph_memory_object_index_memory_workspace_snapshot_state_worklist_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_workspace_snapshot_state_worklist_counts']}",
+        f"- build_memory_system_graph_memory_object_index_memory_workspace_snapshot_verifier_worklist_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_workspace_snapshot_verifier_worklist_counts']}",
+        f"- build_memory_system_graph_memory_object_index_memory_workspace_snapshot_operation_readiness_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_workspace_snapshot_operation_readiness_counts']}",
         f"- build_memory_system_graph_memory_object_index_layer_manifest_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_layer_manifest_applied_count']}",
         f"- avg_build_memory_system_graph_memory_object_index_layer_manifest_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_layer_manifest_entries']}",
         f"- build_memory_system_graph_memory_object_index_layer_manifest_layer_entries: {metrics['build_memory']['memory_system_graph_memory_object_index_layer_manifest_layer_entries']}",
@@ -4375,6 +4535,12 @@ def _write_summary(
         f"- answer_verifier_avg_memory_operation_journal_final_evidence: {metrics['answer']['verifier_avg_memory_operation_journal_final_evidence']}",
         f"- answer_verifier_memory_operation_journal_operation_counts: {metrics['answer']['verifier_memory_operation_journal_operation_counts']}",
         f"- answer_verifier_memory_operation_journal_family_counts: {metrics['answer']['verifier_memory_operation_journal_family_counts']}",
+        f"- answer_verifier_memory_workspace_snapshot_available_count: {metrics['answer']['verifier_memory_workspace_snapshot_available_count']}",
+        f"- answer_verifier_memory_workspace_snapshot_available_rate: {metrics['answer']['verifier_memory_workspace_snapshot_available_rate']}",
+        f"- answer_verifier_avg_memory_workspace_snapshot_final_evidence: {metrics['answer']['verifier_avg_memory_workspace_snapshot_final_evidence']}",
+        f"- answer_verifier_memory_workspace_snapshot_state_worklist_counts: {metrics['answer']['verifier_memory_workspace_snapshot_state_worklist_counts']}",
+        f"- answer_verifier_memory_workspace_snapshot_verifier_worklist_counts: {metrics['answer']['verifier_memory_workspace_snapshot_verifier_worklist_counts']}",
+        f"- answer_verifier_memory_workspace_snapshot_operation_readiness_counts: {metrics['answer']['verifier_memory_workspace_snapshot_operation_readiness_counts']}",
         f"- answer_verifier_consistency_audit_applied_count: {metrics['answer']['verifier_consistency_audit_applied_count']}",
         f"- answer_verifier_consistency_audit_applied_rate: {metrics['answer']['verifier_consistency_audit_applied_rate']}",
         f"- answer_verifier_avg_consistency_valid_support_rows: {metrics['answer']['verifier_avg_consistency_valid_support_rows']}",
@@ -4666,6 +4832,12 @@ def _write_diagnosis(
         f"- avg_build_memory_system_graph_memory_object_index_memory_workspace_contract_anchor_sources: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_memory_workspace_contract_anchor_sources']}",
         f"- build_memory_system_graph_memory_object_index_memory_workspace_contract_operation_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_workspace_contract_operation_counts']}",
         f"- build_memory_system_graph_memory_object_index_memory_workspace_contract_readiness_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_workspace_contract_readiness_counts']}",
+        f"- build_memory_system_graph_memory_object_index_memory_workspace_snapshot_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_workspace_snapshot_applied_count']}",
+        f"- avg_build_memory_system_graph_memory_object_index_memory_workspace_snapshot_state_worklists: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_memory_workspace_snapshot_state_worklists']}",
+        f"- avg_build_memory_system_graph_memory_object_index_memory_workspace_snapshot_verifier_worklists: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_memory_workspace_snapshot_verifier_worklists']}",
+        f"- build_memory_system_graph_memory_object_index_memory_workspace_snapshot_state_worklist_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_workspace_snapshot_state_worklist_counts']}",
+        f"- build_memory_system_graph_memory_object_index_memory_workspace_snapshot_verifier_worklist_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_workspace_snapshot_verifier_worklist_counts']}",
+        f"- build_memory_system_graph_memory_object_index_memory_workspace_snapshot_operation_readiness_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_workspace_snapshot_operation_readiness_counts']}",
         f"- build_memory_system_graph_memory_object_index_layer_manifest_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_layer_manifest_applied_count']}",
         f"- avg_build_memory_system_graph_memory_object_index_layer_manifest_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_layer_manifest_entries']}",
         f"- build_memory_system_graph_memory_object_index_layer_manifest_layer_entries: {metrics['build_memory']['memory_system_graph_memory_object_index_layer_manifest_layer_entries']}",

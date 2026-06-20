@@ -158,6 +158,11 @@ class AnswerSupportAudit:
     memory_operation_journal_final_evidence_count: int
     memory_operation_journal_operation_counts: dict[str, int]
     memory_operation_journal_family_counts: dict[str, int]
+    memory_workspace_snapshot_available: bool
+    memory_workspace_snapshot_final_evidence_count: int
+    memory_workspace_snapshot_state_worklist_counts: dict[str, int]
+    memory_workspace_snapshot_verifier_worklist_counts: dict[str, int]
+    memory_workspace_snapshot_operation_readiness: dict[str, bool]
     consistency_audit_applied: bool
     consistency_valid_support_row_count: int
     consistency_dimension_counts: dict[str, int]
@@ -232,6 +237,7 @@ def audit_answer_support(
     working_plan = _working_compiler_plan_audit(context_manifest)
     system_state = _memory_system_state_audit(context_manifest)
     operation_journal = _memory_operation_journal_audit(context_manifest)
+    workspace_snapshot = _memory_workspace_snapshot_audit(context_manifest)
     consistency = _consistency_audit(
         compiled=compiled,
         response_answer=response_answer,
@@ -318,6 +324,19 @@ def audit_answer_support(
             "operation_counts"
         ],
         memory_operation_journal_family_counts=operation_journal["family_counts"],
+        memory_workspace_snapshot_available=workspace_snapshot["available"],
+        memory_workspace_snapshot_final_evidence_count=workspace_snapshot[
+            "final_evidence_count"
+        ],
+        memory_workspace_snapshot_state_worklist_counts=workspace_snapshot[
+            "state_worklist_counts"
+        ],
+        memory_workspace_snapshot_verifier_worklist_counts=workspace_snapshot[
+            "verifier_worklist_counts"
+        ],
+        memory_workspace_snapshot_operation_readiness=workspace_snapshot[
+            "operation_readiness"
+        ],
         consistency_audit_applied=consistency["applied"],
         consistency_valid_support_row_count=consistency["valid_support_row_count"],
         consistency_dimension_counts=consistency["dimension_counts"],
@@ -362,6 +381,11 @@ def _audit_noop(*, enabled: bool, mode: str, reason: str) -> AnswerSupportAudit:
         memory_operation_journal_final_evidence_count=0,
         memory_operation_journal_operation_counts={},
         memory_operation_journal_family_counts={},
+        memory_workspace_snapshot_available=False,
+        memory_workspace_snapshot_final_evidence_count=0,
+        memory_workspace_snapshot_state_worklist_counts={},
+        memory_workspace_snapshot_verifier_worklist_counts={},
+        memory_workspace_snapshot_operation_readiness={},
         consistency_audit_applied=False,
         consistency_valid_support_row_count=0,
         consistency_dimension_counts={},
@@ -560,6 +584,51 @@ def _empty_memory_operation_journal_audit() -> dict[str, Any]:
         "final_evidence_count": 0,
         "operation_counts": {},
         "family_counts": {},
+    }
+
+
+def _memory_workspace_snapshot_audit(
+    context_manifest: dict[str, Any] | None,
+) -> dict[str, Any]:
+    if not isinstance(context_manifest, dict):
+        return _empty_memory_workspace_snapshot_audit()
+    memory_operations = context_manifest.get("memory_operations")
+    if not isinstance(memory_operations, dict):
+        return _empty_memory_workspace_snapshot_audit()
+    operation_readiness = memory_operations.get(
+        "memory_workspace_snapshot_operation_readiness"
+    )
+    if not isinstance(operation_readiness, dict):
+        operation_readiness = {}
+    return {
+        "available": bool(
+            memory_operations.get("memory_workspace_snapshot_available")
+        ),
+        "final_evidence_count": len(
+            memory_operations.get("memory_workspace_snapshot_final_source_ids")
+            or ()
+        ),
+        "state_worklist_counts": _int_count_dict(
+            memory_operations.get("memory_workspace_snapshot_state_worklist_counts")
+        ),
+        "verifier_worklist_counts": _int_count_dict(
+            memory_operations.get(
+                "memory_workspace_snapshot_verifier_worklist_counts"
+            )
+        ),
+        "operation_readiness": {
+            str(key): bool(value) for key, value in operation_readiness.items()
+        },
+    }
+
+
+def _empty_memory_workspace_snapshot_audit() -> dict[str, Any]:
+    return {
+        "available": False,
+        "final_evidence_count": 0,
+        "state_worklist_counts": {},
+        "verifier_worklist_counts": {},
+        "operation_readiness": {},
     }
 
 

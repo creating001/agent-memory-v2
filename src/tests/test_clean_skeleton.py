@@ -639,6 +639,39 @@ class CleanSkeletonTest(unittest.TestCase):
                         },
                     ],
                 },
+                "memory_workspace_snapshot": {
+                    "applied": True,
+                    "schema_version": "memory_workspace_snapshot_v1",
+                    "layer_count": 3,
+                    "state_worklist_count": 2,
+                    "verifier_worklist_count": 1,
+                    "source_expansion_source_ids": ["s2:t0", "s4:t0"],
+                    "state_worklist_counts": {
+                        "current_state": 1,
+                        "conflict_chain": 1,
+                    },
+                    "verifier_worklist_counts": {"state_conflict": 1},
+                    "operation_readiness": {
+                        "retrieve": True,
+                        "expand": True,
+                        "verify": True,
+                    },
+                    "operation_counts": {
+                        "retrieve": 2,
+                        "expand": 2,
+                        "verify": 1,
+                    },
+                    "state_worklists": {
+                        "current_state": [
+                            {"source_ids": ["s2:t0"], "source_count": 1}
+                        ]
+                    },
+                    "verifier_worklists": {
+                        "state_conflict": [
+                            {"source_ids": ["s2:t0"], "source_count": 1}
+                        ]
+                    },
+                },
             },
         )
 
@@ -699,6 +732,27 @@ class CleanSkeletonTest(unittest.TestCase):
             manifest["coverage"]["final_evidence_from_working_compiler_plan_count"],
             1,
         )
+        self.assertTrue(operations["memory_workspace_snapshot_available"])
+        self.assertEqual(
+            operations["memory_workspace_snapshot_schema_version"],
+            "memory_workspace_snapshot_v1",
+        )
+        self.assertEqual(
+            operations["memory_workspace_snapshot_final_source_ids"],
+            ("s2:t0",),
+        )
+        self.assertEqual(
+            operations["memory_workspace_snapshot_state_worklist_counts"],
+            {"conflict_chain": 1, "current_state": 1},
+        )
+        self.assertEqual(
+            operations["memory_workspace_snapshot_verifier_worklist_counts"],
+            {"state_conflict": 1},
+        )
+        self.assertEqual(
+            manifest["coverage"]["final_evidence_from_memory_workspace_snapshot_count"],
+            1,
+        )
         self.assertTrue(
             manifest["context_organization"]["memory_operations"][
                 "operation_api_available"
@@ -712,6 +766,11 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertTrue(
             manifest["context_organization"]["memory_operations"][
                 "working_compiler_plan_available"
+            ]
+        )
+        self.assertTrue(
+            manifest["context_organization"]["memory_operations"][
+                "memory_workspace_snapshot_available"
             ]
         )
 
@@ -798,6 +857,19 @@ class CleanSkeletonTest(unittest.TestCase):
                         "context": 4,
                         "verification": 1,
                     },
+                    "memory_workspace_snapshot_available": True,
+                    "memory_workspace_snapshot_final_source_ids": ("s2:t0",),
+                    "memory_workspace_snapshot_state_worklist_counts": {
+                        "current_state": 1,
+                    },
+                    "memory_workspace_snapshot_verifier_worklist_counts": {
+                        "source_backing": 1,
+                    },
+                    "memory_workspace_snapshot_operation_readiness": {
+                        "retrieve": True,
+                        "expand": True,
+                        "verify": True,
+                    },
                 }
             },
         )
@@ -839,6 +911,20 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual(
             audit.memory_operation_journal_family_counts,
             {"context": 4, "verification": 1},
+        )
+        self.assertTrue(audit.memory_workspace_snapshot_available)
+        self.assertEqual(audit.memory_workspace_snapshot_final_evidence_count, 1)
+        self.assertEqual(
+            audit.memory_workspace_snapshot_state_worklist_counts,
+            {"current_state": 1},
+        )
+        self.assertEqual(
+            audit.memory_workspace_snapshot_verifier_worklist_counts,
+            {"source_backing": 1},
+        )
+        self.assertEqual(
+            audit.memory_workspace_snapshot_operation_readiness,
+            {"expand": True, "retrieve": True, "verify": True},
         )
         self.assertEqual(audit.risks, ())
 
@@ -4022,6 +4108,14 @@ class CleanSkeletonTest(unittest.TestCase):
             memory_object_index["memory_operation_journal_source_backed_entry_count"],
             memory_object_index["memory_operation_journal_entry_count"],
         )
+        self.assertGreater(
+            memory_object_index["memory_workspace_snapshot_state_worklist_count"],
+            0,
+        )
+        self.assertGreater(
+            memory_object_index["memory_workspace_snapshot_verifier_worklist_count"],
+            0,
+        )
         self.assertEqual(
             memory_object_index["source_backed_object_count"],
             3,
@@ -4324,6 +4418,12 @@ class CleanSkeletonTest(unittest.TestCase):
             ],
             "memory_operation_journal",
         )
+        self.assertEqual(
+            memory_object_index["index_contract"]["memory_workspace_snapshot_contract"][
+                "snapshot_field"
+            ],
+            "memory_workspace_snapshot",
+        )
         working_compiler_plan = memory_object_index["memory_working_compiler_plan"]
         self.assertEqual(
             working_compiler_plan["schema_version"],
@@ -4480,6 +4580,38 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual(
             workspace_contract["source_policy"]["final_evidence_policy"],
             "raw_source_rows",
+        )
+        workspace_snapshot = memory_object_index["memory_workspace_snapshot"]
+        self.assertEqual(
+            workspace_snapshot["schema_version"],
+            "memory_workspace_snapshot_v1",
+        )
+        self.assertFalse(workspace_snapshot["trace_only"])
+        self.assertTrue(workspace_snapshot["applied"])
+        self.assertEqual(
+            workspace_snapshot["state_entry_count"],
+            memory_system_state["entry_count"],
+        )
+        self.assertEqual(
+            workspace_snapshot["journal_entry_count"],
+            operation_journal["entry_count"],
+        )
+        self.assertIn("working_memory", workspace_snapshot["layers"])
+        self.assertIn("current_state", workspace_snapshot["state_worklists"])
+        self.assertIn("conflict_chain", workspace_snapshot["state_worklists"])
+        self.assertIn(
+            "state_conflict",
+            workspace_snapshot["verifier_worklists"],
+        )
+        self.assertTrue(workspace_snapshot["operation_readiness"]["retrieve"])
+        self.assertTrue(workspace_snapshot["operation_readiness"]["expand"])
+        self.assertTrue(workspace_snapshot["operation_readiness"]["verify"])
+        self.assertEqual(
+            workspace_snapshot["source_policy"]["final_evidence_policy"],
+            "raw_source_rows",
+        )
+        self.assertTrue(
+            workspace_snapshot["system_design"]["memory_is_system_state"]
         )
         city_operation_api = next(
             entry

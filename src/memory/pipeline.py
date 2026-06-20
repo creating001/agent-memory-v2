@@ -4781,6 +4781,11 @@ def _context_manifest(
                     "memory_workspace_contract_final_source_ids"
                 ]
             ),
+            "final_evidence_from_memory_workspace_snapshot_count": len(
+                memory_operations_manifest[
+                    "memory_workspace_snapshot_final_source_ids"
+                ]
+            ),
             "typed_memory_source_count": len(typed_memory_source_ids),
             "selected_context_materialized_count": int(
                 selected_context.get("materialized_count") or 0
@@ -4932,6 +4937,29 @@ def _context_manifest(
                         "memory_workspace_contract_readiness"
                     ]
                 ),
+                "memory_workspace_snapshot_available": memory_operations_manifest[
+                    "memory_workspace_snapshot_available"
+                ],
+                "memory_workspace_snapshot_final_source_count": len(
+                    memory_operations_manifest[
+                        "memory_workspace_snapshot_final_source_ids"
+                    ]
+                ),
+                "memory_workspace_snapshot_state_worklist_counts": (
+                    memory_operations_manifest[
+                        "memory_workspace_snapshot_state_worklist_counts"
+                    ]
+                ),
+                "memory_workspace_snapshot_verifier_worklist_counts": (
+                    memory_operations_manifest[
+                        "memory_workspace_snapshot_verifier_worklist_counts"
+                    ]
+                ),
+                "memory_workspace_snapshot_operation_readiness": (
+                    memory_operations_manifest[
+                        "memory_workspace_snapshot_operation_readiness"
+                    ]
+                ),
             },
             "evidence_pressure": _evidence_pressure_manifest(evidence_rows),
             "clean_note": (
@@ -5001,6 +5029,7 @@ def _memory_operations_context_manifest(
     memory_system_state = {}
     memory_operation_journal = {}
     memory_workspace_contract = {}
+    memory_workspace_snapshot = {}
     if isinstance(memory_object_index, Mapping):
         raw_registry = memory_object_index.get("operation_registry")
         if isinstance(raw_registry, Mapping):
@@ -5038,6 +5067,11 @@ def _memory_operations_context_manifest(
         )
         if isinstance(raw_memory_workspace_contract, Mapping):
             memory_workspace_contract = raw_memory_workspace_contract
+        raw_memory_workspace_snapshot = memory_object_index.get(
+            "memory_workspace_snapshot"
+        )
+        if isinstance(raw_memory_workspace_snapshot, Mapping):
+            memory_workspace_snapshot = raw_memory_workspace_snapshot
     registry_available = bool(operation_registry.get("applied"))
     working_view_available = bool(working_memory_view.get("applied"))
     lifecycle_audit_available = bool(lifecycle_audit.get("applied"))
@@ -5051,6 +5085,9 @@ def _memory_operations_context_manifest(
     )
     memory_workspace_contract_available = bool(
         memory_workspace_contract.get("applied")
+    )
+    memory_workspace_snapshot_available = bool(
+        memory_workspace_snapshot.get("applied")
     )
     lifecycle_audit_source_ids = _ordered_unique(
         source_id
@@ -5209,6 +5246,36 @@ def _memory_operations_context_manifest(
     memory_workspace_contract_final_source_ids = tuple(
         source_id
         for source_id in memory_workspace_contract_source_ids
+        if source_id in final_set
+    )
+    memory_workspace_snapshot_source_ids = _ordered_unique(
+        (
+            *(memory_workspace_snapshot.get("source_expansion_source_ids") or ()),
+            *(
+                source_id
+                for worklist in _mapping_values(
+                    memory_workspace_snapshot.get("state_worklists")
+                )
+                if isinstance(worklist, list)
+                for item in worklist
+                if isinstance(item, Mapping)
+                for source_id in (item.get("source_ids") or ())
+            ),
+            *(
+                source_id
+                for worklist in _mapping_values(
+                    memory_workspace_snapshot.get("verifier_worklists")
+                )
+                if isinstance(worklist, list)
+                for item in worklist
+                if isinstance(item, Mapping)
+                for source_id in (item.get("source_ids") or ())
+            ),
+        )
+    )
+    memory_workspace_snapshot_final_source_ids = tuple(
+        source_id
+        for source_id in memory_workspace_snapshot_source_ids
         if source_id in final_set
     )
     return {
@@ -5404,6 +5471,43 @@ def _memory_operations_context_manifest(
         ),
         "memory_workspace_contract_final_source_count": len(
             memory_workspace_contract_final_source_ids
+        ),
+        "memory_workspace_snapshot_available": memory_workspace_snapshot_available,
+        "memory_workspace_snapshot_schema_version": str(
+            memory_workspace_snapshot.get("schema_version") or ""
+        ),
+        "memory_workspace_snapshot_layer_count": int(
+            memory_workspace_snapshot.get("layer_count") or 0
+        ),
+        "memory_workspace_snapshot_state_worklist_count": int(
+            memory_workspace_snapshot.get("state_worklist_count") or 0
+        ),
+        "memory_workspace_snapshot_verifier_worklist_count": int(
+            memory_workspace_snapshot.get("verifier_worklist_count") or 0
+        ),
+        "memory_workspace_snapshot_state_worklist_counts": _mapping_int_counts(
+            memory_workspace_snapshot.get("state_worklist_counts")
+        ),
+        "memory_workspace_snapshot_verifier_worklist_counts": _mapping_int_counts(
+            memory_workspace_snapshot.get("verifier_worklist_counts")
+        ),
+        "memory_workspace_snapshot_operation_readiness": {
+            str(key): bool(value)
+            for key, value in (
+                memory_workspace_snapshot.get("operation_readiness") or {}
+            ).items()
+        }
+        if isinstance(memory_workspace_snapshot.get("operation_readiness"), Mapping)
+        else {},
+        "memory_workspace_snapshot_operation_counts": _mapping_int_counts(
+            memory_workspace_snapshot.get("operation_counts")
+        ),
+        "memory_workspace_snapshot_source_ids": memory_workspace_snapshot_source_ids,
+        "memory_workspace_snapshot_final_source_ids": (
+            memory_workspace_snapshot_final_source_ids
+        ),
+        "memory_workspace_snapshot_final_source_count": len(
+            memory_workspace_snapshot_final_source_ids
         ),
         "operation_utility_slot_source": operation_slot_source,
         "graph_utility_slot_source": graph_slot_source,
