@@ -4216,6 +4216,7 @@ def _external_compact_evidence_report_rules(
     rules = [
         "Build evidence_report before answering: support must match requested entity, object, action, relation, speaker, time scope, and slot; mark close wrong candidates as exclude.",
         "If a required target, operand, endpoint, or speaker source is missing, set sufficient=false and name the missing part.",
+        "Keep answer values slot-complete: do not drop qualifiers needed for role, employer, location, unit, date, subtype, or scope.",
     ]
     if detailed:
         rules.append(
@@ -4234,7 +4235,7 @@ def _external_compact_evidence_report_rules(
         )
     if route.information_need == "list_count":
         rules.append(
-            "For count/list/sum/comparison, enumerate distinct in-scope items or operands, merge duplicates, exclude unconfirmed suggestions/hypotheticals, and answer from the calculation."
+            "For count/list/sum/comparison, enumerate distinct in-scope items or operands, preserve item names/subtypes, merge duplicates, exclude unconfirmed suggestions/hypotheticals, and answer from the calculation."
         )
     elif route.information_need == "temporal_lookup":
         rules.append(
