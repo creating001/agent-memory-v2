@@ -134,6 +134,14 @@ UPDATE_CONFLICT_VALUE_PATTERNS = (
     r"(?:[$€£]\s*)?\b\d+(?:\.\d+)?\s*(?:percent|%)\b",
     r"\b(?:every other week|every week|weekly|monthly|yearly|once a week|twice a week|once a month|twice a month)\b",
 )
+UPDATE_CONFLICT_SCALAR_VALUE_PATTERNS = (
+    r"\b\d{1,2}:\d{2}\b",
+    r"(?:[$€£]\s*)?\b\d{1,3}(?:,\d{3})+(?:\.\d+)?\b",
+    r"(?:[$€£]\s*)?\b\d+(?:\.\d+)?\s*k\b",
+    r"(?:[$€£]\s*)?\b\d+(?:\.\d+)?\s*(?:percent|%)\b",
+    r"\b(?:every other week|every week|weekly|monthly|yearly|once a week|twice a week|once a month|twice a month)\b",
+    r"(?:[$€£]\s*)?\b\d+(?:\.\d+)?\b",
+)
 UPDATE_CONFLICT_GENERIC_VALUE_PATTERN = (
     r"(?:[$€£]\s*)?\b\d+(?:,\d{3})*(?:\.\d+)?"
     r"(?:\s+(?:[A-Za-z][A-Za-z0-9%/-]*|%)){0,2}\b"
@@ -4931,6 +4939,7 @@ def _update_conflict_guide_rows(
 
     question_terms = _update_conflict_question_terms(question)
     question_scope = _has_update_conflict_question_scope(question)
+    include_domain_units = not _asks_event_order_or_sequence(question)
     candidates: list[dict[str, Any]] = []
     distinct_values: set[str] = set()
     value_rows = 0
@@ -4939,7 +4948,10 @@ def _update_conflict_guide_rows(
     for memory_index, row in enumerate(rows, start=1):
         if row.role.lower() != "user":
             continue
-        values = _update_conflict_values(row.text)
+        values = _update_conflict_values(
+            row.text,
+            include_domain_units=include_domain_units,
+        )
         if not values:
             continue
         overlap = len(question_terms.intersection(_content_terms(row.text)))
@@ -5025,7 +5037,7 @@ def _asks_advice_or_recommendation(question: str) -> bool:
 def _asks_update_conflict_value_slot(question: str) -> bool:
     lowered = question.lower()
     if _asks_event_order_or_sequence(question):
-        return False
+        return bool(re.search(r"\b(days?|weeks?|months?|years?)\b", lowered))
     scalar_intent = bool(
         re.search(
             r"\b(how many|how much|how long|how often|total|sum|combined|"
@@ -5118,12 +5130,19 @@ def _update_conflict_signals(text: str) -> tuple[str, ...]:
     return tuple(dict.fromkeys(signals))
 
 
-def _update_conflict_values(text: str) -> tuple[str, ...]:
+def _update_conflict_values(
+    text: str,
+    *,
+    include_domain_units: bool = True,
+) -> tuple[str, ...]:
     values: list[str] = []
     spans: list[tuple[int, int]] = []
-    for pattern in UPDATE_CONFLICT_VALUE_PATTERNS + (
-        UPDATE_CONFLICT_GENERIC_VALUE_PATTERN,
-    ):
+    patterns = (
+        UPDATE_CONFLICT_VALUE_PATTERNS + (UPDATE_CONFLICT_GENERIC_VALUE_PATTERN,)
+        if include_domain_units
+        else UPDATE_CONFLICT_SCALAR_VALUE_PATTERNS
+    )
+    for pattern in patterns:
         for match in re.finditer(pattern, text, flags=re.IGNORECASE):
             if any(match.start() < end and match.end() > start for start, end in spans):
                 continue

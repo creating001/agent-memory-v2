@@ -9038,7 +9038,7 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertIn("values=14 pullups", compiled.prompt)
         self.assertIn("values=18 pullups", compiled.prompt)
 
-    def test_update_conflict_guide_skips_event_order_questions(self) -> None:
+    def test_update_conflict_guide_uses_scalar_values_for_event_order_questions(self) -> None:
         compiler = EvidenceCompiler(
             max_evidence_items=3,
             max_evidence_chars=4000,
@@ -9075,13 +9075,18 @@ class CleanSkeletonTest(unittest.TestCase):
                     session_id="s2",
                     turn_index=0,
                     role="user",
-                    text="I visited Big Sur in April and Yosemite in May.",
+                    text=(
+                        "The second of the three trips was Big Sur and "
+                        "lasted 2 days in April."
+                    ),
                     timestamp="2024-05-15",
                 ),
             ),
         )
 
-        self.assertNotIn("Update/Conflict Candidate Chain:", compiled.prompt)
+        self.assertIn("Update/Conflict Candidate Chain:", compiled.prompt)
+        self.assertIn("values=3; 4", compiled.prompt)
+        self.assertNotIn("values=3; 4 day trips", compiled.prompt)
 
     def test_update_conflict_guide_skips_non_value_slots(self) -> None:
         compiler = EvidenceCompiler(
