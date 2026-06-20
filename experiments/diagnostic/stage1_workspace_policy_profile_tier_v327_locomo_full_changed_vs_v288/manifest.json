@@ -1,0 +1,15 @@
+{
+  "base_run": "stage1_memory_object_index_v288_locomo_full",
+  "changed_answers": 684,
+  "clean_note": "Offline eval only; labels and judge outputs are not used by prediction, retrieval, compiler, answer, verifier, memory build, or cache construction.",
+  "judge_reuse": {
+    "new_v327_probe_reused": 21,
+    "new_v327_supplement_judged": 663,
+    "old_v288_reused_from_v324_changed_subset": 576,
+    "old_v288_reused_from_v325_supplement": 49,
+    "old_v288_reused_from_v327_probe": 3,
+    "old_v288_supplement_judged": 56
+  },
+  "new_run": "stage1_workspace_policy_profile_tier_v327_locomo_full",
+  "outputs": "outputs/diagnostic/stage1_workspace_policy_profile_tier_v327_locomo_full_changed_vs_v288"
+}
