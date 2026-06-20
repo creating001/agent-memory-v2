@@ -366,6 +366,13 @@ def main() -> int:
     total_answer_verifier_memory_operation_journal_final_evidence = 0
     answer_verifier_memory_operation_journal_operation_counts: dict[str, int] = {}
     answer_verifier_memory_operation_journal_family_counts: dict[str, int] = {}
+    total_answer_verifier_consistency_audit_applied = 0
+    total_answer_verifier_consistency_valid_support_rows = 0
+    total_answer_verifier_consistency_risk_samples = 0
+    total_answer_verifier_consistency_risk_flags = 0
+    answer_verifier_consistency_dimension_counts: dict[str, int] = {}
+    answer_verifier_consistency_risk_counts: dict[str, int] = {}
+    answer_verifier_consistency_risk_reasons: dict[str, int] = {}
     answer_verifier_risk_reasons: dict[str, int] = {}
     total_answer_repair_triggered = 0
     total_answer_repair_applied = 0
@@ -1377,6 +1384,30 @@ def main() -> int:
                 answer_verifier_memory_operation_journal_family_counts,
                 answer_verifier.get("memory_operation_journal_family_counts") or {},
             )
+            if answer_verifier.get("consistency_audit_applied"):
+                total_answer_verifier_consistency_audit_applied += 1
+            total_answer_verifier_consistency_valid_support_rows += int(
+                answer_verifier.get("consistency_valid_support_row_count") or 0
+            )
+            _merge_int_counts(
+                answer_verifier_consistency_dimension_counts,
+                answer_verifier.get("consistency_dimension_counts") or {},
+            )
+            _merge_int_counts(
+                answer_verifier_consistency_risk_counts,
+                answer_verifier.get("consistency_risk_counts") or {},
+            )
+            consistency_risk_count = int(
+                answer_verifier.get("consistency_risk_count") or 0
+            )
+            total_answer_verifier_consistency_risk_flags += consistency_risk_count
+            if consistency_risk_count:
+                total_answer_verifier_consistency_risk_samples += 1
+            for reason in answer_verifier.get("consistency_risks") or []:
+                answer_verifier_consistency_risk_reasons[str(reason)] = (
+                    answer_verifier_consistency_risk_reasons.get(str(reason), 0)
+                    + 1
+                )
             risk_count = int(answer_verifier.get("risk_count") or 0)
             total_answer_verifier_risk_flags += risk_count
             if risk_count:
@@ -3000,6 +3031,36 @@ def main() -> int:
             "verifier_memory_operation_journal_family_counts": dict(
                 sorted(answer_verifier_memory_operation_journal_family_counts.items())
             ),
+            "verifier_consistency_audit_applied_count": (
+                total_answer_verifier_consistency_audit_applied
+            ),
+            "verifier_consistency_audit_applied_rate": _safe_average(
+                total_answer_verifier_consistency_audit_applied,
+                total_answer_verifier_applied,
+            ),
+            "verifier_avg_consistency_valid_support_rows": _safe_average(
+                total_answer_verifier_consistency_valid_support_rows,
+                total_answer_verifier_applied,
+            ),
+            "verifier_consistency_dimension_counts": dict(
+                sorted(answer_verifier_consistency_dimension_counts.items())
+            ),
+            "verifier_consistency_risk_sample_count": (
+                total_answer_verifier_consistency_risk_samples
+            ),
+            "verifier_consistency_risk_sample_rate": _safe_average(
+                total_answer_verifier_consistency_risk_samples,
+                total_answer_verifier_applied,
+            ),
+            "verifier_consistency_risk_flag_count": (
+                total_answer_verifier_consistency_risk_flags
+            ),
+            "verifier_consistency_risk_counts": dict(
+                sorted(answer_verifier_consistency_risk_counts.items())
+            ),
+            "verifier_consistency_risk_reasons": dict(
+                sorted(answer_verifier_consistency_risk_reasons.items())
+            ),
             "repair_triggered_count": total_answer_repair_triggered,
             "repair_triggered_rate": _safe_average(
                 total_answer_repair_triggered,
@@ -4184,6 +4245,15 @@ def _write_summary(
         f"- answer_verifier_avg_memory_operation_journal_final_evidence: {metrics['answer']['verifier_avg_memory_operation_journal_final_evidence']}",
         f"- answer_verifier_memory_operation_journal_operation_counts: {metrics['answer']['verifier_memory_operation_journal_operation_counts']}",
         f"- answer_verifier_memory_operation_journal_family_counts: {metrics['answer']['verifier_memory_operation_journal_family_counts']}",
+        f"- answer_verifier_consistency_audit_applied_count: {metrics['answer']['verifier_consistency_audit_applied_count']}",
+        f"- answer_verifier_consistency_audit_applied_rate: {metrics['answer']['verifier_consistency_audit_applied_rate']}",
+        f"- answer_verifier_avg_consistency_valid_support_rows: {metrics['answer']['verifier_avg_consistency_valid_support_rows']}",
+        f"- answer_verifier_consistency_dimension_counts: {metrics['answer']['verifier_consistency_dimension_counts']}",
+        f"- answer_verifier_consistency_risk_sample_count: {metrics['answer']['verifier_consistency_risk_sample_count']}",
+        f"- answer_verifier_consistency_risk_sample_rate: {metrics['answer']['verifier_consistency_risk_sample_rate']}",
+        f"- answer_verifier_consistency_risk_flag_count: {metrics['answer']['verifier_consistency_risk_flag_count']}",
+        f"- answer_verifier_consistency_risk_counts: {metrics['answer']['verifier_consistency_risk_counts']}",
+        f"- answer_verifier_consistency_risk_reasons: {metrics['answer']['verifier_consistency_risk_reasons']}",
         f"- answer_repair_enabled: {metrics['answer']['repair_enabled']}",
         f"- answer_repair_mode: {metrics['answer']['repair_mode']}",
         f"- answer_repair_model: {metrics['answer']['repair_model']}",

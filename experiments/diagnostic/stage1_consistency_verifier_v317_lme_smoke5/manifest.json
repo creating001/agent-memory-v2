@@ -1,0 +1,31 @@
+{
+  "benchmark": "longmemeval-s",
+  "clean_assertions": [
+    "Prediction loader rejects gold/reference/target answers.",
+    "Prediction loader rejects judge outputs and benchmark labels.",
+    "Prediction loader rejects sample ids, qids, and row indices.",
+    "record_key is copied only by the runner and is not passed into pipeline modules.",
+    "Derived context rows always retain raw source_id back-links.",
+    "Build-stage typed memory is created only from raw dialogue turns and visible metadata."
+  ],
+  "config_path": "/data/home_new/wujinqi/agent-memory/configs/stage1_consistency_verifier_v317_seeded_qwen36_no_think_build4k_cached.json",
+  "created_at_utc": "2026-06-20T14:24:31+00:00",
+  "experiment_dir": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_consistency_verifier_v317_lme_smoke5",
+  "experiment_kind": "diagnostic",
+  "git": {
+    "commit": "de06ace0774881b1182ca276c4956d15c92edf35",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "M scripts/run_stage1.py\n M src/memory/answer_verify.py\n M src/tests/test_answer_verify.py\n?? configs/stage1_consistency_verifier_v317_seeded_qwen36_no_think_build4k_cached.json"
+  },
+  "input_path": "/data/home_new/wujinqi/agent-memory/outputs/prepare_longmemeval_s_cleaned/prediction_input.jsonl",
+  "output_path": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_consistency_verifier_v317_lme_smoke5/predictions.jsonl",
+  "outputs": {
+    "predictions": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_consistency_verifier_v317_lme_smoke5/predictions.jsonl",
+    "traces": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_consistency_verifier_v317_lme_smoke5/traces.jsonl"
+  },
+  "run_id": "stage1_consistency_verifier_v317_lme_smoke5",
+  "subset": "smoke5",
+  "trace_path": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_consistency_verifier_v317_lme_smoke5/traces.jsonl"
+}
