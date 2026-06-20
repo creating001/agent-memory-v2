@@ -19,17 +19,18 @@ Offline changed-answer judge comparing v338 against v336 on LoCoMo non-adversari
 - new v338 changed subset: strict `21/23`, lenient `21/23`
 - strict delta on changed subset: `+1`
 - lenient delta on changed subset: `-1`
+- prompt-changed subset: 16 / 23 changed answers; old v336 strict/lenient `14/16` and `15/16`, new v338 strict/lenient `15/16` and `15/16`
 - v336 probe50 avg query tokens: `5700.88`
 - v338 probe50 avg query tokens: `5575.84`
 - avg query token delta: `-125.04`
 
 ## Diagnosis
 
-v338 reduces query tokens and improves strict accuracy on the changed subset, mainly by making career-path and grounded counterfactual answers more slot-complete. It still has two important risks: a relationship-status question abstains despite source support, and a family-activities list over-expands to unsupported or less central details, causing a lenient regression.
+v338 reduces query tokens and improves strict accuracy on the prompt-changed subset, mainly by making career-path and grounded counterfactual answers more slot-complete. The main prompt-changed regression is a relationship-status question that abstains despite source support. The family-activities list regression came from an unchanged prompt and is cold-generation noise from the new answer cache, not a workspace-packet prompt effect.
 
 ## Decision
 
-Keep v338 as a candidate but do not promote to LTS. The next version should keep compact workspace packets but add general slot-conservative controls for relationship/status facts and list answers before any full run.
+Keep v338 as a candidate but do not promote to LTS. The next version should keep compact workspace packets but add general slot-conservative controls for relationship/status facts before any full run; use cache-aligned evaluation for unchanged-prompt routes.
 
 ## Clean Notes
 

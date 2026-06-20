@@ -19,13 +19,14 @@ Offline changed-answer judge comparing v338 against v336 on LongMemEval probe50 
 - new v338 changed subset: strict `5/7`, lenient `5/7`
 - strict delta on changed subset: `+1`
 - lenient delta on changed subset: `+1`
+- prompt-changed subset: 5 / 7 changed answers; old v336 strict/lenient `2/5`, new v338 strict/lenient `3/5`
 - v336 probe50 avg query tokens: `5555.76`
 - v338 probe50 avg query tokens: `5395.32`
 - avg query token delta: `-160.44`
 
 ## Diagnosis
 
-v338 keeps the build-owned workspace replacement idea from v337 but uses a compact packet: slot/type/focus/decision/status/hint/source only, with packet values labeled as activation hints rather than final facts. This fixes v337's token increase and improves LongMemEval changed-answer accuracy on the sports-store location case without observed changed-subset regressions.
+v338 keeps the build-owned workspace replacement idea from v337 but uses a compact packet: slot/type/focus/decision/status/hint/source only, with packet values labeled as activation hints rather than final facts. This fixes v337's token increase and improves LongMemEval changed-answer accuracy on the sports-store location case without observed prompt-changed subset regressions. Two changed answers had unchanged prompts and are cold-generation noise from the new answer cache, not a prompt-algorithm effect.
 
 ## Decision
 
