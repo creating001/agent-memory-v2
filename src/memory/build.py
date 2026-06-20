@@ -1524,6 +1524,32 @@ def _memory_working_memory_view(
                 "predicate": _normalize_key_text(str(raw_entry.get("predicate") or "")),
                 "values": _ordered_strings(raw_entry.get("values") or ())[:12],
                 "operations": _ordered_strings(raw_entry.get("operations") or ()),
+                "graph_signals": _ordered_strings(
+                    raw_entry.get("graph_signals") or ()
+                ),
+                "lexical_terms": _ordered_strings(
+                    raw_entry.get("lexical_terms") or ()
+                )[:32],
+                "record_count": int(raw_entry.get("record_count") or 0),
+                "status_counts": dict(raw_entry.get("status_counts") or {}),
+                "operation_current_source_order": _ordered_strings(
+                    raw_entry.get("operation_current_source_order") or ()
+                )[:12],
+                "operation_historical_source_order": _ordered_strings(
+                    raw_entry.get("operation_historical_source_order") or ()
+                )[:12],
+                "validity_current_source_order": _ordered_strings(
+                    raw_entry.get("validity_current_source_order") or ()
+                )[:12],
+                "validity_historical_source_order": _ordered_strings(
+                    raw_entry.get("validity_historical_source_order") or ()
+                )[:12],
+                "active_memory_ids": _ordered_strings(
+                    raw_entry.get("active_memory_ids") or ()
+                )[:12],
+                "superseded_memory_ids": _ordered_strings(
+                    raw_entry.get("superseded_memory_ids") or ()
+                )[:12],
                 "source_backed": bool(raw_entry.get("source_backed") or source_ids),
                 "source_ids": source_ids,
                 "expand_source_order": source_ids,

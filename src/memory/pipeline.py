@@ -4523,16 +4523,17 @@ def _memory_operations_context_manifest(
     )
     operation_slot_source = _operation_consumer_slot_source(operation_utility_trace)
     graph_slot_source = _operation_consumer_slot_source(graph_utility_trace)
+    operation_interface_sources = {"memory_operation_registry", "memory_working_view"}
     registry_projected_source_ids = _ordered_unique(
         (
             *(
                 _source_ids_from_hits(operation_utility_source_hits)
-                if operation_slot_source == "memory_operation_registry"
+                if operation_slot_source in operation_interface_sources
                 else ()
             ),
             *(
                 _source_ids_from_hits(graph_utility_source_hits)
-                if graph_slot_source == "memory_operation_registry"
+                if graph_slot_source in operation_interface_sources
                 else ()
             ),
         )
@@ -4544,11 +4545,16 @@ def _memory_operations_context_manifest(
         if source_id in final_set
     )
     operation_registry = {}
+    working_memory_view = {}
     if isinstance(memory_object_index, Mapping):
         raw_registry = memory_object_index.get("operation_registry")
         if isinstance(raw_registry, Mapping):
             operation_registry = raw_registry
+        raw_working_view = memory_object_index.get("working_memory_view")
+        if isinstance(raw_working_view, Mapping):
+            working_memory_view = raw_working_view
     registry_available = bool(operation_registry.get("applied"))
+    working_view_available = bool(working_memory_view.get("applied"))
     return {
         "trace_only": True,
         "registry_available": registry_available,
@@ -4559,8 +4565,19 @@ def _memory_operations_context_manifest(
         "registry_source_backed_entry_count": int(
             operation_registry.get("source_backed_entry_count") or 0
         ),
+        "working_memory_view_available": working_view_available,
+        "working_memory_view_schema_version": str(
+            working_memory_view.get("schema_version") or ""
+        ),
+        "working_memory_view_entry_count": int(
+            working_memory_view.get("entry_count") or 0
+        ),
+        "working_memory_view_source_backed_entry_count": int(
+            working_memory_view.get("source_backed_entry_count") or 0
+        ),
         "operation_utility_slot_source": operation_slot_source,
         "graph_utility_slot_source": graph_slot_source,
+        "operation_interface_sources": sorted(operation_interface_sources),
         "registry_projected_source_ids": registry_projected_source_ids,
         "registry_projected_final_source_ids": registry_projected_final_source_ids,
         "registry_projected_final_source_count": len(
@@ -4587,12 +4604,13 @@ def _registry_backed_operation_source_ids(
     operation_utility_trace: Mapping[str, Any] | None,
     graph_utility_trace: Mapping[str, Any] | None,
 ) -> tuple[str, ...]:
+    operation_interface_sources = {"memory_operation_registry", "memory_working_view"}
     return _ordered_unique(
         source_id
         for trace in (operation_utility_trace, graph_utility_trace)
         if isinstance(trace, Mapping)
         and bool(trace.get("applied"))
-        and _operation_consumer_slot_source(trace) == "memory_operation_registry"
+        and _operation_consumer_slot_source(trace) in operation_interface_sources
         for slot in (trace.get("slots") or ())
         if isinstance(slot, Mapping)
         for source_id in (slot.get("source_ids") or ())
@@ -5344,6 +5362,12 @@ def _memory_operation_slots_from_object_index(
 ) -> tuple[dict[tuple[str, str, str], Mapping[str, Any]], dict[str, Any]]:
     if not isinstance(memory_object_index, Mapping):
         return {}, _memory_operation_slot_empty_index_stats(enabled=False)
+    working_view_slots, working_view_stats = _memory_operation_slots_from_working_view(
+        memory_object_index,
+        memory_types=memory_types,
+    )
+    if working_view_stats["enabled"]:
+        return working_view_slots, working_view_stats
     registry_slots, registry_stats = _memory_operation_slots_from_registry(
         memory_object_index,
         memory_types=memory_types,
@@ -5381,6 +5405,65 @@ def _memory_operation_slots_from_object_index(
     return slots, {
         **_memory_operation_slot_empty_index_stats(enabled=True),
         "schema_version": str(memory_object_index.get("schema_version") or ""),
+        "slot_count": len(slots),
+        "source_backed_slot_count": source_backed_slot_count,
+        "operation_slot_count": operation_slot_count,
+        "graph_signal_slot_count": graph_signal_slot_count,
+    }
+
+
+def _memory_operation_slots_from_working_view(
+    memory_object_index: Mapping[str, Any],
+    *,
+    memory_types: tuple[str, ...],
+) -> tuple[dict[tuple[str, str, str], Mapping[str, Any]], dict[str, Any]]:
+    working_view = memory_object_index.get("working_memory_view")
+    if not isinstance(working_view, Mapping) or not working_view.get("applied"):
+        return {}, _memory_operation_slot_empty_index_stats(enabled=False)
+    raw_entries = working_view.get("entries")
+    if not isinstance(raw_entries, list):
+        return {}, _memory_operation_slot_empty_index_stats(
+            enabled=True,
+            source="memory_working_view",
+        )
+    allowed_types = {str(item).lower() for item in memory_types if str(item).strip()}
+    slots: dict[tuple[str, str, str], Mapping[str, Any]] = {}
+    source_backed_slot_count = 0
+    operation_slot_count = 0
+    graph_signal_slot_count = 0
+    for raw_entry in raw_entries:
+        if not isinstance(raw_entry, Mapping):
+            continue
+        if raw_entry.get("target_type") != "operation_slot":
+            continue
+        memory_type = _normalize_memory_slot_text(
+            str(raw_entry.get("memory_type") or "")
+        )
+        if allowed_types and memory_type not in allowed_types:
+            continue
+        subject = _normalize_memory_slot_text(str(raw_entry.get("subject") or ""))
+        predicate = _normalize_memory_slot_text(str(raw_entry.get("predicate") or ""))
+        if not memory_type or not subject or not predicate:
+            continue
+        key = (memory_type, subject, predicate)
+        slots[key] = raw_entry
+        if raw_entry.get("source_backed") or raw_entry.get("source_ids"):
+            source_backed_slot_count += 1
+        operations = {
+            str(operation).strip().lower()
+            for operation in raw_entry.get("operations") or ()
+            if str(operation).strip()
+        }
+        if operations.difference(_MEMORY_OPERATION_REGISTRY_BASE_OPERATIONS):
+            operation_slot_count += 1
+        if raw_entry.get("graph_signals"):
+            graph_signal_slot_count += 1
+    return slots, {
+        **_memory_operation_slot_empty_index_stats(
+            enabled=True,
+            source="memory_working_view",
+        ),
+        "schema_version": str(working_view.get("schema_version") or ""),
         "slot_count": len(slots),
         "source_backed_slot_count": source_backed_slot_count,
         "operation_slot_count": operation_slot_count,

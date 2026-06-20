@@ -4642,7 +4642,7 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual([hit.source_id for hit in hits], ["s1:t0", "s2:t0"])
         self.assertEqual(trace["slots"][0]["values"], ("dune", "foundation"))
 
-    def test_memory_operation_utility_prefers_operation_registry_slots(self) -> None:
+    def test_memory_operation_utility_prefers_working_memory_view_slots(self) -> None:
         old_record = MemoryRecord(
             memory_id="old-city",
             memory_type="state",
@@ -4689,10 +4689,10 @@ class CleanSkeletonTest(unittest.TestCase):
         )
 
         self.assertTrue(trace["applied"])
-        self.assertEqual(trace["slot_index"]["source"], "memory_operation_registry")
+        self.assertEqual(trace["slot_index"]["source"], "memory_working_view")
         self.assertEqual(
             trace["slot_index"]["schema_version"],
-            "memory_operation_registry_v1",
+            "memory_working_view_v1",
         )
         self.assertEqual([hit.source_id for hit in hits], ["s2:t0", "s1:t0"])
 
@@ -4748,7 +4748,7 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertIn("supersede", trace["slots"][0]["signals"])
         self.assertEqual(trace["slots"][0]["status_counts"], {"active": 1, "superseded": 1})
 
-    def test_memory_graph_utility_prefers_operation_registry_slots(self) -> None:
+    def test_memory_graph_utility_prefers_working_memory_view_slots(self) -> None:
         old_record = MemoryRecord(
             memory_id="old-city",
             memory_type="state",
@@ -4798,10 +4798,10 @@ class CleanSkeletonTest(unittest.TestCase):
         )
 
         self.assertTrue(trace["applied"])
-        self.assertEqual(trace["slot_index"]["source"], "memory_operation_registry")
+        self.assertEqual(trace["slot_index"]["source"], "memory_working_view")
         self.assertEqual(
             trace["slot_index"]["schema_version"],
-            "memory_operation_registry_v1",
+            "memory_working_view_v1",
         )
         self.assertEqual([hit.source_id for hit in hits], ["s1:t0"])
         self.assertIn("conflict_slot", trace["slots"][0]["signals"])
@@ -5457,7 +5457,7 @@ class CleanSkeletonTest(unittest.TestCase):
         )
         self.assertEqual(row_ids, ["s2:t0", "s1:t0"])
 
-    def test_pipeline_context_budget_retains_registry_backed_graph_anchor(self) -> None:
+    def test_pipeline_context_budget_retains_working_view_graph_anchor(self) -> None:
         old_record = MemoryRecord(
             memory_id="old",
             memory_type="state",
@@ -5584,7 +5584,7 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertTrue(retrieval["context_budget_applied"])
         self.assertEqual(
             retrieval["graph_utility_slot_index"]["source"],
-            "memory_operation_registry",
+            "memory_working_view",
         )
         self.assertEqual(
             retrieval["context_budget_registry_anchor_retained_source_ids"],
@@ -5600,6 +5600,13 @@ class CleanSkeletonTest(unittest.TestCase):
                 "context_budget_registry_anchor_retained_source_ids"
             ],
             ["s1:t0"],
+        )
+        self.assertEqual(
+            context_manifest["memory_operations"]["graph_utility_slot_source"],
+            "memory_working_view",
+        )
+        self.assertTrue(
+            context_manifest["memory_operations"]["working_memory_view_available"]
         )
 
     def test_build_memory_source_alignment_adds_adjacent_supporting_turn(self) -> None:
