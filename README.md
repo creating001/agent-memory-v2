@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_memory_object_validity_manifest_v273_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_validity_aware_graph_utility_v274_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v273 local LTS |
+| Benchmark | 当前 v274 local LTS |
 |---|---:|
-| LongMemEval-S full | strict/lenient `0.832000 / 0.844000`，avg build/query tokens `85393.566 / 6462.478` |
+| LongMemEval-S full | strict/lenient `0.832000 / 0.844000`，avg build/query tokens `85393.566 / 6463.04` |
 | LoCoMo non-adversarial full | strict/lenient `0.794156 / 0.819481`，avg build/query tokens `62015.57402597403 / 6093.8493506493505` |
 
-v273 的 LTS 理由：继承 v272 的 clean route 修正，并把 build memory system graph 升级到 `memory_system_graph_v3` / `memory_system_governance_v2`，显式记录 temporal scope、validity status 和 source confidence。v273 对 LongMemEval-S full 完全 `0` diff；LoCoMo full 只有 `1/1540` answer diff，changed-answer dual judge strict/lenient delta `0/0`，accuracy 不退。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_memory_object_validity_manifest_v273_full_summary.md`。
+v274 的 LTS 理由：继承 v273 的 build memory object validity manifest，并让 source-backed validity、source confidence 和 temporal scope 参与 graph utility 的源选择。v274 没有改变 route、top-k、answer prompt 或最终 evidence 口径；LongMemEval-S full 只有 `1/500` answer diff，changed-answer dual judge strict/lenient delta `0/0`；LoCoMo full answer diff `0/1540`。性能主指标不退，同时减少 typed memory 只记录不参与 activation 的系统风险。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_validity_aware_graph_utility_v274_full_summary.md`。
 
 ## 目录
 
