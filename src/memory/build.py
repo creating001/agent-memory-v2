@@ -1213,6 +1213,7 @@ def _memory_system_object_schema() -> dict[str, Any]:
             "memory_operation_api",
             "memory_operation_lifecycle",
             "memory_system_state",
+            "memory_operation_journal",
         ],
         "governance_signals": [
             "source_activation_ready",
@@ -1238,6 +1239,7 @@ def _memory_system_object_schema() -> dict[str, Any]:
             "build_owned_memory_operation_api",
             "build_owned_memory_operation_lifecycle",
             "build_owned_memory_system_state",
+            "build_owned_memory_operation_journal",
         ],
     }
 
@@ -1351,6 +1353,9 @@ def _memory_object_index_manifest(
         working_compiler_plan=working_compiler_plan,
         layer_manifest=layer_manifest,
     )
+    operation_journal = _memory_operation_journal(
+        memory_system_state=memory_system_state,
+    )
     object_samples = [
         {
             "memory_id": record.memory_id,
@@ -1461,6 +1466,10 @@ def _memory_object_index_manifest(
             memory_system_state["source_backed_entry_count"]
         ),
         "memory_system_state_layer_count": memory_system_state["layer_count"],
+        "memory_operation_journal_entry_count": operation_journal["entry_count"],
+        "memory_operation_journal_source_backed_entry_count": (
+            operation_journal["source_backed_entry_count"]
+        ),
         "source_backed_object_count": sum(
             1 for record in managed_records if record.source_ids
         ),
@@ -1619,6 +1628,18 @@ def _memory_object_index_manifest(
                     "source rows before answer evidence"
                 ),
             },
+            "memory_operation_journal_contract": {
+                "journal_field": "memory_operation_journal",
+                "schema_version": "memory_operation_journal_v1",
+                "source": "memory_system_state",
+                "operations": _memory_working_view_operation_contract(),
+                "policy": (
+                    "normalize build manager decisions and query-time memory "
+                    "operations into source-backed create/update/merge/supersede/"
+                    "retrieve/expand/verify/audit records for audit and ablation; "
+                    "records still expand to raw source rows before final evidence"
+                ),
+            },
             "state_conflict_contract": {
                 "slot_index_field": "state_conflict_slot_index",
                 "slot_scope": "same memory_type, subject, predicate",
@@ -1641,6 +1662,7 @@ def _memory_object_index_manifest(
         "memory_operation_lifecycle": operation_lifecycle,
         "memory_working_compiler_plan": working_compiler_plan,
         "memory_system_state": memory_system_state,
+        "memory_operation_journal": operation_journal,
         "state_conflict_slot_ids": sorted(str(slot_id) for slot_id in conflict_slot_ids),
         "clean_note": (
             "Question-independent build memory object index. It unifies tier, "
@@ -2967,6 +2989,223 @@ def _memory_system_state(
             "source rows."
         ),
     }
+
+
+def _memory_operation_journal(
+    *,
+    memory_system_state: dict[str, Any],
+) -> dict[str, Any]:
+    """Source-backed operation journal over the build-owned system state."""
+
+    state_entries = [
+        entry
+        for entry in memory_system_state.get("entries") or ()
+        if isinstance(entry, dict)
+    ]
+    journal_entries: list[dict[str, Any]] = []
+    operation_counts: dict[str, int] = defaultdict(int)
+    family_counts: dict[str, int] = defaultdict(int)
+    decision_counts: dict[str, int] = defaultdict(int)
+    phase_counts: dict[str, int] = defaultdict(int)
+    layer_counts: dict[str, int] = defaultdict(int)
+    target_counts: dict[str, int] = defaultdict(int)
+    context_role_counts: dict[str, int] = defaultdict(int)
+    source_backed_count = 0
+    source_expansion_ids: list[str] = []
+
+    for state_entry in state_entries:
+        state_id = str(state_entry.get("state_id") or "")
+        manager_decision = str(state_entry.get("manager_decision") or "")
+        phase = str(state_entry.get("phase") or "")
+        memory_layer = str(state_entry.get("memory_layer") or "long_term_memory")
+        target_type = str(state_entry.get("target_type") or "object")
+        context_role = str(state_entry.get("context_role") or "")
+        source_ids = _ordered_strings(
+            (
+                *(state_entry.get("source_ids") or ()),
+                *(
+                    state_entry.get("source_expansion", {}).get("source_ids") or ()
+                    if isinstance(state_entry.get("source_expansion"), dict)
+                    else ()
+                ),
+            )
+        )[:16]
+        operation_types = _memory_operation_journal_operation_types(state_entry)
+        for operation_index, operation_type in enumerate(operation_types):
+            family = _memory_operation_journal_family(operation_type)
+            operation_counts[operation_type] += 1
+            family_counts[family] += 1
+            decision_counts[manager_decision or "unknown"] += 1
+            phase_counts[phase or "unknown"] += 1
+            layer_counts[memory_layer] += 1
+            target_counts[target_type] += 1
+            context_role_counts[context_role or "unknown"] += 1
+            if state_entry.get("source_backed") or source_ids:
+                source_backed_count += 1
+            _memory_layer_manifest_extend_unique(
+                source_expansion_ids,
+                source_ids,
+                max_items=128,
+            )
+            journal_entries.append(
+                {
+                    "journal_id": (
+                        f"moj:{state_id or len(journal_entries)}:"
+                        f"{operation_type}:{operation_index}"
+                    ),
+                    "interface_source": "memory_operation_journal",
+                    "source_state_id": state_id,
+                    "source_plan_id": str(state_entry.get("plan_id") or ""),
+                    "source_lifecycle_id": str(
+                        state_entry.get("source_lifecycle_id") or ""
+                    ),
+                    "source_operation_id": str(
+                        state_entry.get("source_operation_id") or ""
+                    ),
+                    "operation_type": operation_type,
+                    "operation_family": family,
+                    "manager_decision": manager_decision,
+                    "phase": phase,
+                    "state_transition": str(state_entry.get("state_transition") or ""),
+                    "memory_layer": memory_layer,
+                    "context_role": context_role,
+                    "focus": str(state_entry.get("focus") or ""),
+                    "target_type": target_type,
+                    "target_id": str(state_entry.get("target_id") or ""),
+                    "slot_id": str(state_entry.get("slot_id") or ""),
+                    "memory_id": str(state_entry.get("memory_id") or ""),
+                    "memory_type": str(state_entry.get("memory_type") or ""),
+                    "lifecycle_stage": str(state_entry.get("lifecycle_stage") or ""),
+                    "status": str(state_entry.get("status") or ""),
+                    "subject": _normalize_key_text(
+                        str(state_entry.get("subject") or "")
+                    ),
+                    "predicate": _normalize_key_text(
+                        str(state_entry.get("predicate") or "")
+                    ),
+                    "values": _ordered_strings(state_entry.get("values") or ())[:8],
+                    "context_actions": _ordered_strings(
+                        state_entry.get("context_actions") or ()
+                    ),
+                    "verifier_checks": _ordered_strings(
+                        state_entry.get("verifier_checks") or ()
+                    ),
+                    "query_consumers": _ordered_strings(
+                        state_entry.get("query_consumers") or ()
+                    ),
+                    "source_backed": bool(state_entry.get("source_backed") or source_ids),
+                    "source_ids": source_ids,
+                    "source_expansion": {
+                        "policy": "expand_to_raw_source_rows",
+                        "source_ids": source_ids,
+                        "source_count": len(source_ids),
+                    },
+                    "source_policy": {
+                        "raw_evidence_required": True,
+                        "final_evidence_policy": "raw_source_rows",
+                        "memory_objects_are_not_final_evidence": True,
+                        "question_independent_build": True,
+                    },
+                }
+            )
+
+    return {
+        "schema_version": "memory_operation_journal_v1",
+        "trace_only": False,
+        "applied": bool(journal_entries),
+        "interface_sources": ["memory_system_state"],
+        "entry_count": len(journal_entries),
+        "source_backed_entry_count": source_backed_count,
+        "source_incomplete_entry_count": max(
+            0, len(journal_entries) - source_backed_count
+        ),
+        "state_entry_count": len(state_entries),
+        "operation_counts": dict(sorted(operation_counts.items())),
+        "family_counts": dict(sorted(family_counts.items())),
+        "decision_counts": dict(sorted(decision_counts.items())),
+        "phase_counts": dict(sorted(phase_counts.items())),
+        "layer_counts": dict(sorted(layer_counts.items())),
+        "target_counts": dict(sorted(target_counts.items())),
+        "context_role_counts": dict(sorted(context_role_counts.items())),
+        "source_expansion_source_ids": source_expansion_ids,
+        "source_expansion_source_count": len(source_expansion_ids),
+        "operation_contract": _memory_working_view_operation_contract(),
+        "operation_policy": {
+            "create": "source_backed_memory_object_creation",
+            "update": "source_backed_state_refresh",
+            "merge": "source_backed_parallel_value_consolidation",
+            "supersede": "non_destructive_archival_transition",
+            "retrieve": "candidate_activation",
+            "expand": "raw_source_row_expansion",
+            "verify": "source_grounded_consistency_check",
+            "audit": "traceable_risk_and_policy_check",
+        },
+        "source_policy": {
+            "raw_evidence_required": True,
+            "final_evidence_policy": "raw_source_rows",
+            "question_independent_build": True,
+            "memory_objects_are_not_final_evidence": True,
+        },
+        "entries": journal_entries,
+        "clean_note": (
+            "Question-independent memory operation journal over memory_system_state. "
+            "It records create/update/merge/supersede/retrieve/expand/verify/audit "
+            "as source-backed operations for state management, context organization, "
+            "verification, and audit. It does not use question text, gold answers, "
+            "judge outputs, benchmark labels, sample ids, or test feedback; final "
+            "answer evidence remains raw source rows."
+        ),
+    }
+
+
+def _memory_operation_journal_operation_types(entry: dict[str, Any]) -> list[str]:
+    operations: list[str] = []
+    manager_decision = str(entry.get("manager_decision") or "")
+    if manager_decision in {"create", "update", "merge", "supersede"}:
+        operations.append(manager_decision)
+    if manager_decision in {"audit_conflict", "quarantine_audit"}:
+        operations.append("audit")
+    raw_operations = {
+        str(operation)
+        for operation in (
+            *(entry.get("operations") or ()),
+            *(entry.get("operation_actions") or ()),
+        )
+    }
+    context_actions = {
+        str(action) for action in entry.get("context_actions") or ()
+    }
+    verifier_checks = {
+        str(check) for check in entry.get("verifier_checks") or ()
+    }
+    if raw_operations.intersection({"retrieve", "expand", "verify", "audit"}):
+        operations.extend(
+            operation
+            for operation in ("retrieve", "expand", "verify", "audit")
+            if operation in raw_operations
+        )
+    else:
+        if context_actions or entry.get("source_ids"):
+            operations.extend(["retrieve", "expand"])
+        if verifier_checks:
+            operations.append("verify")
+        if (
+            manager_decision in {"audit_conflict", "quarantine_audit"}
+            or "state_conflict" in verifier_checks
+            or "quarantine_not_final_evidence" in verifier_checks
+        ):
+            operations.append("audit")
+    return [operation for operation in _ordered_strings(operations) if operation]
+
+
+def _memory_operation_journal_family(operation_type: str) -> str:
+    if operation_type in {"create", "update", "merge", "supersede"}:
+        return "management"
+    if operation_type in {"retrieve", "expand"}:
+        return "context"
+    if operation_type == "verify":
+        return "verification"
+    return "audit"
 
 
 def _memory_working_compiler_plan_focus(decision: dict[str, Any]) -> str:

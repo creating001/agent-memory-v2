@@ -786,6 +786,17 @@ class CleanSkeletonTest(unittest.TestCase):
                         "raw_row_expansion": 1,
                         "source_backing": 3,
                     },
+                    "memory_operation_journal_available": True,
+                    "memory_operation_journal_final_source_ids": ("s2:t0",),
+                    "memory_operation_journal_operation_counts": {
+                        "expand": 2,
+                        "retrieve": 2,
+                        "verify": 1,
+                    },
+                    "memory_operation_journal_family_counts": {
+                        "context": 4,
+                        "verification": 1,
+                    },
                 }
             },
         )
@@ -817,6 +828,16 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual(
             audit.memory_system_state_verifier_check_counts,
             {"raw_row_expansion": 1, "source_backing": 3},
+        )
+        self.assertTrue(audit.memory_operation_journal_available)
+        self.assertEqual(audit.memory_operation_journal_final_evidence_count, 1)
+        self.assertEqual(
+            audit.memory_operation_journal_operation_counts,
+            {"expand": 2, "retrieve": 2, "verify": 1},
+        )
+        self.assertEqual(
+            audit.memory_operation_journal_family_counts,
+            {"context": 4, "verification": 1},
         )
         self.assertEqual(audit.risks, ())
 
@@ -3936,6 +3957,14 @@ class CleanSkeletonTest(unittest.TestCase):
             8,
         )
         self.assertEqual(memory_object_index["working_compiler_plan_context_slot_count"], 2)
+        self.assertGreater(
+            memory_object_index["memory_operation_journal_entry_count"],
+            memory_object_index["memory_system_state_entry_count"],
+        )
+        self.assertEqual(
+            memory_object_index["memory_operation_journal_source_backed_entry_count"],
+            memory_object_index["memory_operation_journal_entry_count"],
+        )
         self.assertEqual(
             memory_object_index["source_backed_object_count"],
             3,
@@ -4232,6 +4261,12 @@ class CleanSkeletonTest(unittest.TestCase):
             ],
             "memory_working_compiler_plan",
         )
+        self.assertEqual(
+            memory_object_index["index_contract"]["memory_operation_journal_contract"][
+                "journal_field"
+            ],
+            "memory_operation_journal",
+        )
         working_compiler_plan = memory_object_index["memory_working_compiler_plan"]
         self.assertEqual(
             working_compiler_plan["schema_version"],
@@ -4318,6 +4353,45 @@ class CleanSkeletonTest(unittest.TestCase):
         )
         self.assertEqual(
             memory_system_state["source_policy"]["final_evidence_policy"],
+            "raw_source_rows",
+        )
+        operation_journal = memory_object_index["memory_operation_journal"]
+        self.assertEqual(
+            operation_journal["schema_version"],
+            "memory_operation_journal_v1",
+        )
+        self.assertFalse(operation_journal["trace_only"])
+        self.assertTrue(operation_journal["applied"])
+        self.assertEqual(
+            operation_journal["state_entry_count"],
+            memory_system_state["entry_count"],
+        )
+        self.assertEqual(
+            operation_journal["source_backed_entry_count"],
+            operation_journal["entry_count"],
+        )
+        self.assertIn("retrieve", operation_journal["operation_counts"])
+        self.assertIn("expand", operation_journal["operation_counts"])
+        self.assertIn("verify", operation_journal["operation_counts"])
+        self.assertIn("audit", operation_journal["operation_counts"])
+        self.assertIn("supersede", operation_journal["operation_counts"])
+        self.assertIn("context", operation_journal["family_counts"])
+        self.assertIn("management", operation_journal["family_counts"])
+        self.assertIn("verification", operation_journal["family_counts"])
+        city_journal_supersede = next(
+            entry
+            for entry in operation_journal["entries"]
+            if entry["operation_type"] == "supersede"
+            and entry["target_type"] == "operation_slot"
+            and entry["predicate"] == "location"
+        )
+        self.assertEqual(city_journal_supersede["operation_family"], "management")
+        self.assertEqual(
+            city_journal_supersede["source_expansion"]["source_ids"],
+            ["s2:t1", "s2:t2", "s1:t1"],
+        )
+        self.assertEqual(
+            operation_journal["source_policy"]["final_evidence_policy"],
             "raw_source_rows",
         )
         city_operation_api = next(

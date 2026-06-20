@@ -296,6 +296,19 @@ def main() -> int:
     build_memory_system_graph_memory_object_index_memory_system_state_verifier_check_counts: dict[
         str, int
     ] = {}
+    total_build_memory_system_graph_index_memory_operation_journal_applied = 0
+    total_build_memory_system_graph_index_memory_operation_journal_entries = 0
+    total_build_memory_system_graph_index_memory_operation_journal_source_backed_entries = 0
+    total_build_memory_system_graph_index_memory_operation_journal_source_expansion_sources = 0
+    build_memory_system_graph_memory_object_index_memory_operation_journal_operation_counts: dict[
+        str, int
+    ] = {}
+    build_memory_system_graph_memory_object_index_memory_operation_journal_family_counts: dict[
+        str, int
+    ] = {}
+    build_memory_system_graph_memory_object_index_memory_operation_journal_decision_counts: dict[
+        str, int
+    ] = {}
     total_build_memory_system_graph_index_layer_manifest_applied = 0
     total_build_memory_system_graph_index_layer_manifest_entries = 0
     build_memory_system_graph_memory_object_index_layer_manifest_layer_entries: dict[
@@ -349,6 +362,10 @@ def main() -> int:
     answer_verifier_memory_system_state_decision_counts: dict[str, int] = {}
     answer_verifier_memory_system_state_context_action_counts: dict[str, int] = {}
     answer_verifier_memory_system_state_verifier_check_counts: dict[str, int] = {}
+    total_answer_verifier_memory_operation_journal_available = 0
+    total_answer_verifier_memory_operation_journal_final_evidence = 0
+    answer_verifier_memory_operation_journal_operation_counts: dict[str, int] = {}
+    answer_verifier_memory_operation_journal_family_counts: dict[str, int] = {}
     answer_verifier_risk_reasons: dict[str, int] = {}
     total_answer_repair_triggered = 0
     total_answer_repair_applied = 0
@@ -1123,6 +1140,34 @@ def main() -> int:
                         build_memory_system_graph_memory_object_index_memory_system_state_verifier_check_counts,
                         memory_system_state.get("verifier_check_counts") or {},
                     )
+                operation_journal = (
+                    memory_object_index.get("memory_operation_journal") or {}
+                )
+                if isinstance(operation_journal, Mapping) and operation_journal.get(
+                    "applied"
+                ):
+                    total_build_memory_system_graph_index_memory_operation_journal_applied += 1
+                    total_build_memory_system_graph_index_memory_operation_journal_entries += int(
+                        operation_journal.get("entry_count") or 0
+                    )
+                    total_build_memory_system_graph_index_memory_operation_journal_source_backed_entries += int(
+                        operation_journal.get("source_backed_entry_count") or 0
+                    )
+                    total_build_memory_system_graph_index_memory_operation_journal_source_expansion_sources += int(
+                        operation_journal.get("source_expansion_source_count") or 0
+                    )
+                    _merge_int_counts(
+                        build_memory_system_graph_memory_object_index_memory_operation_journal_operation_counts,
+                        operation_journal.get("operation_counts") or {},
+                    )
+                    _merge_int_counts(
+                        build_memory_system_graph_memory_object_index_memory_operation_journal_family_counts,
+                        operation_journal.get("family_counts") or {},
+                    )
+                    _merge_int_counts(
+                        build_memory_system_graph_memory_object_index_memory_operation_journal_decision_counts,
+                        operation_journal.get("decision_counts") or {},
+                    )
                 layer_manifest = memory_object_index.get("memory_layer_manifest") or {}
                 if isinstance(layer_manifest, Mapping) and layer_manifest.get(
                     "applied"
@@ -1314,6 +1359,23 @@ def main() -> int:
                 answer_verifier_memory_system_state_verifier_check_counts,
                 answer_verifier.get("memory_system_state_verifier_check_counts")
                 or {},
+            )
+            if answer_verifier.get("memory_operation_journal_available"):
+                total_answer_verifier_memory_operation_journal_available += 1
+            total_answer_verifier_memory_operation_journal_final_evidence += int(
+                answer_verifier.get(
+                    "memory_operation_journal_final_evidence_count"
+                )
+                or 0
+            )
+            _merge_int_counts(
+                answer_verifier_memory_operation_journal_operation_counts,
+                answer_verifier.get("memory_operation_journal_operation_counts")
+                or {},
+            )
+            _merge_int_counts(
+                answer_verifier_memory_operation_journal_family_counts,
+                answer_verifier.get("memory_operation_journal_family_counts") or {},
             )
             risk_count = int(answer_verifier.get("risk_count") or 0)
             total_answer_verifier_risk_flags += risk_count
@@ -2687,6 +2749,42 @@ def main() -> int:
                     build_memory_system_graph_memory_object_index_memory_system_state_verifier_check_counts.items()
                 )
             ),
+            "memory_system_graph_memory_object_index_memory_operation_journal_applied_count": (
+                total_build_memory_system_graph_index_memory_operation_journal_applied
+            ),
+            "avg_memory_system_graph_memory_object_index_memory_operation_journal_entries": (
+                _safe_average(
+                    total_build_memory_system_graph_index_memory_operation_journal_entries,
+                    total_build_memory_system_graph_index_memory_operation_journal_applied,
+                )
+            ),
+            "avg_memory_system_graph_memory_object_index_memory_operation_journal_source_backed_entries": (
+                _safe_average(
+                    total_build_memory_system_graph_index_memory_operation_journal_source_backed_entries,
+                    total_build_memory_system_graph_index_memory_operation_journal_applied,
+                )
+            ),
+            "avg_memory_system_graph_memory_object_index_memory_operation_journal_source_expansion_sources": (
+                _safe_average(
+                    total_build_memory_system_graph_index_memory_operation_journal_source_expansion_sources,
+                    total_build_memory_system_graph_index_memory_operation_journal_applied,
+                )
+            ),
+            "memory_system_graph_memory_object_index_memory_operation_journal_operation_counts": dict(
+                sorted(
+                    build_memory_system_graph_memory_object_index_memory_operation_journal_operation_counts.items()
+                )
+            ),
+            "memory_system_graph_memory_object_index_memory_operation_journal_family_counts": dict(
+                sorted(
+                    build_memory_system_graph_memory_object_index_memory_operation_journal_family_counts.items()
+                )
+            ),
+            "memory_system_graph_memory_object_index_memory_operation_journal_decision_counts": dict(
+                sorted(
+                    build_memory_system_graph_memory_object_index_memory_operation_journal_decision_counts.items()
+                )
+            ),
             "avg_memory_system_graph_memory_object_index_layer_manifest_entries": (
                 _safe_average(
                     total_build_memory_system_graph_index_layer_manifest_entries,
@@ -2884,6 +2982,23 @@ def main() -> int:
                 sorted(
                     answer_verifier_memory_system_state_verifier_check_counts.items()
                 )
+            ),
+            "verifier_memory_operation_journal_available_count": (
+                total_answer_verifier_memory_operation_journal_available
+            ),
+            "verifier_memory_operation_journal_available_rate": _safe_average(
+                total_answer_verifier_memory_operation_journal_available,
+                total_answer_verifier_applied,
+            ),
+            "verifier_avg_memory_operation_journal_final_evidence": _safe_average(
+                total_answer_verifier_memory_operation_journal_final_evidence,
+                total_answer_verifier_applied,
+            ),
+            "verifier_memory_operation_journal_operation_counts": dict(
+                sorted(answer_verifier_memory_operation_journal_operation_counts.items())
+            ),
+            "verifier_memory_operation_journal_family_counts": dict(
+                sorted(answer_verifier_memory_operation_journal_family_counts.items())
             ),
             "repair_triggered_count": total_answer_repair_triggered,
             "repair_triggered_rate": _safe_average(
@@ -3819,6 +3934,11 @@ def _write_summary(
         f"- build_memory_system_graph_memory_object_index_memory_system_state_decision_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_system_state_decision_counts']}",
         f"- build_memory_system_graph_memory_object_index_memory_system_state_context_action_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_system_state_context_action_counts']}",
         f"- build_memory_system_graph_memory_object_index_memory_system_state_verifier_check_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_system_state_verifier_check_counts']}",
+        f"- build_memory_system_graph_memory_object_index_memory_operation_journal_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_operation_journal_applied_count']}",
+        f"- avg_build_memory_system_graph_memory_object_index_memory_operation_journal_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_memory_operation_journal_entries']}",
+        f"- avg_build_memory_system_graph_memory_object_index_memory_operation_journal_source_backed_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_memory_operation_journal_source_backed_entries']}",
+        f"- build_memory_system_graph_memory_object_index_memory_operation_journal_operation_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_operation_journal_operation_counts']}",
+        f"- build_memory_system_graph_memory_object_index_memory_operation_journal_family_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_operation_journal_family_counts']}",
         f"- build_memory_system_graph_memory_object_index_layer_manifest_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_layer_manifest_applied_count']}",
         f"- avg_build_memory_system_graph_memory_object_index_layer_manifest_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_layer_manifest_entries']}",
         f"- build_memory_system_graph_memory_object_index_layer_manifest_layer_entries: {metrics['build_memory']['memory_system_graph_memory_object_index_layer_manifest_layer_entries']}",
@@ -4059,6 +4179,11 @@ def _write_summary(
         f"- answer_verifier_memory_system_state_decision_counts: {metrics['answer']['verifier_memory_system_state_decision_counts']}",
         f"- answer_verifier_memory_system_state_context_action_counts: {metrics['answer']['verifier_memory_system_state_context_action_counts']}",
         f"- answer_verifier_memory_system_state_verifier_check_counts: {metrics['answer']['verifier_memory_system_state_verifier_check_counts']}",
+        f"- answer_verifier_memory_operation_journal_available_count: {metrics['answer']['verifier_memory_operation_journal_available_count']}",
+        f"- answer_verifier_memory_operation_journal_available_rate: {metrics['answer']['verifier_memory_operation_journal_available_rate']}",
+        f"- answer_verifier_avg_memory_operation_journal_final_evidence: {metrics['answer']['verifier_avg_memory_operation_journal_final_evidence']}",
+        f"- answer_verifier_memory_operation_journal_operation_counts: {metrics['answer']['verifier_memory_operation_journal_operation_counts']}",
+        f"- answer_verifier_memory_operation_journal_family_counts: {metrics['answer']['verifier_memory_operation_journal_family_counts']}",
         f"- answer_repair_enabled: {metrics['answer']['repair_enabled']}",
         f"- answer_repair_mode: {metrics['answer']['repair_mode']}",
         f"- answer_repair_model: {metrics['answer']['repair_model']}",
@@ -4330,6 +4455,11 @@ def _write_diagnosis(
         f"- build_memory_system_graph_memory_object_index_memory_system_state_decision_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_system_state_decision_counts']}",
         f"- build_memory_system_graph_memory_object_index_memory_system_state_context_action_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_system_state_context_action_counts']}",
         f"- build_memory_system_graph_memory_object_index_memory_system_state_verifier_check_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_system_state_verifier_check_counts']}",
+        f"- build_memory_system_graph_memory_object_index_memory_operation_journal_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_operation_journal_applied_count']}",
+        f"- avg_build_memory_system_graph_memory_object_index_memory_operation_journal_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_memory_operation_journal_entries']}",
+        f"- avg_build_memory_system_graph_memory_object_index_memory_operation_journal_source_backed_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_memory_operation_journal_source_backed_entries']}",
+        f"- build_memory_system_graph_memory_object_index_memory_operation_journal_operation_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_operation_journal_operation_counts']}",
+        f"- build_memory_system_graph_memory_object_index_memory_operation_journal_family_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_operation_journal_family_counts']}",
         f"- build_memory_system_graph_memory_object_index_layer_manifest_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_layer_manifest_applied_count']}",
         f"- avg_build_memory_system_graph_memory_object_index_layer_manifest_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_layer_manifest_entries']}",
         f"- build_memory_system_graph_memory_object_index_layer_manifest_layer_entries: {metrics['build_memory']['memory_system_graph_memory_object_index_layer_manifest_layer_entries']}",

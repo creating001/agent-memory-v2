@@ -59,6 +59,10 @@ class AnswerSupportAudit:
     memory_system_state_decision_counts: dict[str, int]
     memory_system_state_context_action_counts: dict[str, int]
     memory_system_state_verifier_check_counts: dict[str, int]
+    memory_operation_journal_available: bool
+    memory_operation_journal_final_evidence_count: int
+    memory_operation_journal_operation_counts: dict[str, int]
+    memory_operation_journal_family_counts: dict[str, int]
     risks: tuple[str, ...]
 
     @property
@@ -122,6 +126,7 @@ def audit_answer_support(
     )
     working_plan = _working_compiler_plan_audit(context_manifest)
     system_state = _memory_system_state_audit(context_manifest)
+    operation_journal = _memory_operation_journal_audit(context_manifest)
 
     risks: list[str] = []
     if answer_empty:
@@ -191,6 +196,14 @@ def audit_answer_support(
         memory_system_state_verifier_check_counts=system_state[
             "verifier_check_counts"
         ],
+        memory_operation_journal_available=operation_journal["available"],
+        memory_operation_journal_final_evidence_count=operation_journal[
+            "final_evidence_count"
+        ],
+        memory_operation_journal_operation_counts=operation_journal[
+            "operation_counts"
+        ],
+        memory_operation_journal_family_counts=operation_journal["family_counts"],
         risks=tuple(dict.fromkeys(risks)),
     )
 
@@ -226,6 +239,10 @@ def _audit_noop(*, enabled: bool, mode: str, reason: str) -> AnswerSupportAudit:
         memory_system_state_decision_counts={},
         memory_system_state_context_action_counts={},
         memory_system_state_verifier_check_counts={},
+        memory_operation_journal_available=False,
+        memory_operation_journal_final_evidence_count=0,
+        memory_operation_journal_operation_counts={},
+        memory_operation_journal_family_counts={},
         risks=(),
     )
 
@@ -385,6 +402,40 @@ def _empty_memory_system_state_audit() -> dict[str, Any]:
         "decision_counts": {},
         "context_action_counts": {},
         "verifier_check_counts": {},
+    }
+
+
+def _memory_operation_journal_audit(
+    context_manifest: dict[str, Any] | None,
+) -> dict[str, Any]:
+    if not isinstance(context_manifest, dict):
+        return _empty_memory_operation_journal_audit()
+    memory_operations = context_manifest.get("memory_operations")
+    if not isinstance(memory_operations, dict):
+        return _empty_memory_operation_journal_audit()
+    return {
+        "available": bool(
+            memory_operations.get("memory_operation_journal_available")
+        ),
+        "final_evidence_count": len(
+            memory_operations.get("memory_operation_journal_final_source_ids")
+            or ()
+        ),
+        "operation_counts": _int_count_dict(
+            memory_operations.get("memory_operation_journal_operation_counts")
+        ),
+        "family_counts": _int_count_dict(
+            memory_operations.get("memory_operation_journal_family_counts")
+        ),
+    }
+
+
+def _empty_memory_operation_journal_audit() -> dict[str, Any]:
+    return {
+        "available": False,
+        "final_evidence_count": 0,
+        "operation_counts": {},
+        "family_counts": {},
     }
 
 

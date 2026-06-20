@@ -4741,6 +4741,11 @@ def _context_manifest(
             "final_evidence_from_memory_system_state_count": len(
                 memory_operations_manifest["memory_system_state_final_source_ids"]
             ),
+            "final_evidence_from_memory_operation_journal_count": len(
+                memory_operations_manifest[
+                    "memory_operation_journal_final_source_ids"
+                ]
+            ),
             "typed_memory_source_count": len(typed_memory_source_ids),
             "selected_context_materialized_count": int(
                 selected_context.get("materialized_count") or 0
@@ -4851,6 +4856,24 @@ def _context_manifest(
                         "memory_system_state_verifier_check_counts"
                     ]
                 ),
+                "memory_operation_journal_available": memory_operations_manifest[
+                    "memory_operation_journal_available"
+                ],
+                "memory_operation_journal_final_source_count": len(
+                    memory_operations_manifest[
+                        "memory_operation_journal_final_source_ids"
+                    ]
+                ),
+                "memory_operation_journal_operation_counts": (
+                    memory_operations_manifest[
+                        "memory_operation_journal_operation_counts"
+                    ]
+                ),
+                "memory_operation_journal_family_counts": (
+                    memory_operations_manifest[
+                        "memory_operation_journal_family_counts"
+                    ]
+                ),
             },
             "evidence_pressure": _evidence_pressure_manifest(evidence_rows),
             "clean_note": (
@@ -4918,6 +4941,7 @@ def _memory_operations_context_manifest(
     context_interface = {}
     working_compiler_plan = {}
     memory_system_state = {}
+    memory_operation_journal = {}
     if isinstance(memory_object_index, Mapping):
         raw_registry = memory_object_index.get("operation_registry")
         if isinstance(raw_registry, Mapping):
@@ -4945,6 +4969,11 @@ def _memory_operations_context_manifest(
         raw_memory_system_state = memory_object_index.get("memory_system_state")
         if isinstance(raw_memory_system_state, Mapping):
             memory_system_state = raw_memory_system_state
+        raw_memory_operation_journal = memory_object_index.get(
+            "memory_operation_journal"
+        )
+        if isinstance(raw_memory_operation_journal, Mapping):
+            memory_operation_journal = raw_memory_operation_journal
     registry_available = bool(operation_registry.get("applied"))
     working_view_available = bool(working_memory_view.get("applied"))
     lifecycle_audit_available = bool(lifecycle_audit.get("applied"))
@@ -4953,6 +4982,9 @@ def _memory_operations_context_manifest(
     context_interface_available = bool(context_interface.get("applied"))
     working_compiler_plan_available = bool(working_compiler_plan.get("applied"))
     memory_system_state_available = bool(memory_system_state.get("applied"))
+    memory_operation_journal_available = bool(
+        memory_operation_journal.get("applied")
+    )
     lifecycle_audit_source_ids = _ordered_unique(
         source_id
         for entry in lifecycle_audit.get("entries") or ()
@@ -5066,6 +5098,31 @@ def _memory_operations_context_manifest(
     )
     memory_system_state_final_source_ids = tuple(
         source_id for source_id in memory_system_state_source_ids if source_id in final_set
+    )
+    memory_operation_journal_source_ids = _ordered_unique(
+        (
+            *(memory_operation_journal.get("source_expansion_source_ids") or ()),
+            *(
+                source_id
+                for entry in memory_operation_journal.get("entries") or ()
+                if isinstance(entry, Mapping)
+                for source_id in (entry.get("source_ids") or ())
+            ),
+            *(
+                source_id
+                for entry in memory_operation_journal.get("entries") or ()
+                if isinstance(entry, Mapping)
+                and isinstance(entry.get("source_expansion"), Mapping)
+                for source_id in (
+                    entry.get("source_expansion", {}).get("source_ids") or ()
+                )
+            ),
+        )
+    )
+    memory_operation_journal_final_source_ids = tuple(
+        source_id
+        for source_id in memory_operation_journal_source_ids
+        if source_id in final_set
     )
     return {
         "trace_only": True,
@@ -5202,6 +5259,32 @@ def _memory_operations_context_manifest(
         "memory_system_state_final_source_ids": memory_system_state_final_source_ids,
         "memory_system_state_final_source_count": len(
             memory_system_state_final_source_ids
+        ),
+        "memory_operation_journal_available": memory_operation_journal_available,
+        "memory_operation_journal_schema_version": str(
+            memory_operation_journal.get("schema_version") or ""
+        ),
+        "memory_operation_journal_entry_count": int(
+            memory_operation_journal.get("entry_count") or 0
+        ),
+        "memory_operation_journal_source_backed_entry_count": int(
+            memory_operation_journal.get("source_backed_entry_count") or 0
+        ),
+        "memory_operation_journal_operation_counts": _mapping_int_counts(
+            memory_operation_journal.get("operation_counts")
+        ),
+        "memory_operation_journal_family_counts": _mapping_int_counts(
+            memory_operation_journal.get("family_counts")
+        ),
+        "memory_operation_journal_decision_counts": _mapping_int_counts(
+            memory_operation_journal.get("decision_counts")
+        ),
+        "memory_operation_journal_source_ids": memory_operation_journal_source_ids,
+        "memory_operation_journal_final_source_ids": (
+            memory_operation_journal_final_source_ids
+        ),
+        "memory_operation_journal_final_source_count": len(
+            memory_operation_journal_final_source_ids
         ),
         "operation_utility_slot_source": operation_slot_source,
         "graph_utility_slot_source": graph_slot_source,
