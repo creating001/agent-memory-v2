@@ -3114,6 +3114,15 @@ class CleanSkeletonTest(unittest.TestCase):
             governance_manifest["activation_utility_policy"]["schema_version"],
             "memory_activation_utility_v1",
         )
+        self.assertEqual(
+            governance_manifest["activation_utility_policy"]["tier_order"],
+            [
+                "working_memory",
+                "long_term_memory",
+                "archival_memory",
+                "quarantine_memory",
+            ],
+        )
         self.assertEqual(governance_manifest["risk_record_count"], 1)
         self.assertEqual(
             governance_manifest["risk_counts"],

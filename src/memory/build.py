@@ -1677,10 +1677,16 @@ def _memory_activation_utility_policy() -> dict[str, Any]:
             "general_candidate",
             "blocked",
         ],
+        "tier_order": [
+            "working_memory",
+            "long_term_memory",
+            "archival_memory",
+            "quarantine_memory",
+        ],
         "clean_note": (
             "Question-independent activation utility over typed memory metadata. "
             "It uses source support, confidence, slot completeness, temporal "
-            "anchors, lifecycle state, and memory type only."
+            "anchors, lifecycle state, memory type, and memory tier only."
         ),
     }
 
@@ -1781,14 +1787,21 @@ def _memory_activation_utility_bucket(
 
 
 def _memory_activation_priority_sort_key(assessment: dict[str, Any]) -> tuple[Any, ...]:
+    policy = _memory_activation_utility_policy()
     role_order = {
         role: index
-        for index, role in enumerate(_memory_activation_utility_policy()["role_order"])
+        for index, role in enumerate(policy["role_order"])
+    }
+    tier_order = {
+        tier: index
+        for index, tier in enumerate(policy.get("tier_order") or ())
     }
     role = str(assessment.get("activation_role") or "")
+    tier = str(assessment.get("memory_tier") or "")
     status = str(assessment.get("status") or "")
     return (
         -int(assessment.get("activation_utility_score") or 0),
+        tier_order.get(tier, 99),
         role_order.get(role, 99),
         0 if status == "active" else 1,
         str(assessment.get("memory_type") or ""),
