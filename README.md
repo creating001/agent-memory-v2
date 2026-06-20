@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_state_profile_tier_activation_v278_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_memory_system_ops_v279_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v278 local LTS |
+| Benchmark | 当前 v279 local LTS |
 |---|---:|
 | LongMemEval-S full | strict/lenient `0.832000 / 0.844000`，avg build/query tokens `85393.566 / 6463.628` |
 | LoCoMo non-adversarial full | strict/lenient `0.794156 / 0.819481`，avg build/query tokens `62015.57402597403 / 6093.794155844156` |
 
-v278 的 LTS 理由：继承 v276 的 tier/source-policy memory system，并让 tier-aware activation priority 只在 current_state / profile_preference 上软排序 source-backed memory hits。v278 相对 v276 在 LongMemEval-S full 与 LoCoMo full 上分别只有 `2/500`、`4/1540` answer diff；changed-answer dual `deepseek-v4-flash` judge strict/lenient delta 均为 `0/0`，因此性能主指标不退。它让 build-time tier/utility 真实参与 activation，同时避免 v277 对 list/temporal 过宽激活带来的高 churn 风险。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_state_profile_tier_activation_v278_full_summary.md`。
+v279 的 LTS 理由：继承 v278 的 query/answer 行为，性能主指标不退；同时把 build memory 从 typed-memory retrieval hint 推进为 source-backed memory system view。`memory_system_graph` 现在包含 working/long-term/archival/quarantine tiers、`operation_manifest_v1`、`state_conflict_manifest_v1`，覆盖 create/update/merge/supersede/retrieve/expand/verify/audit、非破坏性 state supersede、source expansion 和 audit。v279 相对 v278 在 LongMemEval-S full 与 LoCoMo full 上 answer/prompt/route/evidence/retrieval/token diff 均为 `0`，因此继承 v278 dual `deepseek-v4-flash` judge accuracy。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_memory_system_ops_v279_full_summary.md`。
 
 ## 目录
 
