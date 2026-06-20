@@ -1217,6 +1217,7 @@ def _memory_system_object_schema() -> dict[str, Any]:
             "build_owned_scalar_value_manifest",
             "build_owned_memory_object_index",
             "build_owned_operation_slot_index",
+            "build_owned_operation_registry",
         ],
 }
 
@@ -1285,6 +1286,14 @@ def _memory_object_index_manifest(
         groups,
         managed_memory_types=managed_memory_types,
     )
+    operation_registry = _memory_object_operation_registry(
+        managed_records=managed_records,
+        managed_memory_types=managed_memory_types,
+        value_slots=value_slots,
+        operation_slots=operation_slots,
+        state_conflict_slots=state_conflict_slots,
+        operation_manifest=operation_manifest,
+    )
     object_samples = [
         {
             "memory_id": record.memory_id,
@@ -1338,6 +1347,17 @@ def _memory_object_index_manifest(
         "value_slot_count": len(value_slots),
         "operation_slot_count": len(operation_slots),
         "state_conflict_slot_count": len(state_conflict_slots),
+        "operation_registry_entry_count": operation_registry["entry_count"],
+        "operation_registry_object_entry_count": (
+            operation_registry["object_entry_count"]
+        ),
+        "operation_registry_slot_entry_count": operation_registry["slot_entry_count"],
+        "operation_registry_conflict_entry_count": (
+            operation_registry["conflict_entry_count"]
+        ),
+        "operation_registry_source_backed_entry_count": (
+            operation_registry["source_backed_entry_count"]
+        ),
         "source_backed_object_count": sum(
             1 for record in managed_records if record.source_ids
         ),
@@ -1385,6 +1405,17 @@ def _memory_object_index_manifest(
                 ],
                 "policy": "query_consumers_choose_scope_and_expand_to_raw_sources",
             },
+            "operation_registry_contract": {
+                "registry_field": "operation_registry",
+                "target_types": [
+                    "object",
+                    "value_slot",
+                    "operation_slot",
+                    "conflict_slot",
+                ],
+                "operation_scope": "source_backed_memory_management_and_context_use",
+                "policy": "operations_expand_to_raw_sources_before_final_evidence",
+            },
             "state_conflict_contract": {
                 "slot_index_field": "state_conflict_slot_index",
                 "slot_scope": "same memory_type, subject, predicate",
@@ -1398,6 +1429,7 @@ def _memory_object_index_manifest(
         "value_slot_index": value_slots,
         "operation_slot_index": operation_slots,
         "state_conflict_slot_index": state_conflict_slots,
+        "operation_registry": operation_registry,
         "state_conflict_slot_ids": sorted(str(slot_id) for slot_id in conflict_slot_ids),
         "clean_note": (
             "Question-independent build memory object index. It unifies tier, "
@@ -1434,6 +1466,205 @@ def _memory_object_state_conflict_slot_index(
             }
         )
     return slots
+
+
+def _memory_object_operation_registry(
+    *,
+    managed_records: tuple[MemoryRecord, ...],
+    managed_memory_types: frozenset[str],
+    value_slots: list[dict[str, Any]],
+    operation_slots: list[dict[str, Any]],
+    state_conflict_slots: list[dict[str, Any]],
+    operation_manifest: dict[str, Any],
+) -> dict[str, Any]:
+    """A build-owned registry for memory operations over objects and slots."""
+
+    entries: list[dict[str, Any]] = []
+    for record in managed_records:
+        entries.append(
+            _memory_object_operation_registry_object_entry(
+                record,
+                managed_memory_types=managed_memory_types,
+            )
+        )
+    for slot in value_slots:
+        entries.append(
+            _memory_object_operation_registry_slot_entry(
+                slot,
+                target_type="value_slot",
+                target_id=str(slot.get("slot_id") or ""),
+                operations=tuple(str(item) for item in slot.get("operation_hints") or ()),
+                source_order_fields=("current_source_order", "historical_source_order"),
+            )
+        )
+    for slot in operation_slots:
+        entries.append(
+            _memory_object_operation_registry_slot_entry(
+                slot,
+                target_type="operation_slot",
+                target_id=str(slot.get("slot_id") or ""),
+                operations=tuple(
+                    _memory_object_operation_slot_registry_operations(slot)
+                ),
+                source_order_fields=(
+                    "validity_current_source_order",
+                    "validity_historical_source_order",
+                    "operation_current_source_order",
+                    "operation_historical_source_order",
+                ),
+            )
+        )
+    for slot in state_conflict_slots:
+        entries.append(
+            _memory_object_operation_registry_slot_entry(
+                slot,
+                target_type="conflict_slot",
+                target_id=str(slot.get("cluster_id") or ""),
+                operations=tuple(str(item) for item in slot.get("operation_hints") or ()),
+                source_order_fields=("current_source_order", "historical_source_order"),
+            )
+        )
+
+    operation_counts: dict[str, int] = defaultdict(int)
+    target_counts: dict[str, int] = defaultdict(int)
+    source_backed_count = 0
+    source_incomplete_count = 0
+    for entry in entries:
+        target_type = str(entry.get("target_type") or "unknown")
+        target_counts[target_type] += 1
+        if entry.get("source_backed"):
+            source_backed_count += 1
+        else:
+            source_incomplete_count += 1
+        for operation in entry.get("operations") or ():
+            operation_counts[str(operation)] += 1
+
+    return {
+        "schema_version": "memory_operation_registry_v1",
+        "trace_only": False,
+        "applied": True,
+        "entry_count": len(entries),
+        "object_entry_count": target_counts.get("object", 0),
+        "value_slot_entry_count": target_counts.get("value_slot", 0),
+        "slot_entry_count": (
+            target_counts.get("value_slot", 0)
+            + target_counts.get("operation_slot", 0)
+        ),
+        "operation_slot_entry_count": target_counts.get("operation_slot", 0),
+        "conflict_entry_count": target_counts.get("conflict_slot", 0),
+        "source_backed_entry_count": source_backed_count,
+        "source_incomplete_entry_count": source_incomplete_count,
+        "target_counts": dict(sorted(target_counts.items())),
+        "operation_counts": dict(sorted(operation_counts.items())),
+        "manifest_operation_counts": dict(
+            operation_manifest.get("operation_counts") or {}
+        ),
+        "operation_policy": dict(operation_manifest.get("operation_policy") or {}),
+        "source_policy": {
+            "raw_evidence_required": True,
+            "final_evidence_policy": "raw_source_rows",
+            "question_independent_build": True,
+        },
+        "entries": entries,
+        "clean_note": (
+            "Question-independent build registry for memory operations. Entries "
+            "cover object lifecycle, value slots, operation slots, and conflict "
+            "slots; every query-facing operation must expand to raw source rows "
+            "before final evidence."
+        ),
+    }
+
+
+def _memory_object_operation_registry_object_entry(
+    record: MemoryRecord,
+    *,
+    managed_memory_types: frozenset[str],
+) -> dict[str, Any]:
+    source_ids = list(record.source_ids[:12])
+    return {
+        "entry_id": f"op:object:{record.memory_id}",
+        "target_type": "object",
+        "target_id": record.memory_id,
+        "memory_id": record.memory_id,
+        "memory_type": record.memory_type,
+        "namespace": _memory_namespace(record),
+        "layer": _memory_layer(record.memory_type),
+        "memory_tier": _memory_tier(
+            record,
+            managed_memory_types=managed_memory_types,
+        ),
+        "status": record.status,
+        "subject": _normalize_key_text(record.subject),
+        "predicate": _normalize_key_text(record.predicate),
+        "operations": _memory_object_operation_hints(record),
+        "source_backed": bool(source_ids),
+        "source_ids": source_ids,
+        "expand_source_order": source_ids,
+        "verify_policy": "source_backed_memory_object",
+        "audit_policy": "source_support_confidence_slot_and_lifecycle",
+        "source_policy": {
+            "raw_evidence_required": True,
+            "final_evidence_policy": "raw_source_rows",
+        },
+    }
+
+
+def _memory_object_operation_registry_slot_entry(
+    slot: dict[str, Any],
+    *,
+    target_type: str,
+    target_id: str,
+    operations: tuple[str, ...],
+    source_order_fields: tuple[str, ...],
+) -> dict[str, Any]:
+    source_ids = _ordered_strings(
+        source_id
+        for field in source_order_fields
+        for source_id in (slot.get(field) or ())
+    )
+    if not source_ids:
+        source_ids = _ordered_strings(slot.get("source_ids") or ())
+    return {
+        "entry_id": f"op:{target_type}:{target_id}",
+        "target_type": target_type,
+        "target_id": target_id,
+        "memory_type": str(slot.get("memory_type") or ""),
+        "namespace": str(slot.get("namespace") or ""),
+        "layer": str(
+            slot.get("layer") or _memory_layer(str(slot.get("memory_type") or ""))
+        ),
+        "memory_tier": str(slot.get("memory_tier") or ""),
+        "subject": _normalize_key_text(str(slot.get("subject") or "")),
+        "predicate": _normalize_key_text(str(slot.get("predicate") or "")),
+        "operations": _ordered_strings(operations),
+        "graph_signals": _ordered_strings(slot.get("graph_signals") or ()),
+        "source_backed": bool(slot.get("source_backed") or source_ids),
+        "source_ids": source_ids[:12],
+        "expand_source_order": source_ids[:12],
+        "active_memory_ids": _ordered_strings(slot.get("active_memory_ids") or ())[:12],
+        "superseded_memory_ids": _ordered_strings(
+            slot.get("superseded_memory_ids") or ()
+        )[:12],
+        "record_count": int(slot.get("record_count") or 0),
+        "source_policy": {
+            **dict(slot.get("source_policy") or {}),
+            "raw_evidence_required": True,
+            "final_evidence_policy": "raw_source_rows",
+        },
+    }
+
+
+def _memory_object_operation_slot_registry_operations(
+    slot: dict[str, Any],
+) -> list[str]:
+    operations = ["retrieve", "expand", "verify", "audit"]
+    for operation in slot.get("operations") or ():
+        if operation:
+            operations.append(str(operation))
+    for signal in slot.get("graph_signals") or ():
+        if signal in {"supersede", "conflict_slot", "multi_value_slot"}:
+            operations.append(f"audit_{signal}")
+    return _ordered_strings(operations)
 
 
 def _memory_object_operation_slot_index(

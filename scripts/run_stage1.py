@@ -9,7 +9,7 @@ import json
 import sys
 import threading
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SRC_ROOT = REPO_ROOT / "src"
@@ -139,6 +139,9 @@ def main() -> int:
     build_memory_system_graph_operation_manifest_counts: dict[str, int] = {}
     build_memory_system_graph_scalar_value_manifest_counts: dict[str, int] = {}
     build_memory_system_graph_memory_object_index_operation_counts: dict[str, int] = {}
+    build_memory_system_graph_memory_object_index_registry_operation_counts: dict[
+        str, int
+    ] = {}
     total_build_memory_operation_ledger_applied = 0
     total_build_memory_operation_ledger_source_backed = 0
     total_build_memory_operation_ledger_source_unbacked = 0
@@ -178,6 +181,11 @@ def main() -> int:
     total_build_memory_system_graph_index_value_slots = 0
     total_build_memory_system_graph_index_operation_slots = 0
     total_build_memory_system_graph_index_state_conflict_slots = 0
+    total_build_memory_system_graph_index_operation_registry_entries = 0
+    total_build_memory_system_graph_index_operation_registry_object_entries = 0
+    total_build_memory_system_graph_index_operation_registry_slot_entries = 0
+    total_build_memory_system_graph_index_operation_registry_conflict_entries = 0
+    total_build_memory_system_graph_index_operation_registry_source_backed_entries = 0
     total_build_memory_system_graph_source_backed_records = 0
     total_build_memory_system_graph_complete_slot_key_records = 0
     total_build_memory_system_graph_temporal_anchor_records = 0
@@ -617,6 +625,31 @@ def main() -> int:
                 total_build_memory_system_graph_index_state_conflict_slots += int(
                     memory_object_index.get("state_conflict_slot_count") or 0
                 )
+                operation_registry = (
+                    memory_object_index.get("operation_registry") or {}
+                )
+                if isinstance(operation_registry, Mapping) and operation_registry.get(
+                    "applied"
+                ):
+                    _merge_int_counts(
+                        build_memory_system_graph_memory_object_index_registry_operation_counts,
+                        operation_registry.get("operation_counts") or {},
+                    )
+                    total_build_memory_system_graph_index_operation_registry_entries += int(
+                        operation_registry.get("entry_count") or 0
+                    )
+                    total_build_memory_system_graph_index_operation_registry_object_entries += int(
+                        operation_registry.get("object_entry_count") or 0
+                    )
+                    total_build_memory_system_graph_index_operation_registry_slot_entries += int(
+                        operation_registry.get("slot_entry_count") or 0
+                    )
+                    total_build_memory_system_graph_index_operation_registry_conflict_entries += int(
+                        operation_registry.get("conflict_entry_count") or 0
+                    )
+                    total_build_memory_system_graph_index_operation_registry_source_backed_entries += int(
+                        operation_registry.get("source_backed_entry_count") or 0
+                    )
             source_quality = memory_system_graph.get("source_quality") or {}
             total_build_memory_system_graph_source_backed_records += int(
                 source_quality.get("source_backed_record_count") or 0
@@ -1494,6 +1527,9 @@ def main() -> int:
             "memory_system_graph_memory_object_index_operation_counts": (
                 build_memory_system_graph_memory_object_index_operation_counts
             ),
+            "memory_system_graph_memory_object_index_registry_operation_counts": (
+                build_memory_system_graph_memory_object_index_registry_operation_counts
+            ),
             "avg_memory_system_graph_objects": _safe_average(
                 total_build_memory_system_graph_objects,
                 total_build_memory_system_graph_applied,
@@ -1629,6 +1665,36 @@ def main() -> int:
             "avg_memory_system_graph_memory_object_index_state_conflict_slots": (
                 _safe_average(
                     total_build_memory_system_graph_index_state_conflict_slots,
+                    total_build_memory_system_graph_memory_object_index_applied,
+                )
+            ),
+            "avg_memory_system_graph_memory_object_index_operation_registry_entries": (
+                _safe_average(
+                    total_build_memory_system_graph_index_operation_registry_entries,
+                    total_build_memory_system_graph_memory_object_index_applied,
+                )
+            ),
+            "avg_memory_system_graph_memory_object_index_operation_registry_object_entries": (
+                _safe_average(
+                    total_build_memory_system_graph_index_operation_registry_object_entries,
+                    total_build_memory_system_graph_memory_object_index_applied,
+                )
+            ),
+            "avg_memory_system_graph_memory_object_index_operation_registry_slot_entries": (
+                _safe_average(
+                    total_build_memory_system_graph_index_operation_registry_slot_entries,
+                    total_build_memory_system_graph_memory_object_index_applied,
+                )
+            ),
+            "avg_memory_system_graph_memory_object_index_operation_registry_conflict_entries": (
+                _safe_average(
+                    total_build_memory_system_graph_index_operation_registry_conflict_entries,
+                    total_build_memory_system_graph_memory_object_index_applied,
+                )
+            ),
+            "avg_memory_system_graph_memory_object_index_operation_registry_source_backed_entries": (
+                _safe_average(
+                    total_build_memory_system_graph_index_operation_registry_source_backed_entries,
                     total_build_memory_system_graph_memory_object_index_applied,
                 )
             ),
@@ -2653,6 +2719,8 @@ def _write_summary(
         f"- avg_build_memory_system_graph_memory_object_index_activation_ready_ids: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_activation_ready_ids']}",
         f"- avg_build_memory_system_graph_memory_object_index_activation_priority_ids: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_activation_priority_ids']}",
         f"- avg_build_memory_system_graph_memory_object_index_operation_slots: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_operation_slots']}",
+        f"- avg_build_memory_system_graph_memory_object_index_operation_registry_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_operation_registry_entries']}",
+        f"- avg_build_memory_system_graph_memory_object_index_operation_registry_source_backed_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_operation_registry_source_backed_entries']}",
         f"- avg_build_memory_system_graph_value_objects: {metrics['build_memory']['avg_memory_system_graph_value_objects']}",
         f"- avg_build_memory_system_graph_source_backed_value_objects: {metrics['build_memory']['avg_memory_system_graph_source_backed_value_objects']}",
         f"- avg_build_memory_system_graph_source_incomplete_value_objects: {metrics['build_memory']['avg_memory_system_graph_source_incomplete_value_objects']}",
@@ -3078,6 +3146,8 @@ def _write_diagnosis(
         f"- avg_build_memory_system_graph_memory_object_index_activation_ready_ids: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_activation_ready_ids']}",
         f"- avg_build_memory_system_graph_memory_object_index_activation_priority_ids: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_activation_priority_ids']}",
         f"- avg_build_memory_system_graph_memory_object_index_operation_slots: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_operation_slots']}",
+        f"- avg_build_memory_system_graph_memory_object_index_operation_registry_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_operation_registry_entries']}",
+        f"- avg_build_memory_system_graph_memory_object_index_operation_registry_source_backed_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_operation_registry_source_backed_entries']}",
         f"- avg_build_memory_system_graph_value_objects: {metrics['build_memory']['avg_memory_system_graph_value_objects']}",
         f"- avg_build_memory_system_graph_source_backed_value_objects: {metrics['build_memory']['avg_memory_system_graph_source_backed_value_objects']}",
         f"- avg_build_memory_system_graph_source_incomplete_value_objects: {metrics['build_memory']['avg_memory_system_graph_source_incomplete_value_objects']}",

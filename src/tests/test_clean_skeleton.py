@@ -2979,6 +2979,10 @@ class CleanSkeletonTest(unittest.TestCase):
             "build_owned_operation_slot_index",
             system_graph["object_schema"]["governance_signals"],
         )
+        self.assertIn(
+            "build_owned_operation_registry",
+            system_graph["object_schema"]["governance_signals"],
+        )
         self.assertEqual(
             system_graph["governance"]["final_evidence_policy"],
             "raw_source_rows_only",
@@ -3155,6 +3159,14 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual(memory_object_index["value_slot_count"], 2)
         self.assertEqual(memory_object_index["operation_slot_count"], 2)
         self.assertEqual(memory_object_index["state_conflict_slot_count"], 1)
+        self.assertEqual(memory_object_index["operation_registry_entry_count"], 8)
+        self.assertEqual(memory_object_index["operation_registry_object_entry_count"], 3)
+        self.assertEqual(memory_object_index["operation_registry_slot_entry_count"], 4)
+        self.assertEqual(memory_object_index["operation_registry_conflict_entry_count"], 1)
+        self.assertEqual(
+            memory_object_index["operation_registry_source_backed_entry_count"],
+            8,
+        )
         self.assertEqual(
             memory_object_index["source_backed_object_count"],
             3,
@@ -3184,6 +3196,72 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertIn(
             "expand",
             memory_object_index["index_contract"]["object_operations"],
+        )
+        self.assertEqual(
+            memory_object_index["index_contract"]["operation_registry_contract"][
+                "registry_field"
+            ],
+            "operation_registry",
+        )
+        operation_registry = memory_object_index["operation_registry"]
+        self.assertEqual(
+            operation_registry["schema_version"],
+            "memory_operation_registry_v1",
+        )
+        self.assertFalse(operation_registry["trace_only"])
+        self.assertTrue(operation_registry["applied"])
+        self.assertEqual(operation_registry["entry_count"], 8)
+        self.assertEqual(
+            operation_registry["target_counts"],
+            {
+                "conflict_slot": 1,
+                "object": 3,
+                "operation_slot": 2,
+                "value_slot": 2,
+            },
+        )
+        self.assertEqual(
+            operation_registry["source_policy"]["final_evidence_policy"],
+            "raw_source_rows",
+        )
+        city_object_operation = next(
+            entry
+            for entry in operation_registry["entries"]
+            if entry["target_type"] == "object" and entry["target_id"] == "m-new-city"
+        )
+        self.assertEqual(city_object_operation["memory_tier"], "working_memory")
+        self.assertIn("expand", city_object_operation["operations"])
+        self.assertEqual(city_object_operation["expand_source_order"], ["s2:t1", "s2:t2"])
+        city_slot_operation = next(
+            entry
+            for entry in operation_registry["entries"]
+            if entry["target_type"] == "operation_slot"
+            and entry["predicate"] == "location"
+        )
+        self.assertIn("supersede", city_slot_operation["operations"])
+        self.assertIn("audit_supersede", city_slot_operation["operations"])
+        self.assertIn("audit_conflict_slot", city_slot_operation["operations"])
+        self.assertEqual(
+            city_slot_operation["expand_source_order"],
+            ["s2:t1", "s2:t2", "s1:t1"],
+        )
+        city_conflict_operation = next(
+            entry
+            for entry in operation_registry["entries"]
+            if entry["target_type"] == "conflict_slot"
+            and entry["predicate"] == "location"
+        )
+        self.assertIn(
+            "audit_state_conflict_slot",
+            city_conflict_operation["operations"],
+        )
+        self.assertIn(
+            "verify_source_backed",
+            city_conflict_operation["operations"],
+        )
+        self.assertEqual(
+            city_conflict_operation["expand_source_order"],
+            ["s2:t1", "s2:t2", "s1:t1"],
         )
         city_object_slot = next(
             slot
