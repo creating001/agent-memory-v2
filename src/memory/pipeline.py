@@ -585,6 +585,17 @@ class Stage1Pipeline:
         self._graph_utility_overflow_max_hits = int(
             graph_utility_config.get("overflow_max_hits", 0)
         )
+        self._graph_utility_source_selection_policy = str(
+            graph_utility_config.get("source_selection_policy", "legacy")
+        )
+        if self._graph_utility_source_selection_policy not in {
+            "legacy",
+            "validity_aware",
+        }:
+            raise ValueError(
+                "retrieval.graph_utility.source_selection_policy must be "
+                "legacy or validity_aware"
+            )
         self._dense_enabled = bool(dense_config.get("enabled", False))
         self._dense_top_k = int(dense_config.get("top_k", self._base_top_k))
         self._dense_batch_size = int(dense_config.get("batch_size", 32))
@@ -1909,6 +1920,9 @@ class Stage1Pipeline:
             required_signals=self._graph_utility_required_signals,
             fusion_mode=self._graph_utility_fusion_mode,
             overflow_max_hits=self._graph_utility_overflow_max_hits,
+            source_selection_policy=(
+                self._graph_utility_source_selection_policy
+            ),
         )
         memory_activation_priority_trace = _disabled_memory_activation_priority_trace(
             enabled=self._memory_activation_priority_enabled,
@@ -2362,6 +2376,9 @@ class Stage1Pipeline:
                 required_signals=self._graph_utility_required_signals,
                 fusion_mode=self._graph_utility_fusion_mode,
                 overflow_max_hits=self._graph_utility_overflow_max_hits,
+                source_selection_policy=(
+                    self._graph_utility_source_selection_policy
+                ),
             )
             if (
                 graph_utility_source_hits
@@ -3140,6 +3157,9 @@ class Stage1Pipeline:
                     ),
                     "graph_utility_overflow_max_hits": (
                         self._graph_utility_overflow_max_hits
+                    ),
+                    "graph_utility_source_selection_policy": (
+                        self._graph_utility_source_selection_policy
                     ),
                     "graph_utility_source_hits": [
                         hit.to_dict() for hit in graph_utility_source_hits
@@ -5201,6 +5221,7 @@ def _disabled_graph_utility_trace(
     required_signals: tuple[str, ...] = (),
     fusion_mode: str = "tail_rescue",
     overflow_max_hits: int = 0,
+    source_selection_policy: str = "legacy",
     question_scope: str = "unspecified",
     skipped_reason: str = "",
 ) -> dict[str, Any]:
@@ -5217,6 +5238,7 @@ def _disabled_graph_utility_trace(
         "required_signals": required_signals,
         "fusion_mode": fusion_mode,
         "overflow_max_hits": overflow_max_hits,
+        "source_selection_policy": source_selection_policy,
         "question_scope": question_scope,
         "slot_index": _memory_object_slot_empty_index_stats(enabled=True),
         "candidate_source_count": 0,
@@ -5244,6 +5266,7 @@ def _memory_graph_utility_source_hits(
     required_signals: tuple[str, ...] = (),
     fusion_mode: str = "tail_rescue",
     overflow_max_hits: int = 0,
+    source_selection_policy: str = "legacy",
 ) -> tuple[tuple[RetrievalHit, ...], dict[str, Any]]:
     """Use the build memory graph as a source-backed evidence utility index.
 
@@ -5266,6 +5289,7 @@ def _memory_graph_utility_source_hits(
         required_signals=required_signals,
         fusion_mode=fusion_mode,
         overflow_max_hits=overflow_max_hits,
+        source_selection_policy=source_selection_policy,
         question_scope=question_scope,
     )
     trace = {
@@ -5334,6 +5358,7 @@ def _memory_graph_utility_source_hits(
             existing_source_ids=candidate_source_ids if require_new_source else set(),
             max_sources=max_sources_per_slot,
             question_scope=question_scope,
+            source_selection_policy=source_selection_policy,
         )
         if not source_ids:
             continue
@@ -5380,6 +5405,7 @@ def _memory_graph_utility_source_hits(
                 "record_count": len(records),
                 "status_counts": _memory_operation_slot_status_counts(records),
                 "source_ids": tuple(emitted_sources),
+                "source_selection_policy": source_selection_policy,
                 "candidate_source_ids": tuple(
                     source_id
                     for source_id in source_ids
@@ -5416,15 +5442,17 @@ def _memory_graph_slot_sources(
     existing_source_ids: set[str],
     max_sources: int,
     question_scope: str,
+    source_selection_policy: str = "legacy",
 ) -> tuple[str, ...]:
     if max_sources <= 0:
         return ()
     selected: list[str] = []
     for record in sorted(
         records,
-        key=lambda item: _memory_operation_slot_record_sort_key(
+        key=lambda item: _memory_graph_slot_record_sort_key(
             item,
             question_scope=question_scope,
+            source_selection_policy=source_selection_policy,
         ),
     ):
         for source_id in tuple(getattr(record, "source_ids", ()) or ()):
@@ -5439,6 +5467,97 @@ def _memory_graph_slot_sources(
             if len(selected) >= max_sources:
                 return tuple(selected)
     return tuple(selected)
+
+
+def _memory_graph_slot_record_sort_key(
+    record: Any,
+    *,
+    question_scope: str,
+    source_selection_policy: str,
+) -> tuple[Any, ...]:
+    legacy_key = _memory_operation_slot_record_sort_key(
+        record,
+        question_scope=question_scope,
+    )
+    if source_selection_policy != "validity_aware":
+        return legacy_key
+    return (
+        _memory_record_validity_rank(record, question_scope=question_scope),
+        _memory_record_source_confidence_rank(record),
+        _memory_record_temporal_anchor_rank(record),
+        *_memory_record_time_rank(record, question_scope=question_scope),
+        str(getattr(record, "memory_id", "")),
+    )
+
+
+def _memory_record_validity_rank(record: Any, *, question_scope: str) -> int:
+    status = str(getattr(record, "status", "active") or "active").lower()
+    memory_type = str(getattr(record, "memory_type", "") or "").lower()
+    closed = bool(
+        status == "superseded"
+        or getattr(record, "superseded_by", None)
+        or getattr(record, "valid_to", None)
+    )
+    event_scoped = bool(getattr(record, "event_time", None))
+    open_state = memory_type in _STATE_UPDATE_MEMORY_TYPES and not closed
+    if question_scope == "historical":
+        if closed:
+            return 0
+        if event_scoped:
+            return 1
+        if open_state:
+            return 2
+        return 3
+    if open_state:
+        return 0
+    if event_scoped:
+        return 1
+    if not closed:
+        return 2
+    return 3
+
+
+def _memory_record_source_confidence_rank(record: Any) -> int:
+    if not tuple(getattr(record, "source_ids", ()) or ()):
+        return 3
+    confidence = float(getattr(record, "confidence", 1.0) or 0.0)
+    if confidence >= 0.8:
+        return 0
+    if confidence >= 0.5:
+        return 1
+    return 2
+
+
+def _memory_record_temporal_anchor_rank(record: Any) -> int:
+    if (
+        getattr(record, "valid_from", None)
+        or getattr(record, "valid_to", None)
+        or getattr(record, "event_time", None)
+        or getattr(record, "mention_time", None)
+        or getattr(record, "timestamp", None)
+    ):
+        return 0
+    return 1
+
+
+def _memory_record_time_rank(record: Any, *, question_scope: str) -> tuple[int, str]:
+    time_value = str(
+        getattr(record, "valid_from", None)
+        or getattr(record, "event_time", None)
+        or getattr(record, "timestamp", None)
+        or getattr(record, "mention_time", None)
+        or ""
+    )
+    if question_scope == "historical":
+        return (0, time_value)
+    return (-_sortable_time_digits(time_value), time_value)
+
+
+def _sortable_time_digits(value: str) -> int:
+    digits = "".join(ch for ch in value if ch.isdigit())
+    if not digits:
+        return 0
+    return int(digits[:12])
 
 
 def _memory_graph_slot_signals(records: tuple[Any, ...]) -> tuple[str, ...]:

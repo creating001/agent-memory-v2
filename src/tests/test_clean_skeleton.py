@@ -3978,6 +3978,100 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual(trace["skipped_reason"], "no_matching_graph_slot")
         self.assertEqual(hits, ())
 
+    def test_memory_graph_utility_validity_policy_prefers_anchored_open_source(
+        self,
+    ) -> None:
+        unanchored = MemoryRecord(
+            memory_id="unanchored-city",
+            memory_type="state",
+            text="Alex lives in Austin.",
+            source_ids=("s1:t0",),
+            subject="Alex",
+            predicate="home city",
+            value="Austin",
+            status="active",
+        )
+        anchored = MemoryRecord(
+            memory_id="anchored-city",
+            memory_type="state",
+            text="Alex lives in Seattle.",
+            source_ids=("s2:t0",),
+            subject="Alex",
+            predicate="home city",
+            value="Seattle",
+            timestamp="2024-05-01",
+            status="active",
+        )
+
+        hits, trace = _memory_graph_utility_source_hits(
+            memory_hits=(MemoryHit(record=unanchored, score=3.0, rank=1),),
+            built_memory_records=(unanchored, anchored),
+            question="Where does Alex live now?",
+            route=RouteResult("current_state", ("current_state",)),
+            available_source_ids={"s1:t0", "s2:t0"},
+            candidate_source_ids=set(),
+            max_slots=1,
+            max_sources_per_slot=1,
+            memory_types=("state",),
+            min_overlap_terms=1,
+            require_new_source=True,
+            source_selection_policy="validity_aware",
+        )
+
+        self.assertTrue(trace["applied"])
+        self.assertEqual([hit.source_id for hit in hits], ["s2:t0"])
+        self.assertEqual(
+            trace["slots"][0]["source_selection_policy"],
+            "validity_aware",
+        )
+
+    def test_memory_graph_utility_validity_policy_prefers_historical_closed_source(
+        self,
+    ) -> None:
+        old_record = MemoryRecord(
+            memory_id="old-city",
+            memory_type="state",
+            text="Alex lived in Austin.",
+            source_ids=("s1:t0",),
+            subject="Alex",
+            predicate="home city",
+            value="Austin",
+            timestamp="2023-01-01",
+            valid_to="2024-05-01",
+            status="superseded",
+            superseded_by="new-city",
+        )
+        new_record = MemoryRecord(
+            memory_id="new-city",
+            memory_type="state",
+            text="Alex lives in Seattle.",
+            source_ids=("s2:t0",),
+            subject="Alex",
+            predicate="home city",
+            value="Seattle",
+            timestamp="2024-05-01",
+            status="active",
+        )
+
+        hits, trace = _memory_graph_utility_source_hits(
+            memory_hits=(MemoryHit(record=new_record, score=3.0, rank=1),),
+            built_memory_records=(new_record, old_record),
+            question="Where did Alex live before?",
+            route=RouteResult("temporal_lookup", ("temporal",)),
+            available_source_ids={"s1:t0", "s2:t0"},
+            candidate_source_ids=set(),
+            max_slots=1,
+            max_sources_per_slot=1,
+            memory_types=("state",),
+            min_overlap_terms=1,
+            require_new_source=True,
+            source_selection_policy="validity_aware",
+        )
+
+        self.assertTrue(trace["applied"])
+        self.assertEqual(trace["question_scope"], "historical")
+        self.assertEqual([hit.source_id for hit in hits], ["s1:t0"])
+
     def test_append_tail_rescue_hits_preserves_primary_order(self) -> None:
         primary = (
             RetrievalHit(source_id="s1:t0", score=1.0, rank=1, retriever="dense"),
