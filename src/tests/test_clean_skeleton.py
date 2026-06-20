@@ -2934,6 +2934,38 @@ class CleanSkeletonTest(unittest.TestCase):
             system_graph["slot_quality"]["active_superseded_pair_slot_count"],
             1,
         )
+        governance_manifest = system_graph["governance_manifest"]
+        self.assertEqual(
+            governance_manifest["schema_version"],
+            "memory_system_governance_v1",
+        )
+        self.assertTrue(governance_manifest["trace_only"])
+        self.assertEqual(
+            governance_manifest["activation_policy"]["typed_memory_role"],
+            "source_backed_activation_hint",
+        )
+        self.assertEqual(
+            governance_manifest["activation_policy"]["final_answer_evidence"],
+            "raw_source_rows",
+        )
+        self.assertEqual(
+            governance_manifest["source_activation_ready_record_count"],
+            2,
+        )
+        self.assertEqual(governance_manifest["risk_record_count"], 1)
+        self.assertEqual(
+            governance_manifest["risk_counts"],
+            {"low_confidence": 1},
+        )
+        low_sample = next(
+            sample
+            for sample in governance_manifest["record_samples"]
+            if sample["memory_id"] == "m-low"
+        )
+        self.assertFalse(low_sample["source_activation_ready"])
+        self.assertTrue(low_sample["raw_evidence_required"])
+        self.assertEqual(low_sample["confidence_bucket"], "low")
+        self.assertEqual(low_sample["risk_flags"], ("low_confidence",))
 
     def test_memory_lifecycle_manifest_is_trace_only_and_source_grounded(self) -> None:
         old_record = MemoryRecord(

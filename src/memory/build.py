@@ -1004,6 +1004,10 @@ def _memory_system_graph_summary(
             groups,
             managed_memory_types=managed_memory_types,
         ),
+        "governance_manifest": _memory_system_governance_manifest(
+            managed_records,
+            managed_memory_types=managed_memory_types,
+        ),
         "governance": {
             "raw_evidence_policy": "immutable_final_authority",
             "derived_memory_policy": "source_backed_activation_and_audit",
@@ -1071,7 +1075,124 @@ def _memory_system_object_schema() -> dict[str, Any]:
             "lifecycle_signal",
             "source_coverage",
         ],
+        "governance_signals": [
+            "source_activation_ready",
+            "raw_evidence_required",
+            "low_confidence_blocked",
+            "unbacked_blocked",
+            "incomplete_slot_key_audited",
+        ],
     }
+
+
+def _memory_system_governance_manifest(
+    records: tuple[MemoryRecord, ...],
+    *,
+    managed_memory_types: frozenset[str],
+) -> dict[str, Any]:
+    assessments = [
+        _memory_system_record_governance(
+            record,
+            managed_memory_types=managed_memory_types,
+        )
+        for record in records
+    ]
+    risk_counts: dict[str, int] = defaultdict(int)
+    for assessment in assessments:
+        for risk in assessment["risk_flags"]:
+            risk_counts[str(risk)] += 1
+    activation_ready_count = sum(
+        1 for assessment in assessments if assessment["source_activation_ready"]
+    )
+    return {
+        "schema_version": "memory_system_governance_v1",
+        "trace_only": True,
+        "applied": True,
+        "record_count": len(records),
+        "source_activation_ready_record_count": activation_ready_count,
+        "raw_evidence_required_record_count": len(records),
+        "risk_record_count": sum(
+            1 for assessment in assessments if assessment["risk_flags"]
+        ),
+        "risk_counts": dict(sorted(risk_counts.items())),
+        "activation_policy": {
+            "typed_memory_role": "source_backed_activation_hint",
+            "final_answer_evidence": "raw_source_rows",
+            "requires_source_ids": True,
+            "blocks_unbacked_activation": True,
+            "blocks_low_confidence_activation": True,
+            "audits_incomplete_slot_keys": True,
+        },
+        "record_samples": assessments[:10],
+        "clean_note": (
+            "Trace-only governance manifest. Typed memory can be treated as an "
+            "activation hint only when it is source-backed and not low "
+            "confidence; final answer evidence must still resolve to raw source "
+            "rows."
+        ),
+    }
+
+
+def _memory_system_record_governance(
+    record: MemoryRecord,
+    *,
+    managed_memory_types: frozenset[str],
+) -> dict[str, Any]:
+    source_backed = bool(record.source_ids)
+    complete_slot_key = bool(record.memory_type and record.subject and record.predicate)
+    temporal_anchor = bool(
+        record.timestamp
+        or record.mention_time
+        or record.event_time
+        or record.valid_from
+        or record.valid_to
+    )
+    lifecycle_signal = bool(
+        record.status == "superseded" or record.superseded_by or record.valid_to
+    )
+    confidence_bucket = _confidence_bucket(record.confidence)
+    risk_flags: list[str] = []
+    if not source_backed:
+        risk_flags.append("unbacked")
+    if record.confidence < 0.5:
+        risk_flags.append("low_confidence")
+    if not complete_slot_key:
+        risk_flags.append("incomplete_slot_key")
+    if (
+        record.memory_type in managed_memory_types
+        and record.status == "active"
+        and not temporal_anchor
+    ):
+        risk_flags.append("managed_active_without_temporal_anchor")
+    source_activation_ready = source_backed and record.confidence >= 0.5
+    return {
+        "memory_id": record.memory_id,
+        "memory_type": record.memory_type,
+        "namespace": _memory_namespace(record),
+        "layer": _memory_layer(record.memory_type),
+        "status": record.status,
+        "source_activation_ready": source_activation_ready,
+        "raw_evidence_required": True,
+        "source_backed": source_backed,
+        "complete_slot_key": complete_slot_key,
+        "temporal_anchor": temporal_anchor,
+        "lifecycle_signal": lifecycle_signal,
+        "confidence_bucket": confidence_bucket,
+        "risk_flags": tuple(risk_flags),
+        "source_ids": list(record.source_ids[:6]),
+        "slot_key": {
+            "subject": _normalize_key_text(record.subject),
+            "predicate": _normalize_key_text(record.predicate),
+        },
+    }
+
+
+def _confidence_bucket(confidence: float) -> str:
+    if confidence >= 0.8:
+        return "high"
+    if confidence >= 0.5:
+        return "medium"
+    return "low"
 
 
 def _memory_system_source_quality(
