@@ -13125,6 +13125,84 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertNotIn("Managed Memory State Guide:", prompt)
         self.assertNotIn("Memory Value Slot Guide:", prompt)
 
+    def test_route_override_can_replace_structured_guide_with_workspace_packet(
+        self,
+    ) -> None:
+        record = MemoryRecord(
+            memory_id="fact-dog",
+            memory_type="fact",
+            text="Alex adopted a rescue dog named Maple.",
+            source_ids=("s1:t0",),
+            subject="Alex",
+            predicate="adopted",
+            value="a rescue dog named Maple",
+        )
+        memory_object_index = _management_summary(
+            (record,),
+            policy="stateful_only",
+            managed_memory_types=frozenset({"fact"}),
+            include_memory_system_graph=True,
+        )["memory_system_graph"]["memory_object_index"]
+        compiler = EvidenceCompiler(
+            max_evidence_items=2,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            structured_guide=True,
+            working_memory_packet=True,
+            working_memory_packet_information_needs=("fact_lookup",),
+            working_memory_packet_max_items=2,
+            working_memory_packet_source="memory_system_state",
+            route_overrides={
+                "fact_lookup": {
+                    "structured_guide": False,
+                    "working_memory_packet": True,
+                }
+            },
+        )
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text="Alex adopted a rescue dog named Maple.",
+                timestamp="2024-04-01",
+            ),
+            Turn(
+                source_id="s1:t1",
+                session_id="s1",
+                turn_index=1,
+                role="user",
+                text="Alex bought a green leash.",
+                timestamp="2024-04-02",
+            ),
+        )
+
+        fact_context = compiler.compile(
+            question="What did Alex adopt?",
+            question_time=None,
+            route=RouteResult("fact_lookup", ("fact_lookup",)),
+            hits=(),
+            evidence_turns=turns,
+            memory_object_index=memory_object_index,
+        )
+        list_context = compiler.compile(
+            question="How many pet items did Alex mention?",
+            question_time=None,
+            route=RouteResult("list_count", ("list_or_count",)),
+            hits=(),
+            evidence_turns=turns,
+            memory_object_index=memory_object_index,
+        )
+
+        self.assertNotIn("Structured Evidence Guide:", fact_context.prompt)
+        self.assertIn("Working Memory Packet:", fact_context.prompt)
+        self.assertIn("source=memory_system_state", fact_context.prompt)
+        self.assertIn("sources=Memory 1", fact_context.prompt)
+        self.assertIn("Memory Context:", fact_context.prompt)
+        self.assertIn("Structured Evidence Guide:", list_context.prompt)
+        self.assertNotIn("Working Memory Packet:", list_context.prompt)
+
     def test_memory_state_guide_uses_object_index_conflict_slots(self) -> None:
         old_record = MemoryRecord(
             memory_id="old-followers",

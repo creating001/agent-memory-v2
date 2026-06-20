@@ -255,6 +255,7 @@ ROUTE_OVERRIDE_KEYS = {
     "source_anchor_memory_rows",
     "source_anchor_per_session",
     "source_anchor_session_rows",
+    "structured_guide",
     "structured_guide_include_memory",
     "structured_guide_include_rows",
     "structured_guide_max_memory_hints_per_row",
@@ -1045,7 +1046,7 @@ class EvidenceCompiler:
                 "enable_weekend_relative_time"
             ],
             structured_guide=(
-                self._structured_guide
+                route_settings["structured_guide"]
                 and not set(route.signals).intersection(
                     self._structured_guide_disabled_signals
                 )
@@ -1461,6 +1462,7 @@ class EvidenceCompiler:
             "source_anchor_memory_rows": self._source_anchor_memory_rows,
             "source_anchor_per_session": self._source_anchor_per_session,
             "source_anchor_session_rows": self._source_anchor_session_rows,
+            "structured_guide": self._structured_guide,
             "structured_guide_include_memory": self._structured_guide_include_memory,
             "structured_guide_include_rows": self._structured_guide_include_rows,
             "structured_guide_max_memory_hints_per_row": (
@@ -1556,6 +1558,8 @@ def _validate_route_overrides(
             overrides["structured_guide_max_rows"] = max(
                 1, int(raw_overrides["structured_guide_max_rows"])
             )
+        if "structured_guide" in raw_overrides:
+            overrides["structured_guide"] = bool(raw_overrides["structured_guide"])
         if "structured_guide_include_rows" in raw_overrides:
             overrides["structured_guide_include_rows"] = bool(
                 raw_overrides["structured_guide_include_rows"]
