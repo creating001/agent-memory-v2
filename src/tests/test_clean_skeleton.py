@@ -47,8 +47,10 @@ from memory.pipeline import (
     _append_tail_exchange_hits,
     _append_tail_rescue_hits,
     _compiler_memory_records,
+    _context_budget_anchor_source_ids,
     _context_manifest,
     _memory_activation_priority_hits,
+    _memory_layer_manifest_anchor_source_ids,
     _memory_governance_activation_records,
     _memory_graph_utility_source_hits,
     _memory_lifecycle_manifest,
@@ -2155,12 +2157,48 @@ class CleanSkeletonTest(unittest.TestCase):
             trace["registry_anchor_candidate_source_ids"],
             ["registry-anchor"],
         )
+        self.assertEqual(trace["anchor_source"], "operation_registry")
+        self.assertEqual(trace["anchor_selected_source"], "operation_registry")
+        self.assertEqual(trace["anchor_candidate_source_ids"], ["registry-anchor"])
+        self.assertEqual(trace["anchor_retained_source_ids"], ["registry-anchor"])
         self.assertEqual(
             trace["registry_anchor_retained_source_ids"],
             ["registry-anchor"],
         )
         self.assertIn("middle", trace["dropped_source_ids"])
         self.assertNotIn("registry-anchor", trace["dropped_source_ids"])
+
+    def test_context_budget_anchor_source_ids_can_use_layer_manifest(self) -> None:
+        memory_object_index = {
+            "memory_layer_manifest": {
+                "applied": True,
+                "layers": {
+                    "short_term_memory": {"source_ids": ["query:t0"]},
+                    "working_memory": {"source_ids": ["current:t0", "old:t0"]},
+                    "long_term_memory": {"source_ids": ["stable:t0"]},
+                    "archival_memory": {"source_ids": ["old:t0", "older:t0"]},
+                    "quarantine_memory": {"source_ids": ["unsafe:t0"]},
+                },
+            }
+        }
+
+        layer_source_ids = _memory_layer_manifest_anchor_source_ids(
+            memory_object_index
+        )
+        selected_source_ids, trace = _context_budget_anchor_source_ids(
+            anchor_source="layer_manifest",
+            memory_object_index=memory_object_index,
+            operation_utility_trace=None,
+            graph_utility_trace=None,
+        )
+
+        self.assertEqual(
+            layer_source_ids,
+            ("old:t0", "older:t0", "current:t0", "stable:t0"),
+        )
+        self.assertEqual(selected_source_ids, layer_source_ids)
+        self.assertEqual(trace["anchor_selected_source"], "layer_manifest")
+        self.assertEqual(trace["anchor_layer_manifest_source_count"], 4)
 
     def test_context_budget_audit_is_trace_only(self) -> None:
         base_config = {
@@ -5919,6 +5957,161 @@ class CleanSkeletonTest(unittest.TestCase):
         )
         self.assertTrue(
             context_manifest["memory_operations"]["working_memory_view_available"]
+        )
+
+    def test_pipeline_context_budget_can_use_layer_manifest_anchor(self) -> None:
+        old_record = MemoryRecord(
+            memory_id="old",
+            memory_type="state",
+            text="Alex lives in Austin.",
+            source_ids=("s1:t0",),
+            subject="Alex",
+            predicate="home city",
+            value="Austin",
+            timestamp="2024-01-01",
+            status="superseded",
+            superseded_by="new",
+        )
+        new_record = MemoryRecord(
+            memory_id="new",
+            memory_type="state",
+            text="Alex lives in Seattle.",
+            source_ids=("s2:t0", "middle:t0"),
+            subject="Alex",
+            predicate="home city",
+            value="Seattle",
+            timestamp="2024-05-01",
+            status="active",
+        )
+        management = _management_summary(
+            (new_record, old_record),
+            policy="stateful_only",
+            managed_memory_types=frozenset({"state"}),
+            include_memory_system_graph=True,
+        )
+
+        class FakeBuilder:
+            def build(self, turns: tuple[Turn, ...]) -> BuiltMemory:
+                del turns
+                return BuiltMemory(
+                    records=(new_record, old_record),
+                    token_usage=TokenUsage(),
+                    management_policy="stateful_only",
+                    managed_memory_types=("state",),
+                    management=management,
+                )
+
+        config = {
+            "build_memory": {
+                "enabled": True,
+                "mode": "openai_compatible",
+                "model": "fake",
+                "top_k": 1,
+                "max_sources_per_record": 2,
+                "include_superseded": True,
+            },
+            "retrieval": {
+                "top_k": 2,
+                "max_top_k": 2,
+                "neighbor_window": 0,
+                "lexical": {"enabled": False},
+                "context_budget": {
+                    "enabled": True,
+                    "max_chars": 24,
+                    "min_hits": 1,
+                    "protect_top_n": 1,
+                    "registry_anchor_retention": True,
+                    "anchor_source": "layer_manifest",
+                },
+                "graph_utility": {
+                    "enabled": True,
+                    "information_needs": ["current_state"],
+                    "memory_types": ["state"],
+                    "max_slots": 1,
+                    "max_sources_per_slot": 2,
+                    "min_overlap_terms": 1,
+                    "require_new_source": True,
+                    "fusion_mode": "overflow_tail_rescue",
+                    "overflow_max_hits": 1,
+                    "required_signals": ["supersede", "conflict_slot"],
+                    "source_selection_policy": "validity_aware",
+                },
+            },
+            "compiler": {
+                "prompt_mode": "external_naive",
+                "max_evidence_items": 3,
+                "max_evidence_chars": 4000,
+            },
+            "answer": {"fallback_answer": "unknown"},
+        }
+        pipeline = Stage1Pipeline(config)
+        pipeline._memory_builder = FakeBuilder()
+        request = PredictionRequest(
+            question="Where does Alex live now?",
+            turns=(
+                Turn(
+                    source_id="s2:t0",
+                    session_id="s2",
+                    turn_index=0,
+                    role="user",
+                    text="Seattle now",
+                    timestamp="2024-05-01",
+                ),
+                Turn(
+                    source_id="middle:t0",
+                    session_id="s2",
+                    turn_index=1,
+                    role="user",
+                    text="middle note",
+                    timestamp="2024-05-02",
+                ),
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Austin old",
+                    timestamp="2024-01-01",
+                ),
+            ),
+        )
+
+        result = pipeline.predict(request)
+        retrieval = result["trace"]["retrieval"]
+        context_manifest = result["trace"]["context_manifest"]
+        row_ids = [
+            row["source_id"]
+            for row in result["trace"]["compiled_context"]["evidence_rows"]
+        ]
+
+        self.assertTrue(retrieval["context_budget_applied"])
+        self.assertEqual(retrieval["context_budget_anchor_source"], "layer_manifest")
+        self.assertEqual(
+            retrieval["context_budget_anchor_selected_source"],
+            "layer_manifest",
+        )
+        self.assertGreater(
+            retrieval["context_budget_anchor_layer_manifest_source_count"],
+            0,
+        )
+        self.assertEqual(
+            retrieval["context_budget_anchor_retained_source_ids"],
+            ["s1:t0", "s2:t0"],
+        )
+        self.assertIn(
+            "middle:t0",
+            retrieval["context_budget_dropped_source_ids"],
+        )
+        self.assertEqual(row_ids, ["s2:t0", "s1:t0"])
+        self.assertEqual(
+            context_manifest["source_flow"][
+                "context_budget_anchor_retained_source_ids"
+            ],
+            ["s1:t0", "s2:t0"],
+        )
+        self.assertEqual(
+            context_manifest["retrieval"]["context_budget_anchor_selected_source"],
+            "layer_manifest",
         )
 
     def test_build_memory_source_alignment_adds_adjacent_supporting_turn(self) -> None:
