@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_graph_evidence_utility_v262_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_lifecycle_graph_overflow_v264_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v262 local LTS |
+| Benchmark | 当前 v264 local LTS |
 |---|---:|
-| LongMemEval-S full | strict/lenient `0.832000 / 0.844000`，avg build/query tokens `85393.566 / 6579.782` |
+| LongMemEval-S full | strict/lenient `0.832000 / 0.844000`，avg build/query tokens `85393.566 / 6462.478` |
 | LoCoMo non-adversarial full | strict/lenient `0.794156 / 0.819481`，avg build/query tokens `62015.57402597403 / 6094.017532467533` |
 
-v262 的 LTS 理由：继承 v261 full accuracy 和 token 成本，answer/retrieval/final-evidence/token diff 均为 `0`，同时把 v261 的 memory system graph 接入为 source-backed evidence utility selector/audit。当前 LTS 配置只做 `tail_rescue` 和 `require_new_source`，不替换 primary evidence，不把 synthetic memory text 放入 final evidence；full run 中 graph utility 触发 LME `341/500`、LoCoMo `1373/1540`，但候选池已满所以没有改变最终证据。它降低了 typed memory 只停留在浅 retrieval hint 的系统风险，但暂不声称性能提升。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_graph_evidence_utility_v262_full_summary.md`。
+v264 的 LTS 理由：在 v262 的 source-backed memory system graph 基础上，新增 lifecycle-gated graph overflow。Graph utility 只有在 slot 明确带有 `supersede` 或 `conflict_slot` 等生命周期信号时，才把对应 raw source rows 作为 tail-rescue 候选；typed/graph memory 仍只做激活和审计，不直接替代原文证据。full changed-answer judge 与 v262 持平，LoCoMo answer-identical，性能不退，同时比 v263 的简单 overflow 风险更低。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_lifecycle_graph_overflow_v264_full_summary.md`。
 
 ## 目录
 
