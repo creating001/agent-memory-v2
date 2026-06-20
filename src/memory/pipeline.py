@@ -114,6 +114,13 @@ class Stage1Pipeline:
         memory_slot_chain_config = retrieval_config.get("memory_slot_chain", {})
         if not isinstance(memory_slot_chain_config, Mapping):
             raise ValueError("retrieval.memory_slot_chain must be an object")
+        memory_governance_activation_config = retrieval_config.get(
+            "memory_governance_activation", {}
+        )
+        if not isinstance(memory_governance_activation_config, Mapping):
+            raise ValueError(
+                "retrieval.memory_governance_activation must be an object"
+            )
         object_slot_activation_config = retrieval_config.get(
             "object_slot_activation", {}
         )
@@ -287,7 +294,7 @@ class Stage1Pipeline:
             },
             "memory_system_graph": {
                 "enabled": self._build_memory_system_graph_enabled,
-                "trace_only": True,
+                "trace_only": False,
             },
             "source_alignment": {
                 "enabled": self._build_memory_source_alignment_enabled,
@@ -304,6 +311,21 @@ class Stage1Pipeline:
                 "source_order": self._build_memory_source_alignment_source_order,
             },
         }
+        self._memory_governance_activation_enabled = bool(
+            memory_governance_activation_config.get("enabled", False)
+        )
+        self._memory_governance_activation_mode = str(
+            memory_governance_activation_config.get(
+                "mode", "source_activation_ready"
+            )
+        )
+        if self._memory_governance_activation_mode not in {
+            "source_activation_ready",
+        }:
+            raise ValueError(
+                "retrieval.memory_governance_activation.mode must be "
+                "source_activation_ready"
+            )
         self._memory_slot_chain_enabled = bool(
             memory_slot_chain_config.get("enabled", False)
         )
@@ -1743,6 +1765,15 @@ class Stage1Pipeline:
                 source_order=self._build_memory_source_alignment_source_order,
             )
             built_memory = replace(built_memory, records=aligned_records)
+        (
+            memory_activation_records,
+            memory_governance_activation_trace,
+        ) = _memory_governance_activation_records(
+            built_memory.records,
+            management=built_memory.management,
+            enabled=self._memory_governance_activation_enabled,
+            mode=self._memory_governance_activation_mode,
+        )
         profile_name = granularity_profile.get("name") if granularity_profile else None
         router = self._granularity_routers.get(str(profile_name), self._router)
         heuristic_route = router.route(request.question, request.question_time)
@@ -1854,7 +1885,7 @@ class Stage1Pipeline:
         )
         if self._build_memory_enabled and self._build_memory_top_k > 0:
             memory_hits = BuildMemoryBM25Retriever(
-                built_memory.records,
+                memory_activation_records,
                 drop_query_stopwords=self._build_memory_drop_query_stopwords,
                 include_superseded=build_memory_include_superseded,
             ).retrieve(
@@ -1876,7 +1907,7 @@ class Stage1Pipeline:
                     memory_slot_chain_trace,
                 ) = _memory_slot_chain_source_hits(
                     memory_hits=memory_hits,
-                    built_memory_records=built_memory.records,
+                    built_memory_records=memory_activation_records,
                     question=request.question,
                     route=route,
                     available_source_ids={turn.source_id for turn in store.turns},
@@ -1905,7 +1936,7 @@ class Stage1Pipeline:
                     object_slot_activation_trace,
                 ) = _memory_object_slot_source_hits(
                     memory_hits=memory_hits,
-                    built_memory_records=built_memory.records,
+                    built_memory_records=memory_activation_records,
                     question=request.question,
                     route=route,
                     available_source_ids={turn.source_id for turn in store.turns},
@@ -1947,7 +1978,7 @@ class Stage1Pipeline:
                     operation_utility_trace,
                 ) = _memory_operation_utility_source_hits(
                     memory_hits=memory_hits,
-                    built_memory_records=built_memory.records,
+                    built_memory_records=memory_activation_records,
                     question=request.question,
                     route=route,
                     available_source_ids={turn.source_id for turn in store.turns},
@@ -2243,7 +2274,7 @@ class Stage1Pipeline:
                 graph_utility_trace,
             ) = _memory_graph_utility_source_hits(
                 memory_hits=memory_hits,
-                built_memory_records=built_memory.records,
+                built_memory_records=memory_activation_records,
                 question=request.question,
                 route=route,
                 available_source_ids={turn.source_id for turn in store.turns},
@@ -2441,7 +2472,7 @@ class Stage1Pipeline:
         compiler_memory_records = _compiler_memory_records(
             source=self._compiler_memory_record_source,
             memory_hits=memory_hits,
-            built_memory_records=built_memory.records,
+            built_memory_records=memory_activation_records,
             evidence_turns=evidence_turns,
         )
         compiler_memory_state_guide_records = (
@@ -2451,7 +2482,7 @@ class Stage1Pipeline:
             else _compiler_memory_records(
                 source=self._compiler_memory_state_guide_record_source,
                 memory_hits=memory_hits,
-                built_memory_records=built_memory.records,
+                built_memory_records=memory_activation_records,
                 evidence_turns=evidence_turns,
             )
         )
@@ -2803,6 +2834,30 @@ class Stage1Pipeline:
                     ),
                     "embedding_tokens": embedding_tokens,
                     "lexical_hits": [hit.to_dict() for hit in lexical_hits],
+                    "memory_governance_activation": (
+                        memory_governance_activation_trace
+                    ),
+                    "memory_governance_activation_enabled": (
+                        self._memory_governance_activation_enabled
+                    ),
+                    "memory_governance_activation_mode": (
+                        self._memory_governance_activation_mode
+                    ),
+                    "memory_governance_activation_applied": (
+                        memory_governance_activation_trace["applied"]
+                    ),
+                    "memory_governance_activation_input_record_count": (
+                        memory_governance_activation_trace["input_record_count"]
+                    ),
+                    "memory_governance_activation_record_count": (
+                        memory_governance_activation_trace["activation_record_count"]
+                    ),
+                    "memory_governance_activation_filtered_record_count": (
+                        memory_governance_activation_trace["filtered_record_count"]
+                    ),
+                    "memory_governance_activation_skipped_reason": (
+                        memory_governance_activation_trace["skipped_reason"]
+                    ),
                     "memory_hits": [hit.to_dict() for hit in memory_hits],
                     "compiler_memory_record_source": self._compiler_memory_record_source,
                     "compiler_memory_state_guide_record_source": (
@@ -5836,6 +5891,68 @@ def _object_slot_activation_blocked_by_question(question: str) -> bool:
         r"\bdo\s+you\s+think\b",
     )
     return any(re.search(pattern, normalized) for pattern in patterns)
+
+
+def _memory_governance_activation_records(
+    records: tuple[Any, ...],
+    *,
+    management: Mapping[str, Any] | None,
+    enabled: bool,
+    mode: str,
+) -> tuple[tuple[Any, ...], dict[str, Any]]:
+    trace = {
+        "enabled": enabled,
+        "applied": False,
+        "mode": mode,
+        "input_record_count": len(records),
+        "manifest_record_count": 0,
+        "source_activation_ready_record_count": 0,
+        "activation_record_count": len(records),
+        "filtered_record_count": 0,
+        "risk_record_count": 0,
+        "risk_counts": {},
+        "skipped_reason": "disabled" if not enabled else "",
+    }
+    if not enabled:
+        return records, trace
+    if mode != "source_activation_ready":
+        return records, {**trace, "skipped_reason": "unsupported_mode"}
+    if not isinstance(management, Mapping):
+        return records, {**trace, "skipped_reason": "missing_management"}
+    memory_system_graph = management.get("memory_system_graph") or {}
+    if not isinstance(memory_system_graph, Mapping):
+        return records, {**trace, "skipped_reason": "missing_memory_system_graph"}
+    governance_manifest = memory_system_graph.get("governance_manifest") or {}
+    if not isinstance(governance_manifest, Mapping):
+        return records, {**trace, "skipped_reason": "missing_governance_manifest"}
+    if "source_activation_ready_memory_ids" not in governance_manifest:
+        return records, {**trace, "skipped_reason": "missing_activation_ready_ids"}
+
+    ready_ids = frozenset(
+        str(memory_id)
+        for memory_id in (
+            governance_manifest.get("source_activation_ready_memory_ids") or ()
+        )
+        if str(memory_id).strip()
+    )
+    filtered_records = tuple(
+        record
+        for record in records
+        if str(getattr(record, "memory_id", "") or "") in ready_ids
+    )
+    return filtered_records, {
+        **trace,
+        "applied": True,
+        "manifest_record_count": int(governance_manifest.get("record_count") or 0),
+        "source_activation_ready_record_count": int(
+            governance_manifest.get("source_activation_ready_record_count") or 0
+        ),
+        "activation_record_count": len(filtered_records),
+        "filtered_record_count": max(0, len(records) - len(filtered_records)),
+        "risk_record_count": int(governance_manifest.get("risk_record_count") or 0),
+        "risk_counts": dict(governance_manifest.get("risk_counts") or {}),
+        "skipped_reason": "",
+    }
 
 
 def _memory_object_slot_record_sort_key(record: Any) -> tuple[int, str, str]:

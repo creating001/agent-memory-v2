@@ -785,7 +785,7 @@ class BuildMemoryTest(unittest.TestCase):
         )
         graph = summary["memory_system_graph"]
 
-        self.assertTrue(graph["trace_only"])
+        self.assertFalse(graph["trace_only"])
         self.assertTrue(graph["applied"])
         self.assertEqual(graph["memory_object_count"], 3)
         self.assertEqual(graph["source_span_count"], 3)
@@ -798,6 +798,10 @@ class BuildMemoryTest(unittest.TestCase):
         self.assertEqual(
             graph["operation_edge_samples"]["supersede"][0]["old_memory_id"],
             "profile-old",
+        )
+        self.assertEqual(
+            graph["governance_manifest"]["source_activation_ready_memory_ids"],
+            ["event-visit", "profile-new", "profile-old"],
         )
 
     def test_builder_can_keep_parallel_facts_active_without_temporal_fields(self) -> None:

@@ -928,11 +928,12 @@ def _memory_system_graph_summary(
     merge_groups: tuple[dict[str, Any], ...],
     supersede_pairs: tuple[dict[str, Any], ...],
 ) -> dict[str, Any]:
-    """Trace-only memory system graph over source-backed build memory.
+    """Question-independent memory system graph over source-backed build memory.
 
     The graph is intentionally conservative: it describes memory objects,
-    source spans, lifecycle slots, and operation edges, but it does not feed
-    retrieval, compiler, answer, repair, finalizer, or cache construction.
+    source spans, lifecycle slots, and operation edges. Explicit retrieval
+    policies may consume governance readiness ids, but final evidence still
+    resolves to raw source rows.
     """
 
     source_ids = _ordered_strings(
@@ -974,7 +975,7 @@ def _memory_system_graph_summary(
 
     return {
         "enabled": True,
-        "trace_only": True,
+        "trace_only": False,
         "applied": True,
         "schema_version": "memory_system_graph_v2",
         "object_schema": _memory_system_object_schema(),
@@ -1028,11 +1029,12 @@ def _memory_system_graph_summary(
         ),
         "source_span_samples": source_ids[:12],
         "clean_note": (
-            "Trace-only build memory system graph. It organizes source-backed "
+            "Question-independent build memory system graph. It organizes source-backed "
             "typed memories into namespaces, lifecycle states, object slots, "
             "source-support edges, merge edges, supersede edges, and quality "
-            "signals. The graph summary is not used by retrieval, compiler, "
-            "answer, repair, finalizer, or cache keys."
+            "signals. Explicit retrieval.memory_governance_activation may use "
+            "the governance manifest to gate typed-memory activation; final "
+            "answer evidence still resolves to raw source rows."
         ),
     }
 
@@ -1104,9 +1106,28 @@ def _memory_system_governance_manifest(
     activation_ready_count = sum(
         1 for assessment in assessments if assessment["source_activation_ready"]
     )
+    source_activation_ready_memory_ids = [
+        str(assessment["memory_id"])
+        for assessment in assessments
+        if assessment["source_activation_ready"]
+    ]
+    activation_blocked_memory_ids = [
+        str(assessment["memory_id"])
+        for assessment in assessments
+        if not assessment["source_activation_ready"]
+    ]
+    risk_memory_ids = [
+        str(assessment["memory_id"])
+        for assessment in assessments
+        if assessment["risk_flags"]
+    ]
+    risk_memory_ids_by_flag: dict[str, list[str]] = defaultdict(list)
+    for assessment in assessments:
+        for risk in assessment["risk_flags"]:
+            risk_memory_ids_by_flag[str(risk)].append(str(assessment["memory_id"]))
     return {
         "schema_version": "memory_system_governance_v1",
-        "trace_only": True,
+        "trace_only": False,
         "applied": True,
         "record_count": len(records),
         "source_activation_ready_record_count": activation_ready_count,
@@ -1115,6 +1136,12 @@ def _memory_system_governance_manifest(
             1 for assessment in assessments if assessment["risk_flags"]
         ),
         "risk_counts": dict(sorted(risk_counts.items())),
+        "source_activation_ready_memory_ids": source_activation_ready_memory_ids,
+        "activation_blocked_memory_ids": activation_blocked_memory_ids,
+        "risk_memory_ids": risk_memory_ids,
+        "risk_memory_ids_by_flag": {
+            key: value for key, value in sorted(risk_memory_ids_by_flag.items())
+        },
         "activation_policy": {
             "typed_memory_role": "source_backed_activation_hint",
             "final_answer_evidence": "raw_source_rows",
@@ -1125,10 +1152,10 @@ def _memory_system_governance_manifest(
         },
         "record_samples": assessments[:10],
         "clean_note": (
-            "Trace-only governance manifest. Typed memory can be treated as an "
-            "activation hint only when it is source-backed and not low "
-            "confidence; final answer evidence must still resolve to raw source "
-            "rows."
+            "Question-independent governance manifest. Typed memory can be "
+            "treated as an activation hint only when it is source-backed and "
+            "not low confidence; explicit retrieval policies may consume these "
+            "ids, while final answer evidence must still resolve to raw source rows."
         ),
     }
 

@@ -47,6 +47,7 @@ from memory.pipeline import (
     _append_tail_rescue_hits,
     _compiler_memory_records,
     _context_manifest,
+    _memory_governance_activation_records,
     _memory_graph_utility_source_hits,
     _memory_lifecycle_manifest,
     _memory_object_slot_index,
@@ -2939,7 +2940,7 @@ class CleanSkeletonTest(unittest.TestCase):
             governance_manifest["schema_version"],
             "memory_system_governance_v1",
         )
-        self.assertTrue(governance_manifest["trace_only"])
+        self.assertFalse(governance_manifest["trace_only"])
         self.assertEqual(
             governance_manifest["activation_policy"]["typed_memory_role"],
             "source_backed_activation_hint",
@@ -2951,6 +2952,19 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual(
             governance_manifest["source_activation_ready_record_count"],
             2,
+        )
+        self.assertEqual(
+            governance_manifest["source_activation_ready_memory_ids"],
+            ["m-old-city", "m-new-city"],
+        )
+        self.assertEqual(
+            governance_manifest["activation_blocked_memory_ids"],
+            ["m-low"],
+        )
+        self.assertEqual(governance_manifest["risk_memory_ids"], ["m-low"])
+        self.assertEqual(
+            governance_manifest["risk_memory_ids_by_flag"],
+            {"low_confidence": ["m-low"]},
         )
         self.assertEqual(governance_manifest["risk_record_count"], 1)
         self.assertEqual(
@@ -3397,6 +3411,62 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual(stats["lifecycle_slot_count"], 1)
         self.assertEqual(stats["source_backed_collection_slot_count"], 1)
         self.assertIn(("state", "alex", "home city"), index)
+
+    def test_memory_governance_activation_filters_unready_records(self) -> None:
+        ready_record = MemoryRecord(
+            memory_id="ready-book",
+            memory_type="fact",
+            text="Alex read Dune.",
+            source_ids=("s1:t0",),
+            subject="Alex",
+            predicate="read book",
+            value="Dune",
+            confidence=1.0,
+        )
+        low_confidence_record = MemoryRecord(
+            memory_id="low-book",
+            memory_type="fact",
+            text="Alex may have read Foundation.",
+            source_ids=("s2:t0",),
+            subject="Alex",
+            predicate="read book",
+            value="Foundation",
+            confidence=0.3,
+        )
+        management = _management_summary(
+            (ready_record, low_confidence_record),
+            policy="stateful_only",
+            managed_memory_types=frozenset(
+                {"preference", "profile", "relationship", "state"}
+            ),
+            include_memory_system_graph=True,
+        )
+
+        activation_records, activation_trace = _memory_governance_activation_records(
+            (ready_record, low_confidence_record),
+            management=management,
+            enabled=True,
+            mode="source_activation_ready",
+        )
+        hits, trace = _memory_object_slot_source_hits(
+            memory_hits=(MemoryHit(record=ready_record, score=3.0, rank=1),),
+            built_memory_records=activation_records,
+            question="Which books did Alex read?",
+            route=RouteResult("fact_lookup", ("fact_lookup",)),
+            available_source_ids={"s1:t0", "s2:t0"},
+            max_slots=2,
+            max_sources_per_slot=4,
+            memory_types=("fact",),
+            require_collection_slot=False,
+        )
+
+        self.assertTrue(activation_trace["applied"])
+        self.assertEqual(activation_trace["activation_record_count"], 1)
+        self.assertEqual(activation_trace["filtered_record_count"], 1)
+        self.assertEqual([record.memory_id for record in activation_records], ["ready-book"])
+        self.assertTrue(trace["applied"])
+        self.assertEqual([hit.source_id for hit in hits], ["s1:t0"])
+        self.assertEqual(trace["slots"][0]["record_count"], 1)
 
     def test_memory_object_slot_activation_can_use_build_slot_index(self) -> None:
         first_record = MemoryRecord(
