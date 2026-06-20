@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_memory_governance_v267_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_governed_memory_activation_v268_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v267 local LTS |
+| Benchmark | 当前 v268 local LTS |
 |---|---:|
 | LongMemEval-S full | strict/lenient `0.832000 / 0.844000`，avg build/query tokens `85393.566 / 6462.478` |
 | LoCoMo non-adversarial full | strict/lenient `0.794156 / 0.819481`，avg build/query tokens `62015.57402597403 / 6094.017532467533` |
 
-v267 的 LTS 理由：继承 v266 的精简 query surface，并在 build-stage `memory_system_graph` 中加入 record-level governance manifest，显式审计 source-backed activation readiness、raw-evidence-required、confidence bucket 和风险标记。v267 与 v266 full 的 answer、prompt、final evidence、retrieval 和 token 全等，性能不退。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_memory_governance_v267_full_summary.md`。
+v268 的 LTS 理由：继承 v267 性能，并把 build-stage governance manifest 从诊断信息升级为显式、可消融的 typed-memory activation policy。只有 `source_activation_ready` 的 memory object 可以驱动 build-memory source projection、slot/chain/operation/graph utility 和 compiler memory records；最终 evidence 仍回到 raw rows。v268 与 v267 full 的 answer、prompt、final evidence、retrieval 和 token 全等，性能不退。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_governed_memory_activation_v268_full_summary.md`。
 
 ## 目录
 

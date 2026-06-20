@@ -6,15 +6,15 @@
 
 | 项目 | 结果 |
 |---|---|
-| 当前 LTS 配置 | `configs/stage1_memory_governance_v267_seeded_qwen36_no_think_build4k_cached.json` |
+| 当前 LTS 配置 | `configs/stage1_governed_memory_activation_v268_seeded_qwen36_no_think_build4k_cached.json` |
 | Backbone | `Qwen/Qwen3.6-35B-A3B` answer/build，`chat_template_kwargs.enable_thinking=false` |
-| 方法定位 | source-backed build memory management + operation ledger + schema/quality-aware memory system graph + record-level governance manifest + lifecycle-gated graph evidence utility + raw evidence compiler + source-grounded answer audit + lean disabled answer auxiliary surface。Graph/typed memory 只做 source-backed activation、ranking hint 和 audit；最终 evidence 仍回到 raw Memory rows。 |
+| 方法定位 | source-backed build memory management + operation ledger + schema/quality-aware memory system graph + governed typed-memory activation + lifecycle-gated graph evidence utility + raw evidence compiler + source-grounded answer audit + lean disabled answer auxiliary surface。Typed memory 只能作为受 governance gate 约束的 activation、ranking hint 和 audit；最终 evidence 仍回到 raw Memory rows。 |
 | LongMemEval-S full | strict/lenient `0.832000 / 0.844000`，`416/500` strict，`422/500` lenient；avg build/query tokens `85393.566 / 6462.478` |
 | LoCoMo non-adversarial full | strict/lenient `0.794156 / 0.819481`，`1223/1540` strict，`1262/1540` lenient；avg build/query tokens `62015.57402597403 / 6094.017532467533` |
-| LTS 理由 | v267 与 v266 full 的 answer/prompt/final-evidence/retrieval/token diff 全为 `0`，继承 v266 accuracy；同时加入 build-time record-level governance manifest，让 typed memory 的 source-backed activation readiness、raw-evidence-required 和风险标记可审计。 |
-| 主要局限 | governance manifest 仍是 trace/diagnosis，不直接改善 retrieval；query stack 仍有 route/selected-context/state-guide/ledger/audit 兼容层；LME query tokens 仍略高于 6K 目标但低于 8K hard diagnostic 线。 |
+| LTS 理由 | v268 与 v267 full 的 answer/prompt/final-evidence/retrieval/token diff 全为 `0`，继承 v267 accuracy；同时把 build-time governance manifest 接入 typed-memory activation，只有 `source_activation_ready` records 能驱动 memory BM25 projection、slot/chain/operation/graph utility 和 compiler memory records。 |
+| 主要局限 | 当前 full 数据中 governance filtered records 为 `0`，所以这是系统风险降低而非直接提分；query stack 仍有 route/selected-context/state-guide/ledger/audit 兼容层；LME query tokens 仍略高于 6K 目标但低于 8K hard diagnostic 线。 |
 
-v267 关键证据见 `experiments/diagnostic/stage1_memory_governance_v267_full_summary.md`。如果论文级最终汇报需要 fresh full judge，再对最终 LTS 配置完整重跑 dual judge；日常迭代优先用 full diff + changed-answer paired judge，避免无意义重跑。
+v268 关键证据见 `experiments/diagnostic/stage1_governed_memory_activation_v268_full_summary.md`。如果论文级最终汇报需要 fresh full judge，再对最终 LTS 配置完整重跑 dual judge；日常迭代优先用 full diff + changed-answer paired judge，避免无意义重跑。
 
 ## 口径
 
@@ -28,18 +28,19 @@ v267 关键证据见 `experiments/diagnostic/stage1_memory_governance_v267_full_
 
 | 优先级 | 方向 | 下一步 |
 |---:|---|---|
-| 1 | Build memory system | 把 event/state/profile/relation object schema 标准化，补齐 source span、validity、confidence、merge/supersede、usage utility，并保证可消融。 |
+| 1 | Build memory system | 在 v268 governance gate 基础上继续标准化 event/state/profile/relation object schema，补齐 source span、validity、confidence calibration、merge/supersede 和 usage utility。 |
 | 2 | Query-time 简化 | 收敛为 candidate activation、context compiler、source-grounded answer、consistency verifier 四层；逐步删除确认无用的兼容分支。 |
-| 3 | Evidence utility | 在 v264 lifecycle gate 基础上增加 source pressure、same-slot coverage、temporal validity 和 utility ablation，避免简单 overflow。 |
-| 4 | Answer/verifier | 把 trace-only audit 推进为通用 verifier：检查数值、时间、说话人、实体、状态冲突和 unsupported answer，不写 benchmark-specific rewrite。 |
+| 3 | Evidence utility | 增加 source pressure、same-slot coverage、temporal validity 和 utility ablation，避免简单 overflow 或固定 top-k。 |
+| 4 | Answer/verifier | 把 audit 推进为通用 consistency verifier：检查数值、时间、说话人、实体、状态冲突和 unsupported answer，不写 benchmark-specific rewrite。 |
 | 5 | src cleanup | 每阶段小范围清理 `src/`，只删除已确认无用且不影响复现/消融的代码。 |
 
 ## 当前候选和近期结论
 
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
-| `configs/stage1_memory_governance_v267_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_memory_governance_v267_full_summary.md` | current LTS | vs v266 full answer/prompt/final-evidence/retrieval/token diff `0`；governance schema seen LME `500/500`、LoCoMo `1540/1540`；avg governance risk records `0` | 当前 LTS；性能不退，build memory system 风险更低 |
-| `configs/stage1_query_surface_simplified_v266_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_query_surface_simplified_v266_full_summary.md` | previous LTS | vs v265 full answer/prompt/final-evidence/retrieval/token diff `0`；answer cache hits LME `500/500`、LoCoMo `1540/1540`；disabled repair/finalizer trace 和摘要已收窄 | 被 v267 继承；query-time disabled surface 风险更低 |
+| `configs/stage1_governed_memory_activation_v268_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_governed_memory_activation_v268_full_summary.md` | current LTS | vs v267 full answer/prompt/final-evidence/retrieval/token diff `0`；governance activation applied LME `500/500`、LoCoMo `1540/1540`；filtered records `0`；answer cache hits LME `500/500`、LoCoMo `1540/1540` | 当前 LTS；性能不退，typed-memory activation 风险更低 |
+| `configs/stage1_memory_governance_v267_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_memory_governance_v267_full_summary.md` | previous LTS | vs v266 full answer/prompt/final-evidence/retrieval/token diff `0`；governance schema seen LME `500/500`、LoCoMo `1540/1540`；avg governance risk records `0` | 被 v268 继承；build memory governance 从诊断推进到 activation policy |
+| `configs/stage1_query_surface_simplified_v266_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_query_surface_simplified_v266_full_summary.md` | previous LTS | vs v265 full answer/prompt/final-evidence/retrieval/token diff `0`；answer cache hits LME `500/500`、LoCoMo `1540/1540`；disabled repair/finalizer trace 和摘要已收窄 | 被 v267/v268 继承；query-time disabled surface 风险更低 |
 | `configs/stage1_memory_system_quality_v265_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_memory_system_quality_v265_full_summary.md` | previous LTS | vs v264 full answer/prompt/final-evidence/retrieval/token diff `0`；quality schema seen LME `500/500`、LoCoMo `1540/1540`; answer cache hits LME `500/500`、LoCoMo `1540/1540` | 被 v266 继承；build memory system 风险更低 |
 | `configs/stage1_lifecycle_graph_overflow_v264_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_lifecycle_graph_overflow_v264_full_summary.md` | previous LTS | LME answer diff `5/500`，changed-answer judge strict/lenient `1/5 -> 1/5`；LoCoMo answer diff `0/1540`；graph utility applied LME `130/500`、LoCoMo `439/1540` | 被 v265 继承；生命周期 gate 降低 v263 overflow 风险 |
 | `configs/stage1_graph_evidence_overflow_v263_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_graph_evidence_overflow_v263_scope_summary.md` | rejected full | LME answer diff `15/500`，changed-answer judge delta strict/lenient `-2/-1`；LoCoMo answer-identical | 不升 LTS；简单 overflow 即使 source-backed 也会引入干扰 evidence |
