@@ -62,6 +62,15 @@ _STATE_UPDATE_MEMORY_TYPES = frozenset(
 _CONTEXT_BUDGET_ANCHOR_SOURCES = frozenset(
     {"operation_registry", "layer_manifest", "operation_api", "auto"}
 )
+_MEMORY_OPERATION_SLOT_SOURCES = frozenset(
+    {
+        "auto",
+        "operation_api",
+        "working_view",
+        "operation_registry",
+        "operation_slot_index",
+    }
+)
 _LIFECYCLE_TERM_PATTERN = re.compile(r"[A-Za-z0-9_]+")
 _LIFECYCLE_TERM_STOPWORDS = frozenset(
     {
@@ -510,6 +519,9 @@ class Stage1Pipeline:
                 ),
             )
         )
+        self._operation_utility_slot_source = _validate_memory_operation_slot_source(
+            operation_utility_config.get("slot_source", "auto")
+        )
         self._operation_utility_memory_types = _tuple_config(
             operation_utility_config.get(
                 "memory_types",
@@ -591,6 +603,9 @@ class Stage1Pipeline:
         )
         self._graph_utility_required_signals = _tuple_config(
             graph_utility_config.get("required_signals")
+        )
+        self._graph_utility_slot_source = _validate_memory_operation_slot_source(
+            graph_utility_config.get("slot_source", "auto")
         )
         self._graph_utility_fusion_mode = str(
             graph_utility_config.get("fusion_mode", "tail_rescue")
@@ -2148,6 +2163,7 @@ class Stage1Pipeline:
                     ),
                     memory_types=self._operation_utility_memory_types,
                     operations=self._operation_utility_operations,
+                    slot_source=self._operation_utility_slot_source,
                     min_overlap_terms=self._operation_utility_min_overlap_terms,
                     fusion_mode=self._operation_utility_fusion_mode,
                     tail_exchange_protect_top_n=(
@@ -2453,6 +2469,7 @@ class Stage1Pipeline:
                     self._graph_utility_ignored_overlap_terms
                 ),
                 required_signals=self._graph_utility_required_signals,
+                slot_source=self._graph_utility_slot_source,
                 fusion_mode=self._graph_utility_fusion_mode,
                 overflow_max_hits=self._graph_utility_overflow_max_hits,
                 source_selection_policy=(
@@ -3287,6 +3304,9 @@ class Stage1Pipeline:
                     "operation_utility_operations": (
                         self._operation_utility_operations
                     ),
+                    "operation_utility_slot_source": (
+                        self._operation_utility_slot_source
+                    ),
                     "operation_utility_max_slots": (
                         self._operation_utility_max_slots
                     ),
@@ -3345,6 +3365,7 @@ class Stage1Pipeline:
                     "graph_utility_required_signals": (
                         self._graph_utility_required_signals
                     ),
+                    "graph_utility_slot_source": self._graph_utility_slot_source,
                     "graph_utility_fusion_mode": (
                         self._graph_utility_fusion_mode
                     ),
@@ -4611,6 +4632,9 @@ def _context_manifest(
             "final_evidence_from_operation_registry_count": len(
                 memory_operations_manifest["registry_projected_final_source_ids"]
             ),
+            "final_evidence_from_operation_api_count": len(
+                memory_operations_manifest["operation_api_final_source_ids"]
+            ),
             "final_evidence_from_lifecycle_audit_count": len(
                 memory_operations_manifest["lifecycle_audit_final_source_ids"]
             ),
@@ -4671,6 +4695,12 @@ def _context_manifest(
                 "lifecycle_audit_final_source_count": len(
                     memory_operations_manifest["lifecycle_audit_final_source_ids"]
                 ),
+                "operation_api_available": memory_operations_manifest[
+                    "operation_api_available"
+                ],
+                "operation_api_final_source_count": len(
+                    memory_operations_manifest["operation_api_final_source_ids"]
+                ),
             },
             "evidence_pressure": _evidence_pressure_manifest(evidence_rows),
             "clean_note": (
@@ -4704,7 +4734,11 @@ def _memory_operations_context_manifest(
     )
     operation_slot_source = _operation_consumer_slot_source(operation_utility_trace)
     graph_slot_source = _operation_consumer_slot_source(graph_utility_trace)
-    operation_interface_sources = {"memory_operation_registry", "memory_working_view"}
+    operation_interface_sources = {
+        "memory_operation_api",
+        "memory_operation_registry",
+        "memory_working_view",
+    }
     registry_projected_source_ids = _ordered_unique(
         (
             *(
@@ -4729,6 +4763,7 @@ def _memory_operations_context_manifest(
     working_memory_view = {}
     lifecycle_audit = {}
     layer_manifest = {}
+    operation_api = {}
     if isinstance(memory_object_index, Mapping):
         raw_registry = memory_object_index.get("operation_registry")
         if isinstance(raw_registry, Mapping):
@@ -4742,10 +4777,14 @@ def _memory_operations_context_manifest(
         raw_layer_manifest = memory_object_index.get("memory_layer_manifest")
         if isinstance(raw_layer_manifest, Mapping):
             layer_manifest = raw_layer_manifest
+        raw_operation_api = memory_object_index.get("memory_operation_api")
+        if isinstance(raw_operation_api, Mapping):
+            operation_api = raw_operation_api
     registry_available = bool(operation_registry.get("applied"))
     working_view_available = bool(working_memory_view.get("applied"))
     lifecycle_audit_available = bool(lifecycle_audit.get("applied"))
     layer_manifest_available = bool(layer_manifest.get("applied"))
+    operation_api_available = bool(operation_api.get("applied"))
     lifecycle_audit_source_ids = _ordered_unique(
         source_id
         for entry in lifecycle_audit.get("entries") or ()
@@ -4772,6 +4811,20 @@ def _memory_operations_context_manifest(
         for layer, summary in layer_manifest_layers.items()
         if isinstance(summary, Mapping)
     }
+    operation_api_source_ids = _ordered_unique(
+        (
+            *(operation_api.get("context_anchor_source_ids") or ()),
+            *(
+                source_id
+                for entry in operation_api.get("entries") or ()
+                if isinstance(entry, Mapping)
+                for source_id in (entry.get("source_ids") or ())
+            ),
+        )
+    )
+    operation_api_final_source_ids = tuple(
+        source_id for source_id in operation_api_source_ids if source_id in final_set
+    )
     return {
         "trace_only": True,
         "registry_available": registry_available,
@@ -4819,9 +4872,29 @@ def _memory_operations_context_manifest(
         ),
         "layer_manifest_final_source_ids": layer_manifest_final_source_ids,
         "layer_manifest_final_source_count": len(layer_manifest_final_source_ids),
+        "operation_api_available": operation_api_available,
+        "operation_api_schema_version": str(
+            operation_api.get("schema_version") or ""
+        ),
+        "operation_api_entry_count": int(operation_api.get("entry_count") or 0),
+        "operation_api_source_backed_entry_count": int(
+            operation_api.get("source_backed_entry_count") or 0
+        ),
+        "operation_api_context_anchor_source_count": int(
+            operation_api.get("context_anchor_source_count") or 0
+        ),
+        "operation_api_final_source_ids": operation_api_final_source_ids,
+        "operation_api_final_source_count": len(operation_api_final_source_ids),
         "operation_utility_slot_source": operation_slot_source,
         "graph_utility_slot_source": graph_slot_source,
         "operation_interface_sources": sorted(operation_interface_sources),
+        "operation_interface_projected_source_ids": registry_projected_source_ids,
+        "operation_interface_projected_final_source_ids": (
+            registry_projected_final_source_ids
+        ),
+        "operation_interface_projected_final_source_count": len(
+            registry_projected_final_source_ids
+        ),
         "registry_projected_source_ids": registry_projected_source_ids,
         "registry_projected_final_source_ids": registry_projected_final_source_ids,
         "registry_projected_final_source_count": len(
@@ -4848,7 +4921,11 @@ def _registry_backed_operation_source_ids(
     operation_utility_trace: Mapping[str, Any] | None,
     graph_utility_trace: Mapping[str, Any] | None,
 ) -> tuple[str, ...]:
-    operation_interface_sources = {"memory_operation_registry", "memory_working_view"}
+    operation_interface_sources = {
+        "memory_operation_api",
+        "memory_operation_registry",
+        "memory_working_view",
+    }
     return _ordered_unique(
         source_id
         for trace in (operation_utility_trace, graph_utility_trace)
@@ -5599,13 +5676,46 @@ def _memory_operation_slot_empty_index_stats(
     }
 
 
+def _validate_memory_operation_slot_source(value: Any) -> str:
+    source = str(value or "auto")
+    if source not in _MEMORY_OPERATION_SLOT_SOURCES:
+        supported = ", ".join(sorted(_MEMORY_OPERATION_SLOT_SOURCES))
+        raise ValueError(
+            f"Unsupported memory operation slot_source: {source}. "
+            f"Supported values: {supported}"
+        )
+    return source
+
+
 def _memory_operation_slots_from_object_index(
     memory_object_index: Mapping[str, Any] | None,
     *,
     memory_types: tuple[str, ...],
+    slot_source: str = "auto",
 ) -> tuple[dict[tuple[str, str, str], Mapping[str, Any]], dict[str, Any]]:
+    slot_source = _validate_memory_operation_slot_source(slot_source)
     if not isinstance(memory_object_index, Mapping):
         return {}, _memory_operation_slot_empty_index_stats(enabled=False)
+    if slot_source == "operation_api":
+        return _memory_operation_slots_from_operation_api(
+            memory_object_index,
+            memory_types=memory_types,
+        )
+    if slot_source == "working_view":
+        return _memory_operation_slots_from_working_view(
+            memory_object_index,
+            memory_types=memory_types,
+        )
+    if slot_source == "operation_registry":
+        return _memory_operation_slots_from_registry(
+            memory_object_index,
+            memory_types=memory_types,
+        )
+    if slot_source == "operation_slot_index":
+        return _memory_operation_slots_from_raw_operation_index(
+            memory_object_index,
+            memory_types=memory_types,
+        )
     working_view_slots, working_view_stats = _memory_operation_slots_from_working_view(
         memory_object_index,
         memory_types=memory_types,
@@ -5618,6 +5728,17 @@ def _memory_operation_slots_from_object_index(
     )
     if registry_stats["enabled"]:
         return registry_slots, registry_stats
+    return _memory_operation_slots_from_raw_operation_index(
+        memory_object_index,
+        memory_types=memory_types,
+    )
+
+
+def _memory_operation_slots_from_raw_operation_index(
+    memory_object_index: Mapping[str, Any],
+    *,
+    memory_types: tuple[str, ...],
+) -> tuple[dict[tuple[str, str, str], Mapping[str, Any]], dict[str, Any]]:
     raw_slots = memory_object_index.get("operation_slot_index")
     if not isinstance(raw_slots, list):
         return {}, _memory_operation_slot_empty_index_stats(enabled=False)
@@ -5649,6 +5770,68 @@ def _memory_operation_slots_from_object_index(
     return slots, {
         **_memory_operation_slot_empty_index_stats(enabled=True),
         "schema_version": str(memory_object_index.get("schema_version") or ""),
+        "slot_count": len(slots),
+        "source_backed_slot_count": source_backed_slot_count,
+        "operation_slot_count": operation_slot_count,
+        "graph_signal_slot_count": graph_signal_slot_count,
+    }
+
+
+def _memory_operation_slots_from_operation_api(
+    memory_object_index: Mapping[str, Any],
+    *,
+    memory_types: tuple[str, ...],
+) -> tuple[dict[tuple[str, str, str], Mapping[str, Any]], dict[str, Any]]:
+    operation_api = memory_object_index.get("memory_operation_api")
+    if not isinstance(operation_api, Mapping) or not operation_api.get("applied"):
+        return {}, _memory_operation_slot_empty_index_stats(
+            enabled=False,
+            source="memory_operation_api",
+        )
+    raw_entries = operation_api.get("entries")
+    if not isinstance(raw_entries, list):
+        return {}, _memory_operation_slot_empty_index_stats(
+            enabled=True,
+            source="memory_operation_api",
+        )
+    allowed_types = {str(item).lower() for item in memory_types if str(item).strip()}
+    slots: dict[tuple[str, str, str], Mapping[str, Any]] = {}
+    source_backed_slot_count = 0
+    operation_slot_count = 0
+    graph_signal_slot_count = 0
+    for raw_entry in raw_entries:
+        if not isinstance(raw_entry, Mapping):
+            continue
+        if raw_entry.get("target_type") != "operation_slot":
+            continue
+        memory_type = _normalize_memory_slot_text(
+            str(raw_entry.get("memory_type") or "")
+        )
+        if allowed_types and memory_type not in allowed_types:
+            continue
+        subject = _normalize_memory_slot_text(str(raw_entry.get("subject") or ""))
+        predicate = _normalize_memory_slot_text(str(raw_entry.get("predicate") or ""))
+        if not memory_type or not subject or not predicate:
+            continue
+        key = (memory_type, subject, predicate)
+        slots[key] = raw_entry
+        if raw_entry.get("source_backed") or raw_entry.get("source_ids"):
+            source_backed_slot_count += 1
+        operations = {
+            str(operation).strip().lower()
+            for operation in raw_entry.get("operations") or ()
+            if str(operation).strip()
+        }
+        if operations.difference(_MEMORY_OPERATION_REGISTRY_BASE_OPERATIONS):
+            operation_slot_count += 1
+        if raw_entry.get("graph_signals"):
+            graph_signal_slot_count += 1
+    return slots, {
+        **_memory_operation_slot_empty_index_stats(
+            enabled=True,
+            source="memory_operation_api",
+        ),
+        "schema_version": str(operation_api.get("schema_version") or ""),
         "slot_count": len(slots),
         "source_backed_slot_count": source_backed_slot_count,
         "operation_slot_count": operation_slot_count,
@@ -5849,6 +6032,7 @@ def _disabled_operation_utility_trace(
     max_slots: int,
     max_sources_per_slot: int,
     min_overlap_terms: int,
+    slot_source: str = "auto",
     fusion_mode: str = "tail_rescue",
     tail_exchange_protect_top_n: int = 56,
     tail_exchange_max_swaps: int = 0,
@@ -5868,6 +6052,7 @@ def _disabled_operation_utility_trace(
         "tail_exchange_protect_top_n": tail_exchange_protect_top_n,
         "tail_exchange_max_swaps": tail_exchange_max_swaps,
         "question_scope": question_scope,
+        "slot_source": slot_source,
         "slot_index": _memory_operation_slot_empty_index_stats(enabled=False),
         "operation_counts": {},
         "skipped_reason": skipped_reason,
@@ -5886,6 +6071,7 @@ def _memory_operation_utility_source_hits(
     max_sources_per_slot: int,
     memory_types: tuple[str, ...],
     operations: tuple[str, ...],
+    slot_source: str = "auto",
     min_overlap_terms: int = 1,
     fusion_mode: str = "tail_rescue",
     tail_exchange_protect_top_n: int = 56,
@@ -5909,6 +6095,7 @@ def _memory_operation_utility_source_hits(
         max_slots=max_slots,
         max_sources_per_slot=max_sources_per_slot,
         min_overlap_terms=min_overlap_terms,
+        slot_source=slot_source,
         fusion_mode=fusion_mode,
         tail_exchange_protect_top_n=tail_exchange_protect_top_n,
         tail_exchange_max_swaps=tail_exchange_max_swaps,
@@ -5917,6 +6104,7 @@ def _memory_operation_utility_source_hits(
     indexed_slots, slot_index_stats = _memory_operation_slots_from_object_index(
         memory_object_index,
         memory_types=memory_types,
+        slot_source=slot_source,
     )
     use_index_slots = bool(indexed_slots)
     if not memory_hits or (not built_memory_records and not use_index_slots):
@@ -6094,6 +6282,7 @@ def _disabled_graph_utility_trace(
     require_new_source: bool,
     ignored_overlap_terms: tuple[str, ...],
     required_signals: tuple[str, ...] = (),
+    slot_source: str = "auto",
     fusion_mode: str = "tail_rescue",
     overflow_max_hits: int = 0,
     source_selection_policy: str = "legacy",
@@ -6115,7 +6304,8 @@ def _disabled_graph_utility_trace(
         "overflow_max_hits": overflow_max_hits,
         "source_selection_policy": source_selection_policy,
         "question_scope": question_scope,
-        "slot_index": _memory_object_slot_empty_index_stats(enabled=True),
+        "slot_source": slot_source,
+        "slot_index": _memory_operation_slot_empty_index_stats(enabled=False),
         "candidate_source_count": 0,
         "emitted_source_count": 0,
         "novel_source_count": 0,
@@ -6139,6 +6329,7 @@ def _memory_graph_utility_source_hits(
     require_new_source: bool = True,
     ignored_overlap_terms: tuple[str, ...] = (),
     required_signals: tuple[str, ...] = (),
+    slot_source: str = "auto",
     fusion_mode: str = "tail_rescue",
     overflow_max_hits: int = 0,
     source_selection_policy: str = "legacy",
@@ -6163,6 +6354,7 @@ def _memory_graph_utility_source_hits(
         require_new_source=require_new_source,
         ignored_overlap_terms=ignored_overlap_terms,
         required_signals=required_signals,
+        slot_source=slot_source,
         fusion_mode=fusion_mode,
         overflow_max_hits=overflow_max_hits,
         source_selection_policy=source_selection_policy,
@@ -6175,6 +6367,7 @@ def _memory_graph_utility_source_hits(
     indexed_slots, slot_index_stats = _memory_operation_slots_from_object_index(
         memory_object_index,
         memory_types=memory_types,
+        slot_source=slot_source,
     )
     use_index_slots = bool(indexed_slots)
     if not memory_hits or (not built_memory_records and not use_index_slots):

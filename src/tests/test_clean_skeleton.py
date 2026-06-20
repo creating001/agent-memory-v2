@@ -528,6 +528,96 @@ class CleanSkeletonTest(unittest.TestCase):
             1,
         )
 
+    def test_context_manifest_tracks_operation_api_backed_memory_operations(
+        self,
+    ) -> None:
+        turns = (
+            Turn("s1:t0", "s1", 0, "user", "Alex lived in Austin."),
+            Turn("s2:t0", "s2", 0, "user", "Alex moved to Seattle."),
+        )
+        store = RawEvidenceStore(turns)
+        route = RouteResult("current_state", ("current_state",))
+        manifest = _context_manifest(
+            store=store,
+            route=route,
+            lexical_hits=(),
+            dense_hits=(),
+            memory_hits=(),
+            memory_source_hits=(),
+            memory_slot_chain_source_hits=(),
+            turn_window_source_hits=(),
+            pre_context_budget_hits=(),
+            retrieval_hits=(RetrievalHit("s2:t0", 1.0, 1, "dense"),),
+            context_budget_trace={"applied": False},
+            context_budget_audit={},
+            evidence_turns=(turns[1],),
+            selected_context={
+                "materialized_source_ids": [],
+                "risk_audit": {"applied": False},
+            },
+            built_memory_records=(),
+            compiler_memory_records=(),
+            evidence_rows=(
+                EvidenceRow(
+                    source_id="s2:t0",
+                    session_id="s2",
+                    turn_index=0,
+                    role="user",
+                    text="Alex moved to Seattle.",
+                    timestamp=None,
+                    retrieval_rank=1,
+                    retrieval_score=1.0,
+                ),
+            ),
+            operation_utility_source_hits=(RetrievalHit("s1:t0", 0.5, 1, "op"),),
+            graph_utility_source_hits=(RetrievalHit("s2:t0", 0.8, 1, "graph"),),
+            operation_utility_trace={
+                "slot_index": {"source": "memory_operation_api"}
+            },
+            graph_utility_trace={
+                "slot_index": {"source": "memory_operation_api"}
+            },
+            memory_object_index={
+                "memory_operation_api": {
+                    "applied": True,
+                    "schema_version": "memory_operation_api_v1",
+                    "entry_count": 2,
+                    "source_backed_entry_count": 2,
+                    "context_anchor_source_count": 2,
+                    "context_anchor_source_ids": ["s2:t0", "s4:t0"],
+                    "entries": [
+                        {"source_ids": ["s1:t0"]},
+                        {"source_ids": ["s2:t0", "s3:t0"]},
+                    ],
+                },
+            },
+        )
+
+        operations = manifest["memory_operations"]
+        self.assertTrue(operations["operation_api_available"])
+        self.assertEqual(
+            operations["operation_api_schema_version"],
+            "memory_operation_api_v1",
+        )
+        self.assertEqual(
+            operations["operation_interface_projected_source_ids"],
+            ("s1:t0", "s2:t0"),
+        )
+        self.assertEqual(
+            operations["operation_interface_projected_final_source_ids"],
+            ("s2:t0",),
+        )
+        self.assertEqual(operations["operation_api_final_source_ids"], ("s2:t0",))
+        self.assertEqual(
+            manifest["coverage"]["final_evidence_from_operation_api_count"],
+            1,
+        )
+        self.assertTrue(
+            manifest["context_organization"]["memory_operations"][
+                "operation_api_available"
+            ]
+        )
+
     def test_context_manifest_tracks_evidence_pressure(self) -> None:
         turns = (
             Turn("s1:t0", "s1", 0, "user", "Alex booked the cafe."),
@@ -5014,6 +5104,63 @@ class CleanSkeletonTest(unittest.TestCase):
         )
         self.assertEqual([hit.source_id for hit in hits], ["s2:t0", "s1:t0"])
 
+    def test_memory_operation_utility_can_use_operation_api_slots(self) -> None:
+        old_record = MemoryRecord(
+            memory_id="old-city",
+            memory_type="state",
+            text="Alex lives in Austin.",
+            source_ids=("s1:t0",),
+            subject="Alex",
+            predicate="home city",
+            value="Austin",
+            timestamp="2024-01-01",
+            status="superseded",
+            superseded_by="new-city",
+        )
+        new_record = MemoryRecord(
+            memory_id="new-city",
+            memory_type="state",
+            text="Alex lives in Seattle.",
+            source_ids=("s2:t0",),
+            subject="Alex",
+            predicate="home city",
+            value="Seattle",
+            timestamp="2024-05-01",
+            status="active",
+        )
+        management = _management_summary(
+            (old_record, new_record),
+            policy="stateful_only",
+            managed_memory_types=frozenset({"state"}),
+            include_memory_system_graph=True,
+        )
+        memory_object_index = management["memory_system_graph"]["memory_object_index"]
+
+        hits, trace = _memory_operation_utility_source_hits(
+            memory_hits=(MemoryHit(record=old_record, score=3.0, rank=1),),
+            built_memory_records=(),
+            question="Where does Alex live now?",
+            route=RouteResult("current_state", ("current_state",)),
+            available_source_ids={"s1:t0", "s2:t0"},
+            max_slots=2,
+            max_sources_per_slot=4,
+            memory_types=("state",),
+            operations=("supersede", "conflict_slot"),
+            slot_source="operation_api",
+            fusion_mode="tail_exchange",
+            managed_memory_types=("state",),
+            memory_object_index=memory_object_index,
+        )
+
+        self.assertTrue(trace["applied"])
+        self.assertEqual(trace["slot_source"], "operation_api")
+        self.assertEqual(trace["slot_index"]["source"], "memory_operation_api")
+        self.assertEqual(
+            trace["slot_index"]["schema_version"],
+            "memory_operation_api_v1",
+        )
+        self.assertEqual([hit.source_id for hit in hits], ["s2:t0", "s1:t0"])
+
     def test_memory_graph_utility_adds_only_missing_slot_sources(self) -> None:
         old_record = MemoryRecord(
             memory_id="old-city",
@@ -5123,6 +5270,67 @@ class CleanSkeletonTest(unittest.TestCase):
         )
         self.assertEqual([hit.source_id for hit in hits], ["s1:t0"])
         self.assertIn("conflict_slot", trace["slots"][0]["signals"])
+
+    def test_memory_graph_utility_can_use_operation_api_slots(self) -> None:
+        old_record = MemoryRecord(
+            memory_id="old-city",
+            memory_type="state",
+            text="Alex lives in Austin.",
+            source_ids=("s1:t0",),
+            subject="Alex",
+            predicate="home city",
+            value="Austin",
+            timestamp="2024-01-01",
+            status="superseded",
+            superseded_by="new-city",
+        )
+        new_record = MemoryRecord(
+            memory_id="new-city",
+            memory_type="state",
+            text="Alex lives in Seattle.",
+            source_ids=("s2:t0",),
+            subject="Alex",
+            predicate="home city",
+            value="Seattle",
+            timestamp="2024-05-01",
+            status="active",
+        )
+        management = _management_summary(
+            (new_record, old_record),
+            policy="stateful_only",
+            managed_memory_types=frozenset({"state"}),
+            include_memory_system_graph=True,
+        )
+        memory_object_index = management["memory_system_graph"]["memory_object_index"]
+
+        hits, trace = _memory_graph_utility_source_hits(
+            memory_hits=(MemoryHit(record=new_record, score=3.0, rank=1),),
+            built_memory_records=(),
+            question="Where does Alex live now?",
+            route=RouteResult("current_state", ("current_state",)),
+            available_source_ids={"s1:t0", "s2:t0"},
+            candidate_source_ids={"s2:t0"},
+            max_slots=2,
+            max_sources_per_slot=4,
+            memory_types=("state",),
+            min_overlap_terms=1,
+            require_new_source=True,
+            required_signals=("supersede",),
+            slot_source="operation_api",
+            fusion_mode="tail_rescue",
+            source_selection_policy="validity_aware",
+            memory_object_index=memory_object_index,
+        )
+
+        self.assertTrue(trace["applied"])
+        self.assertEqual(trace["slot_source"], "operation_api")
+        self.assertEqual(trace["slot_index"]["source"], "memory_operation_api")
+        self.assertEqual(
+            trace["slot_index"]["schema_version"],
+            "memory_operation_api_v1",
+        )
+        self.assertEqual([hit.source_id for hit in hits], ["s1:t0"])
+        self.assertIn("supersede", trace["slots"][0]["signals"])
 
     def test_memory_graph_utility_falls_back_to_registry_when_view_disabled(
         self,

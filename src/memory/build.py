@@ -1878,16 +1878,45 @@ def _memory_operation_api(
                 for action in ("retrieve", "expand", "verify", "audit")
                 if raw_entry.get("source_backed")
             )
+        graph_signals = _memory_operation_api_graph_signals(
+            raw_entry,
+            actions=actions,
+        )
+        query_operations = _ordered_strings((*actions, *graph_signals))
         current_source_order = _ordered_strings(
             raw_entry.get("current_source_order") or ()
         )[:12]
         historical_source_order = _ordered_strings(
             raw_entry.get("historical_source_order") or ()
         )[:12]
+        operation_current_source_order = _ordered_strings(
+            raw_entry.get("operation_current_source_order")
+            or raw_entry.get("current_source_order")
+            or ()
+        )[:12]
+        operation_historical_source_order = _ordered_strings(
+            raw_entry.get("operation_historical_source_order")
+            or raw_entry.get("historical_source_order")
+            or ()
+        )[:12]
+        validity_current_source_order = _ordered_strings(
+            raw_entry.get("validity_current_source_order")
+            or raw_entry.get("current_source_order")
+            or operation_current_source_order
+        )[:12]
+        validity_historical_source_order = _ordered_strings(
+            raw_entry.get("validity_historical_source_order")
+            or raw_entry.get("historical_source_order")
+            or operation_historical_source_order
+        )[:12]
         source_ids = _ordered_strings(
             (
                 *current_source_order,
                 *historical_source_order,
+                *operation_current_source_order,
+                *operation_historical_source_order,
+                *validity_current_source_order,
+                *validity_historical_source_order,
                 *(raw_entry.get("source_ids") or ()),
             )
         )[:12]
@@ -1913,6 +1942,10 @@ def _memory_operation_api(
                 "predicate": _normalize_key_text(str(raw_entry.get("predicate") or "")),
                 "values": _ordered_strings(raw_entry.get("values") or ())[:12],
                 "operation_actions": list(actions),
+                "operations": query_operations,
+                "graph_signals": graph_signals,
+                "lexical_terms": _memory_operation_api_lexical_terms(raw_entry)[:32],
+                "record_count": int(raw_entry.get("record_count") or 0),
                 "operation_map": {
                     action: {
                         "enabled": action in actions,
@@ -1929,6 +1962,12 @@ def _memory_operation_api(
                 )[:12],
                 "current_source_order": current_source_order,
                 "historical_source_order": historical_source_order,
+                "operation_current_source_order": operation_current_source_order,
+                "operation_historical_source_order": (
+                    operation_historical_source_order
+                ),
+                "validity_current_source_order": validity_current_source_order,
+                "validity_historical_source_order": validity_historical_source_order,
                 "source_ids": source_ids,
                 "source_backed": bool(raw_entry.get("source_backed") or source_ids),
                 "activation_scope": _memory_operation_api_activation_scope(
@@ -2010,6 +2049,53 @@ def _memory_operation_api_activation_scope(memory_layer: str) -> str:
     return "long_term_recall"
 
 
+def _memory_operation_api_graph_signals(
+    entry: dict[str, Any],
+    *,
+    actions: tuple[str, ...],
+) -> list[str]:
+    signals = list(_ordered_strings(entry.get("graph_signals") or ()))
+    if entry.get("source_backed") or entry.get("source_ids"):
+        signals.append("source_support")
+    status_counts = entry.get("status_counts") or {}
+    audit_flags = {str(flag) for flag in entry.get("audit_flags") or ()}
+    if (
+        "supersede" in actions
+        or status_counts.get("superseded")
+        or entry.get("superseded_memory_ids")
+    ):
+        signals.append("supersede")
+    if (
+        str(entry.get("target_type") or "") == "conflict_slot"
+        or "conflict_resolution" in audit_flags
+    ):
+        signals.append("conflict_slot")
+    values = _ordered_strings(entry.get("values") or ())
+    if len(values) > 1:
+        signals.append("multi_value_slot")
+    return _ordered_strings(signals)
+
+
+def _memory_operation_api_lexical_terms(entry: dict[str, Any]) -> list[str]:
+    inherited_terms = _ordered_strings(entry.get("lexical_terms") or ())
+    if inherited_terms:
+        return inherited_terms
+    text = " ".join(
+        str(part)
+        for part in (
+            entry.get("subject") or "",
+            entry.get("predicate") or "",
+            " ".join(str(value) for value in (entry.get("values") or ())),
+        )
+        if part
+    )
+    return _ordered_strings(
+        token.lower()
+        for token in re.findall(r"[A-Za-z0-9_]+", text)
+        if len(token) >= 3
+    )
+
+
 def _memory_operation_api_context_anchor_source_ids(
     layer_manifest: dict[str, Any],
 ) -> list[str]:
@@ -2087,6 +2173,30 @@ def _memory_lifecycle_audit(
             status_counts=status_counts,
             operations=operations,
         )
+        operation_current_source_order = _memory_lifecycle_entry_order_field(
+            raw_entry,
+            "operation_current_source_order",
+            "current_source_order",
+            fallback=source_ids,
+        )
+        operation_historical_source_order = _memory_lifecycle_entry_order_field(
+            raw_entry,
+            "operation_historical_source_order",
+            "historical_source_order",
+            fallback=source_ids,
+        )
+        validity_current_source_order = _memory_lifecycle_entry_order_field(
+            raw_entry,
+            "validity_current_source_order",
+            "current_source_order",
+            fallback=operation_current_source_order or source_ids,
+        )
+        validity_historical_source_order = _memory_lifecycle_entry_order_field(
+            raw_entry,
+            "validity_historical_source_order",
+            "historical_source_order",
+            fallback=operation_historical_source_order or source_ids,
+        )
         entries.append(
             {
                 "audit_id": f"audit:{raw_entry.get('entry_id') or ordinal}",
@@ -2109,6 +2219,13 @@ def _memory_lifecycle_audit(
                 "predicate": _normalize_key_text(str(raw_entry.get("predicate") or "")),
                 "values": _ordered_strings(raw_entry.get("values") or ())[:12],
                 "operations": operations,
+                "graph_signals": _ordered_strings(
+                    raw_entry.get("graph_signals") or ()
+                )[:12],
+                "lexical_terms": _ordered_strings(
+                    raw_entry.get("lexical_terms") or ()
+                )[:32],
+                "record_count": int(raw_entry.get("record_count") or 0),
                 "audit_actions": audit_actions,
                 "audit_flags": flags,
                 "active_memory_ids": _ordered_strings(
@@ -2128,6 +2245,14 @@ def _memory_lifecycle_audit(
                     raw_entry,
                     scope="historical",
                     fallback=source_ids,
+                ),
+                "operation_current_source_order": operation_current_source_order,
+                "operation_historical_source_order": (
+                    operation_historical_source_order
+                ),
+                "validity_current_source_order": validity_current_source_order,
+                "validity_historical_source_order": (
+                    validity_historical_source_order
                 ),
                 "verify_policy": "expand_to_raw_source_rows",
                 "audit_policy": "source_support_status_slot_lifecycle_and_conflict",
@@ -2313,6 +2438,18 @@ def _memory_lifecycle_entry_stage(
     if "quarantine_memory" in flags:
         return "quarantine"
     return "long_term_recall"
+
+
+def _memory_lifecycle_entry_order_field(
+    entry: dict[str, Any],
+    *fields: str,
+    fallback: tuple[str, ...],
+) -> tuple[str, ...]:
+    for field in fields:
+        source_ids = _ordered_strings(entry.get(field) or ())
+        if source_ids:
+            return tuple(source_ids[:12])
+    return tuple(fallback[:12])
 
 
 def _memory_lifecycle_entry_source_order(
