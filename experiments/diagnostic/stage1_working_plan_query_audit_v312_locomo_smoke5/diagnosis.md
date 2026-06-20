@@ -1,0 +1,308 @@
+# Diagnosis for stage1_working_plan_query_audit_v312_locomo_smoke5
+
+## Summary
+
+The run validates pipeline shape, clean traceability, and answerer integration under the configured experiment kind.
+
+## Observations
+
+- samples_processed: 5
+- avg_compiled_evidence_items: 52.0
+- avg_build_tokens: 45868.0
+- avg_build_think_tokens: 0.0
+- avg_build_total_tokens: 45868.0
+- build_token_accounting: logical cold-build visible LLM tokens; cached build chunks count from stored usage, while cache hits only avoid repeated local API calls.
+- avg_build_memory_records: 112.0
+- avg_active_build_memory_records: 98.0
+- build_memory_temporal_fields: False
+- build_memory_prompt_profile: typed_compact
+- build_memory_manage_facts: False
+- build_memory_management_policy: stateful_only
+- build_memory_management_policy_counts: {'stateful_only': 5}
+- build_memory_management_operation_counts: {'create': 560, 'retain_active': 490, 'supersede': 70, 'retain_collection_multi_value_slot': 40}
+- build_memory_management_layer_counts: {'episodic': 190, 'profile_state': 295, 'prospective': 35, 'semantic': 40}
+- avg_build_memory_system_graph_source_backed_records: 112.0
+- avg_build_memory_system_graph_complete_slot_key_records: 112.0
+- avg_build_memory_system_graph_temporal_anchor_records: 112.0
+- avg_build_memory_system_graph_multi_source_records: 40.0
+- avg_build_memory_system_graph_low_confidence_records: 0.0
+- avg_build_memory_system_graph_source_backed_slots: 85.0
+- avg_build_memory_system_graph_active_superseded_pair_slots: 8.0
+- avg_build_memory_system_graph_activation_ready_records: 112.0
+- avg_build_memory_system_graph_governance_risk_records: 0.0
+- build_memory_system_graph_governance_risk_counts: {}
+- build_memory_system_graph_activation_role_counts: {'episodic_candidate': 190, 'lifecycle_context': 70, 'prospective_candidate': 35, 'semantic_candidate': 40, 'stateful_candidate': 225}
+- build_memory_system_graph_activation_utility_bucket_counts: {'high': 560}
+- build_memory_system_graph_scalar_value_manifest_applied_count: 5
+- build_memory_system_graph_scalar_value_manifest_applied_rate: 1.0
+- build_memory_system_graph_scalar_value_manifest_counts: {'create_value_object': 560, 'create_scalar_value': 20, 'update_value_slot': 40, 'merge_value_slot': 10, 'supersede_value': 70, 'retrieve_value': 560, 'expand_value_source': 820, 'verify_value_source': 560, 'audit_value_slot': 425, 'audit_scalar_value_slot': 20, 'audit_conflict_value_slot': 40, 'quarantine_value': 0}
+- build_memory_system_graph_memory_object_index_applied_count: 5
+- avg_build_memory_system_graph_memory_object_index_activation_ready_ids: 112.0
+- avg_build_memory_system_graph_memory_object_index_activation_priority_ids: 112.0
+- avg_build_memory_system_graph_memory_object_index_operation_slots: 85.0
+- avg_build_memory_system_graph_memory_object_index_operation_registry_entries: 290.0
+- avg_build_memory_system_graph_memory_object_index_operation_registry_source_backed_entries: 290.0
+- build_memory_system_graph_memory_object_index_lifecycle_audit_applied_count: 5
+- avg_build_memory_system_graph_memory_object_index_lifecycle_audit_entries: 290.0
+- avg_build_memory_system_graph_memory_object_index_lifecycle_audit_conflict_entries: 16.0
+- build_memory_system_graph_memory_object_index_operation_api_applied_count: 5
+- avg_build_memory_system_graph_memory_object_index_operation_api_entries: 290.0
+- avg_build_memory_system_graph_memory_object_index_operation_api_anchor_sources: 142.0
+- build_memory_system_graph_memory_object_index_context_interface_applied_count: 5
+- avg_build_memory_system_graph_memory_object_index_context_interface_entries: 290.0
+- avg_build_memory_system_graph_memory_object_index_context_interface_role_count: 5.0
+- avg_build_memory_system_graph_memory_object_index_context_interface_anchor_sources: 142.0
+- avg_build_memory_system_graph_memory_object_index_context_interface_operation_slots: 85.0
+- build_memory_system_graph_memory_object_index_context_interface_role_source_counts: {'query_short_term': 0, 'working_state': 465, 'long_term_recall': 310, 'archival_state': 110, 'quarantine_audit': 0}
+- build_memory_system_graph_memory_object_index_context_interface_operation_view_source_counts: {'conflict_resolution': 320, 'supersession_chain': 190, 'state_verification': 690}
+- build_memory_system_graph_memory_object_index_operation_lifecycle_applied_count: 5
+- avg_build_memory_system_graph_memory_object_index_operation_lifecycle_entries: 290.0
+- avg_build_memory_system_graph_memory_object_index_operation_lifecycle_context_slots: 85.0
+- build_memory_system_graph_memory_object_index_operation_lifecycle_decision_counts: {'create': 490, 'retain_slot': 770, 'supersede': 190}
+- build_memory_system_graph_memory_object_index_operation_lifecycle_phase_counts: {'consolidate': 190, 'retain': 770, 'write': 490}
+- build_memory_system_graph_memory_object_index_working_compiler_plan_applied_count: 5
+- avg_build_memory_system_graph_memory_object_index_working_compiler_plan_entries: 290.0
+- avg_build_memory_system_graph_memory_object_index_working_compiler_plan_source_backed_entries: 290.0
+- avg_build_memory_system_graph_memory_object_index_working_compiler_plan_context_slots: 85.0
+- build_memory_system_graph_memory_object_index_working_compiler_plan_focus_counts: {'conflict_chain': 190, 'current_state': 700, 'long_term_recall': 560}
+- build_memory_system_graph_memory_object_index_working_compiler_plan_context_action_counts: {'compare_active_superseded': 190, 'expand_memory_sources': 1450, 'organize_supersession_chain': 190, 'pack_working_state': 700, 'prefer_active_state': 700, 'retain_slot_for_context': 770, 'retain_superseded_as_archival_context': 190, 'retrieve_source_rows': 1450, 'retrieve_stable_recall': 560, 'write_new_memory_object': 490}
+- build_memory_system_graph_memory_object_index_working_compiler_plan_verifier_check_counts: {'active_superseded_consistency': 190, 'current_state_supported': 700, 'manager_decision_consistency': 190, 'multi_value_slot': 80, 'profile_fact_consistency': 560, 'raw_row_expansion': 1450, 'source_backing': 1450, 'source_grounding': 560, 'source_order': 190, 'state_conflict': 190, 'unsupported_answer': 700}
+- build_memory_system_graph_memory_object_index_layer_manifest_applied_count: 5
+- avg_build_memory_system_graph_memory_object_index_layer_manifest_entries: 290.0
+- build_memory_system_graph_memory_object_index_layer_manifest_layer_entries: {'short_term_memory': 0, 'working_memory': 820, 'long_term_memory': 560, 'archival_memory': 70, 'quarantine_memory': 0}
+- avg_build_memory_system_graph_value_objects: 112.0
+- avg_build_memory_system_graph_source_backed_value_objects: 112.0
+- avg_build_memory_system_graph_source_incomplete_value_objects: 0.0
+- avg_build_memory_system_graph_scalar_value_objects: 4.0
+- avg_build_memory_system_graph_scalar_value_expressions: 4.0
+- avg_build_memory_system_graph_value_slots: 85.0
+- avg_build_memory_system_graph_scalar_value_slots: 4.0
+- avg_build_memory_system_graph_multi_value_slots: 16.0
+- avg_build_memory_system_graph_lifecycle_value_slots: 16.0
+- avg_build_memory_system_graph_active_superseded_value_slots: 8.0
+- avg_build_memory_system_graph_scalar_active_superseded_value_slots: 0.0
+- avg_build_memory_collection_retained_records: 8.0
+- avg_build_memory_managed_lifecycle_slots: 8.0
+- avg_build_memory_nonmanaged_multi_value_slots: 8.0
+- build_memory_overlap_turns: 0
+- build_memory_cache_hits: 30
+- build_memory_cache_misses: 0
+- build_memory_cache_writes: 0
+- build_memory_source_alignment: {}
+- build_memory_source_alignment_changed_records: 0
+- build_memory_source_alignment_added_sources: 0
+- avg_build_memory_source_alignment_changed_records: 0.0
+- avg_build_memory_source_alignment_added_sources: 0.0
+- avg_memory_hits: 20.0
+- avg_memory_source_hits: 28.0
+- memory_activation_priority_enabled: True
+- memory_activation_priority_applied_count: 0
+- memory_activation_priority_reordered_count: 0
+- avg_memory_activation_priority_hits: 0.0
+- operation_utility_slot_source: context_interface
+- operation_utility_slot_index_source_counts: {}
+- graph_utility_enabled: True
+- graph_utility_fusion_mode: overflow_tail_rescue
+- graph_utility_overflow_max_hits: 4
+- graph_utility_required_signals: ['supersede', 'conflict_slot']
+- graph_utility_slot_source: context_interface
+- graph_utility_slot_index_source_counts: {'memory_context_interface': 3}
+- graph_utility_applied_count: 3
+- avg_graph_utility_source_hits: 2.2
+- build_memory_include_superseded: False
+- build_memory_include_superseded_information_needs: ['temporal_lookup', 'list_count', 'profile_preference', 'current_state']
+- avg_context_chars: 17405.0
+- avg_query_tokens: 6048.2
+- avg_query_think_tokens: 0.0
+- avg_query_total_tokens: 6048.2
+- token_accounting_note: avg_build_tokens / avg_query_tokens exclude explicit reasoning tokens when the provider reports them; avg_*_total_tokens include visible plus think tokens.
+- retrieval_route_overrides: {'temporal_lookup': {'dense_protect_top_n': 32, 'dense_top_k': 40, 'lexical_protect_top_n': 0, 'max_top_k': 40, 'top_k': 40}}
+- retrieval_route_override_precedence: after_profile
+- avg_effective_top_k: 52.0
+- avg_effective_dense_top_k: 52.0
+- avg_effective_dense_protect_top_n: 41.6
+- dense_protect_top_n: 48
+- turn_window_bm25_enabled: False
+- turn_window_top_k: None
+- turn_window_window_before: None
+- turn_window_window_after: None
+- turn_window_max_sources_per_window: None
+- turn_window_bm25_applied_count: 0
+- turn_window_bm25_applied_rate: 0.0
+- avg_turn_window_hits: 0.0
+- avg_turn_window_source_hits: 0.0
+- granularity_profile_audit_enabled: True
+- granularity_profile_audit_selected_count: 0
+- granularity_profile_audit_behavior_risk_count: 0
+- selected_context_enabled: True
+- selected_context_applied_count: 5
+- selected_context_applied_rate: 1.0
+- selected_context_budget_gate_applied_count: 0
+- selected_context_budget_gate_blocked_count: 0
+- avg_selected_context_budget_gate_headroom_chars: None
+- avg_selected_context_materialized_rows: 5.2
+- avg_selected_context_skipped_long_center_rows: 1.8
+- avg_selected_context_skipped_question_reference_center_rows: 0.0
+- selected_context_risk_audit_enabled: True
+- selected_context_risk_audit_applied_count: 5
+- selected_context_risk_audit_risk_count: 18
+- avg_selected_context_risk_audit_audited_rows: 5.2
+- avg_selected_context_risk_audit_risk_rows: 3.6
+- rerank_enabled: True
+- rerank_model: Qwen/Qwen3-Reranker-0.6B
+- rerank_pool_k: 60
+- rerank_return_top_k: 56
+- rerank_document_text_mode: turn_with_neighbors_and_memory
+- rerank_document_neighbor_window: 1
+- rerank_document_max_memory_records: 2
+- rerank_anchor_keep: 52
+- rerank_anchor_after_top: 0
+- rerank_exchange_guard_enabled: True
+- rerank_exchange_guard_skipped_count: 3
+- rerank_exchange_guard_skipped_reasons: {'exchange_tail_protected_memory_source': 3}
+- rerank_applied_count: 0
+- rerank_applied_rate: 0.0
+- avg_rerank_candidate_count: None
+- avg_rerank_returned_count: None
+- avg_rerank_tokens_when_applied: None
+- context_budget_enabled: True
+- context_budget_registry_anchor_retention: True
+- context_budget_anchor_source: context_interface
+- context_budget_anchor_selected_source_counts: {'context_interface': 5}
+- avg_context_budget_anchor_layer_manifest_source_count: 142.0
+- avg_context_budget_anchor_operation_api_source_count: 142.0
+- avg_context_budget_anchor_context_interface_source_count: 142.0
+- context_budget_applied_count: 5
+- context_budget_applied_rate: 1.0
+- avg_context_budget_candidate_count: 52.8
+- avg_context_budget_returned_count: 52.8
+- avg_context_budget_estimated_chars: 6386.4
+- avg_context_budget_dropped_count: 0.0
+- context_budget_registry_anchor_candidate_count: 88
+- context_budget_registry_anchor_retained_count: 88
+- context_budget_registry_anchor_dropped_count: 0
+- context_budget_audit_enabled: True
+- context_budget_audit_registry_anchor_retention: True
+- context_budget_audit_anchor_source: context_interface
+- context_budget_audit_anchor_selected_source_counts: {'context_interface': 5}
+- avg_context_budget_audit_anchor_layer_manifest_source_count: 142.0
+- avg_context_budget_audit_anchor_operation_api_source_count: 142.0
+- avg_context_budget_audit_anchor_context_interface_source_count: 142.0
+- context_budget_audit_applied_count: 5
+- context_budget_audit_applied_rate: 1.0
+- avg_context_budget_audit_candidate_count: 52.8
+- avg_context_budget_audit_returned_count: 52.8
+- avg_context_budget_audit_dropped_count: 0.0
+- context_budget_audit_registry_anchor_candidate_count: 88
+- context_budget_audit_registry_anchor_retained_count: 88
+- context_budget_audit_registry_anchor_dropped_count: 0
+- context_budget_audit_prompt_risk_count: 0
+- avg_context_budget_audit_prompt_missing_rows: 0.0
+- context_budget_audit_selected_context_risk_count: 0
+- avg_context_budget_audit_selected_context_missing_rows: 0.0
+- embedding_cache_enabled: True
+- embedding_cache_hits: 424
+- embedding_cache_misses: 0
+- evidence_order: retrieval
+- memory_record_source: retrieval
+- avg_compiled_memory_records: 0.0
+- memory_order: retrieval
+- memory_layout: flat
+- row_text_mode: full
+- max_row_text_chars: 0
+- evidence_row_labels: False
+- final_answer_checklist: False
+- max_memory_records: 0
+- route_guidance: False
+- temporal_workpad: True
+- temporal_text_normalization: True
+- temporal_event_contract: True
+- temporal_workpad_scope: route
+- temporal_workpad_max_rows: 12
+- temporal_workpad_max_pairs: 12
+- event_timeline: False
+- event_timeline_information_needs: None
+- event_timeline_max_rows: 12
+- event_timeline_snippet_chars: 180
+- operation_workpad_question_gate: False
+- personalized_advice_contract: False
+- personalized_advice_contract_applied: 0
+- context_pressure_enabled: False
+- context_pressure_applied_count: 0
+- context_pressure_applied_rate: 0.0
+- avg_context_pressure_headroom_chars: None
+- structured_guide: True
+- structured_guide_max_rows: 12
+- structured_guide_include_rows: True
+- structured_guide_include_memory: False
+- structured_guide_disabled_signals: ['personalized_recommendation']
+- structured_answer_contract: False
+- structured_answer_contract_information_needs: None
+- structured_answer_contract_max_items: 10
+- evidence_report_contract: True
+- evidence_report_information_needs: ['current_state', 'fact_lookup', 'list_count', 'profile_preference', 'temporal_lookup']
+- evidence_report_max_items: 8
+- evidence_report_detail: False
+- aggregation_report_contract: False
+- aggregation_report_information_needs: None
+- candidate_guide: False
+- candidate_guide_information_needs: None
+- candidate_guide_max_rows: 6
+- candidate_guide_snippet_chars: 160
+- update_conflict_guide: False
+- update_conflict_guide_information_needs: None
+- update_conflict_guide_max_rows: 6
+- update_conflict_guide_snippet_chars: 180
+- update_conflict_guide_applied: 0
+- memory_value_slot_guide: False
+- memory_value_slot_guide_information_needs: ['current_state']
+- memory_value_slot_guide_max_slots: 3
+- memory_value_slot_guide_max_values: 4
+- memory_value_slot_guide_memory_types: ['state']
+- memory_value_slot_guide_applied: 0
+- working_memory_packet: True
+- working_memory_packet_information_needs: ['current_state', 'profile_preference']
+- working_memory_packet_max_items: 6
+- working_memory_packet_value_chars: 100
+- working_memory_packet_source: lifecycle_audit
+- working_memory_packet_applied: 0
+- current_state_update_contract: False
+- dialogue_inference_contract: False
+- temporal_order_contract: False
+- source_anchor_keep: 0
+- source_anchor_memory_rows: 0
+- source_anchor_per_session: 0
+- source_anchor_session_rows: 0
+- route_overrides: {'current_state': {'evidence_order': 'memory_source_interleave', 'grounded_inference_contract': True, 'grounded_inference_gate': 'modal_only', 'source_anchor_keep': 32, 'source_anchor_memory_rows': 4, 'source_anchor_per_session': 1, 'source_anchor_session_rows': 0}, 'fact_lookup': {'grounded_inference_contract': True, 'grounded_inference_gate': 'modal_only'}, 'profile_preference': {'evidence_order': 'memory_source_interleave', 'grounded_inference_contract': True, 'grounded_inference_gate': 'modal_only', 'source_anchor_keep': 32, 'source_anchor_memory_rows': 4, 'source_anchor_per_session': 1, 'source_anchor_session_rows': 0}, 'temporal_lookup': {'max_evidence_chars': 18000, 'max_evidence_items': 40}}
+- enable_recommendation_profile_patterns: True
+- enable_advice_profile_patterns: False
+- temporal_priority_over_recent: False
+- answer_max_input_tokens: 131072
+- answer_max_output_tokens: 16384
+- answer_chat_template_kwargs: {'enable_thinking': False}
+- answer_cache_enabled: True
+- answer_cache_path: outputs/cache/qwen36_no_think_build4k_answer_v287_state_only_value_slot_guide_seeded.sqlite
+- answer_cache_namespace: stage1_state_only_value_slot_guide_v287_seeded_qwen36_no_think_build4k
+- answer_cache_hits: 5
+- answer_cache_misses: 0
+- answer_cache_writes: 0
+- answer_finalizer_enabled: False
+- answer_finalizer_applied_count: 0
+- answer_finalizer_applied_rate: 0.0
+- answer_repair_enabled: False
+- answer_repair_triggered_count: 0
+- answer_repair_triggered_rate: 0.0
+- answer_repair_applied_count: 0
+- answer_repair_applied_rate: 0.0
+- answer_repair_total_query_tokens: 0
+- answer_repair_avg_query_tokens_when_triggered: None
+- answer_repair_cache_hits: 0
+- answer_repair_cache_misses: 0
+- answer_repair_cache_writes: 0
+- answer: OpenAI-compatible answerer using Qwen/Qwen3.6-35B-A3B at http://127.0.0.1:8000/v1 with temperature 0, max_input_tokens 131072, and max_output_tokens 16384, chat_template_kwargs {'enable_thinking': False}.
+
+## Next Steps
+
+- Use offline lexical, judge, and evidence-recall scripts to diagnose quality after prediction is complete.
+- Compare typed build memory on/off before adding more expensive answer-time reasoning.
+- Keep each new method behind explicit config toggles for ablation.

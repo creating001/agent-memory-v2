@@ -19,6 +19,7 @@ from memory.answer import (
     _message_text,
     _parse_answer_content,
 )
+from memory.answer_verify import audit_answer_support
 from memory.build import BuiltMemory, MemoryRecord, _management_summary
 from memory.compiler import EvidenceCompiler
 from memory.finalize import (
@@ -606,6 +607,35 @@ class CleanSkeletonTest(unittest.TestCase):
                         "conflict_resolution": {"source_ids": ["s2:t0"]},
                     },
                 },
+                "memory_working_compiler_plan": {
+                    "applied": True,
+                    "schema_version": "memory_working_compiler_plan_v1",
+                    "entry_count": 2,
+                    "source_backed_entry_count": 2,
+                    "context_interface_slot_count": 1,
+                    "focus_counts": {"current_state": 1, "conflict_chain": 1},
+                    "context_action_counts": {
+                        "compare_active_superseded": 1,
+                        "expand_memory_sources": 2,
+                    },
+                    "verifier_check_counts": {
+                        "source_backing": 2,
+                        "state_conflict": 1,
+                    },
+                    "source_expansion_source_ids": ["s2:t0", "s4:t0"],
+                    "entries": [
+                        {
+                            "source_ids": ["s1:t0"],
+                            "source_expansion": {
+                                "source_ids": ["s1:t0", "s2:t0"]
+                            },
+                        },
+                        {
+                            "source_ids": ["s2:t0", "s3:t0"],
+                            "source_expansion": {"source_ids": ["s2:t0"]},
+                        },
+                    ],
+                },
             },
         )
 
@@ -645,6 +675,27 @@ class CleanSkeletonTest(unittest.TestCase):
             manifest["coverage"]["final_evidence_from_context_interface_count"],
             1,
         )
+        self.assertTrue(operations["working_compiler_plan_available"])
+        self.assertEqual(
+            operations["working_compiler_plan_schema_version"],
+            "memory_working_compiler_plan_v1",
+        )
+        self.assertEqual(
+            operations["working_compiler_plan_final_source_ids"],
+            ("s2:t0",),
+        )
+        self.assertEqual(
+            operations["working_compiler_plan_focus_counts"],
+            {"conflict_chain": 1, "current_state": 1},
+        )
+        self.assertEqual(
+            operations["working_compiler_plan_verifier_check_counts"],
+            {"source_backing": 2, "state_conflict": 1},
+        )
+        self.assertEqual(
+            manifest["coverage"]["final_evidence_from_working_compiler_plan_count"],
+            1,
+        )
         self.assertTrue(
             manifest["context_organization"]["memory_operations"][
                 "operation_api_available"
@@ -655,6 +706,81 @@ class CleanSkeletonTest(unittest.TestCase):
                 "context_interface_available"
             ]
         )
+        self.assertTrue(
+            manifest["context_organization"]["memory_operations"][
+                "working_compiler_plan_available"
+            ]
+        )
+
+    def test_answer_verifier_consumes_working_compiler_plan_audit(self) -> None:
+        compiled = CompiledContext(
+            question="Where does Alex live now?",
+            question_time=None,
+            route=RouteResult("current_state", ("current_state",)),
+            evidence_rows=(
+                EvidenceRow(
+                    source_id="s2:t0",
+                    session_id="s2",
+                    turn_index=0,
+                    role="user",
+                    text="Alex moved to Seattle.",
+                    timestamp=None,
+                    retrieval_rank=1,
+                    retrieval_score=1.0,
+                ),
+            ),
+            prompt="Memory 1: Alex moved to Seattle.",
+            context_chars=31,
+        )
+        answer = AnswerResult(
+            answer="Seattle",
+            model="stub",
+            token_usage=TokenUsage(query_tokens=1),
+            raw_response=json.dumps(
+                {
+                    "content": json.dumps(
+                        {
+                            "sufficient": True,
+                            "evidence_report": [
+                                {"memory": "Memory 1", "status": "support"}
+                            ],
+                            "answer": "Seattle",
+                        }
+                    )
+                }
+            ),
+        )
+        audit = audit_answer_support(
+            compiled=compiled,
+            answer=answer,
+            enabled=True,
+            context_manifest={
+                "memory_operations": {
+                    "working_compiler_plan_available": True,
+                    "working_compiler_plan_final_source_ids": ("s2:t0",),
+                    "working_compiler_plan_focus_counts": {
+                        "conflict_chain": 1,
+                        "current_state": 2,
+                    },
+                    "working_compiler_plan_verifier_check_counts": {
+                        "source_backing": 3,
+                        "state_conflict": 1,
+                    },
+                }
+            },
+        )
+
+        self.assertTrue(audit.working_compiler_plan_available)
+        self.assertEqual(audit.working_compiler_plan_final_evidence_count, 1)
+        self.assertEqual(
+            audit.working_compiler_plan_focus_counts,
+            {"conflict_chain": 1, "current_state": 2},
+        )
+        self.assertEqual(
+            audit.working_compiler_plan_verifier_check_counts,
+            {"source_backing": 3, "state_conflict": 1},
+        )
+        self.assertEqual(audit.risks, ())
 
     def test_context_manifest_tracks_evidence_pressure(self) -> None:
         turns = (

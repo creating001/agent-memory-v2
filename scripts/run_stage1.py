@@ -318,6 +318,10 @@ def main() -> int:
     total_answer_verifier_evidence_report_items = 0
     total_answer_verifier_registry_backed_final_evidence = 0
     total_answer_verifier_registry_backed_support_refs = 0
+    total_answer_verifier_working_compiler_plan_available = 0
+    total_answer_verifier_working_compiler_plan_final_evidence = 0
+    answer_verifier_working_compiler_plan_focus_counts: dict[str, int] = {}
+    answer_verifier_working_compiler_plan_verifier_check_counts: dict[str, int] = {}
     answer_verifier_risk_reasons: dict[str, int] = {}
     total_answer_repair_triggered = 0
     total_answer_repair_applied = 0
@@ -1192,6 +1196,20 @@ def main() -> int:
             )
             total_answer_verifier_registry_backed_support_refs += int(
                 answer_verifier.get("registry_backed_support_reference_count") or 0
+            )
+            if answer_verifier.get("working_compiler_plan_available"):
+                total_answer_verifier_working_compiler_plan_available += 1
+            total_answer_verifier_working_compiler_plan_final_evidence += int(
+                answer_verifier.get("working_compiler_plan_final_evidence_count") or 0
+            )
+            _merge_int_counts(
+                answer_verifier_working_compiler_plan_focus_counts,
+                answer_verifier.get("working_compiler_plan_focus_counts") or {},
+            )
+            _merge_int_counts(
+                answer_verifier_working_compiler_plan_verifier_check_counts,
+                answer_verifier.get("working_compiler_plan_verifier_check_counts")
+                or {},
             )
             risk_count = int(answer_verifier.get("risk_count") or 0)
             total_answer_verifier_risk_flags += risk_count
@@ -2646,6 +2664,25 @@ def main() -> int:
                 total_answer_verifier_registry_backed_support_refs,
                 total_answer_verifier_applied,
             ),
+            "verifier_working_compiler_plan_available_count": (
+                total_answer_verifier_working_compiler_plan_available
+            ),
+            "verifier_working_compiler_plan_available_rate": _safe_average(
+                total_answer_verifier_working_compiler_plan_available,
+                total_answer_verifier_applied,
+            ),
+            "verifier_avg_working_compiler_plan_final_evidence": _safe_average(
+                total_answer_verifier_working_compiler_plan_final_evidence,
+                total_answer_verifier_applied,
+            ),
+            "verifier_working_compiler_plan_focus_counts": dict(
+                sorted(answer_verifier_working_compiler_plan_focus_counts.items())
+            ),
+            "verifier_working_compiler_plan_verifier_check_counts": dict(
+                sorted(
+                    answer_verifier_working_compiler_plan_verifier_check_counts.items()
+                )
+            ),
             "repair_triggered_count": total_answer_repair_triggered,
             "repair_triggered_rate": _safe_average(
                 total_answer_repair_triggered,
@@ -3796,6 +3833,11 @@ def _write_summary(
         f"- answer_verifier_avg_evidence_report_items: {metrics['answer']['verifier_avg_evidence_report_items']}",
         f"- answer_verifier_avg_registry_backed_final_evidence: {metrics['answer']['verifier_avg_registry_backed_final_evidence']}",
         f"- answer_verifier_avg_registry_backed_support_refs: {metrics['answer']['verifier_avg_registry_backed_support_refs']}",
+        f"- answer_verifier_working_compiler_plan_available_count: {metrics['answer']['verifier_working_compiler_plan_available_count']}",
+        f"- answer_verifier_working_compiler_plan_available_rate: {metrics['answer']['verifier_working_compiler_plan_available_rate']}",
+        f"- answer_verifier_avg_working_compiler_plan_final_evidence: {metrics['answer']['verifier_avg_working_compiler_plan_final_evidence']}",
+        f"- answer_verifier_working_compiler_plan_focus_counts: {metrics['answer']['verifier_working_compiler_plan_focus_counts']}",
+        f"- answer_verifier_working_compiler_plan_verifier_check_counts: {metrics['answer']['verifier_working_compiler_plan_verifier_check_counts']}",
         f"- answer_repair_enabled: {metrics['answer']['repair_enabled']}",
         f"- answer_repair_mode: {metrics['answer']['repair_mode']}",
         f"- answer_repair_model: {metrics['answer']['repair_model']}",

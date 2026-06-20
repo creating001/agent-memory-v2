@@ -4675,6 +4675,11 @@ def _context_manifest(
             "final_evidence_from_context_interface_count": len(
                 memory_operations_manifest["context_interface_final_source_ids"]
             ),
+            "final_evidence_from_working_compiler_plan_count": len(
+                memory_operations_manifest[
+                    "working_compiler_plan_final_source_ids"
+                ]
+            ),
             "typed_memory_source_count": len(typed_memory_source_ids),
             "selected_context_materialized_count": int(
                 selected_context.get("materialized_count") or 0
@@ -4743,6 +4748,24 @@ def _context_manifest(
                         "context_interface_final_source_ids"
                     ]
                 ),
+                "working_compiler_plan_available": memory_operations_manifest[
+                    "working_compiler_plan_available"
+                ],
+                "working_compiler_plan_final_source_count": len(
+                    memory_operations_manifest[
+                        "working_compiler_plan_final_source_ids"
+                    ]
+                ),
+                "working_compiler_plan_focus_counts": (
+                    memory_operations_manifest[
+                        "working_compiler_plan_focus_counts"
+                    ]
+                ),
+                "working_compiler_plan_verifier_check_counts": (
+                    memory_operations_manifest[
+                        "working_compiler_plan_verifier_check_counts"
+                    ]
+                ),
             },
             "evidence_pressure": _evidence_pressure_manifest(evidence_rows),
             "clean_note": (
@@ -4808,6 +4831,7 @@ def _memory_operations_context_manifest(
     layer_manifest = {}
     operation_api = {}
     context_interface = {}
+    working_compiler_plan = {}
     if isinstance(memory_object_index, Mapping):
         raw_registry = memory_object_index.get("operation_registry")
         if isinstance(raw_registry, Mapping):
@@ -4827,12 +4851,18 @@ def _memory_operations_context_manifest(
         raw_context_interface = memory_object_index.get("memory_context_interface")
         if isinstance(raw_context_interface, Mapping):
             context_interface = raw_context_interface
+        raw_working_compiler_plan = memory_object_index.get(
+            "memory_working_compiler_plan"
+        )
+        if isinstance(raw_working_compiler_plan, Mapping):
+            working_compiler_plan = raw_working_compiler_plan
     registry_available = bool(operation_registry.get("applied"))
     working_view_available = bool(working_memory_view.get("applied"))
     lifecycle_audit_available = bool(lifecycle_audit.get("applied"))
     layer_manifest_available = bool(layer_manifest.get("applied"))
     operation_api_available = bool(operation_api.get("applied"))
     context_interface_available = bool(context_interface.get("applied"))
+    working_compiler_plan_available = bool(working_compiler_plan.get("applied"))
     lifecycle_audit_source_ids = _ordered_unique(
         source_id
         for entry in lifecycle_audit.get("entries") or ()
@@ -4897,6 +4927,31 @@ def _memory_operations_context_manifest(
     context_interface_final_source_ids = tuple(
         source_id
         for source_id in context_interface_source_ids
+        if source_id in final_set
+    )
+    working_compiler_plan_source_ids = _ordered_unique(
+        (
+            *(working_compiler_plan.get("source_expansion_source_ids") or ()),
+            *(
+                source_id
+                for entry in working_compiler_plan.get("entries") or ()
+                if isinstance(entry, Mapping)
+                for source_id in (entry.get("source_ids") or ())
+            ),
+            *(
+                source_id
+                for entry in working_compiler_plan.get("entries") or ()
+                if isinstance(entry, Mapping)
+                and isinstance(entry.get("source_expansion"), Mapping)
+                for source_id in (
+                    entry.get("source_expansion", {}).get("source_ids") or ()
+                )
+            ),
+        )
+    )
+    working_compiler_plan_final_source_ids = tuple(
+        source_id
+        for source_id in working_compiler_plan_source_ids
         if source_id in final_set
     )
     return {
@@ -4976,6 +5031,35 @@ def _memory_operations_context_manifest(
         "context_interface_final_source_count": len(
             context_interface_final_source_ids
         ),
+        "working_compiler_plan_available": working_compiler_plan_available,
+        "working_compiler_plan_schema_version": str(
+            working_compiler_plan.get("schema_version") or ""
+        ),
+        "working_compiler_plan_entry_count": int(
+            working_compiler_plan.get("entry_count") or 0
+        ),
+        "working_compiler_plan_source_backed_entry_count": int(
+            working_compiler_plan.get("source_backed_entry_count") or 0
+        ),
+        "working_compiler_plan_context_interface_slot_count": int(
+            working_compiler_plan.get("context_interface_slot_count") or 0
+        ),
+        "working_compiler_plan_focus_counts": _mapping_int_counts(
+            working_compiler_plan.get("focus_counts")
+        ),
+        "working_compiler_plan_context_action_counts": _mapping_int_counts(
+            working_compiler_plan.get("context_action_counts")
+        ),
+        "working_compiler_plan_verifier_check_counts": _mapping_int_counts(
+            working_compiler_plan.get("verifier_check_counts")
+        ),
+        "working_compiler_plan_source_ids": working_compiler_plan_source_ids,
+        "working_compiler_plan_final_source_ids": (
+            working_compiler_plan_final_source_ids
+        ),
+        "working_compiler_plan_final_source_count": len(
+            working_compiler_plan_final_source_ids
+        ),
         "operation_utility_slot_source": operation_slot_source,
         "graph_utility_slot_source": graph_slot_source,
         "operation_interface_sources": sorted(operation_interface_sources),
@@ -5011,6 +5095,18 @@ def _mapping_values(value: Any) -> tuple[Any, ...]:
     if not isinstance(value, Mapping):
         return ()
     return tuple(value.values())
+
+
+def _mapping_int_counts(value: Any) -> dict[str, int]:
+    if not isinstance(value, Mapping):
+        return {}
+    counts: dict[str, int] = {}
+    for key, raw_count in value.items():
+        try:
+            counts[str(key)] = int(raw_count)
+        except (TypeError, ValueError):
+            counts[str(key)] = 0
+    return dict(sorted(counts.items()))
 
 
 def _registry_backed_operation_source_ids(

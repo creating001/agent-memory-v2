@@ -49,6 +49,10 @@ class AnswerSupportAudit:
     registry_backed_final_evidence_count: int
     registry_backed_support_reference_count: int
     registry_backed_support_references: tuple[int, ...]
+    working_compiler_plan_available: bool
+    working_compiler_plan_final_evidence_count: int
+    working_compiler_plan_focus_counts: dict[str, int]
+    working_compiler_plan_verifier_check_counts: dict[str, int]
     risks: tuple[str, ...]
 
     @property
@@ -110,6 +114,7 @@ def audit_answer_support(
         compiled=compiled,
         registry_backed_final_source_ids=registry_backed_final_source_ids,
     )
+    working_plan = _working_compiler_plan_audit(context_manifest)
 
     risks: list[str] = []
     if answer_empty:
@@ -159,6 +164,14 @@ def audit_answer_support(
         registry_backed_final_evidence_count=len(registry_backed_final_source_ids),
         registry_backed_support_reference_count=len(registry_backed_support_references),
         registry_backed_support_references=registry_backed_support_references,
+        working_compiler_plan_available=working_plan["available"],
+        working_compiler_plan_final_evidence_count=working_plan[
+            "final_evidence_count"
+        ],
+        working_compiler_plan_focus_counts=working_plan["focus_counts"],
+        working_compiler_plan_verifier_check_counts=working_plan[
+            "verifier_check_counts"
+        ],
         risks=tuple(dict.fromkeys(risks)),
     )
 
@@ -184,6 +197,10 @@ def _audit_noop(*, enabled: bool, mode: str, reason: str) -> AnswerSupportAudit:
         registry_backed_final_evidence_count=0,
         registry_backed_support_reference_count=0,
         registry_backed_support_references=(),
+        working_compiler_plan_available=False,
+        working_compiler_plan_final_evidence_count=0,
+        working_compiler_plan_focus_counts={},
+        working_compiler_plan_verifier_check_counts={},
         risks=(),
     )
 
@@ -273,6 +290,50 @@ def _registry_backed_final_source_ids(
         if str(source_id).strip()
     }
     return frozenset((*registry_sources, *lifecycle_sources, *layer_sources))
+
+
+def _working_compiler_plan_audit(
+    context_manifest: dict[str, Any] | None,
+) -> dict[str, Any]:
+    if not isinstance(context_manifest, dict):
+        return {
+            "available": False,
+            "final_evidence_count": 0,
+            "focus_counts": {},
+            "verifier_check_counts": {},
+        }
+    memory_operations = context_manifest.get("memory_operations")
+    if not isinstance(memory_operations, dict):
+        return {
+            "available": False,
+            "final_evidence_count": 0,
+            "focus_counts": {},
+            "verifier_check_counts": {},
+        }
+    return {
+        "available": bool(memory_operations.get("working_compiler_plan_available")),
+        "final_evidence_count": len(
+            memory_operations.get("working_compiler_plan_final_source_ids") or ()
+        ),
+        "focus_counts": _int_count_dict(
+            memory_operations.get("working_compiler_plan_focus_counts")
+        ),
+        "verifier_check_counts": _int_count_dict(
+            memory_operations.get("working_compiler_plan_verifier_check_counts")
+        ),
+    }
+
+
+def _int_count_dict(value: Any) -> dict[str, int]:
+    if not isinstance(value, dict):
+        return {}
+    counts: dict[str, int] = {}
+    for key, raw_count in value.items():
+        try:
+            counts[str(key)] = int(raw_count)
+        except (TypeError, ValueError):
+            counts[str(key)] = 0
+    return dict(sorted(counts.items()))
 
 
 def _registry_backed_support_refs(
