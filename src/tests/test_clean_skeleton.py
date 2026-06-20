@@ -3218,6 +3218,18 @@ class CleanSkeletonTest(unittest.TestCase):
             city_operation_slot["validity_current_source_order"],
             ["s2:t1", "s2:t2", "s1:t1"],
         )
+        city_conflict_slot = next(
+            slot
+            for slot in memory_object_index["state_conflict_slot_index"]
+            if slot["predicate"] == "location"
+        )
+        self.assertEqual(city_conflict_slot["index_source"], "state_conflict_manifest")
+        self.assertEqual(city_conflict_slot["active_values"], ["seattle"])
+        self.assertEqual(city_conflict_slot["superseded_values"], ["austin"])
+        self.assertEqual(
+            city_conflict_slot["current_source_order"],
+            ["s2:t1", "s2:t2", "s1:t1"],
+        )
         city_value_slot = next(
             slot
             for slot in scalar_value_manifest["slot_samples"]
@@ -9648,6 +9660,83 @@ class CleanSkeletonTest(unittest.TestCase):
             "Update/Conflict Candidate Chain:",
             result["trace"]["compiled_context"]["prompt"],
         )
+
+    def test_memory_state_guide_uses_object_index_conflict_slots(self) -> None:
+        old_record = MemoryRecord(
+            memory_id="old-followers",
+            memory_type="state",
+            text="Alex had 1250 followers.",
+            source_ids=("s1:t0",),
+            subject="Alex",
+            predicate="follower count",
+            value="1250 followers",
+            timestamp="2024-05-20",
+            status="superseded",
+            superseded_by="new-followers",
+        )
+        new_record = MemoryRecord(
+            memory_id="new-followers",
+            memory_type="state",
+            text="Alex is close to 1300 followers now.",
+            source_ids=("s1:t1",),
+            subject="Alex",
+            predicate="follower count",
+            value="1300 followers",
+            timestamp="2024-05-30",
+            status="active",
+        )
+        management = _management_summary(
+            (old_record, new_record),
+            policy="stateful_only",
+            managed_memory_types=frozenset({"state"}),
+            include_memory_system_graph=True,
+        )
+        compiler = EvidenceCompiler(
+            max_evidence_items=2,
+            max_evidence_chars=3000,
+            prompt_mode="external_naive",
+            memory_state_guide=True,
+            memory_state_guide_information_needs=("current_state",),
+            memory_state_guide_conflict_source="build_manifest",
+            memory_state_guide_require_conflict=True,
+            memory_state_guide_require_active_superseded_pair=True,
+            memory_state_guide_require_slot_overlap=True,
+            memory_state_guide_require_stateful_slot=True,
+        )
+
+        compiled = compiler.compile(
+            question="What is Alex's current follower count?",
+            question_time=None,
+            route=RouteResult("current_state", ("current_state",)),
+            hits=(),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Alex had 1250 followers earlier this month.",
+                    timestamp="2024-05-20",
+                ),
+                Turn(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="Alex is close to 1300 followers now.",
+                    timestamp="2024-05-30",
+                ),
+            ),
+            memory_state_guide_records=(new_record, old_record),
+            memory_state_conflict_manifest=None,
+            memory_object_index=management["memory_system_graph"]["memory_object_index"],
+        )
+
+        self.assertIn("Managed Memory State Guide:", compiled.prompt)
+        self.assertIn("value=1300 followers", compiled.prompt)
+        self.assertIn("value=1250 followers", compiled.prompt)
+        self.assertIn("sources=Memory 2", compiled.prompt)
+        self.assertIn("sources=Memory 1", compiled.prompt)
 
     def test_temporal_event_contract_separates_mention_time_from_event_time(self) -> None:
         compiler = EvidenceCompiler(

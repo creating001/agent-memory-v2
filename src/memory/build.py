@@ -1245,10 +1245,13 @@ def _memory_object_index_manifest(
         for slot in source_policy.get("slot_samples", ())
         if isinstance(slot, dict) and slot.get("slot_id")
     }
+    state_conflict_slots = _memory_object_state_conflict_slot_index(
+        state_conflict_manifest
+    )
     conflict_slot_ids = {
-        cluster.get("cluster_id")
-        for cluster in state_conflict_manifest.get("clusters", ())
-        if isinstance(cluster, dict) and cluster.get("cluster_id")
+        slot.get("cluster_id")
+        for slot in state_conflict_slots
+        if isinstance(slot, dict) and slot.get("cluster_id")
     }
     value_slots = []
     for raw_slot in scalar_value_manifest.get("slot_index", ()):
@@ -1334,7 +1337,7 @@ def _memory_object_index_manifest(
         "slot_count": len(groups),
         "value_slot_count": len(value_slots),
         "operation_slot_count": len(operation_slots),
-        "state_conflict_slot_count": len(conflict_slot_ids),
+        "state_conflict_slot_count": len(state_conflict_slots),
         "source_backed_object_count": sum(
             1 for record in managed_records if record.source_ids
         ),
@@ -1382,12 +1385,19 @@ def _memory_object_index_manifest(
                 ],
                 "policy": "query_consumers_choose_scope_and_expand_to_raw_sources",
             },
+            "state_conflict_contract": {
+                "slot_index_field": "state_conflict_slot_index",
+                "slot_scope": "same memory_type, subject, predicate",
+                "source_order_policy": "memory_slot_source_policy_v1",
+                "policy": "compiler_uses_as_conflict_filter_only",
+            },
         },
         "activation_ready_memory_ids": activation_ready_memory_ids,
         "activation_priority_memory_ids": activation_priority_memory_ids,
         "object_index_samples": object_samples,
         "value_slot_index": value_slots,
         "operation_slot_index": operation_slots,
+        "state_conflict_slot_index": state_conflict_slots,
         "state_conflict_slot_ids": sorted(str(slot_id) for slot_id in conflict_slot_ids),
         "clean_note": (
             "Question-independent build memory object index. It unifies tier, "
@@ -1398,6 +1408,32 @@ def _memory_object_index_manifest(
             "sample-level rules; final answer evidence remains raw source rows."
         ),
     }
+
+
+def _memory_object_state_conflict_slot_index(
+    state_conflict_manifest: dict[str, Any],
+) -> list[dict[str, Any]]:
+    slots: list[dict[str, Any]] = []
+    for cluster in state_conflict_manifest.get("clusters", ()) or ():
+        if not isinstance(cluster, dict):
+            continue
+        slots.append(
+            {
+                **cluster,
+                "index_source": "state_conflict_manifest",
+                "operation_hints": [
+                    "audit_state_conflict_slot",
+                    "compare_active_superseded",
+                    "expand_conflict_sources",
+                    "verify_source_backed",
+                ],
+                "source_policy": {
+                    "source_order_policy": "memory_slot_source_policy_v1",
+                    "raw_evidence_required": True,
+                },
+            }
+        )
+    return slots
 
 
 def _memory_object_operation_slot_index(

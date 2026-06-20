@@ -3586,6 +3586,7 @@ def _build_external_naive_prompt(
             rows=rows,
             memory_records=memory_state_guide_records,
             state_conflict_manifest=memory_state_conflict_manifest,
+            memory_object_index=memory_object_index,
             max_records=memory_state_guide_max_records,
             max_value_chars=memory_state_guide_value_chars,
             include_superseded=memory_state_guide_include_superseded,
@@ -4286,6 +4287,7 @@ def _external_memory_state_guide_lines(
     rows: tuple[EvidenceRow, ...],
     memory_records: tuple[MemoryRecord, ...],
     state_conflict_manifest: Mapping[str, Any] | None,
+    memory_object_index: Mapping[str, Any] | None,
     max_records: int,
     max_value_chars: int,
     include_superseded: bool,
@@ -4332,6 +4334,7 @@ def _external_memory_state_guide_lines(
         if conflict_source == "build_manifest":
             conflict_slot_keys = _memory_state_manifest_conflict_slot_keys(
                 state_conflict_manifest,
+                memory_object_index=memory_object_index,
                 candidate_records_by_slot=candidate_records_by_slot,
                 question_terms=question_terms,
                 require_active_superseded_pair=require_active_superseded_pair,
@@ -4952,16 +4955,24 @@ def _memory_state_slot_key(record: MemoryRecord) -> tuple[str, str, str]:
 def _memory_state_manifest_conflict_slot_keys(
     state_conflict_manifest: Mapping[str, Any] | None,
     *,
+    memory_object_index: Mapping[str, Any] | None = None,
     candidate_records_by_slot: Mapping[tuple[str, str, str], list[MemoryRecord]],
     question_terms: frozenset[str],
     require_active_superseded_pair: bool,
     require_slot_overlap: bool,
     require_stateful_slot: bool,
 ) -> set[tuple[str, str, str]]:
-    if not state_conflict_manifest or not state_conflict_manifest.get("applied"):
+    conflict_slots = _memory_state_conflict_slots_from_object_index(
+        memory_object_index
+    )
+    if not conflict_slots:
+        if not state_conflict_manifest or not state_conflict_manifest.get("applied"):
+            return set()
+        conflict_slots = tuple(state_conflict_manifest.get("clusters") or ())
+    if not conflict_slots:
         return set()
     keys: set[tuple[str, str, str]] = set()
-    for cluster in state_conflict_manifest.get("clusters") or ():
+    for cluster in conflict_slots:
         if not isinstance(cluster, Mapping):
             continue
         if not cluster.get("source_backed"):
@@ -4990,6 +5001,19 @@ def _memory_state_manifest_conflict_slot_keys(
             continue
         keys.add(key)
     return keys
+
+
+def _memory_state_conflict_slots_from_object_index(
+    memory_object_index: Mapping[str, Any] | None,
+) -> tuple[Mapping[str, Any], ...]:
+    if not isinstance(memory_object_index, Mapping):
+        return ()
+    if not memory_object_index.get("applied"):
+        return ()
+    raw_slots = memory_object_index.get("state_conflict_slot_index") or ()
+    if not isinstance(raw_slots, Iterable) or isinstance(raw_slots, (str, bytes)):
+        return ()
+    return tuple(slot for slot in raw_slots if isinstance(slot, Mapping))
 
 
 def _external_candidate_guide_lines(
