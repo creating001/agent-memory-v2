@@ -1,0 +1,59 @@
+{
+  "answer_diff": 1,
+  "avg_context_chars_base": 19804.98,
+  "avg_context_chars_delta": -2.1779999999998836,
+  "avg_context_chars_new": 19802.802,
+  "avg_query_tokens_base": 6455.588,
+  "avg_query_tokens_delta": -1.1059999999997672,
+  "avg_query_tokens_new": 6454.482,
+  "base_run": "stage1_memory_object_index_v288_lme_full",
+  "changed_answers": [
+    {
+      "base_answer": "Patagonia and Southwest Airlines",
+      "base_context_chars": 18576,
+      "base_query_tokens": 5668,
+      "new_answer": "The two companies mentioned are Patagonia and Southwest Airlines.",
+      "new_context_chars": 18196,
+      "new_query_tokens": 5481,
+      "record_key": "ca58d3822fef67b8df2c3fe3"
+    }
+  ],
+  "changed_prompts": [
+    {
+      "base_answer": "Mindful.org",
+      "base_context_chars": 17637,
+      "base_query_tokens": 4950,
+      "new_answer": "Mindful.org",
+      "new_context_chars": 17289,
+      "new_query_tokens": 4776,
+      "record_key": "99bbed1961151cc83b881885"
+    },
+    {
+      "base_answer": "Previously, you played tennis weekly; now, you play every other week.",
+      "base_context_chars": 23067,
+      "base_query_tokens": 7174,
+      "new_answer": "Previously, you played tennis weekly; now, you play every other week.",
+      "new_context_chars": 22706,
+      "new_query_tokens": 6982,
+      "record_key": "af807a537c4950ead62c23aa"
+    },
+    {
+      "base_answer": "Patagonia and Southwest Airlines",
+      "base_context_chars": 18576,
+      "base_query_tokens": 5668,
+      "new_answer": "The two companies mentioned are Patagonia and Southwest Airlines.",
+      "new_context_chars": 18196,
+      "new_query_tokens": 5481,
+      "record_key": "ca58d3822fef67b8df2c3fe3"
+    }
+  ],
+  "clean_note": "Diff uses prediction outputs/traces only; no labels or judge output.",
+  "context_chars_diff": 3,
+  "evidence_full_diff": 3,
+  "n": 500,
+  "new_run": "stage1_workspace_policy_safe_pack_v324_lme_full",
+  "prompt_diff": 3,
+  "query_tokens_diff": 3,
+  "retrieval_hit_order_diff": 20,
+  "route_diff": 0
+}

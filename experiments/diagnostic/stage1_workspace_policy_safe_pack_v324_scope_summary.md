@@ -24,11 +24,13 @@ Clean note: no gold answer, judge output, benchmark label, sample id, test feedb
 | LME smoke5 | `92386.0 / 5567.2` | `5/5` | `0/5` | `0/5` | `0/5` | `5/0` hit/miss |
 | LME op21 | `87656.19 / 5611.38` | `21/21` | `0/21` | `0/21` | `0/21` | `21/0` hit/miss |
 | LoCoMo smoke5 | `45868.0 / 5520.8` | `5/5` | `5/5`, avg rows `4.0` | `0/5` | `2/5` | `0/5` hit/miss |
+| LME full | `85393.566 / 6454.482` | `500/500` | `3/500`, avg rows `0.024` | `0/500` | `1/500` | `497/3` hit/miss |
 
 Compared with v288:
 
 - LME smoke5: prompt/evidence/route/answer/query-token diff all `0/5`.
 - LME op21: prompt/evidence/route/answer/query-token diff all `0/21`.
+- LME full: prompt/evidence diff `3/500`, answer diff `1/500`, route diff `0/500`, avg query tokens `6455.588 -> 6454.482`.
 - LoCoMo smoke5: prompt/evidence/query-token diff `5/5`, answer diff `2/5`, avg query tokens `6048.2 -> 5520.8`, avg context chars `17405.0 -> 15788.8`.
 
 Compared with v323:
@@ -38,15 +40,17 @@ Compared with v323:
 
 ## Changed-Answer Judge
 
-LoCoMo smoke5 changed-answer dual DeepSeek flash judge was run only for the 2 answers changed vs v288.
+Changed-answer dual DeepSeek flash judge was run only where answers changed vs v288.
 
-| Prediction set | strict | lenient | Judge outputs |
-|---|---:|---:|---|
-| old v288 | `2/2` | `2/2` | `experiments/diagnostic/stage1_workspace_policy_safe_pack_v324_locomo_smoke5_changed_vs_v288/old_v288_dual_judge.json` |
-| new v324 | `2/2` | `2/2` | `experiments/diagnostic/stage1_workspace_policy_safe_pack_v324_locomo_smoke5_changed_vs_v288/new_v324_dual_judge.json` |
+| Scope | Prediction set | strict | lenient | Judge outputs |
+|---|---|---:|---:|---|
+| LME full | old v288 | `1/1` | `1/1` | `experiments/diagnostic/stage1_workspace_policy_safe_pack_v324_lme_full_changed_vs_v288/old_v288_dual_judge.json` |
+| LME full | new v324 | `1/1` | `1/1` | `experiments/diagnostic/stage1_workspace_policy_safe_pack_v324_lme_full_changed_vs_v288/new_v324_dual_judge.json` |
+| LoCoMo smoke5 | old v288 | `2/2` | `2/2` | `experiments/diagnostic/stage1_workspace_policy_safe_pack_v324_locomo_smoke5_changed_vs_v288/old_v288_dual_judge.json` |
+| LoCoMo smoke5 | new v324 | `2/2` | `2/2` | `experiments/diagnostic/stage1_workspace_policy_safe_pack_v324_locomo_smoke5_changed_vs_v288/new_v324_dual_judge.json` |
 
 ## Decision
 
-V324 is a safer candidate than v323, not a new LTS yet. It keeps the system improvement that selected-context packing is build-policy-owned, avoids v323's broad evidence compression, and shows no regression on LME smoke/op or LoCoMo smoke changed-answer judge.
+V324 is a safer candidate than v323, not a new LTS yet. It keeps the system improvement that selected-context packing is build-policy-owned, avoids v323's broad evidence compression, and inherits v288 LongMemEval-S full accuracy.
 
-Next step: run LME full diff against v288 to verify only selected-context cases can change, then decide whether LoCoMo full prediction/judge is worth the cost.
+Next step: decide whether LoCoMo full prediction/judge is worth the cost, because selected-context policy changes most LoCoMo prompts.

@@ -1,0 +1,12 @@
+{
+  "base_run": "stage1_memory_object_index_v288_lme_full",
+  "changed_answers": [
+    {
+      "new_answer": "The two companies mentioned are Patagonia and Southwest Airlines.",
+      "old_answer": "Patagonia and Southwest Airlines",
+      "record_key": "ca58d3822fef67b8df2c3fe3"
+    }
+  ],
+  "clean_note": "Labels are copied only for offline judge.",
+  "new_run": "stage1_workspace_policy_safe_pack_v324_lme_full"
+}

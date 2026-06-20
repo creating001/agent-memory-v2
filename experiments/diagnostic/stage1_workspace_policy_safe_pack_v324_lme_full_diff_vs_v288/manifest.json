@@ -1,0 +1,6 @@
+{
+  "base_run": "stage1_memory_object_index_v288_lme_full",
+  "clean_note": "Diff uses prediction outputs/traces only; no labels or judge output.",
+  "diff_summary": "diff_summary.json",
+  "new_run": "stage1_workspace_policy_safe_pack_v324_lme_full"
+}
