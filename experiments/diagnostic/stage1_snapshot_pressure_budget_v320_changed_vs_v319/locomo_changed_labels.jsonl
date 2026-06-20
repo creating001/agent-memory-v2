@@ -1,0 +1,1 @@
+{"benchmark": "locomo", "category": 1, "evidence": ["D1:5"], "gold_answer": "Transgender woman", "question": "What is Caroline's identity?", "question_type": null, "record_key": "0ef0216553b4eeff9be57e45", "source_sample_id": "conv-26", "subset": "non-adversarial"}

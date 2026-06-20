@@ -1,0 +1,59 @@
+{
+  "api_key_env": "DEEPSEEK_API_KEY",
+  "base_url": "https://api.deepseek.com",
+  "benchmark": "locomo",
+  "clean_note": "Offline judge reads gold labels only after prediction. This output must not be consumed by prediction, retrieval, compiler, answer, or verifier.",
+  "created_at_utc": "2026-06-20T15:34:01+00:00",
+  "dry_run": false,
+  "git": {
+    "commit": "8e8bc23aef70567fb192202fff8278afafe88ead",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "?? configs/stage1_snapshot_pressure_budget_v320_seeded_qwen36_no_think_build4k_cached.json\n?? experiments/diagnostic/stage1_snapshot_pressure_budget_v320_changed_vs_v319/\n?? experiments/diagnostic/stage1_snapshot_pressure_budget_v320_lme_smoke5/\n?? experiments/diagnostic/stage1_snapshot_pressure_budget_v320_locomo_smoke5/"
+  },
+  "judgments": [
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "a8997dfa9c04deb6",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "0ef0216553b4eeff9be57e45",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 77,
+        "completion_tokens_details": {
+          "reasoning_tokens": 74
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 109,
+        "prompt_tokens": 365,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 442
+      }
+    }
+  ],
+  "labels": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_snapshot_pressure_budget_v320_changed_vs_v319/locomo_changed_labels.jsonl",
+  "metrics": {
+    "accuracy": 1.0,
+    "n_invalid": 0,
+    "n_judgments": 1,
+    "n_valid": 1
+  },
+  "model": "deepseek-v4-flash",
+  "partial_output": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_snapshot_pressure_budget_v320_changed_vs_v319/locomo_v320_flash_1.json.partial.jsonl",
+  "predictions": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_snapshot_pressure_budget_v320_changed_vs_v319/locomo_v320_changed_predictions.jsonl",
+  "request_body_options": {},
+  "temperature": 0.0,
+  "thinking": null,
+  "usage": {
+    "completion_tokens": 77,
+    "prompt_tokens": 365,
+    "total_tokens": 442
+  },
+  "workers": 1
+}
