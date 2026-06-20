@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_query_surface_simplified_v266_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_memory_governance_v267_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v266 local LTS |
+| Benchmark | 当前 v267 local LTS |
 |---|---:|
 | LongMemEval-S full | strict/lenient `0.832000 / 0.844000`，avg build/query tokens `85393.566 / 6462.478` |
 | LoCoMo non-adversarial full | strict/lenient `0.794156 / 0.819481`，avg build/query tokens `62015.57402597403 / 6094.017532467533` |
 
-v266 的 LTS 理由：继承 v265 的 build-stage memory system graph 和 lifecycle-gated graph evidence utility，同时收窄默认关闭的 query-time repair/finalizer surface。v266 与 v265 full 的 answer、prompt、final evidence、retrieval 和 token 全等，性能不退；默认配置不再携带关闭模块的历史 trigger/cache 参数。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_query_surface_simplified_v266_full_summary.md`。
+v267 的 LTS 理由：继承 v266 的精简 query surface，并在 build-stage `memory_system_graph` 中加入 record-level governance manifest，显式审计 source-backed activation readiness、raw-evidence-required、confidence bucket 和风险标记。v267 与 v266 full 的 answer、prompt、final evidence、retrieval 和 token 全等，性能不退。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_memory_governance_v267_full_summary.md`。
 
 ## 目录
 
