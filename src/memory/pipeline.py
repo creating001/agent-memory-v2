@@ -60,7 +60,7 @@ _STATE_UPDATE_MEMORY_TYPES = frozenset(
     {"preference", "profile", "relationship", "state"}
 )
 _CONTEXT_BUDGET_ANCHOR_SOURCES = frozenset(
-    {"operation_registry", "layer_manifest", "auto"}
+    {"operation_registry", "layer_manifest", "operation_api", "auto"}
 )
 _LIFECYCLE_TERM_PATTERN = re.compile(r"[A-Za-z0-9_]+")
 _LIFECYCLE_TERM_STOPWORDS = frozenset(
@@ -2576,6 +2576,9 @@ class Stage1Pipeline:
             anchor_layer_manifest_source_count=context_budget_anchor_trace[
                 "anchor_layer_manifest_source_count"
             ],
+            anchor_operation_api_source_count=context_budget_anchor_trace[
+                "anchor_operation_api_source_count"
+            ],
         )
         if _context_budget_applies(
             route=route,
@@ -2608,6 +2611,9 @@ class Stage1Pipeline:
                 ],
                 anchor_layer_manifest_source_count=context_budget_anchor_trace[
                     "anchor_layer_manifest_source_count"
+                ],
+                anchor_operation_api_source_count=context_budget_anchor_trace[
+                    "anchor_operation_api_source_count"
                 ],
             )
         evidence_turns = store.expand_neighbors(
@@ -2779,6 +2785,9 @@ class Stage1Pipeline:
             anchor_layer_manifest_source_count=context_budget_audit_anchor_trace[
                 "anchor_layer_manifest_source_count"
             ],
+            anchor_operation_api_source_count=context_budget_audit_anchor_trace[
+                "anchor_operation_api_source_count"
+            ],
         )
         if _context_budget_applies(
             route=route,
@@ -2812,6 +2821,11 @@ class Stage1Pipeline:
                 anchor_layer_manifest_source_count=(
                     context_budget_audit_anchor_trace[
                         "anchor_layer_manifest_source_count"
+                    ]
+                ),
+                anchor_operation_api_source_count=(
+                    context_budget_audit_anchor_trace[
+                        "anchor_operation_api_source_count"
                     ]
                 ),
             )
@@ -3480,6 +3494,9 @@ class Stage1Pipeline:
                         context_budget_trace[
                             "anchor_layer_manifest_source_count"
                         ]
+                    ),
+                    "context_budget_anchor_operation_api_source_count": (
+                        context_budget_trace["anchor_operation_api_source_count"]
                     ),
                     "context_budget_anchor_candidate_source_ids": (
                         context_budget_trace["anchor_candidate_source_ids"]
@@ -4486,6 +4503,9 @@ def _context_manifest(
             ),
             "context_budget_anchor_layer_manifest_source_count": int(
                 context_budget_trace.get("anchor_layer_manifest_source_count") or 0
+            ),
+            "context_budget_anchor_operation_api_source_count": int(
+                context_budget_trace.get("anchor_operation_api_source_count") or 0
             ),
             "context_budget_anchor_candidate_count": len(
                 context_budget_trace.get("anchor_candidate_source_ids") or ()
@@ -7942,6 +7962,17 @@ def _memory_layer_manifest_anchor_source_ids(
     )
 
 
+def _memory_operation_api_anchor_source_ids(
+    memory_object_index: Mapping[str, Any] | None,
+) -> tuple[str, ...]:
+    if not isinstance(memory_object_index, Mapping):
+        return ()
+    operation_api = memory_object_index.get("memory_operation_api")
+    if not isinstance(operation_api, Mapping) or not operation_api.get("applied"):
+        return ()
+    return _ordered_unique(operation_api.get("context_anchor_source_ids") or ())
+
+
 def _context_budget_anchor_source_ids(
     *,
     anchor_source: str,
@@ -7957,14 +7988,22 @@ def _context_budget_anchor_source_ids(
     layer_manifest_source_ids = _memory_layer_manifest_anchor_source_ids(
         memory_object_index
     )
+    operation_api_source_ids = _memory_operation_api_anchor_source_ids(
+        memory_object_index
+    )
     selected_source = anchor_source
     if anchor_source == "auto":
-        if layer_manifest_source_ids:
+        if operation_api_source_ids:
+            selected_source = "operation_api"
+            selected_source_ids = operation_api_source_ids
+        elif layer_manifest_source_ids:
             selected_source = "layer_manifest"
             selected_source_ids = layer_manifest_source_ids
         else:
             selected_source = "operation_registry"
             selected_source_ids = registry_source_ids
+    elif anchor_source == "operation_api":
+        selected_source_ids = operation_api_source_ids
     elif anchor_source == "layer_manifest":
         selected_source_ids = layer_manifest_source_ids
     else:
@@ -7976,6 +8015,7 @@ def _context_budget_anchor_source_ids(
         "anchor_selected_source": selected_source,
         "anchor_registry_source_count": len(registry_source_ids),
         "anchor_layer_manifest_source_count": len(layer_manifest_source_ids),
+        "anchor_operation_api_source_count": len(operation_api_source_ids),
     }
 
 
@@ -7992,6 +8032,7 @@ def _disabled_context_budget_trace(
     anchor_selected_source: str = "none",
     anchor_registry_source_count: int = 0,
     anchor_layer_manifest_source_count: int = 0,
+    anchor_operation_api_source_count: int = 0,
 ) -> dict[str, Any]:
     return {
         "enabled": enabled,
@@ -8010,6 +8051,7 @@ def _disabled_context_budget_trace(
         "anchor_selected_source": anchor_selected_source,
         "anchor_registry_source_count": anchor_registry_source_count,
         "anchor_layer_manifest_source_count": anchor_layer_manifest_source_count,
+        "anchor_operation_api_source_count": anchor_operation_api_source_count,
         "anchor_candidate_source_ids": [],
         "anchor_retained_source_ids": [],
         "anchor_dropped_source_ids": [],
@@ -8033,6 +8075,7 @@ def _disabled_context_budget_audit_trace(
     anchor_selected_source: str = "none",
     anchor_registry_source_count: int = 0,
     anchor_layer_manifest_source_count: int = 0,
+    anchor_operation_api_source_count: int = 0,
 ) -> dict[str, Any]:
     return {
         "enabled": enabled,
@@ -8053,6 +8096,7 @@ def _disabled_context_budget_audit_trace(
         "anchor_selected_source": anchor_selected_source,
         "anchor_registry_source_count": anchor_registry_source_count,
         "anchor_layer_manifest_source_count": anchor_layer_manifest_source_count,
+        "anchor_operation_api_source_count": anchor_operation_api_source_count,
         "anchor_candidate_source_ids": [],
         "anchor_retained_source_ids": [],
         "anchor_dropped_source_ids": [],
@@ -8090,6 +8134,7 @@ def _apply_context_budget(
     anchor_selected_source: str = "operation_registry",
     anchor_registry_source_count: int = 0,
     anchor_layer_manifest_source_count: int = 0,
+    anchor_operation_api_source_count: int = 0,
 ) -> tuple[tuple[RetrievalHit, ...], dict[str, Any]]:
     protected_source_ids = _ordered_unique(protected_source_ids)
     if not hits:
@@ -8108,6 +8153,7 @@ def _apply_context_budget(
                 anchor_layer_manifest_source_count=(
                     anchor_layer_manifest_source_count
                 ),
+                anchor_operation_api_source_count=anchor_operation_api_source_count,
             ),
             "applied": True,
         }
@@ -8192,6 +8238,7 @@ def _apply_context_budget(
         "anchor_selected_source": anchor_selected_source,
         "anchor_registry_source_count": anchor_registry_source_count,
         "anchor_layer_manifest_source_count": anchor_layer_manifest_source_count,
+        "anchor_operation_api_source_count": anchor_operation_api_source_count,
         "anchor_candidate_source_ids": list(anchor_candidate_source_ids),
         "anchor_retained_source_ids": list(anchor_retained_source_ids),
         "anchor_dropped_source_ids": list(anchor_dropped_source_ids),
@@ -8260,6 +8307,9 @@ def _context_budget_audit_trace(
         ),
         "anchor_layer_manifest_source_count": projected_budget.get(
             "anchor_layer_manifest_source_count"
+        ),
+        "anchor_operation_api_source_count": projected_budget.get(
+            "anchor_operation_api_source_count"
         ),
         "anchor_candidate_source_ids": projected_budget.get(
             "anchor_candidate_source_ids"

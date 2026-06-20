@@ -51,6 +51,7 @@ from memory.pipeline import (
     _context_manifest,
     _memory_activation_priority_hits,
     _memory_layer_manifest_anchor_source_ids,
+    _memory_operation_api_anchor_source_ids,
     _memory_governance_activation_records,
     _memory_graph_utility_source_hits,
     _memory_lifecycle_manifest,
@@ -2200,6 +2201,40 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual(trace["anchor_selected_source"], "layer_manifest")
         self.assertEqual(trace["anchor_layer_manifest_source_count"], 4)
 
+    def test_context_budget_anchor_source_ids_can_use_operation_api(self) -> None:
+        memory_object_index = {
+            "memory_operation_api": {
+                "applied": True,
+                "context_anchor_source_ids": ["old:t0", "current:t0", "stable:t0"],
+            },
+            "memory_layer_manifest": {
+                "applied": True,
+                "layers": {
+                    "archival_memory": {"source_ids": ["old:t0"]},
+                    "working_memory": {"source_ids": ["current:t0"]},
+                    "long_term_memory": {"source_ids": ["stable:t0"]},
+                },
+            },
+        }
+
+        api_source_ids = _memory_operation_api_anchor_source_ids(
+            memory_object_index
+        )
+        selected_source_ids, trace = _context_budget_anchor_source_ids(
+            anchor_source="operation_api",
+            memory_object_index=memory_object_index,
+            operation_utility_trace=None,
+            graph_utility_trace=None,
+        )
+
+        self.assertEqual(
+            api_source_ids,
+            ("old:t0", "current:t0", "stable:t0"),
+        )
+        self.assertEqual(selected_source_ids, api_source_ids)
+        self.assertEqual(trace["anchor_selected_source"], "operation_api")
+        self.assertEqual(trace["anchor_operation_api_source_count"], 3)
+
     def test_context_budget_audit_is_trace_only(self) -> None:
         base_config = {
             "retrieval": {
@@ -3237,6 +3272,10 @@ class CleanSkeletonTest(unittest.TestCase):
             "build_owned_working_memory_view",
             system_graph["object_schema"]["governance_signals"],
         )
+        self.assertIn(
+            "build_owned_memory_operation_api",
+            system_graph["object_schema"]["governance_signals"],
+        )
         self.assertEqual(
             system_graph["governance"]["final_evidence_policy"],
             "raw_source_rows_only",
@@ -3437,6 +3476,12 @@ class CleanSkeletonTest(unittest.TestCase):
             memory_object_index["layer_manifest_source_backed_entry_count"],
             8,
         )
+        self.assertEqual(memory_object_index["operation_api_entry_count"], 8)
+        self.assertEqual(
+            memory_object_index["operation_api_source_backed_entry_count"],
+            8,
+        )
+        self.assertGreater(memory_object_index["operation_api_anchor_source_count"], 0)
         self.assertEqual(
             memory_object_index["source_backed_object_count"],
             3,
@@ -3490,6 +3535,12 @@ class CleanSkeletonTest(unittest.TestCase):
                 "manifest_field"
             ],
             "memory_layer_manifest",
+        )
+        self.assertEqual(
+            memory_object_index["index_contract"]["operation_api_contract"][
+                "api_field"
+            ],
+            "memory_operation_api",
         )
         operation_registry = memory_object_index["operation_registry"]
         self.assertEqual(
@@ -3598,6 +3649,40 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertGreater(
             layer_manifest["layers"]["archival_memory"]["entry_count"],
             0,
+        )
+        operation_api = memory_object_index["memory_operation_api"]
+        self.assertEqual(
+            operation_api["schema_version"],
+            "memory_operation_api_v1",
+        )
+        self.assertTrue(operation_api["applied"])
+        self.assertEqual(operation_api["entry_count"], 8)
+        self.assertEqual(operation_api["source_backed_entry_count"], 8)
+        self.assertIn("supersede", operation_api["operation_action_counts"])
+        self.assertIn("retrieve", operation_api["operation_contract"])
+        self.assertEqual(
+            operation_api["source_policy"]["final_evidence_policy"],
+            "raw_source_rows",
+        )
+        self.assertTrue(
+            operation_api["source_policy"]["memory_objects_are_not_final_evidence"]
+        )
+        self.assertEqual(
+            operation_api["context_anchor_policy"]["source"],
+            "memory_layer_manifest",
+        )
+        self.assertGreater(operation_api["context_anchor_source_count"], 0)
+        city_operation_api = next(
+            entry
+            for entry in operation_api["entries"]
+            if entry["target_type"] == "conflict_slot"
+            and entry["predicate"] == "location"
+        )
+        self.assertIn("verify", city_operation_api["operation_map"])
+        self.assertTrue(city_operation_api["operation_map"]["verify"]["enabled"])
+        self.assertEqual(
+            city_operation_api["operation_map"]["verify"]["policy"],
+            "expand_to_raw_source_rows",
         )
         city_object_operation = next(
             entry

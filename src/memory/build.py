@@ -1210,6 +1210,7 @@ def _memory_system_object_schema() -> dict[str, Any]:
             "working_memory_view",
             "lifecycle_audit",
             "memory_layer_manifest",
+            "memory_operation_api",
         ],
         "governance_signals": [
             "source_activation_ready",
@@ -1232,6 +1233,7 @@ def _memory_system_object_schema() -> dict[str, Any]:
             "build_owned_working_memory_view",
             "build_owned_lifecycle_audit",
             "build_owned_memory_layer_manifest",
+            "build_owned_memory_operation_api",
         ],
 }
 
@@ -1321,6 +1323,10 @@ def _memory_object_index_manifest(
     layer_manifest = _memory_layer_manifest(
         lifecycle_audit=lifecycle_audit,
     )
+    operation_api = _memory_operation_api(
+        lifecycle_audit=lifecycle_audit,
+        layer_manifest=layer_manifest,
+    )
     object_samples = [
         {
             "memory_id": record.memory_id,
@@ -1400,6 +1406,13 @@ def _memory_object_index_manifest(
         "layer_manifest_entry_count": layer_manifest["entry_count"],
         "layer_manifest_source_backed_entry_count": (
             layer_manifest["source_backed_entry_count"]
+        ),
+        "operation_api_entry_count": operation_api["entry_count"],
+        "operation_api_source_backed_entry_count": (
+            operation_api["source_backed_entry_count"]
+        ),
+        "operation_api_anchor_source_count": (
+            operation_api["context_anchor_source_count"]
         ),
         "source_backed_object_count": sum(
             1 for record in managed_records if record.source_ids
@@ -1488,6 +1501,17 @@ def _memory_object_index_manifest(
                     "choose retrieval, context packing, verification, or audit actions"
                 ),
             },
+            "operation_api_contract": {
+                "api_field": "memory_operation_api",
+                "schema_version": "memory_operation_api_v1",
+                "operations": _memory_working_view_operation_contract(),
+                "anchor_source_field": "context_anchor_source_ids",
+                "source": "lifecycle_audit_and_layer_manifest",
+                "policy": (
+                    "query consumers call operation actions and expand returned "
+                    "source ids to raw rows; memory objects are never final evidence"
+                ),
+            },
             "state_conflict_contract": {
                 "slot_index_field": "state_conflict_slot_index",
                 "slot_scope": "same memory_type, subject, predicate",
@@ -1505,6 +1529,7 @@ def _memory_object_index_manifest(
         "working_memory_view": working_memory_view,
         "lifecycle_audit": lifecycle_audit,
         "memory_layer_manifest": layer_manifest,
+        "memory_operation_api": operation_api,
         "state_conflict_slot_ids": sorted(str(slot_id) for slot_id in conflict_slot_ids),
         "clean_note": (
             "Question-independent build memory object index. It unifies tier, "
@@ -1828,6 +1853,176 @@ def _memory_layer_manifest_extend_unique(
 
 def _memory_layer_manifest_increment(counts: dict[str, int], key: str) -> None:
     counts[key] = int(counts.get(key) or 0) + 1
+
+
+def _memory_operation_api(
+    *,
+    lifecycle_audit: dict[str, Any],
+    layer_manifest: dict[str, Any],
+) -> dict[str, Any]:
+    """Stable query-facing API over build-owned memory operations."""
+
+    operation_contract = tuple(_memory_working_view_operation_contract())
+    entries: list[dict[str, Any]] = []
+    for ordinal, raw_entry in enumerate(lifecycle_audit.get("entries") or ()):
+        if not isinstance(raw_entry, dict):
+            continue
+        actions = tuple(
+            action
+            for action in _ordered_strings(raw_entry.get("audit_actions") or ())
+            if action in operation_contract
+        )
+        if not actions:
+            actions = tuple(
+                action
+                for action in ("retrieve", "expand", "verify", "audit")
+                if raw_entry.get("source_backed")
+            )
+        current_source_order = _ordered_strings(
+            raw_entry.get("current_source_order") or ()
+        )[:12]
+        historical_source_order = _ordered_strings(
+            raw_entry.get("historical_source_order") or ()
+        )[:12]
+        source_ids = _ordered_strings(
+            (
+                *current_source_order,
+                *historical_source_order,
+                *(raw_entry.get("source_ids") or ()),
+            )
+        )[:12]
+        memory_layer = _memory_layer_manifest_entry_layer(raw_entry)
+        entries.append(
+            {
+                "operation_id": f"api:{raw_entry.get('audit_id') or ordinal}",
+                "interface_source": "memory_lifecycle_audit",
+                "interface_entry_id": str(raw_entry.get("audit_id") or ""),
+                "target_type": str(raw_entry.get("target_type") or "object"),
+                "target_id": str(raw_entry.get("target_id") or ""),
+                "slot_id": str(raw_entry.get("slot_id") or ""),
+                "memory_id": str(raw_entry.get("memory_id") or ""),
+                "memory_type": str(raw_entry.get("memory_type") or ""),
+                "namespace": str(raw_entry.get("namespace") or ""),
+                "layer": str(raw_entry.get("layer") or ""),
+                "memory_layer": memory_layer,
+                "memory_tier": str(raw_entry.get("memory_tier") or ""),
+                "lifecycle_stage": str(raw_entry.get("lifecycle_stage") or ""),
+                "status": str(raw_entry.get("status") or ""),
+                "status_counts": dict(raw_entry.get("status_counts") or {}),
+                "subject": _normalize_key_text(str(raw_entry.get("subject") or "")),
+                "predicate": _normalize_key_text(str(raw_entry.get("predicate") or "")),
+                "values": _ordered_strings(raw_entry.get("values") or ())[:12],
+                "operation_actions": list(actions),
+                "operation_map": {
+                    action: {
+                        "enabled": action in actions,
+                        "source_ids": source_ids if action in actions else [],
+                        "policy": "expand_to_raw_source_rows",
+                    }
+                    for action in operation_contract
+                },
+                "active_memory_ids": _ordered_strings(
+                    raw_entry.get("active_memory_ids") or ()
+                )[:12],
+                "superseded_memory_ids": _ordered_strings(
+                    raw_entry.get("superseded_memory_ids") or ()
+                )[:12],
+                "current_source_order": current_source_order,
+                "historical_source_order": historical_source_order,
+                "source_ids": source_ids,
+                "source_backed": bool(raw_entry.get("source_backed") or source_ids),
+                "activation_scope": _memory_operation_api_activation_scope(
+                    memory_layer
+                ),
+                "source_policy": {
+                    "raw_evidence_required": True,
+                    "final_evidence_policy": "raw_source_rows",
+                    "memory_objects_are_not_final_evidence": True,
+                },
+            }
+        )
+
+    layer_counts: dict[str, int] = defaultdict(int)
+    stage_counts: dict[str, int] = defaultdict(int)
+    target_counts: dict[str, int] = defaultdict(int)
+    action_counts: dict[str, int] = defaultdict(int)
+    source_backed_count = 0
+    for entry in entries:
+        layer_counts[str(entry.get("memory_layer") or "unknown")] += 1
+        stage_counts[str(entry.get("lifecycle_stage") or "unknown")] += 1
+        target_counts[str(entry.get("target_type") or "unknown")] += 1
+        if entry.get("source_backed"):
+            source_backed_count += 1
+        for action in entry.get("operation_actions") or ():
+            action_counts[str(action)] += 1
+
+    context_anchor_source_ids = _memory_operation_api_context_anchor_source_ids(
+        layer_manifest
+    )
+    return {
+        "schema_version": "memory_operation_api_v1",
+        "trace_only": False,
+        "applied": bool(entries),
+        "entry_count": len(entries),
+        "source_backed_entry_count": source_backed_count,
+        "source_incomplete_entry_count": max(0, len(entries) - source_backed_count),
+        "operation_contract": list(operation_contract),
+        "operation_action_counts": dict(sorted(action_counts.items())),
+        "layer_counts": dict(sorted(layer_counts.items())),
+        "stage_counts": dict(sorted(stage_counts.items())),
+        "target_counts": dict(sorted(target_counts.items())),
+        "context_anchor_policy": {
+            "anchor_layers": [
+                "archival_memory",
+                "working_memory",
+                "long_term_memory",
+            ],
+            "source": "memory_layer_manifest",
+            "policy": "preserve source-backed lifecycle anchors before raw-row expansion",
+        },
+        "context_anchor_source_ids": context_anchor_source_ids,
+        "context_anchor_source_count": len(context_anchor_source_ids),
+        "source_policy": {
+            "raw_evidence_required": True,
+            "final_evidence_policy": "raw_source_rows",
+            "question_independent_build": True,
+            "memory_objects_are_not_final_evidence": True,
+        },
+        "entries": entries,
+        "clean_note": (
+            "Question-independent managed memory operation API. It exposes "
+            "create/update/merge/supersede/retrieve/expand/verify/audit over "
+            "source-backed lifecycle entries so query modules can consume one "
+            "stable interface instead of registry/view/audit internals. It never "
+            "uses questions, labels, gold answers, judge outputs, sample ids, "
+            "or test feedback; final evidence must expand to raw source rows."
+        ),
+    }
+
+
+def _memory_operation_api_activation_scope(memory_layer: str) -> str:
+    if memory_layer == "archival_memory":
+        return "historical_state"
+    if memory_layer == "working_memory":
+        return "working_state"
+    if memory_layer == "quarantine_memory":
+        return "quarantine_audit_only"
+    return "long_term_recall"
+
+
+def _memory_operation_api_context_anchor_source_ids(
+    layer_manifest: dict[str, Any],
+) -> list[str]:
+    layers = layer_manifest.get("layers")
+    if not isinstance(layers, dict):
+        return []
+    return _ordered_strings(
+        source_id
+        for layer in ("archival_memory", "working_memory", "long_term_memory")
+        for summary in (layers.get(layer),)
+        if isinstance(summary, dict)
+        for source_id in (summary.get("source_ids") or ())
+    )
 
 
 def _memory_working_view_layer_contract() -> dict[str, str]:
