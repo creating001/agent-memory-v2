@@ -619,6 +619,10 @@ class CleanSkeletonTest(unittest.TestCase):
             operations["operation_interface_projected_source_ids"],
             ("s1:t0", "s2:t0"),
         )
+        self.assertIn(
+            "memory_context_interface",
+            operations["operation_interface_sources"],
+        )
         self.assertEqual(
             operations["operation_interface_projected_final_source_ids"],
             ("s2:t0",),
@@ -3849,6 +3853,12 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertTrue(context_interface["applied"])
         self.assertEqual(context_interface["entry_count"], 8)
         self.assertEqual(context_interface["source_backed_entry_count"], 8)
+        self.assertEqual(context_interface["operation_slot_count"], 2)
+        self.assertEqual(
+            context_interface["source_backed_operation_slot_count"],
+            2,
+        )
+        self.assertEqual(len(context_interface["operation_slots"]), 2)
         self.assertEqual(
             context_interface["source_policy"]["final_evidence_policy"],
             "raw_source_rows",
@@ -5179,7 +5189,7 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual([hit.source_id for hit in hits], ["s1:t0", "s2:t0"])
         self.assertEqual(trace["slots"][0]["values"], ("dune", "foundation"))
 
-    def test_memory_operation_utility_prefers_working_memory_view_slots(self) -> None:
+    def test_memory_operation_utility_prefers_context_interface_slots(self) -> None:
         old_record = MemoryRecord(
             memory_id="old-city",
             memory_type="state",
@@ -5226,10 +5236,10 @@ class CleanSkeletonTest(unittest.TestCase):
         )
 
         self.assertTrue(trace["applied"])
-        self.assertEqual(trace["slot_index"]["source"], "memory_working_view")
+        self.assertEqual(trace["slot_index"]["source"], "memory_context_interface")
         self.assertEqual(
             trace["slot_index"]["schema_version"],
-            "memory_working_view_v1",
+            "memory_context_interface_v1",
         )
         self.assertEqual([hit.source_id for hit in hits], ["s2:t0", "s1:t0"])
 
@@ -5290,6 +5300,96 @@ class CleanSkeletonTest(unittest.TestCase):
         )
         self.assertEqual([hit.source_id for hit in hits], ["s2:t0", "s1:t0"])
 
+    def test_memory_operation_utility_can_use_context_interface_slots(self) -> None:
+        old_record = MemoryRecord(
+            memory_id="old-city",
+            memory_type="state",
+            text="Alex lives in Austin.",
+            source_ids=("s1:t0",),
+            subject="Alex",
+            predicate="home city",
+            value="Austin",
+            timestamp="2024-01-01",
+            status="superseded",
+            superseded_by="new-city",
+        )
+        new_record = MemoryRecord(
+            memory_id="new-city",
+            memory_type="state",
+            text="Alex lives in Seattle.",
+            source_ids=("s2:t0",),
+            subject="Alex",
+            predicate="home city",
+            value="Seattle",
+            timestamp="2024-05-01",
+            status="active",
+        )
+        management = _management_summary(
+            (old_record, new_record),
+            policy="stateful_only",
+            managed_memory_types=frozenset({"state"}),
+            include_memory_system_graph=True,
+        )
+        memory_object_index = management["memory_system_graph"]["memory_object_index"]
+
+        hits, trace = _memory_operation_utility_source_hits(
+            memory_hits=(MemoryHit(record=old_record, score=3.0, rank=1),),
+            built_memory_records=(),
+            question="Where does Alex live now?",
+            route=RouteResult("current_state", ("current_state",)),
+            available_source_ids={"s1:t0", "s2:t0"},
+            max_slots=2,
+            max_sources_per_slot=4,
+            memory_types=("state",),
+            operations=("supersede", "conflict_slot"),
+            slot_source="context_interface",
+            fusion_mode="tail_exchange",
+            managed_memory_types=("state",),
+            memory_object_index=memory_object_index,
+        )
+
+        self.assertTrue(trace["applied"])
+        self.assertEqual(trace["slot_source"], "context_interface")
+        self.assertEqual(trace["slot_index"]["source"], "memory_context_interface")
+        self.assertEqual(
+            trace["slot_index"]["schema_version"],
+            "memory_context_interface_v1",
+        )
+        self.assertEqual([hit.source_id for hit in hits], ["s2:t0", "s1:t0"])
+
+    def test_memory_operation_utility_explicit_source_does_not_fallback(self) -> None:
+        record = MemoryRecord(
+            memory_id="city",
+            memory_type="state",
+            text="Alex lives in Austin.",
+            source_ids=("s1:t0",),
+            subject="Alex",
+            predicate="home city",
+            value="Austin",
+            timestamp="2024-01-01",
+            status="active",
+        )
+
+        hits, trace = _memory_operation_utility_source_hits(
+            memory_hits=(MemoryHit(record=record, score=3.0, rank=1),),
+            built_memory_records=(record,),
+            question="Where does Alex live?",
+            route=RouteResult("current_state", ("current_state",)),
+            available_source_ids={"s1:t0"},
+            max_slots=2,
+            max_sources_per_slot=4,
+            memory_types=("state",),
+            operations=("expand",),
+            slot_source="context_interface",
+            fusion_mode="tail_rescue",
+            memory_object_index={},
+        )
+
+        self.assertEqual(hits, ())
+        self.assertFalse(trace["applied"])
+        self.assertEqual(trace["skipped_reason"], "no_operation_slots")
+        self.assertEqual(trace["slot_index"]["source"], "memory_context_interface")
+
     def test_memory_graph_utility_adds_only_missing_slot_sources(self) -> None:
         old_record = MemoryRecord(
             memory_id="old-city",
@@ -5342,7 +5442,7 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertIn("supersede", trace["slots"][0]["signals"])
         self.assertEqual(trace["slots"][0]["status_counts"], {"active": 1, "superseded": 1})
 
-    def test_memory_graph_utility_prefers_working_memory_view_slots(self) -> None:
+    def test_memory_graph_utility_prefers_context_interface_slots(self) -> None:
         old_record = MemoryRecord(
             memory_id="old-city",
             memory_type="state",
@@ -5392,10 +5492,10 @@ class CleanSkeletonTest(unittest.TestCase):
         )
 
         self.assertTrue(trace["applied"])
-        self.assertEqual(trace["slot_index"]["source"], "memory_working_view")
+        self.assertEqual(trace["slot_index"]["source"], "memory_context_interface")
         self.assertEqual(
             trace["slot_index"]["schema_version"],
-            "memory_working_view_v1",
+            "memory_context_interface_v1",
         )
         self.assertEqual([hit.source_id for hit in hits], ["s1:t0"])
         self.assertIn("conflict_slot", trace["slots"][0]["signals"])
@@ -5461,7 +5561,68 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual([hit.source_id for hit in hits], ["s1:t0"])
         self.assertIn("supersede", trace["slots"][0]["signals"])
 
-    def test_memory_graph_utility_falls_back_to_registry_when_view_disabled(
+    def test_memory_graph_utility_can_use_context_interface_slots(self) -> None:
+        old_record = MemoryRecord(
+            memory_id="old-city",
+            memory_type="state",
+            text="Alex lives in Austin.",
+            source_ids=("s1:t0",),
+            subject="Alex",
+            predicate="home city",
+            value="Austin",
+            timestamp="2024-01-01",
+            status="superseded",
+            superseded_by="new-city",
+        )
+        new_record = MemoryRecord(
+            memory_id="new-city",
+            memory_type="state",
+            text="Alex lives in Seattle.",
+            source_ids=("s2:t0",),
+            subject="Alex",
+            predicate="home city",
+            value="Seattle",
+            timestamp="2024-05-01",
+            status="active",
+        )
+        management = _management_summary(
+            (new_record, old_record),
+            policy="stateful_only",
+            managed_memory_types=frozenset({"state"}),
+            include_memory_system_graph=True,
+        )
+        memory_object_index = management["memory_system_graph"]["memory_object_index"]
+
+        hits, trace = _memory_graph_utility_source_hits(
+            memory_hits=(MemoryHit(record=new_record, score=3.0, rank=1),),
+            built_memory_records=(),
+            question="Where does Alex live now?",
+            route=RouteResult("current_state", ("current_state",)),
+            available_source_ids={"s1:t0", "s2:t0"},
+            candidate_source_ids={"s2:t0"},
+            max_slots=2,
+            max_sources_per_slot=4,
+            memory_types=("state",),
+            min_overlap_terms=1,
+            require_new_source=True,
+            required_signals=("supersede",),
+            slot_source="context_interface",
+            fusion_mode="tail_rescue",
+            source_selection_policy="validity_aware",
+            memory_object_index=memory_object_index,
+        )
+
+        self.assertTrue(trace["applied"])
+        self.assertEqual(trace["slot_source"], "context_interface")
+        self.assertEqual(trace["slot_index"]["source"], "memory_context_interface")
+        self.assertEqual(
+            trace["slot_index"]["schema_version"],
+            "memory_context_interface_v1",
+        )
+        self.assertEqual([hit.source_id for hit in hits], ["s1:t0"])
+        self.assertIn("supersede", trace["slots"][0]["signals"])
+
+    def test_memory_graph_utility_auto_uses_context_interface_when_view_disabled(
         self,
     ) -> None:
         old_record = MemoryRecord(
@@ -5514,14 +5675,51 @@ class CleanSkeletonTest(unittest.TestCase):
         )
 
         self.assertTrue(trace["applied"])
-        self.assertEqual(trace["slot_index"]["source"], "memory_operation_registry")
+        self.assertEqual(trace["slot_index"]["source"], "memory_context_interface")
         self.assertEqual(
             trace["slot_index"]["schema_version"],
-            "memory_operation_registry_v1",
+            "memory_context_interface_v1",
         )
         self.assertEqual([hit.source_id for hit in hits], ["s1:t0"])
 
-    def test_memory_operation_utility_falls_back_to_registry_when_view_disabled(
+    def test_memory_graph_utility_explicit_source_does_not_fallback(self) -> None:
+        record = MemoryRecord(
+            memory_id="city",
+            memory_type="state",
+            text="Alex lives in Austin.",
+            source_ids=("s1:t0",),
+            subject="Alex",
+            predicate="home city",
+            value="Austin",
+            timestamp="2024-01-01",
+            status="active",
+        )
+
+        hits, trace = _memory_graph_utility_source_hits(
+            memory_hits=(MemoryHit(record=record, score=3.0, rank=1),),
+            built_memory_records=(record,),
+            question="Where does Alex live?",
+            route=RouteResult("current_state", ("current_state",)),
+            available_source_ids={"s1:t0"},
+            candidate_source_ids=set(),
+            max_slots=2,
+            max_sources_per_slot=4,
+            memory_types=("state",),
+            min_overlap_terms=1,
+            require_new_source=True,
+            required_signals=("expand",),
+            slot_source="context_interface",
+            fusion_mode="tail_rescue",
+            source_selection_policy="validity_aware",
+            memory_object_index={},
+        )
+
+        self.assertEqual(hits, ())
+        self.assertFalse(trace["applied"])
+        self.assertEqual(trace["skipped_reason"], "no_graph_slots")
+        self.assertEqual(trace["slot_index"]["source"], "memory_context_interface")
+
+    def test_memory_operation_utility_auto_uses_context_interface_when_view_disabled(
         self,
     ) -> None:
         old_record = MemoryRecord(
@@ -5571,10 +5769,10 @@ class CleanSkeletonTest(unittest.TestCase):
         )
 
         self.assertTrue(trace["applied"])
-        self.assertEqual(trace["slot_index"]["source"], "memory_operation_registry")
+        self.assertEqual(trace["slot_index"]["source"], "memory_context_interface")
         self.assertEqual(
             trace["slot_index"]["schema_version"],
-            "memory_operation_registry_v1",
+            "memory_context_interface_v1",
         )
         self.assertEqual([hit.source_id for hit in hits], ["s2:t0", "s1:t0"])
 
@@ -6229,7 +6427,9 @@ class CleanSkeletonTest(unittest.TestCase):
         )
         self.assertEqual(row_ids, ["s2:t0", "s1:t0"])
 
-    def test_pipeline_context_budget_retains_working_view_graph_anchor(self) -> None:
+    def test_pipeline_context_budget_retains_context_interface_graph_anchor(
+        self,
+    ) -> None:
         old_record = MemoryRecord(
             memory_id="old",
             memory_type="state",
@@ -6356,7 +6556,7 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertTrue(retrieval["context_budget_applied"])
         self.assertEqual(
             retrieval["graph_utility_slot_index"]["source"],
-            "memory_working_view",
+            "memory_context_interface",
         )
         self.assertEqual(
             retrieval["context_budget_registry_anchor_retained_source_ids"],
@@ -6375,7 +6575,7 @@ class CleanSkeletonTest(unittest.TestCase):
         )
         self.assertEqual(
             context_manifest["memory_operations"]["graph_utility_slot_source"],
-            "memory_working_view",
+            "memory_context_interface",
         )
         self.assertTrue(
             context_manifest["memory_operations"]["working_memory_view_available"]

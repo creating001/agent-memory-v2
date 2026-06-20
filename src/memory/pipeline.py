@@ -71,6 +71,7 @@ _CONTEXT_BUDGET_ANCHOR_SOURCES = frozenset(
 _MEMORY_OPERATION_SLOT_SOURCES = frozenset(
     {
         "auto",
+        "context_interface",
         "operation_api",
         "working_view",
         "operation_registry",
@@ -1997,6 +1998,7 @@ class Stage1Pipeline:
             max_slots=self._operation_utility_max_slots,
             max_sources_per_slot=self._operation_utility_max_sources_per_slot,
             min_overlap_terms=self._operation_utility_min_overlap_terms,
+            slot_source=self._operation_utility_slot_source,
             fusion_mode=self._operation_utility_fusion_mode,
             tail_exchange_protect_top_n=(
                 self._operation_utility_tail_exchange_protect_top_n
@@ -2015,6 +2017,7 @@ class Stage1Pipeline:
             require_new_source=self._graph_utility_require_new_source,
             ignored_overlap_terms=self._graph_utility_ignored_overlap_terms,
             required_signals=self._graph_utility_required_signals,
+            slot_source=self._graph_utility_slot_source,
             fusion_mode=self._graph_utility_fusion_mode,
             overflow_max_hits=self._graph_utility_overflow_max_hits,
             source_selection_policy=(
@@ -4774,6 +4777,7 @@ def _memory_operations_context_manifest(
     operation_slot_source = _operation_consumer_slot_source(operation_utility_trace)
     graph_slot_source = _operation_consumer_slot_source(graph_utility_trace)
     operation_interface_sources = {
+        "memory_context_interface",
         "memory_operation_api",
         "memory_operation_registry",
         "memory_working_view",
@@ -5015,6 +5019,7 @@ def _registry_backed_operation_source_ids(
     graph_utility_trace: Mapping[str, Any] | None,
 ) -> tuple[str, ...]:
     operation_interface_sources = {
+        "memory_context_interface",
         "memory_operation_api",
         "memory_operation_registry",
         "memory_working_view",
@@ -5769,6 +5774,21 @@ def _memory_operation_slot_empty_index_stats(
     }
 
 
+def _memory_operation_slot_trace_source(slot_source: str) -> str | None:
+    slot_source = _validate_memory_operation_slot_source(slot_source)
+    if slot_source == "context_interface":
+        return "memory_context_interface"
+    if slot_source == "operation_api":
+        return "memory_operation_api"
+    if slot_source == "working_view":
+        return "memory_working_view"
+    if slot_source == "operation_registry":
+        return "memory_operation_registry"
+    if slot_source == "operation_slot_index":
+        return "memory_object_index"
+    return None
+
+
 def _validate_memory_operation_slot_source(value: Any) -> str:
     source = str(value or "auto")
     if source not in _MEMORY_OPERATION_SLOT_SOURCES:
@@ -5789,6 +5809,11 @@ def _memory_operation_slots_from_object_index(
     slot_source = _validate_memory_operation_slot_source(slot_source)
     if not isinstance(memory_object_index, Mapping):
         return {}, _memory_operation_slot_empty_index_stats(enabled=False)
+    if slot_source == "context_interface":
+        return _memory_operation_slots_from_context_interface(
+            memory_object_index,
+            memory_types=memory_types,
+        )
     if slot_source == "operation_api":
         return _memory_operation_slots_from_operation_api(
             memory_object_index,
@@ -5809,6 +5834,20 @@ def _memory_operation_slots_from_object_index(
             memory_object_index,
             memory_types=memory_types,
         )
+    context_interface_slots, context_interface_stats = (
+        _memory_operation_slots_from_context_interface(
+            memory_object_index,
+            memory_types=memory_types,
+        )
+    )
+    if context_interface_stats["enabled"]:
+        return context_interface_slots, context_interface_stats
+    operation_api_slots, operation_api_stats = _memory_operation_slots_from_operation_api(
+        memory_object_index,
+        memory_types=memory_types,
+    )
+    if operation_api_stats["enabled"]:
+        return operation_api_slots, operation_api_stats
     working_view_slots, working_view_stats = _memory_operation_slots_from_working_view(
         memory_object_index,
         memory_types=memory_types,
@@ -5863,6 +5902,70 @@ def _memory_operation_slots_from_raw_operation_index(
     return slots, {
         **_memory_operation_slot_empty_index_stats(enabled=True),
         "schema_version": str(memory_object_index.get("schema_version") or ""),
+        "slot_count": len(slots),
+        "source_backed_slot_count": source_backed_slot_count,
+        "operation_slot_count": operation_slot_count,
+        "graph_signal_slot_count": graph_signal_slot_count,
+    }
+
+
+def _memory_operation_slots_from_context_interface(
+    memory_object_index: Mapping[str, Any],
+    *,
+    memory_types: tuple[str, ...],
+) -> tuple[dict[tuple[str, str, str], Mapping[str, Any]], dict[str, Any]]:
+    context_interface = memory_object_index.get("memory_context_interface")
+    if not isinstance(context_interface, Mapping) or not context_interface.get(
+        "applied"
+    ):
+        return {}, _memory_operation_slot_empty_index_stats(
+            enabled=False,
+            source="memory_context_interface",
+        )
+    raw_entries = context_interface.get("operation_slots")
+    if not isinstance(raw_entries, list):
+        return {}, _memory_operation_slot_empty_index_stats(
+            enabled=True,
+            source="memory_context_interface",
+        )
+    allowed_types = {str(item).lower() for item in memory_types if str(item).strip()}
+    slots: dict[tuple[str, str, str], Mapping[str, Any]] = {}
+    source_backed_slot_count = 0
+    operation_slot_count = 0
+    graph_signal_slot_count = 0
+    for raw_entry in raw_entries:
+        if not isinstance(raw_entry, Mapping):
+            continue
+        if raw_entry.get("target_type") != "operation_slot":
+            continue
+        memory_type = _normalize_memory_slot_text(
+            str(raw_entry.get("memory_type") or "")
+        )
+        if allowed_types and memory_type not in allowed_types:
+            continue
+        subject = _normalize_memory_slot_text(str(raw_entry.get("subject") or ""))
+        predicate = _normalize_memory_slot_text(str(raw_entry.get("predicate") or ""))
+        if not memory_type or not subject or not predicate:
+            continue
+        key = (memory_type, subject, predicate)
+        slots[key] = raw_entry
+        if raw_entry.get("source_backed") or raw_entry.get("source_ids"):
+            source_backed_slot_count += 1
+        operations = {
+            str(operation).strip().lower()
+            for operation in raw_entry.get("operations") or ()
+            if str(operation).strip()
+        }
+        if operations.difference(_MEMORY_OPERATION_REGISTRY_BASE_OPERATIONS):
+            operation_slot_count += 1
+        if raw_entry.get("graph_signals"):
+            graph_signal_slot_count += 1
+    return slots, {
+        **_memory_operation_slot_empty_index_stats(
+            enabled=True,
+            source="memory_context_interface",
+        ),
+        "schema_version": str(context_interface.get("schema_version") or ""),
         "slot_count": len(slots),
         "source_backed_slot_count": source_backed_slot_count,
         "operation_slot_count": operation_slot_count,
@@ -6146,7 +6249,10 @@ def _disabled_operation_utility_trace(
         "tail_exchange_max_swaps": tail_exchange_max_swaps,
         "question_scope": question_scope,
         "slot_source": slot_source,
-        "slot_index": _memory_operation_slot_empty_index_stats(enabled=False),
+        "slot_index": _memory_operation_slot_empty_index_stats(
+            enabled=False,
+            source=_memory_operation_slot_trace_source(slot_source),
+        ),
         "operation_counts": {},
         "skipped_reason": skipped_reason,
         "slots": [],
@@ -6200,6 +6306,13 @@ def _memory_operation_utility_source_hits(
         slot_source=slot_source,
     )
     use_index_slots = bool(indexed_slots)
+    explicit_index_source = slot_source != "auto"
+    if explicit_index_source and not use_index_slots:
+        return (), {
+            **trace,
+            "slot_index": slot_index_stats,
+            "skipped_reason": "no_operation_slots",
+        }
     if not memory_hits or (not built_memory_records and not use_index_slots):
         return (), trace
     if max_slots <= 0 or max_sources_per_slot <= 0:
@@ -6398,7 +6511,10 @@ def _disabled_graph_utility_trace(
         "source_selection_policy": source_selection_policy,
         "question_scope": question_scope,
         "slot_source": slot_source,
-        "slot_index": _memory_operation_slot_empty_index_stats(enabled=False),
+        "slot_index": _memory_operation_slot_empty_index_stats(
+            enabled=False,
+            source=_memory_operation_slot_trace_source(slot_source),
+        ),
         "candidate_source_count": 0,
         "emitted_source_count": 0,
         "novel_source_count": 0,
@@ -6463,6 +6579,13 @@ def _memory_graph_utility_source_hits(
         slot_source=slot_source,
     )
     use_index_slots = bool(indexed_slots)
+    explicit_index_source = slot_source != "auto"
+    if explicit_index_source and not use_index_slots:
+        return (), {
+            **trace,
+            "slot_index": slot_index_stats,
+            "skipped_reason": "no_graph_slots",
+        }
     if not memory_hits or (not built_memory_records and not use_index_slots):
         return (), trace
     if max_slots <= 0 or max_sources_per_slot <= 0:

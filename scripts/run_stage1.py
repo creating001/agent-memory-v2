@@ -240,6 +240,8 @@ def main() -> int:
     total_build_memory_system_graph_index_context_interface_source_backed_entries = 0
     total_build_memory_system_graph_index_context_interface_role_count = 0
     total_build_memory_system_graph_index_context_interface_anchor_sources = 0
+    total_build_memory_system_graph_index_context_interface_operation_slots = 0
+    total_build_memory_system_graph_index_context_interface_source_backed_operation_slots = 0
     build_memory_system_graph_memory_object_index_context_interface_action_counts: dict[
         str, int
     ] = {}
@@ -277,8 +279,10 @@ def main() -> int:
     total_object_slot_activation_source_hits = 0
     total_operation_utility_applied = 0
     total_operation_utility_source_hits = 0
+    operation_utility_slot_index_source_counts: dict[str, int] = {}
     total_graph_utility_applied = 0
     total_graph_utility_source_hits = 0
+    graph_utility_slot_index_source_counts: dict[str, int] = {}
     total_answer_cache_hits = 0
     total_answer_cache_misses = 0
     total_answer_cache_writes = 0
@@ -927,6 +931,13 @@ def main() -> int:
                     total_build_memory_system_graph_index_context_interface_anchor_sources += int(
                         context_interface.get("context_anchor_source_count") or 0
                     )
+                    total_build_memory_system_graph_index_context_interface_operation_slots += int(
+                        context_interface.get("operation_slot_count") or 0
+                    )
+                    total_build_memory_system_graph_index_context_interface_source_backed_operation_slots += int(
+                        context_interface.get("source_backed_operation_slot_count")
+                        or 0
+                    )
                     source_roles = context_interface.get("source_roles") or {}
                     if isinstance(source_roles, Mapping):
                         _merge_int_counts(
@@ -1049,11 +1060,35 @@ def main() -> int:
         )
         if retrieval_trace.get("operation_utility_applied"):
             total_operation_utility_applied += 1
+            operation_slot_index = retrieval_trace.get("operation_utility_slot_index")
+            if isinstance(operation_slot_index, Mapping):
+                operation_slot_index_source = str(
+                    operation_slot_index.get("source") or ""
+                )
+                if operation_slot_index_source:
+                    operation_utility_slot_index_source_counts[
+                        operation_slot_index_source
+                    ] = (
+                        operation_utility_slot_index_source_counts.get(
+                            operation_slot_index_source, 0
+                        )
+                        + 1
+                    )
         total_operation_utility_source_hits += len(
             retrieval_trace.get("operation_utility_source_hits") or []
         )
         if retrieval_trace.get("graph_utility_applied"):
             total_graph_utility_applied += 1
+            graph_slot_index = retrieval_trace.get("graph_utility_slot_index")
+            if isinstance(graph_slot_index, Mapping):
+                graph_slot_index_source = str(graph_slot_index.get("source") or "")
+                if graph_slot_index_source:
+                    graph_utility_slot_index_source_counts[graph_slot_index_source] = (
+                        graph_utility_slot_index_source_counts.get(
+                            graph_slot_index_source, 0
+                        )
+                        + 1
+                    )
         total_graph_utility_source_hits += len(
             retrieval_trace.get("graph_utility_source_hits") or []
         )
@@ -1317,6 +1352,9 @@ def main() -> int:
             "operation_utility_slot_source": config.get("retrieval", {})
             .get("operation_utility", {})
             .get("slot_source", "auto"),
+            "operation_utility_slot_index_source_counts": dict(
+                sorted(operation_utility_slot_index_source_counts.items())
+            ),
             "operation_utility_applied_count": total_operation_utility_applied,
             "operation_utility_applied_rate": _safe_average(
                 total_operation_utility_applied, sample_count
@@ -1351,6 +1389,9 @@ def main() -> int:
             "graph_utility_slot_source": config.get("retrieval", {})
             .get("graph_utility", {})
             .get("slot_source", "auto"),
+            "graph_utility_slot_index_source_counts": dict(
+                sorted(graph_utility_slot_index_source_counts.items())
+            ),
             "graph_utility_fusion_mode": config.get("retrieval", {})
             .get("graph_utility", {})
             .get("fusion_mode", "tail_rescue"),
@@ -2286,6 +2327,18 @@ def main() -> int:
             "avg_memory_system_graph_memory_object_index_context_interface_anchor_sources": (
                 _safe_average(
                     total_build_memory_system_graph_index_context_interface_anchor_sources,
+                    total_build_memory_system_graph_index_context_interface_applied,
+                )
+            ),
+            "avg_memory_system_graph_memory_object_index_context_interface_operation_slots": (
+                _safe_average(
+                    total_build_memory_system_graph_index_context_interface_operation_slots,
+                    total_build_memory_system_graph_index_context_interface_applied,
+                )
+            ),
+            "avg_memory_system_graph_memory_object_index_context_interface_source_backed_operation_slots": (
+                _safe_average(
+                    total_build_memory_system_graph_index_context_interface_source_backed_operation_slots,
                     total_build_memory_system_graph_index_context_interface_applied,
                 )
             ),
@@ -3352,6 +3405,7 @@ def _write_summary(
         f"- avg_build_memory_system_graph_memory_object_index_context_interface_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_context_interface_entries']}",
         f"- avg_build_memory_system_graph_memory_object_index_context_interface_role_count: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_context_interface_role_count']}",
         f"- avg_build_memory_system_graph_memory_object_index_context_interface_anchor_sources: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_context_interface_anchor_sources']}",
+        f"- avg_build_memory_system_graph_memory_object_index_context_interface_operation_slots: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_context_interface_operation_slots']}",
         f"- build_memory_system_graph_memory_object_index_context_interface_role_source_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_context_interface_role_source_counts']}",
         f"- build_memory_system_graph_memory_object_index_context_interface_operation_view_source_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_context_interface_operation_view_source_counts']}",
         f"- build_memory_system_graph_memory_object_index_layer_manifest_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_layer_manifest_applied_count']}",
@@ -3397,6 +3451,7 @@ def _write_summary(
         f"- operation_utility_enabled: {metrics['retrieval']['operation_utility_enabled']}",
         f"- operation_utility_fusion_mode: {metrics['retrieval']['operation_utility_fusion_mode']}",
         f"- operation_utility_slot_source: {metrics['retrieval']['operation_utility_slot_source']}",
+        f"- operation_utility_slot_index_source_counts: {metrics['retrieval']['operation_utility_slot_index_source_counts']}",
         f"- operation_utility_applied_count: {metrics['retrieval']['operation_utility_applied_count']}",
         f"- avg_operation_utility_source_hits: {metrics['retrieval']['avg_operation_utility_source_hits']}",
         f"- graph_utility_enabled: {metrics['retrieval']['graph_utility_enabled']}",
@@ -3405,6 +3460,7 @@ def _write_summary(
         f"- graph_utility_require_new_source: {metrics['retrieval']['graph_utility_require_new_source']}",
         f"- graph_utility_required_signals: {metrics['retrieval']['graph_utility_required_signals']}",
         f"- graph_utility_slot_source: {metrics['retrieval']['graph_utility_slot_source']}",
+        f"- graph_utility_slot_index_source_counts: {metrics['retrieval']['graph_utility_slot_index_source_counts']}",
         f"- graph_utility_applied_count: {metrics['retrieval']['graph_utility_applied_count']}",
         f"- avg_graph_utility_source_hits: {metrics['retrieval']['avg_graph_utility_source_hits']}",
         f"- build_memory_include_superseded: {metrics['retrieval']['build_memory_include_superseded']}",
@@ -3824,6 +3880,7 @@ def _write_diagnosis(
         f"- avg_build_memory_system_graph_memory_object_index_context_interface_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_context_interface_entries']}",
         f"- avg_build_memory_system_graph_memory_object_index_context_interface_role_count: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_context_interface_role_count']}",
         f"- avg_build_memory_system_graph_memory_object_index_context_interface_anchor_sources: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_context_interface_anchor_sources']}",
+        f"- avg_build_memory_system_graph_memory_object_index_context_interface_operation_slots: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_context_interface_operation_slots']}",
         f"- build_memory_system_graph_memory_object_index_context_interface_role_source_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_context_interface_role_source_counts']}",
         f"- build_memory_system_graph_memory_object_index_context_interface_operation_view_source_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_context_interface_operation_view_source_counts']}",
         f"- build_memory_system_graph_memory_object_index_layer_manifest_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_layer_manifest_applied_count']}",
@@ -3859,11 +3916,13 @@ def _write_diagnosis(
         f"- memory_activation_priority_reordered_count: {metrics['retrieval']['memory_activation_priority_reordered_count']}",
         f"- avg_memory_activation_priority_hits: {metrics['retrieval']['avg_memory_activation_priority_hits']}",
         f"- operation_utility_slot_source: {metrics['retrieval']['operation_utility_slot_source']}",
+        f"- operation_utility_slot_index_source_counts: {metrics['retrieval']['operation_utility_slot_index_source_counts']}",
         f"- graph_utility_enabled: {metrics['retrieval']['graph_utility_enabled']}",
         f"- graph_utility_fusion_mode: {metrics['retrieval']['graph_utility_fusion_mode']}",
         f"- graph_utility_overflow_max_hits: {metrics['retrieval']['graph_utility_overflow_max_hits']}",
         f"- graph_utility_required_signals: {metrics['retrieval']['graph_utility_required_signals']}",
         f"- graph_utility_slot_source: {metrics['retrieval']['graph_utility_slot_source']}",
+        f"- graph_utility_slot_index_source_counts: {metrics['retrieval']['graph_utility_slot_index_source_counts']}",
         f"- graph_utility_applied_count: {metrics['retrieval']['graph_utility_applied_count']}",
         f"- avg_graph_utility_source_hits: {metrics['retrieval']['avg_graph_utility_source_hits']}",
         f"- build_memory_include_superseded: {metrics['retrieval']['build_memory_include_superseded']}",

@@ -1423,6 +1423,9 @@ def _memory_object_index_manifest(
         "context_interface_anchor_source_count": (
             context_interface["context_anchor_source_count"]
         ),
+        "context_interface_operation_slot_count": (
+            context_interface["operation_slot_count"]
+        ),
         "source_backed_object_count": sum(
             1 for record in managed_records if record.source_ids
         ),
@@ -1526,6 +1529,7 @@ def _memory_object_index_manifest(
                 "schema_version": "memory_context_interface_v1",
                 "source": "memory_layer_manifest_and_memory_operation_api",
                 "anchor_source_field": "context_anchor_source_ids",
+                "operation_slot_field": "operation_slots",
                 "roles": [
                     "query_short_term",
                     "working_state",
@@ -2197,6 +2201,7 @@ def _memory_context_interface(
             operations=("verify", "audit"),
         ),
     }
+    operation_slots = _memory_context_interface_operation_slots(operation_entries)
     object_type_counts: dict[str, int] = defaultdict(int)
     action_counts: dict[str, int] = defaultdict(int)
     for entry in operation_entries:
@@ -2225,12 +2230,17 @@ def _memory_context_interface(
         "source_incomplete_entry_count": int(
             operation_api.get("source_incomplete_entry_count") or 0
         ),
+        "operation_slot_count": len(operation_slots),
+        "source_backed_operation_slot_count": sum(
+            1 for slot in operation_slots if slot.get("source_backed")
+        ),
         "operation_contract": list(_memory_working_view_operation_contract()),
         "operation_action_counts": dict(sorted(action_counts.items())),
         "memory_object_type_counts": dict(sorted(object_type_counts.items())),
         "layer_order": layer_order,
         "source_roles": source_roles,
         "operation_views": operation_views,
+        "operation_slots": operation_slots,
         "context_anchor_source_ids": context_anchor_source_ids,
         "context_anchor_source_count": len(context_anchor_source_ids),
         "context_organization_policy": {
@@ -2255,9 +2265,10 @@ def _memory_context_interface(
             "Question-independent memory context interface that organizes "
             "short-term, working, long-term, archival, and quarantine memory "
             "roles plus conflict, supersession, and verification operation "
-            "views. It lets query modules consume one source-backed memory "
-            "system boundary for state management, context organization, and "
-            "audit while final evidence remains raw source rows."
+            "views and operation slots. It lets query modules consume one "
+            "source-backed memory system boundary for state management, "
+            "retrieval expansion, context organization, and audit while final "
+            "evidence remains raw source rows."
         ),
     }
 
@@ -2309,6 +2320,32 @@ def _memory_context_interface_source_role(
             "final_evidence_policy": "raw_source_rows",
         },
     }
+
+
+def _memory_context_interface_operation_slots(
+    entries: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    slots: list[dict[str, Any]] = []
+    for entry in entries:
+        if entry.get("target_type") != "operation_slot":
+            continue
+        slots.append(
+            {
+                **entry,
+                "interface_source": "memory_context_interface",
+                "interface_entry_id": str(entry.get("operation_id") or ""),
+                "context_role": _memory_context_interface_role_name(
+                    str(entry.get("memory_layer") or "")
+                ),
+                "source_policy": {
+                    "raw_evidence_required": True,
+                    "final_evidence_policy": "raw_source_rows",
+                    "memory_objects_are_not_final_evidence": True,
+                    "projection_source": "memory_operation_api",
+                },
+            }
+        )
+    return slots
 
 
 def _memory_context_interface_role_operations(layer: str) -> list[str]:
