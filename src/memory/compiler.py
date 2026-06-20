@@ -46,6 +46,33 @@ WORKING_MEMORY_PACKET_SOURCES = {
     "operation_registry",
 }
 WORKING_MEMORY_PACKET_FORMATS = {"verbose", "compact"}
+WORKING_MEMORY_PACKET_SLOT_GUARD_ACTIONS = {"suppress", "structured_guide"}
+WORKING_MEMORY_PACKET_SLOT_GUARD_TERMS = {
+    "dating",
+    "girlfriend",
+    "boyfriend",
+    "husband",
+    "marital",
+    "married",
+    "partner",
+    "relationship",
+    "relationships",
+    "romantic",
+    "single",
+    "spouse",
+    "state",
+    "status",
+    "wife",
+}
+WORKING_MEMORY_PACKET_SLOT_GUARD_SUBJECT_STOPWORDS = {
+    "current",
+    "currently",
+    "latest",
+    "now",
+    "recent",
+    "recently",
+    "s",
+}
 MEMORY_STATE_GUIDE_ALIGNMENT_WEAK_TERMS = {
     "a",
     "about",
@@ -271,6 +298,9 @@ ROUTE_OVERRIDE_KEYS = {
     "working_memory_packet_format",
     "working_memory_packet_max_items",
     "working_memory_packet_source",
+    "working_memory_packet_slot_guard",
+    "working_memory_packet_slot_guard_action",
+    "working_memory_packet_slot_guard_max_rows",
     "working_memory_packet_value_chars",
 }
 EVIDENCE_ORDER_MODES = {
@@ -476,6 +506,9 @@ class EvidenceCompiler:
         working_memory_packet_value_chars: int = 120,
         working_memory_packet_source: str = "working_view",
         working_memory_packet_format: str = "verbose",
+        working_memory_packet_slot_guard: bool = False,
+        working_memory_packet_slot_guard_action: str = "suppress",
+        working_memory_packet_slot_guard_max_rows: int = 6,
         profile_activation_guide: bool = False,
         profile_activation_guide_information_needs: tuple[str, ...] = (
             "profile_preference",
@@ -764,6 +797,15 @@ class EvidenceCompiler:
         self._working_memory_packet_format = _validate_working_memory_packet_format(
             working_memory_packet_format
         )
+        self._working_memory_packet_slot_guard = bool(working_memory_packet_slot_guard)
+        self._working_memory_packet_slot_guard_action = (
+            _validate_working_memory_packet_slot_guard_action(
+                working_memory_packet_slot_guard_action
+            )
+        )
+        self._working_memory_packet_slot_guard_max_rows = max(
+            1, int(working_memory_packet_slot_guard_max_rows)
+        )
         self._profile_activation_guide = bool(profile_activation_guide)
         self._profile_activation_guide_information_needs = _validate_information_needs(
             profile_activation_guide_information_needs,
@@ -962,6 +1004,44 @@ class EvidenceCompiler:
             context_layout=route_settings["context_layout"],
         )
 
+        diagnostics: dict[str, Any] = {}
+        structured_guide_enabled = (
+            route_settings["structured_guide"]
+            and not set(route.signals).intersection(
+                self._structured_guide_disabled_signals
+            )
+        )
+        structured_guide_max_rows = route_settings["structured_guide_max_rows"]
+        working_memory_packet_enabled = (
+            route_settings["working_memory_packet"]
+            and route.information_need in self._working_memory_packet_information_needs
+        )
+        if (
+            route_settings["working_memory_packet_slot_guard"]
+            and working_memory_packet_enabled
+            and route_settings["working_memory_packet_format"] == "compact"
+        ):
+            slot_guard = _working_memory_packet_slot_guard_diagnostics(
+                question=question,
+                route=route,
+                rows=laid_out_rows,
+                memory_object_index=memory_object_index,
+                max_items=route_settings["working_memory_packet_max_items"],
+                source=route_settings["working_memory_packet_source"],
+            )
+            if slot_guard["applied"]:
+                action = route_settings["working_memory_packet_slot_guard_action"]
+                slot_guard["action"] = action
+                if action == "suppress":
+                    working_memory_packet_enabled = False
+                elif action == "structured_guide":
+                    structured_guide_enabled = True
+                    structured_guide_max_rows = min(
+                        structured_guide_max_rows,
+                        route_settings["working_memory_packet_slot_guard_max_rows"],
+                    )
+            diagnostics["working_memory_packet_slot_guard"] = slot_guard
+
         prompt = _build_prompt(
             question,
             question_time,
@@ -1051,13 +1131,8 @@ class EvidenceCompiler:
             enable_weekend_relative_time=route_settings[
                 "enable_weekend_relative_time"
             ],
-            structured_guide=(
-                route_settings["structured_guide"]
-                and not set(route.signals).intersection(
-                    self._structured_guide_disabled_signals
-                )
-            ),
-            structured_guide_max_rows=route_settings["structured_guide_max_rows"],
+            structured_guide=structured_guide_enabled,
+            structured_guide_max_rows=structured_guide_max_rows,
             structured_guide_include_rows=route_settings[
                 "structured_guide_include_rows"
             ],
@@ -1167,11 +1242,7 @@ class EvidenceCompiler:
             memory_value_slot_guide_memory_types=route_settings[
                 "memory_value_slot_guide_memory_types"
             ],
-            working_memory_packet=(
-                route_settings["working_memory_packet"]
-                and route.information_need
-                in self._working_memory_packet_information_needs
-            ),
+            working_memory_packet=working_memory_packet_enabled,
             working_memory_packet_max_items=route_settings[
                 "working_memory_packet_max_items"
             ],
@@ -1237,7 +1308,6 @@ class EvidenceCompiler:
             compact_query_answer_contract=self._compact_query_answer_contract,
             prompt_mode=self._prompt_mode,
         )
-        diagnostics: dict[str, Any] = {}
         if (
             route_settings["memory_state_guide"]
             and route.information_need in self._memory_state_guide_information_needs
@@ -1387,6 +1457,15 @@ class EvidenceCompiler:
                 self._working_memory_packet_value_chars
             ),
             "working_memory_packet_source": self._working_memory_packet_source,
+            "working_memory_packet_slot_guard": (
+                self._working_memory_packet_slot_guard
+            ),
+            "working_memory_packet_slot_guard_action": (
+                self._working_memory_packet_slot_guard_action
+            ),
+            "working_memory_packet_slot_guard_max_rows": (
+                self._working_memory_packet_slot_guard_max_rows
+            ),
             "profile_activation_guide": self._profile_activation_guide,
             "profile_activation_guide_max_records": (
                 self._profile_activation_guide_max_records
@@ -1533,6 +1612,16 @@ def _validate_working_memory_packet_format(value: str) -> str:
         raise ValueError(
             "Unsupported working_memory_packet_format: "
             f"{value}. Expected one of {sorted(WORKING_MEMORY_PACKET_FORMATS)}"
+        )
+    return value
+
+
+def _validate_working_memory_packet_slot_guard_action(value: str) -> str:
+    if value not in WORKING_MEMORY_PACKET_SLOT_GUARD_ACTIONS:
+        raise ValueError(
+            "Unsupported working_memory_packet_slot_guard_action: "
+            f"{value}. Expected one of "
+            f"{sorted(WORKING_MEMORY_PACKET_SLOT_GUARD_ACTIONS)}"
         )
     return value
 
@@ -1873,6 +1962,20 @@ def _validate_route_overrides(
                 _validate_working_memory_packet_format(
                     str(raw_overrides["working_memory_packet_format"])
                 )
+            )
+        if "working_memory_packet_slot_guard" in raw_overrides:
+            overrides["working_memory_packet_slot_guard"] = bool(
+                raw_overrides["working_memory_packet_slot_guard"]
+            )
+        if "working_memory_packet_slot_guard_action" in raw_overrides:
+            overrides["working_memory_packet_slot_guard_action"] = (
+                _validate_working_memory_packet_slot_guard_action(
+                    str(raw_overrides["working_memory_packet_slot_guard_action"])
+                )
+            )
+        if "working_memory_packet_slot_guard_max_rows" in raw_overrides:
+            overrides["working_memory_packet_slot_guard_max_rows"] = max(
+                1, int(raw_overrides["working_memory_packet_slot_guard_max_rows"])
             )
         if "profile_activation_guide" in raw_overrides:
             overrides["profile_activation_guide"] = bool(
@@ -4696,59 +4799,17 @@ def _external_working_memory_packet_lines(
 ) -> list[str]:
     """Source-backed memory organization packet grounded in visible rows."""
 
-    if not rows or max_items <= 0 or not isinstance(memory_object_index, Mapping):
-        return []
     packet_format = _validate_working_memory_packet_format(packet_format)
-    raw_entries, selected_source = _working_memory_packet_source_entries(
-        memory_object_index,
-        source=_validate_working_memory_packet_source(source),
+    selected_candidates, selected_source = _working_memory_packet_candidates_for_context(
+        question=question,
+        route=route,
+        rows=rows,
+        memory_object_index=memory_object_index,
+        max_items=max_items,
+        source=source,
     )
-    if not raw_entries:
+    if not selected_candidates:
         return []
-
-    source_to_memory_index = {
-        row.source_id: index for index, row in enumerate(rows, start=1)
-    }
-    question_terms = _content_terms(question)
-    candidates: list[tuple[float, float, int, Mapping[str, Any], tuple[str, ...]]] = []
-    for ordinal, entry in enumerate(raw_entries):
-        if not isinstance(entry, Mapping):
-            continue
-        if not entry.get("source_backed"):
-            continue
-        if str(entry.get("memory_tier") or "") == "quarantine_memory":
-            continue
-        source_ids = _working_memory_packet_entry_source_ids(entry)
-        source_labels = _source_labels_for_source_ids(
-            source_ids,
-            source_to_memory_index,
-        )
-        if not source_labels:
-            continue
-        score = _working_memory_packet_entry_score(
-            entry,
-            question_terms=question_terms,
-            route=route,
-        )
-        if score <= 0:
-            continue
-        candidates.append(
-            (
-                score,
-                _working_memory_packet_target_priority(
-                    str(entry.get("target_type") or "")
-                ),
-                ordinal,
-                entry,
-                source_labels,
-            )
-        )
-    if not candidates:
-        return []
-
-    selected_candidates = _select_working_memory_packet_candidates(
-        candidates, max_items=max_items
-    )
     if packet_format == "compact":
         return _compact_working_memory_packet_lines(
             selected_candidates,
@@ -4829,6 +4890,212 @@ def _external_working_memory_packet_lines(
         fields.append(f"sources={', '.join(source_labels)}")
         lines.append(f"  - {' | '.join(fields)}")
     return lines
+
+
+def _working_memory_packet_candidates_for_context(
+    *,
+    question: str,
+    route: RouteResult,
+    rows: tuple[EvidenceRow, ...],
+    memory_object_index: Mapping[str, Any] | None,
+    max_items: int,
+    source: str,
+) -> tuple[
+    list[tuple[float, float, int, Mapping[str, Any], tuple[str, ...]]],
+    str,
+]:
+    if not rows or max_items <= 0 or not isinstance(memory_object_index, Mapping):
+        return [], source
+    raw_entries, selected_source = _working_memory_packet_source_entries(
+        memory_object_index,
+        source=_validate_working_memory_packet_source(source),
+    )
+    if not raw_entries:
+        return [], selected_source
+
+    source_to_memory_index = {
+        row.source_id: index for index, row in enumerate(rows, start=1)
+    }
+    question_terms = _content_terms(question)
+    candidates: list[tuple[float, float, int, Mapping[str, Any], tuple[str, ...]]] = []
+    for ordinal, entry in enumerate(raw_entries):
+        if not isinstance(entry, Mapping):
+            continue
+        if not entry.get("source_backed"):
+            continue
+        if str(entry.get("memory_tier") or "") == "quarantine_memory":
+            continue
+        source_ids = _working_memory_packet_entry_source_ids(entry)
+        source_labels = _source_labels_for_source_ids(
+            source_ids,
+            source_to_memory_index,
+        )
+        if not source_labels:
+            continue
+        score = _working_memory_packet_entry_score(
+            entry,
+            question_terms=question_terms,
+            route=route,
+        )
+        if score <= 0:
+            continue
+        candidates.append(
+            (
+                score,
+                _working_memory_packet_target_priority(
+                    str(entry.get("target_type") or "")
+                ),
+                ordinal,
+                entry,
+                source_labels,
+            )
+        )
+    if not candidates:
+        return [], selected_source
+    return (
+        _select_working_memory_packet_candidates(candidates, max_items=max_items),
+        selected_source,
+    )
+
+
+def _working_memory_packet_slot_guard_diagnostics(
+    *,
+    question: str,
+    route: RouteResult,
+    rows: tuple[EvidenceRow, ...],
+    memory_object_index: Mapping[str, Any] | None,
+    max_items: int,
+    source: str,
+) -> dict[str, Any]:
+    required_slot_terms = _working_memory_packet_required_slot_terms(question)
+    if not required_slot_terms:
+        return {"applied": False, "reason": "not_slot_status_question"}
+
+    selected_candidates, selected_source = _working_memory_packet_candidates_for_context(
+        question=question,
+        route=route,
+        rows=rows,
+        memory_object_index=memory_object_index,
+        max_items=max_items,
+        source=source,
+    )
+    if not selected_candidates:
+        return {
+            "applied": False,
+            "reason": "no_source_backed_packet_candidates",
+            "required_slot_terms": sorted(required_slot_terms),
+            "source": selected_source,
+        }
+
+    subject_terms = _working_memory_packet_subject_terms(question, required_slot_terms)
+    for _, _, _, entry, _ in selected_candidates:
+        entry_terms = _working_memory_packet_entry_terms(entry)
+        if not required_slot_terms.issubset(entry_terms):
+            continue
+        if subject_terms and not subject_terms.intersection(entry_terms):
+            continue
+        return {
+            "applied": False,
+            "reason": "slot_covered",
+            "required_slot_terms": sorted(required_slot_terms),
+            "subject_terms": sorted(subject_terms),
+            "source": selected_source,
+        }
+
+    return {
+        "applied": True,
+        "reason": "selected_packet_missing_requested_slot",
+        "required_slot_terms": sorted(required_slot_terms),
+        "subject_terms": sorted(subject_terms),
+        "selected_slots": list(
+            dict.fromkeys(
+                _working_memory_packet_entry_slot_label(entry)
+                for _, _, _, entry, _ in selected_candidates
+            )
+        ),
+        "source": selected_source,
+    }
+
+
+def _working_memory_packet_required_slot_terms(question: str) -> frozenset[str]:
+    terms = _content_terms(question)
+    slot_terms = terms.intersection(WORKING_MEMORY_PACKET_SLOT_GUARD_TERMS)
+    if "status" in slot_terms and slot_terms.intersection(
+        {
+            "dating",
+            "girlfriend",
+            "boyfriend",
+            "husband",
+            "marital",
+            "married",
+            "partner",
+            "relationship",
+            "relationships",
+            "romantic",
+            "single",
+            "spouse",
+            "wife",
+        }
+    ):
+        return frozenset({"relationship", "status"})
+    if "status" in slot_terms:
+        return frozenset({"status"})
+    if "state" in slot_terms:
+        return frozenset(slot_terms.intersection({"state", "status"}))
+    return frozenset()
+
+
+def _working_memory_packet_subject_terms(
+    question: str,
+    required_slot_terms: frozenset[str],
+) -> frozenset[str]:
+    subject_terms = set(_content_terms(question))
+    subject_terms.difference_update(required_slot_terms)
+    subject_terms.difference_update(WORKING_MEMORY_PACKET_SLOT_GUARD_TERMS)
+    subject_terms.difference_update(WORKING_MEMORY_PACKET_SLOT_GUARD_SUBJECT_STOPWORDS)
+    return frozenset(subject_terms)
+
+
+def _working_memory_packet_entry_terms(entry: Mapping[str, Any]) -> frozenset[str]:
+    parts = [
+        entry.get("target_type"),
+        entry.get("target_id"),
+        entry.get("slot_id"),
+        entry.get("workspace_layer"),
+        entry.get("workspace_role"),
+        entry.get("memory_layer"),
+        entry.get("context_role"),
+        entry.get("memory_type"),
+        entry.get("focus"),
+        entry.get("manager_decision"),
+        entry.get("lifecycle_stage"),
+        entry.get("subject"),
+        entry.get("predicate"),
+        _working_memory_packet_entry_value(entry),
+        " ".join(str(item) for item in entry.get("context_actions") or ()),
+        " ".join(str(item) for item in entry.get("verifier_checks") or ()),
+        " ".join(str(item) for item in entry.get("operations") or ()),
+        " ".join(str(item) for item in entry.get("audit_actions") or ()),
+        " ".join(str(item) for item in entry.get("audit_flags") or ()),
+    ]
+    normalized = " ".join(
+        str(part).replace("_", " ").replace("-", " ") for part in parts if part
+    )
+    return _content_terms(normalized)
+
+
+def _working_memory_packet_entry_slot_label(entry: Mapping[str, Any]) -> str:
+    subject = _single_line(str(entry.get("subject") or "")).strip()
+    predicate = _single_line(
+        str(
+            entry.get("predicate")
+            or entry.get("slot_id")
+            or entry.get("target_id")
+            or entry.get("target_type")
+            or "memory"
+        )
+    ).strip()
+    return f"{subject + '/' if subject else ''}{predicate}"
 
 
 def _compact_working_memory_packet_lines(

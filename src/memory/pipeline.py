@@ -1381,6 +1381,17 @@ class Stage1Pipeline:
             working_memory_packet_format=str(
                 compiler_config.get("working_memory_packet_format", "verbose")
             ),
+            working_memory_packet_slot_guard=bool(
+                compiler_config.get("working_memory_packet_slot_guard", False)
+            ),
+            working_memory_packet_slot_guard_action=str(
+                compiler_config.get(
+                    "working_memory_packet_slot_guard_action", "suppress"
+                )
+            ),
+            working_memory_packet_slot_guard_max_rows=int(
+                compiler_config.get("working_memory_packet_slot_guard_max_rows", 6)
+            ),
             profile_activation_guide=bool(
                 compiler_config.get("profile_activation_guide", False)
             ),
@@ -11169,6 +11180,17 @@ def _compiler_trace_config(
         "working_memory_packet_format": str(
             compiler_config.get("working_memory_packet_format", "verbose")
         ),
+        "working_memory_packet_slot_guard": bool(
+            compiler_config.get("working_memory_packet_slot_guard", False)
+        ),
+        "working_memory_packet_slot_guard_action": str(
+            compiler_config.get(
+                "working_memory_packet_slot_guard_action", "suppress"
+            )
+        ),
+        "working_memory_packet_slot_guard_max_rows": int(
+            compiler_config.get("working_memory_packet_slot_guard_max_rows", 6)
+        ),
         "profile_activation_guide": bool(
             compiler_config.get("profile_activation_guide", False)
         ),
@@ -11565,6 +11587,17 @@ def _configured_compiler(compiler_config: Mapping[str, Any]) -> EvidenceCompiler
         ),
         working_memory_packet_format=str(
             compiler_config.get("working_memory_packet_format", "verbose")
+        ),
+        working_memory_packet_slot_guard=bool(
+            compiler_config.get("working_memory_packet_slot_guard", False)
+        ),
+        working_memory_packet_slot_guard_action=str(
+            compiler_config.get(
+                "working_memory_packet_slot_guard_action", "suppress"
+            )
+        ),
+        working_memory_packet_slot_guard_max_rows=int(
+            compiler_config.get("working_memory_packet_slot_guard_max_rows", 6)
         ),
         profile_activation_guide=bool(
             compiler_config.get("profile_activation_guide", False)

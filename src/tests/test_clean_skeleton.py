@@ -13032,6 +13032,142 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertNotIn("context=retrieve_source_rows", compiled.prompt)
         self.assertNotIn("checks=source_backing", compiled.prompt)
 
+    def test_working_memory_packet_slot_guard_suppresses_incomplete_status_slot(
+        self,
+    ) -> None:
+        record = MemoryRecord(
+            memory_id="friendship",
+            memory_type="relationship",
+            text="Caroline and Melanie are close friends.",
+            source_ids=("s1:t0",),
+            subject="Caroline",
+            predicate="friend of",
+            value="Melanie",
+            status="active",
+        )
+        memory_object_index = _management_summary(
+            (record,),
+            policy="stateful_only",
+            managed_memory_types=frozenset({"relationship"}),
+            include_memory_system_graph=True,
+        )["memory_system_graph"]["memory_object_index"]
+        compiler = EvidenceCompiler(
+            max_evidence_items=2,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            structured_guide=True,
+            working_memory_packet=True,
+            working_memory_packet_information_needs=("fact_lookup",),
+            working_memory_packet_max_items=2,
+            working_memory_packet_source="memory_system_state",
+            working_memory_packet_format="compact",
+            working_memory_packet_slot_guard=True,
+            route_overrides={
+                "fact_lookup": {
+                    "structured_guide": False,
+                    "working_memory_packet": True,
+                }
+            },
+        )
+
+        compiled = compiler.compile(
+            question="What is Caroline's relationship status?",
+            question_time=None,
+            route=RouteResult("fact_lookup", ("fact_lookup",)),
+            hits=(),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Caroline and Melanie are close friends.",
+                    timestamp="2024-04-01",
+                ),
+                Turn(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="Caroline recently mentioned a difficult breakup.",
+                    timestamp="2024-04-02",
+                ),
+            ),
+            memory_object_index=memory_object_index,
+        )
+
+        self.assertNotIn("Working Memory Packet:", compiled.prompt)
+        self.assertNotIn("Structured Evidence Guide:", compiled.prompt)
+        slot_guard = compiled.diagnostics["working_memory_packet_slot_guard"]
+        self.assertTrue(slot_guard["applied"])
+        self.assertEqual(
+            slot_guard["reason"],
+            "selected_packet_missing_requested_slot",
+        )
+        self.assertEqual(slot_guard["action"], "suppress")
+        self.assertEqual(slot_guard["selected_slots"], ["caroline/friend of"])
+
+    def test_working_memory_packet_slot_guard_keeps_covered_status_slot(self) -> None:
+        record = MemoryRecord(
+            memory_id="relationship-status",
+            memory_type="profile",
+            text="Caroline is single after a difficult breakup.",
+            source_ids=("s1:t0",),
+            subject="Caroline",
+            predicate="relationship_status",
+            value="single",
+            status="active",
+        )
+        memory_object_index = _management_summary(
+            (record,),
+            policy="stateful_only",
+            managed_memory_types=frozenset({"profile"}),
+            include_memory_system_graph=True,
+        )["memory_system_graph"]["memory_object_index"]
+        compiler = EvidenceCompiler(
+            max_evidence_items=1,
+            max_evidence_chars=3000,
+            prompt_mode="external_naive",
+            structured_guide=True,
+            working_memory_packet=True,
+            working_memory_packet_information_needs=("fact_lookup",),
+            working_memory_packet_max_items=2,
+            working_memory_packet_source="memory_system_state",
+            working_memory_packet_format="compact",
+            working_memory_packet_slot_guard=True,
+            route_overrides={
+                "fact_lookup": {
+                    "structured_guide": False,
+                    "working_memory_packet": True,
+                }
+            },
+        )
+
+        compiled = compiler.compile(
+            question="What is Caroline's relationship status?",
+            question_time=None,
+            route=RouteResult("fact_lookup", ("fact_lookup",)),
+            hits=(),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Caroline is single after a difficult breakup.",
+                    timestamp="2024-04-01",
+                ),
+            ),
+            memory_object_index=memory_object_index,
+        )
+
+        self.assertIn("Working Memory Packet:", compiled.prompt)
+        self.assertIn("slot=caroline/relationship_status", compiled.prompt)
+        self.assertNotIn("Structured Evidence Guide:", compiled.prompt)
+        slot_guard = compiled.diagnostics["working_memory_packet_slot_guard"]
+        self.assertFalse(slot_guard["applied"])
+        self.assertEqual(slot_guard["reason"], "slot_covered")
+
     def test_working_memory_packet_auto_falls_back_to_operation_registry(self) -> None:
         old_record = MemoryRecord(
             memory_id="old-followers",
