@@ -56,6 +56,7 @@ def main() -> int:
     total_compiler_memory_records = 0
     total_context_chars = 0
     total_update_conflict_guide_applied = 0
+    total_memory_value_slot_guide_applied = 0
     total_personalized_advice_contract_applied = 0
     total_event_time_candidate_manifest_applied = 0
     total_event_time_candidate_manifest_items = 0
@@ -243,6 +244,8 @@ def main() -> int:
         prompt_text = str(compiled.get("prompt") or "")
         if "Update/Conflict Candidate Chain:" in prompt_text:
             total_update_conflict_guide_applied += 1
+        if "Memory Value Slot Guide:" in prompt_text:
+            total_memory_value_slot_guide_applied += 1
         if "Personalized Advice Discipline:" in prompt_text:
             total_personalized_advice_contract_applied += 1
         if "Event-Time Candidate Map:" in prompt_text:
@@ -1941,6 +1944,19 @@ def main() -> int:
                 "update_conflict_guide_snippet_chars", 180
             ),
             "update_conflict_guide_applied": total_update_conflict_guide_applied,
+            "memory_value_slot_guide": config.get("compiler", {}).get(
+                "memory_value_slot_guide", False
+            ),
+            "memory_value_slot_guide_information_needs": config.get(
+                "compiler", {}
+            ).get("memory_value_slot_guide_information_needs"),
+            "memory_value_slot_guide_max_slots": config.get("compiler", {}).get(
+                "memory_value_slot_guide_max_slots", 4
+            ),
+            "memory_value_slot_guide_max_values": config.get("compiler", {}).get(
+                "memory_value_slot_guide_max_values", 6
+            ),
+            "memory_value_slot_guide_applied": total_memory_value_slot_guide_applied,
             "memory_state_guide": config.get("compiler", {}).get(
                 "memory_state_guide", False
             ),
@@ -2852,6 +2868,11 @@ def _write_summary(
         f"- update_conflict_guide_max_rows: {metrics['compiler']['update_conflict_guide_max_rows']}",
         f"- update_conflict_guide_snippet_chars: {metrics['compiler']['update_conflict_guide_snippet_chars']}",
         f"- update_conflict_guide_applied: {metrics['compiler']['update_conflict_guide_applied']}",
+        f"- memory_value_slot_guide: {metrics['compiler']['memory_value_slot_guide']}",
+        f"- memory_value_slot_guide_information_needs: {metrics['compiler']['memory_value_slot_guide_information_needs']}",
+        f"- memory_value_slot_guide_max_slots: {metrics['compiler']['memory_value_slot_guide_max_slots']}",
+        f"- memory_value_slot_guide_max_values: {metrics['compiler']['memory_value_slot_guide_max_values']}",
+        f"- memory_value_slot_guide_applied: {metrics['compiler']['memory_value_slot_guide_applied']}",
         f"- memory_state_guide: {metrics['compiler']['memory_state_guide']}",
         f"- memory_state_guide_information_needs: {metrics['compiler']['memory_state_guide_information_needs']}",
         f"- memory_state_guide_max_records: {metrics['compiler']['memory_state_guide_max_records']}",
@@ -3099,6 +3120,11 @@ def _write_diagnosis(
         f"- update_conflict_guide_max_rows: {metrics['compiler']['update_conflict_guide_max_rows']}",
         f"- update_conflict_guide_snippet_chars: {metrics['compiler']['update_conflict_guide_snippet_chars']}",
         f"- update_conflict_guide_applied: {metrics['compiler']['update_conflict_guide_applied']}",
+        f"- memory_value_slot_guide: {metrics['compiler']['memory_value_slot_guide']}",
+        f"- memory_value_slot_guide_information_needs: {metrics['compiler']['memory_value_slot_guide_information_needs']}",
+        f"- memory_value_slot_guide_max_slots: {metrics['compiler']['memory_value_slot_guide_max_slots']}",
+        f"- memory_value_slot_guide_max_values: {metrics['compiler']['memory_value_slot_guide_max_values']}",
+        f"- memory_value_slot_guide_applied: {metrics['compiler']['memory_value_slot_guide_applied']}",
         f"- current_state_update_contract: {metrics['compiler']['current_state_update_contract']}",
         f"- dialogue_inference_contract: {metrics['compiler']['dialogue_inference_contract']}",
         f"- temporal_order_contract: {metrics['compiler']['temporal_order_contract']}",

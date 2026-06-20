@@ -1264,6 +1264,21 @@ class Stage1Pipeline:
             memory_state_guide_require_stateful_slot=bool(
                 compiler_config.get("memory_state_guide_require_stateful_slot", False)
             ),
+            memory_value_slot_guide=bool(
+                compiler_config.get("memory_value_slot_guide", False)
+            ),
+            memory_value_slot_guide_information_needs=_tuple_config(
+                compiler_config.get(
+                    "memory_value_slot_guide_information_needs",
+                    ("current_state", "fact_lookup", "profile_preference"),
+                )
+            ),
+            memory_value_slot_guide_max_slots=int(
+                compiler_config.get("memory_value_slot_guide_max_slots", 4)
+            ),
+            memory_value_slot_guide_max_values=int(
+                compiler_config.get("memory_value_slot_guide_max_values", 6)
+            ),
             profile_activation_guide=bool(
                 compiler_config.get("profile_activation_guide", False)
             ),
@@ -2617,6 +2632,9 @@ class Stage1Pipeline:
             memory_records=compiler_memory_records,
             memory_state_guide_records=compiler_memory_state_guide_records,
             memory_state_conflict_manifest=_memory_state_conflict_manifest_from_management(
+                built_memory.management
+            ),
+            memory_scalar_value_manifest=_memory_scalar_value_manifest_from_management(
                 built_memory.management
             ),
         )
@@ -4031,6 +4049,20 @@ def _memory_state_conflict_manifest_from_management(
     if not isinstance(state_conflict_manifest, Mapping):
         return None
     return state_conflict_manifest
+
+
+def _memory_scalar_value_manifest_from_management(
+    management: Mapping[str, Any] | None,
+) -> Mapping[str, Any] | None:
+    if not isinstance(management, Mapping):
+        return None
+    memory_system_graph = management.get("memory_system_graph")
+    if not isinstance(memory_system_graph, Mapping):
+        return None
+    scalar_value_manifest = memory_system_graph.get("scalar_value_manifest")
+    if not isinstance(scalar_value_manifest, Mapping):
+        return None
+    return scalar_value_manifest
 
 
 def _dedupe_memory_records(records: tuple[Any, ...]) -> tuple[Any, ...]:
@@ -8342,6 +8374,21 @@ def _compiler_trace_config(
         "memory_state_guide_require_stateful_slot": bool(
             compiler_config.get("memory_state_guide_require_stateful_slot", False)
         ),
+        "memory_value_slot_guide": bool(
+            compiler_config.get("memory_value_slot_guide", False)
+        ),
+        "memory_value_slot_guide_information_needs": _tuple_config(
+            compiler_config.get(
+                "memory_value_slot_guide_information_needs",
+                ("current_state", "fact_lookup", "profile_preference"),
+            )
+        ),
+        "memory_value_slot_guide_max_slots": int(
+            compiler_config.get("memory_value_slot_guide_max_slots", 4)
+        ),
+        "memory_value_slot_guide_max_values": int(
+            compiler_config.get("memory_value_slot_guide_max_values", 6)
+        ),
         "profile_activation_guide": bool(
             compiler_config.get("profile_activation_guide", False)
         ),
@@ -8681,6 +8728,21 @@ def _configured_compiler(compiler_config: Mapping[str, Any]) -> EvidenceCompiler
         ),
         memory_state_guide_require_stateful_slot=bool(
             compiler_config.get("memory_state_guide_require_stateful_slot", False)
+        ),
+        memory_value_slot_guide=bool(
+            compiler_config.get("memory_value_slot_guide", False)
+        ),
+        memory_value_slot_guide_information_needs=_tuple_config(
+            compiler_config.get(
+                "memory_value_slot_guide_information_needs",
+                ("current_state", "fact_lookup", "profile_preference"),
+            )
+        ),
+        memory_value_slot_guide_max_slots=int(
+            compiler_config.get("memory_value_slot_guide_max_slots", 4)
+        ),
+        memory_value_slot_guide_max_values=int(
+            compiler_config.get("memory_value_slot_guide_max_values", 6)
         ),
         profile_activation_guide=bool(
             compiler_config.get("profile_activation_guide", False)

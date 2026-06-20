@@ -3361,6 +3361,8 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual(manifest["scalar_value_object_count"], 3)
         self.assertEqual(manifest["scalar_value_expression_count"], 3)
         self.assertEqual(manifest["value_slot_count"], 2)
+        self.assertEqual(len(manifest["slot_index"]), manifest["value_slot_count"])
+        self.assertEqual(manifest["slot_samples"], manifest["slot_index"][:24])
         self.assertEqual(manifest["scalar_value_slot_count"], 2)
         self.assertEqual(manifest["active_superseded_value_slot_count"], 1)
         self.assertEqual(
@@ -3381,6 +3383,10 @@ class CleanSkeletonTest(unittest.TestCase):
             if slot["predicate"] == "followers"
         )
         self.assertEqual(followers_slot["active_scalar_values"], ["1,350 followers"])
+        self.assertEqual(
+            [value["source_ids"] for value in followers_slot["value_objects"]],
+            [["s1:t1"], ["s2:t1"]],
+        )
         self.assertEqual(
             followers_slot["superseded_scalar_values"],
             ["1,200 followers"],
@@ -9325,6 +9331,10 @@ class CleanSkeletonTest(unittest.TestCase):
                 "memory_state_guide_require_active_superseded_pair": True,
                 "memory_state_guide_require_slot_overlap": True,
                 "memory_state_guide_require_stateful_slot": True,
+                "memory_value_slot_guide": True,
+                "memory_value_slot_guide_information_needs": ["current_state"],
+                "memory_value_slot_guide_max_slots": 2,
+                "memory_value_slot_guide_max_values": 3,
             },
             "answer": {"fallback_answer": "I do not know."},
         }
@@ -9375,6 +9385,19 @@ class CleanSkeletonTest(unittest.TestCase):
         )
         self.assertTrue(
             result["trace"]["compiler"]["memory_state_guide_require_stateful_slot"]
+        )
+        self.assertTrue(result["trace"]["compiler"]["memory_value_slot_guide"])
+        self.assertEqual(
+            result["trace"]["compiler"]["memory_value_slot_guide_information_needs"],
+            ("current_state",),
+        )
+        self.assertEqual(
+            result["trace"]["compiler"]["memory_value_slot_guide_max_slots"],
+            2,
+        )
+        self.assertEqual(
+            result["trace"]["compiler"]["memory_value_slot_guide_max_values"],
+            3,
         )
         self.assertEqual(
             result["trace"]["compiler"]["memory_state_guide_record_source"],

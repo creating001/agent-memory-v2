@@ -384,6 +384,110 @@ class CompilerTest(unittest.TestCase):
         self.assertIn("sources=Memory 1", compiled.prompt)
         self.assertIn("sources=Memory 2", compiled.prompt)
 
+    def test_memory_value_slot_guide_uses_visible_manifest_values(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=4,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            memory_value_slot_guide=True,
+            memory_value_slot_guide_information_needs=("current_state",),
+            memory_value_slot_guide_max_slots=2,
+            memory_value_slot_guide_max_values=4,
+        )
+
+        compiled = compiler.compile(
+            question="What is Alex's current follower count?",
+            question_time=None,
+            route=RouteResult("current_state", ("current_state",)),
+            hits=(
+                RetrievalHit("s1:t0", 1.0, 1, "test"),
+                RetrievalHit("s2:t0", 0.9, 2, "test"),
+            ),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Alex had 1,200 followers in January.",
+                    timestamp="2024-01-01",
+                ),
+                Turn(
+                    source_id="s2:t0",
+                    session_id="s2",
+                    turn_index=0,
+                    role="user",
+                    text="Alex now has 1,350 followers.",
+                    timestamp="2024-02-01",
+                ),
+            ),
+            memory_scalar_value_manifest={
+                "schema_version": "memory_scalar_value_manifest_v1",
+                "applied": True,
+                "slot_index": [
+                    {
+                        "memory_type": "state",
+                        "managed": True,
+                        "subject": "Alex",
+                        "predicate": "follower count",
+                        "source_backed": True,
+                        "operation_hints": [
+                            "create_value_object",
+                            "supersede_value",
+                            "verify_value_source",
+                        ],
+                        "value_objects": [
+                            {
+                                "status": "superseded",
+                                "value": "1,200 followers",
+                                "scalar_values": ["1,200 followers"],
+                                "source_ids": ["s1:t0"],
+                                "time": "2024-01-01",
+                            },
+                            {
+                                "status": "active",
+                                "value": "1,350 followers",
+                                "scalar_values": ["1,350 followers"],
+                                "source_ids": ["s2:t0"],
+                                "time": "2024-02-01",
+                            },
+                            {
+                                "status": "active",
+                                "value": "1,500 followers",
+                                "scalar_values": ["1,500 followers"],
+                                "source_ids": ["s3:t0"],
+                                "time": "2024-03-01",
+                            },
+                        ],
+                    },
+                    {
+                        "memory_type": "state",
+                        "managed": True,
+                        "subject": "Alex",
+                        "predicate": "follower count",
+                        "source_backed": True,
+                        "value_objects": [
+                            {
+                                "status": "active",
+                                "value": "1,800 followers",
+                                "source_ids": ["hidden:t0"],
+                                "time": "2024-04-01",
+                            }
+                        ],
+                    },
+                ],
+            },
+        )
+
+        self.assertIn("Memory Value Slot Guide:", compiled.prompt)
+        self.assertIn("active_values=1,350 followers", compiled.prompt)
+        self.assertIn("superseded_values=1,200 followers", compiled.prompt)
+        self.assertIn("sources=Memory 1, Memory 2", compiled.prompt)
+        self.assertIn("not independent evidence", compiled.prompt)
+        self.assertNotIn("1,500 followers", compiled.prompt)
+        self.assertNotIn("1,800 followers", compiled.prompt)
+        self.assertNotIn("Memory 3", compiled.prompt)
+
     def test_source_backed_memory_state_ledger_diagnostics_use_visible_sources(
         self,
     ) -> None:

@@ -231,6 +231,9 @@ ROUTE_OVERRIDE_KEYS = {
     "memory_state_guide_include_superseded",
     "memory_state_guide_max_records",
     "memory_state_guide_value_chars",
+    "memory_value_slot_guide",
+    "memory_value_slot_guide_max_slots",
+    "memory_value_slot_guide_max_values",
     "profile_activation_guide",
     "profile_activation_guide_max_records",
     "profile_activation_guide_value_chars",
@@ -437,6 +440,14 @@ class EvidenceCompiler:
         memory_state_guide_require_active_superseded_pair: bool = False,
         memory_state_guide_require_slot_overlap: bool = False,
         memory_state_guide_require_stateful_slot: bool = False,
+        memory_value_slot_guide: bool = False,
+        memory_value_slot_guide_information_needs: tuple[str, ...] = (
+            "current_state",
+            "fact_lookup",
+            "profile_preference",
+        ),
+        memory_value_slot_guide_max_slots: int = 4,
+        memory_value_slot_guide_max_values: int = 6,
         profile_activation_guide: bool = False,
         profile_activation_guide_information_needs: tuple[str, ...] = (
             "profile_preference",
@@ -688,6 +699,17 @@ class EvidenceCompiler:
         self._memory_state_guide_require_stateful_slot = bool(
             memory_state_guide_require_stateful_slot
         )
+        self._memory_value_slot_guide = bool(memory_value_slot_guide)
+        self._memory_value_slot_guide_information_needs = _validate_information_needs(
+            memory_value_slot_guide_information_needs,
+            field_name="memory_value_slot_guide_information_needs",
+        )
+        self._memory_value_slot_guide_max_slots = max(
+            1, int(memory_value_slot_guide_max_slots)
+        )
+        self._memory_value_slot_guide_max_values = max(
+            1, int(memory_value_slot_guide_max_values)
+        )
         self._profile_activation_guide = bool(profile_activation_guide)
         self._profile_activation_guide_information_needs = _validate_information_needs(
             profile_activation_guide_information_needs,
@@ -762,6 +784,7 @@ class EvidenceCompiler:
         memory_records: tuple[MemoryRecord, ...] = (),
         memory_state_guide_records: tuple[MemoryRecord, ...] | None = None,
         memory_state_conflict_manifest: Mapping[str, Any] | None = None,
+        memory_scalar_value_manifest: Mapping[str, Any] | None = None,
     ) -> CompiledContext:
         hit_by_source_id = {hit.source_id: hit for hit in hits}
         candidates: list[EvidenceRow] = []
@@ -1032,6 +1055,7 @@ class EvidenceCompiler:
             ],
             memory_state_guide_records=selected_memory_state_guide_records,
             memory_state_conflict_manifest=memory_state_conflict_manifest,
+            memory_scalar_value_manifest=memory_scalar_value_manifest,
             memory_state_guide_candidate_records=route_settings[
                 "memory_state_guide_candidate_records"
             ],
@@ -1055,6 +1079,17 @@ class EvidenceCompiler:
             ],
             memory_state_guide_require_stateful_slot=route_settings[
                 "memory_state_guide_require_stateful_slot"
+            ],
+            memory_value_slot_guide=(
+                route_settings["memory_value_slot_guide"]
+                and route.information_need
+                in self._memory_value_slot_guide_information_needs
+            ),
+            memory_value_slot_guide_max_slots=route_settings[
+                "memory_value_slot_guide_max_slots"
+            ],
+            memory_value_slot_guide_max_values=route_settings[
+                "memory_value_slot_guide_max_values"
             ],
             profile_activation_guide=(
                 route_settings["profile_activation_guide"]
@@ -1239,6 +1274,13 @@ class EvidenceCompiler:
             ),
             "memory_state_guide_require_stateful_slot": (
                 self._memory_state_guide_require_stateful_slot
+            ),
+            "memory_value_slot_guide": self._memory_value_slot_guide,
+            "memory_value_slot_guide_max_slots": (
+                self._memory_value_slot_guide_max_slots
+            ),
+            "memory_value_slot_guide_max_values": (
+                self._memory_value_slot_guide_max_values
             ),
             "profile_activation_guide": self._profile_activation_guide,
             "profile_activation_guide_max_records": (
@@ -1657,6 +1699,18 @@ def _validate_route_overrides(
         if "memory_state_guide_require_stateful_slot" in raw_overrides:
             overrides["memory_state_guide_require_stateful_slot"] = bool(
                 raw_overrides["memory_state_guide_require_stateful_slot"]
+            )
+        if "memory_value_slot_guide" in raw_overrides:
+            overrides["memory_value_slot_guide"] = bool(
+                raw_overrides["memory_value_slot_guide"]
+            )
+        if "memory_value_slot_guide_max_slots" in raw_overrides:
+            overrides["memory_value_slot_guide_max_slots"] = max(
+                1, int(raw_overrides["memory_value_slot_guide_max_slots"])
+            )
+        if "memory_value_slot_guide_max_values" in raw_overrides:
+            overrides["memory_value_slot_guide_max_values"] = max(
+                1, int(raw_overrides["memory_value_slot_guide_max_values"])
             )
         if "profile_activation_guide" in raw_overrides:
             overrides["profile_activation_guide"] = bool(
@@ -2949,6 +3003,7 @@ def _build_prompt(
     memory_state_guide: bool,
     memory_state_guide_records: tuple[MemoryRecord, ...],
     memory_state_conflict_manifest: Mapping[str, Any] | None,
+    memory_scalar_value_manifest: Mapping[str, Any] | None,
     memory_state_guide_max_records: int,
     memory_state_guide_candidate_records: int,
     memory_state_guide_value_chars: int,
@@ -2958,6 +3013,9 @@ def _build_prompt(
     memory_state_guide_require_active_superseded_pair: bool,
     memory_state_guide_require_slot_overlap: bool,
     memory_state_guide_require_stateful_slot: bool,
+    memory_value_slot_guide: bool,
+    memory_value_slot_guide_max_slots: int,
+    memory_value_slot_guide_max_values: int,
     profile_activation_guide: bool,
     profile_activation_guide_max_records: int,
     profile_activation_guide_value_chars: int,
@@ -3092,6 +3150,7 @@ def _build_prompt(
             memory_state_guide=memory_state_guide,
             memory_state_guide_records=memory_state_guide_records,
             memory_state_conflict_manifest=memory_state_conflict_manifest,
+            memory_scalar_value_manifest=memory_scalar_value_manifest,
             memory_state_guide_max_records=memory_state_guide_max_records,
             memory_state_guide_candidate_records=(
                 memory_state_guide_candidate_records
@@ -3113,6 +3172,9 @@ def _build_prompt(
             memory_state_guide_require_stateful_slot=(
                 memory_state_guide_require_stateful_slot
             ),
+            memory_value_slot_guide=memory_value_slot_guide,
+            memory_value_slot_guide_max_slots=memory_value_slot_guide_max_slots,
+            memory_value_slot_guide_max_values=memory_value_slot_guide_max_values,
             profile_activation_guide=profile_activation_guide,
             profile_activation_guide_max_records=profile_activation_guide_max_records,
             profile_activation_guide_value_chars=profile_activation_guide_value_chars,
@@ -3327,6 +3389,7 @@ def _build_external_naive_prompt(
     memory_state_guide: bool,
     memory_state_guide_records: tuple[MemoryRecord, ...],
     memory_state_conflict_manifest: Mapping[str, Any] | None,
+    memory_scalar_value_manifest: Mapping[str, Any] | None,
     memory_state_guide_max_records: int,
     memory_state_guide_candidate_records: int,
     memory_state_guide_value_chars: int,
@@ -3336,6 +3399,9 @@ def _build_external_naive_prompt(
     memory_state_guide_require_active_superseded_pair: bool,
     memory_state_guide_require_slot_overlap: bool,
     memory_state_guide_require_stateful_slot: bool,
+    memory_value_slot_guide: bool,
+    memory_value_slot_guide_max_slots: int,
+    memory_value_slot_guide_max_values: int,
     profile_activation_guide: bool,
     profile_activation_guide_max_records: int,
     profile_activation_guide_value_chars: int,
@@ -3502,6 +3568,20 @@ def _build_external_naive_prompt(
             memory_state_guide_block = "\n".join(
                 ["", "Managed Memory State Guide:", *memory_state_lines, ""]
             )
+    memory_value_slot_guide_block = ""
+    if memory_value_slot_guide:
+        memory_value_slot_lines = _external_memory_value_slot_guide_lines(
+            question=question,
+            route=route,
+            rows=rows,
+            scalar_value_manifest=memory_scalar_value_manifest,
+            max_slots=memory_value_slot_guide_max_slots,
+            max_values=memory_value_slot_guide_max_values,
+        )
+        if memory_value_slot_lines:
+            memory_value_slot_guide_block = "\n".join(
+                ["", "Memory Value Slot Guide:", *memory_value_slot_lines, ""]
+            )
     update_conflict_guide_block = ""
     if update_conflict_guide:
         update_conflict_lines = _external_update_conflict_guide_lines(
@@ -3531,6 +3611,10 @@ def _build_external_naive_prompt(
     if memory_state_guide_block:
         rules.append(
             "Use Managed Memory State Guide only as a state/conflict index into cited Memory Context rows; it is not independent evidence."
+        )
+    if memory_value_slot_guide_block:
+        rules.append(
+            "Use Memory Value Slot Guide only as a build-owned value/state index into cited Memory Context rows; it is not independent evidence."
         )
     if update_conflict_guide_block:
         rules.append(
@@ -3707,6 +3791,7 @@ def _build_external_naive_prompt(
             candidate_guide_block,
             profile_activation_guide_block,
             memory_state_guide_block,
+            memory_value_slot_guide_block,
             update_conflict_guide_block,
             event_timeline_block,
             operation_workpad_block,
@@ -4289,6 +4374,288 @@ def _external_memory_state_guide_lines(
         fields.append(f"sources={', '.join(source_labels[:6])}")
         lines.append(f"  - {' | '.join(fields)}")
     return lines
+
+
+def _external_memory_value_slot_guide_lines(
+    *,
+    question: str,
+    route: RouteResult,
+    rows: tuple[EvidenceRow, ...],
+    scalar_value_manifest: Mapping[str, Any] | None,
+    max_slots: int,
+    max_values: int,
+) -> list[str]:
+    """Compact build-owned value slot view grounded in visible raw rows."""
+
+    if (
+        not rows
+        or not scalar_value_manifest
+        or not scalar_value_manifest.get("applied")
+        or max_slots <= 0
+        or max_values <= 0
+    ):
+        return []
+
+    source_to_memory_index = {
+        row.source_id: index for index, row in enumerate(rows, start=1)
+    }
+    question_terms = _content_terms(question).difference(
+        MEMORY_STATE_GUIDE_ALIGNMENT_WEAK_TERMS
+    )
+    candidates: list[tuple[float, int, Mapping[str, Any], tuple[dict[str, Any], ...]]] = []
+    for ordinal, raw_slot in enumerate(
+        scalar_value_manifest.get("slot_index")
+        or scalar_value_manifest.get("slot_samples")
+        or ()
+    ):
+        if not isinstance(raw_slot, Mapping):
+            continue
+        if raw_slot.get("source_backed") is False:
+            continue
+        visible_values = _memory_value_slot_visible_values(
+            raw_slot,
+            source_to_memory_index=source_to_memory_index,
+            max_values=max_values,
+        )
+        if not visible_values:
+            continue
+        score = _memory_value_slot_score(
+            raw_slot,
+            visible_values=visible_values,
+            question_terms=question_terms,
+            route=route,
+        )
+        if score <= 0:
+            continue
+        candidates.append((score, -ordinal, raw_slot, visible_values))
+
+    if not candidates:
+        return []
+
+    candidates.sort(reverse=True)
+    selected = sorted(
+        candidates[:max_slots],
+        key=lambda item: (
+            str(item[2].get("memory_type") or ""),
+            str(item[2].get("subject") or ""),
+            str(item[2].get("predicate") or ""),
+            item[1],
+        ),
+    )
+    has_superseded = any(
+        value.get("status") == "superseded"
+        for _, _, _, visible_values in selected
+        for value in visible_values
+    )
+
+    lines = [
+        "Use this build-owned value slot view to organize current, historical, scalar, and conflicting values; verify every final fact in the cited raw Memory Context rows.",
+    ]
+    if has_superseded:
+        lines.append(
+            "- active values are current candidates for a slot; superseded values are retained for historical, previous, or before-scope questions."
+        )
+    lines.append("- slots:")
+    for _, _, slot, visible_values in selected:
+        fields = [
+            f"type={_single_line(str(slot.get('memory_type') or 'memory'))}",
+        ]
+        subject = _single_line(str(slot.get("subject") or ""))
+        predicate = _single_line(str(slot.get("predicate") or ""))
+        if subject:
+            fields.append(f"subject={_truncate_text(subject, 60)}")
+        if predicate:
+            fields.append(f"predicate={_truncate_text(predicate, 60)}")
+        active_text = _memory_value_slot_values_text(
+            visible_values,
+            status="active",
+            max_values=max_values,
+        )
+        if active_text:
+            fields.append(f"active_values={active_text}")
+        superseded_text = _memory_value_slot_values_text(
+            visible_values,
+            status="superseded",
+            max_values=max_values,
+        )
+        if superseded_text:
+            fields.append(f"superseded_values={superseded_text}")
+        scalar_text = _memory_value_slot_scalar_text(
+            visible_values,
+            max_values=max_values,
+        )
+        if scalar_text:
+            fields.append(f"scalar_values={scalar_text}")
+        source_labels = _memory_value_slot_source_label_text(visible_values)
+        if source_labels:
+            fields.append(f"sources={source_labels}")
+        operation_hints = [
+            str(hint)
+            for hint in (slot.get("operation_hints") or ())
+            if str(hint).strip()
+        ][:4]
+        if operation_hints:
+            fields.append(f"operations={', '.join(operation_hints)}")
+        lines.append(f"  - {' | '.join(fields)}")
+    return lines
+
+
+def _memory_value_slot_visible_values(
+    slot: Mapping[str, Any],
+    *,
+    source_to_memory_index: Mapping[str, int],
+    max_values: int,
+) -> tuple[dict[str, Any], ...]:
+    values: list[dict[str, Any]] = []
+    seen: set[tuple[str, str, tuple[str, ...]]] = set()
+    raw_values = slot.get("value_objects") or ()
+    if not isinstance(raw_values, Iterable) or isinstance(raw_values, (str, bytes)):
+        return ()
+    for raw_value in raw_values:
+        if not isinstance(raw_value, Mapping):
+            continue
+        source_labels = _memory_value_object_source_labels(
+            raw_value,
+            source_to_memory_index=source_to_memory_index,
+        )
+        if not source_labels:
+            continue
+        value_text = _single_line(str(raw_value.get("value") or ""))
+        scalar_values = tuple(
+            _single_line(str(value))
+            for value in (raw_value.get("scalar_values") or ())
+            if str(value).strip()
+        )
+        if not value_text and not scalar_values:
+            continue
+        status = _single_line(str(raw_value.get("status") or "active")) or "active"
+        key = (status, value_text, source_labels)
+        if key in seen:
+            continue
+        seen.add(key)
+        values.append(
+            {
+                "status": status,
+                "value": value_text,
+                "scalar_values": scalar_values,
+                "source_labels": source_labels,
+                "time": _single_line(str(raw_value.get("time") or "")),
+            }
+        )
+        if len(values) >= max(1, max_values * 2):
+            break
+    return tuple(values)
+
+
+def _memory_value_object_source_labels(
+    value_object: Mapping[str, Any],
+    *,
+    source_to_memory_index: Mapping[str, int],
+) -> tuple[str, ...]:
+    labels = []
+    for source_id in value_object.get("source_ids") or ():
+        memory_index = source_to_memory_index.get(str(source_id))
+        if memory_index is not None:
+            labels.append(f"Memory {memory_index}")
+    return tuple(dict.fromkeys(labels))
+
+
+def _memory_value_slot_score(
+    slot: Mapping[str, Any],
+    *,
+    visible_values: tuple[dict[str, Any], ...],
+    question_terms: frozenset[str],
+    route: RouteResult,
+) -> float:
+    basis_parts = [
+        str(slot.get("memory_type") or ""),
+        str(slot.get("subject") or ""),
+        str(slot.get("predicate") or ""),
+    ]
+    for value in visible_values:
+        basis_parts.append(str(value.get("value") or ""))
+        basis_parts.extend(str(item) for item in value.get("scalar_values") or ())
+    basis = " ".join(basis_parts).replace("_", " ").replace("-", " ")
+    overlap = len(question_terms.intersection(_content_terms(basis)))
+    if overlap <= 0:
+        return 0.0
+    score = float(overlap * 2)
+    memory_type = str(slot.get("memory_type") or "")
+    if _memory_type_name_matches_route(memory_type, route):
+        score += 0.6
+    if any(value.get("status") == "active" for value in visible_values):
+        score += 0.25
+    if any(value.get("status") == "superseded" for value in visible_values):
+        score += 0.5
+    if any(value.get("scalar_values") for value in visible_values):
+        score += 0.4
+    if bool(slot.get("managed")):
+        score += 0.2
+    return score
+
+
+def _memory_type_name_matches_route(memory_type: str, route: RouteResult) -> bool:
+    normalized = memory_type.lower()
+    if route.information_need == "current_state":
+        return normalized in {"state", "profile", "preference", "relationship"}
+    if route.information_need == "profile_preference":
+        return normalized in {"preference", "profile", "state"}
+    if route.information_need == "fact_lookup":
+        return normalized in {"fact", "event", "relationship", "state", "profile"}
+    return _memory_type_matches_route(memory_type, route)
+
+
+def _memory_value_slot_values_text(
+    visible_values: tuple[dict[str, Any], ...],
+    *,
+    status: str,
+    max_values: int,
+) -> str:
+    parts = []
+    for value in visible_values:
+        if value.get("status") != status:
+            continue
+        value_text = _truncate_text(_single_line(str(value.get("value") or "")), 90)
+        if not value_text and value.get("scalar_values"):
+            value_text = _truncate_text(str(value["scalar_values"][0]), 90)
+        if not value_text:
+            continue
+        source_text = ", ".join(value.get("source_labels") or ())
+        time_text = str(value.get("time") or "unknown")
+        parts.append(f"{value_text} [{source_text}; time={time_text}]")
+        if len(parts) >= max_values:
+            break
+    return "; ".join(parts)
+
+
+def _memory_value_slot_scalar_text(
+    visible_values: tuple[dict[str, Any], ...],
+    *,
+    max_values: int,
+) -> str:
+    scalars = []
+    seen: set[str] = set()
+    for value in visible_values:
+        source_text = ", ".join(value.get("source_labels") or ())
+        for scalar_value in value.get("scalar_values") or ():
+            scalar_text = _truncate_text(_single_line(str(scalar_value)), 60)
+            key = f"{scalar_text}|{source_text}"
+            if not scalar_text or key in seen:
+                continue
+            seen.add(key)
+            scalars.append(f"{scalar_text} [{source_text}]")
+            if len(scalars) >= max_values:
+                return "; ".join(scalars)
+    return "; ".join(scalars)
+
+
+def _memory_value_slot_source_label_text(
+    visible_values: tuple[dict[str, Any], ...],
+) -> str:
+    labels = []
+    for value in visible_values:
+        labels.extend(value.get("source_labels") or ())
+    return ", ".join(dict.fromkeys(labels))
 
 
 def _memory_record_source_labels(

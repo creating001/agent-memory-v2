@@ -1382,7 +1382,7 @@ def _memory_scalar_value_manifest(
     slot organization, but any final answer must still expand to raw rows.
     """
 
-    value_slots: list[dict[str, Any]] = []
+    slot_index: list[dict[str, Any]] = []
     value_records: list[MemoryRecord] = []
     scalar_value_object_count = 0
     scalar_value_expression_count = 0
@@ -1433,9 +1433,7 @@ def _memory_scalar_value_manifest(
             if has_active_superseded:
                 scalar_active_superseded_value_slot_count += 1
 
-        if len(value_slots) >= 24:
-            continue
-        value_slots.append(
+        slot_index.append(
             {
                 "slot_id": _slot_id(key),
                 "memory_type": memory_type,
@@ -1471,6 +1469,21 @@ def _memory_scalar_value_manifest(
                     for record in superseded_records
                     for scalar_value in _memory_record_scalar_values(record)
                 )[:8],
+                "value_objects": [
+                    {
+                        "memory_id": record.memory_id,
+                        "status": record.status or "active",
+                        "value": _memory_record_value_object(record),
+                        "scalar_values": list(_memory_record_scalar_values(record)),
+                        "source_ids": list(record.source_ids),
+                        "time": _record_time_value(record),
+                        "valid_from": record.valid_from,
+                        "valid_to": record.valid_to,
+                        "superseded_by": record.superseded_by,
+                        "confidence": record.confidence,
+                    }
+                    for record in slot_records
+                ],
                 "current_source_order": _memory_slot_policy_source_ids(
                     slot_records,
                     question_scope="current",
@@ -1534,8 +1547,7 @@ def _memory_scalar_value_manifest(
         "retrieve_value": retrieval_ready_value_object_count,
         "expand_value_source": value_source_edge_count,
         "verify_value_source": source_backed_value_object_count,
-        "audit_value_slot": len(value_slots)
-        + max(0, len(_memory_value_slot_keys(groups)) - len(value_slots)),
+        "audit_value_slot": len(slot_index),
         "audit_scalar_value_slot": scalar_value_slot_count,
         "audit_conflict_value_slot": active_superseded_value_slot_count,
         "quarantine_value": quarantine_value_object_count,
@@ -1549,7 +1561,7 @@ def _memory_scalar_value_manifest(
         "source_incomplete_value_object_count": source_incomplete_value_object_count,
         "scalar_value_object_count": scalar_value_object_count,
         "scalar_value_expression_count": scalar_value_expression_count,
-        "value_slot_count": len(_memory_value_slot_keys(groups)),
+        "value_slot_count": len(slot_index),
         "scalar_value_slot_count": scalar_value_slot_count,
         "multi_value_slot_count": multi_value_slot_count,
         "lifecycle_value_slot_count": lifecycle_value_slot_count,
@@ -1626,7 +1638,8 @@ def _memory_scalar_value_manifest(
             "managed_memory_types": sorted(managed_memory_types),
             "raw_evidence_required": True,
         },
-        "slot_samples": value_slots,
+        "slot_index": slot_index,
+        "slot_samples": slot_index[:24],
         "clean_note": (
             "Question-independent build scalar/value manifest. It organizes "
             "source-backed typed memories into value objects and value slots "
