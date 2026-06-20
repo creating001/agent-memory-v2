@@ -798,6 +798,9 @@ class Stage1Pipeline:
         self._context_budget_information_needs = _tuple_config(
             context_budget_config.get("information_needs")
         )
+        self._context_budget_registry_anchor_retention = bool(
+            context_budget_config.get("registry_anchor_retention", False)
+        )
         self._context_budget_audit_enabled = bool(
             context_budget_audit_config.get("enabled", False)
         )
@@ -815,6 +818,9 @@ class Stage1Pipeline:
         )
         self._context_budget_audit_information_needs = _tuple_config(
             context_budget_audit_config.get("information_needs")
+        )
+        self._context_budget_audit_registry_anchor_retention = bool(
+            context_budget_audit_config.get("registry_anchor_retention", False)
         )
         self._rerank_enabled = bool(rerank_config.get("enabled", False))
         self._rerank_model = rerank_config.get("model")
@@ -2482,6 +2488,10 @@ class Stage1Pipeline:
             )
         elif self._rerank_enabled:
             rerank_trace["skipped_reason"] = rerank_skipped_reason
+        registry_anchor_source_ids = _registry_backed_operation_source_ids(
+            operation_utility_trace=operation_utility_trace,
+            graph_utility_trace=graph_utility_trace,
+        )
         pre_context_budget_hits = hits
         context_budget_trace = _disabled_context_budget_trace(
             enabled=self._context_budget_enabled,
@@ -2490,6 +2500,9 @@ class Stage1Pipeline:
             protect_top_n=self._context_budget_protect_top_n,
             max_hits=self._context_budget_max_hits,
             information_needs=self._context_budget_information_needs,
+            registry_anchor_retention=(
+                self._context_budget_registry_anchor_retention
+            ),
         )
         if _context_budget_applies(
             route=route,
@@ -2505,6 +2518,14 @@ class Stage1Pipeline:
                 protect_top_n=self._context_budget_protect_top_n,
                 max_hits=self._context_budget_max_hits,
                 information_needs=self._context_budget_information_needs,
+                protected_source_ids=(
+                    registry_anchor_source_ids
+                    if self._context_budget_registry_anchor_retention
+                    else ()
+                ),
+                registry_anchor_retention=(
+                    self._context_budget_registry_anchor_retention
+                ),
             )
         evidence_turns = store.expand_neighbors(
             (hit.source_id for hit in hits),
@@ -2664,6 +2685,9 @@ class Stage1Pipeline:
             protect_top_n=self._context_budget_audit_protect_top_n,
             max_hits=self._context_budget_audit_max_hits,
             information_needs=self._context_budget_audit_information_needs,
+            registry_anchor_retention=(
+                self._context_budget_audit_registry_anchor_retention
+            ),
         )
         if _context_budget_applies(
             route=route,
@@ -2679,6 +2703,14 @@ class Stage1Pipeline:
                 protect_top_n=self._context_budget_audit_protect_top_n,
                 max_hits=self._context_budget_audit_max_hits,
                 information_needs=self._context_budget_audit_information_needs,
+                protected_source_ids=(
+                    registry_anchor_source_ids
+                    if self._context_budget_audit_registry_anchor_retention
+                    else ()
+                ),
+                registry_anchor_retention=(
+                    self._context_budget_audit_registry_anchor_retention
+                ),
             )
             context_budget_audit = _context_budget_audit_trace(
                 store=store,
@@ -3333,6 +3365,24 @@ class Stage1Pipeline:
                     ),
                     "context_budget_dropped_source_ids": (
                         context_budget_trace["dropped_source_ids"]
+                    ),
+                    "context_budget_registry_anchor_retention": (
+                        context_budget_trace["registry_anchor_retention"]
+                    ),
+                    "context_budget_registry_anchor_candidate_source_ids": (
+                        context_budget_trace[
+                            "registry_anchor_candidate_source_ids"
+                        ]
+                    ),
+                    "context_budget_registry_anchor_retained_source_ids": (
+                        context_budget_trace[
+                            "registry_anchor_retained_source_ids"
+                        ]
+                    ),
+                    "context_budget_registry_anchor_dropped_source_ids": (
+                        context_budget_trace[
+                            "registry_anchor_dropped_source_ids"
+                        ]
                     ),
                     "context_budget_audit": context_budget_audit,
                     "pre_context_budget_hits": [
@@ -4301,6 +4351,21 @@ def _context_manifest(
             "context_budget_dropped_count": int(
                 context_budget_trace.get("dropped_count") or 0
             ),
+            "context_budget_registry_anchor_retention": bool(
+                context_budget_trace.get("registry_anchor_retention")
+            ),
+            "context_budget_registry_anchor_candidate_count": len(
+                context_budget_trace.get("registry_anchor_candidate_source_ids")
+                or ()
+            ),
+            "context_budget_registry_anchor_retained_count": len(
+                context_budget_trace.get("registry_anchor_retained_source_ids")
+                or ()
+            ),
+            "context_budget_registry_anchor_dropped_count": len(
+                context_budget_trace.get("registry_anchor_dropped_source_ids")
+                or ()
+            ),
             "context_budget_safe_for_current_prompt": context_budget_audit.get(
                 "safe_for_current_prompt"
             ),
@@ -4326,6 +4391,18 @@ def _context_manifest(
             ),
             "context_budget_dropped_source_ids": list(
                 context_budget_trace.get("dropped_source_ids") or ()
+            ),
+            "context_budget_registry_anchor_candidate_source_ids": list(
+                context_budget_trace.get("registry_anchor_candidate_source_ids")
+                or ()
+            ),
+            "context_budget_registry_anchor_retained_source_ids": list(
+                context_budget_trace.get("registry_anchor_retained_source_ids")
+                or ()
+            ),
+            "context_budget_registry_anchor_dropped_source_ids": list(
+                context_budget_trace.get("registry_anchor_dropped_source_ids")
+                or ()
             ),
             "final_hit_source_ids": _source_ids_from_hits(retrieval_hits),
             "evidence_turn_source_ids": evidence_turn_source_ids,
@@ -4488,6 +4565,24 @@ def _operation_consumer_slot_source(trace: Mapping[str, Any]) -> str:
     if not isinstance(slot_index, Mapping):
         return ""
     return str(slot_index.get("source") or "")
+
+
+def _registry_backed_operation_source_ids(
+    *,
+    operation_utility_trace: Mapping[str, Any] | None,
+    graph_utility_trace: Mapping[str, Any] | None,
+) -> tuple[str, ...]:
+    return _ordered_unique(
+        source_id
+        for trace in (operation_utility_trace, graph_utility_trace)
+        if isinstance(trace, Mapping)
+        and bool(trace.get("applied"))
+        and _operation_consumer_slot_source(trace) == "memory_operation_registry"
+        for slot in (trace.get("slots") or ())
+        if isinstance(slot, Mapping)
+        for source_id in (slot.get("source_ids") or ())
+        if source_id
+    )
 
 
 def _evidence_pressure_manifest(evidence_rows: tuple[Any, ...]) -> dict[str, Any]:
@@ -7500,6 +7595,7 @@ def _disabled_context_budget_trace(
     protect_top_n: int,
     max_hits: int,
     information_needs: tuple[str, ...],
+    registry_anchor_retention: bool = False,
 ) -> dict[str, Any]:
     return {
         "enabled": enabled,
@@ -7514,6 +7610,10 @@ def _disabled_context_budget_trace(
         "estimated_chars": 0,
         "dropped_count": 0,
         "dropped_source_ids": [],
+        "registry_anchor_retention": registry_anchor_retention,
+        "registry_anchor_candidate_source_ids": [],
+        "registry_anchor_retained_source_ids": [],
+        "registry_anchor_dropped_source_ids": [],
     }
 
 
@@ -7525,6 +7625,7 @@ def _disabled_context_budget_audit_trace(
     protect_top_n: int,
     max_hits: int,
     information_needs: tuple[str, ...],
+    registry_anchor_retention: bool = False,
 ) -> dict[str, Any]:
     return {
         "enabled": enabled,
@@ -7541,6 +7642,10 @@ def _disabled_context_budget_audit_trace(
         "projected_estimated_chars": 0,
         "projected_dropped_count": 0,
         "projected_dropped_source_ids": [],
+        "registry_anchor_retention": registry_anchor_retention,
+        "registry_anchor_candidate_source_ids": [],
+        "registry_anchor_retained_source_ids": [],
+        "registry_anchor_dropped_source_ids": [],
         "projected_available_source_count": 0,
         "prompt_row_count": 0,
         "prompt_rows_missing_count": 0,
@@ -7565,7 +7670,10 @@ def _apply_context_budget(
     protect_top_n: int,
     max_hits: int,
     information_needs: tuple[str, ...],
+    protected_source_ids: tuple[str, ...] = (),
+    registry_anchor_retention: bool = False,
 ) -> tuple[tuple[RetrievalHit, ...], dict[str, Any]]:
+    protected_source_ids = _ordered_unique(protected_source_ids)
     if not hits:
         return hits, {
             **_disabled_context_budget_trace(
@@ -7575,6 +7683,7 @@ def _apply_context_budget(
                 protect_top_n=protect_top_n,
                 max_hits=max_hits,
                 information_needs=information_needs,
+                registry_anchor_retention=registry_anchor_retention,
             ),
             "applied": True,
         }
@@ -7583,21 +7692,64 @@ def _apply_context_budget(
     minimum = max(0, min_hits)
     hard_max = max(0, max_hits)
     selected: list[RetrievalHit] = []
-    dropped: list[str] = []
     estimated_chars = 0
-
+    selected_indices: set[int] = set()
+    hit_indices_by_source: dict[str, int] = {}
     for index, hit in enumerate(hits):
-        if hard_max > 0 and len(selected) >= hard_max:
-            dropped.extend(candidate.source_id for candidate in hits[index:])
-            break
+        hit_indices_by_source.setdefault(hit.source_id, index)
+    registry_anchor_candidate_source_ids = tuple(
+        source_id for source_id in protected_source_ids if source_id in hit_indices_by_source
+    )
+    registry_anchor_candidate_indices = tuple(
+        hit_indices_by_source[source_id] for source_id in registry_anchor_candidate_source_ids
+    )
+
+    def add_hit(index: int, *, force_keep: bool) -> None:
+        nonlocal estimated_chars
+        if index in selected_indices:
+            return
+        if hard_max > 0 and len(selected_indices) >= hard_max:
+            return
+        hit = hits[index]
         turn = store.get(hit.source_id)
         turn_chars = len(turn.text) if turn is not None else 0
-        force_keep = index < protected or len(selected) < minimum
         if force_keep or estimated_chars + turn_chars <= max_chars:
-            selected.append(hit)
+            selected_indices.add(index)
             estimated_chars += turn_chars
-        else:
-            dropped.append(hit.source_id)
+
+    if not registry_anchor_retention or not registry_anchor_candidate_indices:
+        for index, hit in enumerate(hits):
+            if hard_max > 0 and len(selected) >= hard_max:
+                break
+            turn = store.get(hit.source_id)
+            turn_chars = len(turn.text) if turn is not None else 0
+            force_keep = index < protected or len(selected) < minimum
+            if force_keep or estimated_chars + turn_chars <= max_chars:
+                selected.append(hit)
+                estimated_chars += turn_chars
+        selected_source_ids = {hit.source_id for hit in selected}
+    else:
+        force_keep_count = max(protected, minimum)
+        for index in range(min(force_keep_count, len(hits))):
+            add_hit(index, force_keep=True)
+        for index in registry_anchor_candidate_indices:
+            add_hit(index, force_keep=False)
+        for index in range(len(hits)):
+            add_hit(index, force_keep=False)
+        selected = [hits[index] for index in sorted(selected_indices)]
+        selected_source_ids = {hit.source_id for hit in selected}
+
+    dropped = tuple(hit.source_id for hit in hits if hit.source_id not in selected_source_ids)
+    registry_anchor_retained_source_ids = tuple(
+        source_id
+        for source_id in registry_anchor_candidate_source_ids
+        if source_id in selected_source_ids
+    )
+    registry_anchor_dropped_source_ids = tuple(
+        source_id
+        for source_id in registry_anchor_candidate_source_ids
+        if source_id not in selected_source_ids
+    )
 
     return tuple(selected), {
         "enabled": True,
@@ -7611,7 +7763,17 @@ def _apply_context_budget(
         "returned_count": len(selected),
         "estimated_chars": estimated_chars,
         "dropped_count": len(dropped),
-        "dropped_source_ids": dropped,
+        "dropped_source_ids": list(dropped),
+        "registry_anchor_retention": registry_anchor_retention,
+        "registry_anchor_candidate_source_ids": list(
+            registry_anchor_candidate_source_ids
+        ),
+        "registry_anchor_retained_source_ids": list(
+            registry_anchor_retained_source_ids
+        ),
+        "registry_anchor_dropped_source_ids": list(
+            registry_anchor_dropped_source_ids
+        ),
     }
 
 
@@ -7660,6 +7822,18 @@ def _context_budget_audit_trace(
         "projected_estimated_chars": projected_budget.get("estimated_chars"),
         "projected_dropped_count": projected_budget.get("dropped_count"),
         "projected_dropped_source_ids": projected_budget.get("dropped_source_ids"),
+        "registry_anchor_retention": projected_budget.get(
+            "registry_anchor_retention"
+        ),
+        "registry_anchor_candidate_source_ids": projected_budget.get(
+            "registry_anchor_candidate_source_ids"
+        ),
+        "registry_anchor_retained_source_ids": projected_budget.get(
+            "registry_anchor_retained_source_ids"
+        ),
+        "registry_anchor_dropped_source_ids": projected_budget.get(
+            "registry_anchor_dropped_source_ids"
+        ),
         "projected_available_source_count": len(projected_available),
         "prompt_row_count": len(prompt_source_ids),
         "prompt_rows_missing_count": len(prompt_missing),

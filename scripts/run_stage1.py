@@ -102,10 +102,18 @@ def main() -> int:
     total_context_budget_returned_count = 0
     total_context_budget_estimated_chars = 0
     total_context_budget_dropped_count = 0
+    total_context_budget_registry_anchor_candidate_count = 0
+    total_context_budget_registry_anchor_retained_count = 0
+    total_context_budget_registry_anchor_dropped_count = 0
+    total_context_budget_registry_anchor_sample_count = 0
     total_context_budget_audit_applied = 0
     total_context_budget_audit_candidate_count = 0
     total_context_budget_audit_returned_count = 0
     total_context_budget_audit_dropped_count = 0
+    total_context_budget_audit_registry_anchor_candidate_count = 0
+    total_context_budget_audit_registry_anchor_retained_count = 0
+    total_context_budget_audit_registry_anchor_dropped_count = 0
+    total_context_budget_audit_registry_anchor_sample_count = 0
     total_context_budget_audit_prompt_missing = 0
     total_context_budget_audit_prompt_risk_samples = 0
     total_context_budget_audit_selected_context_missing = 0
@@ -389,6 +397,35 @@ def main() -> int:
         total_context_budget_dropped_count += int(
             retrieval_trace.get("context_budget_dropped_count") or 0
         )
+        context_budget_registry_anchor_candidates = len(
+            retrieval_trace.get(
+                "context_budget_registry_anchor_candidate_source_ids"
+            )
+            or ()
+        )
+        context_budget_registry_anchor_retained = len(
+            retrieval_trace.get(
+                "context_budget_registry_anchor_retained_source_ids"
+            )
+            or ()
+        )
+        context_budget_registry_anchor_dropped = len(
+            retrieval_trace.get(
+                "context_budget_registry_anchor_dropped_source_ids"
+            )
+            or ()
+        )
+        total_context_budget_registry_anchor_candidate_count += (
+            context_budget_registry_anchor_candidates
+        )
+        total_context_budget_registry_anchor_retained_count += (
+            context_budget_registry_anchor_retained
+        )
+        total_context_budget_registry_anchor_dropped_count += (
+            context_budget_registry_anchor_dropped
+        )
+        if context_budget_registry_anchor_candidates:
+            total_context_budget_registry_anchor_sample_count += 1
         context_budget_audit = retrieval_trace.get("context_budget_audit") or {}
         if context_budget_audit.get("applied"):
             total_context_budget_audit_applied += 1
@@ -401,6 +438,35 @@ def main() -> int:
             total_context_budget_audit_dropped_count += int(
                 context_budget_audit.get("projected_dropped_count") or 0
             )
+            audit_registry_anchor_candidates = len(
+                context_budget_audit.get(
+                    "registry_anchor_candidate_source_ids"
+                )
+                or ()
+            )
+            audit_registry_anchor_retained = len(
+                context_budget_audit.get(
+                    "registry_anchor_retained_source_ids"
+                )
+                or ()
+            )
+            audit_registry_anchor_dropped = len(
+                context_budget_audit.get(
+                    "registry_anchor_dropped_source_ids"
+                )
+                or ()
+            )
+            total_context_budget_audit_registry_anchor_candidate_count += (
+                audit_registry_anchor_candidates
+            )
+            total_context_budget_audit_registry_anchor_retained_count += (
+                audit_registry_anchor_retained
+            )
+            total_context_budget_audit_registry_anchor_dropped_count += (
+                audit_registry_anchor_dropped
+            )
+            if audit_registry_anchor_candidates:
+                total_context_budget_audit_registry_anchor_sample_count += 1
             prompt_missing = int(
                 context_budget_audit.get("prompt_rows_missing_count") or 0
             )
@@ -1320,6 +1386,11 @@ def main() -> int:
             "context_budget_information_needs": config.get("retrieval", {})
             .get("context_budget", {})
             .get("information_needs"),
+            "context_budget_registry_anchor_retention": config.get(
+                "retrieval", {}
+            )
+            .get("context_budget", {})
+            .get("registry_anchor_retention", False),
             "context_budget_applied_count": total_context_budget_applied,
             "context_budget_applied_rate": _safe_average(
                 total_context_budget_applied, sample_count
@@ -1340,6 +1411,30 @@ def main() -> int:
                 total_context_budget_dropped_count,
                 total_context_budget_applied,
             ),
+            "context_budget_registry_anchor_sample_count": (
+                total_context_budget_registry_anchor_sample_count
+            ),
+            "context_budget_registry_anchor_candidate_count": (
+                total_context_budget_registry_anchor_candidate_count
+            ),
+            "context_budget_registry_anchor_retained_count": (
+                total_context_budget_registry_anchor_retained_count
+            ),
+            "context_budget_registry_anchor_dropped_count": (
+                total_context_budget_registry_anchor_dropped_count
+            ),
+            "avg_context_budget_registry_anchor_candidates": _safe_average(
+                total_context_budget_registry_anchor_candidate_count,
+                total_context_budget_registry_anchor_sample_count,
+            ),
+            "avg_context_budget_registry_anchor_retained": _safe_average(
+                total_context_budget_registry_anchor_retained_count,
+                total_context_budget_registry_anchor_sample_count,
+            ),
+            "avg_context_budget_registry_anchor_dropped": _safe_average(
+                total_context_budget_registry_anchor_dropped_count,
+                total_context_budget_registry_anchor_sample_count,
+            ),
             "context_budget_audit_enabled": config.get("retrieval", {})
             .get("context_budget_audit", {})
             .get("enabled", False),
@@ -1358,6 +1453,11 @@ def main() -> int:
             "context_budget_audit_information_needs": config.get("retrieval", {})
             .get("context_budget_audit", {})
             .get("information_needs"),
+            "context_budget_audit_registry_anchor_retention": config.get(
+                "retrieval", {}
+            )
+            .get("context_budget_audit", {})
+            .get("registry_anchor_retention", False),
             "context_budget_audit_applied_count": (
                 total_context_budget_audit_applied
             ),
@@ -1375,6 +1475,30 @@ def main() -> int:
             "avg_context_budget_audit_dropped_count": _safe_average(
                 total_context_budget_audit_dropped_count,
                 total_context_budget_audit_applied,
+            ),
+            "context_budget_audit_registry_anchor_sample_count": (
+                total_context_budget_audit_registry_anchor_sample_count
+            ),
+            "context_budget_audit_registry_anchor_candidate_count": (
+                total_context_budget_audit_registry_anchor_candidate_count
+            ),
+            "context_budget_audit_registry_anchor_retained_count": (
+                total_context_budget_audit_registry_anchor_retained_count
+            ),
+            "context_budget_audit_registry_anchor_dropped_count": (
+                total_context_budget_audit_registry_anchor_dropped_count
+            ),
+            "avg_context_budget_audit_registry_anchor_candidates": _safe_average(
+                total_context_budget_audit_registry_anchor_candidate_count,
+                total_context_budget_audit_registry_anchor_sample_count,
+            ),
+            "avg_context_budget_audit_registry_anchor_retained": _safe_average(
+                total_context_budget_audit_registry_anchor_retained_count,
+                total_context_budget_audit_registry_anchor_sample_count,
+            ),
+            "avg_context_budget_audit_registry_anchor_dropped": _safe_average(
+                total_context_budget_audit_registry_anchor_dropped_count,
+                total_context_budget_audit_registry_anchor_sample_count,
             ),
             "context_budget_audit_prompt_risk_count": (
                 total_context_budget_audit_prompt_risk_samples
@@ -2865,23 +2989,33 @@ def _write_summary(
         f"- context_budget_protect_top_n: {metrics['retrieval']['context_budget_protect_top_n']}",
         f"- context_budget_max_hits: {metrics['retrieval']['context_budget_max_hits']}",
         f"- context_budget_information_needs: {metrics['retrieval']['context_budget_information_needs']}",
+        f"- context_budget_registry_anchor_retention: {metrics['retrieval']['context_budget_registry_anchor_retention']}",
         f"- context_budget_applied_count: {metrics['retrieval']['context_budget_applied_count']}",
         f"- context_budget_applied_rate: {metrics['retrieval']['context_budget_applied_rate']}",
         f"- avg_context_budget_candidate_count: {metrics['retrieval']['avg_context_budget_candidate_count']}",
         f"- avg_context_budget_returned_count: {metrics['retrieval']['avg_context_budget_returned_count']}",
         f"- avg_context_budget_estimated_chars: {metrics['retrieval']['avg_context_budget_estimated_chars']}",
         f"- avg_context_budget_dropped_count: {metrics['retrieval']['avg_context_budget_dropped_count']}",
+        f"- context_budget_registry_anchor_sample_count: {metrics['retrieval']['context_budget_registry_anchor_sample_count']}",
+        f"- context_budget_registry_anchor_candidate_count: {metrics['retrieval']['context_budget_registry_anchor_candidate_count']}",
+        f"- context_budget_registry_anchor_retained_count: {metrics['retrieval']['context_budget_registry_anchor_retained_count']}",
+        f"- context_budget_registry_anchor_dropped_count: {metrics['retrieval']['context_budget_registry_anchor_dropped_count']}",
+        f"- avg_context_budget_registry_anchor_retained: {metrics['retrieval']['avg_context_budget_registry_anchor_retained']}",
         f"- context_budget_audit_enabled: {metrics['retrieval']['context_budget_audit_enabled']}",
         f"- context_budget_audit_max_chars: {metrics['retrieval']['context_budget_audit_max_chars']}",
         f"- context_budget_audit_min_hits: {metrics['retrieval']['context_budget_audit_min_hits']}",
         f"- context_budget_audit_protect_top_n: {metrics['retrieval']['context_budget_audit_protect_top_n']}",
         f"- context_budget_audit_max_hits: {metrics['retrieval']['context_budget_audit_max_hits']}",
         f"- context_budget_audit_information_needs: {metrics['retrieval']['context_budget_audit_information_needs']}",
+        f"- context_budget_audit_registry_anchor_retention: {metrics['retrieval']['context_budget_audit_registry_anchor_retention']}",
         f"- context_budget_audit_applied_count: {metrics['retrieval']['context_budget_audit_applied_count']}",
         f"- context_budget_audit_applied_rate: {metrics['retrieval']['context_budget_audit_applied_rate']}",
         f"- avg_context_budget_audit_candidate_count: {metrics['retrieval']['avg_context_budget_audit_candidate_count']}",
         f"- avg_context_budget_audit_returned_count: {metrics['retrieval']['avg_context_budget_audit_returned_count']}",
         f"- avg_context_budget_audit_dropped_count: {metrics['retrieval']['avg_context_budget_audit_dropped_count']}",
+        f"- context_budget_audit_registry_anchor_candidate_count: {metrics['retrieval']['context_budget_audit_registry_anchor_candidate_count']}",
+        f"- context_budget_audit_registry_anchor_retained_count: {metrics['retrieval']['context_budget_audit_registry_anchor_retained_count']}",
+        f"- context_budget_audit_registry_anchor_dropped_count: {metrics['retrieval']['context_budget_audit_registry_anchor_dropped_count']}",
         f"- context_budget_audit_prompt_risk_count: {metrics['retrieval']['context_budget_audit_prompt_risk_count']}",
         f"- avg_context_budget_audit_prompt_missing_rows: {metrics['retrieval']['avg_context_budget_audit_prompt_missing_rows']}",
         f"- context_budget_audit_selected_context_risk_count: {metrics['retrieval']['context_budget_audit_selected_context_risk_count']}",
@@ -3258,18 +3392,26 @@ def _write_diagnosis(
         f"- avg_rerank_returned_count: {metrics['retrieval']['avg_rerank_returned_count']}",
         f"- avg_rerank_tokens_when_applied: {metrics['retrieval']['avg_rerank_tokens_when_applied']}",
         f"- context_budget_enabled: {metrics['retrieval']['context_budget_enabled']}",
+        f"- context_budget_registry_anchor_retention: {metrics['retrieval']['context_budget_registry_anchor_retention']}",
         f"- context_budget_applied_count: {metrics['retrieval']['context_budget_applied_count']}",
         f"- context_budget_applied_rate: {metrics['retrieval']['context_budget_applied_rate']}",
         f"- avg_context_budget_candidate_count: {metrics['retrieval']['avg_context_budget_candidate_count']}",
         f"- avg_context_budget_returned_count: {metrics['retrieval']['avg_context_budget_returned_count']}",
         f"- avg_context_budget_estimated_chars: {metrics['retrieval']['avg_context_budget_estimated_chars']}",
         f"- avg_context_budget_dropped_count: {metrics['retrieval']['avg_context_budget_dropped_count']}",
+        f"- context_budget_registry_anchor_candidate_count: {metrics['retrieval']['context_budget_registry_anchor_candidate_count']}",
+        f"- context_budget_registry_anchor_retained_count: {metrics['retrieval']['context_budget_registry_anchor_retained_count']}",
+        f"- context_budget_registry_anchor_dropped_count: {metrics['retrieval']['context_budget_registry_anchor_dropped_count']}",
         f"- context_budget_audit_enabled: {metrics['retrieval']['context_budget_audit_enabled']}",
+        f"- context_budget_audit_registry_anchor_retention: {metrics['retrieval']['context_budget_audit_registry_anchor_retention']}",
         f"- context_budget_audit_applied_count: {metrics['retrieval']['context_budget_audit_applied_count']}",
         f"- context_budget_audit_applied_rate: {metrics['retrieval']['context_budget_audit_applied_rate']}",
         f"- avg_context_budget_audit_candidate_count: {metrics['retrieval']['avg_context_budget_audit_candidate_count']}",
         f"- avg_context_budget_audit_returned_count: {metrics['retrieval']['avg_context_budget_audit_returned_count']}",
         f"- avg_context_budget_audit_dropped_count: {metrics['retrieval']['avg_context_budget_audit_dropped_count']}",
+        f"- context_budget_audit_registry_anchor_candidate_count: {metrics['retrieval']['context_budget_audit_registry_anchor_candidate_count']}",
+        f"- context_budget_audit_registry_anchor_retained_count: {metrics['retrieval']['context_budget_audit_registry_anchor_retained_count']}",
+        f"- context_budget_audit_registry_anchor_dropped_count: {metrics['retrieval']['context_budget_audit_registry_anchor_dropped_count']}",
         f"- context_budget_audit_prompt_risk_count: {metrics['retrieval']['context_budget_audit_prompt_risk_count']}",
         f"- avg_context_budget_audit_prompt_missing_rows: {metrics['retrieval']['avg_context_budget_audit_prompt_missing_rows']}",
         f"- context_budget_audit_selected_context_risk_count: {metrics['retrieval']['context_budget_audit_selected_context_risk_count']}",

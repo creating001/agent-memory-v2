@@ -43,6 +43,7 @@ from data.io import load_prediction_jsonl
 from memory.pipeline import (
     Stage1Pipeline,
     _align_build_memory_sources,
+    _apply_context_budget,
     _append_tail_exchange_hits,
     _append_tail_rescue_hits,
     _compiler_memory_records,
@@ -2025,6 +2026,80 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertIn("long", retrieval["context_budget_dropped_source_ids"])
         self.assertNotIn("long", hit_ids)
         self.assertNotIn("long", row_ids)
+
+    def test_context_budget_can_retain_registry_anchor_within_budget(self) -> None:
+        store = RawEvidenceStore(
+            (
+                Turn(
+                    source_id="head",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="head target",
+                ),
+                Turn(
+                    source_id="middle",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="middle target evidence",
+                ),
+                Turn(
+                    source_id="registry-anchor",
+                    session_id="s1",
+                    turn_index=2,
+                    role="user",
+                    text="anchor target evidence",
+                ),
+            )
+        )
+        hits = (
+            RetrievalHit(
+                source_id="head",
+                score=3.0,
+                rank=1,
+                retriever="unit",
+            ),
+            RetrievalHit(
+                source_id="middle",
+                score=2.0,
+                rank=2,
+                retriever="unit",
+            ),
+            RetrievalHit(
+                source_id="registry-anchor",
+                score=1.0,
+                rank=3,
+                retriever="unit",
+            ),
+        )
+
+        selected, trace = _apply_context_budget(
+            store=store,
+            hits=hits,
+            max_chars=35,
+            min_hits=1,
+            protect_top_n=1,
+            max_hits=0,
+            information_needs=("current_state",),
+            protected_source_ids=("registry-anchor",),
+            registry_anchor_retention=True,
+        )
+
+        self.assertEqual(
+            [hit.source_id for hit in selected],
+            ["head", "registry-anchor"],
+        )
+        self.assertEqual(
+            trace["registry_anchor_candidate_source_ids"],
+            ["registry-anchor"],
+        )
+        self.assertEqual(
+            trace["registry_anchor_retained_source_ids"],
+            ["registry-anchor"],
+        )
+        self.assertIn("middle", trace["dropped_source_ids"])
+        self.assertNotIn("registry-anchor", trace["dropped_source_ids"])
 
     def test_context_budget_audit_is_trace_only(self) -> None:
         base_config = {
@@ -5332,6 +5407,151 @@ class CleanSkeletonTest(unittest.TestCase):
             ["s2:t0", "s1:t0"],
         )
         self.assertEqual(row_ids, ["s2:t0", "s1:t0"])
+
+    def test_pipeline_context_budget_retains_registry_backed_graph_anchor(self) -> None:
+        old_record = MemoryRecord(
+            memory_id="old",
+            memory_type="state",
+            text="Alex lives in Austin.",
+            source_ids=("s1:t0",),
+            subject="Alex",
+            predicate="home city",
+            value="Austin",
+            timestamp="2024-01-01",
+            status="superseded",
+            superseded_by="new",
+        )
+        new_record = MemoryRecord(
+            memory_id="new",
+            memory_type="state",
+            text="Alex lives in Seattle.",
+            source_ids=("s2:t0", "middle:t0"),
+            subject="Alex",
+            predicate="home city",
+            value="Seattle",
+            timestamp="2024-05-01",
+            status="active",
+        )
+        management = _management_summary(
+            (new_record, old_record),
+            policy="stateful_only",
+            managed_memory_types=frozenset({"state"}),
+            include_memory_system_graph=True,
+        )
+
+        class FakeBuilder:
+            def build(self, turns: tuple[Turn, ...]) -> BuiltMemory:
+                del turns
+                return BuiltMemory(
+                    records=(new_record, old_record),
+                    token_usage=TokenUsage(),
+                    management_policy="stateful_only",
+                    managed_memory_types=("state",),
+                    management=management,
+                )
+
+        config = {
+            "build_memory": {
+                "enabled": True,
+                "mode": "openai_compatible",
+                "model": "fake",
+                "top_k": 1,
+                "max_sources_per_record": 2,
+                "include_superseded": True,
+            },
+            "retrieval": {
+                "top_k": 2,
+                "max_top_k": 2,
+                "neighbor_window": 0,
+                "lexical": {"enabled": False},
+                "context_budget": {
+                    "enabled": True,
+                    "max_chars": 24,
+                    "min_hits": 1,
+                    "protect_top_n": 1,
+                    "registry_anchor_retention": True,
+                },
+                "graph_utility": {
+                    "enabled": True,
+                    "information_needs": ["current_state"],
+                    "memory_types": ["state"],
+                    "max_slots": 1,
+                    "max_sources_per_slot": 2,
+                    "min_overlap_terms": 1,
+                    "require_new_source": True,
+                    "fusion_mode": "overflow_tail_rescue",
+                    "overflow_max_hits": 1,
+                    "required_signals": ["supersede", "conflict_slot"],
+                    "source_selection_policy": "validity_aware",
+                },
+            },
+            "compiler": {
+                "prompt_mode": "external_naive",
+                "max_evidence_items": 3,
+                "max_evidence_chars": 4000,
+            },
+            "answer": {"fallback_answer": "unknown"},
+        }
+        pipeline = Stage1Pipeline(config)
+        pipeline._memory_builder = FakeBuilder()
+        request = PredictionRequest(
+            question="Where does Alex live now?",
+            turns=(
+                Turn(
+                    source_id="s2:t0",
+                    session_id="s2",
+                    turn_index=0,
+                    role="user",
+                    text="Seattle now",
+                    timestamp="2024-05-01",
+                ),
+                Turn(
+                    source_id="middle:t0",
+                    session_id="s2",
+                    turn_index=1,
+                    role="user",
+                    text="middle note",
+                    timestamp="2024-05-02",
+                ),
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Austin old",
+                    timestamp="2024-01-01",
+                ),
+            ),
+        )
+
+        result = pipeline.predict(request)
+        retrieval = result["trace"]["retrieval"]
+        context_manifest = result["trace"]["context_manifest"]
+        row_ids = [
+            row["source_id"]
+            for row in result["trace"]["compiled_context"]["evidence_rows"]
+        ]
+
+        self.assertTrue(retrieval["context_budget_applied"])
+        self.assertEqual(
+            retrieval["graph_utility_slot_index"]["source"],
+            "memory_operation_registry",
+        )
+        self.assertEqual(
+            retrieval["context_budget_registry_anchor_retained_source_ids"],
+            ["s1:t0"],
+        )
+        self.assertIn(
+            "middle:t0",
+            retrieval["context_budget_dropped_source_ids"],
+        )
+        self.assertEqual(row_ids, ["s2:t0", "s1:t0"])
+        self.assertEqual(
+            context_manifest["source_flow"][
+                "context_budget_registry_anchor_retained_source_ids"
+            ],
+            ["s1:t0"],
+        )
 
     def test_build_memory_source_alignment_adds_adjacent_supporting_turn(self) -> None:
         record = MemoryRecord(
