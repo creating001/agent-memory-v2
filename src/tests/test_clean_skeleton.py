@@ -9335,6 +9335,7 @@ class CleanSkeletonTest(unittest.TestCase):
                 "memory_value_slot_guide_information_needs": ["current_state"],
                 "memory_value_slot_guide_max_slots": 2,
                 "memory_value_slot_guide_max_values": 3,
+                "memory_value_slot_guide_memory_types": ["state"],
             },
             "answer": {"fallback_answer": "I do not know."},
         }
@@ -9398,6 +9399,10 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual(
             result["trace"]["compiler"]["memory_value_slot_guide_max_values"],
             3,
+        )
+        self.assertEqual(
+            result["trace"]["compiler"]["memory_value_slot_guide_memory_types"],
+            ("state",),
         )
         self.assertEqual(
             result["trace"]["compiler"]["memory_state_guide_record_source"],

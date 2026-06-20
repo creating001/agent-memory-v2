@@ -234,6 +234,7 @@ ROUTE_OVERRIDE_KEYS = {
     "memory_value_slot_guide",
     "memory_value_slot_guide_max_slots",
     "memory_value_slot_guide_max_values",
+    "memory_value_slot_guide_memory_types",
     "profile_activation_guide",
     "profile_activation_guide_max_records",
     "profile_activation_guide_value_chars",
@@ -448,6 +449,7 @@ class EvidenceCompiler:
         ),
         memory_value_slot_guide_max_slots: int = 4,
         memory_value_slot_guide_max_values: int = 6,
+        memory_value_slot_guide_memory_types: tuple[str, ...] = (),
         profile_activation_guide: bool = False,
         profile_activation_guide_information_needs: tuple[str, ...] = (
             "profile_preference",
@@ -709,6 +711,11 @@ class EvidenceCompiler:
         )
         self._memory_value_slot_guide_max_values = max(
             1, int(memory_value_slot_guide_max_values)
+        )
+        self._memory_value_slot_guide_memory_types = tuple(
+            str(value).strip().lower()
+            for value in memory_value_slot_guide_memory_types
+            if str(value).strip()
         )
         self._profile_activation_guide = bool(profile_activation_guide)
         self._profile_activation_guide_information_needs = _validate_information_needs(
@@ -1091,6 +1098,9 @@ class EvidenceCompiler:
             memory_value_slot_guide_max_values=route_settings[
                 "memory_value_slot_guide_max_values"
             ],
+            memory_value_slot_guide_memory_types=route_settings[
+                "memory_value_slot_guide_memory_types"
+            ],
             profile_activation_guide=(
                 route_settings["profile_activation_guide"]
                 and route.information_need
@@ -1281,6 +1291,9 @@ class EvidenceCompiler:
             ),
             "memory_value_slot_guide_max_values": (
                 self._memory_value_slot_guide_max_values
+            ),
+            "memory_value_slot_guide_memory_types": (
+                self._memory_value_slot_guide_memory_types
             ),
             "profile_activation_guide": self._profile_activation_guide,
             "profile_activation_guide_max_records": (
@@ -1711,6 +1724,18 @@ def _validate_route_overrides(
         if "memory_value_slot_guide_max_values" in raw_overrides:
             overrides["memory_value_slot_guide_max_values"] = max(
                 1, int(raw_overrides["memory_value_slot_guide_max_values"])
+            )
+        if "memory_value_slot_guide_memory_types" in raw_overrides:
+            raw_types = raw_overrides["memory_value_slot_guide_memory_types"]
+            if not isinstance(raw_types, (list, tuple)):
+                raise ValueError(
+                    "route_overrides.memory_value_slot_guide_memory_types must "
+                    "be a list or tuple"
+                )
+            overrides["memory_value_slot_guide_memory_types"] = tuple(
+                str(value).strip().lower()
+                for value in raw_types
+                if str(value).strip()
             )
         if "profile_activation_guide" in raw_overrides:
             overrides["profile_activation_guide"] = bool(
@@ -3016,6 +3041,7 @@ def _build_prompt(
     memory_value_slot_guide: bool,
     memory_value_slot_guide_max_slots: int,
     memory_value_slot_guide_max_values: int,
+    memory_value_slot_guide_memory_types: tuple[str, ...],
     profile_activation_guide: bool,
     profile_activation_guide_max_records: int,
     profile_activation_guide_value_chars: int,
@@ -3175,6 +3201,7 @@ def _build_prompt(
             memory_value_slot_guide=memory_value_slot_guide,
             memory_value_slot_guide_max_slots=memory_value_slot_guide_max_slots,
             memory_value_slot_guide_max_values=memory_value_slot_guide_max_values,
+            memory_value_slot_guide_memory_types=memory_value_slot_guide_memory_types,
             profile_activation_guide=profile_activation_guide,
             profile_activation_guide_max_records=profile_activation_guide_max_records,
             profile_activation_guide_value_chars=profile_activation_guide_value_chars,
@@ -3402,6 +3429,7 @@ def _build_external_naive_prompt(
     memory_value_slot_guide: bool,
     memory_value_slot_guide_max_slots: int,
     memory_value_slot_guide_max_values: int,
+    memory_value_slot_guide_memory_types: tuple[str, ...],
     profile_activation_guide: bool,
     profile_activation_guide_max_records: int,
     profile_activation_guide_value_chars: int,
@@ -3577,6 +3605,7 @@ def _build_external_naive_prompt(
             scalar_value_manifest=memory_scalar_value_manifest,
             max_slots=memory_value_slot_guide_max_slots,
             max_values=memory_value_slot_guide_max_values,
+            memory_types=memory_value_slot_guide_memory_types,
         )
         if memory_value_slot_lines:
             memory_value_slot_guide_block = "\n".join(
@@ -4384,6 +4413,7 @@ def _external_memory_value_slot_guide_lines(
     scalar_value_manifest: Mapping[str, Any] | None,
     max_slots: int,
     max_values: int,
+    memory_types: tuple[str, ...] = (),
 ) -> list[str]:
     """Compact build-owned value slot view grounded in visible raw rows."""
 
@@ -4402,6 +4432,9 @@ def _external_memory_value_slot_guide_lines(
     question_terms = _content_terms(question).difference(
         MEMORY_STATE_GUIDE_ALIGNMENT_WEAK_TERMS
     )
+    allowed_memory_types = frozenset(
+        str(value).strip().lower() for value in memory_types if str(value).strip()
+    )
     candidates: list[tuple[float, int, Mapping[str, Any], tuple[dict[str, Any], ...]]] = []
     for ordinal, raw_slot in enumerate(
         scalar_value_manifest.get("slot_index")
@@ -4409,6 +4442,9 @@ def _external_memory_value_slot_guide_lines(
         or ()
     ):
         if not isinstance(raw_slot, Mapping):
+            continue
+        memory_type = str(raw_slot.get("memory_type") or "").strip().lower()
+        if allowed_memory_types and memory_type not in allowed_memory_types:
             continue
         if raw_slot.get("source_backed") is False:
             continue

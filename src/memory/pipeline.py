@@ -1279,6 +1279,9 @@ class Stage1Pipeline:
             memory_value_slot_guide_max_values=int(
                 compiler_config.get("memory_value_slot_guide_max_values", 6)
             ),
+            memory_value_slot_guide_memory_types=_tuple_config(
+                compiler_config.get("memory_value_slot_guide_memory_types")
+            ),
             profile_activation_guide=bool(
                 compiler_config.get("profile_activation_guide", False)
             ),
@@ -8389,6 +8392,9 @@ def _compiler_trace_config(
         "memory_value_slot_guide_max_values": int(
             compiler_config.get("memory_value_slot_guide_max_values", 6)
         ),
+        "memory_value_slot_guide_memory_types": _tuple_config(
+            compiler_config.get("memory_value_slot_guide_memory_types")
+        ),
         "profile_activation_guide": bool(
             compiler_config.get("profile_activation_guide", False)
         ),
@@ -8743,6 +8749,9 @@ def _configured_compiler(compiler_config: Mapping[str, Any]) -> EvidenceCompiler
         ),
         memory_value_slot_guide_max_values=int(
             compiler_config.get("memory_value_slot_guide_max_values", 6)
+        ),
+        memory_value_slot_guide_memory_types=_tuple_config(
+            compiler_config.get("memory_value_slot_guide_memory_types")
         ),
         profile_activation_guide=bool(
             compiler_config.get("profile_activation_guide", False)

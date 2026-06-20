@@ -1956,6 +1956,9 @@ def main() -> int:
             "memory_value_slot_guide_max_values": config.get("compiler", {}).get(
                 "memory_value_slot_guide_max_values", 6
             ),
+            "memory_value_slot_guide_memory_types": config.get("compiler", {}).get(
+                "memory_value_slot_guide_memory_types"
+            ),
             "memory_value_slot_guide_applied": total_memory_value_slot_guide_applied,
             "memory_state_guide": config.get("compiler", {}).get(
                 "memory_state_guide", False
@@ -2872,6 +2875,7 @@ def _write_summary(
         f"- memory_value_slot_guide_information_needs: {metrics['compiler']['memory_value_slot_guide_information_needs']}",
         f"- memory_value_slot_guide_max_slots: {metrics['compiler']['memory_value_slot_guide_max_slots']}",
         f"- memory_value_slot_guide_max_values: {metrics['compiler']['memory_value_slot_guide_max_values']}",
+        f"- memory_value_slot_guide_memory_types: {metrics['compiler']['memory_value_slot_guide_memory_types']}",
         f"- memory_value_slot_guide_applied: {metrics['compiler']['memory_value_slot_guide_applied']}",
         f"- memory_state_guide: {metrics['compiler']['memory_state_guide']}",
         f"- memory_state_guide_information_needs: {metrics['compiler']['memory_state_guide_information_needs']}",
@@ -3124,6 +3128,7 @@ def _write_diagnosis(
         f"- memory_value_slot_guide_information_needs: {metrics['compiler']['memory_value_slot_guide_information_needs']}",
         f"- memory_value_slot_guide_max_slots: {metrics['compiler']['memory_value_slot_guide_max_slots']}",
         f"- memory_value_slot_guide_max_values: {metrics['compiler']['memory_value_slot_guide_max_values']}",
+        f"- memory_value_slot_guide_memory_types: {metrics['compiler']['memory_value_slot_guide_memory_types']}",
         f"- memory_value_slot_guide_applied: {metrics['compiler']['memory_value_slot_guide_applied']}",
         f"- current_state_update_contract: {metrics['compiler']['current_state_update_contract']}",
         f"- dialogue_inference_contract: {metrics['compiler']['dialogue_inference_contract']}",
