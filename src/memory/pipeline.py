@@ -1288,6 +1288,21 @@ class Stage1Pipeline:
             memory_value_slot_guide_memory_types=_tuple_config(
                 compiler_config.get("memory_value_slot_guide_memory_types")
             ),
+            working_memory_packet=bool(
+                compiler_config.get("working_memory_packet", False)
+            ),
+            working_memory_packet_information_needs=_tuple_config(
+                compiler_config.get(
+                    "working_memory_packet_information_needs",
+                    ("current_state", "fact_lookup", "profile_preference"),
+                )
+            ),
+            working_memory_packet_max_items=int(
+                compiler_config.get("working_memory_packet_max_items", 4)
+            ),
+            working_memory_packet_value_chars=int(
+                compiler_config.get("working_memory_packet_value_chars", 120)
+            ),
             profile_activation_guide=bool(
                 compiler_config.get("profile_activation_guide", False)
             ),
@@ -9074,6 +9089,21 @@ def _compiler_trace_config(
         "memory_value_slot_guide_memory_types": _tuple_config(
             compiler_config.get("memory_value_slot_guide_memory_types")
         ),
+        "working_memory_packet": bool(
+            compiler_config.get("working_memory_packet", False)
+        ),
+        "working_memory_packet_information_needs": _tuple_config(
+            compiler_config.get(
+                "working_memory_packet_information_needs",
+                ("current_state", "fact_lookup", "profile_preference"),
+            )
+        ),
+        "working_memory_packet_max_items": int(
+            compiler_config.get("working_memory_packet_max_items", 4)
+        ),
+        "working_memory_packet_value_chars": int(
+            compiler_config.get("working_memory_packet_value_chars", 120)
+        ),
         "profile_activation_guide": bool(
             compiler_config.get("profile_activation_guide", False)
         ),
@@ -9431,6 +9461,21 @@ def _configured_compiler(compiler_config: Mapping[str, Any]) -> EvidenceCompiler
         ),
         memory_value_slot_guide_memory_types=_tuple_config(
             compiler_config.get("memory_value_slot_guide_memory_types")
+        ),
+        working_memory_packet=bool(
+            compiler_config.get("working_memory_packet", False)
+        ),
+        working_memory_packet_information_needs=_tuple_config(
+            compiler_config.get(
+                "working_memory_packet_information_needs",
+                ("current_state", "fact_lookup", "profile_preference"),
+            )
+        ),
+        working_memory_packet_max_items=int(
+            compiler_config.get("working_memory_packet_max_items", 4)
+        ),
+        working_memory_packet_value_chars=int(
+            compiler_config.get("working_memory_packet_value_chars", 120)
         ),
         profile_activation_guide=bool(
             compiler_config.get("profile_activation_guide", False)

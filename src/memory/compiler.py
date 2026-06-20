@@ -450,6 +450,14 @@ class EvidenceCompiler:
         memory_value_slot_guide_max_slots: int = 4,
         memory_value_slot_guide_max_values: int = 6,
         memory_value_slot_guide_memory_types: tuple[str, ...] = (),
+        working_memory_packet: bool = False,
+        working_memory_packet_information_needs: tuple[str, ...] = (
+            "current_state",
+            "fact_lookup",
+            "profile_preference",
+        ),
+        working_memory_packet_max_items: int = 4,
+        working_memory_packet_value_chars: int = 120,
         profile_activation_guide: bool = False,
         profile_activation_guide_information_needs: tuple[str, ...] = (
             "profile_preference",
@@ -716,6 +724,17 @@ class EvidenceCompiler:
             str(value).strip().lower()
             for value in memory_value_slot_guide_memory_types
             if str(value).strip()
+        )
+        self._working_memory_packet = bool(working_memory_packet)
+        self._working_memory_packet_information_needs = _validate_information_needs(
+            working_memory_packet_information_needs,
+            field_name="working_memory_packet_information_needs",
+        )
+        self._working_memory_packet_max_items = max(
+            1, int(working_memory_packet_max_items)
+        )
+        self._working_memory_packet_value_chars = max(
+            40, int(working_memory_packet_value_chars)
         )
         self._profile_activation_guide = bool(profile_activation_guide)
         self._profile_activation_guide_information_needs = _validate_information_needs(
@@ -1103,6 +1122,17 @@ class EvidenceCompiler:
             memory_value_slot_guide_memory_types=route_settings[
                 "memory_value_slot_guide_memory_types"
             ],
+            working_memory_packet=(
+                route_settings["working_memory_packet"]
+                and route.information_need
+                in self._working_memory_packet_information_needs
+            ),
+            working_memory_packet_max_items=route_settings[
+                "working_memory_packet_max_items"
+            ],
+            working_memory_packet_value_chars=route_settings[
+                "working_memory_packet_value_chars"
+            ],
             profile_activation_guide=(
                 route_settings["profile_activation_guide"]
                 and route.information_need
@@ -1296,6 +1326,13 @@ class EvidenceCompiler:
             ),
             "memory_value_slot_guide_memory_types": (
                 self._memory_value_slot_guide_memory_types
+            ),
+            "working_memory_packet": self._working_memory_packet,
+            "working_memory_packet_max_items": (
+                self._working_memory_packet_max_items
+            ),
+            "working_memory_packet_value_chars": (
+                self._working_memory_packet_value_chars
             ),
             "profile_activation_guide": self._profile_activation_guide,
             "profile_activation_guide_max_records": (
@@ -1738,6 +1775,18 @@ def _validate_route_overrides(
                 str(value).strip().lower()
                 for value in raw_types
                 if str(value).strip()
+            )
+        if "working_memory_packet" in raw_overrides:
+            overrides["working_memory_packet"] = bool(
+                raw_overrides["working_memory_packet"]
+            )
+        if "working_memory_packet_max_items" in raw_overrides:
+            overrides["working_memory_packet_max_items"] = max(
+                1, int(raw_overrides["working_memory_packet_max_items"])
+            )
+        if "working_memory_packet_value_chars" in raw_overrides:
+            overrides["working_memory_packet_value_chars"] = max(
+                40, int(raw_overrides["working_memory_packet_value_chars"])
             )
         if "profile_activation_guide" in raw_overrides:
             overrides["profile_activation_guide"] = bool(
@@ -3045,6 +3094,9 @@ def _build_prompt(
     memory_value_slot_guide_max_slots: int,
     memory_value_slot_guide_max_values: int,
     memory_value_slot_guide_memory_types: tuple[str, ...],
+    working_memory_packet: bool,
+    working_memory_packet_max_items: int,
+    working_memory_packet_value_chars: int,
     profile_activation_guide: bool,
     profile_activation_guide_max_records: int,
     profile_activation_guide_value_chars: int,
@@ -3206,6 +3258,9 @@ def _build_prompt(
             memory_value_slot_guide_max_slots=memory_value_slot_guide_max_slots,
             memory_value_slot_guide_max_values=memory_value_slot_guide_max_values,
             memory_value_slot_guide_memory_types=memory_value_slot_guide_memory_types,
+            working_memory_packet=working_memory_packet,
+            working_memory_packet_max_items=working_memory_packet_max_items,
+            working_memory_packet_value_chars=working_memory_packet_value_chars,
             profile_activation_guide=profile_activation_guide,
             profile_activation_guide_max_records=profile_activation_guide_max_records,
             profile_activation_guide_value_chars=profile_activation_guide_value_chars,
@@ -3435,6 +3490,9 @@ def _build_external_naive_prompt(
     memory_value_slot_guide_max_slots: int,
     memory_value_slot_guide_max_values: int,
     memory_value_slot_guide_memory_types: tuple[str, ...],
+    working_memory_packet: bool,
+    working_memory_packet_max_items: int,
+    working_memory_packet_value_chars: int,
     profile_activation_guide: bool,
     profile_activation_guide_max_records: int,
     profile_activation_guide_value_chars: int,
@@ -3578,6 +3636,20 @@ def _build_external_naive_prompt(
             profile_activation_guide_block = "\n".join(
                 ["", "Profile Memory Activation Guide:", *profile_activation_lines, ""]
             )
+    working_memory_packet_block = ""
+    if working_memory_packet:
+        working_memory_packet_lines = _external_working_memory_packet_lines(
+            question=question,
+            route=route,
+            rows=rows,
+            memory_object_index=memory_object_index,
+            max_items=working_memory_packet_max_items,
+            max_value_chars=working_memory_packet_value_chars,
+        )
+        if working_memory_packet_lines:
+            working_memory_packet_block = "\n".join(
+                ["", "Working Memory Packet:", *working_memory_packet_lines, ""]
+            )
     memory_state_guide_block = ""
     if memory_state_guide:
         memory_state_lines = _external_memory_state_guide_lines(
@@ -3643,6 +3715,10 @@ def _build_external_naive_prompt(
     if profile_activation_guide_block:
         rules.append(
             "Use Profile Memory Activation Guide only as a source-backed preference/profile index into cited Memory Context rows; it is not independent evidence."
+        )
+    if working_memory_packet_block:
+        rules.append(
+            "Use Working Memory Packet only as a source-backed state and operation index into cited Memory Context rows; it is not independent evidence."
         )
     if memory_state_guide_block:
         rules.append(
@@ -3826,6 +3902,7 @@ def _build_external_naive_prompt(
             event_time_candidate_map_block,
             candidate_guide_block,
             profile_activation_guide_block,
+            working_memory_packet_block,
             memory_state_guide_block,
             memory_value_slot_guide_block,
             update_conflict_guide_block,
@@ -4277,6 +4354,165 @@ def _profile_activation_record_score(
         score -= 0.5
     if record.subject or record.predicate or record.value:
         score += 0.4
+    return score
+
+
+def _external_working_memory_packet_lines(
+    *,
+    question: str,
+    route: RouteResult,
+    rows: tuple[EvidenceRow, ...],
+    memory_object_index: Mapping[str, Any] | None,
+    max_items: int,
+    max_value_chars: int,
+) -> list[str]:
+    """Source-backed memory organization packet grounded in visible rows."""
+
+    if not rows or max_items <= 0 or not isinstance(memory_object_index, Mapping):
+        return []
+    registry = memory_object_index.get("operation_registry")
+    if not isinstance(registry, Mapping) or not registry.get("applied"):
+        return []
+
+    source_to_memory_index = {
+        row.source_id: index for index, row in enumerate(rows, start=1)
+    }
+    question_terms = _content_terms(question)
+    candidates: list[tuple[float, int, Mapping[str, Any], tuple[str, ...]]] = []
+    for ordinal, entry in enumerate(registry.get("entries") or ()):
+        if not isinstance(entry, Mapping):
+            continue
+        if not entry.get("source_backed"):
+            continue
+        if str(entry.get("memory_tier") or "") == "quarantine_memory":
+            continue
+        source_ids = tuple(
+            str(source_id)
+            for source_id in (
+                entry.get("expand_source_order") or entry.get("source_ids") or ()
+            )
+            if str(source_id).strip()
+        )
+        source_labels = _source_labels_for_source_ids(
+            source_ids,
+            source_to_memory_index,
+        )
+        if not source_labels:
+            continue
+        score = _working_memory_packet_entry_score(
+            entry,
+            question_terms=question_terms,
+            route=route,
+        )
+        if score <= 0:
+            continue
+        candidates.append((score, -ordinal, entry, source_labels))
+    if not candidates:
+        return []
+
+    candidates.sort(reverse=True)
+    lines = [
+        "Source-backed memory organization packet; use it to track active working state, long-term recall, archival conflicts, and operation targets before verifying final facts in cited rows.",
+        "- items:",
+    ]
+    for _, _, entry, source_labels in candidates[:max_items]:
+        fields = [
+            f"target={str(entry.get('target_type') or 'object')}",
+            f"type={str(entry.get('memory_type') or 'unknown')}",
+        ]
+        tier = str(entry.get("memory_tier") or "")
+        if tier:
+            fields.insert(1, f"tier={tier}")
+        else:
+            layer = str(entry.get("layer") or "")
+            if layer:
+                fields.insert(1, f"layer={layer}")
+        status = str(entry.get("status") or "")
+        if status:
+            fields.append(f"status={status}")
+        subject = str(entry.get("subject") or "")
+        if subject:
+            fields.append(f"subject={_truncate_text(_single_line(subject), 60)}")
+        predicate = str(entry.get("predicate") or "")
+        if predicate:
+            fields.append(
+                f"predicate={_truncate_text(_single_line(predicate), 60)}"
+            )
+        value = _working_memory_packet_entry_value(entry)
+        if value:
+            fields.append(
+                f"value={_truncate_text(_single_line(value), max_value_chars)}"
+            )
+        operations = tuple(str(item) for item in entry.get("operations") or () if item)
+        if operations:
+            fields.append(f"ops={', '.join(operations[:6])}")
+        fields.append(f"sources={', '.join(source_labels)}")
+        lines.append(f"  - {' | '.join(fields)}")
+    return lines
+
+
+def _source_labels_for_source_ids(
+    source_ids: tuple[str, ...],
+    source_to_memory_index: Mapping[str, int],
+) -> tuple[str, ...]:
+    labels = []
+    for source_id in source_ids:
+        memory_index = source_to_memory_index.get(source_id)
+        if memory_index is not None:
+            labels.append(f"Memory {memory_index}")
+    return tuple(dict.fromkeys(labels))
+
+
+def _working_memory_packet_entry_value(entry: Mapping[str, Any]) -> str:
+    values = tuple(str(value) for value in entry.get("values") or () if value)
+    if values:
+        return "; ".join(values[:4])
+    return str(entry.get("value") or "")
+
+
+def _working_memory_packet_entry_score(
+    entry: Mapping[str, Any],
+    *,
+    question_terms: frozenset[str],
+    route: RouteResult,
+) -> float:
+    memory_type = str(entry.get("memory_type") or "")
+    terms = _content_terms(
+        " ".join(
+            str(part)
+            for part in (
+                entry.get("target_type"),
+                entry.get("memory_type"),
+                entry.get("subject"),
+                entry.get("predicate"),
+                _working_memory_packet_entry_value(entry),
+                " ".join(str(item) for item in entry.get("operations") or ()),
+            )
+            if part
+        )
+    )
+    overlap = len(question_terms.intersection(terms))
+    type_match = _memory_type_matches_route(memory_type, route)
+    if overlap == 0 and not type_match:
+        return 0.0
+
+    score = float(overlap * 2)
+    if type_match:
+        score += 2.0
+    score += {
+        "working_memory": 1.5,
+        "long_term_memory": 1.0,
+        "archival_memory": 0.5,
+    }.get(str(entry.get("memory_tier") or ""), 0.0)
+    if str(entry.get("target_type") or "") in {"operation_slot", "conflict_slot"}:
+        score += 1.0
+    operations = {str(item) for item in entry.get("operations") or ()}
+    if route.information_need == "current_state" and operations.intersection(
+        {"supersede", "conflict_slot", "audit_conflict_slot"}
+    ):
+        score += 1.0
+    if str(entry.get("status") or "") == "active":
+        score += 0.25
     return score
 
 

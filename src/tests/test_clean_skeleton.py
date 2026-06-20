@@ -9962,6 +9962,10 @@ class CleanSkeletonTest(unittest.TestCase):
                 "memory_value_slot_guide_max_slots": 2,
                 "memory_value_slot_guide_max_values": 3,
                 "memory_value_slot_guide_memory_types": ["state"],
+                "working_memory_packet": True,
+                "working_memory_packet_information_needs": ["current_state"],
+                "working_memory_packet_max_items": 2,
+                "working_memory_packet_value_chars": 80,
             },
             "answer": {"fallback_answer": "I do not know."},
         }
@@ -10030,6 +10034,19 @@ class CleanSkeletonTest(unittest.TestCase):
             result["trace"]["compiler"]["memory_value_slot_guide_memory_types"],
             ("state",),
         )
+        self.assertTrue(result["trace"]["compiler"]["working_memory_packet"])
+        self.assertEqual(
+            result["trace"]["compiler"]["working_memory_packet_information_needs"],
+            ("current_state",),
+        )
+        self.assertEqual(
+            result["trace"]["compiler"]["working_memory_packet_max_items"],
+            2,
+        )
+        self.assertEqual(
+            result["trace"]["compiler"]["working_memory_packet_value_chars"],
+            80,
+        )
         self.assertEqual(
             result["trace"]["compiler"]["memory_state_guide_record_source"],
             "evidence_rows",
@@ -10041,6 +10058,82 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertIn(
             "Update/Conflict Candidate Chain:",
             result["trace"]["compiled_context"]["prompt"],
+        )
+
+    def test_working_memory_packet_uses_object_index_visible_sources(self) -> None:
+        old_record = MemoryRecord(
+            memory_id="old-followers",
+            memory_type="state",
+            text="Alex had 1250 followers.",
+            source_ids=("s1:t0",),
+            subject="Alex",
+            predicate="follower count",
+            value="1250 followers",
+            timestamp="2024-05-20",
+            status="superseded",
+            superseded_by="new-followers",
+        )
+        new_record = MemoryRecord(
+            memory_id="new-followers",
+            memory_type="state",
+            text="Alex is close to 1300 followers now.",
+            source_ids=("s1:t1",),
+            subject="Alex",
+            predicate="follower count",
+            value="1300 followers",
+            timestamp="2024-05-30",
+            status="active",
+        )
+        management = _management_summary(
+            (old_record, new_record),
+            policy="stateful_only",
+            managed_memory_types=frozenset({"state"}),
+            include_memory_system_graph=True,
+        )
+        compiler = EvidenceCompiler(
+            max_evidence_items=2,
+            max_evidence_chars=3000,
+            prompt_mode="external_naive",
+            working_memory_packet=True,
+            working_memory_packet_information_needs=("current_state",),
+            working_memory_packet_max_items=3,
+            working_memory_packet_value_chars=80,
+        )
+
+        compiled = compiler.compile(
+            question="What is Alex's current follower count?",
+            question_time=None,
+            route=RouteResult("current_state", ("current_state",)),
+            hits=(),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Alex had 1250 followers earlier this month.",
+                    timestamp="2024-05-20",
+                ),
+                Turn(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="Alex is close to 1300 followers now.",
+                    timestamp="2024-05-30",
+                ),
+            ),
+            memory_object_index=management["memory_system_graph"]["memory_object_index"],
+        )
+
+        self.assertIn("Working Memory Packet:", compiled.prompt)
+        self.assertIn("tier=working_memory", compiled.prompt)
+        self.assertIn("target=operation_slot", compiled.prompt)
+        self.assertIn("value=1250 followers; 1300 followers", compiled.prompt)
+        self.assertIn("sources=Memory 2, Memory 1", compiled.prompt)
+        self.assertIn(
+            "Use Working Memory Packet only as a source-backed state and operation index",
+            compiled.prompt,
         )
 
     def test_memory_state_guide_uses_object_index_conflict_slots(self) -> None:
