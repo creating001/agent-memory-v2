@@ -53,6 +53,12 @@ class AnswerSupportAudit:
     working_compiler_plan_final_evidence_count: int
     working_compiler_plan_focus_counts: dict[str, int]
     working_compiler_plan_verifier_check_counts: dict[str, int]
+    memory_system_state_available: bool
+    memory_system_state_final_evidence_count: int
+    memory_system_state_focus_counts: dict[str, int]
+    memory_system_state_decision_counts: dict[str, int]
+    memory_system_state_context_action_counts: dict[str, int]
+    memory_system_state_verifier_check_counts: dict[str, int]
     risks: tuple[str, ...]
 
     @property
@@ -115,6 +121,7 @@ def audit_answer_support(
         registry_backed_final_source_ids=registry_backed_final_source_ids,
     )
     working_plan = _working_compiler_plan_audit(context_manifest)
+    system_state = _memory_system_state_audit(context_manifest)
 
     risks: list[str] = []
     if answer_empty:
@@ -172,6 +179,18 @@ def audit_answer_support(
         working_compiler_plan_verifier_check_counts=working_plan[
             "verifier_check_counts"
         ],
+        memory_system_state_available=system_state["available"],
+        memory_system_state_final_evidence_count=system_state[
+            "final_evidence_count"
+        ],
+        memory_system_state_focus_counts=system_state["focus_counts"],
+        memory_system_state_decision_counts=system_state["decision_counts"],
+        memory_system_state_context_action_counts=system_state[
+            "context_action_counts"
+        ],
+        memory_system_state_verifier_check_counts=system_state[
+            "verifier_check_counts"
+        ],
         risks=tuple(dict.fromkeys(risks)),
     )
 
@@ -201,6 +220,12 @@ def _audit_noop(*, enabled: bool, mode: str, reason: str) -> AnswerSupportAudit:
         working_compiler_plan_final_evidence_count=0,
         working_compiler_plan_focus_counts={},
         working_compiler_plan_verifier_check_counts={},
+        memory_system_state_available=False,
+        memory_system_state_final_evidence_count=0,
+        memory_system_state_focus_counts={},
+        memory_system_state_decision_counts={},
+        memory_system_state_context_action_counts={},
+        memory_system_state_verifier_check_counts={},
         risks=(),
     )
 
@@ -321,6 +346,45 @@ def _working_compiler_plan_audit(
         "verifier_check_counts": _int_count_dict(
             memory_operations.get("working_compiler_plan_verifier_check_counts")
         ),
+    }
+
+
+def _memory_system_state_audit(
+    context_manifest: dict[str, Any] | None,
+) -> dict[str, Any]:
+    if not isinstance(context_manifest, dict):
+        return _empty_memory_system_state_audit()
+    memory_operations = context_manifest.get("memory_operations")
+    if not isinstance(memory_operations, dict):
+        return _empty_memory_system_state_audit()
+    return {
+        "available": bool(memory_operations.get("memory_system_state_available")),
+        "final_evidence_count": len(
+            memory_operations.get("memory_system_state_final_source_ids") or ()
+        ),
+        "focus_counts": _int_count_dict(
+            memory_operations.get("memory_system_state_focus_counts")
+        ),
+        "decision_counts": _int_count_dict(
+            memory_operations.get("memory_system_state_decision_counts")
+        ),
+        "context_action_counts": _int_count_dict(
+            memory_operations.get("memory_system_state_context_action_counts")
+        ),
+        "verifier_check_counts": _int_count_dict(
+            memory_operations.get("memory_system_state_verifier_check_counts")
+        ),
+    }
+
+
+def _empty_memory_system_state_audit() -> dict[str, Any]:
+    return {
+        "available": False,
+        "final_evidence_count": 0,
+        "focus_counts": {},
+        "decision_counts": {},
+        "context_action_counts": {},
+        "verifier_check_counts": {},
     }
 
 

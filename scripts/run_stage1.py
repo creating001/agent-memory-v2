@@ -108,6 +108,7 @@ def main() -> int:
     total_context_budget_anchor_operation_api_source_count = 0
     total_context_budget_anchor_context_interface_source_count = 0
     total_context_budget_anchor_working_compiler_plan_source_count = 0
+    total_context_budget_anchor_memory_system_state_source_count = 0
     context_budget_anchor_selected_source_counts: dict[str, int] = {}
     total_context_budget_registry_anchor_candidate_count = 0
     total_context_budget_registry_anchor_retained_count = 0
@@ -122,6 +123,7 @@ def main() -> int:
     total_context_budget_audit_anchor_operation_api_source_count = 0
     total_context_budget_audit_anchor_context_interface_source_count = 0
     total_context_budget_audit_anchor_working_compiler_plan_source_count = 0
+    total_context_budget_audit_anchor_memory_system_state_source_count = 0
     context_budget_audit_anchor_selected_source_counts: dict[str, int] = {}
     total_context_budget_audit_registry_anchor_candidate_count = 0
     total_context_budget_audit_registry_anchor_retained_count = 0
@@ -341,6 +343,12 @@ def main() -> int:
     total_answer_verifier_working_compiler_plan_final_evidence = 0
     answer_verifier_working_compiler_plan_focus_counts: dict[str, int] = {}
     answer_verifier_working_compiler_plan_verifier_check_counts: dict[str, int] = {}
+    total_answer_verifier_memory_system_state_available = 0
+    total_answer_verifier_memory_system_state_final_evidence = 0
+    answer_verifier_memory_system_state_focus_counts: dict[str, int] = {}
+    answer_verifier_memory_system_state_decision_counts: dict[str, int] = {}
+    answer_verifier_memory_system_state_context_action_counts: dict[str, int] = {}
+    answer_verifier_memory_system_state_verifier_check_counts: dict[str, int] = {}
     answer_verifier_risk_reasons: dict[str, int] = {}
     total_answer_repair_triggered = 0
     total_answer_repair_applied = 0
@@ -545,6 +553,12 @@ def main() -> int:
             )
             or 0
         )
+        total_context_budget_anchor_memory_system_state_source_count += int(
+            retrieval_trace.get(
+                "context_budget_anchor_memory_system_state_source_count"
+            )
+            or 0
+        )
         context_budget_registry_anchor_candidates = len(
             retrieval_trace.get(
                 "context_budget_registry_anchor_candidate_source_ids"
@@ -615,6 +629,10 @@ def main() -> int:
                 context_budget_audit.get(
                     "anchor_working_compiler_plan_source_count"
                 )
+                or 0
+            )
+            total_context_budget_audit_anchor_memory_system_state_source_count += int(
+                context_budget_audit.get("anchor_memory_system_state_source_count")
                 or 0
             )
             audit_registry_anchor_candidates = len(
@@ -1275,6 +1293,28 @@ def main() -> int:
                 answer_verifier.get("working_compiler_plan_verifier_check_counts")
                 or {},
             )
+            if answer_verifier.get("memory_system_state_available"):
+                total_answer_verifier_memory_system_state_available += 1
+            total_answer_verifier_memory_system_state_final_evidence += int(
+                answer_verifier.get("memory_system_state_final_evidence_count") or 0
+            )
+            _merge_int_counts(
+                answer_verifier_memory_system_state_focus_counts,
+                answer_verifier.get("memory_system_state_focus_counts") or {},
+            )
+            _merge_int_counts(
+                answer_verifier_memory_system_state_decision_counts,
+                answer_verifier.get("memory_system_state_decision_counts") or {},
+            )
+            _merge_int_counts(
+                answer_verifier_memory_system_state_context_action_counts,
+                answer_verifier.get("memory_system_state_context_action_counts") or {},
+            )
+            _merge_int_counts(
+                answer_verifier_memory_system_state_verifier_check_counts,
+                answer_verifier.get("memory_system_state_verifier_check_counts")
+                or {},
+            )
             risk_count = int(answer_verifier.get("risk_count") or 0)
             total_answer_verifier_risk_flags += risk_count
             if risk_count:
@@ -1900,6 +1940,12 @@ def main() -> int:
                     sample_count,
                 )
             ),
+            "avg_context_budget_anchor_memory_system_state_source_count": (
+                _safe_average(
+                    total_context_budget_anchor_memory_system_state_source_count,
+                    sample_count,
+                )
+            ),
             "context_budget_registry_anchor_sample_count": (
                 total_context_budget_registry_anchor_sample_count
             ),
@@ -2003,6 +2049,12 @@ def main() -> int:
             "avg_context_budget_audit_anchor_working_compiler_plan_source_count": (
                 _safe_average(
                     total_context_budget_audit_anchor_working_compiler_plan_source_count,
+                    sample_count,
+                )
+            ),
+            "avg_context_budget_audit_anchor_memory_system_state_source_count": (
+                _safe_average(
+                    total_context_budget_audit_anchor_memory_system_state_source_count,
                     sample_count,
                 )
             ),
@@ -2804,6 +2856,33 @@ def main() -> int:
             "verifier_working_compiler_plan_verifier_check_counts": dict(
                 sorted(
                     answer_verifier_working_compiler_plan_verifier_check_counts.items()
+                )
+            ),
+            "verifier_memory_system_state_available_count": (
+                total_answer_verifier_memory_system_state_available
+            ),
+            "verifier_memory_system_state_available_rate": _safe_average(
+                total_answer_verifier_memory_system_state_available,
+                total_answer_verifier_applied,
+            ),
+            "verifier_avg_memory_system_state_final_evidence": _safe_average(
+                total_answer_verifier_memory_system_state_final_evidence,
+                total_answer_verifier_applied,
+            ),
+            "verifier_memory_system_state_focus_counts": dict(
+                sorted(answer_verifier_memory_system_state_focus_counts.items())
+            ),
+            "verifier_memory_system_state_decision_counts": dict(
+                sorted(answer_verifier_memory_system_state_decision_counts.items())
+            ),
+            "verifier_memory_system_state_context_action_counts": dict(
+                sorted(
+                    answer_verifier_memory_system_state_context_action_counts.items()
+                )
+            ),
+            "verifier_memory_system_state_verifier_check_counts": dict(
+                sorted(
+                    answer_verifier_memory_system_state_verifier_check_counts.items()
                 )
             ),
             "repair_triggered_count": total_answer_repair_triggered,
@@ -3882,7 +3961,7 @@ def _write_summary(
         f"- avg_context_budget_anchor_operation_api_source_count: {metrics['retrieval']['avg_context_budget_anchor_operation_api_source_count']}",
         f"- avg_context_budget_anchor_context_interface_source_count: {metrics['retrieval']['avg_context_budget_anchor_context_interface_source_count']}",
         f"- avg_context_budget_anchor_working_compiler_plan_source_count: {metrics['retrieval']['avg_context_budget_anchor_working_compiler_plan_source_count']}",
-        f"- avg_context_budget_anchor_working_compiler_plan_source_count: {metrics['retrieval']['avg_context_budget_anchor_working_compiler_plan_source_count']}",
+        f"- avg_context_budget_anchor_memory_system_state_source_count: {metrics['retrieval']['avg_context_budget_anchor_memory_system_state_source_count']}",
         f"- context_budget_applied_count: {metrics['retrieval']['context_budget_applied_count']}",
         f"- context_budget_applied_rate: {metrics['retrieval']['context_budget_applied_rate']}",
         f"- avg_context_budget_candidate_count: {metrics['retrieval']['avg_context_budget_candidate_count']}",
@@ -3907,7 +3986,7 @@ def _write_summary(
         f"- avg_context_budget_audit_anchor_operation_api_source_count: {metrics['retrieval']['avg_context_budget_audit_anchor_operation_api_source_count']}",
         f"- avg_context_budget_audit_anchor_context_interface_source_count: {metrics['retrieval']['avg_context_budget_audit_anchor_context_interface_source_count']}",
         f"- avg_context_budget_audit_anchor_working_compiler_plan_source_count: {metrics['retrieval']['avg_context_budget_audit_anchor_working_compiler_plan_source_count']}",
-        f"- avg_context_budget_audit_anchor_working_compiler_plan_source_count: {metrics['retrieval']['avg_context_budget_audit_anchor_working_compiler_plan_source_count']}",
+        f"- avg_context_budget_audit_anchor_memory_system_state_source_count: {metrics['retrieval']['avg_context_budget_audit_anchor_memory_system_state_source_count']}",
         f"- context_budget_audit_applied_count: {metrics['retrieval']['context_budget_audit_applied_count']}",
         f"- context_budget_audit_applied_rate: {metrics['retrieval']['context_budget_audit_applied_rate']}",
         f"- avg_context_budget_audit_candidate_count: {metrics['retrieval']['avg_context_budget_audit_candidate_count']}",
@@ -3973,6 +4052,13 @@ def _write_summary(
         f"- answer_verifier_avg_working_compiler_plan_final_evidence: {metrics['answer']['verifier_avg_working_compiler_plan_final_evidence']}",
         f"- answer_verifier_working_compiler_plan_focus_counts: {metrics['answer']['verifier_working_compiler_plan_focus_counts']}",
         f"- answer_verifier_working_compiler_plan_verifier_check_counts: {metrics['answer']['verifier_working_compiler_plan_verifier_check_counts']}",
+        f"- answer_verifier_memory_system_state_available_count: {metrics['answer']['verifier_memory_system_state_available_count']}",
+        f"- answer_verifier_memory_system_state_available_rate: {metrics['answer']['verifier_memory_system_state_available_rate']}",
+        f"- answer_verifier_avg_memory_system_state_final_evidence: {metrics['answer']['verifier_avg_memory_system_state_final_evidence']}",
+        f"- answer_verifier_memory_system_state_focus_counts: {metrics['answer']['verifier_memory_system_state_focus_counts']}",
+        f"- answer_verifier_memory_system_state_decision_counts: {metrics['answer']['verifier_memory_system_state_decision_counts']}",
+        f"- answer_verifier_memory_system_state_context_action_counts: {metrics['answer']['verifier_memory_system_state_context_action_counts']}",
+        f"- answer_verifier_memory_system_state_verifier_check_counts: {metrics['answer']['verifier_memory_system_state_verifier_check_counts']}",
         f"- answer_repair_enabled: {metrics['answer']['repair_enabled']}",
         f"- answer_repair_mode: {metrics['answer']['repair_mode']}",
         f"- answer_repair_model: {metrics['answer']['repair_model']}",
@@ -4349,6 +4435,8 @@ def _write_diagnosis(
         f"- avg_context_budget_anchor_layer_manifest_source_count: {metrics['retrieval']['avg_context_budget_anchor_layer_manifest_source_count']}",
         f"- avg_context_budget_anchor_operation_api_source_count: {metrics['retrieval']['avg_context_budget_anchor_operation_api_source_count']}",
         f"- avg_context_budget_anchor_context_interface_source_count: {metrics['retrieval']['avg_context_budget_anchor_context_interface_source_count']}",
+        f"- avg_context_budget_anchor_working_compiler_plan_source_count: {metrics['retrieval']['avg_context_budget_anchor_working_compiler_plan_source_count']}",
+        f"- avg_context_budget_anchor_memory_system_state_source_count: {metrics['retrieval']['avg_context_budget_anchor_memory_system_state_source_count']}",
         f"- context_budget_applied_count: {metrics['retrieval']['context_budget_applied_count']}",
         f"- context_budget_applied_rate: {metrics['retrieval']['context_budget_applied_rate']}",
         f"- avg_context_budget_candidate_count: {metrics['retrieval']['avg_context_budget_candidate_count']}",
@@ -4365,6 +4453,8 @@ def _write_diagnosis(
         f"- avg_context_budget_audit_anchor_layer_manifest_source_count: {metrics['retrieval']['avg_context_budget_audit_anchor_layer_manifest_source_count']}",
         f"- avg_context_budget_audit_anchor_operation_api_source_count: {metrics['retrieval']['avg_context_budget_audit_anchor_operation_api_source_count']}",
         f"- avg_context_budget_audit_anchor_context_interface_source_count: {metrics['retrieval']['avg_context_budget_audit_anchor_context_interface_source_count']}",
+        f"- avg_context_budget_audit_anchor_working_compiler_plan_source_count: {metrics['retrieval']['avg_context_budget_audit_anchor_working_compiler_plan_source_count']}",
+        f"- avg_context_budget_audit_anchor_memory_system_state_source_count: {metrics['retrieval']['avg_context_budget_audit_anchor_memory_system_state_source_count']}",
         f"- context_budget_audit_applied_count: {metrics['retrieval']['context_budget_audit_applied_count']}",
         f"- context_budget_audit_applied_rate: {metrics['retrieval']['context_budget_audit_applied_rate']}",
         f"- avg_context_budget_audit_candidate_count: {metrics['retrieval']['avg_context_budget_audit_candidate_count']}",

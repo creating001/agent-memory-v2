@@ -66,6 +66,7 @@ _CONTEXT_BUDGET_ANCHOR_SOURCES = frozenset(
         "operation_api",
         "context_interface",
         "working_compiler_plan",
+        "memory_system_state",
         "auto",
     }
 )
@@ -2612,6 +2613,9 @@ class Stage1Pipeline:
             anchor_working_compiler_plan_source_count=context_budget_anchor_trace[
                 "anchor_working_compiler_plan_source_count"
             ],
+            anchor_memory_system_state_source_count=context_budget_anchor_trace[
+                "anchor_memory_system_state_source_count"
+            ],
         )
         if _context_budget_applies(
             route=route,
@@ -2654,6 +2658,11 @@ class Stage1Pipeline:
                 anchor_working_compiler_plan_source_count=(
                     context_budget_anchor_trace[
                         "anchor_working_compiler_plan_source_count"
+                    ]
+                ),
+                anchor_memory_system_state_source_count=(
+                    context_budget_anchor_trace[
+                        "anchor_memory_system_state_source_count"
                     ]
                 ),
             )
@@ -2837,6 +2846,11 @@ class Stage1Pipeline:
                     "anchor_working_compiler_plan_source_count"
                 ]
             ),
+            anchor_memory_system_state_source_count=(
+                context_budget_audit_anchor_trace[
+                    "anchor_memory_system_state_source_count"
+                ]
+            ),
         )
         if _context_budget_applies(
             route=route,
@@ -2885,6 +2899,11 @@ class Stage1Pipeline:
                 anchor_working_compiler_plan_source_count=(
                     context_budget_audit_anchor_trace[
                         "anchor_working_compiler_plan_source_count"
+                    ]
+                ),
+                anchor_memory_system_state_source_count=(
+                    context_budget_audit_anchor_trace[
+                        "anchor_memory_system_state_source_count"
                     ]
                 ),
             )
@@ -3569,6 +3588,11 @@ class Stage1Pipeline:
                     "context_budget_anchor_working_compiler_plan_source_count": (
                         context_budget_trace[
                             "anchor_working_compiler_plan_source_count"
+                        ]
+                    ),
+                    "context_budget_anchor_memory_system_state_source_count": (
+                        context_budget_trace[
+                            "anchor_memory_system_state_source_count"
                         ]
                     ),
                     "context_budget_anchor_candidate_source_ids": (
@@ -4589,6 +4613,10 @@ def _context_manifest(
                 )
                 or 0
             ),
+            "context_budget_anchor_memory_system_state_source_count": int(
+                context_budget_trace.get("anchor_memory_system_state_source_count")
+                or 0
+            ),
             "context_budget_anchor_candidate_count": len(
                 context_budget_trace.get("anchor_candidate_source_ids") or ()
             ),
@@ -4810,6 +4838,19 @@ def _context_manifest(
                 "memory_system_state_focus_counts": memory_operations_manifest[
                     "memory_system_state_focus_counts"
                 ],
+                "memory_system_state_decision_counts": memory_operations_manifest[
+                    "memory_system_state_decision_counts"
+                ],
+                "memory_system_state_context_action_counts": (
+                    memory_operations_manifest[
+                        "memory_system_state_context_action_counts"
+                    ]
+                ),
+                "memory_system_state_verifier_check_counts": (
+                    memory_operations_manifest[
+                        "memory_system_state_verifier_check_counts"
+                    ]
+                ),
             },
             "evidence_pressure": _evidence_pressure_manifest(evidence_rows),
             "clean_note": (
@@ -8636,7 +8677,51 @@ def _memory_working_compiler_plan_anchor_source_ids(
     )
 
 
-def _working_compiler_plan_anchor_entry_sort_key(entry: Mapping[str, Any]) -> tuple[int, int, int, str]:
+def _memory_system_state_anchor_source_ids(
+    memory_object_index: Mapping[str, Any] | None,
+) -> tuple[str, ...]:
+    if not isinstance(memory_object_index, Mapping):
+        return ()
+    memory_system_state = memory_object_index.get("memory_system_state")
+    if (
+        not isinstance(memory_system_state, Mapping)
+        or not memory_system_state.get("applied")
+    ):
+        return ()
+    entries = tuple(
+        entry
+        for entry in memory_system_state.get("entries") or ()
+        if isinstance(entry, Mapping)
+    )
+    return _ordered_unique(
+        (
+            *(
+                source_id
+                for entry in sorted(
+                    entries,
+                    key=_working_compiler_plan_anchor_entry_sort_key,
+                )
+                for source_id in (entry.get("source_ids") or ())
+            ),
+            *(
+                source_id
+                for entry in sorted(
+                    entries,
+                    key=_working_compiler_plan_anchor_entry_sort_key,
+                )
+                if isinstance(entry.get("source_expansion"), Mapping)
+                for source_id in (
+                    entry.get("source_expansion", {}).get("source_ids") or ()
+                )
+            ),
+            *(memory_system_state.get("source_expansion_source_ids") or ()),
+        )
+    )
+
+
+def _working_compiler_plan_anchor_entry_sort_key(
+    entry: Mapping[str, Any],
+) -> tuple[int, int, int, str]:
     focus_priority = {
         "conflict_chain": 0,
         "temporal_validity": 1,
@@ -8691,11 +8776,17 @@ def _context_budget_anchor_source_ids(
     working_compiler_plan_source_ids = _memory_working_compiler_plan_anchor_source_ids(
         memory_object_index
     )
+    memory_system_state_source_ids = _memory_system_state_anchor_source_ids(
+        memory_object_index
+    )
     selected_source = anchor_source
     if anchor_source == "auto":
         if working_compiler_plan_source_ids:
             selected_source = "working_compiler_plan"
             selected_source_ids = working_compiler_plan_source_ids
+        elif memory_system_state_source_ids:
+            selected_source = "memory_system_state"
+            selected_source_ids = memory_system_state_source_ids
         elif context_interface_source_ids:
             selected_source = "context_interface"
             selected_source_ids = context_interface_source_ids
@@ -8714,6 +8805,8 @@ def _context_budget_anchor_source_ids(
         selected_source_ids = context_interface_source_ids
     elif anchor_source == "working_compiler_plan":
         selected_source_ids = working_compiler_plan_source_ids
+    elif anchor_source == "memory_system_state":
+        selected_source_ids = memory_system_state_source_ids
     elif anchor_source == "layer_manifest":
         selected_source_ids = layer_manifest_source_ids
     else:
@@ -8730,6 +8823,7 @@ def _context_budget_anchor_source_ids(
         "anchor_working_compiler_plan_source_count": len(
             working_compiler_plan_source_ids
         ),
+        "anchor_memory_system_state_source_count": len(memory_system_state_source_ids),
     }
 
 
@@ -8749,6 +8843,7 @@ def _disabled_context_budget_trace(
     anchor_operation_api_source_count: int = 0,
     anchor_context_interface_source_count: int = 0,
     anchor_working_compiler_plan_source_count: int = 0,
+    anchor_memory_system_state_source_count: int = 0,
 ) -> dict[str, Any]:
     return {
         "enabled": enabled,
@@ -8773,6 +8868,9 @@ def _disabled_context_budget_trace(
         ),
         "anchor_working_compiler_plan_source_count": (
             anchor_working_compiler_plan_source_count
+        ),
+        "anchor_memory_system_state_source_count": (
+            anchor_memory_system_state_source_count
         ),
         "anchor_candidate_source_ids": [],
         "anchor_retained_source_ids": [],
@@ -8800,6 +8898,7 @@ def _disabled_context_budget_audit_trace(
     anchor_operation_api_source_count: int = 0,
     anchor_context_interface_source_count: int = 0,
     anchor_working_compiler_plan_source_count: int = 0,
+    anchor_memory_system_state_source_count: int = 0,
 ) -> dict[str, Any]:
     return {
         "enabled": enabled,
@@ -8826,6 +8925,9 @@ def _disabled_context_budget_audit_trace(
         ),
         "anchor_working_compiler_plan_source_count": (
             anchor_working_compiler_plan_source_count
+        ),
+        "anchor_memory_system_state_source_count": (
+            anchor_memory_system_state_source_count
         ),
         "anchor_candidate_source_ids": [],
         "anchor_retained_source_ids": [],
@@ -8867,6 +8969,7 @@ def _apply_context_budget(
     anchor_operation_api_source_count: int = 0,
     anchor_context_interface_source_count: int = 0,
     anchor_working_compiler_plan_source_count: int = 0,
+    anchor_memory_system_state_source_count: int = 0,
 ) -> tuple[tuple[RetrievalHit, ...], dict[str, Any]]:
     protected_source_ids = _ordered_unique(protected_source_ids)
     if not hits:
@@ -8891,6 +8994,9 @@ def _apply_context_budget(
                 ),
                 anchor_working_compiler_plan_source_count=(
                     anchor_working_compiler_plan_source_count
+                ),
+                anchor_memory_system_state_source_count=(
+                    anchor_memory_system_state_source_count
                 ),
             ),
             "applied": True,
@@ -8983,6 +9089,9 @@ def _apply_context_budget(
         "anchor_working_compiler_plan_source_count": (
             anchor_working_compiler_plan_source_count
         ),
+        "anchor_memory_system_state_source_count": (
+            anchor_memory_system_state_source_count
+        ),
         "anchor_candidate_source_ids": list(anchor_candidate_source_ids),
         "anchor_retained_source_ids": list(anchor_retained_source_ids),
         "anchor_dropped_source_ids": list(anchor_dropped_source_ids),
@@ -9060,6 +9169,9 @@ def _context_budget_audit_trace(
         ),
         "anchor_working_compiler_plan_source_count": projected_budget.get(
             "anchor_working_compiler_plan_source_count"
+        ),
+        "anchor_memory_system_state_source_count": projected_budget.get(
+            "anchor_memory_system_state_source_count"
         ),
         "anchor_candidate_source_ids": projected_budget.get(
             "anchor_candidate_source_ids"
