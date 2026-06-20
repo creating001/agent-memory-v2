@@ -1,0 +1,29 @@
+{
+  "changed_count": 8,
+  "total_count": 50,
+  "labels": "outputs/prepare_longmemeval_s_cleaned/labels.jsonl",
+  "old_predictions": "outputs/diagnostic/stage1_memory_object_index_v288_lme_full/predictions.jsonl",
+  "new_predictions": "outputs/diagnostic/v336_answer_contract_slot_guard_lme_probe50/predictions.jsonl",
+  "old_traces": "outputs/diagnostic/stage1_memory_object_index_v288_lme_full/traces.jsonl",
+  "new_traces": "outputs/diagnostic/v336_answer_contract_slot_guard_lme_probe50/traces.jsonl",
+  "record_keys": [
+    "ea4e66b0d90b6834b4168cfe",
+    "d4bfe0f95ae6b5d7a565a8c1",
+    "acd2357eb392d2850a5d582e",
+    "8ff24d864a7513f4c6eb5f33",
+    "1c1b3d9d72cd50c2f6bdf23c",
+    "c5db16a030f4d1308a724d03",
+    "8de65ddd556b813cdcb51471",
+    "c99c891d73fa1c55ce45f370"
+  ],
+  "avg_query_total_tokens": {
+    "old_v288_first50_same_keys": 5677.4,
+    "new_v336_probe50": 5555.76,
+    "delta": -121.63999999999942
+  },
+  "avg_compiled_prompt_chars": {
+    "old_v288_first50_same_keys": 18651.6,
+    "new_v336_probe50": 18312.98,
+    "delta": -338.619999999999
+  }
+}
