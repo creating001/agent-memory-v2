@@ -1435,16 +1435,16 @@ class CleanSkeletonTest(unittest.TestCase):
             {
                 "context_format": "compact",
                 "timestamp_policy": "center_only",
-                "max_rows": 4,
-                "max_neighbor_chars": 140,
-                "window_after": 1,
+                "max_rows": 5,
+                "max_neighbor_chars": 160,
+                "window_after": 2,
             },
         )
         self.assertEqual(selected_context["context_format"], "compact")
         self.assertEqual(selected_context["timestamp_policy"], "center_only")
-        self.assertEqual(selected_context["max_rows"], 4)
-        self.assertEqual(selected_context["max_neighbor_chars"], 140)
-        self.assertEqual(selected_context["window_after"], 1)
+        self.assertEqual(selected_context["max_rows"], 5)
+        self.assertEqual(selected_context["max_neighbor_chars"], 160)
+        self.assertEqual(selected_context["window_after"], 2)
         self.assertIn("Same-session context:", row_text)
         self.assertIn("- center (2024-01-02) | assistant:", row_text)
         self.assertIn("- near | user:", row_text)
