@@ -795,6 +795,49 @@ class BuildMemoryTest(unittest.TestCase):
         self.assertEqual(graph["namespace_counts"]["long_term_episodic"], 1)
         self.assertEqual(graph["operation_edge_counts"]["supersede"], 1)
         self.assertEqual(graph["operation_edge_counts"]["source_support"], 3)
+        self.assertEqual(graph["operation_edge_counts"]["state_conflict_cluster"], 1)
+        operation_manifest = graph["operation_manifest"]
+        self.assertEqual(
+            operation_manifest["schema_version"],
+            "memory_operation_manifest_v1",
+        )
+        self.assertFalse(operation_manifest["trace_only"])
+        self.assertEqual(operation_manifest["operation_counts"]["create"], 3)
+        self.assertEqual(operation_manifest["operation_counts"]["update"], 1)
+        self.assertEqual(operation_manifest["operation_counts"]["supersede"], 1)
+        self.assertEqual(operation_manifest["operation_counts"]["retrieve"], 3)
+        self.assertEqual(operation_manifest["operation_counts"]["expand"], 3)
+        self.assertEqual(operation_manifest["operation_counts"]["verify"], 3)
+        self.assertEqual(operation_manifest["operation_counts"]["audit"], 2)
+        self.assertEqual(
+            operation_manifest["operation_counts"]["audit_state_conflict_slot"],
+            1,
+        )
+        self.assertEqual(
+            operation_manifest["object_contract"]["final_evidence_policy"],
+            "raw_source_rows",
+        )
+        self.assertIn(
+            "archival_memory",
+            operation_manifest["object_contract"]["memory_layers"],
+        )
+        state_conflict_manifest = graph["state_conflict_manifest"]
+        self.assertEqual(
+            state_conflict_manifest["schema_version"],
+            "memory_state_conflict_manifest_v1",
+        )
+        self.assertFalse(state_conflict_manifest["trace_only"])
+        self.assertEqual(state_conflict_manifest["cluster_count"], 1)
+        self.assertEqual(
+            state_conflict_manifest["source_backed_cluster_count"],
+            1,
+        )
+        conflict_cluster = state_conflict_manifest["clusters"][0]
+        self.assertEqual(conflict_cluster["predicate"], "lives_in")
+        self.assertEqual(conflict_cluster["active_values"], ["seattle"])
+        self.assertEqual(conflict_cluster["superseded_values"], ["austin"])
+        self.assertEqual(conflict_cluster["active_source_order"], ["s1:t1"])
+        self.assertEqual(conflict_cluster["superseded_source_order"], ["s1:t0"])
         self.assertEqual(
             graph["operation_edge_samples"]["supersede"][0]["old_memory_id"],
             "profile-old",

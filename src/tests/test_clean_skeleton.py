@@ -2929,6 +2929,18 @@ class CleanSkeletonTest(unittest.TestCase):
             system_graph["object_schema"]["quality_signals"],
         )
         self.assertIn(
+            "state_conflict_cluster",
+            system_graph["object_schema"]["quality_signals"],
+        )
+        self.assertIn(
+            "operation_contract_ready",
+            system_graph["object_schema"]["quality_signals"],
+        )
+        self.assertIn(
+            "operation_contract",
+            system_graph["object_schema"]["edge_types"],
+        )
+        self.assertIn(
             "activation_role",
             system_graph["object_schema"]["governance_signals"],
         )
@@ -2938,6 +2950,14 @@ class CleanSkeletonTest(unittest.TestCase):
         )
         self.assertIn(
             "tier_counts",
+            system_graph["object_schema"]["governance_signals"],
+        )
+        self.assertIn(
+            "build_owned_conflict_cluster",
+            system_graph["object_schema"]["governance_signals"],
+        )
+        self.assertIn(
+            "build_owned_operation_manifest",
             system_graph["object_schema"]["governance_signals"],
         )
         self.assertEqual(
@@ -3042,6 +3062,75 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual(
             tier_manifest["record_ids_by_tier"]["quarantine_memory"],
             ["m-low"],
+        )
+        operation_manifest = system_graph["operation_manifest"]
+        self.assertEqual(
+            operation_manifest["schema_version"],
+            "memory_operation_manifest_v1",
+        )
+        self.assertFalse(operation_manifest["trace_only"])
+        self.assertEqual(operation_manifest["operation_counts"]["create"], 3)
+        self.assertEqual(operation_manifest["operation_counts"]["update"], 0)
+        self.assertEqual(operation_manifest["operation_counts"]["supersede"], 0)
+        self.assertEqual(operation_manifest["operation_counts"]["retrieve"], 2)
+        self.assertEqual(operation_manifest["operation_counts"]["expand"], 4)
+        self.assertEqual(operation_manifest["operation_counts"]["verify"], 3)
+        self.assertEqual(operation_manifest["operation_counts"]["audit"], 2)
+        self.assertEqual(
+            operation_manifest["operation_counts"]["audit_state_conflict_slot"],
+            1,
+        )
+        self.assertEqual(
+            operation_manifest["object_contract"]["final_evidence_policy"],
+            "raw_source_rows",
+        )
+        self.assertIn(
+            "working_memory",
+            operation_manifest["object_contract"]["memory_layers"],
+        )
+        state_conflict_manifest = system_graph["state_conflict_manifest"]
+        self.assertEqual(
+            state_conflict_manifest["schema_version"],
+            "memory_state_conflict_manifest_v1",
+        )
+        self.assertFalse(state_conflict_manifest["trace_only"])
+        self.assertTrue(state_conflict_manifest["applied"])
+        self.assertEqual(state_conflict_manifest["cluster_count"], 1)
+        self.assertEqual(
+            state_conflict_manifest["source_backed_cluster_count"],
+            1,
+        )
+        self.assertEqual(
+            state_conflict_manifest["source_incomplete_cluster_count"],
+            0,
+        )
+        self.assertEqual(
+            state_conflict_manifest["missing_active_source_count"],
+            0,
+        )
+        self.assertEqual(
+            state_conflict_manifest["missing_superseded_source_count"],
+            0,
+        )
+        state_cluster = state_conflict_manifest["clusters"][0]
+        self.assertEqual(state_cluster["predicate"], "location")
+        self.assertEqual(state_cluster["active_values"], ["seattle"])
+        self.assertEqual(state_cluster["superseded_values"], ["austin"])
+        self.assertEqual(
+            state_cluster["current_source_order"],
+            ["s2:t1", "s2:t2", "s1:t1"],
+        )
+        self.assertEqual(
+            state_cluster["historical_source_order"],
+            ["s1:t1", "s2:t1", "s2:t2"],
+        )
+        self.assertEqual(
+            state_cluster["active_source_order"],
+            ["s2:t1", "s2:t2"],
+        )
+        self.assertEqual(
+            state_cluster["superseded_source_order"],
+            ["s1:t1"],
         )
         governance_manifest = system_graph["governance_manifest"]
         self.assertEqual(

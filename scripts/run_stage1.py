@@ -135,16 +135,24 @@ def main() -> int:
     build_memory_system_graph_activation_role_counts: dict[str, int] = {}
     build_memory_system_graph_activation_utility_bucket_counts: dict[str, int] = {}
     build_memory_system_graph_tier_manifest_tier_counts: dict[str, int] = {}
+    build_memory_system_graph_operation_manifest_counts: dict[str, int] = {}
     total_build_memory_operation_ledger_applied = 0
     total_build_memory_operation_ledger_source_backed = 0
     total_build_memory_operation_ledger_source_unbacked = 0
     total_build_memory_system_graph_applied = 0
     total_build_memory_system_graph_tier_manifest_applied = 0
     total_build_memory_system_graph_source_policy_applied = 0
+    total_build_memory_system_graph_operation_manifest_applied = 0
+    total_build_memory_system_graph_state_conflict_manifest_applied = 0
     total_build_memory_system_graph_objects = 0
     total_build_memory_system_graph_sources = 0
     total_build_memory_system_graph_slots = 0
     total_build_memory_system_graph_source_policy_slots = 0
+    total_build_memory_system_graph_state_conflict_clusters = 0
+    total_build_memory_system_graph_state_conflict_source_backed_clusters = 0
+    total_build_memory_system_graph_state_conflict_source_incomplete_clusters = 0
+    total_build_memory_system_graph_state_conflict_missing_active_sources = 0
+    total_build_memory_system_graph_state_conflict_missing_superseded_sources = 0
     total_build_memory_system_graph_source_backed_records = 0
     total_build_memory_system_graph_complete_slot_key_records = 0
     total_build_memory_system_graph_temporal_anchor_records = 0
@@ -466,6 +474,35 @@ def main() -> int:
                 _merge_int_counts(
                     build_memory_system_graph_tier_manifest_tier_counts,
                     tier_manifest.get("tier_counts") or {},
+                )
+            operation_manifest = memory_system_graph.get("operation_manifest") or {}
+            if operation_manifest.get("applied"):
+                total_build_memory_system_graph_operation_manifest_applied += 1
+                _merge_int_counts(
+                    build_memory_system_graph_operation_manifest_counts,
+                    operation_manifest.get("operation_counts") or {},
+                )
+            state_conflict_manifest = (
+                memory_system_graph.get("state_conflict_manifest") or {}
+            )
+            if state_conflict_manifest.get("applied"):
+                total_build_memory_system_graph_state_conflict_manifest_applied += 1
+                total_build_memory_system_graph_state_conflict_clusters += int(
+                    state_conflict_manifest.get("cluster_count") or 0
+                )
+                total_build_memory_system_graph_state_conflict_source_backed_clusters += int(
+                    state_conflict_manifest.get("source_backed_cluster_count") or 0
+                )
+                total_build_memory_system_graph_state_conflict_source_incomplete_clusters += int(
+                    state_conflict_manifest.get("source_incomplete_cluster_count")
+                    or 0
+                )
+                total_build_memory_system_graph_state_conflict_missing_active_sources += int(
+                    state_conflict_manifest.get("missing_active_source_count") or 0
+                )
+                total_build_memory_system_graph_state_conflict_missing_superseded_sources += int(
+                    state_conflict_manifest.get("missing_superseded_source_count")
+                    or 0
                 )
             source_quality = memory_system_graph.get("source_quality") or {}
             total_build_memory_system_graph_source_backed_records += int(
@@ -1307,6 +1344,23 @@ def main() -> int:
             "memory_system_graph_tier_manifest_tier_counts": (
                 build_memory_system_graph_tier_manifest_tier_counts
             ),
+            "memory_system_graph_operation_manifest_applied_count": (
+                total_build_memory_system_graph_operation_manifest_applied
+            ),
+            "memory_system_graph_operation_manifest_applied_rate": _safe_average(
+                total_build_memory_system_graph_operation_manifest_applied,
+                sample_count,
+            ),
+            "memory_system_graph_operation_manifest_counts": (
+                build_memory_system_graph_operation_manifest_counts
+            ),
+            "memory_system_graph_state_conflict_manifest_applied_count": (
+                total_build_memory_system_graph_state_conflict_manifest_applied
+            ),
+            "memory_system_graph_state_conflict_manifest_applied_rate": _safe_average(
+                total_build_memory_system_graph_state_conflict_manifest_applied,
+                sample_count,
+            ),
             "avg_memory_system_graph_objects": _safe_average(
                 total_build_memory_system_graph_objects,
                 total_build_memory_system_graph_applied,
@@ -1322,6 +1376,34 @@ def main() -> int:
             "avg_memory_system_graph_source_policy_slots": _safe_average(
                 total_build_memory_system_graph_source_policy_slots,
                 total_build_memory_system_graph_source_policy_applied,
+            ),
+            "avg_memory_system_graph_state_conflict_clusters": _safe_average(
+                total_build_memory_system_graph_state_conflict_clusters,
+                total_build_memory_system_graph_state_conflict_manifest_applied,
+            ),
+            "avg_memory_system_graph_state_conflict_source_backed_clusters": (
+                _safe_average(
+                    total_build_memory_system_graph_state_conflict_source_backed_clusters,
+                    total_build_memory_system_graph_state_conflict_manifest_applied,
+                )
+            ),
+            "avg_memory_system_graph_state_conflict_source_incomplete_clusters": (
+                _safe_average(
+                    total_build_memory_system_graph_state_conflict_source_incomplete_clusters,
+                    total_build_memory_system_graph_state_conflict_manifest_applied,
+                )
+            ),
+            "avg_memory_system_graph_state_conflict_missing_active_sources": (
+                _safe_average(
+                    total_build_memory_system_graph_state_conflict_missing_active_sources,
+                    total_build_memory_system_graph_state_conflict_manifest_applied,
+                )
+            ),
+            "avg_memory_system_graph_state_conflict_missing_superseded_sources": (
+                _safe_average(
+                    total_build_memory_system_graph_state_conflict_missing_superseded_sources,
+                    total_build_memory_system_graph_state_conflict_manifest_applied,
+                )
             ),
             "avg_memory_system_graph_source_backed_records": _safe_average(
                 total_build_memory_system_graph_source_backed_records,

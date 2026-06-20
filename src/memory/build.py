@@ -971,6 +971,12 @@ def _memory_system_graph_summary(
         "supersede": len(supersede_pairs),
         "source_support": source_support_edges,
         "slot_member": slot_member_edges,
+        "state_conflict_cluster": sum(
+            1
+            for key, records in groups.items()
+            if key[0] in managed_memory_types
+            and _slot_has_active_superseded_pair(records)
+        ),
         "verify_source_backed": sum(
             1 for record in managed_records if record.source_ids
         ),
@@ -1023,6 +1029,19 @@ def _memory_system_graph_summary(
         ),
         "tier_manifest": _memory_system_tier_manifest(
             managed_records,
+            managed_memory_types=managed_memory_types,
+        ),
+        "operation_manifest": _memory_system_operation_manifest(
+            raw_records=raw_records,
+            deduped_records=deduped_records,
+            managed_records=managed_records,
+            groups=groups,
+            managed_memory_types=managed_memory_types,
+            merge_groups=merge_groups,
+            supersede_pairs=supersede_pairs,
+        ),
+        "state_conflict_manifest": _memory_state_conflict_manifest(
+            groups,
             managed_memory_types=managed_memory_types,
         ),
         "governance": {
@@ -1089,6 +1108,8 @@ def _memory_system_object_schema() -> dict[str, Any]:
             "slot_member",
             "verify_source_backed",
             "audit_slot",
+            "state_conflict_cluster",
+            "operation_contract",
         ],
         "quality_signals": [
             "source_backed",
@@ -1104,6 +1125,8 @@ def _memory_system_object_schema() -> dict[str, Any]:
             "activation_utility_bucket",
             "slot_source_policy",
             "memory_tier",
+            "state_conflict_cluster",
+            "operation_contract_ready",
         ],
         "governance_signals": [
             "source_activation_ready",
@@ -1117,8 +1140,286 @@ def _memory_system_object_schema() -> dict[str, Any]:
             "low_confidence_blocked",
             "unbacked_blocked",
             "incomplete_slot_key_audited",
+            "build_owned_conflict_cluster",
+            "build_owned_operation_manifest",
         ],
 }
+
+
+def _memory_system_operation_manifest(
+    *,
+    raw_records: tuple[MemoryRecord, ...],
+    deduped_records: tuple[MemoryRecord, ...],
+    managed_records: tuple[MemoryRecord, ...],
+    groups: dict[tuple[str, str, str], list[MemoryRecord]],
+    managed_memory_types: frozenset[str],
+    merge_groups: tuple[dict[str, Any], ...],
+    supersede_pairs: tuple[dict[str, Any], ...],
+) -> dict[str, Any]:
+    """Build-owned operation contract for memory organization and use.
+
+    Build does not answer questions here. It records which memory objects are
+    safe to create, update, merge, supersede, retrieve as candidates, expand to
+    raw rows, verify, and audit so query-time modules can consume a general
+    memory system instead of re-deriving benchmark-shaped rules.
+    """
+
+    assessments = [
+        _memory_system_record_governance(
+            record,
+            managed_memory_types=managed_memory_types,
+        )
+        for record in managed_records
+    ]
+    retrieval_ready_records = tuple(
+        record
+        for record, assessment in zip(managed_records, assessments)
+        if assessment["source_activation_ready"]
+    )
+    source_backed_records = tuple(
+        record for record in managed_records if record.source_ids
+    )
+    quarantine_records = tuple(
+        record
+        for record in managed_records
+        if not record.source_ids or record.confidence < 0.5
+    )
+    lifecycle_slots = tuple(
+        (key, tuple(records))
+        for key, records in sorted(groups.items())
+        if _slot_has_lifecycle(records)
+    )
+    state_conflict_slots = tuple(
+        (key, records)
+        for key, records in lifecycle_slots
+        if key[0] in managed_memory_types
+        and _slot_has_active_superseded_pair(records)
+    )
+    operation_counts = {
+        "create": len(deduped_records),
+        "update": len(supersede_pairs),
+        "merge": sum(len(group.get("merged") or ()) for group in merge_groups),
+        "supersede": len(supersede_pairs),
+        "retrieve": len(retrieval_ready_records),
+        "expand": sum(len(record.source_ids) for record in source_backed_records),
+        "verify": len(source_backed_records),
+        "audit": len(groups),
+        "audit_lifecycle_slot": len(lifecycle_slots),
+        "audit_state_conflict_slot": len(state_conflict_slots),
+        "quarantine": len(quarantine_records),
+    }
+    return {
+        "schema_version": "memory_operation_manifest_v1",
+        "trace_only": False,
+        "applied": True,
+        "raw_record_count": len(raw_records),
+        "operation_counts": operation_counts,
+        "layer_operation_counts": _memory_system_operation_layer_counts(
+            deduped_records=deduped_records,
+            managed_records=managed_records,
+            groups=groups,
+            managed_memory_types=managed_memory_types,
+            supersede_pairs=supersede_pairs,
+            retrieval_ready_records=retrieval_ready_records,
+        ),
+        "operation_policy": {
+            "create": "Create typed memory objects only from raw source rows.",
+            "update": (
+                "Update managed state/profile slots by appending a newer active "
+                "object and retaining the old object as archival context."
+            ),
+            "merge": (
+                "Merge duplicate normalized objects without dropping source "
+                "provenance from the retained object."
+            ),
+            "supersede": (
+                "Never physically delete old state; mark it superseded and keep "
+                "raw sources available for historical questions."
+            ),
+            "retrieve": (
+                "Expose source-backed, governance-ready memory objects as "
+                "candidate activation and ranking signals only."
+            ),
+            "expand": (
+                "Expand every activated derived object back to immutable raw "
+                "source rows before final answer evidence is formed."
+            ),
+            "verify": (
+                "Check source support, confidence, slot completeness, temporal "
+                "anchors, and lifecycle state before activation."
+            ),
+            "audit": (
+                "Audit lifecycle slots, state conflicts, low-confidence objects, "
+                "and source-unbacked objects in build artifacts."
+            ),
+        },
+        "object_contract": {
+            "memory_layers": {
+                "short_term_memory": (
+                    "Query/session local evidence rows and scratch context; not "
+                    "persisted by this build manifest."
+                ),
+                "working_memory": (
+                    "Active source-backed state/profile/preference/relationship "
+                    "and plan objects that may influence current behavior."
+                ),
+                "long_term_memory": (
+                    "Durable semantic and episodic objects used for recall and "
+                    "context organization."
+                ),
+                "archival_memory": (
+                    "Superseded or closed objects retained for historical lookup, "
+                    "conflict chains, and audit."
+                ),
+                "quarantine_memory": (
+                    "Low-confidence or source-unbacked objects blocked from "
+                    "normal activation until raw evidence supports them."
+                ),
+            },
+            "final_evidence_policy": "raw_source_rows",
+            "question_independent": True,
+        },
+        "samples": {
+            "create": [
+                _operation_sample("create", record)
+                for record in deduped_records[:4]
+            ],
+            "update": [
+                _supersede_operation_sample(pair)
+                for pair in supersede_pairs[:4]
+            ],
+            "merge": [
+                _merge_operation_sample(group)
+                for group in merge_groups[:4]
+            ],
+            "retrieve": [
+                _operation_sample("retrieve", record)
+                for record in retrieval_ready_records[:4]
+            ],
+            "expand": [
+                _operation_sample("expand", record)
+                for record in source_backed_records[:4]
+            ],
+            "audit": [
+                _slot_operation_sample("audit", key, group)
+                for key, group in lifecycle_slots[:4]
+            ],
+        },
+        "clean_note": (
+            "Question-independent build operation manifest. It records general "
+            "memory operations and contracts without using gold answers, judge "
+            "outputs, benchmark labels, sample ids, test feedback, or "
+            "sample-level rules."
+        ),
+    }
+
+
+def _memory_state_conflict_manifest(
+    groups: dict[tuple[str, str, str], list[MemoryRecord]],
+    *,
+    managed_memory_types: frozenset[str],
+) -> dict[str, Any]:
+    """Build-owned state/profile conflict clusters for current-state activation.
+
+    The manifest is deliberately question-independent. It identifies managed
+    slots where active and superseded records coexist, keeps source-backed raw
+    row orderings for current/historical scopes, and leaves final evidence
+    authority to raw source rows.
+    """
+
+    clusters: list[dict[str, Any]] = []
+    missing_active_source_count = 0
+    missing_superseded_source_count = 0
+    for key, records in sorted(groups.items()):
+        memory_type, subject, predicate = key
+        if memory_type not in managed_memory_types:
+            continue
+        active_records = tuple(record for record in records if record.status == "active")
+        superseded_records = tuple(
+            record for record in records if record.status == "superseded"
+        )
+        if not active_records or not superseded_records:
+            continue
+        active_source_ids = _ordered_strings(
+            source_id for record in active_records for source_id in record.source_ids
+        )
+        superseded_source_ids = _ordered_strings(
+            source_id for record in superseded_records for source_id in record.source_ids
+        )
+        if not active_source_ids:
+            missing_active_source_count += 1
+        if not superseded_source_ids:
+            missing_superseded_source_count += 1
+        clusters.append(
+            {
+                "cluster_id": _slot_id(key),
+                "memory_type": memory_type,
+                "namespace": _memory_namespace(records[0]) if records else "unknown",
+                "subject": subject,
+                "predicate": predicate,
+                "record_count": len(records),
+                "active_memory_ids": [record.memory_id for record in active_records[:8]],
+                "superseded_memory_ids": [
+                    record.memory_id for record in superseded_records[:8]
+                ],
+                "active_values": _ordered_normalized_values(
+                    record.value or record.text for record in active_records
+                )[:8],
+                "superseded_values": _ordered_normalized_values(
+                    record.value or record.text for record in superseded_records
+                )[:8],
+                "active_source_order": active_source_ids[:8],
+                "superseded_source_order": superseded_source_ids[:8],
+                "current_source_order": _memory_slot_policy_source_ids(
+                    tuple(records),
+                    question_scope="current",
+                )[:8],
+                "historical_source_order": _memory_slot_policy_source_ids(
+                    tuple(records),
+                    question_scope="historical",
+                )[:8],
+                "source_backed": bool(active_source_ids and superseded_source_ids),
+                "temporal_anchors": {
+                    "active": _ordered_strings(
+                        _record_time_value(record) for record in active_records
+                    )[:8],
+                    "superseded": _ordered_strings(
+                        _record_time_value(record) for record in superseded_records
+                    )[:8],
+                },
+            }
+        )
+
+    source_backed_clusters = sum(1 for cluster in clusters if cluster["source_backed"])
+    return {
+        "schema_version": "memory_state_conflict_manifest_v1",
+        "trace_only": False,
+        "applied": True,
+        "cluster_count": len(clusters),
+        "source_backed_cluster_count": source_backed_clusters,
+        "source_incomplete_cluster_count": max(
+            0,
+            len(clusters) - source_backed_clusters,
+        ),
+        "missing_active_source_count": missing_active_source_count,
+        "missing_superseded_source_count": missing_superseded_source_count,
+        "managed_memory_types": sorted(managed_memory_types),
+        "cluster_policy": {
+            "slot_scope": "same memory_type, subject, predicate",
+            "requires_active_and_superseded": True,
+            "requires_managed_memory_type": True,
+            "source_order_policy": "memory_slot_source_policy_v1",
+            "final_evidence_policy": "raw_source_rows",
+        },
+        "clusters": clusters[:24],
+        "clean_note": (
+            "Question-independent build conflict manifest over managed memory "
+            "slots. It clusters active/superseded source-backed records so "
+            "query modules can consume state lifecycle organization without "
+            "using gold answers, judge outputs, benchmark labels, sample ids, "
+            "or sample-level rules."
+        ),
+    }
 
 
 def _memory_system_tier_manifest(
@@ -1196,6 +1497,47 @@ def _memory_tier(
     if record.memory_type in managed_memory_types or record.memory_type == "plan":
         return "working_memory"
     return "long_term_memory"
+
+
+def _memory_system_operation_layer_counts(
+    *,
+    deduped_records: tuple[MemoryRecord, ...],
+    managed_records: tuple[MemoryRecord, ...],
+    groups: dict[tuple[str, str, str], list[MemoryRecord]],
+    managed_memory_types: frozenset[str],
+    supersede_pairs: tuple[dict[str, Any], ...],
+    retrieval_ready_records: tuple[MemoryRecord, ...],
+) -> dict[str, dict[str, int]]:
+    result: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    for record in deduped_records:
+        result[_memory_layer(record.memory_type)]["create"] += 1
+    for pair in supersede_pairs:
+        old = pair.get("old")
+        new = pair.get("new")
+        if isinstance(new, MemoryRecord):
+            result[_memory_layer(new.memory_type)]["update"] += 1
+        if isinstance(old, MemoryRecord):
+            result[_memory_layer(old.memory_type)]["supersede"] += 1
+    for record in retrieval_ready_records:
+        result[_memory_layer(record.memory_type)]["retrieve"] += 1
+    for record in managed_records:
+        layer = _memory_layer(record.memory_type)
+        if record.source_ids:
+            result[layer]["expand"] += len(record.source_ids)
+            result[layer]["verify"] += 1
+        if not record.source_ids or record.confidence < 0.5:
+            result[layer]["quarantine"] += 1
+    for key, records in groups.items():
+        layer = _memory_layer(key[0])
+        result[layer]["audit"] += 1
+        if _slot_has_lifecycle(records):
+            result[layer]["audit_lifecycle_slot"] += 1
+        if key[0] in managed_memory_types and _slot_has_active_superseded_pair(records):
+            result[layer]["audit_state_conflict_slot"] += 1
+    return {
+        layer: dict(sorted(counts.items()))
+        for layer, counts in sorted(result.items())
+    }
 
 
 def _memory_slot_source_policy_manifest(
@@ -1958,6 +2300,24 @@ def _slot_has_lifecycle(records: list[MemoryRecord]) -> bool:
     }
     statuses = {record.status for record in records}
     return "superseded" in statuses or len(values) > 1
+
+
+def _slot_has_active_superseded_pair(
+    records: tuple[MemoryRecord, ...] | list[MemoryRecord],
+) -> bool:
+    statuses = {record.status for record in records}
+    return "active" in statuses and "superseded" in statuses
+
+
+def _record_time_value(record: MemoryRecord) -> str:
+    return str(
+        record.valid_from
+        or record.event_time
+        or record.timestamp
+        or record.mention_time
+        or record.valid_to
+        or ""
+    )
 
 
 def _memory_object_sample(
