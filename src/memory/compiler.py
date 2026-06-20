@@ -37,6 +37,12 @@ MAX_RELATIVE_TIME_SPANS = {
 }
 MEMORY_STATE_GUIDE_VALUE_CONFLICT_TYPES = {"fact", "preference", "profile", "state"}
 MEMORY_STATE_GUIDE_CONFLICT_SOURCES = {"records", "build_manifest"}
+WORKING_MEMORY_PACKET_SOURCES = {
+    "auto",
+    "lifecycle_audit",
+    "working_view",
+    "operation_registry",
+}
 MEMORY_STATE_GUIDE_ALIGNMENT_WEAK_TERMS = {
     "a",
     "about",
@@ -256,6 +262,10 @@ ROUTE_OVERRIDE_KEYS = {
     "update_conflict_guide",
     "update_conflict_guide_max_rows",
     "update_conflict_guide_snippet_chars",
+    "working_memory_packet",
+    "working_memory_packet_max_items",
+    "working_memory_packet_source",
+    "working_memory_packet_value_chars",
 }
 EVIDENCE_ORDER_MODES = {
     "retrieval",
@@ -458,6 +468,7 @@ class EvidenceCompiler:
         ),
         working_memory_packet_max_items: int = 4,
         working_memory_packet_value_chars: int = 120,
+        working_memory_packet_source: str = "working_view",
         profile_activation_guide: bool = False,
         profile_activation_guide_information_needs: tuple[str, ...] = (
             "profile_preference",
@@ -735,6 +746,9 @@ class EvidenceCompiler:
         )
         self._working_memory_packet_value_chars = max(
             40, int(working_memory_packet_value_chars)
+        )
+        self._working_memory_packet_source = _validate_working_memory_packet_source(
+            working_memory_packet_source
         )
         self._profile_activation_guide = bool(profile_activation_guide)
         self._profile_activation_guide_information_needs = _validate_information_needs(
@@ -1133,6 +1147,7 @@ class EvidenceCompiler:
             working_memory_packet_value_chars=route_settings[
                 "working_memory_packet_value_chars"
             ],
+            working_memory_packet_source=route_settings["working_memory_packet_source"],
             profile_activation_guide=(
                 route_settings["profile_activation_guide"]
                 and route.information_need
@@ -1334,6 +1349,7 @@ class EvidenceCompiler:
             "working_memory_packet_value_chars": (
                 self._working_memory_packet_value_chars
             ),
+            "working_memory_packet_source": self._working_memory_packet_source,
             "profile_activation_guide": self._profile_activation_guide,
             "profile_activation_guide_max_records": (
                 self._profile_activation_guide_max_records
@@ -1461,6 +1477,15 @@ def _validate_memory_state_guide_conflict_source(value: str) -> str:
         raise ValueError(
             "Unsupported memory_state_guide_conflict_source: "
             f"{value}. Expected one of {sorted(MEMORY_STATE_GUIDE_CONFLICT_SOURCES)}"
+        )
+    return value
+
+
+def _validate_working_memory_packet_source(value: str) -> str:
+    if value not in WORKING_MEMORY_PACKET_SOURCES:
+        raise ValueError(
+            "Unsupported working_memory_packet_source: "
+            f"{value}. Expected one of {sorted(WORKING_MEMORY_PACKET_SOURCES)}"
         )
     return value
 
@@ -1787,6 +1812,12 @@ def _validate_route_overrides(
         if "working_memory_packet_value_chars" in raw_overrides:
             overrides["working_memory_packet_value_chars"] = max(
                 40, int(raw_overrides["working_memory_packet_value_chars"])
+            )
+        if "working_memory_packet_source" in raw_overrides:
+            overrides["working_memory_packet_source"] = (
+                _validate_working_memory_packet_source(
+                    str(raw_overrides["working_memory_packet_source"])
+                )
             )
         if "profile_activation_guide" in raw_overrides:
             overrides["profile_activation_guide"] = bool(
@@ -3097,6 +3128,7 @@ def _build_prompt(
     working_memory_packet: bool,
     working_memory_packet_max_items: int,
     working_memory_packet_value_chars: int,
+    working_memory_packet_source: str,
     profile_activation_guide: bool,
     profile_activation_guide_max_records: int,
     profile_activation_guide_value_chars: int,
@@ -3261,6 +3293,7 @@ def _build_prompt(
             working_memory_packet=working_memory_packet,
             working_memory_packet_max_items=working_memory_packet_max_items,
             working_memory_packet_value_chars=working_memory_packet_value_chars,
+            working_memory_packet_source=working_memory_packet_source,
             profile_activation_guide=profile_activation_guide,
             profile_activation_guide_max_records=profile_activation_guide_max_records,
             profile_activation_guide_value_chars=profile_activation_guide_value_chars,
@@ -3493,6 +3526,7 @@ def _build_external_naive_prompt(
     working_memory_packet: bool,
     working_memory_packet_max_items: int,
     working_memory_packet_value_chars: int,
+    working_memory_packet_source: str,
     profile_activation_guide: bool,
     profile_activation_guide_max_records: int,
     profile_activation_guide_value_chars: int,
@@ -3645,6 +3679,7 @@ def _build_external_naive_prompt(
             memory_object_index=memory_object_index,
             max_items=working_memory_packet_max_items,
             max_value_chars=working_memory_packet_value_chars,
+            source=working_memory_packet_source,
         )
         if working_memory_packet_lines:
             working_memory_packet_block = "\n".join(
@@ -4365,20 +4400,18 @@ def _external_working_memory_packet_lines(
     memory_object_index: Mapping[str, Any] | None,
     max_items: int,
     max_value_chars: int,
+    source: str,
 ) -> list[str]:
     """Source-backed memory organization packet grounded in visible rows."""
 
     if not rows or max_items <= 0 or not isinstance(memory_object_index, Mapping):
         return []
-    raw_entries: Iterable[Any] = ()
-    working_memory_view = memory_object_index.get("working_memory_view")
-    if isinstance(working_memory_view, Mapping) and working_memory_view.get("applied"):
-        raw_entries = working_memory_view.get("entries") or ()
+    raw_entries, selected_source = _working_memory_packet_source_entries(
+        memory_object_index,
+        source=_validate_working_memory_packet_source(source),
+    )
     if not raw_entries:
-        registry = memory_object_index.get("operation_registry")
-        if not isinstance(registry, Mapping) or not registry.get("applied"):
-            return []
-        raw_entries = registry.get("entries") or ()
+        return []
 
     source_to_memory_index = {
         row.source_id: index for index, row in enumerate(rows, start=1)
@@ -4392,13 +4425,7 @@ def _external_working_memory_packet_lines(
             continue
         if str(entry.get("memory_tier") or "") == "quarantine_memory":
             continue
-        source_ids = tuple(
-            str(source_id)
-            for source_id in (
-                entry.get("expand_source_order") or entry.get("source_ids") or ()
-            )
-            if str(source_id).strip()
-        )
+        source_ids = _working_memory_packet_entry_source_ids(entry)
         source_labels = _source_labels_for_source_ids(
             source_ids,
             source_to_memory_index,
@@ -4430,7 +4457,10 @@ def _external_working_memory_packet_lines(
         candidates, max_items=max_items
     )
     lines = [
-        "Source-backed memory organization packet; use it to track active working state, long-term recall, archival conflicts, and operation targets before verifying final facts in cited rows.",
+        "Source-backed memory organization packet "
+        f"(source={selected_source}); use it to track active working state, "
+        "long-term recall, archival conflicts, and operation targets before "
+        "verifying final facts in cited rows.",
         "- items:",
     ]
     for _, _, _, entry, source_labels in selected_candidates:
@@ -4438,6 +4468,9 @@ def _external_working_memory_packet_lines(
             f"target={str(entry.get('target_type') or 'object')}",
             f"type={str(entry.get('memory_type') or 'unknown')}",
         ]
+        lifecycle_stage = str(entry.get("lifecycle_stage") or "")
+        if lifecycle_stage:
+            fields.append(f"stage={lifecycle_stage}")
         workspace_layer = str(entry.get("workspace_layer") or "")
         if workspace_layer:
             fields.insert(1, f"workspace={workspace_layer}")
@@ -4470,9 +4503,38 @@ def _external_working_memory_packet_lines(
         operations = tuple(str(item) for item in entry.get("operations") or () if item)
         if operations:
             fields.append(f"ops={', '.join(operations[:6])}")
+        audit_actions = tuple(
+            str(item) for item in entry.get("audit_actions") or () if item
+        )
+        if audit_actions:
+            fields.append(f"actions={', '.join(audit_actions[:6])}")
         fields.append(f"sources={', '.join(source_labels)}")
         lines.append(f"  - {' | '.join(fields)}")
     return lines
+
+
+def _working_memory_packet_source_entries(
+    memory_object_index: Mapping[str, Any],
+    *,
+    source: str,
+) -> tuple[Iterable[Any], str]:
+    source_order = (
+        ("lifecycle_audit", "lifecycle_audit"),
+        ("working_view", "working_memory_view"),
+        ("operation_registry", "operation_registry"),
+    )
+    if source != "auto":
+        source_order = tuple(item for item in source_order if item[0] == source)
+    for source_name, index_key in source_order:
+        source_manifest = memory_object_index.get(index_key)
+        if not isinstance(source_manifest, Mapping):
+            continue
+        if not source_manifest.get("applied"):
+            continue
+        entries = source_manifest.get("entries") or ()
+        if entries:
+            return entries, source_name
+    return (), source
 
 
 def _select_working_memory_packet_candidates(
@@ -4526,6 +4588,21 @@ def _source_labels_for_source_ids(
     return tuple(dict.fromkeys(labels))
 
 
+def _working_memory_packet_entry_source_ids(entry: Mapping[str, Any]) -> tuple[str, ...]:
+    ordered_sources: list[str] = []
+    for key in (
+        "expand_source_order",
+        "current_source_order",
+        "historical_source_order",
+        "source_ids",
+    ):
+        for source_id in entry.get(key) or ():
+            source_text = str(source_id).strip()
+            if source_text:
+                ordered_sources.append(source_text)
+    return tuple(dict.fromkeys(ordered_sources))
+
+
 def _working_memory_packet_entry_value(entry: Mapping[str, Any]) -> str:
     values = tuple(str(value) for value in entry.get("values") or () if value)
     if values:
@@ -4545,13 +4622,18 @@ def _working_memory_packet_entry_score(
             str(part)
             for part in (
                 entry.get("target_type"),
+                entry.get("target_id"),
+                entry.get("slot_id"),
                 entry.get("workspace_layer"),
                 entry.get("workspace_role"),
                 entry.get("memory_type"),
+                entry.get("lifecycle_stage"),
                 entry.get("subject"),
                 entry.get("predicate"),
                 _working_memory_packet_entry_value(entry),
                 " ".join(str(item) for item in entry.get("operations") or ()),
+                " ".join(str(item) for item in entry.get("audit_actions") or ()),
+                " ".join(str(item) for item in entry.get("audit_flags") or ()),
             )
             if part
         )
@@ -4575,10 +4657,24 @@ def _working_memory_packet_entry_score(
         str(entry.get("target_type") or "")
     )
     operations = {str(item) for item in entry.get("operations") or ()}
+    operations.update(str(item) for item in entry.get("audit_actions") or ())
     if route.information_need == "current_state" and operations.intersection(
         {"supersede", "conflict_slot", "audit_conflict_slot"}
     ):
         score += 1.0
+    lifecycle_stage = str(entry.get("lifecycle_stage") or "")
+    score += {
+        "conflict_resolution": 1.0,
+        "state_value_management": 0.75,
+        "active_state": 0.5,
+        "operation_management": 0.4,
+        "long_term_recall": 0.2,
+    }.get(lifecycle_stage, 0.0)
+    audit_flags = {str(item) for item in entry.get("audit_flags") or ()}
+    if route.information_need == "current_state" and audit_flags.intersection(
+        {"active_state", "active_superseded_pair", "conflict_resolution"}
+    ):
+        score += 0.5
     if str(entry.get("status") or "") == "active":
         score += 0.25
     return score

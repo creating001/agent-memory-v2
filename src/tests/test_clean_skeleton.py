@@ -10263,6 +10263,7 @@ class CleanSkeletonTest(unittest.TestCase):
                 "working_memory_packet": True,
                 "working_memory_packet_information_needs": ["current_state"],
                 "working_memory_packet_max_items": 2,
+                "working_memory_packet_source": "lifecycle_audit",
                 "working_memory_packet_value_chars": 80,
             },
             "answer": {"fallback_answer": "I do not know."},
@@ -10346,6 +10347,10 @@ class CleanSkeletonTest(unittest.TestCase):
             80,
         )
         self.assertEqual(
+            result["trace"]["compiler"]["working_memory_packet_source"],
+            "lifecycle_audit",
+        )
+        self.assertEqual(
             result["trace"]["compiler"]["memory_state_guide_record_source"],
             "evidence_rows",
         )
@@ -10396,6 +10401,7 @@ class CleanSkeletonTest(unittest.TestCase):
             working_memory_packet_information_needs=("current_state",),
             working_memory_packet_max_items=3,
             working_memory_packet_value_chars=80,
+            working_memory_packet_source="lifecycle_audit",
         )
 
         compiled = compiler.compile(
@@ -10425,10 +10431,14 @@ class CleanSkeletonTest(unittest.TestCase):
         )
 
         self.assertIn("Working Memory Packet:", compiled.prompt)
+        self.assertIn("source=lifecycle_audit", compiled.prompt)
         self.assertIn("tier=working_memory", compiled.prompt)
         self.assertIn("workspace=working_memory", compiled.prompt)
         self.assertIn("role=conflict_resolution", compiled.prompt)
         self.assertIn("role=state_value_tracking", compiled.prompt)
+        self.assertIn("stage=conflict_resolution", compiled.prompt)
+        self.assertIn("actions=retrieve, expand, verify, audit", compiled.prompt)
+        self.assertIn("actions=update, supersede", compiled.prompt)
         self.assertIn("target=conflict_slot", compiled.prompt)
         self.assertIn("target=value_slot", compiled.prompt)
         packet = compiled.prompt[compiled.prompt.index("Working Memory Packet:") :]
@@ -10447,6 +10457,81 @@ class CleanSkeletonTest(unittest.TestCase):
             "Use Working Memory Packet only as a source-backed state and operation index",
             compiled.prompt,
         )
+
+    def test_working_memory_packet_auto_falls_back_to_operation_registry(self) -> None:
+        old_record = MemoryRecord(
+            memory_id="old-followers",
+            memory_type="state",
+            text="Alex had 1250 followers.",
+            source_ids=("s1:t0",),
+            subject="Alex",
+            predicate="follower count",
+            value="1250 followers",
+            timestamp="2024-05-20",
+            status="superseded",
+            superseded_by="new-followers",
+        )
+        new_record = MemoryRecord(
+            memory_id="new-followers",
+            memory_type="state",
+            text="Alex is close to 1300 followers now.",
+            source_ids=("s1:t1",),
+            subject="Alex",
+            predicate="follower count",
+            value="1300 followers",
+            timestamp="2024-05-30",
+            status="active",
+        )
+        management = _management_summary(
+            (old_record, new_record),
+            policy="stateful_only",
+            managed_memory_types=frozenset({"state"}),
+            include_memory_system_graph=True,
+        )
+        memory_object_index = dict(
+            management["memory_system_graph"]["memory_object_index"]
+        )
+        memory_object_index["lifecycle_audit"] = {"applied": False, "entries": ()}
+        memory_object_index["working_memory_view"] = {"applied": False, "entries": ()}
+        compiler = EvidenceCompiler(
+            max_evidence_items=2,
+            max_evidence_chars=3000,
+            prompt_mode="external_naive",
+            working_memory_packet=True,
+            working_memory_packet_information_needs=("current_state",),
+            working_memory_packet_max_items=3,
+            working_memory_packet_source="auto",
+        )
+
+        compiled = compiler.compile(
+            question="What is Alex's current follower count?",
+            question_time=None,
+            route=RouteResult("current_state", ("current_state",)),
+            hits=(),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Alex had 1250 followers earlier this month.",
+                    timestamp="2024-05-20",
+                ),
+                Turn(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="Alex is close to 1300 followers now.",
+                    timestamp="2024-05-30",
+                ),
+            ),
+            memory_object_index=memory_object_index,
+        )
+
+        self.assertIn("Working Memory Packet:", compiled.prompt)
+        self.assertIn("source=operation_registry", compiled.prompt)
+        self.assertIn("target=conflict_slot", compiled.prompt)
 
     def test_working_memory_packet_can_replace_state_and_value_guides(self) -> None:
         old_record = MemoryRecord(
