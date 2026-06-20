@@ -1,0 +1,355 @@
+{
+  "clean_note": "Diff uses prediction-time traces only; no labels or judge outputs used.",
+  "pairs": {
+    "lme": {
+      "answer_diff_count": 2,
+      "build_memory_management_diff_after_removing_scalar_manifest_count": 0,
+      "build_memory_management_diff_count": 500,
+      "build_memory_records_diff_count": 0,
+      "compiled_evidence_rows_diff_count": 0,
+      "compiled_memory_records_diff_count": 0,
+      "memory_value_slot_guide_applied_count": 7,
+      "n": 500,
+      "prompt_diff_count": 7,
+      "retrieval_materialized_diff_count": 0,
+      "route_diff_count": 0,
+      "sample_diffs": [
+        {
+          "diffs": [
+            "build_memory_management"
+          ],
+          "new_answer": "Business Administration",
+          "old_answer": "Business Administration",
+          "record_key": "0f97337d8046ed5cfefbb5e6"
+        },
+        {
+          "diffs": [
+            "build_memory_management"
+          ],
+          "new_answer": "45 minutes each way",
+          "old_answer": "45 minutes each way",
+          "record_key": "81df9103418e931f73ff48af"
+        },
+        {
+          "diffs": [
+            "build_memory_management"
+          ],
+          "new_answer": "The provided information is not enough to answer the question: The specific store or location where the coupon was redeemed is not mentioned in the provided memory context",
+          "old_answer": "The provided information is not enough to answer the question: The specific store or location where the coupon was redeemed is not mentioned in the provided memory context",
+          "record_key": "ea4e66b0d90b6834b4168cfe"
+        },
+        {
+          "diffs": [
+            "build_memory_management"
+          ],
+          "new_answer": "The Glass Menagerie",
+          "old_answer": "The Glass Menagerie",
+          "record_key": "c81c7b973943d16a63e11e3b"
+        },
+        {
+          "diffs": [
+            "build_memory_management"
+          ],
+          "new_answer": "Summer Vibes",
+          "old_answer": "Summer Vibes",
+          "record_key": "661a360933a3aa7475fdb37e"
+        },
+        {
+          "diffs": [
+            "build_memory_management"
+          ],
+          "new_answer": "Johnson",
+          "old_answer": "Johnson",
+          "record_key": "7c21a83f0c3f6c7a1132d365"
+        },
+        {
+          "diffs": [
+            "build_memory_management"
+          ],
+          "new_answer": "Serenity Yoga",
+          "old_answer": "Serenity Yoga",
+          "record_key": "e15bea5c068bec66283c7674"
+        },
+        {
+          "diffs": [
+            "build_memory_management"
+          ],
+          "new_answer": "lighter shade of gray",
+          "old_answer": "lighter shade of gray",
+          "record_key": "2c842d5e9f311258d8f4cf7f"
+        },
+        {
+          "diffs": [
+            "build_memory_management"
+          ],
+          "new_answer": "February 14, 2023",
+          "old_answer": "February 14, 2023",
+          "record_key": "d823172b5baf1eff81acb20c"
+        },
+        {
+          "diffs": [
+            "build_memory_management"
+          ],
+          "new_answer": "a sports store downtown",
+          "old_answer": "a sports store downtown",
+          "record_key": "4f59d44ad8458660ea315a98"
+        },
+        {
+          "diffs": [
+            "build_memory_management"
+          ],
+          "new_answer": "marketing specialist at a small startup",
+          "old_answer": "marketing specialist at a small startup",
+          "record_key": "d4bfe0f95ae6b5d7a565a8c1"
+        },
+        {
+          "diffs": [
+            "build_memory_management"
+          ],
+          "new_answer": "$800",
+          "old_answer": "$800",
+          "record_key": "18fd7f2d532691c4710f711c"
+        },
+        {
+          "diffs": [
+            "build_memory_management"
+          ],
+          "new_answer": "20",
+          "old_answer": "20",
+          "record_key": "acd2357eb392d2850a5d582e"
+        },
+        {
+          "diffs": [
+            "build_memory_management"
+          ],
+          "new_answer": "University of Melbourne",
+          "old_answer": "University of Melbourne",
+          "record_key": "91ae25f643157272c276dafb"
+        },
+        {
+          "diffs": [
+            "build_memory_management"
+          ],
+          "new_answer": "10%",
+          "old_answer": "10%",
+          "record_key": "18f49a2f7aa202c5e2ff2470"
+        },
+        {
+          "diffs": [
+            "build_memory_management"
+          ],
+          "new_answer": "4 hours",
+          "old_answer": "4 hours",
+          "record_key": "85ae6b5e68e69ee40244dc92"
+        },
+        {
+          "diffs": [
+            "build_memory_management"
+          ],
+          "new_answer": "A yellow dress and a pair of matching earrings.",
+          "old_answer": "A yellow dress and a pair of matching earrings.",
+          "record_key": "d0d64a9b8426fda3ea1cd266"
+        },
+        {
+          "diffs": [
+            "build_memory_management"
+          ],
+          "new_answer": "500 Mbps",
+          "old_answer": "500 Mbps",
+          "record_key": "54ceb5b0eae489fe864f12da"
+        },
+        {
+          "diffs": [
+            "build_memory_management"
+          ],
+          "new_answer": "7",
+          "old_answer": "7",
+          "record_key": "116289fa172f4085451617db"
+        },
+        {
+          "diffs": [
+            "build_memory_management"
+          ],
+          "new_answer": "Staunch atheist",
+          "old_answer": "Staunch atheist",
+          "record_key": "8ff24d864a7513f4c6eb5f33"
+        }
+      ]
+    },
+    "locomo": {
+      "answer_diff_count": 1,
+      "build_memory_management_diff_after_removing_scalar_manifest_count": 0,
+      "build_memory_management_diff_count": 1540,
+      "build_memory_records_diff_count": 0,
+      "compiled_evidence_rows_diff_count": 0,
+      "compiled_memory_records_diff_count": 0,
+      "memory_value_slot_guide_applied_count": 1,
+      "n": 1540,
+      "prompt_diff_count": 1,
+      "retrieval_materialized_diff_count": 0,
+      "route_diff_count": 0,
+      "sample_diffs": [
+        {
+          "diffs": [
+            "build_memory_management"
+          ],
+          "new_answer": "2023-05-07",
+          "old_answer": "2023-05-07",
+          "record_key": "5e7fd17974e60e8ebb29c30d"
+        },
+        {
+          "diffs": [
+            "build_memory_management"
+          ],
+          "new_answer": "2022",
+          "old_answer": "2022",
+          "record_key": "71ffeefca246680c5bdb560e"
+        },
+        {
+          "diffs": [
+            "build_memory_management"
+          ],
+          "new_answer": "Counseling and mental health",
+          "old_answer": "Counseling and mental health",
+          "record_key": "628d9b1436fa405b91ee2820"
+        },
+        {
+          "diffs": [
+            "build_memory_management"
+          ],
+          "new_answer": "adoption agencies",
+          "old_answer": "adoption agencies",
+          "record_key": "d41bb903497cfadc9e9f9682"
+        },
+        {
+          "diffs": [
+            "build_memory_management"
+          ],
+          "new_answer": "Caroline is a transgender woman.",
+          "old_answer": "Caroline is a transgender woman.",
+          "record_key": "0ef0216553b4eeff9be57e45"
+        },
+        {
+          "diffs": [
+            "build_memory_management"
+          ],
+          "new_answer": "2023-05-20",
+          "old_answer": "2023-05-20",
+          "record_key": "a149e8a270a174eedfcd1da7"
+        },
+        {
+          "diffs": [
+            "build_memory_management"
+          ],
+          "new_answer": "June 2023",
+          "old_answer": "June 2023",
+          "record_key": "79dbd15ef19ed07993709c8f"
+        },
+        {
+          "diffs": [
+            "build_memory_management"
+          ],
+          "new_answer": "Single (experienced a tough breakup)",
+          "old_answer": "Single (experienced a tough breakup)",
+          "record_key": "28821506df08ca36f78e989a"
+        },
+        {
+          "diffs": [
+            "build_memory_management"
+          ],
+          "new_answer": "Between June 2 and June 8, 2023",
+          "old_answer": "Between June 2 and June 8, 2023",
+          "record_key": "2726a17928daef593183a90f"
+        },
+        {
+          "diffs": [
+            "build_memory_management"
+          ],
+          "new_answer": "Between 2023-06-02 and 2023-06-08",
+          "old_answer": "Between 2023-06-02 and 2023-06-08",
+          "record_key": "05a2fa4682ace156a523b92c"
+        },
+        {
+          "diffs": [
+            "build_memory_management"
+          ],
+          "new_answer": "4 years",
+          "old_answer": "4 years",
+          "record_key": "2e1bec427ee013ed30f80431"
+        },
+        {
+          "diffs": [
+            "build_memory_management"
+          ],
+          "new_answer": "her home country",
+          "old_answer": "her home country",
+          "record_key": "13fc31c4da9f316b40c10d39"
+        },
+        {
+          "diffs": [
+            "build_memory_management"
+          ],
+          "new_answer": "10 years",
+          "old_answer": "10 years",
+          "record_key": "1c98645d234a3d42586e2b99"
+        },
+        {
+          "diffs": [
+            "build_memory_management"
+          ],
+          "new_answer": "Counseling and mental health",
+          "old_answer": "Counseling and mental health",
+          "record_key": "f5e68c54090a60fac1b80246"
+        },
+        {
+          "diffs": [
+            "build_memory_management"
+          ],
+          "new_answer": "The provided information is not enough.",
+          "old_answer": "The provided information is not enough.",
+          "record_key": "daf5a3f4af72f6e342152a73"
+        },
+        {
+          "diffs": [
+            "build_memory_management"
+          ],
+          "new_answer": "Melanie participates in running, reading, playing the violin, playing the clarinet, hiking, camping, swimming, running a charity race, pottery, and painting.",
+          "old_answer": "Melanie participates in running, reading, playing the violin, playing the clarinet, hiking, camping, swimming, running a charity race, pottery, and painting.",
+          "record_key": "050de4d029518a005ce9e39a"
+        },
+        {
+          "diffs": [
+            "build_memory_management"
+          ],
+          "new_answer": "2023-07-02",
+          "old_answer": "2023-07-02",
+          "record_key": "bf0313aefcf43c7abfe9585a"
+        },
+        {
+          "diffs": [
+            "build_memory_management"
+          ],
+          "new_answer": "July 2023",
+          "old_answer": "July 2023",
+          "record_key": "d974790416358979fe77c299"
+        },
+        {
+          "diffs": [
+            "build_memory_management"
+          ],
+          "new_answer": "mountains, beach, forest",
+          "old_answer": "mountains, beach, forest",
+          "record_key": "d7870b241b2c9f5d2c8b64cb"
+        },
+        {
+          "diffs": [
+            "build_memory_management"
+          ],
+          "new_answer": "Melanie's kids like pottery workshops, the dinosaur exhibit (learning about animals), camping trips (roasting marshmallows), the beach, and painting.",
+          "old_answer": "Melanie's kids like pottery workshops, the dinosaur exhibit (learning about animals), camping trips (roasting marshmallows), the beach, and painting.",
+          "record_key": "6b6d09d7e82567bbb2a34cf0"
+        }
+      ]
+    }
+  }
+}

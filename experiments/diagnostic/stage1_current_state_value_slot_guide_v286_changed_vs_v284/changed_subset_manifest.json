@@ -1,0 +1,25 @@
+{
+  "lme": {
+    "benchmark": "longmemeval",
+    "changed_count": 8,
+    "clean_note": "Subset files are derived from prediction-time answer diffs and offline labels only for judge evaluation; they are not used by prediction.",
+    "keys": [
+      "f9ae007ab8a08057a78ba572",
+      "a3e4c89a8fdf800fa3b2676f",
+      "740d3b0bc662060a816e231f",
+      "cb96414dbbb017e56ece7a3f",
+      "1f7723fca5c03dfc8ff0e0ca",
+      "beb0a3bdb35a23a257132b5e",
+      "af807a537c4950ead62c23aa",
+      "7933cff5854d25ce3c9e8901"
+    ]
+  },
+  "locomo": {
+    "benchmark": "locomo",
+    "changed_count": 1,
+    "clean_note": "Subset files are derived from prediction-time answer diffs and offline labels only for judge evaluation; they are not used by prediction.",
+    "keys": [
+      "491549a097b7e902b5ae0a31"
+    ]
+  }
+}

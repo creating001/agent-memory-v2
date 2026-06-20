@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_scalar_value_manifest_v284_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_state_only_value_slot_guide_v287_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v284 local LTS |
+| Benchmark | 当前 v287 local LTS |
 |---|---:|
-| LongMemEval-S full | strict/lenient `0.834000 / 0.846000`，avg build/query tokens `85393.566 / 6464.954` |
-| LoCoMo non-adversarial full | strict/lenient `0.794156 / 0.819481`，avg build/query tokens `62015.57402597403 / 6093.794155844156` |
+| LongMemEval-S full | strict/lenient `0.834000 / 0.846000`，avg build/query tokens `85393.566 / 6455.588` |
+| LoCoMo non-adversarial full | strict/lenient `0.794156 / 0.819481`，avg build/query tokens `62015.57402597403 / 6093.962337662338` |
 
-v284 的 LTS 理由：继承 v283 的 answer/prompt/evidence 行为，并在 build 阶段新增 source-backed `scalar_value_manifest`，把 typed memory 组织成 value objects / value slots，显式记录 lifecycle、source order、create/update/merge/supersede/retrieve/expand/verify/audit 操作。v284 相对 v283：LongMemEval-S 和 LoCoMo full answer/prompt/evidence diff 全部 `0`，因此继承 v283 dual judge accuracy，同时减少“typed memory 只是 retrieval hint”的系统风险。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_scalar_value_manifest_v284_full_summary.md`。
+v287 的 LTS 理由：在 build 阶段保留 source-backed value objects / value slots / operation ledger / conflict manifest，并让 query compiler 只消费 `current_state` intent 下的 `state` 类型 value slots。它让 memory object 参与状态组织、冲突处理、上下文组织和答案审计，但最终 evidence 仍回到 raw Memory rows。v287 相对 v284：LongMemEval-S answer diff `2/500`，LoCoMo answer diff `1/1540`，changed-answer dual judge 全部 strict correct，因此继承 v284/v283 dual judge accuracy，同时进一步减少“typed memory 只是 retrieval hint”的系统风险。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_state_only_value_slot_guide_v287_full_summary.md`。
 
 ## 目录
 

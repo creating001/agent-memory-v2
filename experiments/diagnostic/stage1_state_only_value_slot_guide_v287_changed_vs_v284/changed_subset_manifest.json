@@ -1,0 +1,19 @@
+{
+  "lme": {
+    "benchmark": "longmemeval",
+    "changed_count": 2,
+    "clean_note": "Subset files are derived from prediction-time answer diffs and offline labels only for judge evaluation; they are not used by prediction.",
+    "keys": [
+      "ba57c4f922001033e979f087",
+      "7933cff5854d25ce3c9e8901"
+    ]
+  },
+  "locomo": {
+    "benchmark": "locomo",
+    "changed_count": 1,
+    "clean_note": "Subset files are derived from prediction-time answer diffs and offline labels only for judge evaluation; they are not used by prediction.",
+    "keys": [
+      "491549a097b7e902b5ae0a31"
+    ]
+  }
+}

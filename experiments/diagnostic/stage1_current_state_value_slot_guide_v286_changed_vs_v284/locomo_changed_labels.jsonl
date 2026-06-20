@@ -1,0 +1,1 @@
+{"benchmark": "locomo", "category": 1, "evidence": ["D12:3", "D16:1", "D18:1", "D10:16"], "gold_answer": "Stressful", "question": "How does Andrew feel about his current work?", "question_type": null, "record_key": "491549a097b7e902b5ae0a31", "source_sample_id": "conv-44", "subset": "non-adversarial"}

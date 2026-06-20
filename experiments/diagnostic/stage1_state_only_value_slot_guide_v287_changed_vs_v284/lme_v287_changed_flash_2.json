@@ -1,0 +1,82 @@
+{
+  "api_key_env": "DEEPSEEK_API_KEY",
+  "base_url": "https://api.deepseek.com",
+  "benchmark": "longmemeval",
+  "clean_note": "Offline judge reads gold labels only after prediction. This output must not be consumed by prediction, retrieval, compiler, answer, or verifier.",
+  "created_at_utc": "2026-06-20T07:54:07+00:00",
+  "dry_run": false,
+  "git": {
+    "commit": "0263a1917804f00e46e9e916949fb41bb5efd34a",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "?? experiments/diagnostic/stage1_current_state_value_slot_guide_v286_changed_vs_v284/\n?? experiments/diagnostic/stage1_current_state_value_slot_guide_v286_lme_full/\n?? experiments/diagnostic/stage1_current_state_value_slot_guide_v286_locomo_full/\n?? experiments/diagnostic/stage1_memory_value_slot_guide_v285_lme_full/\n?? experiments/diagnostic/stage1_memory_value_slot_guide_v285_lme_smoke20/\n?? experiments/diagnostic/stage1_memory_value_slot_guide_v285_locomo_full/\n?? experiments/diagnostic/stage1_memory_value_slot_guide_v285_locomo_smoke20/\n?? experiments/diagnostic/stage1_state_only_value_slot_guide_v287_changed_vs_v284/\n?? experiments/diagnostic/stage1_state_only_value_slot_guide_v287_lme_full/\n?? experiments/diagnostic/stage1_state_only_value_slot_guide_v287_locomo_full/"
+  },
+  "judgments": [
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "b58272dac382de4e",
+      "question_type": "knowledge-update",
+      "raw_response": "yes",
+      "record_key": "ba57c4f922001033e979f087",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 83,
+        "completion_tokens_details": {
+          "reasoning_tokens": 81
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 31,
+        "prompt_tokens": 159,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "total_tokens": 242
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "c6c8136d6cbf2f83",
+      "question_type": "knowledge-update",
+      "raw_response": "yes",
+      "record_key": "7933cff5854d25ce3c9e8901",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 107,
+        "completion_tokens_details": {
+          "reasoning_tokens": 105
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 25,
+        "prompt_tokens": 153,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "total_tokens": 260
+      }
+    }
+  ],
+  "labels": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_state_only_value_slot_guide_v287_changed_vs_v284/lme_changed_labels.jsonl",
+  "metrics": {
+    "accuracy": 1.0,
+    "n_invalid": 0,
+    "n_judgments": 2,
+    "n_valid": 2
+  },
+  "model": "deepseek-v4-flash",
+  "partial_output": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_state_only_value_slot_guide_v287_changed_vs_v284/lme_v287_changed_flash_2.json.partial.jsonl",
+  "predictions": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_state_only_value_slot_guide_v287_changed_vs_v284/lme_v287_changed_predictions.jsonl",
+  "request_body_options": {},
+  "temperature": 0.0,
+  "thinking": null,
+  "usage": {
+    "completion_tokens": 190,
+    "prompt_tokens": 312,
+    "total_tokens": 502
+  },
+  "workers": 2
+}
