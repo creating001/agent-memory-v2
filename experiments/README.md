@@ -28,7 +28,7 @@ v288 关键证据见 `experiments/diagnostic/stage1_memory_object_index_v288_ful
 
 | 优先级 | 方向 | 下一步 |
 |---:|---|---|
-| 1 | Build memory system | 把 `operation_manifest_v1`、`state_conflict_manifest_v1`、`scalar_value_manifest_v1` 收敛成 build-owned memory object index，显式表达 working / long-term / archival / quarantine tier、create / update / merge / supersede / retrieve / expand / verify / audit 操作和 source-backed lifecycle。 |
+| 1 | Build memory system | 继续让 query 侧 consumer 优先读 build-owned `memory_object_index_v1`：已覆盖 value slots、activation ready ids 和 activation priority ids；下一步把 state guide / operation utility / graph utility 的 remaining manifest fallback 收敛成 index-backed memory operations。 |
 | 2 | Query-time 简化 | 收敛为 candidate activation、context compiler、source-grounded answer、consistency verifier 四层；删除已被 build-owned memory object index 覆盖的 state-guide/operation-guide 兼容层。 |
 | 3 | Context organization | 用 build-stage utility、source pressure、same-slot coverage、temporal validity 和 conflict state 替代简单 overflow/top-k，把 memory object 用于 context packing 而不只是 retrieval hint。 |
 | 4 | Answer/verifier | 把 trace-only audit 推进为通用 consistency verifier：检查数值、时间、说话人、实体、状态冲突和 unsupported answer，不写 benchmark-specific rewrite。 |
@@ -38,6 +38,7 @@ v288 关键证据见 `experiments/diagnostic/stage1_memory_object_index_v288_ful
 
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
+| `configs/stage1_memory_object_index_activation_v289_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_memory_object_index_activation_v289_lme_smoke5/` / `diagnostic/stage1_memory_object_index_activation_v289_locomo_smoke5/` | candidate | v289 把 full `activation_ready_memory_ids` / `activation_priority_memory_ids` 纳入 `memory_object_index_v1`，query governance activation 和 activation-priority ranking 优先读 index、旧 governance manifest 只做 fallback；LME smoke5、LoCoMo smoke5 对 v288 answer/route/evidence/memory/retrieval/prompt diff 均 `0`，activation source `memory_object_index` 均 `5/5`，answer cache 均 `5/5` | 保留候选；降低 query 直接依赖旧 governance manifest 的系统风险，尚未 full diff / full judge，不升 LTS |
 | `configs/stage1_memory_object_index_v288_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_memory_object_index_v288_full_summary.md` | current LTS | v288 vs v287：LME/LoCoMo full answer/prompt/route/evidence/retrieval/build records diff `0`；`memory_object_index_v1` applied `2040/2040`；avg query tokens LME `6455.588`、LoCoMo `6093.962337662338` | 升 LTS；统一 build-owned memory object interface，性能继承 v287 |
 | `configs/stage1_state_only_value_slot_guide_v287_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_state_only_value_slot_guide_v287_full_summary.md` | previous LTS | v287 vs v284：LME answer diff `2/500`、LoCoMo `1/1540`；changed-answer dual judge 全部 strict correct；avg query tokens LME `6455.588`、LoCoMo `6093.962337662338` | 被 v288 继承；state-only value slot guide 让 build-owned memory object 参与 state organization |
 | `configs/stage1_current_state_value_slot_guide_v286_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_current_state_value_slot_guide_v286_changed_vs_v284/` | rejected diagnostic | current-state intent 限制后，LME changed-answer judge v284 strict/lenient `6/8`、`7/8`，v286 只有 `3/8`、`3/8` | 不升 LTS；intent gate 不够，plan/fact/event/profile/preference slot 仍会扰动 current-state answer focus |

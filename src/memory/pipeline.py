@@ -6121,6 +6121,8 @@ def _memory_governance_activation_records(
         "enabled": enabled,
         "applied": False,
         "mode": mode,
+        "manifest_source": "",
+        "manifest_schema_version": "",
         "input_record_count": len(records),
         "manifest_record_count": 0,
         "source_activation_ready_record_count": 0,
@@ -6139,17 +6141,49 @@ def _memory_governance_activation_records(
     memory_system_graph = management.get("memory_system_graph") or {}
     if not isinstance(memory_system_graph, Mapping):
         return records, {**trace, "skipped_reason": "missing_memory_system_graph"}
+
+    memory_object_index = memory_system_graph.get("memory_object_index") or {}
     governance_manifest = memory_system_graph.get("governance_manifest") or {}
+    if not isinstance(memory_object_index, Mapping):
+        memory_object_index = {}
     if not isinstance(governance_manifest, Mapping):
-        return records, {**trace, "skipped_reason": "missing_governance_manifest"}
-    if "source_activation_ready_memory_ids" not in governance_manifest:
+        governance_manifest = {}
+
+    manifest_source = ""
+    manifest_schema_version = ""
+    manifest_record_count = 0
+    source_activation_ready_record_count = 0
+    raw_ready_ids: Any = ()
+    if "activation_ready_memory_ids" in memory_object_index:
+        manifest_source = "memory_object_index"
+        manifest_schema_version = str(
+            memory_object_index.get("schema_version") or ""
+        )
+        manifest_record_count = int(memory_object_index.get("object_count") or 0)
+        source_activation_ready_record_count = int(
+            memory_object_index.get("activation_ready_memory_id_count")
+            or memory_object_index.get("activation_ready_object_count")
+            or 0
+        )
+        raw_ready_ids = memory_object_index.get("activation_ready_memory_ids") or ()
+    elif "source_activation_ready_memory_ids" in governance_manifest:
+        manifest_source = "governance_manifest"
+        manifest_schema_version = str(
+            governance_manifest.get("schema_version") or ""
+        )
+        manifest_record_count = int(governance_manifest.get("record_count") or 0)
+        source_activation_ready_record_count = int(
+            governance_manifest.get("source_activation_ready_record_count") or 0
+        )
+        raw_ready_ids = (
+            governance_manifest.get("source_activation_ready_memory_ids") or ()
+        )
+    else:
         return records, {**trace, "skipped_reason": "missing_activation_ready_ids"}
 
     ready_ids = frozenset(
         str(memory_id)
-        for memory_id in (
-            governance_manifest.get("source_activation_ready_memory_ids") or ()
-        )
+        for memory_id in raw_ready_ids
         if str(memory_id).strip()
     )
     filtered_records = tuple(
@@ -6160,9 +6194,11 @@ def _memory_governance_activation_records(
     return filtered_records, {
         **trace,
         "applied": True,
-        "manifest_record_count": int(governance_manifest.get("record_count") or 0),
-        "source_activation_ready_record_count": int(
-            governance_manifest.get("source_activation_ready_record_count") or 0
+        "manifest_source": manifest_source,
+        "manifest_schema_version": manifest_schema_version,
+        "manifest_record_count": manifest_record_count,
+        "source_activation_ready_record_count": (
+            source_activation_ready_record_count or len(ready_ids)
         ),
         "activation_record_count": len(filtered_records),
         "filtered_record_count": max(0, len(records) - len(filtered_records)),
@@ -6207,6 +6243,8 @@ def _disabled_memory_activation_priority_trace(
         "output_hit_count": 0,
         "manifest_priority_count": 0,
         "priority_hit_count": 0,
+        "manifest_source": "",
+        "manifest_schema_version": "",
         "reordered": False,
         "selected_priority_memory_ids": (),
         "skipped_reason": skipped_reason,
@@ -6252,12 +6290,20 @@ def _memory_activation_priority_hits(
     if score_boost <= 0:
         return default_hits, {**trace, "skipped_reason": "non_positive_boost"}
 
-    priority_ids = _memory_activation_priority_ids(
-        management,
-        max_rank=max_rank,
+    priority_ids, manifest_source, manifest_schema_version = (
+        _memory_activation_priority_id_manifest(
+            management,
+            max_rank=max_rank,
+        )
     )
     if not priority_ids:
-        return default_hits, {**trace, "skipped_reason": "missing_priority_manifest"}
+        return default_hits, {
+            **trace,
+            "manifest_source": manifest_source,
+            "manifest_schema_version": manifest_schema_version,
+            "skipped_reason": "missing_priority_manifest",
+        }
+
     priority_rank = {memory_id: rank for rank, memory_id in enumerate(priority_ids)}
 
     adjusted: list[tuple[float, int, Any, float]] = []
@@ -6276,6 +6322,8 @@ def _memory_activation_priority_hits(
     if priority_hit_count <= 0:
         return default_hits, {
             **trace,
+            "manifest_source": manifest_source,
+            "manifest_schema_version": manifest_schema_version,
             "manifest_priority_count": len(priority_ids),
             "skipped_reason": "no_priority_hits",
         }
@@ -6300,6 +6348,8 @@ def _memory_activation_priority_hits(
     return selected_hits, {
         **trace,
         "applied": True,
+        "manifest_source": manifest_source,
+        "manifest_schema_version": manifest_schema_version,
         "output_hit_count": len(selected_hits),
         "manifest_priority_count": len(priority_ids),
         "priority_hit_count": priority_hit_count,
@@ -6316,15 +6366,39 @@ def _memory_activation_priority_ids(
     *,
     max_rank: int = 0,
 ) -> tuple[str, ...]:
+    priority_ids, _source, _schema_version = _memory_activation_priority_id_manifest(
+        management,
+        max_rank=max_rank,
+    )
+    return priority_ids
+
+
+def _memory_activation_priority_id_manifest(
+    management: Mapping[str, Any] | None,
+    *,
+    max_rank: int = 0,
+) -> tuple[tuple[str, ...], str, str]:
     if not isinstance(management, Mapping):
-        return ()
+        return (), "", ""
     memory_system_graph = management.get("memory_system_graph") or {}
     if not isinstance(memory_system_graph, Mapping):
-        return ()
+        return (), "", ""
+    memory_object_index = memory_system_graph.get("memory_object_index") or {}
     governance_manifest = memory_system_graph.get("governance_manifest") or {}
+    if not isinstance(memory_object_index, Mapping):
+        memory_object_index = {}
     if not isinstance(governance_manifest, Mapping):
-        return ()
-    raw_ids = governance_manifest.get("activation_priority_memory_ids") or ()
+        governance_manifest = {}
+    if "activation_priority_memory_ids" in memory_object_index:
+        raw_ids = memory_object_index.get("activation_priority_memory_ids") or ()
+        manifest_source = "memory_object_index"
+        manifest_schema_version = str(memory_object_index.get("schema_version") or "")
+    elif "activation_priority_memory_ids" in governance_manifest:
+        raw_ids = governance_manifest.get("activation_priority_memory_ids") or ()
+        manifest_source = "governance_manifest"
+        manifest_schema_version = str(governance_manifest.get("schema_version") or "")
+    else:
+        return (), "", ""
     selected: list[str] = []
     seen: set[str] = set()
     limit = max(0, max_rank)
@@ -6336,7 +6410,7 @@ def _memory_activation_priority_ids(
         selected.append(memory_id)
         if limit and len(selected) >= limit:
             break
-    return tuple(selected)
+    return tuple(selected), manifest_source, manifest_schema_version
 
 
 def _memory_object_slot_record_sort_key(record: Any) -> tuple[int, str, str]:

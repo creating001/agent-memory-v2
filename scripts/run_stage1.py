@@ -172,6 +172,8 @@ def main() -> int:
     total_build_memory_system_graph_index_objects = 0
     total_build_memory_system_graph_index_source_backed_objects = 0
     total_build_memory_system_graph_index_activation_ready_objects = 0
+    total_build_memory_system_graph_index_activation_ready_ids = 0
+    total_build_memory_system_graph_index_activation_priority_ids = 0
     total_build_memory_system_graph_index_slots = 0
     total_build_memory_system_graph_index_value_slots = 0
     total_build_memory_system_graph_index_state_conflict_slots = 0
@@ -590,6 +592,16 @@ def main() -> int:
                 )
                 total_build_memory_system_graph_index_activation_ready_objects += int(
                     memory_object_index.get("activation_ready_object_count") or 0
+                )
+                total_build_memory_system_graph_index_activation_ready_ids += int(
+                    memory_object_index.get("activation_ready_memory_id_count")
+                    or len(memory_object_index.get("activation_ready_memory_ids") or ())
+                )
+                total_build_memory_system_graph_index_activation_priority_ids += int(
+                    memory_object_index.get("activation_priority_memory_id_count")
+                    or len(
+                        memory_object_index.get("activation_priority_memory_ids") or ()
+                    )
                 )
                 total_build_memory_system_graph_index_slots += int(
                     memory_object_index.get("slot_count") or 0
@@ -1580,6 +1592,18 @@ def main() -> int:
             "avg_memory_system_graph_memory_object_index_activation_ready_objects": (
                 _safe_average(
                     total_build_memory_system_graph_index_activation_ready_objects,
+                    total_build_memory_system_graph_memory_object_index_applied,
+                )
+            ),
+            "avg_memory_system_graph_memory_object_index_activation_ready_ids": (
+                _safe_average(
+                    total_build_memory_system_graph_index_activation_ready_ids,
+                    total_build_memory_system_graph_memory_object_index_applied,
+                )
+            ),
+            "avg_memory_system_graph_memory_object_index_activation_priority_ids": (
+                _safe_average(
+                    total_build_memory_system_graph_index_activation_priority_ids,
                     total_build_memory_system_graph_memory_object_index_applied,
                 )
             ),
@@ -2614,6 +2638,9 @@ def _write_summary(
         f"- build_memory_system_graph_scalar_value_manifest_applied_count: {metrics['build_memory']['memory_system_graph_scalar_value_manifest_applied_count']}",
         f"- build_memory_system_graph_scalar_value_manifest_applied_rate: {metrics['build_memory']['memory_system_graph_scalar_value_manifest_applied_rate']}",
         f"- build_memory_system_graph_scalar_value_manifest_counts: {metrics['build_memory']['memory_system_graph_scalar_value_manifest_counts']}",
+        f"- build_memory_system_graph_memory_object_index_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_applied_count']}",
+        f"- avg_build_memory_system_graph_memory_object_index_activation_ready_ids: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_activation_ready_ids']}",
+        f"- avg_build_memory_system_graph_memory_object_index_activation_priority_ids: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_activation_priority_ids']}",
         f"- avg_build_memory_system_graph_value_objects: {metrics['build_memory']['avg_memory_system_graph_value_objects']}",
         f"- avg_build_memory_system_graph_source_backed_value_objects: {metrics['build_memory']['avg_memory_system_graph_source_backed_value_objects']}",
         f"- avg_build_memory_system_graph_source_incomplete_value_objects: {metrics['build_memory']['avg_memory_system_graph_source_incomplete_value_objects']}",
@@ -3035,6 +3062,9 @@ def _write_diagnosis(
         f"- build_memory_system_graph_scalar_value_manifest_applied_count: {metrics['build_memory']['memory_system_graph_scalar_value_manifest_applied_count']}",
         f"- build_memory_system_graph_scalar_value_manifest_applied_rate: {metrics['build_memory']['memory_system_graph_scalar_value_manifest_applied_rate']}",
         f"- build_memory_system_graph_scalar_value_manifest_counts: {metrics['build_memory']['memory_system_graph_scalar_value_manifest_counts']}",
+        f"- build_memory_system_graph_memory_object_index_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_applied_count']}",
+        f"- avg_build_memory_system_graph_memory_object_index_activation_ready_ids: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_activation_ready_ids']}",
+        f"- avg_build_memory_system_graph_memory_object_index_activation_priority_ids: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_activation_priority_ids']}",
         f"- avg_build_memory_system_graph_value_objects: {metrics['build_memory']['avg_memory_system_graph_value_objects']}",
         f"- avg_build_memory_system_graph_source_backed_value_objects: {metrics['build_memory']['avg_memory_system_graph_source_backed_value_objects']}",
         f"- avg_build_memory_system_graph_source_incomplete_value_objects: {metrics['build_memory']['avg_memory_system_graph_source_incomplete_value_objects']}",

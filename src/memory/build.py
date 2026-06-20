@@ -1023,6 +1023,10 @@ def _memory_system_graph_summary(
         groups,
         managed_memory_types=managed_memory_types,
     )
+    governance_manifest = _memory_system_governance_manifest(
+        managed_records,
+        managed_memory_types=managed_memory_types,
+    )
     operation_manifest = _memory_system_operation_manifest(
         raw_records=raw_records,
         deduped_records=deduped_records,
@@ -1041,6 +1045,7 @@ def _memory_system_graph_summary(
         operation_manifest=operation_manifest,
         state_conflict_manifest=state_conflict_manifest,
         scalar_value_manifest=scalar_value_manifest,
+        governance_manifest=governance_manifest,
     )
     operation_edge_counts = {
         "create": len(deduped_records),
@@ -1099,10 +1104,7 @@ def _memory_system_graph_summary(
             groups,
             managed_memory_types=managed_memory_types,
         ),
-        "governance_manifest": _memory_system_governance_manifest(
-            managed_records,
-            managed_memory_types=managed_memory_types,
-        ),
+        "governance_manifest": governance_manifest,
         "source_policy": source_policy,
         "tier_manifest": tier_manifest,
         "operation_manifest": operation_manifest,
@@ -1228,6 +1230,7 @@ def _memory_object_index_manifest(
     operation_manifest: dict[str, Any],
     state_conflict_manifest: dict[str, Any],
     scalar_value_manifest: dict[str, Any],
+    governance_manifest: dict[str, Any],
 ) -> dict[str, Any]:
     """Unified build-owned memory object index for query-time consumers.
 
@@ -1300,6 +1303,20 @@ def _memory_object_index_manifest(
         }
         for record in managed_records[:24]
     ]
+    activation_ready_memory_ids = [
+        str(memory_id)
+        for memory_id in (
+            governance_manifest.get("source_activation_ready_memory_ids") or ()
+        )
+        if str(memory_id).strip()
+    ]
+    activation_priority_memory_ids = [
+        str(memory_id)
+        for memory_id in (
+            governance_manifest.get("activation_priority_memory_ids") or ()
+        )
+        if str(memory_id).strip()
+    ]
     layer_counts: dict[str, int] = defaultdict(int)
     for record in managed_records:
         layer_counts[_memory_layer(record.memory_type)] += 1
@@ -1315,14 +1332,9 @@ def _memory_object_index_manifest(
         "source_backed_object_count": sum(
             1 for record in managed_records if record.source_ids
         ),
-        "activation_ready_object_count": sum(
-            1
-            for record in managed_records
-            if _memory_system_record_governance(
-                record,
-                managed_memory_types=managed_memory_types,
-            )["source_activation_ready"]
-        ),
+        "activation_ready_object_count": len(activation_ready_memory_ids),
+        "activation_ready_memory_id_count": len(activation_ready_memory_ids),
+        "activation_priority_memory_id_count": len(activation_priority_memory_ids),
         "tier_counts": dict(tier_manifest.get("tier_counts") or {}),
         "layer_counts": dict(sorted(layer_counts.items())),
         "operation_counts": dict(operation_manifest.get("operation_counts") or {}),
@@ -1347,7 +1359,15 @@ def _memory_object_index_manifest(
             ),
             "final_evidence_policy": "raw_source_rows",
             "question_independent": True,
+            "activation_contract": {
+                "source": "governance_manifest",
+                "ready_ids_field": "activation_ready_memory_ids",
+                "priority_ids_field": "activation_priority_memory_ids",
+                "policy": "source_backed_activation_ready_first",
+            },
         },
+        "activation_ready_memory_ids": activation_ready_memory_ids,
+        "activation_priority_memory_ids": activation_priority_memory_ids,
         "object_index_samples": object_samples,
         "value_slot_index": value_slots,
         "state_conflict_slot_ids": sorted(str(slot_id) for slot_id in conflict_slot_ids),
