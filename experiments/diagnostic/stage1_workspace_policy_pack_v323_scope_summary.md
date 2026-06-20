@@ -48,8 +48,10 @@ Judge temperature is `0`; both runs use `deepseek-v4-flash` twice with default t
 
 ## Decision
 
-V323 is a stronger candidate than v322 for the current goal: it keeps LME behavior unchanged, reduces LoCoMo smoke query tokens by about `241` tokens/sample, and has no changed-answer judge regression on the changed LoCoMo subset.
+V323 is a stronger local design than v322 on the narrow smoke/op evidence: it keeps LME smoke/op behavior unchanged, reduces LoCoMo smoke query tokens by about `241` tokens/sample, and has no changed-answer judge regression on the changed LoCoMo smoke subset.
 
-It is still not promoted to LTS because only smoke/op diagnostics have been run. Next step is a broader/full diff against the current candidate/LTS path, then changed-answer judge only where answers change.
+However, the broader LME full audit shows v323 should not be promoted to LTS. Against v288 LTS, v323 changes `113/500` LME answers while reducing avg query tokens `6455.588 -> 5972.272`; changed-answer dual judge drops from old v288 `72/113` strict and `76/113` lenient to new v323 `56/113` strict and `63/113` lenient. Projected LME full is strict/lenient `0.802 / 0.820`, below v288 `0.834 / 0.846`.
+
+The useful part to keep is the build-owned selected-context pack policy. The negative lesson is that aggressive global context pressure (`305/500` LME full samples) changes too much evidence and should be removed or narrowed before any LTS decision.
 
 Version commit: this local commit (`method: add v323 workspace policy pack`).

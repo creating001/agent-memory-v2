@@ -1,0 +1,7 @@
+{
+  "base_run": "stage1_memory_object_index_v288_lme_full",
+  "changed_answers": 113,
+  "clean_note": "Diff uses prediction outputs/traces. Labels are copied only for offline changed-answer judge, not prediction/cache construction.",
+  "new_run": "stage1_workspace_policy_pack_v323_lme_full",
+  "outputs": "outputs/diagnostic/stage1_workspace_policy_pack_v323_lme_full_changed_vs_v288"
+}
