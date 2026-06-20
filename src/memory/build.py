@@ -12,7 +12,7 @@ import urllib.request
 from collections import defaultdict
 from dataclasses import asdict, dataclass, replace
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 from common.schemas import TokenUsage, Turn, llm_usage_to_token_usage
 
@@ -1508,6 +1508,19 @@ def _memory_object_index_manifest(
         "memory_workspace_policy_query_component_count": workspace_policy[
             "query_component_count"
         ],
+        "memory_workspace_policy_query_component_ready_count": workspace_policy[
+            "query_component_ready_count"
+        ],
+        "memory_workspace_policy_query_component_status": {
+            component: {
+                "ready": policy.get("ready"),
+                "migration_status": policy.get("migration_status"),
+                "query_prompt_action": policy.get("query_prompt_action"),
+            }
+            for component, policy in (
+                workspace_policy.get("query_component_policy") or {}
+            ).items()
+        },
         "source_backed_object_count": sum(
             1 for record in managed_records if record.source_ids
         ),
@@ -3739,6 +3752,10 @@ def _memory_workspace_policy(
         memory_workspace_snapshot.get("verifier_worklist_counts")
     )
     layer_counts = _mapping_int_counts(memory_workspace_snapshot.get("layer_counts"))
+    contract_readiness = {
+        str(key): bool(value)
+        for key, value in (memory_workspace_contract.get("readiness") or {}).items()
+    }
     stage_order = [
         "candidate_activation",
         "context_pack",
@@ -3783,32 +3800,6 @@ def _memory_workspace_policy(
             "ready": operation_readiness.get("audit", False),
         },
     }
-    query_components = {
-        "memory_state_guide": {
-            "workspace_replacement": "state_worklists.current_state + conflict_chain",
-            "status": "replaceable_when_final_rows_cover_sources",
-        },
-        "memory_value_slot_guide": {
-            "workspace_replacement": "working_memory state slots + scalar value manifest",
-            "status": "replaceable_for_source_backed_state_slots",
-        },
-        "update_conflict_guide": {
-            "workspace_replacement": "state_worklists.conflict_chain + archival_history",
-            "status": "replaceable_when_conflict_chain_ready",
-        },
-        "operation_workpad": {
-            "workspace_replacement": "operation_journal + verifier_worklists",
-            "status": "trace_or_private_only_after_policy_adoption",
-        },
-        "selected_context": {
-            "workspace_replacement": "context_pack lane expansion",
-            "status": "compact_or_gate_when_raw_rows_and_workspace_sources_overlap",
-        },
-        "context_budget": {
-            "workspace_replacement": "candidate_activation pressure policy",
-            "status": "owned_by_workspace_anchor_retention",
-        },
-    }
     pressure_policy = {
         "selected_context_pack_policy": "profile_tier_source_coverage",
         "selected_context_default_profile": "balanced_source_coverage",
@@ -3851,6 +3842,24 @@ def _memory_workspace_policy(
         "final_evidence_policy": "raw_source_rows",
         "memory_object_policy": "activation_only_not_final_evidence",
     }
+    query_component_policy = _memory_workspace_query_component_policy(
+        operation_readiness=operation_readiness,
+        contract_readiness=contract_readiness,
+        state_worklist_counts=state_worklist_counts,
+        verifier_worklist_counts=verifier_worklist_counts,
+        pressure_policy=pressure_policy,
+    )
+    query_components = {
+        component: {
+            "workspace_replacement": policy["replacement_surface"],
+            "status": policy["migration_status"],
+            "ready": policy["ready"],
+        }
+        for component, policy in query_component_policy.items()
+    }
+    query_component_ready_count = sum(
+        1 for policy in query_component_policy.values() if policy["ready"]
+    )
 
     return {
         "schema_version": "memory_workspace_policy_v1",
@@ -3864,10 +3873,13 @@ def _memory_workspace_policy(
         "stage_count": len(stage_order),
         "stages": stages,
         "query_component_count": len(query_components),
+        "query_component_ready_count": query_component_ready_count,
         "query_component_migration": query_components,
+        "query_component_policy": query_component_policy,
         "state_worklist_counts": state_worklist_counts,
         "verifier_worklist_counts": verifier_worklist_counts,
         "operation_readiness": operation_readiness,
+        "contract_readiness": contract_readiness,
         "layer_counts": layer_counts,
         "pressure_policy": pressure_policy,
         "risk_reduction": {
@@ -3889,6 +3901,232 @@ def _memory_workspace_policy(
             "reduced without changing clean evidence rules. It uses no question "
             "text, gold answers, judge outputs, benchmark labels, sample ids, "
             "or test feedback."
+        ),
+    }
+
+
+def _memory_workspace_query_component_policy(
+    *,
+    operation_readiness: Mapping[str, bool],
+    contract_readiness: Mapping[str, bool],
+    state_worklist_counts: Mapping[str, int],
+    verifier_worklist_counts: Mapping[str, int],
+    pressure_policy: Mapping[str, Any],
+) -> dict[str, dict[str, Any]]:
+    """Component-level build policy for retiring duplicated query guides.
+
+    This is a shadow contract only. It does not change prediction behavior; it
+    makes each query-time guide's build-owned replacement, readiness gates, and
+    source policy explicit before any later version removes prompt-visible guide
+    text.
+    """
+
+    def component_ready(
+        *,
+        operations: tuple[str, ...] = (),
+        contract_flags: tuple[str, ...] = (),
+        state_worklists: tuple[str, ...] = (),
+        verifier_worklists: tuple[str, ...] = (),
+    ) -> bool:
+        return (
+            all(operation_readiness.get(operation, False) for operation in operations)
+            and all(contract_readiness.get(flag, False) for flag in contract_flags)
+            and all(state_worklist_counts.get(key, 0) > 0 for key in state_worklists)
+            and all(
+                verifier_worklist_counts.get(key, 0) > 0 for key in verifier_worklists
+            )
+        )
+
+    def policy(
+        *,
+        replacement_surface: str,
+        replacement_sources: tuple[str, ...],
+        required_operations: tuple[str, ...],
+        required_contract_flags: tuple[str, ...] = (),
+        required_state_worklists: tuple[str, ...] = (),
+        required_verifier_worklists: tuple[str, ...] = (),
+        allowed_use: str,
+        risk_controls: tuple[str, ...],
+        budget_policy: Mapping[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        ready = component_ready(
+            operations=required_operations,
+            contract_flags=required_contract_flags,
+            state_worklists=required_state_worklists,
+            verifier_worklists=required_verifier_worklists,
+        )
+        return {
+            "owner": "build_workspace",
+            "replacement_surface": replacement_surface,
+            "replacement_sources": list(replacement_sources),
+            "required_operations": list(required_operations),
+            "required_contract_flags": list(required_contract_flags),
+            "required_state_worklists": list(required_state_worklists),
+            "required_verifier_worklists": list(required_verifier_worklists),
+            "ready": ready,
+            "migration_status": "shadow_ready" if ready else "shadow_partial",
+            "query_prompt_action": "keep_legacy_prompt_until_paired_judge_passes",
+            "allowed_use": allowed_use,
+            "budget_policy": dict(budget_policy or {}),
+            "source_expansion_policy": "expand_to_raw_source_rows",
+            "final_evidence_policy": "raw_source_rows",
+            "memory_objects_are_final_evidence": False,
+            "risk_controls": list(risk_controls),
+        }
+
+    return {
+        "structured_guide": policy(
+            replacement_surface=(
+                "memory_working_compiler_plan.entries + "
+                "memory_context_interface.operation_views"
+            ),
+            replacement_sources=(
+                "memory_working_compiler_plan",
+                "memory_context_interface",
+                "memory_workspace_snapshot.context_lanes",
+            ),
+            required_operations=("retrieve", "expand"),
+            required_contract_flags=("context_pack_ready", "source_expansion_ready"),
+            allowed_use="context_organization_index_only",
+            risk_controls=(
+                "do_not_replace_raw_memory_context",
+                "preserve_source_ids",
+                "paired_judge_required_before_prompt_removal",
+            ),
+        ),
+        "memory_state_guide": policy(
+            replacement_surface="state_worklists.current_state + conflict_chain",
+            replacement_sources=(
+                "memory_workspace_snapshot.state_worklists",
+                "memory_system_state",
+                "memory_operation_lifecycle",
+            ),
+            required_operations=("retrieve", "expand", "verify"),
+            required_contract_flags=("source_expansion_ready", "verification_ready"),
+            required_state_worklists=("current_state",),
+            allowed_use="state_activation_and_conflict_index",
+            risk_controls=(
+                "active_state_must_expand_to_raw_rows",
+                "retain_superseded_archival_context",
+                "state_conflict_checked_by_verifier",
+            ),
+        ),
+        "memory_value_slot_guide": policy(
+            replacement_surface="working_memory state slots + scalar value manifest",
+            replacement_sources=(
+                "memory_context_interface.operation_slots",
+                "memory_system_state",
+                "scalar_value_manifest",
+            ),
+            required_operations=("retrieve", "expand", "verify", "audit"),
+            required_contract_flags=("source_expansion_ready", "audit_ready"),
+            required_state_worklists=("current_state",),
+            allowed_use="source_backed_value_slot_activation",
+            risk_controls=(
+                "slot_values_are_activation_hints_only",
+                "multi_value_slots_preserve_all_source_values",
+                "final_answer_requires_raw_source_rows",
+            ),
+        ),
+        "event_time_candidate_map": policy(
+            replacement_surface="state_worklists.temporal_validity + raw-row expansion",
+            replacement_sources=(
+                "memory_workspace_snapshot.state_worklists.temporal_validity",
+                "memory_working_compiler_plan.source_expansion",
+            ),
+            required_operations=("retrieve", "expand", "verify"),
+            required_contract_flags=("source_expansion_ready", "verification_ready"),
+            allowed_use="temporal_candidate_index_only",
+            risk_controls=(
+                "temporal_candidates_do_not_override_raw_dates",
+                "relative_time_resolves_against_row_timestamp",
+                "paired_judge_required_before_event_time_prompt_removal",
+            ),
+        ),
+        "update_conflict_guide": policy(
+            replacement_surface="state_worklists.conflict_chain + archival_history",
+            replacement_sources=(
+                "memory_workspace_snapshot.state_worklists.conflict_chain",
+                "memory_workspace_snapshot.state_worklists.archival_history",
+                "memory_operation_journal",
+            ),
+            required_operations=("retrieve", "expand", "verify", "audit"),
+            required_contract_flags=("conflict_ready", "verification_ready"),
+            required_state_worklists=("conflict_chain",),
+            required_verifier_worklists=("state_conflict",),
+            allowed_use="conflict_chain_index_and_audit",
+            risk_controls=(
+                "non_destructive_supersede",
+                "active_and_archival_sources_expand_to_raw_rows",
+                "no_benchmark_specific_update_rules",
+            ),
+        ),
+        "operation_workpad": policy(
+            replacement_surface="operation_journal + verifier_worklists",
+            replacement_sources=(
+                "memory_operation_journal",
+                "memory_workspace_snapshot.verifier_worklists",
+            ),
+            required_operations=("expand", "verify", "audit"),
+            required_contract_flags=("verification_ready", "audit_ready"),
+            allowed_use="private_operation_and_verifier_plan",
+            risk_controls=(
+                "workpad_is_never_final_evidence",
+                "audit_records_are_source_backed",
+                "no_gold_or_judge_feedback",
+            ),
+        ),
+        "selected_context": policy(
+            replacement_surface="context_pack lane expansion + pressure profiles",
+            replacement_sources=(
+                "memory_workspace_snapshot.context_lanes",
+                "memory_workspace_policy.pressure_policy",
+            ),
+            required_operations=("expand",),
+            required_contract_flags=("context_pack_ready", "source_expansion_ready"),
+            allowed_use="source_pressure_aware_context_packing",
+            risk_controls=(
+                "do_not_drop_workspace_backed_anchors_without_audit",
+                "no_widen_existing_tighter_profile",
+                "raw_evidence_presentation_stays_stable_until_verified",
+            ),
+            budget_policy={
+                "selected_context_default_profile": pressure_policy.get(
+                    "selected_context_default_profile"
+                ),
+                "selected_context_question_reference_profile": pressure_policy.get(
+                    "selected_context_question_reference_profile"
+                ),
+                "selected_context_route_profiles": pressure_policy.get(
+                    "selected_context_route_profiles"
+                ),
+                "selected_context_profiles": pressure_policy.get(
+                    "selected_context_profiles"
+                ),
+            },
+        ),
+        "context_budget": policy(
+            replacement_surface="candidate_activation pressure policy + anchor retention",
+            replacement_sources=(
+                "memory_workspace_contract.context_anchor_source_ids",
+                "memory_workspace_policy.pressure_policy",
+            ),
+            required_operations=("retrieve", "expand"),
+            required_contract_flags=("context_pack_ready", "source_expansion_ready"),
+            allowed_use="workspace_anchor_retention_under_budget",
+            risk_controls=(
+                "retain_source_backed_workspace_anchors",
+                "trim_tail_before_anchor_sources",
+                "report_dropped_anchor_sources",
+            ),
+            budget_policy={
+                "context_pressure_action": pressure_policy.get(
+                    "context_pressure_action"
+                ),
+                "tail_policy": pressure_policy.get("tail_policy"),
+                "final_evidence_policy": pressure_policy.get("final_evidence_policy"),
+                "memory_object_policy": pressure_policy.get("memory_object_policy"),
+            },
         ),
     }
 

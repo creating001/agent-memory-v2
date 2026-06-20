@@ -343,6 +343,10 @@ def main() -> int:
     total_build_memory_system_graph_index_memory_workspace_policy_applied = 0
     total_build_memory_system_graph_index_memory_workspace_policy_stages = 0
     total_build_memory_system_graph_index_memory_workspace_policy_query_components = 0
+    total_build_memory_system_graph_index_memory_workspace_policy_ready_query_components = 0
+    build_memory_system_graph_memory_object_index_memory_workspace_policy_component_status_counts: dict[
+        str, int
+    ] = {}
     total_build_memory_system_graph_index_layer_manifest_applied = 0
     total_build_memory_system_graph_index_layer_manifest_entries = 0
     build_memory_system_graph_memory_object_index_layer_manifest_layer_entries: dict[
@@ -1323,6 +1327,25 @@ def main() -> int:
                     total_build_memory_system_graph_index_memory_workspace_policy_query_components += int(
                         workspace_policy.get("query_component_count") or 0
                     )
+                    total_build_memory_system_graph_index_memory_workspace_policy_ready_query_components += int(
+                        workspace_policy.get("query_component_ready_count") or 0
+                    )
+                    query_component_policy = (
+                        workspace_policy.get("query_component_policy") or {}
+                    )
+                    if isinstance(query_component_policy, Mapping):
+                        for policy in query_component_policy.values():
+                            if not isinstance(policy, Mapping):
+                                continue
+                            status = str(policy.get("migration_status") or "unknown")
+                            build_memory_system_graph_memory_object_index_memory_workspace_policy_component_status_counts[
+                                status
+                            ] = (
+                                build_memory_system_graph_memory_object_index_memory_workspace_policy_component_status_counts.get(
+                                    status, 0
+                                )
+                                + 1
+                            )
                 layer_manifest = memory_object_index.get("memory_layer_manifest") or {}
                 if isinstance(layer_manifest, Mapping) and layer_manifest.get(
                     "applied"
@@ -3133,6 +3156,17 @@ def main() -> int:
                     total_build_memory_system_graph_index_memory_workspace_policy_applied,
                 )
             ),
+            "avg_memory_system_graph_memory_object_index_memory_workspace_policy_ready_query_components": (
+                _safe_average(
+                    total_build_memory_system_graph_index_memory_workspace_policy_ready_query_components,
+                    total_build_memory_system_graph_index_memory_workspace_policy_applied,
+                )
+            ),
+            "memory_system_graph_memory_object_index_memory_workspace_policy_component_status_counts": dict(
+                sorted(
+                    build_memory_system_graph_memory_object_index_memory_workspace_policy_component_status_counts.items()
+                )
+            ),
             "avg_memory_system_graph_memory_object_index_layer_manifest_entries": (
                 _safe_average(
                     total_build_memory_system_graph_index_layer_manifest_entries,
@@ -4372,6 +4406,8 @@ def _write_summary(
         f"- build_memory_system_graph_memory_object_index_memory_workspace_policy_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_workspace_policy_applied_count']}",
         f"- avg_build_memory_system_graph_memory_object_index_memory_workspace_policy_stages: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_memory_workspace_policy_stages']}",
         f"- avg_build_memory_system_graph_memory_object_index_memory_workspace_policy_query_components: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_memory_workspace_policy_query_components']}",
+        f"- avg_build_memory_system_graph_memory_object_index_memory_workspace_policy_ready_query_components: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_memory_workspace_policy_ready_query_components']}",
+        f"- build_memory_system_graph_memory_object_index_memory_workspace_policy_component_status_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_workspace_policy_component_status_counts']}",
         f"- build_memory_system_graph_memory_object_index_layer_manifest_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_layer_manifest_applied_count']}",
         f"- avg_build_memory_system_graph_memory_object_index_layer_manifest_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_layer_manifest_entries']}",
         f"- build_memory_system_graph_memory_object_index_layer_manifest_layer_entries: {metrics['build_memory']['memory_system_graph_memory_object_index_layer_manifest_layer_entries']}",
@@ -4933,6 +4969,8 @@ def _write_diagnosis(
         f"- build_memory_system_graph_memory_object_index_memory_workspace_policy_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_workspace_policy_applied_count']}",
         f"- avg_build_memory_system_graph_memory_object_index_memory_workspace_policy_stages: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_memory_workspace_policy_stages']}",
         f"- avg_build_memory_system_graph_memory_object_index_memory_workspace_policy_query_components: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_memory_workspace_policy_query_components']}",
+        f"- avg_build_memory_system_graph_memory_object_index_memory_workspace_policy_ready_query_components: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_memory_workspace_policy_ready_query_components']}",
+        f"- build_memory_system_graph_memory_object_index_memory_workspace_policy_component_status_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_workspace_policy_component_status_counts']}",
         f"- build_memory_system_graph_memory_object_index_layer_manifest_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_layer_manifest_applied_count']}",
         f"- avg_build_memory_system_graph_memory_object_index_layer_manifest_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_layer_manifest_entries']}",
         f"- build_memory_system_graph_memory_object_index_layer_manifest_layer_entries: {metrics['build_memory']['memory_system_graph_memory_object_index_layer_manifest_layer_entries']}",

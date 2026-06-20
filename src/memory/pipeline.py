@@ -5021,6 +5021,16 @@ def _context_manifest(
                         "memory_workspace_policy_query_component_count"
                     ]
                 ),
+                "memory_workspace_policy_query_component_ready_count": (
+                    memory_operations_manifest[
+                        "memory_workspace_policy_query_component_ready_count"
+                    ]
+                ),
+                "memory_workspace_policy_query_component_status": (
+                    memory_operations_manifest[
+                        "memory_workspace_policy_query_component_status"
+                    ]
+                ),
                 "memory_workspace_policy_pressure_policy": (
                     memory_operations_manifest[
                         "memory_workspace_policy_pressure_policy"
@@ -5595,6 +5605,24 @@ def _memory_operations_context_manifest(
         "memory_workspace_policy_query_component_count": int(
             memory_workspace_policy.get("query_component_count") or 0
         ),
+        "memory_workspace_policy_query_component_ready_count": int(
+            memory_workspace_policy.get("query_component_ready_count") or 0
+        ),
+        "memory_workspace_policy_query_component_status": {
+            str(component): {
+                "ready": bool(policy.get("ready")),
+                "migration_status": str(policy.get("migration_status") or ""),
+                "query_prompt_action": str(policy.get("query_prompt_action") or ""),
+            }
+            for component, policy in (
+                (memory_workspace_policy.get("query_component_policy") or {}).items()
+                if isinstance(
+                    memory_workspace_policy.get("query_component_policy"), Mapping
+                )
+                else ()
+            )
+            if isinstance(policy, Mapping)
+        },
         "memory_workspace_policy_state_worklist_counts": _mapping_int_counts(
             memory_workspace_policy.get("state_worklist_counts")
         ),

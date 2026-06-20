@@ -4424,7 +4424,17 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual(memory_object_index["memory_workspace_policy_stage_count"], 5)
         self.assertEqual(
             memory_object_index["memory_workspace_policy_query_component_count"],
-            6,
+            8,
+        )
+        self.assertGreater(
+            memory_object_index[
+                "memory_workspace_policy_query_component_ready_count"
+            ],
+            0,
+        )
+        self.assertIn(
+            "selected_context",
+            memory_object_index["memory_workspace_policy_query_component_status"],
         )
         self.assertEqual(
             memory_object_index["source_backed_object_count"],
@@ -4937,11 +4947,42 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertFalse(workspace_policy["trace_only"])
         self.assertTrue(workspace_policy["applied"])
         self.assertEqual(workspace_policy["stage_count"], 5)
-        self.assertEqual(workspace_policy["query_component_count"], 6)
+        self.assertEqual(workspace_policy["query_component_count"], 8)
+        self.assertGreater(workspace_policy["query_component_ready_count"], 0)
         self.assertIn("context_pack", workspace_policy["stages"])
         self.assertIn(
             "memory_state_guide",
             workspace_policy["query_component_migration"],
+        )
+        self.assertIn(
+            "structured_guide",
+            workspace_policy["query_component_policy"],
+        )
+        self.assertIn(
+            "event_time_candidate_map",
+            workspace_policy["query_component_policy"],
+        )
+        selected_context_policy = workspace_policy["query_component_policy"][
+            "selected_context"
+        ]
+        self.assertEqual(
+            selected_context_policy["owner"],
+            "build_workspace",
+        )
+        self.assertEqual(
+            selected_context_policy["final_evidence_policy"],
+            "raw_source_rows",
+        )
+        self.assertFalse(
+            selected_context_policy["memory_objects_are_final_evidence"]
+        )
+        self.assertEqual(
+            selected_context_policy["query_prompt_action"],
+            "keep_legacy_prompt_until_paired_judge_passes",
+        )
+        self.assertIn(
+            "selected_context_profiles",
+            selected_context_policy["budget_policy"],
         )
         self.assertEqual(
             workspace_policy["pressure_policy"]["selected_context_format"],
