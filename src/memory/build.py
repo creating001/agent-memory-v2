@@ -977,7 +977,7 @@ def _memory_system_graph_summary(
         "enabled": True,
         "trace_only": False,
         "applied": True,
-        "schema_version": "memory_system_graph_v2",
+        "schema_version": "memory_system_graph_v3",
         "object_schema": _memory_system_object_schema(),
         "raw_record_count": len(raw_records),
         "deduped_record_count": len(deduped_records),
@@ -1000,7 +1000,10 @@ def _memory_system_graph_summary(
         "layer_counts": dict(sorted(layer_counts.items())),
         "lifecycle_counts": dict(sorted(lifecycle_counts.items())),
         "operation_edge_counts": operation_edge_counts,
-        "source_quality": _memory_system_source_quality(managed_records),
+        "source_quality": _memory_system_source_quality(
+            managed_records,
+            managed_memory_types=managed_memory_types,
+        ),
         "slot_quality": _memory_system_slot_quality(
             groups,
             managed_memory_types=managed_memory_types,
@@ -1016,7 +1019,11 @@ def _memory_system_graph_summary(
             "question_independent_build": True,
         },
         "memory_object_samples": [
-            _memory_object_sample(record) for record in managed_records[:10]
+            _memory_object_sample(
+                record,
+                managed_memory_types=managed_memory_types,
+            )
+            for record in managed_records[:10]
         ],
         "slot_samples": [
             _memory_system_slot_sample(key, tuple(records))
@@ -1076,6 +1083,9 @@ def _memory_system_object_schema() -> dict[str, Any]:
             "confidence_bucket",
             "lifecycle_signal",
             "source_coverage",
+            "temporal_scope_kind",
+            "validity_status",
+            "source_confidence_bucket",
             "activation_utility_score",
             "activation_utility_bucket",
         ],
@@ -1083,6 +1093,8 @@ def _memory_system_object_schema() -> dict[str, Any]:
             "source_activation_ready",
             "activation_role",
             "activation_priority",
+            "temporal_scope_counts",
+            "validity_status_counts",
             "raw_evidence_required",
             "low_confidence_blocked",
             "unbacked_blocked",
@@ -1106,10 +1118,18 @@ def _memory_system_governance_manifest(
     risk_counts: dict[str, int] = defaultdict(int)
     activation_role_counts: dict[str, int] = defaultdict(int)
     activation_utility_bucket_counts: dict[str, int] = defaultdict(int)
+    temporal_scope_counts: dict[str, int] = defaultdict(int)
+    validity_status_counts: dict[str, int] = defaultdict(int)
+    source_confidence_bucket_counts: dict[str, int] = defaultdict(int)
     for assessment in assessments:
         activation_role_counts[str(assessment["activation_role"])] += 1
         activation_utility_bucket_counts[
             str(assessment["activation_utility_bucket"])
+        ] += 1
+        temporal_scope_counts[str(assessment["temporal_scope_kind"])] += 1
+        validity_status_counts[str(assessment["validity_status"])] += 1
+        source_confidence_bucket_counts[
+            str(assessment["source_confidence_bucket"])
         ] += 1
         for risk in assessment["risk_flags"]:
             risk_counts[str(risk)] += 1
@@ -1144,7 +1164,7 @@ def _memory_system_governance_manifest(
         if assessment["source_activation_ready"]
     ]
     return {
-        "schema_version": "memory_system_governance_v1",
+        "schema_version": "memory_system_governance_v2",
         "trace_only": False,
         "applied": True,
         "record_count": len(records),
@@ -1163,6 +1183,11 @@ def _memory_system_governance_manifest(
         "activation_role_counts": dict(sorted(activation_role_counts.items())),
         "activation_utility_bucket_counts": dict(
             sorted(activation_utility_bucket_counts.items())
+        ),
+        "temporal_scope_counts": dict(sorted(temporal_scope_counts.items())),
+        "validity_status_counts": dict(sorted(validity_status_counts.items())),
+        "source_confidence_bucket_counts": dict(
+            sorted(source_confidence_bucket_counts.items())
         ),
         "activation_priority_memory_ids": activation_priority_memory_ids,
         "high_utility_memory_ids": [
@@ -1210,6 +1235,9 @@ def _memory_system_record_governance(
         record.status == "superseded" or record.superseded_by or record.valid_to
     )
     confidence_bucket = _confidence_bucket(record.confidence)
+    temporal_scope_kind = _temporal_scope_kind(record)
+    validity_status = _validity_status(record, managed_memory_types=managed_memory_types)
+    source_confidence_bucket = _source_confidence_bucket(record)
     risk_flags: list[str] = []
     if not source_backed:
         risk_flags.append("unbacked")
@@ -1244,6 +1272,9 @@ def _memory_system_record_governance(
         "source_backed": source_backed,
         "complete_slot_key": complete_slot_key,
         "temporal_anchor": temporal_anchor,
+        "temporal_scope_kind": temporal_scope_kind,
+        "validity_status": validity_status,
+        "source_confidence_bucket": source_confidence_bucket,
         "lifecycle_signal": lifecycle_signal,
         "confidence_bucket": confidence_bucket,
         "activation_role": activation_utility["role"],
@@ -1252,11 +1283,47 @@ def _memory_system_record_governance(
         "activation_utility_reasons": activation_utility["reasons"],
         "risk_flags": tuple(risk_flags),
         "source_ids": list(record.source_ids[:6]),
+        "valid_from": record.valid_from,
+        "valid_to": record.valid_to,
         "slot_key": {
             "subject": _normalize_key_text(record.subject),
             "predicate": _normalize_key_text(record.predicate),
         },
     }
+
+
+def _temporal_scope_kind(record: MemoryRecord) -> str:
+    if record.valid_from or record.valid_to:
+        return "validity_interval"
+    if record.event_time:
+        return "event_time"
+    if record.mention_time:
+        return "mention_time"
+    if record.timestamp:
+        return "record_timestamp"
+    return "unanchored"
+
+
+def _validity_status(
+    record: MemoryRecord,
+    *,
+    managed_memory_types: frozenset[str],
+) -> str:
+    if record.status == "superseded" or record.superseded_by or record.valid_to:
+        return "closed"
+    if record.memory_type in managed_memory_types:
+        if record.valid_from or record.timestamp or record.mention_time:
+            return "open"
+        return "open_unanchored"
+    if record.event_time:
+        return "event_scoped"
+    return "not_applicable"
+
+
+def _source_confidence_bucket(record: MemoryRecord) -> str:
+    if not record.source_ids:
+        return "unbacked"
+    return _confidence_bucket(record.confidence)
 
 
 def _memory_activation_utility_policy() -> dict[str, Any]:
@@ -1418,9 +1485,14 @@ def _confidence_bucket(confidence: float) -> str:
 
 def _memory_system_source_quality(
     records: tuple[MemoryRecord, ...],
+    *,
+    managed_memory_types: frozenset[str],
 ) -> dict[str, Any]:
     source_counts = [len(record.source_ids) for record in records]
     confidence_buckets = {"high": 0, "medium": 0, "low": 0}
+    temporal_scope_counts: dict[str, int] = defaultdict(int)
+    validity_status_counts: dict[str, int] = defaultdict(int)
+    source_confidence_bucket_counts: dict[str, int] = defaultdict(int)
     for record in records:
         if record.confidence >= 0.8:
             confidence_buckets["high"] += 1
@@ -1428,6 +1500,14 @@ def _memory_system_source_quality(
             confidence_buckets["medium"] += 1
         else:
             confidence_buckets["low"] += 1
+        temporal_scope_counts[_temporal_scope_kind(record)] += 1
+        validity_status_counts[
+            _validity_status(
+                record,
+                managed_memory_types=managed_memory_types,
+            )
+        ] += 1
+        source_confidence_bucket_counts[_source_confidence_bucket(record)] += 1
 
     source_backed_count = sum(1 for count in source_counts if count > 0)
     complete_slot_key_count = sum(
@@ -1462,6 +1542,11 @@ def _memory_system_source_quality(
         "lifecycle_signal_record_count": lifecycle_signal_count,
         "low_confidence_record_count": confidence_buckets["low"],
         "confidence_buckets": confidence_buckets,
+        "temporal_scope_counts": dict(sorted(temporal_scope_counts.items())),
+        "validity_status_counts": dict(sorted(validity_status_counts.items())),
+        "source_confidence_bucket_counts": dict(
+            sorted(source_confidence_bucket_counts.items())
+        ),
         "avg_sources_per_record": (
             sum(source_counts) / len(source_counts) if source_counts else 0.0
         ),
@@ -1541,7 +1626,11 @@ def _slot_has_lifecycle(records: list[MemoryRecord]) -> bool:
     return "superseded" in statuses or len(values) > 1
 
 
-def _memory_object_sample(record: MemoryRecord) -> dict[str, Any]:
+def _memory_object_sample(
+    record: MemoryRecord,
+    *,
+    managed_memory_types: frozenset[str],
+) -> dict[str, Any]:
     return {
         "memory_id": record.memory_id,
         "memory_type": record.memory_type,
@@ -1554,6 +1643,12 @@ def _memory_object_sample(record: MemoryRecord) -> dict[str, Any]:
         "source_ids": list(record.source_ids[:6]),
         "valid_from": record.valid_from,
         "valid_to": record.valid_to,
+        "temporal_scope_kind": _temporal_scope_kind(record),
+        "validity_status": _validity_status(
+            record,
+            managed_memory_types=managed_memory_types,
+        ),
+        "source_confidence_bucket": _source_confidence_bucket(record),
         "superseded_by": record.superseded_by,
     }
 

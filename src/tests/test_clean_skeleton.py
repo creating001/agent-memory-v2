@@ -2902,8 +2902,20 @@ class CleanSkeletonTest(unittest.TestCase):
         )
 
         system_graph = summary["memory_system_graph"]
-        self.assertEqual(system_graph["schema_version"], "memory_system_graph_v2")
+        self.assertEqual(system_graph["schema_version"], "memory_system_graph_v3")
         self.assertIn("source_backed", system_graph["object_schema"]["quality_signals"])
+        self.assertIn(
+            "temporal_scope_kind",
+            system_graph["object_schema"]["quality_signals"],
+        )
+        self.assertIn(
+            "validity_status",
+            system_graph["object_schema"]["quality_signals"],
+        )
+        self.assertIn(
+            "source_confidence_bucket",
+            system_graph["object_schema"]["quality_signals"],
+        )
         self.assertIn(
             "activation_utility_score",
             system_graph["object_schema"]["quality_signals"],
@@ -2937,6 +2949,18 @@ class CleanSkeletonTest(unittest.TestCase):
             1,
         )
         self.assertEqual(
+            system_graph["source_quality"]["temporal_scope_counts"],
+            {"record_timestamp": 2, "unanchored": 1},
+        )
+        self.assertEqual(
+            system_graph["source_quality"]["validity_status_counts"],
+            {"closed": 1, "not_applicable": 1, "open": 1},
+        )
+        self.assertEqual(
+            system_graph["source_quality"]["source_confidence_bucket_counts"],
+            {"high": 2, "low": 1},
+        )
+        self.assertEqual(
             system_graph["slot_quality"]["source_backed_slot_count"],
             2,
         )
@@ -2947,7 +2971,7 @@ class CleanSkeletonTest(unittest.TestCase):
         governance_manifest = system_graph["governance_manifest"]
         self.assertEqual(
             governance_manifest["schema_version"],
-            "memory_system_governance_v1",
+            "memory_system_governance_v2",
         )
         self.assertFalse(governance_manifest["trace_only"])
         self.assertEqual(
@@ -2992,6 +3016,18 @@ class CleanSkeletonTest(unittest.TestCase):
             {"blocked": 1, "high": 2},
         )
         self.assertEqual(
+            governance_manifest["temporal_scope_counts"],
+            {"record_timestamp": 2, "unanchored": 1},
+        )
+        self.assertEqual(
+            governance_manifest["validity_status_counts"],
+            {"closed": 1, "not_applicable": 1, "open": 1},
+        )
+        self.assertEqual(
+            governance_manifest["source_confidence_bucket_counts"],
+            {"high": 2, "low": 1},
+        )
+        self.assertEqual(
             governance_manifest["activation_utility_policy"]["schema_version"],
             "memory_activation_utility_v1",
         )
@@ -3007,6 +3043,9 @@ class CleanSkeletonTest(unittest.TestCase):
         )
         self.assertEqual(new_sample["activation_role"], "stateful_candidate")
         self.assertEqual(new_sample["activation_utility_bucket"], "high")
+        self.assertEqual(new_sample["temporal_scope_kind"], "record_timestamp")
+        self.assertEqual(new_sample["validity_status"], "open")
+        self.assertEqual(new_sample["source_confidence_bucket"], "high")
         self.assertGreater(
             new_sample["activation_utility_score"],
             0,
@@ -3020,6 +3059,9 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertFalse(low_sample["source_activation_ready"])
         self.assertTrue(low_sample["raw_evidence_required"])
         self.assertEqual(low_sample["confidence_bucket"], "low")
+        self.assertEqual(low_sample["temporal_scope_kind"], "unanchored")
+        self.assertEqual(low_sample["validity_status"], "not_applicable")
+        self.assertEqual(low_sample["source_confidence_bucket"], "low")
         self.assertEqual(low_sample["activation_role"], "blocked")
         self.assertEqual(low_sample["activation_utility_bucket"], "blocked")
         self.assertEqual(low_sample["risk_flags"], ("low_confidence",))
