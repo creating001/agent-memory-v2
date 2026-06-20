@@ -2936,8 +2936,19 @@ class CleanSkeletonTest(unittest.TestCase):
             "operation_contract_ready",
             system_graph["object_schema"]["quality_signals"],
         )
+        self.assertIn("value_object", system_graph["object_schema"]["quality_signals"])
+        self.assertIn("scalar_value", system_graph["object_schema"]["quality_signals"])
+        self.assertIn(
+            "build_owned_scalar_value_manifest",
+            system_graph["object_schema"]["quality_signals"],
+        )
         self.assertIn(
             "operation_contract",
+            system_graph["object_schema"]["edge_types"],
+        )
+        self.assertIn("value_object", system_graph["object_schema"]["edge_types"])
+        self.assertIn(
+            "scalar_value_object",
             system_graph["object_schema"]["edge_types"],
         )
         self.assertIn(
@@ -2958,6 +2969,10 @@ class CleanSkeletonTest(unittest.TestCase):
         )
         self.assertIn(
             "build_owned_operation_manifest",
+            system_graph["object_schema"]["governance_signals"],
+        )
+        self.assertIn(
+            "build_owned_scalar_value_manifest",
             system_graph["object_schema"]["governance_signals"],
         )
         self.assertEqual(
@@ -3088,6 +3103,54 @@ class CleanSkeletonTest(unittest.TestCase):
             "working_memory",
             operation_manifest["object_contract"]["memory_layers"],
         )
+        scalar_value_manifest = system_graph["scalar_value_manifest"]
+        self.assertEqual(
+            scalar_value_manifest["schema_version"],
+            "memory_scalar_value_manifest_v1",
+        )
+        self.assertFalse(scalar_value_manifest["trace_only"])
+        self.assertTrue(scalar_value_manifest["applied"])
+        self.assertEqual(scalar_value_manifest["value_object_count"], 3)
+        self.assertEqual(
+            scalar_value_manifest["source_backed_value_object_count"],
+            3,
+        )
+        self.assertEqual(scalar_value_manifest["scalar_value_object_count"], 0)
+        self.assertEqual(scalar_value_manifest["value_slot_count"], 2)
+        self.assertEqual(scalar_value_manifest["multi_value_slot_count"], 1)
+        self.assertEqual(scalar_value_manifest["lifecycle_value_slot_count"], 1)
+        self.assertEqual(
+            scalar_value_manifest["active_superseded_value_slot_count"],
+            1,
+        )
+        self.assertEqual(
+            scalar_value_manifest["operation_counts"]["create_value_object"],
+            3,
+        )
+        self.assertEqual(
+            scalar_value_manifest["operation_counts"]["retrieve_value"],
+            2,
+        )
+        self.assertEqual(
+            scalar_value_manifest["operation_counts"]["expand_value_source"],
+            4,
+        )
+        self.assertEqual(
+            scalar_value_manifest["object_contract"]["final_evidence_policy"],
+            "raw_source_rows",
+        )
+        city_value_slot = next(
+            slot
+            for slot in scalar_value_manifest["slot_samples"]
+            if slot["predicate"] == "location"
+        )
+        self.assertEqual(city_value_slot["active_values"], ["seattle"])
+        self.assertEqual(city_value_slot["superseded_values"], ["austin"])
+        self.assertEqual(
+            city_value_slot["current_source_order"],
+            ["s2:t1", "s2:t2", "s1:t1"],
+        )
+        self.assertIn("update_value_slot", city_value_slot["operation_hints"])
         state_conflict_manifest = system_graph["state_conflict_manifest"]
         self.assertEqual(
             state_conflict_manifest["schema_version"],
@@ -3246,6 +3309,88 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual(low_sample["activation_role"], "blocked")
         self.assertEqual(low_sample["activation_utility_bucket"], "blocked")
         self.assertEqual(low_sample["risk_flags"], ("low_confidence",))
+
+    def test_memory_scalar_value_manifest_tracks_source_backed_values(self) -> None:
+        old_followers = MemoryRecord(
+            memory_id="m-old-followers",
+            memory_type="state",
+            text="The account had 1,200 followers.",
+            source_ids=("s1:t1",),
+            subject="account",
+            predicate="followers",
+            value="1,200 followers",
+            timestamp="2024-01-01",
+            status="superseded",
+            superseded_by="m-new-followers",
+        )
+        new_followers = MemoryRecord(
+            memory_id="m-new-followers",
+            memory_type="state",
+            text="The account now has 1,350 followers.",
+            source_ids=("s2:t1",),
+            subject="account",
+            predicate="followers",
+            value="1,350 followers",
+            timestamp="2024-02-01",
+            status="active",
+        )
+        yarn_cost = MemoryRecord(
+            memory_id="m-yarn-cost",
+            memory_type="fact",
+            text="User spent $42 on yarn.",
+            source_ids=("s3:t1",),
+            subject="user",
+            predicate="yarn cost",
+            value="$42",
+            timestamp="2024-03-01",
+            status="active",
+        )
+
+        summary = _management_summary(
+            (old_followers, new_followers, yarn_cost),
+            policy="stateful_only",
+            managed_memory_types=frozenset(
+                {"preference", "profile", "relationship", "state"}
+            ),
+            include_memory_system_graph=True,
+        )
+
+        manifest = summary["memory_system_graph"]["scalar_value_manifest"]
+        self.assertEqual(manifest["value_object_count"], 3)
+        self.assertEqual(manifest["source_backed_value_object_count"], 3)
+        self.assertEqual(manifest["scalar_value_object_count"], 3)
+        self.assertEqual(manifest["scalar_value_expression_count"], 3)
+        self.assertEqual(manifest["value_slot_count"], 2)
+        self.assertEqual(manifest["scalar_value_slot_count"], 2)
+        self.assertEqual(manifest["active_superseded_value_slot_count"], 1)
+        self.assertEqual(
+            manifest["scalar_active_superseded_value_slot_count"],
+            1,
+        )
+        self.assertEqual(
+            manifest["operation_counts"]["create_scalar_value"],
+            3,
+        )
+        self.assertEqual(
+            manifest["operation_counts"]["audit_scalar_value_slot"],
+            2,
+        )
+        followers_slot = next(
+            slot
+            for slot in manifest["slot_samples"]
+            if slot["predicate"] == "followers"
+        )
+        self.assertEqual(followers_slot["active_scalar_values"], ["1,350 followers"])
+        self.assertEqual(
+            followers_slot["superseded_scalar_values"],
+            ["1,200 followers"],
+        )
+        self.assertEqual(
+            followers_slot["current_source_order"],
+            ["s2:t1", "s1:t1"],
+        )
+        self.assertIn("create_scalar_value", followers_slot["operation_hints"])
+        self.assertIn("supersede_value", followers_slot["operation_hints"])
 
     def test_memory_lifecycle_manifest_is_trace_only_and_source_grounded(self) -> None:
         old_record = MemoryRecord(

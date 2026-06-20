@@ -34,6 +34,48 @@ _MANAGEMENT_POLICIES = {
     "stateful_only": _STATEFUL_MEMORY_TYPES,
     "stateful_plus_facts": _DEFAULT_MANAGED_MEMORY_TYPES,
 }
+_MEMORY_SCALAR_VALUE_PATTERN = re.compile(
+    r"(?<![\w.:\-/])(?:\$\s*)?\d+(?:,\d{3})*(?:\.\d+)?"
+    r"(?:\s?(?:k|m|b|%))?"
+    r"(?:\s+[A-Za-z][A-Za-z%/-]{1,24}){0,2}(?![\w.:\-/])",
+    flags=re.IGNORECASE,
+)
+_MEMORY_SCALAR_UNIT_STOPWORDS = frozenset(
+    {
+        "a",
+        "an",
+        "and",
+        "are",
+        "as",
+        "at",
+        "be",
+        "been",
+        "but",
+        "by",
+        "for",
+        "from",
+        "has",
+        "have",
+        "i",
+        "in",
+        "is",
+        "it",
+        "my",
+        "of",
+        "on",
+        "or",
+        "our",
+        "that",
+        "the",
+        "their",
+        "there",
+        "this",
+        "to",
+        "was",
+        "were",
+        "with",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -965,12 +1007,19 @@ def _memory_system_graph_summary(
 
     slot_member_edges = sum(len(records) for records in groups.values())
     source_support_edges = sum(len(record.source_ids) for record in managed_records)
+    scalar_value_manifest = _memory_scalar_value_manifest(
+        groups,
+        managed_memory_types=managed_memory_types,
+    )
     operation_edge_counts = {
         "create": len(deduped_records),
         "merge": sum(len(group.get("merged") or ()) for group in merge_groups),
         "supersede": len(supersede_pairs),
         "source_support": source_support_edges,
         "slot_member": slot_member_edges,
+        "value_object": scalar_value_manifest["value_object_count"],
+        "scalar_value_object": scalar_value_manifest["scalar_value_object_count"],
+        "audit_value_slot": scalar_value_manifest["value_slot_count"],
         "state_conflict_cluster": sum(
             1
             for key, records in groups.items()
@@ -1044,6 +1093,7 @@ def _memory_system_graph_summary(
             groups,
             managed_memory_types=managed_memory_types,
         ),
+        "scalar_value_manifest": scalar_value_manifest,
         "governance": {
             "raw_evidence_policy": "immutable_final_authority",
             "derived_memory_policy": "source_backed_activation_and_audit",
@@ -1110,6 +1160,8 @@ def _memory_system_object_schema() -> dict[str, Any]:
             "audit_slot",
             "state_conflict_cluster",
             "operation_contract",
+            "value_object",
+            "scalar_value_object",
         ],
         "quality_signals": [
             "source_backed",
@@ -1127,6 +1179,9 @@ def _memory_system_object_schema() -> dict[str, Any]:
             "memory_tier",
             "state_conflict_cluster",
             "operation_contract_ready",
+            "value_object",
+            "scalar_value",
+            "build_owned_scalar_value_manifest",
         ],
         "governance_signals": [
             "source_activation_ready",
@@ -1142,6 +1197,7 @@ def _memory_system_object_schema() -> dict[str, Any]:
             "incomplete_slot_key_audited",
             "build_owned_conflict_cluster",
             "build_owned_operation_manifest",
+            "build_owned_scalar_value_manifest",
         ],
 }
 
@@ -1312,6 +1368,363 @@ def _memory_system_operation_manifest(
             "sample-level rules."
         ),
     }
+
+
+def _memory_scalar_value_manifest(
+    groups: dict[tuple[str, str, str], list[MemoryRecord]],
+    *,
+    managed_memory_types: frozenset[str],
+) -> dict[str, Any]:
+    """Build-owned value objects and scalar slots.
+
+    This manifest turns typed memories into auditable value slots. It is
+    question-independent and source-backed: query modules may later consume the
+    slot organization, but any final answer must still expand to raw rows.
+    """
+
+    value_slots: list[dict[str, Any]] = []
+    value_records: list[MemoryRecord] = []
+    scalar_value_object_count = 0
+    scalar_value_expression_count = 0
+    source_backed_value_object_count = 0
+    source_incomplete_value_object_count = 0
+    retrieval_ready_value_object_count = 0
+    quarantine_value_object_count = 0
+    active_superseded_value_slot_count = 0
+    lifecycle_value_slot_count = 0
+    multi_value_slot_count = 0
+    scalar_value_slot_count = 0
+    scalar_active_superseded_value_slot_count = 0
+    value_source_edge_count = 0
+
+    for key, records in sorted(groups.items()):
+        slot_records = tuple(
+            record for record in records if _memory_record_value_object(record)
+        )
+        if not slot_records:
+            continue
+
+        memory_type, subject, predicate = key
+        value_records.extend(slot_records)
+        value_source_edge_count += sum(len(record.source_ids) for record in slot_records)
+        slot_values = _ordered_normalized_values(
+            _memory_record_value_object(record) for record in slot_records
+        )
+        slot_scalar_values = _ordered_normalized_values(
+            scalar_value
+            for record in slot_records
+            for scalar_value in _memory_record_scalar_values(record)
+        )
+        active_records = tuple(
+            record for record in slot_records if record.status == "active"
+        )
+        superseded_records = tuple(
+            record for record in slot_records if record.status == "superseded"
+        )
+        has_active_superseded = bool(active_records and superseded_records)
+        if has_active_superseded:
+            active_superseded_value_slot_count += 1
+        if _slot_has_lifecycle(list(slot_records)):
+            lifecycle_value_slot_count += 1
+        if len(slot_values) > 1:
+            multi_value_slot_count += 1
+        if slot_scalar_values:
+            scalar_value_slot_count += 1
+            if has_active_superseded:
+                scalar_active_superseded_value_slot_count += 1
+
+        if len(value_slots) >= 24:
+            continue
+        value_slots.append(
+            {
+                "slot_id": _slot_id(key),
+                "memory_type": memory_type,
+                "namespace": _memory_namespace(slot_records[0]),
+                "layer": _memory_layer(memory_type),
+                "managed": memory_type in managed_memory_types,
+                "subject": subject,
+                "predicate": predicate,
+                "record_count": len(slot_records),
+                "value_count": len(slot_values),
+                "scalar_value_count": len(slot_scalar_values),
+                "active_memory_ids": [
+                    record.memory_id for record in active_records[:8]
+                ],
+                "superseded_memory_ids": [
+                    record.memory_id for record in superseded_records[:8]
+                ],
+                "active_values": _ordered_normalized_values(
+                    _memory_record_value_object(record) for record in active_records
+                )[:8],
+                "superseded_values": _ordered_normalized_values(
+                    _memory_record_value_object(record)
+                    for record in superseded_records
+                )[:8],
+                "scalar_values": slot_scalar_values[:8],
+                "active_scalar_values": _ordered_normalized_values(
+                    scalar_value
+                    for record in active_records
+                    for scalar_value in _memory_record_scalar_values(record)
+                )[:8],
+                "superseded_scalar_values": _ordered_normalized_values(
+                    scalar_value
+                    for record in superseded_records
+                    for scalar_value in _memory_record_scalar_values(record)
+                )[:8],
+                "current_source_order": _memory_slot_policy_source_ids(
+                    slot_records,
+                    question_scope="current",
+                )[:8],
+                "historical_source_order": _memory_slot_policy_source_ids(
+                    slot_records,
+                    question_scope="historical",
+                )[:8],
+                "source_backed": all(record.source_ids for record in slot_records),
+                "temporal_anchors": _ordered_strings(
+                    _record_time_value(record) for record in slot_records
+                )[:8],
+                "operation_hints": _memory_value_slot_operation_hints(
+                    slot_records,
+                    has_scalar_values=bool(slot_scalar_values),
+                ),
+            }
+        )
+
+    for record in value_records:
+        scalar_values = _memory_record_scalar_values(record)
+        if scalar_values:
+            scalar_value_object_count += 1
+            scalar_value_expression_count += len(scalar_values)
+        if record.source_ids:
+            source_backed_value_object_count += 1
+        else:
+            source_incomplete_value_object_count += 1
+        governance = _memory_system_record_governance(
+            record,
+            managed_memory_types=managed_memory_types,
+        )
+        if governance["source_activation_ready"]:
+            retrieval_ready_value_object_count += 1
+        if not record.source_ids or record.confidence < 0.5:
+            quarantine_value_object_count += 1
+
+    duplicate_value_object_count = sum(
+        max(
+            0,
+            len(tuple(record for record in records if _memory_record_value_object(record)))
+            - len(
+                _ordered_normalized_values(
+                    _memory_record_value_object(record)
+                    for record in records
+                    if _memory_record_value_object(record)
+                )
+            ),
+        )
+        for records in groups.values()
+    )
+    superseded_value_object_count = sum(
+        1 for record in value_records if record.status == "superseded"
+    )
+    operation_counts = {
+        "create_value_object": len(value_records),
+        "create_scalar_value": scalar_value_object_count,
+        "update_value_slot": active_superseded_value_slot_count,
+        "merge_value_slot": duplicate_value_object_count,
+        "supersede_value": superseded_value_object_count,
+        "retrieve_value": retrieval_ready_value_object_count,
+        "expand_value_source": value_source_edge_count,
+        "verify_value_source": source_backed_value_object_count,
+        "audit_value_slot": len(value_slots)
+        + max(0, len(_memory_value_slot_keys(groups)) - len(value_slots)),
+        "audit_scalar_value_slot": scalar_value_slot_count,
+        "audit_conflict_value_slot": active_superseded_value_slot_count,
+        "quarantine_value": quarantine_value_object_count,
+    }
+    return {
+        "schema_version": "memory_scalar_value_manifest_v1",
+        "trace_only": False,
+        "applied": True,
+        "value_object_count": len(value_records),
+        "source_backed_value_object_count": source_backed_value_object_count,
+        "source_incomplete_value_object_count": source_incomplete_value_object_count,
+        "scalar_value_object_count": scalar_value_object_count,
+        "scalar_value_expression_count": scalar_value_expression_count,
+        "value_slot_count": len(_memory_value_slot_keys(groups)),
+        "scalar_value_slot_count": scalar_value_slot_count,
+        "multi_value_slot_count": multi_value_slot_count,
+        "lifecycle_value_slot_count": lifecycle_value_slot_count,
+        "active_superseded_value_slot_count": active_superseded_value_slot_count,
+        "scalar_active_superseded_value_slot_count": (
+            scalar_active_superseded_value_slot_count
+        ),
+        "operation_counts": operation_counts,
+        "operation_policy": {
+            "create_value_object": (
+                "Create a value object from a typed memory only when subject, "
+                "predicate, value/text, and source back-pointers are present."
+            ),
+            "update_value_slot": (
+                "Represent newer active and older superseded values inside the "
+                "same normalized slot rather than overwriting history."
+            ),
+            "merge_value_slot": (
+                "Merge duplicate normalized values at the slot level while "
+                "retaining all source ids for expansion and audit."
+            ),
+            "supersede_value": (
+                "Keep superseded values as archival objects so historical and "
+                "previous-state questions can recover them."
+            ),
+            "retrieve_value": (
+                "Expose source-backed, high-confidence value objects as "
+                "activation candidates, not as standalone final evidence."
+            ),
+            "expand_value_source": (
+                "Resolve activated value objects back to immutable raw source "
+                "rows before answer formation."
+            ),
+            "verify_value_source": (
+                "Check source support, confidence, lifecycle state, and temporal "
+                "anchors before a value slot can guide retrieval or compiler "
+                "organization."
+            ),
+            "audit_value_slot": (
+                "Audit multi-value, scalar-bearing, active/superseded, and "
+                "source-incomplete slots in build artifacts."
+            ),
+        },
+        "object_contract": {
+            "value_object_fields": [
+                "memory_id",
+                "memory_type",
+                "subject",
+                "predicate",
+                "value",
+                "scalar_values",
+                "status",
+                "source_ids",
+                "valid_from",
+                "valid_to",
+                "timestamp",
+                "confidence",
+                "superseded_by",
+            ],
+            "slot_scope": "same memory_type, subject, predicate",
+            "memory_layers": [
+                "short_term_memory",
+                "working_memory",
+                "long_term_memory",
+                "archival_memory",
+                "quarantine_memory",
+            ],
+            "final_evidence_policy": "raw_source_rows",
+            "question_independent": True,
+        },
+        "slot_policy": {
+            "source_order_policy": "memory_slot_source_policy_v1",
+            "scalar_parser_scope": "record_value_first_then_text",
+            "managed_memory_types": sorted(managed_memory_types),
+            "raw_evidence_required": True,
+        },
+        "slot_samples": value_slots,
+        "clean_note": (
+            "Question-independent build scalar/value manifest. It organizes "
+            "source-backed typed memories into value objects and value slots "
+            "with lifecycle, scalar, source-order, and audit signals. It does "
+            "not use gold answers, judge outputs, benchmark labels, sample ids, "
+            "test feedback, or sample-level rules; final answer evidence still "
+            "resolves to raw source rows."
+        ),
+    }
+
+
+def _memory_value_slot_keys(
+    groups: dict[tuple[str, str, str], list[MemoryRecord]],
+) -> tuple[tuple[str, str, str], ...]:
+    return tuple(
+        key
+        for key, records in sorted(groups.items())
+        if any(_memory_record_value_object(record) for record in records)
+    )
+
+
+def _memory_record_value_object(record: MemoryRecord) -> str:
+    return _clean_text(record.value) or _clean_text(record.text)
+
+
+def _memory_record_scalar_values(record: MemoryRecord) -> tuple[str, ...]:
+    basis = _clean_text(record.value) or _clean_text(record.text)
+    if not basis:
+        return ()
+    values: list[str] = []
+    spans: list[tuple[int, int]] = []
+    for match in _MEMORY_SCALAR_VALUE_PATTERN.finditer(basis):
+        if any(match.start() < end and match.end() > start for start, end in spans):
+            continue
+        value = _clean_memory_scalar_value_candidate(match.group(0))
+        if not value or _looks_like_standalone_year_value(value):
+            continue
+        spans.append((match.start(), match.end()))
+        values.append(value)
+        if len(values) >= 6:
+            break
+    return tuple(dict.fromkeys(values))
+
+
+def _clean_memory_scalar_value_candidate(value: str) -> str:
+    compact = re.sub(r"\s+", " ", str(value or "")).strip(" ,.;:!?")
+    if not compact:
+        return ""
+    if re.fullmatch(
+        r"(?:\$\s*)?\d+(?:,\d{3})*(?:\.\d+)?\s*(?:k|m|b|%)?",
+        compact,
+        flags=re.IGNORECASE,
+    ):
+        return compact
+
+    parts = compact.split()
+    if not parts:
+        return ""
+    kept = [parts[0]]
+    for token in parts[1:]:
+        normalized = re.sub(r"^[^\w%$]+|[^\w%$/-]+$", "", token).lower()
+        if not normalized or normalized in _MEMORY_SCALAR_UNIT_STOPWORDS:
+            break
+        if re.fullmatch(r"\d{1,4}", normalized):
+            break
+        kept.append(token.strip(" ,.;:!?"))
+        if len(kept) >= 3:
+            break
+    return " ".join(part for part in kept if part)
+
+
+def _looks_like_standalone_year_value(value: str) -> bool:
+    normalized = value.strip().replace(",", "")
+    if not normalized.isdigit():
+        return False
+    year = int(normalized)
+    return 1900 <= year <= 2099
+
+
+def _memory_value_slot_operation_hints(
+    records: tuple[MemoryRecord, ...],
+    *,
+    has_scalar_values: bool,
+) -> list[str]:
+    hints = ["create_value_object", "verify_value_source", "audit_value_slot"]
+    if has_scalar_values:
+        hints.append("create_scalar_value")
+    if any(record.source_ids for record in records):
+        hints.append("expand_value_source")
+    if any(record.status == "superseded" for record in records):
+        hints.extend(["update_value_slot", "supersede_value"])
+    if len(
+        _ordered_normalized_values(_memory_record_value_object(record) for record in records)
+    ) < len(records):
+        hints.append("merge_value_slot")
+    if any(not record.source_ids or record.confidence < 0.5 for record in records):
+        hints.append("quarantine_value")
+    return hints
 
 
 def _memory_state_conflict_manifest(

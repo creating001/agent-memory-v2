@@ -136,6 +136,7 @@ def main() -> int:
     build_memory_system_graph_activation_utility_bucket_counts: dict[str, int] = {}
     build_memory_system_graph_tier_manifest_tier_counts: dict[str, int] = {}
     build_memory_system_graph_operation_manifest_counts: dict[str, int] = {}
+    build_memory_system_graph_scalar_value_manifest_counts: dict[str, int] = {}
     total_build_memory_operation_ledger_applied = 0
     total_build_memory_operation_ledger_source_backed = 0
     total_build_memory_operation_ledger_source_unbacked = 0
@@ -144,6 +145,7 @@ def main() -> int:
     total_build_memory_system_graph_source_policy_applied = 0
     total_build_memory_system_graph_operation_manifest_applied = 0
     total_build_memory_system_graph_state_conflict_manifest_applied = 0
+    total_build_memory_system_graph_scalar_value_manifest_applied = 0
     total_build_memory_system_graph_objects = 0
     total_build_memory_system_graph_sources = 0
     total_build_memory_system_graph_slots = 0
@@ -153,6 +155,17 @@ def main() -> int:
     total_build_memory_system_graph_state_conflict_source_incomplete_clusters = 0
     total_build_memory_system_graph_state_conflict_missing_active_sources = 0
     total_build_memory_system_graph_state_conflict_missing_superseded_sources = 0
+    total_build_memory_system_graph_value_objects = 0
+    total_build_memory_system_graph_source_backed_value_objects = 0
+    total_build_memory_system_graph_source_incomplete_value_objects = 0
+    total_build_memory_system_graph_scalar_value_objects = 0
+    total_build_memory_system_graph_scalar_value_expressions = 0
+    total_build_memory_system_graph_value_slots = 0
+    total_build_memory_system_graph_scalar_value_slots = 0
+    total_build_memory_system_graph_multi_value_slots = 0
+    total_build_memory_system_graph_lifecycle_value_slots = 0
+    total_build_memory_system_graph_active_superseded_value_slots = 0
+    total_build_memory_system_graph_scalar_active_superseded_value_slots = 0
     total_build_memory_system_graph_source_backed_records = 0
     total_build_memory_system_graph_complete_slot_key_records = 0
     total_build_memory_system_graph_temporal_anchor_records = 0
@@ -502,6 +515,53 @@ def main() -> int:
                 )
                 total_build_memory_system_graph_state_conflict_missing_superseded_sources += int(
                     state_conflict_manifest.get("missing_superseded_source_count")
+                    or 0
+                )
+            scalar_value_manifest = (
+                memory_system_graph.get("scalar_value_manifest") or {}
+            )
+            if scalar_value_manifest.get("applied"):
+                total_build_memory_system_graph_scalar_value_manifest_applied += 1
+                _merge_int_counts(
+                    build_memory_system_graph_scalar_value_manifest_counts,
+                    scalar_value_manifest.get("operation_counts") or {},
+                )
+                total_build_memory_system_graph_value_objects += int(
+                    scalar_value_manifest.get("value_object_count") or 0
+                )
+                total_build_memory_system_graph_source_backed_value_objects += int(
+                    scalar_value_manifest.get("source_backed_value_object_count") or 0
+                )
+                total_build_memory_system_graph_source_incomplete_value_objects += int(
+                    scalar_value_manifest.get("source_incomplete_value_object_count")
+                    or 0
+                )
+                total_build_memory_system_graph_scalar_value_objects += int(
+                    scalar_value_manifest.get("scalar_value_object_count") or 0
+                )
+                total_build_memory_system_graph_scalar_value_expressions += int(
+                    scalar_value_manifest.get("scalar_value_expression_count") or 0
+                )
+                total_build_memory_system_graph_value_slots += int(
+                    scalar_value_manifest.get("value_slot_count") or 0
+                )
+                total_build_memory_system_graph_scalar_value_slots += int(
+                    scalar_value_manifest.get("scalar_value_slot_count") or 0
+                )
+                total_build_memory_system_graph_multi_value_slots += int(
+                    scalar_value_manifest.get("multi_value_slot_count") or 0
+                )
+                total_build_memory_system_graph_lifecycle_value_slots += int(
+                    scalar_value_manifest.get("lifecycle_value_slot_count") or 0
+                )
+                total_build_memory_system_graph_active_superseded_value_slots += int(
+                    scalar_value_manifest.get("active_superseded_value_slot_count")
+                    or 0
+                )
+                total_build_memory_system_graph_scalar_active_superseded_value_slots += int(
+                    scalar_value_manifest.get(
+                        "scalar_active_superseded_value_slot_count"
+                    )
                     or 0
                 )
             source_quality = memory_system_graph.get("source_quality") or {}
@@ -1361,6 +1421,16 @@ def main() -> int:
                 total_build_memory_system_graph_state_conflict_manifest_applied,
                 sample_count,
             ),
+            "memory_system_graph_scalar_value_manifest_applied_count": (
+                total_build_memory_system_graph_scalar_value_manifest_applied
+            ),
+            "memory_system_graph_scalar_value_manifest_applied_rate": _safe_average(
+                total_build_memory_system_graph_scalar_value_manifest_applied,
+                sample_count,
+            ),
+            "memory_system_graph_scalar_value_manifest_counts": (
+                build_memory_system_graph_scalar_value_manifest_counts
+            ),
             "avg_memory_system_graph_objects": _safe_average(
                 total_build_memory_system_graph_objects,
                 total_build_memory_system_graph_applied,
@@ -1403,6 +1473,52 @@ def main() -> int:
                 _safe_average(
                     total_build_memory_system_graph_state_conflict_missing_superseded_sources,
                     total_build_memory_system_graph_state_conflict_manifest_applied,
+                )
+            ),
+            "avg_memory_system_graph_value_objects": _safe_average(
+                total_build_memory_system_graph_value_objects,
+                total_build_memory_system_graph_scalar_value_manifest_applied,
+            ),
+            "avg_memory_system_graph_source_backed_value_objects": _safe_average(
+                total_build_memory_system_graph_source_backed_value_objects,
+                total_build_memory_system_graph_scalar_value_manifest_applied,
+            ),
+            "avg_memory_system_graph_source_incomplete_value_objects": _safe_average(
+                total_build_memory_system_graph_source_incomplete_value_objects,
+                total_build_memory_system_graph_scalar_value_manifest_applied,
+            ),
+            "avg_memory_system_graph_scalar_value_objects": _safe_average(
+                total_build_memory_system_graph_scalar_value_objects,
+                total_build_memory_system_graph_scalar_value_manifest_applied,
+            ),
+            "avg_memory_system_graph_scalar_value_expressions": _safe_average(
+                total_build_memory_system_graph_scalar_value_expressions,
+                total_build_memory_system_graph_scalar_value_manifest_applied,
+            ),
+            "avg_memory_system_graph_value_slots": _safe_average(
+                total_build_memory_system_graph_value_slots,
+                total_build_memory_system_graph_scalar_value_manifest_applied,
+            ),
+            "avg_memory_system_graph_scalar_value_slots": _safe_average(
+                total_build_memory_system_graph_scalar_value_slots,
+                total_build_memory_system_graph_scalar_value_manifest_applied,
+            ),
+            "avg_memory_system_graph_multi_value_slots": _safe_average(
+                total_build_memory_system_graph_multi_value_slots,
+                total_build_memory_system_graph_scalar_value_manifest_applied,
+            ),
+            "avg_memory_system_graph_lifecycle_value_slots": _safe_average(
+                total_build_memory_system_graph_lifecycle_value_slots,
+                total_build_memory_system_graph_scalar_value_manifest_applied,
+            ),
+            "avg_memory_system_graph_active_superseded_value_slots": _safe_average(
+                total_build_memory_system_graph_active_superseded_value_slots,
+                total_build_memory_system_graph_scalar_value_manifest_applied,
+            ),
+            "avg_memory_system_graph_scalar_active_superseded_value_slots": (
+                _safe_average(
+                    total_build_memory_system_graph_scalar_active_superseded_value_slots,
+                    total_build_memory_system_graph_scalar_value_manifest_applied,
                 )
             ),
             "avg_memory_system_graph_source_backed_records": _safe_average(
@@ -2403,6 +2519,20 @@ def _write_summary(
         f"- build_memory_system_graph_governance_risk_counts: {metrics['build_memory']['memory_system_graph_governance_risk_counts']}",
         f"- build_memory_system_graph_activation_role_counts: {metrics['build_memory']['memory_system_graph_activation_role_counts']}",
         f"- build_memory_system_graph_activation_utility_bucket_counts: {metrics['build_memory']['memory_system_graph_activation_utility_bucket_counts']}",
+        f"- build_memory_system_graph_scalar_value_manifest_applied_count: {metrics['build_memory']['memory_system_graph_scalar_value_manifest_applied_count']}",
+        f"- build_memory_system_graph_scalar_value_manifest_applied_rate: {metrics['build_memory']['memory_system_graph_scalar_value_manifest_applied_rate']}",
+        f"- build_memory_system_graph_scalar_value_manifest_counts: {metrics['build_memory']['memory_system_graph_scalar_value_manifest_counts']}",
+        f"- avg_build_memory_system_graph_value_objects: {metrics['build_memory']['avg_memory_system_graph_value_objects']}",
+        f"- avg_build_memory_system_graph_source_backed_value_objects: {metrics['build_memory']['avg_memory_system_graph_source_backed_value_objects']}",
+        f"- avg_build_memory_system_graph_source_incomplete_value_objects: {metrics['build_memory']['avg_memory_system_graph_source_incomplete_value_objects']}",
+        f"- avg_build_memory_system_graph_scalar_value_objects: {metrics['build_memory']['avg_memory_system_graph_scalar_value_objects']}",
+        f"- avg_build_memory_system_graph_scalar_value_expressions: {metrics['build_memory']['avg_memory_system_graph_scalar_value_expressions']}",
+        f"- avg_build_memory_system_graph_value_slots: {metrics['build_memory']['avg_memory_system_graph_value_slots']}",
+        f"- avg_build_memory_system_graph_scalar_value_slots: {metrics['build_memory']['avg_memory_system_graph_scalar_value_slots']}",
+        f"- avg_build_memory_system_graph_multi_value_slots: {metrics['build_memory']['avg_memory_system_graph_multi_value_slots']}",
+        f"- avg_build_memory_system_graph_lifecycle_value_slots: {metrics['build_memory']['avg_memory_system_graph_lifecycle_value_slots']}",
+        f"- avg_build_memory_system_graph_active_superseded_value_slots: {metrics['build_memory']['avg_memory_system_graph_active_superseded_value_slots']}",
+        f"- avg_build_memory_system_graph_scalar_active_superseded_value_slots: {metrics['build_memory']['avg_memory_system_graph_scalar_active_superseded_value_slots']}",
         f"- avg_build_memory_collection_retained_records: {metrics['build_memory']['avg_collection_retained_records']}",
         f"- avg_build_memory_managed_lifecycle_slots: {metrics['build_memory']['avg_managed_lifecycle_slots']}",
         f"- avg_build_memory_nonmanaged_multi_value_slots: {metrics['build_memory']['avg_nonmanaged_multi_value_slots']}",
@@ -2804,6 +2934,20 @@ def _write_diagnosis(
         f"- build_memory_system_graph_governance_risk_counts: {metrics['build_memory']['memory_system_graph_governance_risk_counts']}",
         f"- build_memory_system_graph_activation_role_counts: {metrics['build_memory']['memory_system_graph_activation_role_counts']}",
         f"- build_memory_system_graph_activation_utility_bucket_counts: {metrics['build_memory']['memory_system_graph_activation_utility_bucket_counts']}",
+        f"- build_memory_system_graph_scalar_value_manifest_applied_count: {metrics['build_memory']['memory_system_graph_scalar_value_manifest_applied_count']}",
+        f"- build_memory_system_graph_scalar_value_manifest_applied_rate: {metrics['build_memory']['memory_system_graph_scalar_value_manifest_applied_rate']}",
+        f"- build_memory_system_graph_scalar_value_manifest_counts: {metrics['build_memory']['memory_system_graph_scalar_value_manifest_counts']}",
+        f"- avg_build_memory_system_graph_value_objects: {metrics['build_memory']['avg_memory_system_graph_value_objects']}",
+        f"- avg_build_memory_system_graph_source_backed_value_objects: {metrics['build_memory']['avg_memory_system_graph_source_backed_value_objects']}",
+        f"- avg_build_memory_system_graph_source_incomplete_value_objects: {metrics['build_memory']['avg_memory_system_graph_source_incomplete_value_objects']}",
+        f"- avg_build_memory_system_graph_scalar_value_objects: {metrics['build_memory']['avg_memory_system_graph_scalar_value_objects']}",
+        f"- avg_build_memory_system_graph_scalar_value_expressions: {metrics['build_memory']['avg_memory_system_graph_scalar_value_expressions']}",
+        f"- avg_build_memory_system_graph_value_slots: {metrics['build_memory']['avg_memory_system_graph_value_slots']}",
+        f"- avg_build_memory_system_graph_scalar_value_slots: {metrics['build_memory']['avg_memory_system_graph_scalar_value_slots']}",
+        f"- avg_build_memory_system_graph_multi_value_slots: {metrics['build_memory']['avg_memory_system_graph_multi_value_slots']}",
+        f"- avg_build_memory_system_graph_lifecycle_value_slots: {metrics['build_memory']['avg_memory_system_graph_lifecycle_value_slots']}",
+        f"- avg_build_memory_system_graph_active_superseded_value_slots: {metrics['build_memory']['avg_memory_system_graph_active_superseded_value_slots']}",
+        f"- avg_build_memory_system_graph_scalar_active_superseded_value_slots: {metrics['build_memory']['avg_memory_system_graph_scalar_active_superseded_value_slots']}",
         f"- avg_build_memory_collection_retained_records: {metrics['build_memory']['avg_collection_retained_records']}",
         f"- avg_build_memory_managed_lifecycle_slots: {metrics['build_memory']['avg_managed_lifecycle_slots']}",
         f"- avg_build_memory_nonmanaged_multi_value_slots: {metrics['build_memory']['avg_nonmanaged_multi_value_slots']}",
