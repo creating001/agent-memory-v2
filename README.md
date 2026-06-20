@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_manifest_state_guide_v280_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_order_safe_value_parser_v283_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v280 local LTS |
+| Benchmark | 当前 v283 local LTS |
 |---|---:|
-| LongMemEval-S full | strict/lenient `0.832000 / 0.844000`，avg build/query tokens `85393.566 / 6463.628` |
+| LongMemEval-S full | strict/lenient `0.834000 / 0.846000`，avg build/query tokens `85393.566 / 6464.954` |
 | LoCoMo non-adversarial full | strict/lenient `0.794156 / 0.819481`，avg build/query tokens `62015.57402597403 / 6093.794155844156` |
 
-v280 的 LTS 理由：继承 v279 的 build memory system view，并让 query-time `Managed Memory State Guide` 使用 build-owned `state_conflict_manifest_v1` 作为 conflict slot source，减少 compiler 侧重复推导冲突状态的逻辑。v280 相对 v279 在 LongMemEval-S full 与 LoCoMo full 上 answer/prompt/route/evidence/retrieval/token/build_memory diff 均为 `0`，因此继承 v279/v278 dual `deepseek-v4-flash` judge accuracy 和 token 成本。详细证据见 `experiments/README.md`、`experiments/diagnostic/stage1_manifest_state_guide_v280_full_summary.md` 和 `experiments/diagnostic/stage1_memory_system_ops_v279_full_summary.md`。
+v283 的 LTS 理由：继承 v280 的 build-owned state/operation manifests，并把 `Update/Conflict Candidate Chain` 的数值抽取从固定单位白名单改为通用 source-text value parser；event-order/timeline 场景使用 scalar-only extraction，避免把非事件单位短语误提升为冲突值。v283 相对 v280：LongMemEval-S full answer diff `3/500`，changed-answer dual judge strict/lenient `+1/+1`；LoCoMo full answer/prompt/route/evidence/retrieval/token/build_memory diff 全部 `0`。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_order_safe_value_parser_v283_full_summary.md`。
 
 ## 目录
 
