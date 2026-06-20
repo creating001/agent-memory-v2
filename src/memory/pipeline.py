@@ -65,6 +65,7 @@ _CONTEXT_BUDGET_ANCHOR_SOURCES = frozenset(
         "layer_manifest",
         "operation_api",
         "context_interface",
+        "working_compiler_plan",
         "auto",
     }
 )
@@ -2608,6 +2609,9 @@ class Stage1Pipeline:
             anchor_context_interface_source_count=context_budget_anchor_trace[
                 "anchor_context_interface_source_count"
             ],
+            anchor_working_compiler_plan_source_count=context_budget_anchor_trace[
+                "anchor_working_compiler_plan_source_count"
+            ],
         )
         if _context_budget_applies(
             route=route,
@@ -2647,6 +2651,11 @@ class Stage1Pipeline:
                 anchor_context_interface_source_count=context_budget_anchor_trace[
                     "anchor_context_interface_source_count"
                 ],
+                anchor_working_compiler_plan_source_count=(
+                    context_budget_anchor_trace[
+                        "anchor_working_compiler_plan_source_count"
+                    ]
+                ),
             )
         evidence_turns = store.expand_neighbors(
             (hit.source_id for hit in hits),
@@ -2823,6 +2832,11 @@ class Stage1Pipeline:
             anchor_context_interface_source_count=context_budget_audit_anchor_trace[
                 "anchor_context_interface_source_count"
             ],
+            anchor_working_compiler_plan_source_count=(
+                context_budget_audit_anchor_trace[
+                    "anchor_working_compiler_plan_source_count"
+                ]
+            ),
         )
         if _context_budget_applies(
             route=route,
@@ -2866,6 +2880,11 @@ class Stage1Pipeline:
                 anchor_context_interface_source_count=(
                     context_budget_audit_anchor_trace[
                         "anchor_context_interface_source_count"
+                    ]
+                ),
+                anchor_working_compiler_plan_source_count=(
+                    context_budget_audit_anchor_trace[
+                        "anchor_working_compiler_plan_source_count"
                     ]
                 ),
             )
@@ -3545,6 +3564,11 @@ class Stage1Pipeline:
                     "context_budget_anchor_context_interface_source_count": (
                         context_budget_trace[
                             "anchor_context_interface_source_count"
+                        ]
+                    ),
+                    "context_budget_anchor_working_compiler_plan_source_count": (
+                        context_budget_trace[
+                            "anchor_working_compiler_plan_source_count"
                         ]
                     ),
                     "context_budget_anchor_candidate_source_ids": (
@@ -4558,6 +4582,12 @@ def _context_manifest(
             ),
             "context_budget_anchor_context_interface_source_count": int(
                 context_budget_trace.get("anchor_context_interface_source_count") or 0
+            ),
+            "context_budget_anchor_working_compiler_plan_source_count": int(
+                context_budget_trace.get(
+                    "anchor_working_compiler_plan_source_count"
+                )
+                or 0
             ),
             "context_budget_anchor_candidate_count": len(
                 context_budget_trace.get("anchor_candidate_source_ids") or ()
@@ -8492,6 +8522,79 @@ def _memory_context_interface_anchor_source_ids(
     return _ordered_unique(context_interface.get("context_anchor_source_ids") or ())
 
 
+def _memory_working_compiler_plan_anchor_source_ids(
+    memory_object_index: Mapping[str, Any] | None,
+) -> tuple[str, ...]:
+    if not isinstance(memory_object_index, Mapping):
+        return ()
+    working_compiler_plan = memory_object_index.get("memory_working_compiler_plan")
+    if (
+        not isinstance(working_compiler_plan, Mapping)
+        or not working_compiler_plan.get("applied")
+    ):
+        return ()
+    entries = tuple(
+        entry
+        for entry in working_compiler_plan.get("entries") or ()
+        if isinstance(entry, Mapping)
+    )
+    return _ordered_unique(
+        (
+            *(
+                source_id
+                for entry in sorted(
+                    entries,
+                    key=_working_compiler_plan_anchor_entry_sort_key,
+                )
+                for source_id in (entry.get("source_ids") or ())
+            ),
+            *(
+                source_id
+                for entry in sorted(
+                    entries,
+                    key=_working_compiler_plan_anchor_entry_sort_key,
+                )
+                if isinstance(entry.get("source_expansion"), Mapping)
+                for source_id in (
+                    entry.get("source_expansion", {}).get("source_ids") or ()
+                )
+            ),
+            *(working_compiler_plan.get("source_expansion_source_ids") or ()),
+        )
+    )
+
+
+def _working_compiler_plan_anchor_entry_sort_key(entry: Mapping[str, Any]) -> tuple[int, int, int, str]:
+    focus_priority = {
+        "conflict_chain": 0,
+        "temporal_validity": 1,
+        "current_state": 2,
+        "long_term_recall": 3,
+        "audit_only": 4,
+    }
+    decision_priority = {
+        "supersede": 0,
+        "audit_conflict": 1,
+        "merge": 2,
+        "update": 3,
+        "retain_slot": 4,
+        "retain": 5,
+        "create": 6,
+    }
+    target_priority = {
+        "object": 0,
+        "conflict_slot": 1,
+        "operation_slot": 2,
+        "value_slot": 3,
+    }
+    return (
+        focus_priority.get(str(entry.get("focus") or ""), 9),
+        decision_priority.get(str(entry.get("manager_decision") or ""), 9),
+        target_priority.get(str(entry.get("target_type") or ""), 9),
+        str(entry.get("plan_id") or entry.get("source_operation_id") or ""),
+    )
+
+
 def _context_budget_anchor_source_ids(
     *,
     anchor_source: str,
@@ -8513,9 +8616,15 @@ def _context_budget_anchor_source_ids(
     context_interface_source_ids = _memory_context_interface_anchor_source_ids(
         memory_object_index
     )
+    working_compiler_plan_source_ids = _memory_working_compiler_plan_anchor_source_ids(
+        memory_object_index
+    )
     selected_source = anchor_source
     if anchor_source == "auto":
-        if context_interface_source_ids:
+        if working_compiler_plan_source_ids:
+            selected_source = "working_compiler_plan"
+            selected_source_ids = working_compiler_plan_source_ids
+        elif context_interface_source_ids:
             selected_source = "context_interface"
             selected_source_ids = context_interface_source_ids
         elif operation_api_source_ids:
@@ -8531,6 +8640,8 @@ def _context_budget_anchor_source_ids(
         selected_source_ids = operation_api_source_ids
     elif anchor_source == "context_interface":
         selected_source_ids = context_interface_source_ids
+    elif anchor_source == "working_compiler_plan":
+        selected_source_ids = working_compiler_plan_source_ids
     elif anchor_source == "layer_manifest":
         selected_source_ids = layer_manifest_source_ids
     else:
@@ -8544,6 +8655,9 @@ def _context_budget_anchor_source_ids(
         "anchor_layer_manifest_source_count": len(layer_manifest_source_ids),
         "anchor_operation_api_source_count": len(operation_api_source_ids),
         "anchor_context_interface_source_count": len(context_interface_source_ids),
+        "anchor_working_compiler_plan_source_count": len(
+            working_compiler_plan_source_ids
+        ),
     }
 
 
@@ -8562,6 +8676,7 @@ def _disabled_context_budget_trace(
     anchor_layer_manifest_source_count: int = 0,
     anchor_operation_api_source_count: int = 0,
     anchor_context_interface_source_count: int = 0,
+    anchor_working_compiler_plan_source_count: int = 0,
 ) -> dict[str, Any]:
     return {
         "enabled": enabled,
@@ -8583,6 +8698,9 @@ def _disabled_context_budget_trace(
         "anchor_operation_api_source_count": anchor_operation_api_source_count,
         "anchor_context_interface_source_count": (
             anchor_context_interface_source_count
+        ),
+        "anchor_working_compiler_plan_source_count": (
+            anchor_working_compiler_plan_source_count
         ),
         "anchor_candidate_source_ids": [],
         "anchor_retained_source_ids": [],
@@ -8609,6 +8727,7 @@ def _disabled_context_budget_audit_trace(
     anchor_layer_manifest_source_count: int = 0,
     anchor_operation_api_source_count: int = 0,
     anchor_context_interface_source_count: int = 0,
+    anchor_working_compiler_plan_source_count: int = 0,
 ) -> dict[str, Any]:
     return {
         "enabled": enabled,
@@ -8632,6 +8751,9 @@ def _disabled_context_budget_audit_trace(
         "anchor_operation_api_source_count": anchor_operation_api_source_count,
         "anchor_context_interface_source_count": (
             anchor_context_interface_source_count
+        ),
+        "anchor_working_compiler_plan_source_count": (
+            anchor_working_compiler_plan_source_count
         ),
         "anchor_candidate_source_ids": [],
         "anchor_retained_source_ids": [],
@@ -8672,6 +8794,7 @@ def _apply_context_budget(
     anchor_layer_manifest_source_count: int = 0,
     anchor_operation_api_source_count: int = 0,
     anchor_context_interface_source_count: int = 0,
+    anchor_working_compiler_plan_source_count: int = 0,
 ) -> tuple[tuple[RetrievalHit, ...], dict[str, Any]]:
     protected_source_ids = _ordered_unique(protected_source_ids)
     if not hits:
@@ -8693,6 +8816,9 @@ def _apply_context_budget(
                 anchor_operation_api_source_count=anchor_operation_api_source_count,
                 anchor_context_interface_source_count=(
                     anchor_context_interface_source_count
+                ),
+                anchor_working_compiler_plan_source_count=(
+                    anchor_working_compiler_plan_source_count
                 ),
             ),
             "applied": True,
@@ -8782,6 +8908,9 @@ def _apply_context_budget(
         "anchor_context_interface_source_count": (
             anchor_context_interface_source_count
         ),
+        "anchor_working_compiler_plan_source_count": (
+            anchor_working_compiler_plan_source_count
+        ),
         "anchor_candidate_source_ids": list(anchor_candidate_source_ids),
         "anchor_retained_source_ids": list(anchor_retained_source_ids),
         "anchor_dropped_source_ids": list(anchor_dropped_source_ids),
@@ -8856,6 +8985,9 @@ def _context_budget_audit_trace(
         ),
         "anchor_context_interface_source_count": projected_budget.get(
             "anchor_context_interface_source_count"
+        ),
+        "anchor_working_compiler_plan_source_count": projected_budget.get(
+            "anchor_working_compiler_plan_source_count"
         ),
         "anchor_candidate_source_ids": projected_budget.get(
             "anchor_candidate_source_ids"

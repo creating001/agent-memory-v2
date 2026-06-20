@@ -107,6 +107,7 @@ def main() -> int:
     total_context_budget_anchor_layer_manifest_source_count = 0
     total_context_budget_anchor_operation_api_source_count = 0
     total_context_budget_anchor_context_interface_source_count = 0
+    total_context_budget_anchor_working_compiler_plan_source_count = 0
     context_budget_anchor_selected_source_counts: dict[str, int] = {}
     total_context_budget_registry_anchor_candidate_count = 0
     total_context_budget_registry_anchor_retained_count = 0
@@ -120,6 +121,7 @@ def main() -> int:
     total_context_budget_audit_anchor_layer_manifest_source_count = 0
     total_context_budget_audit_anchor_operation_api_source_count = 0
     total_context_budget_audit_anchor_context_interface_source_count = 0
+    total_context_budget_audit_anchor_working_compiler_plan_source_count = 0
     context_budget_audit_anchor_selected_source_counts: dict[str, int] = {}
     total_context_budget_audit_registry_anchor_candidate_count = 0
     total_context_budget_audit_registry_anchor_retained_count = 0
@@ -520,6 +522,12 @@ def main() -> int:
             )
             or 0
         )
+        total_context_budget_anchor_working_compiler_plan_source_count += int(
+            retrieval_trace.get(
+                "context_budget_anchor_working_compiler_plan_source_count"
+            )
+            or 0
+        )
         context_budget_registry_anchor_candidates = len(
             retrieval_trace.get(
                 "context_budget_registry_anchor_candidate_source_ids"
@@ -584,6 +592,12 @@ def main() -> int:
             )
             total_context_budget_audit_anchor_context_interface_source_count += int(
                 context_budget_audit.get("anchor_context_interface_source_count")
+                or 0
+            )
+            total_context_budget_audit_anchor_working_compiler_plan_source_count += int(
+                context_budget_audit.get(
+                    "anchor_working_compiler_plan_source_count"
+                )
                 or 0
             )
             audit_registry_anchor_candidates = len(
@@ -1830,6 +1844,12 @@ def main() -> int:
                     sample_count,
                 )
             ),
+            "avg_context_budget_anchor_working_compiler_plan_source_count": (
+                _safe_average(
+                    total_context_budget_anchor_working_compiler_plan_source_count,
+                    sample_count,
+                )
+            ),
             "context_budget_registry_anchor_sample_count": (
                 total_context_budget_registry_anchor_sample_count
             ),
@@ -1927,6 +1947,12 @@ def main() -> int:
             "avg_context_budget_audit_anchor_context_interface_source_count": (
                 _safe_average(
                     total_context_budget_audit_anchor_context_interface_source_count,
+                    sample_count,
+                )
+            ),
+            "avg_context_budget_audit_anchor_working_compiler_plan_source_count": (
+                _safe_average(
+                    total_context_budget_audit_anchor_working_compiler_plan_source_count,
                     sample_count,
                 )
             ),
@@ -3750,6 +3776,8 @@ def _write_summary(
         f"- avg_context_budget_anchor_layer_manifest_source_count: {metrics['retrieval']['avg_context_budget_anchor_layer_manifest_source_count']}",
         f"- avg_context_budget_anchor_operation_api_source_count: {metrics['retrieval']['avg_context_budget_anchor_operation_api_source_count']}",
         f"- avg_context_budget_anchor_context_interface_source_count: {metrics['retrieval']['avg_context_budget_anchor_context_interface_source_count']}",
+        f"- avg_context_budget_anchor_working_compiler_plan_source_count: {metrics['retrieval']['avg_context_budget_anchor_working_compiler_plan_source_count']}",
+        f"- avg_context_budget_anchor_working_compiler_plan_source_count: {metrics['retrieval']['avg_context_budget_anchor_working_compiler_plan_source_count']}",
         f"- context_budget_applied_count: {metrics['retrieval']['context_budget_applied_count']}",
         f"- context_budget_applied_rate: {metrics['retrieval']['context_budget_applied_rate']}",
         f"- avg_context_budget_candidate_count: {metrics['retrieval']['avg_context_budget_candidate_count']}",
@@ -3773,6 +3801,8 @@ def _write_summary(
         f"- avg_context_budget_audit_anchor_layer_manifest_source_count: {metrics['retrieval']['avg_context_budget_audit_anchor_layer_manifest_source_count']}",
         f"- avg_context_budget_audit_anchor_operation_api_source_count: {metrics['retrieval']['avg_context_budget_audit_anchor_operation_api_source_count']}",
         f"- avg_context_budget_audit_anchor_context_interface_source_count: {metrics['retrieval']['avg_context_budget_audit_anchor_context_interface_source_count']}",
+        f"- avg_context_budget_audit_anchor_working_compiler_plan_source_count: {metrics['retrieval']['avg_context_budget_audit_anchor_working_compiler_plan_source_count']}",
+        f"- avg_context_budget_audit_anchor_working_compiler_plan_source_count: {metrics['retrieval']['avg_context_budget_audit_anchor_working_compiler_plan_source_count']}",
         f"- context_budget_audit_applied_count: {metrics['retrieval']['context_budget_audit_applied_count']}",
         f"- context_budget_audit_applied_rate: {metrics['retrieval']['context_budget_audit_applied_rate']}",
         f"- avg_context_budget_audit_candidate_count: {metrics['retrieval']['avg_context_budget_audit_candidate_count']}",
