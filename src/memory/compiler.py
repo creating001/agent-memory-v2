@@ -4246,18 +4246,35 @@ def _external_compact_evidence_report_rules(
 ) -> list[str]:
     """Short source-grounded report contract for lower query-token prompts."""
 
+    lowered_question = question.lower()
     rules = [
         "Build evidence_report before answering: support must match requested entity, object, action, relation, speaker, time scope, and slot; mark close wrong candidates as exclude.",
         "If a required target, operand, endpoint, or speaker source is missing, set sufficient=false and name the missing part.",
         "Keep answer values slot-complete: do not drop qualifiers needed for role, employer, location, unit, date, subtype, or scope.",
     ]
+    if re.search(
+        r"\b(where|which\s+(studio|store|venue|place|location|organization)|"
+        r"what\s+(studio|store|venue|place|location|organization))\b",
+        lowered_question,
+    ) and not re.search(r"\b(address|street|city|zip|postal|exact location)\b", lowered_question):
+        rules.append(
+            "For where/place questions, a named venue, studio, store, or organization can be the location answer; do not require a street address unless asked."
+        )
+    if re.search(
+        r"\b(occupation|job|role|position|employer|workplace)\b",
+        lowered_question,
+    ) or re.search(r"\b(previous|former|past|old)\b.*\b(work|worked|did)\b", lowered_question):
+        rules.append(
+            "For occupation/role answers, preserve employer, workplace, domain, seniority, and previous/current qualifiers when evidence states them."
+        )
     if detailed:
         rules.append(
             "Preserve exact names, numbers, dates, units, and event wording; do not turn related discussion/plans/suggestions into completed facts unless confirmed."
         )
-        lowered = question.lower()
-        if _asks_collection_operation(lowered) or _looks_like_plural_slot_question(
-            lowered
+        if _asks_collection_operation(
+            lowered_question
+        ) or _looks_like_plural_slot_question(
+            lowered_question
         ):
             rules.append(
                 "For list-style questions, preserve all distinct in-scope values; merge duplicates and treat ambiguous duplicates as exclude unless giving a lower bound."

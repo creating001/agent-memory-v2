@@ -11570,6 +11570,59 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertNotIn('"evidence_report"', list_context.prompt)
         self.assertIn('"answer": "concise answer"', fact_context.prompt)
 
+    def test_compact_evidence_report_preserves_location_and_role_qualifiers(
+        self,
+    ) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=2,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            evidence_report_contract=True,
+            evidence_report_information_needs=("fact_lookup",),
+            compact_query_contract=True,
+            compact_query_guide_blocks=False,
+            compact_query_answer_contract=True,
+        )
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="user",
+                text="I take yoga classes at Serenity Yoga.",
+                timestamp="2024-01-01",
+            ),
+            Turn(
+                source_id="s1:t1",
+                session_id="s1",
+                turn_index=1,
+                role="user",
+                text="My previous role was marketing specialist at a small startup.",
+                timestamp="2024-01-02",
+            ),
+        )
+
+        location_context = compiler.compile(
+            question="Where do I take yoga classes?",
+            question_time=None,
+            route=RouteResult(information_need="fact_lookup", signals=()),
+            hits=(),
+            evidence_turns=turns,
+        )
+        role_context = compiler.compile(
+            question="What was my previous occupation?",
+            question_time=None,
+            route=RouteResult(information_need="fact_lookup", signals=()),
+            hits=(),
+            evidence_turns=turns,
+        )
+
+        self.assertIn("named venue, studio, store, or organization", location_context.prompt)
+        self.assertIn("do not require a street address", location_context.prompt)
+        self.assertIn("preserve employer, workplace, domain", role_context.prompt)
+        self.assertIn("compact evidence decision", location_context.prompt)
+        self.assertNotIn("Index only; verify final facts", location_context.prompt)
+
     def test_external_naive_structured_guide_keeps_cache_layout(self) -> None:
         compiler = EvidenceCompiler(
             max_evidence_items=1,
