@@ -720,6 +720,9 @@ def main() -> int:
             "graph_utility_fusion_mode": config.get("retrieval", {})
             .get("graph_utility", {})
             .get("fusion_mode", "tail_rescue"),
+            "graph_utility_overflow_max_hits": config.get("retrieval", {})
+            .get("graph_utility", {})
+            .get("overflow_max_hits", 0),
             "graph_utility_applied_count": total_graph_utility_applied,
             "graph_utility_applied_rate": _safe_average(
                 total_graph_utility_applied,
@@ -2087,6 +2090,7 @@ def _write_summary(
         f"- avg_operation_utility_source_hits: {metrics['retrieval']['avg_operation_utility_source_hits']}",
         f"- graph_utility_enabled: {metrics['retrieval']['graph_utility_enabled']}",
         f"- graph_utility_fusion_mode: {metrics['retrieval']['graph_utility_fusion_mode']}",
+        f"- graph_utility_overflow_max_hits: {metrics['retrieval']['graph_utility_overflow_max_hits']}",
         f"- graph_utility_require_new_source: {metrics['retrieval']['graph_utility_require_new_source']}",
         f"- graph_utility_applied_count: {metrics['retrieval']['graph_utility_applied_count']}",
         f"- avg_graph_utility_source_hits: {metrics['retrieval']['avg_graph_utility_source_hits']}",
@@ -2457,6 +2461,7 @@ def _write_diagnosis(
         f"- avg_memory_source_hits: {metrics['retrieval']['avg_memory_source_hits']}",
         f"- graph_utility_enabled: {metrics['retrieval']['graph_utility_enabled']}",
         f"- graph_utility_fusion_mode: {metrics['retrieval']['graph_utility_fusion_mode']}",
+        f"- graph_utility_overflow_max_hits: {metrics['retrieval']['graph_utility_overflow_max_hits']}",
         f"- graph_utility_applied_count: {metrics['retrieval']['graph_utility_applied_count']}",
         f"- avg_graph_utility_source_hits: {metrics['retrieval']['avg_graph_utility_source_hits']}",
         f"- build_memory_include_superseded: {metrics['retrieval']['build_memory_include_superseded']}",

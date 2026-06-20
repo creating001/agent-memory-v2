@@ -3953,6 +3953,113 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertIn("I moved to Seattle.", result["trace"]["compiled_context"]["prompt"])
         self.assertIn("I live in Austin.", result["trace"]["compiled_context"]["prompt"])
 
+    def test_pipeline_graph_utility_overflow_can_extend_candidate_tail(self) -> None:
+        old_record = MemoryRecord(
+            memory_id="old",
+            memory_type="state",
+            text="Alex lives in Austin.",
+            source_ids=("s1:t0",),
+            subject="Alex",
+            predicate="home city",
+            value="Austin",
+            timestamp="2024-01-01",
+            status="superseded",
+            superseded_by="new",
+        )
+        new_record = MemoryRecord(
+            memory_id="new",
+            memory_type="state",
+            text="Alex lives in Seattle.",
+            source_ids=("s2:t0",),
+            subject="Alex",
+            predicate="home city",
+            value="Seattle",
+            timestamp="2024-05-01",
+            status="active",
+        )
+
+        class FakeBuilder:
+            def build(self, turns: tuple[Turn, ...]) -> BuiltMemory:
+                del turns
+                return BuiltMemory(
+                    records=(new_record, old_record),
+                    token_usage=TokenUsage(),
+                    management_policy="stateful_only",
+                    managed_memory_types=("state",),
+                )
+
+        config = {
+            "build_memory": {
+                "enabled": True,
+                "mode": "openai_compatible",
+                "model": "fake",
+                "top_k": 1,
+                "max_sources_per_record": 1,
+                "include_superseded": True,
+            },
+            "retrieval": {
+                "top_k": 1,
+                "max_top_k": 1,
+                "neighbor_window": 0,
+                "lexical": {"enabled": False},
+                "graph_utility": {
+                    "enabled": True,
+                    "information_needs": ["current_state"],
+                    "memory_types": ["state"],
+                    "max_slots": 1,
+                    "max_sources_per_slot": 2,
+                    "min_overlap_terms": 1,
+                    "require_new_source": True,
+                    "fusion_mode": "overflow_tail_rescue",
+                    "overflow_max_hits": 1,
+                },
+            },
+            "compiler": {
+                "prompt_mode": "external_naive",
+                "max_evidence_items": 2,
+                "max_evidence_chars": 4000,
+            },
+            "answer": {"fallback_answer": "unknown"},
+        }
+        pipeline = Stage1Pipeline(config)
+        pipeline._memory_builder = FakeBuilder()
+        request = PredictionRequest(
+            question="Where does Alex live now?",
+            turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="I live in Austin.",
+                    timestamp="2024-01-01",
+                ),
+                Turn(
+                    source_id="s2:t0",
+                    session_id="s2",
+                    turn_index=0,
+                    role="user",
+                    text="I moved to Seattle.",
+                    timestamp="2024-05-01",
+                ),
+            ),
+        )
+
+        result = pipeline.predict(request)
+        retrieval = result["trace"]["retrieval"]
+        row_ids = [
+            row["source_id"]
+            for row in result["trace"]["compiled_context"]["evidence_rows"]
+        ]
+
+        self.assertEqual(retrieval["graph_utility_fusion_mode"], "overflow_tail_rescue")
+        self.assertEqual(retrieval["graph_utility_overflow_max_hits"], 1)
+        self.assertEqual(
+            [hit["source_id"] for hit in retrieval["turn_hits"]],
+            ["s2:t0", "s1:t0"],
+        )
+        self.assertEqual(row_ids, ["s2:t0", "s1:t0"])
+
     def test_build_memory_source_alignment_adds_adjacent_supporting_turn(self) -> None:
         record = MemoryRecord(
             memory_id="mem-followers",

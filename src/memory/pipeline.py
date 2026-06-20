@@ -516,10 +516,18 @@ class Stage1Pipeline:
         self._graph_utility_fusion_mode = str(
             graph_utility_config.get("fusion_mode", "tail_rescue")
         )
-        if self._graph_utility_fusion_mode not in {"audit", "tail_rescue"}:
+        if self._graph_utility_fusion_mode not in {
+            "audit",
+            "tail_rescue",
+            "overflow_tail_rescue",
+        }:
             raise ValueError(
-                "retrieval.graph_utility.fusion_mode must be audit or tail_rescue"
+                "retrieval.graph_utility.fusion_mode must be audit, "
+                "tail_rescue, or overflow_tail_rescue"
             )
+        self._graph_utility_overflow_max_hits = int(
+            graph_utility_config.get("overflow_max_hits", 0)
+        )
         self._dense_enabled = bool(dense_config.get("enabled", False))
         self._dense_top_k = int(dense_config.get("top_k", self._base_top_k))
         self._dense_batch_size = int(dense_config.get("batch_size", 32))
@@ -1889,6 +1897,7 @@ class Stage1Pipeline:
             require_new_source=self._graph_utility_require_new_source,
             ignored_overlap_terms=self._graph_utility_ignored_overlap_terms,
             fusion_mode=self._graph_utility_fusion_mode,
+            overflow_max_hits=self._graph_utility_overflow_max_hits,
         )
         build_memory_include_superseded = (
             self._build_memory_include_superseded
@@ -2302,6 +2311,7 @@ class Stage1Pipeline:
                     self._graph_utility_ignored_overlap_terms
                 ),
                 fusion_mode=self._graph_utility_fusion_mode,
+                overflow_max_hits=self._graph_utility_overflow_max_hits,
             )
             if (
                 graph_utility_source_hits
@@ -2311,6 +2321,18 @@ class Stage1Pipeline:
                     hits,
                     graph_utility_source_hits,
                     top_k=candidate_top_k,
+                )
+            if (
+                graph_utility_source_hits
+                and self._graph_utility_fusion_mode == "overflow_tail_rescue"
+            ):
+                hits = _append_tail_rescue_hits(
+                    hits,
+                    graph_utility_source_hits,
+                    top_k=(
+                        candidate_top_k
+                        + max(0, self._graph_utility_overflow_max_hits)
+                    ),
                 )
         embedding_cache_after = _embedding_cache_stats(self._embedding_client)
         turn_hits = hits
@@ -2348,7 +2370,8 @@ class Stage1Pipeline:
                 ),
                 *(
                     _source_ids_from_hits(graph_utility_source_hits)
-                    if self._graph_utility_fusion_mode == "tail_rescue"
+                    if self._graph_utility_fusion_mode
+                    in {"tail_rescue", "overflow_tail_rescue"}
                     else ()
                 ),
             )
@@ -3009,6 +3032,9 @@ class Stage1Pipeline:
                     ),
                     "graph_utility_fusion_mode": (
                         self._graph_utility_fusion_mode
+                    ),
+                    "graph_utility_overflow_max_hits": (
+                        self._graph_utility_overflow_max_hits
                     ),
                     "graph_utility_source_hits": [
                         hit.to_dict() for hit in graph_utility_source_hits
@@ -5068,6 +5094,7 @@ def _disabled_graph_utility_trace(
     require_new_source: bool,
     ignored_overlap_terms: tuple[str, ...],
     fusion_mode: str = "tail_rescue",
+    overflow_max_hits: int = 0,
     question_scope: str = "unspecified",
     skipped_reason: str = "",
 ) -> dict[str, Any]:
@@ -5082,6 +5109,7 @@ def _disabled_graph_utility_trace(
         "require_new_source": require_new_source,
         "ignored_overlap_terms": ignored_overlap_terms,
         "fusion_mode": fusion_mode,
+        "overflow_max_hits": overflow_max_hits,
         "question_scope": question_scope,
         "slot_index": _memory_object_slot_empty_index_stats(enabled=True),
         "candidate_source_count": 0,
@@ -5107,6 +5135,7 @@ def _memory_graph_utility_source_hits(
     require_new_source: bool = True,
     ignored_overlap_terms: tuple[str, ...] = (),
     fusion_mode: str = "tail_rescue",
+    overflow_max_hits: int = 0,
 ) -> tuple[tuple[RetrievalHit, ...], dict[str, Any]]:
     """Use the build memory graph as a source-backed evidence utility index.
 
@@ -5127,6 +5156,7 @@ def _memory_graph_utility_source_hits(
         require_new_source=require_new_source,
         ignored_overlap_terms=ignored_overlap_terms,
         fusion_mode=fusion_mode,
+        overflow_max_hits=overflow_max_hits,
         question_scope=question_scope,
     )
     trace = {
