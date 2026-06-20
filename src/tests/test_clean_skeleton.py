@@ -1547,9 +1547,9 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual(
             policy_context["selected_context_no_widen_kept"],
             {
-                "max_rows": {"kept_value": 4, "policy_value": 5},
-                "max_neighbor_chars": {"kept_value": 140, "policy_value": 160},
-                "max_center_chars": {"kept_value": 260, "policy_value": 300},
+                "max_rows": {"kept_value": 4, "policy_value": 6},
+                "max_neighbor_chars": {"kept_value": 140, "policy_value": 180},
+                "max_center_chars": {"kept_value": 260, "policy_value": 320},
                 "window_after": {"kept_value": 1, "policy_value": 2},
             },
         )

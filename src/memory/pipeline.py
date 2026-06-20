@@ -9939,6 +9939,8 @@ def _apply_workspace_policy_context_settings(
         "policy_schema_version": "",
         "policy_stage_order": (),
         "pressure_policy": {},
+        "selected_context_profile_name": "",
+        "selected_context_profile_policy": {},
         "selected_context_before": selected_context_before,
         "selected_context_overrides": {},
         "selected_context_no_widen_existing_profile": False,
@@ -9974,15 +9976,26 @@ def _apply_workspace_policy_context_settings(
         trace["reason"] = "selected_context_pressure_policy_disabled"
         return settings, trace
 
+    profile_name, selected_pressure_policy = (
+        _workspace_policy_selected_context_pressure_policy(
+            pressure_policy=pressure_policy,
+            route=route,
+            selected_context_settings=settings,
+        )
+    )
+    trace["selected_context_profile_name"] = profile_name
+    if profile_name:
+        trace["selected_context_profile_policy"] = dict(selected_pressure_policy)
+
     overrides: dict[str, Any] = {}
     no_widen_existing_profile = bool(
-        pressure_policy.get("selected_context_no_widen_existing_profile")
+        selected_pressure_policy.get("selected_context_no_widen_existing_profile")
     )
     trace["selected_context_no_widen_existing_profile"] = (
         no_widen_existing_profile
     )
     no_widen_kept: dict[str, Any] = {}
-    raw_context_format = pressure_policy.get("selected_context_format")
+    raw_context_format = selected_pressure_policy.get("selected_context_format")
     if raw_context_format:
         try:
             overrides["context_format"] = _selected_context_context_format(
@@ -9991,7 +10004,9 @@ def _apply_workspace_policy_context_settings(
         except ValueError:
             trace["reason"] = "invalid_selected_context_format"
             return settings, trace
-    raw_timestamp_policy = pressure_policy.get("selected_context_timestamp_policy")
+    raw_timestamp_policy = selected_pressure_policy.get(
+        "selected_context_timestamp_policy"
+    )
     if raw_timestamp_policy:
         try:
             overrides["timestamp_policy"] = _selected_context_timestamp_policy(
@@ -10008,7 +10023,7 @@ def _apply_workspace_policy_context_settings(
         "selected_context_window_after": "window_after",
     }
     for policy_key, setting_key in int_policy_keys.items():
-        raw_value = pressure_policy.get(policy_key)
+        raw_value = selected_pressure_policy.get(policy_key)
         if raw_value is None:
             continue
         try:
@@ -10044,6 +10059,37 @@ def _apply_workspace_policy_context_settings(
     return settings, trace
 
 
+def _workspace_policy_selected_context_pressure_policy(
+    *,
+    pressure_policy: Mapping[str, Any],
+    route: RouteResult,
+    selected_context_settings: Mapping[str, Any],
+) -> tuple[str, Mapping[str, Any]]:
+    profiles = pressure_policy.get("selected_context_profiles")
+    if not isinstance(profiles, Mapping):
+        return "", pressure_policy
+    profile_name = ""
+    route_profiles = pressure_policy.get("selected_context_route_profiles")
+    if isinstance(route_profiles, Mapping):
+        profile_name = str(route_profiles.get(route.information_need) or "")
+    if not profile_name and selected_context_settings.get(
+        "require_question_reference"
+    ):
+        profile_name = str(
+            pressure_policy.get("selected_context_question_reference_profile") or ""
+        )
+    if not profile_name:
+        profile_name = str(
+            pressure_policy.get("selected_context_default_profile") or ""
+        )
+    profile = profiles.get(profile_name)
+    if not isinstance(profile, Mapping):
+        return "", pressure_policy
+    selected_policy = dict(pressure_policy)
+    selected_policy.update(profile)
+    return profile_name, selected_policy
+
+
 def _workspace_policy_context_manifest(
     workspace_policy_context: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
@@ -10062,6 +10108,9 @@ def _workspace_policy_context_manifest(
         ),
         "selected_context_overrides": dict(
             workspace_policy_context.get("selected_context_overrides") or {}
+        ),
+        "selected_context_profile_name": str(
+            workspace_policy_context.get("selected_context_profile_name") or ""
         ),
         "selected_context_before": dict(
             workspace_policy_context.get("selected_context_before") or {}
