@@ -1327,6 +1327,11 @@ def _memory_object_index_manifest(
         lifecycle_audit=lifecycle_audit,
         layer_manifest=layer_manifest,
     )
+    context_interface = _memory_context_interface(
+        lifecycle_audit=lifecycle_audit,
+        layer_manifest=layer_manifest,
+        operation_api=operation_api,
+    )
     object_samples = [
         {
             "memory_id": record.memory_id,
@@ -1413,6 +1418,10 @@ def _memory_object_index_manifest(
         ),
         "operation_api_anchor_source_count": (
             operation_api["context_anchor_source_count"]
+        ),
+        "context_interface_role_count": context_interface["role_count"],
+        "context_interface_anchor_source_count": (
+            context_interface["context_anchor_source_count"]
         ),
         "source_backed_object_count": sum(
             1 for record in managed_records if record.source_ids
@@ -1512,6 +1521,24 @@ def _memory_object_index_manifest(
                     "source ids to raw rows; memory objects are never final evidence"
                 ),
             },
+            "context_interface_contract": {
+                "interface_field": "memory_context_interface",
+                "schema_version": "memory_context_interface_v1",
+                "source": "memory_layer_manifest_and_memory_operation_api",
+                "anchor_source_field": "context_anchor_source_ids",
+                "roles": [
+                    "query_short_term",
+                    "working_state",
+                    "long_term_recall",
+                    "archival_state",
+                    "quarantine_audit",
+                ],
+                "policy": (
+                    "query modules consume source-backed memory roles and "
+                    "operation views through one stable context interface, then "
+                    "expand to raw rows before final evidence"
+                ),
+            },
             "state_conflict_contract": {
                 "slot_index_field": "state_conflict_slot_index",
                 "slot_scope": "same memory_type, subject, predicate",
@@ -1530,6 +1557,7 @@ def _memory_object_index_manifest(
         "lifecycle_audit": lifecycle_audit,
         "memory_layer_manifest": layer_manifest,
         "memory_operation_api": operation_api,
+        "memory_context_interface": context_interface,
         "state_conflict_slot_ids": sorted(str(slot_id) for slot_id in conflict_slot_ids),
         "clean_note": (
             "Question-independent build memory object index. It unifies tier, "
@@ -2109,6 +2137,241 @@ def _memory_operation_api_context_anchor_source_ids(
         if isinstance(summary, dict)
         for source_id in (summary.get("source_ids") or ())
     )
+
+
+def _memory_context_interface(
+    *,
+    lifecycle_audit: dict[str, Any],
+    layer_manifest: dict[str, Any],
+    operation_api: dict[str, Any],
+) -> dict[str, Any]:
+    """Build-owned context interface over memory layers and operations."""
+
+    layer_contract = _memory_working_view_layer_contract()
+    layer_order = _ordered_strings(
+        layer_manifest.get("layer_order") or layer_contract.keys()
+    )
+    layers = layer_manifest.get("layers")
+    if not isinstance(layers, dict):
+        layers = {}
+    operation_entries = [
+        entry for entry in operation_api.get("entries") or () if isinstance(entry, dict)
+    ]
+    context_anchor_source_ids = _ordered_strings(
+        operation_api.get("context_anchor_source_ids")
+        or _memory_operation_api_context_anchor_source_ids(layer_manifest)
+    )
+    source_roles = {
+        _memory_context_interface_role_name(layer): (
+            _memory_context_interface_source_role(
+                layer=layer,
+                summary=(
+                    layers.get(layer) if isinstance(layers.get(layer), dict) else {}
+                ),
+                layer_contract=layer_contract,
+            )
+        )
+        for layer in layer_order
+    }
+    operation_views = {
+        "conflict_resolution": _memory_context_interface_operation_view(
+            operation_entries,
+            operation_signals=("conflict_slot", "multi_value_slot"),
+            lifecycle_stages=("conflict_resolution",),
+            operations=("verify", "audit", "retrieve", "expand"),
+        ),
+        "supersession_chain": _memory_context_interface_operation_view(
+            operation_entries,
+            operation_signals=("supersede",),
+            lifecycle_stages=("archival_state",),
+            operations=("supersede", "verify", "audit", "retrieve", "expand"),
+        ),
+        "state_verification": _memory_context_interface_operation_view(
+            operation_entries,
+            operation_signals=(),
+            lifecycle_stages=(
+                "active_state",
+                "state_value_management",
+                "conflict_resolution",
+            ),
+            operations=("verify", "audit"),
+        ),
+    }
+    object_type_counts: dict[str, int] = defaultdict(int)
+    action_counts: dict[str, int] = defaultdict(int)
+    for entry in operation_entries:
+        object_type_counts[str(entry.get("target_type") or "unknown")] += 1
+        for action in entry.get("operation_actions") or ():
+            action_counts[str(action)] += 1
+
+    return {
+        "schema_version": "memory_context_interface_v1",
+        "trace_only": False,
+        "applied": bool(
+            layer_manifest.get("applied")
+            or operation_api.get("applied")
+            or lifecycle_audit.get("applied")
+        ),
+        "interface_sources": [
+            "memory_layer_manifest",
+            "memory_operation_api",
+            "memory_lifecycle_audit",
+        ],
+        "role_count": len(source_roles),
+        "entry_count": int(operation_api.get("entry_count") or 0),
+        "source_backed_entry_count": int(
+            operation_api.get("source_backed_entry_count") or 0
+        ),
+        "source_incomplete_entry_count": int(
+            operation_api.get("source_incomplete_entry_count") or 0
+        ),
+        "operation_contract": list(_memory_working_view_operation_contract()),
+        "operation_action_counts": dict(sorted(action_counts.items())),
+        "memory_object_type_counts": dict(sorted(object_type_counts.items())),
+        "layer_order": layer_order,
+        "source_roles": source_roles,
+        "operation_views": operation_views,
+        "context_anchor_source_ids": context_anchor_source_ids,
+        "context_anchor_source_count": len(context_anchor_source_ids),
+        "context_organization_policy": {
+            "short_term_memory": "query_visible_raw_rows",
+            "working_memory": "active_state_and_conflict_context",
+            "long_term_memory": "stable_recall_context",
+            "archival_memory": "historical_state_and_supersession_context",
+            "quarantine_memory": "audit_only_not_final_evidence",
+            "anchor_retention": "preserve_source_backed_lifecycle_anchors",
+            "source_expansion": "expand_memory_object_source_ids_to_raw_rows",
+            "verification_scope": (
+                "number_time_speaker_entity_state_conflict_unsupported_answer"
+            ),
+        },
+        "source_policy": {
+            "raw_evidence_required": True,
+            "final_evidence_policy": "raw_source_rows",
+            "question_independent_build": True,
+            "memory_objects_are_not_final_evidence": True,
+        },
+        "clean_note": (
+            "Question-independent memory context interface that organizes "
+            "short-term, working, long-term, archival, and quarantine memory "
+            "roles plus conflict, supersession, and verification operation "
+            "views. It lets query modules consume one source-backed memory "
+            "system boundary for state management, context organization, and "
+            "audit while final evidence remains raw source rows."
+        ),
+    }
+
+
+def _memory_context_interface_role_name(layer: str) -> str:
+    if layer == "short_term_memory":
+        return "query_short_term"
+    if layer == "working_memory":
+        return "working_state"
+    if layer == "long_term_memory":
+        return "long_term_recall"
+    if layer == "archival_memory":
+        return "archival_state"
+    if layer == "quarantine_memory":
+        return "quarantine_audit"
+    return layer or "unknown"
+
+
+def _memory_context_interface_source_role(
+    *,
+    layer: str,
+    summary: dict[str, Any],
+    layer_contract: dict[str, str],
+) -> dict[str, Any]:
+    source_ids = _ordered_strings(summary.get("source_ids") or ())
+    return {
+        "memory_layer": layer,
+        "description": layer_contract.get(layer, ""),
+        "query_supplied": bool(summary.get("query_supplied")),
+        "persisted_by_build": bool(
+            summary.get("persisted_by_build", layer != "short_term_memory")
+        ),
+        "entry_count": int(summary.get("entry_count") or 0),
+        "source_backed_entry_count": int(
+            summary.get("source_backed_entry_count") or 0
+        ),
+        "source_incomplete_entry_count": int(
+            summary.get("source_incomplete_entry_count") or 0
+        ),
+        "source_ids": source_ids,
+        "source_count": len(source_ids),
+        "target_counts": dict(summary.get("target_counts") or {}),
+        "stage_counts": dict(summary.get("stage_counts") or {}),
+        "operation_counts": dict(summary.get("operation_counts") or {}),
+        "allowed_operations": _memory_context_interface_role_operations(layer),
+        "source_policy": {
+            "raw_evidence_required": layer != "short_term_memory"
+            or bool(summary.get("query_supplied")),
+            "final_evidence_policy": "raw_source_rows",
+        },
+    }
+
+
+def _memory_context_interface_role_operations(layer: str) -> list[str]:
+    if layer == "short_term_memory":
+        return ["retrieve", "expand"]
+    if layer == "working_memory":
+        return [
+            "create",
+            "update",
+            "merge",
+            "supersede",
+            "retrieve",
+            "expand",
+            "verify",
+            "audit",
+        ]
+    if layer == "long_term_memory":
+        return ["retrieve", "expand", "verify", "audit"]
+    if layer == "archival_memory":
+        return ["retrieve", "expand", "verify", "audit"]
+    if layer == "quarantine_memory":
+        return ["audit"]
+    return ["audit"]
+
+
+def _memory_context_interface_operation_view(
+    entries: list[dict[str, Any]],
+    *,
+    operation_signals: tuple[str, ...],
+    lifecycle_stages: tuple[str, ...],
+    operations: tuple[str, ...],
+    match_operations: bool = False,
+) -> dict[str, Any]:
+    source_ids: list[str] = []
+    entry_count = 0
+    for entry in entries:
+        entry_signals = set(_ordered_strings(entry.get("graph_signals") or ()))
+        entry_operations = set(_ordered_strings(entry.get("operations") or ()))
+        entry_stage = str(entry.get("lifecycle_stage") or "")
+        if not (
+            entry_signals.intersection(operation_signals)
+            or entry_stage in lifecycle_stages
+            or (match_operations and entry_operations.intersection(operations))
+        ):
+            continue
+        entry_count += 1
+        _memory_layer_manifest_extend_unique(
+            source_ids,
+            entry.get("source_ids") or (),
+            max_items=96,
+        )
+    return {
+        "entry_count": entry_count,
+        "source_ids": source_ids,
+        "source_count": len(source_ids),
+        "operation_signals": list(operation_signals),
+        "lifecycle_stages": list(lifecycle_stages),
+        "operations": list(operations),
+        "source_policy": {
+            "raw_evidence_required": True,
+            "final_evidence_policy": "raw_source_rows",
+        },
+    }
 
 
 def _memory_working_view_layer_contract() -> dict[str, str]:

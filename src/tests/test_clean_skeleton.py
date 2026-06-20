@@ -49,6 +49,7 @@ from memory.pipeline import (
     _compiler_memory_records,
     _context_budget_anchor_source_ids,
     _context_manifest,
+    _memory_context_interface_anchor_source_ids,
     _memory_activation_priority_hits,
     _memory_layer_manifest_anchor_source_ids,
     _memory_operation_api_anchor_source_ids,
@@ -590,6 +591,21 @@ class CleanSkeletonTest(unittest.TestCase):
                         {"source_ids": ["s2:t0", "s3:t0"]},
                     ],
                 },
+                "memory_context_interface": {
+                    "applied": True,
+                    "schema_version": "memory_context_interface_v1",
+                    "role_count": 3,
+                    "entry_count": 2,
+                    "context_anchor_source_count": 2,
+                    "context_anchor_source_ids": ["s2:t0", "s4:t0"],
+                    "source_roles": {
+                        "working_state": {"source_ids": ["s2:t0"]},
+                        "long_term_recall": {"source_ids": ["s4:t0"]},
+                    },
+                    "operation_views": {
+                        "conflict_resolution": {"source_ids": ["s2:t0"]},
+                    },
+                },
             },
         )
 
@@ -612,9 +628,27 @@ class CleanSkeletonTest(unittest.TestCase):
             manifest["coverage"]["final_evidence_from_operation_api_count"],
             1,
         )
+        self.assertTrue(operations["context_interface_available"])
+        self.assertEqual(
+            operations["context_interface_schema_version"],
+            "memory_context_interface_v1",
+        )
+        self.assertEqual(
+            operations["context_interface_final_source_ids"],
+            ("s2:t0",),
+        )
+        self.assertEqual(
+            manifest["coverage"]["final_evidence_from_context_interface_count"],
+            1,
+        )
         self.assertTrue(
             manifest["context_organization"]["memory_operations"][
                 "operation_api_available"
+            ]
+        )
+        self.assertTrue(
+            manifest["context_organization"]["memory_operations"][
+                "context_interface_available"
             ]
         )
 
@@ -2325,6 +2359,50 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual(trace["anchor_selected_source"], "operation_api")
         self.assertEqual(trace["anchor_operation_api_source_count"], 3)
 
+    def test_context_budget_anchor_source_ids_can_use_context_interface(
+        self,
+    ) -> None:
+        memory_object_index = {
+            "memory_context_interface": {
+                "applied": True,
+                "context_anchor_source_ids": [
+                    "old:t0",
+                    "current:t0",
+                    "stable:t0",
+                ],
+            },
+            "memory_operation_api": {
+                "applied": True,
+                "context_anchor_source_ids": ["operation:t0"],
+            },
+        }
+
+        interface_source_ids = _memory_context_interface_anchor_source_ids(
+            memory_object_index
+        )
+        selected_source_ids, trace = _context_budget_anchor_source_ids(
+            anchor_source="context_interface",
+            memory_object_index=memory_object_index,
+            operation_utility_trace=None,
+            graph_utility_trace=None,
+        )
+        auto_source_ids, auto_trace = _context_budget_anchor_source_ids(
+            anchor_source="auto",
+            memory_object_index=memory_object_index,
+            operation_utility_trace=None,
+            graph_utility_trace=None,
+        )
+
+        self.assertEqual(
+            interface_source_ids,
+            ("old:t0", "current:t0", "stable:t0"),
+        )
+        self.assertEqual(selected_source_ids, interface_source_ids)
+        self.assertEqual(trace["anchor_selected_source"], "context_interface")
+        self.assertEqual(trace["anchor_context_interface_source_count"], 3)
+        self.assertEqual(auto_source_ids, interface_source_ids)
+        self.assertEqual(auto_trace["anchor_selected_source"], "context_interface")
+
     def test_context_budget_audit_is_trace_only(self) -> None:
         base_config = {
             "retrieval": {
@@ -3762,6 +3840,57 @@ class CleanSkeletonTest(unittest.TestCase):
             "memory_layer_manifest",
         )
         self.assertGreater(operation_api["context_anchor_source_count"], 0)
+        context_interface = memory_object_index["memory_context_interface"]
+        self.assertEqual(
+            context_interface["schema_version"],
+            "memory_context_interface_v1",
+        )
+        self.assertFalse(context_interface["trace_only"])
+        self.assertTrue(context_interface["applied"])
+        self.assertEqual(context_interface["entry_count"], 8)
+        self.assertEqual(context_interface["source_backed_entry_count"], 8)
+        self.assertEqual(
+            context_interface["source_policy"]["final_evidence_policy"],
+            "raw_source_rows",
+        )
+        self.assertTrue(
+            context_interface["source_policy"][
+                "memory_objects_are_not_final_evidence"
+            ]
+        )
+        self.assertIn("working_state", context_interface["source_roles"])
+        self.assertIn("long_term_recall", context_interface["source_roles"])
+        self.assertIn("archival_state", context_interface["source_roles"])
+        self.assertIn(
+            "verify",
+            context_interface["source_roles"]["working_state"][
+                "allowed_operations"
+            ],
+        )
+        self.assertIn(
+            "conflict_resolution",
+            context_interface["operation_views"],
+        )
+        self.assertIn(
+            "supersession_chain",
+            context_interface["operation_views"],
+        )
+        self.assertGreater(
+            context_interface["operation_views"]["conflict_resolution"][
+                "source_count"
+            ],
+            0,
+        )
+        self.assertEqual(
+            context_interface["context_anchor_source_ids"],
+            operation_api["context_anchor_source_ids"],
+        )
+        self.assertEqual(
+            memory_object_index["index_contract"]["context_interface_contract"][
+                "interface_field"
+            ],
+            "memory_context_interface",
+        )
         city_operation_api = next(
             entry
             for entry in operation_api["entries"]

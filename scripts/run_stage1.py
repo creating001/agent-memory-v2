@@ -106,6 +106,7 @@ def main() -> int:
     total_context_budget_anchor_registry_source_count = 0
     total_context_budget_anchor_layer_manifest_source_count = 0
     total_context_budget_anchor_operation_api_source_count = 0
+    total_context_budget_anchor_context_interface_source_count = 0
     context_budget_anchor_selected_source_counts: dict[str, int] = {}
     total_context_budget_registry_anchor_candidate_count = 0
     total_context_budget_registry_anchor_retained_count = 0
@@ -118,6 +119,7 @@ def main() -> int:
     total_context_budget_audit_anchor_registry_source_count = 0
     total_context_budget_audit_anchor_layer_manifest_source_count = 0
     total_context_budget_audit_anchor_operation_api_source_count = 0
+    total_context_budget_audit_anchor_context_interface_source_count = 0
     context_budget_audit_anchor_selected_source_counts: dict[str, int] = {}
     total_context_budget_audit_registry_anchor_candidate_count = 0
     total_context_budget_audit_registry_anchor_retained_count = 0
@@ -231,6 +233,20 @@ def main() -> int:
     total_build_memory_system_graph_index_operation_api_source_backed_entries = 0
     total_build_memory_system_graph_index_operation_api_anchor_sources = 0
     build_memory_system_graph_memory_object_index_operation_api_action_counts: dict[
+        str, int
+    ] = {}
+    total_build_memory_system_graph_index_context_interface_applied = 0
+    total_build_memory_system_graph_index_context_interface_entries = 0
+    total_build_memory_system_graph_index_context_interface_source_backed_entries = 0
+    total_build_memory_system_graph_index_context_interface_role_count = 0
+    total_build_memory_system_graph_index_context_interface_anchor_sources = 0
+    build_memory_system_graph_memory_object_index_context_interface_action_counts: dict[
+        str, int
+    ] = {}
+    build_memory_system_graph_memory_object_index_context_interface_role_source_counts: dict[
+        str, int
+    ] = {}
+    build_memory_system_graph_memory_object_index_context_interface_operation_view_source_counts: dict[
         str, int
     ] = {}
     total_build_memory_system_graph_index_layer_manifest_applied = 0
@@ -466,6 +482,12 @@ def main() -> int:
             retrieval_trace.get("context_budget_anchor_operation_api_source_count")
             or 0
         )
+        total_context_budget_anchor_context_interface_source_count += int(
+            retrieval_trace.get(
+                "context_budget_anchor_context_interface_source_count"
+            )
+            or 0
+        )
         context_budget_registry_anchor_candidates = len(
             retrieval_trace.get(
                 "context_budget_registry_anchor_candidate_source_ids"
@@ -527,6 +549,10 @@ def main() -> int:
             )
             total_context_budget_audit_anchor_operation_api_source_count += int(
                 context_budget_audit.get("anchor_operation_api_source_count") or 0
+            )
+            total_context_budget_audit_anchor_context_interface_source_count += int(
+                context_budget_audit.get("anchor_context_interface_source_count")
+                or 0
             )
             audit_registry_anchor_candidates = len(
                 context_budget_audit.get(
@@ -878,6 +904,49 @@ def main() -> int:
                     total_build_memory_system_graph_index_operation_api_anchor_sources += int(
                         operation_api.get("context_anchor_source_count") or 0
                     )
+                context_interface = (
+                    memory_object_index.get("memory_context_interface") or {}
+                )
+                if isinstance(context_interface, Mapping) and context_interface.get(
+                    "applied"
+                ):
+                    total_build_memory_system_graph_index_context_interface_applied += 1
+                    _merge_int_counts(
+                        build_memory_system_graph_memory_object_index_context_interface_action_counts,
+                        context_interface.get("operation_action_counts") or {},
+                    )
+                    total_build_memory_system_graph_index_context_interface_entries += int(
+                        context_interface.get("entry_count") or 0
+                    )
+                    total_build_memory_system_graph_index_context_interface_source_backed_entries += int(
+                        context_interface.get("source_backed_entry_count") or 0
+                    )
+                    total_build_memory_system_graph_index_context_interface_role_count += int(
+                        context_interface.get("role_count") or 0
+                    )
+                    total_build_memory_system_graph_index_context_interface_anchor_sources += int(
+                        context_interface.get("context_anchor_source_count") or 0
+                    )
+                    source_roles = context_interface.get("source_roles") or {}
+                    if isinstance(source_roles, Mapping):
+                        _merge_int_counts(
+                            build_memory_system_graph_memory_object_index_context_interface_role_source_counts,
+                            {
+                                str(role): int(summary.get("source_count") or 0)
+                                for role, summary in source_roles.items()
+                                if isinstance(summary, Mapping)
+                            },
+                        )
+                    operation_views = context_interface.get("operation_views") or {}
+                    if isinstance(operation_views, Mapping):
+                        _merge_int_counts(
+                            build_memory_system_graph_memory_object_index_context_interface_operation_view_source_counts,
+                            {
+                                str(view): int(summary.get("source_count") or 0)
+                                for view, summary in operation_views.items()
+                                if isinstance(summary, Mapping)
+                            },
+                        )
                 layer_manifest = memory_object_index.get("memory_layer_manifest") or {}
                 if isinstance(layer_manifest, Mapping) and layer_manifest.get(
                     "applied"
@@ -1617,6 +1686,12 @@ def main() -> int:
                     sample_count,
                 )
             ),
+            "avg_context_budget_anchor_context_interface_source_count": (
+                _safe_average(
+                    total_context_budget_anchor_context_interface_source_count,
+                    sample_count,
+                )
+            ),
             "context_budget_registry_anchor_sample_count": (
                 total_context_budget_registry_anchor_sample_count
             ),
@@ -1708,6 +1783,12 @@ def main() -> int:
             "avg_context_budget_audit_anchor_operation_api_source_count": (
                 _safe_average(
                     total_context_budget_audit_anchor_operation_api_source_count,
+                    sample_count,
+                )
+            ),
+            "avg_context_budget_audit_anchor_context_interface_source_count": (
+                _safe_average(
+                    total_context_budget_audit_anchor_context_interface_source_count,
                     sample_count,
                 )
             ),
@@ -1935,6 +2016,22 @@ def main() -> int:
             ),
             "memory_system_graph_memory_object_index_operation_api_action_counts": (
                 build_memory_system_graph_memory_object_index_operation_api_action_counts
+            ),
+            "memory_system_graph_memory_object_index_context_interface_applied_count": (
+                total_build_memory_system_graph_index_context_interface_applied
+            ),
+            "memory_system_graph_memory_object_index_context_interface_applied_rate": _safe_average(
+                total_build_memory_system_graph_index_context_interface_applied,
+                sample_count,
+            ),
+            "memory_system_graph_memory_object_index_context_interface_action_counts": (
+                build_memory_system_graph_memory_object_index_context_interface_action_counts
+            ),
+            "memory_system_graph_memory_object_index_context_interface_role_source_counts": (
+                build_memory_system_graph_memory_object_index_context_interface_role_source_counts
+            ),
+            "memory_system_graph_memory_object_index_context_interface_operation_view_source_counts": (
+                build_memory_system_graph_memory_object_index_context_interface_operation_view_source_counts
             ),
             "memory_system_graph_memory_object_index_layer_manifest_applied_count": (
                 total_build_memory_system_graph_index_layer_manifest_applied
@@ -2166,6 +2263,30 @@ def main() -> int:
                 _safe_average(
                     total_build_memory_system_graph_index_operation_api_anchor_sources,
                     total_build_memory_system_graph_index_operation_api_applied,
+                )
+            ),
+            "avg_memory_system_graph_memory_object_index_context_interface_entries": (
+                _safe_average(
+                    total_build_memory_system_graph_index_context_interface_entries,
+                    total_build_memory_system_graph_index_context_interface_applied,
+                )
+            ),
+            "avg_memory_system_graph_memory_object_index_context_interface_source_backed_entries": (
+                _safe_average(
+                    total_build_memory_system_graph_index_context_interface_source_backed_entries,
+                    total_build_memory_system_graph_index_context_interface_applied,
+                )
+            ),
+            "avg_memory_system_graph_memory_object_index_context_interface_role_count": (
+                _safe_average(
+                    total_build_memory_system_graph_index_context_interface_role_count,
+                    total_build_memory_system_graph_index_context_interface_applied,
+                )
+            ),
+            "avg_memory_system_graph_memory_object_index_context_interface_anchor_sources": (
+                _safe_average(
+                    total_build_memory_system_graph_index_context_interface_anchor_sources,
+                    total_build_memory_system_graph_index_context_interface_applied,
                 )
             ),
             "avg_memory_system_graph_memory_object_index_layer_manifest_entries": (
@@ -3227,6 +3348,12 @@ def _write_summary(
         f"- build_memory_system_graph_memory_object_index_operation_api_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_operation_api_applied_count']}",
         f"- avg_build_memory_system_graph_memory_object_index_operation_api_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_operation_api_entries']}",
         f"- avg_build_memory_system_graph_memory_object_index_operation_api_anchor_sources: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_operation_api_anchor_sources']}",
+        f"- build_memory_system_graph_memory_object_index_context_interface_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_context_interface_applied_count']}",
+        f"- avg_build_memory_system_graph_memory_object_index_context_interface_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_context_interface_entries']}",
+        f"- avg_build_memory_system_graph_memory_object_index_context_interface_role_count: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_context_interface_role_count']}",
+        f"- avg_build_memory_system_graph_memory_object_index_context_interface_anchor_sources: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_context_interface_anchor_sources']}",
+        f"- build_memory_system_graph_memory_object_index_context_interface_role_source_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_context_interface_role_source_counts']}",
+        f"- build_memory_system_graph_memory_object_index_context_interface_operation_view_source_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_context_interface_operation_view_source_counts']}",
         f"- build_memory_system_graph_memory_object_index_layer_manifest_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_layer_manifest_applied_count']}",
         f"- avg_build_memory_system_graph_memory_object_index_layer_manifest_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_layer_manifest_entries']}",
         f"- build_memory_system_graph_memory_object_index_layer_manifest_layer_entries: {metrics['build_memory']['memory_system_graph_memory_object_index_layer_manifest_layer_entries']}",
@@ -3365,6 +3492,7 @@ def _write_summary(
         f"- context_budget_anchor_selected_source_counts: {metrics['retrieval']['context_budget_anchor_selected_source_counts']}",
         f"- avg_context_budget_anchor_layer_manifest_source_count: {metrics['retrieval']['avg_context_budget_anchor_layer_manifest_source_count']}",
         f"- avg_context_budget_anchor_operation_api_source_count: {metrics['retrieval']['avg_context_budget_anchor_operation_api_source_count']}",
+        f"- avg_context_budget_anchor_context_interface_source_count: {metrics['retrieval']['avg_context_budget_anchor_context_interface_source_count']}",
         f"- context_budget_applied_count: {metrics['retrieval']['context_budget_applied_count']}",
         f"- context_budget_applied_rate: {metrics['retrieval']['context_budget_applied_rate']}",
         f"- avg_context_budget_candidate_count: {metrics['retrieval']['avg_context_budget_candidate_count']}",
@@ -3387,6 +3515,7 @@ def _write_summary(
         f"- context_budget_audit_anchor_selected_source_counts: {metrics['retrieval']['context_budget_audit_anchor_selected_source_counts']}",
         f"- avg_context_budget_audit_anchor_layer_manifest_source_count: {metrics['retrieval']['avg_context_budget_audit_anchor_layer_manifest_source_count']}",
         f"- avg_context_budget_audit_anchor_operation_api_source_count: {metrics['retrieval']['avg_context_budget_audit_anchor_operation_api_source_count']}",
+        f"- avg_context_budget_audit_anchor_context_interface_source_count: {metrics['retrieval']['avg_context_budget_audit_anchor_context_interface_source_count']}",
         f"- context_budget_audit_applied_count: {metrics['retrieval']['context_budget_audit_applied_count']}",
         f"- context_budget_audit_applied_rate: {metrics['retrieval']['context_budget_audit_applied_rate']}",
         f"- avg_context_budget_audit_candidate_count: {metrics['retrieval']['avg_context_budget_audit_candidate_count']}",
@@ -3691,6 +3820,12 @@ def _write_diagnosis(
         f"- build_memory_system_graph_memory_object_index_operation_api_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_operation_api_applied_count']}",
         f"- avg_build_memory_system_graph_memory_object_index_operation_api_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_operation_api_entries']}",
         f"- avg_build_memory_system_graph_memory_object_index_operation_api_anchor_sources: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_operation_api_anchor_sources']}",
+        f"- build_memory_system_graph_memory_object_index_context_interface_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_context_interface_applied_count']}",
+        f"- avg_build_memory_system_graph_memory_object_index_context_interface_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_context_interface_entries']}",
+        f"- avg_build_memory_system_graph_memory_object_index_context_interface_role_count: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_context_interface_role_count']}",
+        f"- avg_build_memory_system_graph_memory_object_index_context_interface_anchor_sources: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_context_interface_anchor_sources']}",
+        f"- build_memory_system_graph_memory_object_index_context_interface_role_source_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_context_interface_role_source_counts']}",
+        f"- build_memory_system_graph_memory_object_index_context_interface_operation_view_source_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_context_interface_operation_view_source_counts']}",
         f"- build_memory_system_graph_memory_object_index_layer_manifest_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_layer_manifest_applied_count']}",
         f"- avg_build_memory_system_graph_memory_object_index_layer_manifest_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_layer_manifest_entries']}",
         f"- build_memory_system_graph_memory_object_index_layer_manifest_layer_entries: {metrics['build_memory']['memory_system_graph_memory_object_index_layer_manifest_layer_entries']}",
@@ -3793,6 +3928,7 @@ def _write_diagnosis(
         f"- context_budget_anchor_selected_source_counts: {metrics['retrieval']['context_budget_anchor_selected_source_counts']}",
         f"- avg_context_budget_anchor_layer_manifest_source_count: {metrics['retrieval']['avg_context_budget_anchor_layer_manifest_source_count']}",
         f"- avg_context_budget_anchor_operation_api_source_count: {metrics['retrieval']['avg_context_budget_anchor_operation_api_source_count']}",
+        f"- avg_context_budget_anchor_context_interface_source_count: {metrics['retrieval']['avg_context_budget_anchor_context_interface_source_count']}",
         f"- context_budget_applied_count: {metrics['retrieval']['context_budget_applied_count']}",
         f"- context_budget_applied_rate: {metrics['retrieval']['context_budget_applied_rate']}",
         f"- avg_context_budget_candidate_count: {metrics['retrieval']['avg_context_budget_candidate_count']}",
@@ -3808,6 +3944,7 @@ def _write_diagnosis(
         f"- context_budget_audit_anchor_selected_source_counts: {metrics['retrieval']['context_budget_audit_anchor_selected_source_counts']}",
         f"- avg_context_budget_audit_anchor_layer_manifest_source_count: {metrics['retrieval']['avg_context_budget_audit_anchor_layer_manifest_source_count']}",
         f"- avg_context_budget_audit_anchor_operation_api_source_count: {metrics['retrieval']['avg_context_budget_audit_anchor_operation_api_source_count']}",
+        f"- avg_context_budget_audit_anchor_context_interface_source_count: {metrics['retrieval']['avg_context_budget_audit_anchor_context_interface_source_count']}",
         f"- context_budget_audit_applied_count: {metrics['retrieval']['context_budget_audit_applied_count']}",
         f"- context_budget_audit_applied_rate: {metrics['retrieval']['context_budget_audit_applied_rate']}",
         f"- avg_context_budget_audit_candidate_count: {metrics['retrieval']['avg_context_budget_audit_candidate_count']}",

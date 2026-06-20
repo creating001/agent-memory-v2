@@ -60,7 +60,13 @@ _STATE_UPDATE_MEMORY_TYPES = frozenset(
     {"preference", "profile", "relationship", "state"}
 )
 _CONTEXT_BUDGET_ANCHOR_SOURCES = frozenset(
-    {"operation_registry", "layer_manifest", "operation_api", "auto"}
+    {
+        "operation_registry",
+        "layer_manifest",
+        "operation_api",
+        "context_interface",
+        "auto",
+    }
 )
 _MEMORY_OPERATION_SLOT_SOURCES = frozenset(
     {
@@ -2596,6 +2602,9 @@ class Stage1Pipeline:
             anchor_operation_api_source_count=context_budget_anchor_trace[
                 "anchor_operation_api_source_count"
             ],
+            anchor_context_interface_source_count=context_budget_anchor_trace[
+                "anchor_context_interface_source_count"
+            ],
         )
         if _context_budget_applies(
             route=route,
@@ -2631,6 +2640,9 @@ class Stage1Pipeline:
                 ],
                 anchor_operation_api_source_count=context_budget_anchor_trace[
                     "anchor_operation_api_source_count"
+                ],
+                anchor_context_interface_source_count=context_budget_anchor_trace[
+                    "anchor_context_interface_source_count"
                 ],
             )
         evidence_turns = store.expand_neighbors(
@@ -2805,6 +2817,9 @@ class Stage1Pipeline:
             anchor_operation_api_source_count=context_budget_audit_anchor_trace[
                 "anchor_operation_api_source_count"
             ],
+            anchor_context_interface_source_count=context_budget_audit_anchor_trace[
+                "anchor_context_interface_source_count"
+            ],
         )
         if _context_budget_applies(
             route=route,
@@ -2843,6 +2858,11 @@ class Stage1Pipeline:
                 anchor_operation_api_source_count=(
                     context_budget_audit_anchor_trace[
                         "anchor_operation_api_source_count"
+                    ]
+                ),
+                anchor_context_interface_source_count=(
+                    context_budget_audit_anchor_trace[
+                        "anchor_context_interface_source_count"
                     ]
                 ),
             )
@@ -3518,6 +3538,11 @@ class Stage1Pipeline:
                     ),
                     "context_budget_anchor_operation_api_source_count": (
                         context_budget_trace["anchor_operation_api_source_count"]
+                    ),
+                    "context_budget_anchor_context_interface_source_count": (
+                        context_budget_trace[
+                            "anchor_context_interface_source_count"
+                        ]
                     ),
                     "context_budget_anchor_candidate_source_ids": (
                         context_budget_trace["anchor_candidate_source_ids"]
@@ -4528,6 +4553,9 @@ def _context_manifest(
             "context_budget_anchor_operation_api_source_count": int(
                 context_budget_trace.get("anchor_operation_api_source_count") or 0
             ),
+            "context_budget_anchor_context_interface_source_count": int(
+                context_budget_trace.get("anchor_context_interface_source_count") or 0
+            ),
             "context_budget_anchor_candidate_count": len(
                 context_budget_trace.get("anchor_candidate_source_ids") or ()
             ),
@@ -4641,6 +4669,9 @@ def _context_manifest(
             "final_evidence_from_layer_manifest_count": len(
                 memory_operations_manifest["layer_manifest_final_source_ids"]
             ),
+            "final_evidence_from_context_interface_count": len(
+                memory_operations_manifest["context_interface_final_source_ids"]
+            ),
             "typed_memory_source_count": len(typed_memory_source_ids),
             "selected_context_materialized_count": int(
                 selected_context.get("materialized_count") or 0
@@ -4700,6 +4731,14 @@ def _context_manifest(
                 ],
                 "operation_api_final_source_count": len(
                     memory_operations_manifest["operation_api_final_source_ids"]
+                ),
+                "context_interface_available": memory_operations_manifest[
+                    "context_interface_available"
+                ],
+                "context_interface_final_source_count": len(
+                    memory_operations_manifest[
+                        "context_interface_final_source_ids"
+                    ]
                 ),
             },
             "evidence_pressure": _evidence_pressure_manifest(evidence_rows),
@@ -4764,6 +4803,7 @@ def _memory_operations_context_manifest(
     lifecycle_audit = {}
     layer_manifest = {}
     operation_api = {}
+    context_interface = {}
     if isinstance(memory_object_index, Mapping):
         raw_registry = memory_object_index.get("operation_registry")
         if isinstance(raw_registry, Mapping):
@@ -4780,11 +4820,15 @@ def _memory_operations_context_manifest(
         raw_operation_api = memory_object_index.get("memory_operation_api")
         if isinstance(raw_operation_api, Mapping):
             operation_api = raw_operation_api
+        raw_context_interface = memory_object_index.get("memory_context_interface")
+        if isinstance(raw_context_interface, Mapping):
+            context_interface = raw_context_interface
     registry_available = bool(operation_registry.get("applied"))
     working_view_available = bool(working_memory_view.get("applied"))
     lifecycle_audit_available = bool(lifecycle_audit.get("applied"))
     layer_manifest_available = bool(layer_manifest.get("applied"))
     operation_api_available = bool(operation_api.get("applied"))
+    context_interface_available = bool(context_interface.get("applied"))
     lifecycle_audit_source_ids = _ordered_unique(
         source_id
         for entry in lifecycle_audit.get("entries") or ()
@@ -4824,6 +4868,32 @@ def _memory_operations_context_manifest(
     )
     operation_api_final_source_ids = tuple(
         source_id for source_id in operation_api_source_ids if source_id in final_set
+    )
+    context_interface_source_ids = _ordered_unique(
+        (
+            *(context_interface.get("context_anchor_source_ids") or ()),
+            *(
+                source_id
+                for role in _mapping_values(
+                    context_interface.get("source_roles")
+                )
+                if isinstance(role, Mapping)
+                for source_id in (role.get("source_ids") or ())
+            ),
+            *(
+                source_id
+                for view in _mapping_values(
+                    context_interface.get("operation_views")
+                )
+                if isinstance(view, Mapping)
+                for source_id in (view.get("source_ids") or ())
+            ),
+        )
+    )
+    context_interface_final_source_ids = tuple(
+        source_id
+        for source_id in context_interface_source_ids
+        if source_id in final_set
     )
     return {
         "trace_only": True,
@@ -4885,6 +4955,23 @@ def _memory_operations_context_manifest(
         ),
         "operation_api_final_source_ids": operation_api_final_source_ids,
         "operation_api_final_source_count": len(operation_api_final_source_ids),
+        "context_interface_available": context_interface_available,
+        "context_interface_schema_version": str(
+            context_interface.get("schema_version") or ""
+        ),
+        "context_interface_role_count": int(
+            context_interface.get("role_count") or 0
+        ),
+        "context_interface_entry_count": int(
+            context_interface.get("entry_count") or 0
+        ),
+        "context_interface_context_anchor_source_count": int(
+            context_interface.get("context_anchor_source_count") or 0
+        ),
+        "context_interface_final_source_ids": context_interface_final_source_ids,
+        "context_interface_final_source_count": len(
+            context_interface_final_source_ids
+        ),
         "operation_utility_slot_source": operation_slot_source,
         "graph_utility_slot_source": graph_slot_source,
         "operation_interface_sources": sorted(operation_interface_sources),
@@ -4914,6 +5001,12 @@ def _operation_consumer_slot_source(trace: Mapping[str, Any]) -> str:
     if not isinstance(slot_index, Mapping):
         return ""
     return str(slot_index.get("source") or "")
+
+
+def _mapping_values(value: Any) -> tuple[Any, ...]:
+    if not isinstance(value, Mapping):
+        return ()
+    return tuple(value.values())
 
 
 def _registry_backed_operation_source_ids(
@@ -8166,6 +8259,20 @@ def _memory_operation_api_anchor_source_ids(
     return _ordered_unique(operation_api.get("context_anchor_source_ids") or ())
 
 
+def _memory_context_interface_anchor_source_ids(
+    memory_object_index: Mapping[str, Any] | None,
+) -> tuple[str, ...]:
+    if not isinstance(memory_object_index, Mapping):
+        return ()
+    context_interface = memory_object_index.get("memory_context_interface")
+    if (
+        not isinstance(context_interface, Mapping)
+        or not context_interface.get("applied")
+    ):
+        return ()
+    return _ordered_unique(context_interface.get("context_anchor_source_ids") or ())
+
+
 def _context_budget_anchor_source_ids(
     *,
     anchor_source: str,
@@ -8184,9 +8291,15 @@ def _context_budget_anchor_source_ids(
     operation_api_source_ids = _memory_operation_api_anchor_source_ids(
         memory_object_index
     )
+    context_interface_source_ids = _memory_context_interface_anchor_source_ids(
+        memory_object_index
+    )
     selected_source = anchor_source
     if anchor_source == "auto":
-        if operation_api_source_ids:
+        if context_interface_source_ids:
+            selected_source = "context_interface"
+            selected_source_ids = context_interface_source_ids
+        elif operation_api_source_ids:
             selected_source = "operation_api"
             selected_source_ids = operation_api_source_ids
         elif layer_manifest_source_ids:
@@ -8197,6 +8310,8 @@ def _context_budget_anchor_source_ids(
             selected_source_ids = registry_source_ids
     elif anchor_source == "operation_api":
         selected_source_ids = operation_api_source_ids
+    elif anchor_source == "context_interface":
+        selected_source_ids = context_interface_source_ids
     elif anchor_source == "layer_manifest":
         selected_source_ids = layer_manifest_source_ids
     else:
@@ -8209,6 +8324,7 @@ def _context_budget_anchor_source_ids(
         "anchor_registry_source_count": len(registry_source_ids),
         "anchor_layer_manifest_source_count": len(layer_manifest_source_ids),
         "anchor_operation_api_source_count": len(operation_api_source_ids),
+        "anchor_context_interface_source_count": len(context_interface_source_ids),
     }
 
 
@@ -8226,6 +8342,7 @@ def _disabled_context_budget_trace(
     anchor_registry_source_count: int = 0,
     anchor_layer_manifest_source_count: int = 0,
     anchor_operation_api_source_count: int = 0,
+    anchor_context_interface_source_count: int = 0,
 ) -> dict[str, Any]:
     return {
         "enabled": enabled,
@@ -8245,6 +8362,9 @@ def _disabled_context_budget_trace(
         "anchor_registry_source_count": anchor_registry_source_count,
         "anchor_layer_manifest_source_count": anchor_layer_manifest_source_count,
         "anchor_operation_api_source_count": anchor_operation_api_source_count,
+        "anchor_context_interface_source_count": (
+            anchor_context_interface_source_count
+        ),
         "anchor_candidate_source_ids": [],
         "anchor_retained_source_ids": [],
         "anchor_dropped_source_ids": [],
@@ -8269,6 +8389,7 @@ def _disabled_context_budget_audit_trace(
     anchor_registry_source_count: int = 0,
     anchor_layer_manifest_source_count: int = 0,
     anchor_operation_api_source_count: int = 0,
+    anchor_context_interface_source_count: int = 0,
 ) -> dict[str, Any]:
     return {
         "enabled": enabled,
@@ -8290,6 +8411,9 @@ def _disabled_context_budget_audit_trace(
         "anchor_registry_source_count": anchor_registry_source_count,
         "anchor_layer_manifest_source_count": anchor_layer_manifest_source_count,
         "anchor_operation_api_source_count": anchor_operation_api_source_count,
+        "anchor_context_interface_source_count": (
+            anchor_context_interface_source_count
+        ),
         "anchor_candidate_source_ids": [],
         "anchor_retained_source_ids": [],
         "anchor_dropped_source_ids": [],
@@ -8328,6 +8452,7 @@ def _apply_context_budget(
     anchor_registry_source_count: int = 0,
     anchor_layer_manifest_source_count: int = 0,
     anchor_operation_api_source_count: int = 0,
+    anchor_context_interface_source_count: int = 0,
 ) -> tuple[tuple[RetrievalHit, ...], dict[str, Any]]:
     protected_source_ids = _ordered_unique(protected_source_ids)
     if not hits:
@@ -8347,6 +8472,9 @@ def _apply_context_budget(
                     anchor_layer_manifest_source_count
                 ),
                 anchor_operation_api_source_count=anchor_operation_api_source_count,
+                anchor_context_interface_source_count=(
+                    anchor_context_interface_source_count
+                ),
             ),
             "applied": True,
         }
@@ -8432,6 +8560,9 @@ def _apply_context_budget(
         "anchor_registry_source_count": anchor_registry_source_count,
         "anchor_layer_manifest_source_count": anchor_layer_manifest_source_count,
         "anchor_operation_api_source_count": anchor_operation_api_source_count,
+        "anchor_context_interface_source_count": (
+            anchor_context_interface_source_count
+        ),
         "anchor_candidate_source_ids": list(anchor_candidate_source_ids),
         "anchor_retained_source_ids": list(anchor_retained_source_ids),
         "anchor_dropped_source_ids": list(anchor_dropped_source_ids),
@@ -8503,6 +8634,9 @@ def _context_budget_audit_trace(
         ),
         "anchor_operation_api_source_count": projected_budget.get(
             "anchor_operation_api_source_count"
+        ),
+        "anchor_context_interface_source_count": projected_budget.get(
+            "anchor_context_interface_source_count"
         ),
         "anchor_candidate_source_ids": projected_budget.get(
             "anchor_candidate_source_ids"
