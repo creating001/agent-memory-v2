@@ -1,0 +1,151 @@
+{
+  "api_key_env": "DEEPSEEK_API_KEY",
+  "base_url": "https://api.deepseek.com",
+  "benchmark": "longmemeval",
+  "clean_note": "Offline judge reads gold labels only after prediction. This output must not be consumed by prediction, retrieval, compiler, answer, or verifier.",
+  "created_at_utc": "2026-06-20T22:50:05+00:00",
+  "dry_run": false,
+  "git": {
+    "commit": "6660add1678ccef0c99093b93f659bbcefde15d7",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "?? experiments/diagnostic/v333_workspace_query_component_policy_lme_smoke5/\n?? experiments/diagnostic/v333_workspace_query_component_policy_locomo_smoke5/"
+  },
+  "judgments": [
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "858ac521333e9e8e",
+      "question_type": "single-session-user",
+      "raw_response": "yes",
+      "record_key": "0f97337d8046ed5cfefbb5e6",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 44,
+        "completion_tokens_details": {
+          "reasoning_tokens": 42
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 116,
+        "prompt_tokens": 116,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "total_tokens": 160
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "0b11abd211024723",
+      "question_type": "single-session-user",
+      "raw_response": "yes",
+      "record_key": "81df9103418e931f73ff48af",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 47,
+        "completion_tokens_details": {
+          "reasoning_tokens": 45
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 124,
+        "prompt_tokens": 124,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "total_tokens": 171
+      }
+    },
+    {
+      "label": "WRONG",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "8c6e3d82205ad2b5",
+      "question_type": "single-session-user",
+      "raw_response": "no",
+      "record_key": "ea4e66b0d90b6834b4168cfe",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 52,
+        "completion_tokens_details": {
+          "reasoning_tokens": 50
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 4,
+        "prompt_tokens": 132,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "total_tokens": 184
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "6cf7e9aca81cd7e2",
+      "question_type": "single-session-user",
+      "raw_response": "yes",
+      "record_key": "c81c7b973943d16a63e11e3b",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 32,
+        "completion_tokens_details": {
+          "reasoning_tokens": 30
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 126,
+        "prompt_tokens": 126,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "total_tokens": 158
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "e5aba96a699e694c",
+      "question_type": "single-session-user",
+      "raw_response": "yes",
+      "record_key": "661a360933a3aa7475fdb37e",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 39,
+        "completion_tokens_details": {
+          "reasoning_tokens": 37
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 123,
+        "prompt_tokens": 123,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "total_tokens": 162
+      }
+    }
+  ],
+  "labels": "/data/home_new/wujinqi/agent-memory/outputs/prepare_longmemeval_s_cleaned/labels.jsonl",
+  "metrics": {
+    "accuracy": 0.8,
+    "n_invalid": 0,
+    "n_judgments": 5,
+    "n_valid": 5
+  },
+  "model": "deepseek-v4-flash",
+  "partial_output": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/v333_workspace_query_component_policy_lme_smoke5/deepseek_judge_flash_2.json.partial.jsonl",
+  "predictions": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/v333_workspace_query_component_policy_lme_smoke5/predictions.jsonl",
+  "request_body_options": {},
+  "temperature": 0.0,
+  "thinking": null,
+  "usage": {
+    "completion_tokens": 214,
+    "prompt_tokens": 621,
+    "total_tokens": 835
+  },
+  "workers": 4
+}
