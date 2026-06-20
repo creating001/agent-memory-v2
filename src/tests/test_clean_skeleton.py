@@ -3679,6 +3679,54 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual(low_sample["activation_utility_bucket"], "blocked")
         self.assertEqual(low_sample["risk_flags"], ("low_confidence",))
 
+    def test_memory_working_view_can_be_disabled_for_ablation(self) -> None:
+        old_city = MemoryRecord(
+            memory_id="m-old-city",
+            memory_type="state",
+            text="User lived in Austin.",
+            source_ids=("s1:t1",),
+            subject="user",
+            predicate="location",
+            value="Austin",
+            timestamp="2024-01-01",
+            status="superseded",
+            superseded_by="m-new-city",
+        )
+        new_city = MemoryRecord(
+            memory_id="m-new-city",
+            memory_type="state",
+            text="User now lives in Seattle.",
+            source_ids=("s2:t1",),
+            subject="user",
+            predicate="location",
+            value="Seattle",
+            timestamp="2024-03-01",
+            status="active",
+        )
+
+        summary = _management_summary(
+            (old_city, new_city),
+            policy="stateful_only",
+            managed_memory_types=frozenset({"state"}),
+            include_memory_system_graph=True,
+            include_memory_working_view=False,
+        )
+
+        memory_object_index = summary["memory_system_graph"]["memory_object_index"]
+        working_memory_view = memory_object_index["working_memory_view"]
+        operation_registry = memory_object_index["operation_registry"]
+
+        self.assertFalse(working_memory_view["applied"])
+        self.assertEqual(working_memory_view["entry_count"], 0)
+        self.assertEqual(
+            working_memory_view["disabled_reason"],
+            "build_memory.memory_system_graph.working_memory_view.enabled=false",
+        )
+        self.assertEqual(memory_object_index["working_memory_view_entry_count"], 0)
+        self.assertTrue(operation_registry["applied"])
+        self.assertEqual(operation_registry["operation_slot_entry_count"], 1)
+        self.assertEqual(operation_registry["source_backed_entry_count"], 5)
+
     def test_memory_scalar_value_manifest_tracks_source_backed_values(self) -> None:
         old_followers = MemoryRecord(
             memory_id="m-old-followers",
@@ -4805,6 +4853,123 @@ class CleanSkeletonTest(unittest.TestCase):
         )
         self.assertEqual([hit.source_id for hit in hits], ["s1:t0"])
         self.assertIn("conflict_slot", trace["slots"][0]["signals"])
+
+    def test_memory_graph_utility_falls_back_to_registry_when_view_disabled(
+        self,
+    ) -> None:
+        old_record = MemoryRecord(
+            memory_id="old-city",
+            memory_type="state",
+            text="Alex lives in Austin.",
+            source_ids=("s1:t0",),
+            subject="Alex",
+            predicate="home city",
+            value="Austin",
+            timestamp="2024-01-01",
+            status="superseded",
+            superseded_by="new-city",
+        )
+        new_record = MemoryRecord(
+            memory_id="new-city",
+            memory_type="state",
+            text="Alex lives in Seattle.",
+            source_ids=("s2:t0",),
+            subject="Alex",
+            predicate="home city",
+            value="Seattle",
+            timestamp="2024-05-01",
+            status="active",
+        )
+        management = _management_summary(
+            (new_record, old_record),
+            policy="stateful_only",
+            managed_memory_types=frozenset({"state"}),
+            include_memory_system_graph=True,
+            include_memory_working_view=False,
+        )
+
+        hits, trace = _memory_graph_utility_source_hits(
+            memory_hits=(MemoryHit(record=new_record, score=3.0, rank=1),),
+            built_memory_records=(),
+            question="Where does Alex live now?",
+            route=RouteResult("current_state", ("current_state",)),
+            available_source_ids={"s1:t0", "s2:t0"},
+            candidate_source_ids={"s2:t0"},
+            max_slots=2,
+            max_sources_per_slot=4,
+            memory_types=("state",),
+            min_overlap_terms=1,
+            require_new_source=True,
+            required_signals=("supersede", "conflict_slot"),
+            fusion_mode="tail_rescue",
+            source_selection_policy="validity_aware",
+            memory_object_index=management["memory_system_graph"]["memory_object_index"],
+        )
+
+        self.assertTrue(trace["applied"])
+        self.assertEqual(trace["slot_index"]["source"], "memory_operation_registry")
+        self.assertEqual(
+            trace["slot_index"]["schema_version"],
+            "memory_operation_registry_v1",
+        )
+        self.assertEqual([hit.source_id for hit in hits], ["s1:t0"])
+
+    def test_memory_operation_utility_falls_back_to_registry_when_view_disabled(
+        self,
+    ) -> None:
+        old_record = MemoryRecord(
+            memory_id="old-city",
+            memory_type="state",
+            text="Alex lives in Austin.",
+            source_ids=("s1:t0",),
+            subject="Alex",
+            predicate="home city",
+            value="Austin",
+            timestamp="2024-01-01",
+            status="superseded",
+            superseded_by="new-city",
+        )
+        new_record = MemoryRecord(
+            memory_id="new-city",
+            memory_type="state",
+            text="Alex lives in Seattle.",
+            source_ids=("s2:t0",),
+            subject="Alex",
+            predicate="home city",
+            value="Seattle",
+            timestamp="2024-05-01",
+            status="active",
+        )
+        management = _management_summary(
+            (old_record, new_record),
+            policy="stateful_only",
+            managed_memory_types=frozenset({"state"}),
+            include_memory_system_graph=True,
+            include_memory_working_view=False,
+        )
+
+        hits, trace = _memory_operation_utility_source_hits(
+            memory_hits=(MemoryHit(record=old_record, score=3.0, rank=1),),
+            built_memory_records=(),
+            question="Where does Alex live now?",
+            route=RouteResult("current_state", ("current_state",)),
+            available_source_ids={"s1:t0", "s2:t0"},
+            max_slots=2,
+            max_sources_per_slot=4,
+            memory_types=("state",),
+            operations=("supersede", "conflict_slot"),
+            fusion_mode="tail_exchange",
+            managed_memory_types=("state",),
+            memory_object_index=management["memory_system_graph"]["memory_object_index"],
+        )
+
+        self.assertTrue(trace["applied"])
+        self.assertEqual(trace["slot_index"]["source"], "memory_operation_registry")
+        self.assertEqual(
+            trace["slot_index"]["schema_version"],
+            "memory_operation_registry_v1",
+        )
+        self.assertEqual([hit.source_id for hit in hits], ["s2:t0", "s1:t0"])
 
     def test_memory_graph_utility_can_require_lifecycle_signal(self) -> None:
         record = MemoryRecord(

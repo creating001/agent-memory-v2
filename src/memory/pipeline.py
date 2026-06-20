@@ -251,6 +251,17 @@ class Stage1Pipeline:
         self._build_memory_system_graph_enabled = bool(
             memory_system_graph_config.get("enabled", False)
         )
+        working_memory_view_config = memory_system_graph_config.get(
+            "working_memory_view",
+            {},
+        )
+        if not isinstance(working_memory_view_config, Mapping):
+            raise ValueError(
+                "build_memory.memory_system_graph.working_memory_view must be an object"
+            )
+        self._build_memory_working_view_enabled = bool(
+            working_memory_view_config.get("enabled", True)
+        )
         source_alignment_config = build_memory_config.get("source_alignment", {})
         self._build_memory_source_alignment_enabled = bool(
             source_alignment_config.get("enabled", False)
@@ -310,6 +321,10 @@ class Stage1Pipeline:
             "memory_system_graph": {
                 "enabled": self._build_memory_system_graph_enabled,
                 "trace_only": False,
+                "working_memory_view": {
+                    "enabled": self._build_memory_working_view_enabled,
+                    "trace_only": False,
+                },
             },
             "source_alignment": {
                 "enabled": self._build_memory_source_alignment_enabled,
@@ -959,6 +974,7 @@ class Stage1Pipeline:
                 management_policy=build_memory_config.get("management_policy"),
                 operation_ledger=self._build_memory_operation_ledger_enabled,
                 memory_system_graph=self._build_memory_system_graph_enabled,
+                memory_working_view=self._build_memory_working_view_enabled,
                 chat_template_kwargs=_dict_config(
                     build_memory_config.get("chat_template_kwargs")
                 ),

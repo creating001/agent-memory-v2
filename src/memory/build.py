@@ -198,6 +198,7 @@ class OpenAICompatibleMemoryBuilder:
         management_policy: str | None = None,
         operation_ledger: bool = False,
         memory_system_graph: bool = False,
+        memory_working_view: bool = True,
         chat_template_kwargs: dict[str, Any] | None = None,
     ):
         if prompt_profile not in {"typed_compact", "lossless_atomic"}:
@@ -230,6 +231,7 @@ class OpenAICompatibleMemoryBuilder:
         self._management_policy = management_policy
         self._operation_ledger = operation_ledger
         self._memory_system_graph = memory_system_graph
+        self._memory_working_view = memory_working_view
         self._chat_template_kwargs = dict(chat_template_kwargs or {})
         self._connection: sqlite3.Connection | None = None
         self._cache_stats = BuildMemoryCacheStats()
@@ -256,6 +258,7 @@ class OpenAICompatibleMemoryBuilder:
                     ],
                     include_operation_ledger=self._operation_ledger,
                     include_memory_system_graph=self._memory_system_graph,
+                    include_memory_working_view=self._memory_working_view,
                 ),
             )
 
@@ -343,6 +346,7 @@ class OpenAICompatibleMemoryBuilder:
                 supersede_pairs=operation_trace["supersede_pairs"],
                 include_operation_ledger=self._operation_ledger,
                 include_memory_system_graph=self._memory_system_graph,
+                include_memory_working_view=self._memory_working_view,
             ),
         )
 
@@ -767,6 +771,7 @@ def _management_summary(
     supersede_pairs: tuple[dict[str, Any], ...] = (),
     include_operation_ledger: bool = False,
     include_memory_system_graph: bool = False,
+    include_memory_working_view: bool = True,
 ) -> dict[str, Any]:
     """Summarize build-time memory operations for trace/audit.
 
@@ -857,6 +862,7 @@ def _management_summary(
             managed_memory_types=managed_memory_types,
             merge_groups=merge_groups,
             supersede_pairs=supersede_pairs,
+            include_memory_working_view=include_memory_working_view,
         )
     return summary
 
@@ -969,6 +975,7 @@ def _memory_system_graph_summary(
     managed_memory_types: frozenset[str],
     merge_groups: tuple[dict[str, Any], ...],
     supersede_pairs: tuple[dict[str, Any], ...],
+    include_memory_working_view: bool = True,
 ) -> dict[str, Any]:
     """Question-independent memory system graph over source-backed build memory.
 
@@ -1046,6 +1053,7 @@ def _memory_system_graph_summary(
         state_conflict_manifest=state_conflict_manifest,
         scalar_value_manifest=scalar_value_manifest,
         governance_manifest=governance_manifest,
+        include_working_memory_view=include_memory_working_view,
     )
     operation_edge_counts = {
         "create": len(deduped_records),
@@ -1235,6 +1243,7 @@ def _memory_object_index_manifest(
     state_conflict_manifest: dict[str, Any],
     scalar_value_manifest: dict[str, Any],
     governance_manifest: dict[str, Any],
+    include_working_memory_view: bool = True,
 ) -> dict[str, Any]:
     """Unified build-owned memory object index for query-time consumers.
 
@@ -1296,7 +1305,11 @@ def _memory_object_index_manifest(
         state_conflict_slots=state_conflict_slots,
         operation_manifest=operation_manifest,
     )
-    working_memory_view = _memory_working_memory_view(operation_registry)
+    working_memory_view = (
+        _memory_working_memory_view(operation_registry)
+        if include_working_memory_view
+        else _disabled_memory_working_memory_view()
+    )
     object_samples = [
         {
             "memory_id": record.memory_id,
@@ -1426,13 +1439,7 @@ def _memory_object_index_manifest(
             "working_memory_view_contract": {
                 "view_field": "working_memory_view",
                 "schema_version": "memory_working_view_v1",
-                "layers": [
-                    "short_term_memory",
-                    "working_memory",
-                    "long_term_memory",
-                    "archival_memory",
-                    "quarantine_memory",
-                ],
+                "layers": list(_memory_working_view_layer_contract().keys()),
                 "policy": (
                     "query compiler consumes source-backed workspace entries; "
                     "short-term memory is supplied by visible raw rows at query time"
@@ -1587,38 +1594,8 @@ def _memory_working_memory_view(
         "role_counts": dict(sorted(role_counts.items())),
         "target_counts": dict(sorted(target_counts.items())),
         "operation_counts": dict(sorted(operation_counts.items())),
-        "layer_contract": {
-            "short_term_memory": (
-                "query-local raw turns and cited Memory rows; not persisted by "
-                "build memory"
-            ),
-            "working_memory": (
-                "active source-backed objects, value slots, conflict slots, and "
-                "operation targets for current state organization"
-            ),
-            "long_term_memory": (
-                "source-backed stable recall objects and slots; retrieved or "
-                "expanded through raw source ids"
-            ),
-            "archival_memory": (
-                "superseded or historical objects retained for conflict audit "
-                "and temporal comparison"
-            ),
-            "quarantine_memory": (
-                "low-confidence or source-incomplete objects; not eligible as "
-                "independent evidence"
-            ),
-        },
-        "operation_contract": [
-            "create",
-            "update",
-            "merge",
-            "supersede",
-            "retrieve",
-            "expand",
-            "verify",
-            "audit",
-        ],
+        "layer_contract": _memory_working_view_layer_contract(),
+        "operation_contract": _memory_working_view_operation_contract(),
         "source_policy": {
             "raw_evidence_required": True,
             "final_evidence_policy": "raw_source_rows",
@@ -1632,6 +1609,74 @@ def _memory_working_memory_view(
             "all entries must expand to raw source rows before final evidence."
         ),
     }
+
+
+def _disabled_memory_working_memory_view() -> dict[str, Any]:
+    return {
+        "schema_version": "memory_working_view_v1",
+        "trace_only": False,
+        "applied": False,
+        "entry_count": 0,
+        "source_backed_entry_count": 0,
+        "source_incomplete_entry_count": 0,
+        "layer_counts": {},
+        "role_counts": {},
+        "target_counts": {},
+        "operation_counts": {},
+        "layer_contract": _memory_working_view_layer_contract(),
+        "operation_contract": _memory_working_view_operation_contract(),
+        "source_policy": {
+            "raw_evidence_required": True,
+            "final_evidence_policy": "raw_source_rows",
+            "question_independent_build": True,
+        },
+        "entries": [],
+        "disabled_reason": (
+            "build_memory.memory_system_graph.working_memory_view.enabled=false"
+        ),
+        "clean_note": (
+            "Working-memory view is disabled for ablation. Query consumers must "
+            "fall back to the source-backed operation registry or raw operation "
+            "slot index, and final answer evidence still resolves to raw rows."
+        ),
+    }
+
+
+def _memory_working_view_layer_contract() -> dict[str, str]:
+    return {
+        "short_term_memory": (
+            "query-local raw turns and cited Memory rows; not persisted by build memory"
+        ),
+        "working_memory": (
+            "active source-backed objects, value slots, conflict slots, and "
+            "operation targets for current state organization"
+        ),
+        "long_term_memory": (
+            "source-backed stable recall objects and slots; retrieved or expanded "
+            "through raw source ids"
+        ),
+        "archival_memory": (
+            "superseded or historical objects retained for conflict audit and "
+            "temporal comparison"
+        ),
+        "quarantine_memory": (
+            "low-confidence or source-incomplete objects; not eligible as "
+            "independent evidence"
+        ),
+    }
+
+
+def _memory_working_view_operation_contract() -> list[str]:
+    return [
+        "create",
+        "update",
+        "merge",
+        "supersede",
+        "retrieve",
+        "expand",
+        "verify",
+        "audit",
+    ]
 
 
 def _memory_workspace_layer(entry: dict[str, Any]) -> str:
