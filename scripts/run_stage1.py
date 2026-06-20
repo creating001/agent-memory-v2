@@ -154,6 +154,9 @@ def main() -> int:
     total_build_memory_nonmanaged_multi_value_slots = 0
     total_memory_hits = 0
     total_memory_source_hits = 0
+    total_memory_activation_priority_applied = 0
+    total_memory_activation_priority_reordered = 0
+    total_memory_activation_priority_hits = 0
     total_memory_slot_chain_applied = 0
     total_memory_slot_chain_source_hits = 0
     total_object_slot_activation_applied = 0
@@ -507,6 +510,13 @@ def main() -> int:
         total_memory_source_hits += len(
             retrieval_trace.get("memory_source_hits") or []
         )
+        if retrieval_trace.get("memory_activation_priority_applied"):
+            total_memory_activation_priority_applied += 1
+        if retrieval_trace.get("memory_activation_priority_reordered"):
+            total_memory_activation_priority_reordered += 1
+        total_memory_activation_priority_hits += int(
+            retrieval_trace.get("memory_activation_priority_hit_count") or 0
+        )
         if retrieval_trace.get("memory_slot_chain_applied"):
             total_memory_slot_chain_applied += 1
         total_memory_slot_chain_source_hits += len(
@@ -645,6 +655,38 @@ def main() -> int:
             "avg_memory_hits": _safe_average(total_memory_hits, sample_count),
             "avg_memory_source_hits": _safe_average(
                 total_memory_source_hits, sample_count
+            ),
+            "memory_activation_priority_enabled": config.get("retrieval", {})
+            .get("memory_activation_priority", {})
+            .get("enabled", False),
+            "memory_activation_priority_information_needs": config.get(
+                "retrieval", {}
+            )
+            .get("memory_activation_priority", {})
+            .get("information_needs"),
+            "memory_activation_priority_pool_k": config.get("retrieval", {})
+            .get("memory_activation_priority", {})
+            .get("pool_k"),
+            "memory_activation_priority_score_boost": config.get("retrieval", {})
+            .get("memory_activation_priority", {})
+            .get("score_boost"),
+            "memory_activation_priority_max_rank": config.get("retrieval", {})
+            .get("memory_activation_priority", {})
+            .get("max_rank"),
+            "memory_activation_priority_applied_count": (
+                total_memory_activation_priority_applied
+            ),
+            "memory_activation_priority_applied_rate": _safe_average(
+                total_memory_activation_priority_applied, sample_count
+            ),
+            "memory_activation_priority_reordered_count": (
+                total_memory_activation_priority_reordered
+            ),
+            "memory_activation_priority_reordered_rate": _safe_average(
+                total_memory_activation_priority_reordered, sample_count
+            ),
+            "avg_memory_activation_priority_hits": _safe_average(
+                total_memory_activation_priority_hits, sample_count
             ),
             "memory_slot_chain_enabled": config.get("retrieval", {})
             .get("memory_slot_chain", {})
@@ -2252,6 +2294,13 @@ def _write_summary(
         f"- avg_active_build_memory_records: {metrics['build_memory']['avg_active_records']}",
         f"- avg_memory_hits: {metrics['retrieval']['avg_memory_hits']}",
         f"- avg_memory_source_hits: {metrics['retrieval']['avg_memory_source_hits']}",
+        f"- memory_activation_priority_enabled: {metrics['retrieval']['memory_activation_priority_enabled']}",
+        f"- memory_activation_priority_pool_k: {metrics['retrieval']['memory_activation_priority_pool_k']}",
+        f"- memory_activation_priority_score_boost: {metrics['retrieval']['memory_activation_priority_score_boost']}",
+        f"- memory_activation_priority_max_rank: {metrics['retrieval']['memory_activation_priority_max_rank']}",
+        f"- memory_activation_priority_applied_count: {metrics['retrieval']['memory_activation_priority_applied_count']}",
+        f"- memory_activation_priority_reordered_count: {metrics['retrieval']['memory_activation_priority_reordered_count']}",
+        f"- avg_memory_activation_priority_hits: {metrics['retrieval']['avg_memory_activation_priority_hits']}",
         f"- operation_utility_enabled: {metrics['retrieval']['operation_utility_enabled']}",
         f"- operation_utility_fusion_mode: {metrics['retrieval']['operation_utility_fusion_mode']}",
         f"- operation_utility_applied_count: {metrics['retrieval']['operation_utility_applied_count']}",
@@ -2641,6 +2690,10 @@ def _write_diagnosis(
         f"- avg_build_memory_source_alignment_added_sources: {metrics['build_memory']['avg_source_alignment_added_sources']}",
         f"- avg_memory_hits: {metrics['retrieval']['avg_memory_hits']}",
         f"- avg_memory_source_hits: {metrics['retrieval']['avg_memory_source_hits']}",
+        f"- memory_activation_priority_enabled: {metrics['retrieval']['memory_activation_priority_enabled']}",
+        f"- memory_activation_priority_applied_count: {metrics['retrieval']['memory_activation_priority_applied_count']}",
+        f"- memory_activation_priority_reordered_count: {metrics['retrieval']['memory_activation_priority_reordered_count']}",
+        f"- avg_memory_activation_priority_hits: {metrics['retrieval']['avg_memory_activation_priority_hits']}",
         f"- graph_utility_enabled: {metrics['retrieval']['graph_utility_enabled']}",
         f"- graph_utility_fusion_mode: {metrics['retrieval']['graph_utility_fusion_mode']}",
         f"- graph_utility_overflow_max_hits: {metrics['retrieval']['graph_utility_overflow_max_hits']}",

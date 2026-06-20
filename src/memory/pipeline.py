@@ -121,6 +121,11 @@ class Stage1Pipeline:
             raise ValueError(
                 "retrieval.memory_governance_activation must be an object"
             )
+        memory_activation_priority_config = retrieval_config.get(
+            "memory_activation_priority", {}
+        )
+        if not isinstance(memory_activation_priority_config, Mapping):
+            raise ValueError("retrieval.memory_activation_priority must be an object")
         object_slot_activation_config = retrieval_config.get(
             "object_slot_activation", {}
         )
@@ -326,6 +331,27 @@ class Stage1Pipeline:
                 "retrieval.memory_governance_activation.mode must be "
                 "source_activation_ready"
             )
+        self._memory_activation_priority_enabled = bool(
+            memory_activation_priority_config.get("enabled", False)
+        )
+        self._memory_activation_priority_information_needs = _tuple_config(
+            memory_activation_priority_config.get(
+                "information_needs",
+                ("current_state", "profile_preference"),
+            )
+        )
+        self._memory_activation_priority_pool_k = int(
+            memory_activation_priority_config.get(
+                "pool_k",
+                max(self._build_memory_top_k, 0),
+            )
+        )
+        self._memory_activation_priority_score_boost = float(
+            memory_activation_priority_config.get("score_boost", 0.0)
+        )
+        self._memory_activation_priority_max_rank = int(
+            memory_activation_priority_config.get("max_rank", 0)
+        )
         self._memory_slot_chain_enabled = bool(
             memory_slot_chain_config.get("enabled", False)
         )
@@ -1878,20 +1904,58 @@ class Stage1Pipeline:
             fusion_mode=self._graph_utility_fusion_mode,
             overflow_max_hits=self._graph_utility_overflow_max_hits,
         )
+        memory_activation_priority_trace = _disabled_memory_activation_priority_trace(
+            enabled=self._memory_activation_priority_enabled,
+            information_needs=self._memory_activation_priority_information_needs,
+            pool_k=self._memory_activation_priority_pool_k,
+            return_top_k=self._build_memory_top_k,
+            score_boost=self._memory_activation_priority_score_boost,
+            max_rank=self._memory_activation_priority_max_rank,
+            skipped_reason=(
+                ""
+                if self._memory_activation_priority_enabled
+                else "disabled"
+            ),
+        )
         build_memory_include_superseded = (
             self._build_memory_include_superseded
             or route.information_need
             in self._build_memory_include_superseded_information_needs
         )
         if self._build_memory_enabled and self._build_memory_top_k > 0:
+            memory_retrieval_top_k = self._build_memory_top_k
+            if _memory_activation_priority_applies(
+                enabled=self._memory_activation_priority_enabled,
+                route=route,
+                information_needs=self._memory_activation_priority_information_needs,
+            ):
+                memory_retrieval_top_k = max(
+                    memory_retrieval_top_k,
+                    self._memory_activation_priority_pool_k,
+                )
             memory_hits = BuildMemoryBM25Retriever(
                 memory_activation_records,
                 drop_query_stopwords=self._build_memory_drop_query_stopwords,
                 include_superseded=build_memory_include_superseded,
             ).retrieve(
                 request.question,
-                top_k=self._build_memory_top_k,
+                top_k=memory_retrieval_top_k,
                 score_threshold=0.0,
+            )
+            memory_hits, memory_activation_priority_trace = (
+                _memory_activation_priority_hits(
+                    memory_hits,
+                    management=built_memory.management,
+                    route=route,
+                    enabled=self._memory_activation_priority_enabled,
+                    information_needs=(
+                        self._memory_activation_priority_information_needs
+                    ),
+                    pool_k=memory_retrieval_top_k,
+                    return_top_k=self._build_memory_top_k,
+                    score_boost=self._memory_activation_priority_score_boost,
+                    max_rank=self._memory_activation_priority_max_rank,
+                )
             )
             memory_source_hits = memory_hits_to_source_hits(
                 memory_hits,
@@ -2857,6 +2921,34 @@ class Stage1Pipeline:
                     ),
                     "memory_governance_activation_skipped_reason": (
                         memory_governance_activation_trace["skipped_reason"]
+                    ),
+                    "memory_activation_priority": memory_activation_priority_trace,
+                    "memory_activation_priority_enabled": (
+                        self._memory_activation_priority_enabled
+                    ),
+                    "memory_activation_priority_applied": (
+                        memory_activation_priority_trace["applied"]
+                    ),
+                    "memory_activation_priority_information_needs": (
+                        self._memory_activation_priority_information_needs
+                    ),
+                    "memory_activation_priority_pool_k": (
+                        memory_activation_priority_trace["pool_k"]
+                    ),
+                    "memory_activation_priority_score_boost": (
+                        self._memory_activation_priority_score_boost
+                    ),
+                    "memory_activation_priority_max_rank": (
+                        self._memory_activation_priority_max_rank
+                    ),
+                    "memory_activation_priority_hit_count": (
+                        memory_activation_priority_trace["priority_hit_count"]
+                    ),
+                    "memory_activation_priority_reordered": (
+                        memory_activation_priority_trace["reordered"]
+                    ),
+                    "memory_activation_priority_skipped_reason": (
+                        memory_activation_priority_trace["skipped_reason"]
                     ),
                     "memory_hits": [hit.to_dict() for hit in memory_hits],
                     "compiler_memory_record_source": self._compiler_memory_record_source,
@@ -5953,6 +6045,173 @@ def _memory_governance_activation_records(
         "risk_counts": dict(governance_manifest.get("risk_counts") or {}),
         "skipped_reason": "",
     }
+
+
+def _memory_activation_priority_applies(
+    *,
+    enabled: bool,
+    route: RouteResult,
+    information_needs: tuple[str, ...],
+) -> bool:
+    if not enabled:
+        return False
+    if information_needs and route.information_need not in information_needs:
+        return False
+    return route.information_need in SUPPORTED_INFORMATION_NEEDS
+
+
+def _disabled_memory_activation_priority_trace(
+    *,
+    enabled: bool,
+    information_needs: tuple[str, ...],
+    pool_k: int,
+    return_top_k: int,
+    score_boost: float,
+    max_rank: int,
+    skipped_reason: str = "",
+) -> dict[str, Any]:
+    return {
+        "enabled": enabled,
+        "applied": False,
+        "information_needs": information_needs,
+        "pool_k": pool_k,
+        "return_top_k": return_top_k,
+        "score_boost": score_boost,
+        "max_rank": max_rank,
+        "input_hit_count": 0,
+        "output_hit_count": 0,
+        "manifest_priority_count": 0,
+        "priority_hit_count": 0,
+        "reordered": False,
+        "selected_priority_memory_ids": (),
+        "skipped_reason": skipped_reason,
+    }
+
+
+def _memory_activation_priority_hits(
+    memory_hits: tuple[Any, ...],
+    *,
+    management: Mapping[str, Any] | None,
+    route: RouteResult,
+    enabled: bool,
+    information_needs: tuple[str, ...],
+    pool_k: int,
+    return_top_k: int,
+    score_boost: float,
+    max_rank: int = 0,
+) -> tuple[tuple[Any, ...], dict[str, Any]]:
+    trace = _disabled_memory_activation_priority_trace(
+        enabled=enabled,
+        information_needs=information_needs,
+        pool_k=pool_k,
+        return_top_k=return_top_k,
+        score_boost=score_boost,
+        max_rank=max_rank,
+    )
+    top_k = max(0, return_top_k)
+    default_hits = memory_hits[:top_k] if top_k else ()
+    trace = {
+        **trace,
+        "input_hit_count": len(memory_hits),
+        "output_hit_count": len(default_hits),
+    }
+    if not _memory_activation_priority_applies(
+        enabled=enabled,
+        route=route,
+        information_needs=information_needs,
+    ):
+        reason = "disabled" if not enabled else "route_not_enabled"
+        return default_hits, {**trace, "skipped_reason": reason}
+    if not memory_hits or top_k <= 0:
+        return default_hits, {**trace, "skipped_reason": "empty_hits_or_budget"}
+    if score_boost <= 0:
+        return default_hits, {**trace, "skipped_reason": "non_positive_boost"}
+
+    priority_ids = _memory_activation_priority_ids(
+        management,
+        max_rank=max_rank,
+    )
+    if not priority_ids:
+        return default_hits, {**trace, "skipped_reason": "missing_priority_manifest"}
+    priority_rank = {memory_id: rank for rank, memory_id in enumerate(priority_ids)}
+
+    adjusted: list[tuple[float, int, Any, float]] = []
+    priority_hit_count = 0
+    for original_index, memory_hit in enumerate(memory_hits):
+        record = getattr(memory_hit, "record", None)
+        memory_id = str(getattr(record, "memory_id", "") or "")
+        rank = priority_rank.get(memory_id)
+        bonus = 0.0
+        if rank is not None:
+            priority_hit_count += 1
+            bonus = score_boost / float(rank + 1)
+        adjusted_score = float(getattr(memory_hit, "score", 0.0) or 0.0) + bonus
+        adjusted.append((adjusted_score, original_index, memory_hit, bonus))
+
+    if priority_hit_count <= 0:
+        return default_hits, {
+            **trace,
+            "manifest_priority_count": len(priority_ids),
+            "skipped_reason": "no_priority_hits",
+        }
+
+    adjusted.sort(key=lambda item: (-item[0], item[1]))
+    selected = adjusted[:top_k]
+    selected_hits = tuple(
+        replace(memory_hit, score=adjusted_score, rank=rank)
+        for rank, (adjusted_score, _index, memory_hit, _bonus) in enumerate(
+            selected,
+            start=1,
+        )
+    )
+    default_ids = tuple(
+        str(getattr(getattr(hit, "record", None), "memory_id", "") or "")
+        for hit in default_hits
+    )
+    selected_ids = tuple(
+        str(getattr(getattr(hit, "record", None), "memory_id", "") or "")
+        for hit in selected_hits
+    )
+    return selected_hits, {
+        **trace,
+        "applied": True,
+        "output_hit_count": len(selected_hits),
+        "manifest_priority_count": len(priority_ids),
+        "priority_hit_count": priority_hit_count,
+        "reordered": selected_ids != default_ids,
+        "selected_priority_memory_ids": tuple(
+            memory_id for memory_id in selected_ids if memory_id in priority_rank
+        ),
+        "skipped_reason": "",
+    }
+
+
+def _memory_activation_priority_ids(
+    management: Mapping[str, Any] | None,
+    *,
+    max_rank: int = 0,
+) -> tuple[str, ...]:
+    if not isinstance(management, Mapping):
+        return ()
+    memory_system_graph = management.get("memory_system_graph") or {}
+    if not isinstance(memory_system_graph, Mapping):
+        return ()
+    governance_manifest = memory_system_graph.get("governance_manifest") or {}
+    if not isinstance(governance_manifest, Mapping):
+        return ()
+    raw_ids = governance_manifest.get("activation_priority_memory_ids") or ()
+    selected: list[str] = []
+    seen: set[str] = set()
+    limit = max(0, max_rank)
+    for memory_id in raw_ids:
+        memory_id = str(memory_id)
+        if not memory_id or memory_id in seen:
+            continue
+        seen.add(memory_id)
+        selected.append(memory_id)
+        if limit and len(selected) >= limit:
+            break
+    return tuple(selected)
 
 
 def _memory_object_slot_record_sort_key(record: Any) -> tuple[int, str, str]:

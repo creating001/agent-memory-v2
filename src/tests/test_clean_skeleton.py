@@ -47,6 +47,7 @@ from memory.pipeline import (
     _append_tail_rescue_hits,
     _compiler_memory_records,
     _context_manifest,
+    _memory_activation_priority_hits,
     _memory_governance_activation_records,
     _memory_graph_utility_source_hits,
     _memory_lifecycle_manifest,
@@ -3509,6 +3510,85 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertTrue(trace["applied"])
         self.assertEqual([hit.source_id for hit in hits], ["s1:t0"])
         self.assertEqual(trace["slots"][0]["record_count"], 1)
+
+    def test_memory_activation_priority_reorders_with_manifest_prior(self) -> None:
+        lower_priority_record = MemoryRecord(
+            memory_id="lower",
+            memory_type="state",
+            text="Alex lived in Austin.",
+            source_ids=("s1:t0",),
+            subject="Alex",
+            predicate="home city",
+            value="Austin",
+        )
+        higher_priority_record = MemoryRecord(
+            memory_id="higher",
+            memory_type="state",
+            text="Alex lives in Seattle.",
+            source_ids=("s2:t0",),
+            subject="Alex",
+            predicate="home city",
+            value="Seattle",
+        )
+        management = {
+            "memory_system_graph": {
+                "governance_manifest": {
+                    "activation_priority_memory_ids": ("higher", "lower")
+                }
+            }
+        }
+
+        hits, trace = _memory_activation_priority_hits(
+            (
+                MemoryHit(record=lower_priority_record, score=2.0, rank=1),
+                MemoryHit(record=higher_priority_record, score=1.8, rank=2),
+            ),
+            management=management,
+            route=RouteResult("current_state", ("current",)),
+            enabled=True,
+            information_needs=("current_state",),
+            pool_k=2,
+            return_top_k=1,
+            score_boost=0.5,
+        )
+
+        self.assertTrue(trace["applied"])
+        self.assertTrue(trace["reordered"])
+        self.assertEqual(trace["priority_hit_count"], 2)
+        self.assertEqual(hits[0].record.memory_id, "higher")
+        self.assertEqual(hits[0].rank, 1)
+
+    def test_memory_activation_priority_is_route_scoped(self) -> None:
+        record = MemoryRecord(
+            memory_id="preferred",
+            memory_type="state",
+            text="Alex lives in Seattle.",
+            source_ids=("s1:t0",),
+            subject="Alex",
+            predicate="home city",
+            value="Seattle",
+        )
+
+        hits, trace = _memory_activation_priority_hits(
+            (MemoryHit(record=record, score=1.0, rank=1),),
+            management={
+                "memory_system_graph": {
+                    "governance_manifest": {
+                        "activation_priority_memory_ids": ("preferred",)
+                    }
+                }
+            },
+            route=RouteResult("list_count", ("list",)),
+            enabled=True,
+            information_needs=("current_state",),
+            pool_k=2,
+            return_top_k=1,
+            score_boost=0.5,
+        )
+
+        self.assertFalse(trace["applied"])
+        self.assertEqual(trace["skipped_reason"], "route_not_enabled")
+        self.assertEqual(hits[0].record.memory_id, "preferred")
 
     def test_memory_object_slot_activation_can_use_build_slot_index(self) -> None:
         first_record = MemoryRecord(
