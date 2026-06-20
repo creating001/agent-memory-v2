@@ -6,15 +6,15 @@
 
 | 项目 | 结果 |
 |---|---|
-| 当前 LTS 配置 | `configs/stage1_state_only_value_slot_guide_v287_seeded_qwen36_no_think_build4k_cached.json` |
+| 当前 LTS 配置 | `configs/stage1_memory_object_index_v288_seeded_qwen36_no_think_build4k_cached.json` |
 | Backbone | `Qwen/Qwen3.6-35B-A3B` answer/build，`chat_template_kwargs.enable_thinking=false` |
-| 方法定位 | source-backed Agent Memory system：build memory management + memory system graph v3 + tier manifest + operation ledger + state conflict manifest + scalar/value manifest + state-only value slot guide + raw evidence compiler + source-grounded answer audit。Typed memory 不能直接替代 evidence，只能作为 source-backed activation、state organization、conflict handling、context organization 和 audit signal；最终答案仍以 raw Memory rows 为证据。 |
+| 方法定位 | source-backed Agent Memory system：build memory management + memory system graph v3 + `memory_object_index_v1` + tier manifest + operation ledger + state conflict manifest + scalar/value manifest + state-only value slot guide + raw evidence compiler + source-grounded answer audit。Typed memory 不能直接替代 evidence，只能作为 source-backed activation、state organization、conflict handling、context organization 和 audit signal；最终答案仍以 raw Memory rows 为证据。 |
 | LongMemEval-S full | strict/lenient `0.834000 / 0.846000`，`417/500` strict，`423/500` lenient；avg build/query tokens `85393.566 / 6455.588` |
 | LoCoMo non-adversarial full | strict/lenient `0.794156 / 0.819481`，`1223/1540` strict，`1262/1540` lenient；avg build/query tokens `62015.57402597403 / 6093.962337662338` |
-| LTS 理由 | v287 相对 v284：route/retrieval/compiled evidence/compiled memory/build records diff 全部 `0`；build management diff 只来自 scalar/value manifest，剥离 manifest 后 diff 为 `0`。LME full answer diff `2/500`、LoCoMo `1/1540`；changed-answer dual flash judge 中 v284 与 v287 全部 strict correct，因此继承 v284/v283 full accuracy，同时让 build-owned state value slots 真正参与 query-side state organization。 |
-| 主要局限 | query stack 仍有 state guide、event-time guide、selected context、context budget、audit 等兼容层；build-owned memory operations 还没有完全统一 activation、conflict resolution、context packing 和 answer verification；LME/LoCoMo query tokens 仍略高于 6K 目标但低于 8K hard diagnostic 线。 |
+| LTS 理由 | v288 相对 v287：LME/LoCoMo full answer/prompt/route/compiled evidence/compiled memory/materialized retrieval/build records diff 全部 `0`；build management diff 只来自新增 `memory_object_index_v1`，剥离 index 后 diff 为 `0`。它把 tier、operation、state conflict、source policy 和 value slots 收敛成统一 build-owned memory object interface，减少 build memory system 分散和 typed memory 只做 retrieval hint 的系统风险。 |
+| 主要局限 | query stack 仍有 state guide、event-time guide、selected context、context budget、audit 等兼容层；`memory_object_index_v1` 已统一 build-owned interface，但 retrieval/context/verifier 尚未全面由该 index 驱动；LME/LoCoMo query tokens 仍略高于 6K 目标但低于 8K hard diagnostic 线。 |
 
-v287 关键证据见 `experiments/diagnostic/stage1_state_only_value_slot_guide_v287_full_summary.md`。如果论文级最终汇报需要 fresh full judge，再对最终 LTS 配置完整重跑 dual judge；日常迭代优先用 full diff + changed-answer paired judge，避免无意义重跑。
+v288 关键证据见 `experiments/diagnostic/stage1_memory_object_index_v288_full_summary.md`。如果论文级最终汇报需要 fresh full judge，再对最终 LTS 配置完整重跑 dual judge；日常迭代优先用 full diff + changed-answer paired judge，避免无意义重跑。
 
 ## 口径
 
@@ -38,8 +38,8 @@ v287 关键证据见 `experiments/diagnostic/stage1_state_only_value_slot_guide_
 
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
-| `configs/stage1_state_only_value_slot_guide_v287_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_state_only_value_slot_guide_v287_full_summary.md` | current LTS | v287 vs v284：LME answer diff `2/500`、LoCoMo `1/1540`；changed-answer dual judge 全部 strict correct；avg query tokens LME `6455.588`、LoCoMo `6093.962337662338` | 升 LTS；state-only value slot guide 让 build-owned memory object 参与 state organization，且没有观察到 accuracy 回退 |
-| `configs/stage1_memory_object_index_v288_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_memory_object_index_v288_probe_summary.md` | candidate smoke | LME smoke5：`memory_object_index_v1` applied `5/5`，answer diff vs v287 同 5 条 `0/5`；unit tests `362` OK | 不升 LTS；先保留候选，下一步做 v287 full diff audit |
+| `configs/stage1_memory_object_index_v288_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_memory_object_index_v288_full_summary.md` | current LTS | v288 vs v287：LME/LoCoMo full answer/prompt/route/evidence/retrieval/build records diff `0`；`memory_object_index_v1` applied `2040/2040`；avg query tokens LME `6455.588`、LoCoMo `6093.962337662338` | 升 LTS；统一 build-owned memory object interface，性能继承 v287 |
+| `configs/stage1_state_only_value_slot_guide_v287_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_state_only_value_slot_guide_v287_full_summary.md` | previous LTS | v287 vs v284：LME answer diff `2/500`、LoCoMo `1/1540`；changed-answer dual judge 全部 strict correct；avg query tokens LME `6455.588`、LoCoMo `6093.962337662338` | 被 v288 继承；state-only value slot guide 让 build-owned memory object 参与 state organization |
 | `configs/stage1_current_state_value_slot_guide_v286_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_current_state_value_slot_guide_v286_changed_vs_v284/` | rejected diagnostic | current-state intent 限制后，LME changed-answer judge v284 strict/lenient `6/8`、`7/8`，v286 只有 `3/8`、`3/8` | 不升 LTS；intent gate 不够，plan/fact/event/profile/preference slot 仍会扰动 current-state answer focus |
 | `configs/stage1_memory_value_slot_guide_v285_seeded_qwen36_no_think_build4k_cached.json` | rejected diagnostic | 全类型 value slot guide 过宽：LME guide applied `186/500`、answer diff `55/500`；LoCoMo guide applied `884/1540`、answer diff `422/1540` | 不升 LTS；证明 value slot 必须有 source-backed type/intent gate |
 | `configs/stage1_scalar_value_manifest_v284_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_scalar_value_manifest_v284_full_summary.md` | previous LTS | v284 vs v283 full answer/prompt/evidence/retrieval diff `0`；scalar manifest 覆盖 `2040/2040`；avg query tokens LME `6464.954`、LoCoMo `6093.794155844156` | 被 v287 继承；build-owned value objects/slots 是 v287 的基础 |

@@ -1,0 +1,359 @@
+{
+  "clean_note": "Diff uses prediction-time traces only; no labels or judge outputs used.",
+  "baseline": "v287 state-only value slot guide LTS",
+  "candidate": "v288 memory_object_index_v1",
+  "pairs": {
+    "lme": {
+      "n": 500,
+      "missing_old_or_new_count": 0,
+      "answer_diff_count": 0,
+      "prompt_diff_count": 0,
+      "route_diff_count": 0,
+      "compiled_evidence_rows_diff_count": 0,
+      "compiled_memory_records_diff_count": 0,
+      "retrieval_materialized_diff_count": 0,
+      "build_memory_records_diff_count": 0,
+      "build_memory_management_diff_count": 500,
+      "build_memory_management_diff_after_removing_memory_object_index_count": 0,
+      "memory_object_index_applied_count": 500,
+      "sample_diffs": [
+        {
+          "record_key": "004224772b616dd627a96a35",
+          "diffs": [
+            "build_memory_management"
+          ],
+          "old_answer": "The provided information is not enough to answer the question: No information regarding violin practice duration is present in the memory context",
+          "new_answer": "The provided information is not enough to answer the question: No information regarding violin practice duration is present in the memory context"
+        },
+        {
+          "record_key": "00c7a05a91938a123f46650c",
+          "diffs": [
+            "build_memory_management"
+          ],
+          "old_answer": "$200",
+          "new_answer": "$200"
+        },
+        {
+          "record_key": "02e16bd2f4719927af0b2006",
+          "diffs": [
+            "build_memory_management"
+          ],
+          "old_answer": "Close to 1300",
+          "new_answer": "Close to 1300"
+        },
+        {
+          "record_key": "040a4510206229039b25c860",
+          "diffs": [
+            "build_memory_management"
+          ],
+          "old_answer": "1. Billie Eilish concert (2023/03/18), 2. Free outdoor concert series (2023/03/25), 3. Music festival in Brooklyn (before 2023/04/01), 4. Jazz night at a local bar (2023/04/08)",
+          "new_answer": "1. Billie Eilish concert (2023/03/18), 2. Free outdoor concert series (2023/03/25), 3. Music festival in Brooklyn (before 2023/04/01), 4. Jazz night at a local bar (2023/04/08)"
+        },
+        {
+          "record_key": "043303ed21aae98eeeba9d0e",
+          "diffs": [
+            "build_memory_management"
+          ],
+          "old_answer": "my aunt",
+          "new_answer": "my aunt"
+        },
+        {
+          "record_key": "047fc041db62b22233bcc704",
+          "diffs": [
+            "build_memory_management"
+          ],
+          "old_answer": "polymer clay and resin",
+          "new_answer": "polymer clay and resin"
+        },
+        {
+          "record_key": "048d128357cd80bce017b187",
+          "diffs": [
+            "build_memory_management"
+          ],
+          "old_answer": "Doc Martin",
+          "new_answer": "Doc Martin"
+        },
+        {
+          "record_key": "04fbc2bee20a490a0e937558",
+          "diffs": [
+            "build_memory_management"
+          ],
+          "old_answer": "7:00 pm",
+          "new_answer": "7:00 pm"
+        },
+        {
+          "record_key": "059b8bb4fb1e6194a5d9bea5",
+          "diffs": [
+            "build_memory_management"
+          ],
+          "old_answer": "The provided information is not enough to identify the specific artist, as the memory only describes them as 'a bluegrass band that features a banjo player' discovered on 2023/03/31.",
+          "new_answer": "The provided information is not enough to identify the specific artist, as the memory only describes them as 'a bluegrass band that features a banjo player' discovered on 2023/03/31."
+        },
+        {
+          "record_key": "05ba10108a37f6c2e841d368",
+          "diffs": [
+            "build_memory_management"
+          ],
+          "old_answer": "Harvard University",
+          "new_answer": "Harvard University"
+        },
+        {
+          "record_key": "065dd6c11fbd61bdd3272de3",
+          "diffs": [
+            "build_memory_management"
+          ],
+          "old_answer": "7 days",
+          "new_answer": "7 days"
+        },
+        {
+          "record_key": "08cccaf312a179d4f4b961d3",
+          "diffs": [
+            "build_memory_management"
+          ],
+          "old_answer": "Based on your interest in turbinado sugar, you could enhance your chocolate chip cookies by pairing the sugar with complementary ingredients like warm spices (cinnamon, nutmeg), citrus zest, or nuts to add complexity and texture.",
+          "new_answer": "Based on your interest in turbinado sugar, you could enhance your chocolate chip cookies by pairing the sugar with complementary ingredients like warm spices (cinnamon, nutmeg), citrus zest, or nuts to add complexity and texture."
+        },
+        {
+          "record_key": "0a537c6dfde0742723049ca4",
+          "diffs": [
+            "build_memory_management"
+          ],
+          "old_answer": "Based on your Sony A7R IV setup, consider camera bags from brands like Think Tank Photo, Lowepro, F-Stop Gear, Peak Design, or MindShift Gear (Memory 12). You may also want cases or pouches for your Godox V1 flash (Memory 4), external battery packs for on-the-go charging (Memory 20), and a soft cloth with cleaning solution for your Sony 24-70mm f/2.8 lens (Memory 18). Additionally, you are considering the Gitzo GT3543LS tripod (Memory 7).",
+          "new_answer": "Based on your Sony A7R IV setup, consider camera bags from brands like Think Tank Photo, Lowepro, F-Stop Gear, Peak Design, or MindShift Gear (Memory 12). You may also want cases or pouches for your Godox V1 flash (Memory 4), external battery packs for on-the-go charging (Memory 20), and a soft cloth with cleaning solution for your Sony 24-70mm f/2.8 lens (Memory 18). Additionally, you are considering the Gitzo GT3543LS tripod (Memory 7)."
+        },
+        {
+          "record_key": "0a84427c98275c48b2acd3dd",
+          "diffs": [
+            "build_memory_management"
+          ],
+          "old_answer": "$140",
+          "new_answer": "$140"
+        },
+        {
+          "record_key": "0aa069360fca33f7e5eef027",
+          "diffs": [
+            "build_memory_management"
+          ],
+          "old_answer": "4 charity events: Dance for a Cause, Walk for Wildlife, Charity Golf Tournament, Food for Thought",
+          "new_answer": "4 charity events: Dance for a Cause, Walk for Wildlife, Charity Golf Tournament, Food for Thought"
+        },
+        {
+          "record_key": "0ae3182c3a2b012937a96b9d",
+          "diffs": [
+            "build_memory_management"
+          ],
+          "old_answer": "140 hours",
+          "new_answer": "140 hours"
+        },
+        {
+          "record_key": "0bf314d56525b110034655c0",
+          "diffs": [
+            "build_memory_management"
+          ],
+          "old_answer": "TikTok",
+          "new_answer": "TikTok"
+        },
+        {
+          "record_key": "0c3edc06171a90b30547422e",
+          "diffs": [
+            "build_memory_management"
+          ],
+          "old_answer": "26 days ago",
+          "new_answer": "26 days ago"
+        },
+        {
+          "record_key": "0cdf688c1e7ee41588454699",
+          "diffs": [
+            "build_memory_management"
+          ],
+          "old_answer": "Thrive Market",
+          "new_answer": "Thrive Market"
+        },
+        {
+          "record_key": "0d41ac1d8d4cb9b1c912a494",
+          "diffs": [
+            "build_memory_management"
+          ],
+          "old_answer": "Borges stated that 'The Library is a sphere whose exact center is any one of its hexagons and whose circumference is inaccessible.'",
+          "new_answer": "Borges stated that 'The Library is a sphere whose exact center is any one of its hexagons and whose circumference is inaccessible.'"
+        }
+      ]
+    },
+    "locomo": {
+      "n": 1540,
+      "missing_old_or_new_count": 0,
+      "answer_diff_count": 0,
+      "prompt_diff_count": 0,
+      "route_diff_count": 0,
+      "compiled_evidence_rows_diff_count": 0,
+      "compiled_memory_records_diff_count": 0,
+      "retrieval_materialized_diff_count": 0,
+      "build_memory_records_diff_count": 0,
+      "build_memory_management_diff_count": 1540,
+      "build_memory_management_diff_after_removing_memory_object_index_count": 0,
+      "memory_object_index_applied_count": 1540,
+      "sample_diffs": [
+        {
+          "record_key": "00314c7eed1f53455d0d7bb6",
+          "diffs": [
+            "build_memory_management"
+          ],
+          "old_answer": "The provided information is not enough to answer the question fully; while John played basketball in high school for four years, the specific school names are not mentioned.",
+          "new_answer": "The provided information is not enough to answer the question fully; while John played basketball in high school for four years, the specific school names are not mentioned."
+        },
+        {
+          "record_key": "0063882ab0a923bfdb529626",
+          "diffs": [
+            "build_memory_management"
+          ],
+          "old_answer": "5K charity run",
+          "new_answer": "5K charity run"
+        },
+        {
+          "record_key": "00cb2762eabaf86347b3330f",
+          "diffs": [
+            "build_memory_management"
+          ],
+          "old_answer": "Gina offers to create cool content and manage Jon's social media accounts.",
+          "new_answer": "Gina offers to create cool content and manage Jon's social media accounts."
+        },
+        {
+          "record_key": "00d3ade031c967a337a45caa",
+          "diffs": [
+            "build_memory_management"
+          ],
+          "old_answer": "a suspenseful thriller set in a small Midwestern town",
+          "new_answer": "a suspenseful thriller set in a small Midwestern town"
+        },
+        {
+          "record_key": "0103488090eae48e0eec23b5",
+          "diffs": [
+            "build_memory_management"
+          ],
+          "old_answer": "It enabled needed repairs and renovations, making the learning environment safer and more modern for students.",
+          "new_answer": "It enabled needed repairs and renovations, making the learning environment safer and more modern for students."
+        },
+        {
+          "record_key": "011630aeaba84df9d30ac67e",
+          "diffs": [
+            "build_memory_management"
+          ],
+          "old_answer": "2010",
+          "new_answer": "2010"
+        },
+        {
+          "record_key": "019578d5697849a38f3c55b0",
+          "diffs": [
+            "build_memory_management"
+          ],
+          "old_answer": "vegan ice cream",
+          "new_answer": "vegan ice cream"
+        },
+        {
+          "record_key": "0196ecc32015c2e221188b39",
+          "diffs": [
+            "build_memory_management"
+          ],
+          "old_answer": "UK",
+          "new_answer": "UK"
+        },
+        {
+          "record_key": "019e094a5e94175b0e5c7d4c",
+          "diffs": [
+            "build_memory_management"
+          ],
+          "old_answer": "The provided information is not enough.",
+          "new_answer": "The provided information is not enough."
+        },
+        {
+          "record_key": "01a8e9c6eaf81609dee164a1",
+          "diffs": [
+            "build_memory_management"
+          ],
+          "old_answer": "Jean went through a divorce, lost her job, and became homeless.",
+          "new_answer": "Jean went through a divorce, lost her job, and became homeless."
+        },
+        {
+          "record_key": "01ac63f59c73098b74668a9a",
+          "diffs": [
+            "build_memory_management"
+          ],
+          "old_answer": "a local organization that helps disadvantaged kids with sports and school",
+          "new_answer": "a local organization that helps disadvantaged kids with sports and school"
+        },
+        {
+          "record_key": "01b0fb127a842cb5ab9109eb",
+          "diffs": [
+            "build_memory_management"
+          ],
+          "old_answer": "CS:GO, Fortnite, Overwatch, Apex Legends",
+          "new_answer": "CS:GO, Fortnite, Overwatch, Apex Legends"
+        },
+        {
+          "record_key": "01c001f455c37f8acf0b1b17",
+          "diffs": [
+            "build_memory_management"
+          ],
+          "old_answer": "2023-09-15",
+          "new_answer": "2023-09-15"
+        },
+        {
+          "record_key": "01ce76a2b43dbc8ed2465432",
+          "diffs": [
+            "build_memory_management"
+          ],
+          "old_answer": "insufficient",
+          "new_answer": "insufficient"
+        },
+        {
+          "record_key": "01fa13668ff3094cf12b453b",
+          "diffs": [
+            "build_memory_management"
+          ],
+          "old_answer": "Caroline has faced changes in her relationships, where some close friends continued to support her while others were unable to handle her transition, leading to more genuine connections with accepting individuals. She has also experienced physical changes to her body and internal changes in self-acceptance and understanding of her gender identity.",
+          "new_answer": "Caroline has faced changes in her relationships, where some close friends continued to support her while others were unable to handle her transition, leading to more genuine connections with accepting individuals. She has also experienced physical changes to her body and internal changes in self-acceptance and understanding of her gender identity."
+        },
+        {
+          "record_key": "01fa5e0de1bdb7407a1958cd",
+          "diffs": [
+            "build_memory_management"
+          ],
+          "old_answer": "No",
+          "new_answer": "No"
+        },
+        {
+          "record_key": "02034cd82523e3308abb9c8e",
+          "diffs": [
+            "build_memory_management"
+          ],
+          "old_answer": "2023-07-03",
+          "new_answer": "2023-07-03"
+        },
+        {
+          "record_key": "020978dc03f96e18694ca2b1",
+          "diffs": [
+            "build_memory_management"
+          ],
+          "old_answer": "Pepper, Precious, Panda, and Pixie",
+          "new_answer": "Pepper, Precious, Panda, and Pixie"
+        },
+        {
+          "record_key": "0225dc8794c4c90e14058c53",
+          "diffs": [
+            "build_memory_management"
+          ],
+          "old_answer": "classic rock",
+          "new_answer": "classic rock"
+        },
+        {
+          "record_key": "0255475f807b14908f063d2b",
+          "diffs": [
+            "build_memory_management"
+          ],
+          "old_answer": "The provided information is not enough to determine when Andrew adopted Scout.",
+          "new_answer": "The provided information is not enough to determine when Andrew adopted Scout."
+        }
+      ]
+    }
+  }
+}

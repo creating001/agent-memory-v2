@@ -2,7 +2,7 @@
 
 ## 结论
 
-v288 是候选版本，不升 LTS。它把 build 阶段已有的 tier、operation、state-conflict、source-policy 和 scalar/value manifest 收敛成统一的 `memory_object_index_v1`，并让 compiler 的 state-only Memory Value Slot Guide 优先从该 index 读取 value slots；旧 `scalar_value_manifest` 仍保留为兼容 fallback。
+本文件是 v288 smoke/probe 记录；最终 LTS 决策已由 full run 记录 `experiments/diagnostic/stage1_memory_object_index_v288_full_summary.md` supersede。v288 把 build 阶段已有的 tier、operation、state-conflict、source-policy 和 scalar/value manifest 收敛成统一的 `memory_object_index_v1`，并让 compiler 的 state-only Memory Value Slot Guide 优先从该 index 读取 value slots；旧 `scalar_value_manifest` 仍保留为兼容 fallback。
 
 这一步的目标是降低“memory 只是 retrieval hint”的系统风险：memory object index 成为后续 retrieval、context organization、answer verifier 和 audit 共用的 source-backed 接口。v288 仍保持 raw evidence-first，final answer evidence 必须回到 raw Memory rows。
 
@@ -28,4 +28,4 @@ v288 是候选版本，不升 LTS。它把 build 阶段已有的 tier、operatio
 
 ## 决策
 
-保留为候选。下一步应对 v287 做 full diff audit；若 answer/prompt/evidence 基本不变，且 build management diff 只来自 `memory_object_index_v1`，可以考虑升 LTS。若后续启用更多 query consumers，需要先做 changed-answer judge。
+该 probe 之后已完成 v287 full diff audit，并在 `stage1_memory_object_index_v288_full_summary.md` 中将 v288 升为当前 LTS。若后续启用更多 query consumers，需要先做 changed-answer judge。
