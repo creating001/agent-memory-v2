@@ -1,0 +1,82 @@
+{
+  "api_key_env": "DEEPSEEK_API_KEY",
+  "base_url": "https://api.deepseek.com",
+  "benchmark": "locomo",
+  "clean_note": "Offline judge reads gold labels only after prediction. This output must not be consumed by prediction, retrieval, compiler, answer, or verifier.",
+  "created_at_utc": "2026-06-20T17:02:10+00:00",
+  "dry_run": false,
+  "git": {
+    "commit": "162ab5785d37a95973557a9bd04a53ef59388cad",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "?? configs/stage1_workspace_policy_safe_pack_v324_seeded_qwen36_no_think_build4k_cached.json\n?? experiments/diagnostic/stage1_workspace_policy_safe_pack_v324_lme_op_smoke21/\n?? experiments/diagnostic/stage1_workspace_policy_safe_pack_v324_lme_smoke5/\n?? experiments/diagnostic/stage1_workspace_policy_safe_pack_v324_locomo_smoke5/\n?? experiments/diagnostic/stage1_workspace_policy_safe_pack_v324_locomo_smoke5_changed_vs_v288/"
+  },
+  "judgments": [
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "4d39783b4df9eaa9",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "0ef0216553b4eeff9be57e45",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 44,
+        "completion_tokens_details": {
+          "reasoning_tokens": 41
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 104,
+        "prompt_tokens": 360,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 404
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "88ce34785a7bbc86",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "628d9b1436fa405b91ee2820",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 71,
+        "completion_tokens_details": {
+          "reasoning_tokens": 68
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 107,
+        "prompt_tokens": 363,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 434
+      }
+    }
+  ],
+  "labels": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_workspace_policy_safe_pack_v324_locomo_smoke5_changed_vs_v288/labels.jsonl",
+  "metrics": {
+    "accuracy": 1.0,
+    "n_invalid": 0,
+    "n_judgments": 2,
+    "n_valid": 2
+  },
+  "model": "deepseek-v4-flash",
+  "partial_output": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_workspace_policy_safe_pack_v324_locomo_smoke5_changed_vs_v288/new_v324_flash_1.json.partial.jsonl",
+  "predictions": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_workspace_policy_safe_pack_v324_locomo_smoke5_changed_vs_v288/new_v324_predictions.jsonl",
+  "request_body_options": {},
+  "temperature": 0.0,
+  "thinking": null,
+  "usage": {
+    "completion_tokens": 115,
+    "prompt_tokens": 723,
+    "total_tokens": 838
+  },
+  "workers": 2
+}

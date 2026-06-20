@@ -1,0 +1,7 @@
+{
+  "base_run": "stage1_memory_object_index_v288_locomo_full",
+  "changed_answers": 2,
+  "clean_note": "Offline eval only; no labels/judge used by prediction.",
+  "new_run": "stage1_workspace_policy_safe_pack_v324_locomo_smoke5",
+  "outputs": "outputs/diagnostic/stage1_workspace_policy_safe_pack_v324_locomo_smoke5_changed_vs_v288"
+}
