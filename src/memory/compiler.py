@@ -195,6 +195,7 @@ SUPPORTED_INFORMATION_NEEDS = {
     "temporal_lookup",
 }
 SUPPORTED_CONTEXT_LAYOUTS = {"flat", "session_thread", "chronological_session_thread"}
+SUPPORTED_MEMORY_CONTEXT_HEADER_FORMATS = {"multiline", "inline"}
 ROUTE_OVERRIDE_KEYS = {
     "candidate_guide",
     "candidate_guide_include_memory_hints",
@@ -506,6 +507,7 @@ class EvidenceCompiler:
         final_answer_checklist: bool = False,
         max_memory_records: int = 12,
         memory_context_newlines_after_blocks: int = 3,
+        memory_context_header_format: str = "multiline",
         compact_query_contract: bool = False,
         compact_query_guide_blocks: bool | None = None,
         compact_query_answer_contract: bool | None = None,
@@ -814,6 +816,12 @@ class EvidenceCompiler:
         self._memory_context_newlines_after_blocks = max(
             2, int(memory_context_newlines_after_blocks)
         )
+        if memory_context_header_format not in SUPPORTED_MEMORY_CONTEXT_HEADER_FORMATS:
+            raise ValueError(
+                f"Unsupported memory_context_header_format: "
+                f"{memory_context_header_format}"
+            )
+        self._memory_context_header_format = memory_context_header_format
         self._compact_query_contract = bool(compact_query_contract)
         self._compact_query_guide_blocks = (
             self._compact_query_contract
@@ -1215,6 +1223,7 @@ class EvidenceCompiler:
             memory_context_newlines_after_blocks=(
                 self._memory_context_newlines_after_blocks
             ),
+            memory_context_header_format=self._memory_context_header_format,
             compact_query_contract=self._compact_query_contract,
             compact_query_guide_blocks=self._compact_query_guide_blocks,
             compact_query_answer_contract=self._compact_query_answer_contract,
@@ -3170,6 +3179,7 @@ def _build_prompt(
     evidence_row_labels: bool,
     final_answer_checklist: bool,
     memory_context_newlines_after_blocks: int,
+    memory_context_header_format: str,
     compact_query_contract: bool,
     compact_query_guide_blocks: bool,
     compact_query_answer_contract: bool,
@@ -3331,6 +3341,7 @@ def _build_prompt(
             memory_context_newlines_after_blocks=(
                 memory_context_newlines_after_blocks
             ),
+            memory_context_header_format=memory_context_header_format,
             compact_query_contract=compact_query_contract,
             compact_query_guide_blocks=compact_query_guide_blocks,
             compact_query_answer_contract=compact_query_answer_contract,
@@ -3565,6 +3576,7 @@ def _build_external_naive_prompt(
     temporal_order_contract: bool,
     final_answer_checklist: bool,
     memory_context_newlines_after_blocks: int,
+    memory_context_header_format: str,
     compact_query_contract: bool,
     compact_query_guide_blocks: bool,
     compact_query_answer_contract: bool,
@@ -4116,6 +4128,7 @@ def _build_external_naive_prompt(
                 tail_row_text_after_rank=tail_row_text_after_rank,
                 tail_max_row_text_chars=tail_max_row_text_chars,
                 context_layout=context_layout,
+                memory_context_header_format=memory_context_header_format,
             ),
             temporal_aid,
             "",
@@ -7993,9 +8006,15 @@ def _external_naive_context(
     tail_row_text_after_rank: int,
     tail_max_row_text_chars: int,
     context_layout: str = "flat",
+    memory_context_header_format: str = "multiline",
 ) -> str:
     if not rows:
         return "None"
+    if memory_context_header_format not in SUPPORTED_MEMORY_CONTEXT_HEADER_FORMATS:
+        raise ValueError(
+            f"Unsupported memory_context_header_format: "
+            f"{memory_context_header_format}"
+        )
     if context_layout in {"session_thread", "chronological_session_thread"}:
         return _external_session_thread_context(
             rows,
@@ -8005,16 +8024,26 @@ def _external_naive_context(
             tail_row_text_mode=tail_row_text_mode,
             tail_row_text_after_rank=tail_row_text_after_rank,
             tail_max_row_text_chars=tail_max_row_text_chars,
+            memory_context_header_format=memory_context_header_format,
         )
     if context_layout != "flat":
         raise ValueError(f"Unsupported context_layout: {context_layout}")
     blocks = []
     for index, row in enumerate(rows, start=1):
-        header = f"### Memory {index}"
-        if row.timestamp:
-            header += f"\nDate: {row.timestamp}"
-        if row.session_id:
-            header += f"\nSession: {row.session_id}"
+        if memory_context_header_format == "inline":
+            header_parts = [f"### Memory {index}"]
+            if row.timestamp:
+                header_parts.append(row.timestamp)
+            if row.session_id:
+                header_parts.append(row.session_id)
+            metadata = "; ".join(header_parts[1:])
+            header = f"{header_parts[0]} [{metadata}]" if metadata else header_parts[0]
+        else:
+            header = f"### Memory {index}"
+            if row.timestamp:
+                header += f"\nDate: {row.timestamp}"
+            if row.session_id:
+                header += f"\nSession: {row.session_id}"
         text = _row_prompt_text_for_row(
             row,
             question=question,
@@ -8025,7 +8054,8 @@ def _external_naive_context(
             tail_max_row_text_chars=tail_max_row_text_chars,
         )
         blocks.append(f"{header}\n{row.role}: {text}")
-    return "\n\n".join(blocks)
+    separator = "\n" if memory_context_header_format == "inline" else "\n\n"
+    return separator.join(blocks)
 
 
 def _external_session_thread_context(
@@ -8037,6 +8067,7 @@ def _external_session_thread_context(
     tail_row_text_mode: str,
     tail_row_text_after_rank: int,
     tail_max_row_text_chars: int,
+    memory_context_header_format: str = "multiline",
 ) -> str:
     blocks: list[str] = []
     current_session: str | None = None
@@ -8045,13 +8076,26 @@ def _external_session_thread_context(
         if row.session_id != current_session:
             episode_index += 1
             current_session = row.session_id
-            blocks.append(f"### Episode {episode_index}\nSession: {row.session_id}")
-        header = f"#### Memory {index}"
-        if row.timestamp:
-            header += f"\nDate: {row.timestamp}"
-        header += f"\nTurn: {row.turn_index}"
-        if row.retrieval_rank is not None:
-            header += f"\nRetrieval rank: {row.retrieval_rank}"
+            if memory_context_header_format == "inline":
+                blocks.append(f"### Episode {episode_index} [{row.session_id}]")
+            else:
+                blocks.append(f"### Episode {episode_index}\nSession: {row.session_id}")
+        if memory_context_header_format == "inline":
+            header_parts = [f"#### Memory {index}"]
+            if row.timestamp:
+                header_parts.append(row.timestamp)
+            header_parts.append(f"t={row.turn_index}")
+            if row.retrieval_rank is not None:
+                header_parts.append(f"r={row.retrieval_rank}")
+            metadata = "; ".join(header_parts[1:])
+            header = f"{header_parts[0]} [{metadata}]" if metadata else header_parts[0]
+        else:
+            header = f"#### Memory {index}"
+            if row.timestamp:
+                header += f"\nDate: {row.timestamp}"
+            header += f"\nTurn: {row.turn_index}"
+            if row.retrieval_rank is not None:
+                header += f"\nRetrieval rank: {row.retrieval_rank}"
         text = _row_prompt_text_for_row(
             row,
             question=question,
@@ -8062,7 +8106,8 @@ def _external_session_thread_context(
             tail_max_row_text_chars=tail_max_row_text_chars,
         )
         blocks.append(f"{header}\n{row.role}: {text}")
-    return "\n\n".join(blocks)
+    separator = "\n" if memory_context_header_format == "inline" else "\n\n"
+    return separator.join(blocks)
 
 
 def _format_memory_records(

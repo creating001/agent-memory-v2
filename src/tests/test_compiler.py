@@ -134,6 +134,50 @@ class CompilerTest(unittest.TestCase):
             '{"reasoning":"compact evidence decision"', guide_compact.prompt
         )
 
+    def test_inline_memory_context_header_reduces_prompt_without_dropping_evidence(
+        self,
+    ) -> None:
+        kwargs = {
+            "max_evidence_items": 4,
+            "max_evidence_chars": 4000,
+            "prompt_mode": "external_naive",
+            "evidence_report_contract": True,
+            "evidence_report_information_needs": ("fact_lookup",),
+        }
+        compile_kwargs = {
+            "question": "Which music streaming service does Alex use?",
+            "question_time": None,
+            "route": RouteResult("fact_lookup", ("fact",)),
+            "hits": (RetrievalHit("s1:t0", 1.0, 1, "test"),),
+            "evidence_turns": (
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Alex uses Spotify for music streaming.",
+                    timestamp="2024-01-01",
+                ),
+            ),
+        }
+
+        multiline = EvidenceCompiler(**kwargs).compile(**compile_kwargs)
+        inline = EvidenceCompiler(
+            **kwargs,
+            memory_context_header_format="inline",
+        ).compile(**compile_kwargs)
+
+        self.assertLess(len(inline.prompt), len(multiline.prompt))
+        self.assertIn("### Memory 1", inline.prompt)
+        self.assertIn("2024-01-01", inline.prompt)
+        self.assertIn("s1", inline.prompt)
+        self.assertIn("user: Alex uses Spotify for music streaming.", inline.prompt)
+        self.assertIn(
+            "### Memory 1 [2024-01-01; s1]\nuser:",
+            inline.prompt,
+        )
+        self.assertNotIn("\nDate: 2024-01-01\nSession: s1\nuser:", inline.prompt)
+
     def test_structured_guide_memory_hints_are_opt_in(self) -> None:
         compiler = EvidenceCompiler(
             max_evidence_items=4,

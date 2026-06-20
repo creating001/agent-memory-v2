@@ -3436,6 +3436,9 @@ def main() -> int:
                 "compact_query_answer_contract",
                 config.get("compiler", {}).get("compact_query_contract", False),
             ),
+            "memory_context_header_format": config.get("compiler", {}).get(
+                "memory_context_header_format", "multiline"
+            ),
             "answer_style": config.get("compiler", {}).get("answer_style", "grounded"),
             "memory_record_source": config.get("compiler", {}).get(
                 "memory_record_source", "retrieval"
@@ -4740,6 +4743,7 @@ def _write_summary(
         f"- compact_query_contract: {metrics['compiler']['compact_query_contract']}",
         f"- compact_query_guide_blocks: {metrics['compiler']['compact_query_guide_blocks']}",
         f"- compact_query_answer_contract: {metrics['compiler']['compact_query_answer_contract']}",
+        f"- memory_context_header_format: {metrics['compiler']['memory_context_header_format']}",
         f"- operation_workpad_question_gate: {metrics['compiler']['operation_workpad_question_gate']}",
         f"- personalized_advice_contract: {metrics['compiler']['personalized_advice_contract']}",
         f"- personalized_advice_contract_applied: {metrics['compiler']['personalized_advice_contract_applied']}",
@@ -5089,6 +5093,7 @@ def _write_diagnosis(
         f"- compact_query_contract: {metrics['compiler']['compact_query_contract']}",
         f"- compact_query_guide_blocks: {metrics['compiler']['compact_query_guide_blocks']}",
         f"- compact_query_answer_contract: {metrics['compiler']['compact_query_answer_contract']}",
+        f"- memory_context_header_format: {metrics['compiler']['memory_context_header_format']}",
         f"- temporal_workpad: {metrics['compiler']['temporal_workpad']}",
         f"- temporal_text_normalization: {metrics['compiler']['temporal_text_normalization']}",
         f"- temporal_event_contract: {metrics['compiler']['temporal_event_contract']}",

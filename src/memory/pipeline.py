@@ -1451,6 +1451,9 @@ class Stage1Pipeline:
             memory_context_newlines_after_blocks=int(
                 compiler_config.get("memory_context_newlines_after_blocks", 3)
             ),
+            memory_context_header_format=str(
+                compiler_config.get("memory_context_header_format", "multiline")
+            ),
             compact_query_contract=bool(
                 compiler_config.get("compact_query_contract", False)
             ),
@@ -11183,6 +11186,9 @@ def _compiler_trace_config(
         "memory_context_newlines_after_blocks": int(
             compiler_config.get("memory_context_newlines_after_blocks", 3)
         ),
+        "memory_context_header_format": str(
+            compiler_config.get("memory_context_header_format", "multiline")
+        ),
         "compact_query_contract": bool(
             compiler_config.get("compact_query_contract", False)
         ),
@@ -11590,6 +11596,9 @@ def _configured_compiler(compiler_config: Mapping[str, Any]) -> EvidenceCompiler
         ),
         memory_context_newlines_after_blocks=int(
             compiler_config.get("memory_context_newlines_after_blocks", 3)
+        ),
+        memory_context_header_format=str(
+            compiler_config.get("memory_context_header_format", "multiline")
         ),
         compact_query_contract=bool(
             compiler_config.get("compact_query_contract", False)
