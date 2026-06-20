@@ -126,6 +126,11 @@ class Stage1Pipeline:
         selected_context_audit_config = selected_context_config.get("risk_audit", {})
         if not isinstance(selected_context_audit_config, Mapping):
             raise ValueError("retrieval.selected_context.risk_audit must be an object")
+        workspace_policy_context_config = retrieval_config.get(
+            "workspace_policy_context", {}
+        )
+        if not isinstance(workspace_policy_context_config, Mapping):
+            raise ValueError("retrieval.workspace_policy_context must be an object")
         granularity_profile_audit_config = retrieval_config.get(
             "granularity_profile_audit", {}
         )
@@ -823,6 +828,18 @@ class Stage1Pipeline:
                 "trace_only": True,
             },
         }
+        self._workspace_policy_context_enabled = bool(
+            workspace_policy_context_config.get("enabled", False)
+        )
+        self._workspace_policy_context_apply_selected_context_pressure_policy = bool(
+            workspace_policy_context_config.get(
+                "apply_selected_context_pressure_policy",
+                True,
+            )
+        )
+        self._workspace_policy_context_information_needs = _tuple_config(
+            workspace_policy_context_config.get("information_needs")
+        )
         self._context_budget_enabled = bool(
             context_budget_config.get("enabled", False)
         )
@@ -2684,6 +2701,18 @@ class Stage1Pipeline:
             granularity_profile,
             route,
         )
+        selected_context_settings, workspace_policy_context = (
+            _apply_workspace_policy_context_settings(
+                enabled=self._workspace_policy_context_enabled,
+                apply_selected_context_pressure_policy=(
+                    self._workspace_policy_context_apply_selected_context_pressure_policy
+                ),
+                information_needs=self._workspace_policy_context_information_needs,
+                route=route,
+                memory_object_index=memory_object_index,
+                selected_context_settings=selected_context_settings,
+            )
+        )
         selected_context_enabled, selected_context_budget_gate = (
             _selected_context_budget_gate(
                 enabled=selected_context_settings["enabled"],
@@ -2960,6 +2989,7 @@ class Stage1Pipeline:
             operation_utility_trace=operation_utility_trace,
             graph_utility_trace=graph_utility_trace,
             memory_object_index=memory_object_index,
+            workspace_policy_context=workspace_policy_context,
         )
         answer_cache_before = _answer_cache_stats(self._answerer)
         draft_answer = self._answerer.answer(compiled)
@@ -3484,6 +3514,7 @@ class Stage1Pipeline:
                     "turn_window_source_hits": [
                         hit.to_dict() for hit in turn_window_source_hits
                     ],
+                    "workspace_policy_context": workspace_policy_context,
                     "selected_context": selected_context,
                     "turn_hits": [hit.to_dict() for hit in turn_hits],
                     "rerank_enabled": self._rerank_enabled,
@@ -4535,6 +4566,7 @@ def _context_manifest(
     operation_utility_trace: Mapping[str, Any] | None = None,
     graph_utility_trace: Mapping[str, Any] | None = None,
     memory_object_index: Mapping[str, Any] | None = None,
+    workspace_policy_context: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Trace-only source flow manifest for memory/context organization.
 
@@ -4587,6 +4619,9 @@ def _context_manifest(
         operation_utility_source_hits=operation_utility_source_hits,
         graph_utility_source_hits=graph_utility_source_hits,
         final_evidence_source_ids=final_evidence_source_ids,
+    )
+    workspace_policy_context_manifest = _workspace_policy_context_manifest(
+        workspace_policy_context
     )
     return {
         "enabled": True,
@@ -4819,6 +4854,7 @@ def _context_manifest(
                 ),
             },
             "selected_context": selected_context_manifest,
+            "workspace_policy_context": workspace_policy_context_manifest,
             "memory_operations": {
                 "registry_available": memory_operations_manifest[
                     "registry_available"
@@ -9867,6 +9903,127 @@ def _selected_context_risk_audit(
     trace["materialized_text_audit_count"] = materialized_text_count
     trace["raw_center_text_audit_count"] = raw_center_text_count
     return trace
+
+
+def _apply_workspace_policy_context_settings(
+    *,
+    enabled: bool,
+    apply_selected_context_pressure_policy: bool,
+    information_needs: tuple[str, ...],
+    route: RouteResult,
+    memory_object_index: Mapping[str, Any] | None,
+    selected_context_settings: Mapping[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    settings = dict(selected_context_settings)
+    selected_context_before = {
+        "context_format": settings.get("context_format"),
+        "timestamp_policy": settings.get("timestamp_policy"),
+    }
+    trace: dict[str, Any] = {
+        "enabled": enabled,
+        "applied": False,
+        "reason": "disabled" if not enabled else "no_workspace_policy",
+        "information_needs": information_needs,
+        "apply_selected_context_pressure_policy": (
+            apply_selected_context_pressure_policy
+        ),
+        "policy_available": False,
+        "policy_schema_version": "",
+        "policy_stage_order": (),
+        "pressure_policy": {},
+        "selected_context_before": selected_context_before,
+        "selected_context_overrides": {},
+        "selected_context_after": dict(selected_context_before),
+    }
+    if not enabled:
+        return settings, trace
+    if information_needs and route.information_need not in information_needs:
+        trace["reason"] = "route_not_enabled"
+        return settings, trace
+    if not isinstance(memory_object_index, Mapping):
+        return settings, trace
+    memory_workspace_policy = memory_object_index.get("memory_workspace_policy")
+    if not isinstance(memory_workspace_policy, Mapping):
+        return settings, trace
+    trace["policy_schema_version"] = str(
+        memory_workspace_policy.get("schema_version") or ""
+    )
+    trace["policy_stage_order"] = tuple(
+        memory_workspace_policy.get("stage_order") or ()
+    )
+    if not memory_workspace_policy.get("applied"):
+        trace["reason"] = "workspace_policy_not_applied"
+        return settings, trace
+    trace["policy_available"] = True
+    pressure_policy = memory_workspace_policy.get("pressure_policy")
+    if not isinstance(pressure_policy, Mapping):
+        trace["reason"] = "missing_pressure_policy"
+        return settings, trace
+    trace["pressure_policy"] = dict(pressure_policy)
+    if not apply_selected_context_pressure_policy:
+        trace["reason"] = "selected_context_pressure_policy_disabled"
+        return settings, trace
+
+    overrides: dict[str, Any] = {}
+    raw_context_format = pressure_policy.get("selected_context_format")
+    if raw_context_format:
+        try:
+            overrides["context_format"] = _selected_context_context_format(
+                raw_context_format
+            )
+        except ValueError:
+            trace["reason"] = "invalid_selected_context_format"
+            return settings, trace
+    raw_timestamp_policy = pressure_policy.get("selected_context_timestamp_policy")
+    if raw_timestamp_policy:
+        try:
+            overrides["timestamp_policy"] = _selected_context_timestamp_policy(
+                raw_timestamp_policy
+            )
+        except ValueError:
+            trace["reason"] = "invalid_selected_context_timestamp_policy"
+            return settings, trace
+    if not overrides:
+        trace["reason"] = "no_selected_context_pressure_policy"
+        return settings, trace
+
+    settings.update(overrides)
+    trace["applied"] = True
+    trace["reason"] = "workspace_policy_pressure_policy"
+    trace["selected_context_overrides"] = dict(overrides)
+    trace["selected_context_after"] = {
+        "context_format": settings.get("context_format"),
+        "timestamp_policy": settings.get("timestamp_policy"),
+    }
+    return settings, trace
+
+
+def _workspace_policy_context_manifest(
+    workspace_policy_context: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    if not isinstance(workspace_policy_context, Mapping):
+        workspace_policy_context = {}
+    return {
+        "enabled": bool(workspace_policy_context.get("enabled")),
+        "applied": bool(workspace_policy_context.get("applied")),
+        "reason": str(workspace_policy_context.get("reason") or ""),
+        "policy_available": bool(workspace_policy_context.get("policy_available")),
+        "policy_schema_version": str(
+            workspace_policy_context.get("policy_schema_version") or ""
+        ),
+        "policy_stage_order": tuple(
+            workspace_policy_context.get("policy_stage_order") or ()
+        ),
+        "selected_context_overrides": dict(
+            workspace_policy_context.get("selected_context_overrides") or {}
+        ),
+        "selected_context_before": dict(
+            workspace_policy_context.get("selected_context_before") or {}
+        ),
+        "selected_context_after": dict(
+            workspace_policy_context.get("selected_context_after") or {}
+        ),
+    }
 
 
 def _compiler_context_pressure_trace(

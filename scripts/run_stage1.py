@@ -92,6 +92,8 @@ def main() -> int:
     total_selected_context_risk_audit_applied = 0
     total_selected_context_risk_audit_audited = 0
     total_selected_context_risk_audit_risk = 0
+    total_workspace_policy_context_policy_available = 0
+    total_workspace_policy_context_applied = 0
     total_rerank_applied = 0
     total_rerank_candidate_count = 0
     total_rerank_returned_count = 0
@@ -520,6 +522,13 @@ def main() -> int:
         total_turn_window_source_hits += len(
             retrieval_trace.get("turn_window_source_hits") or []
         )
+        workspace_policy_context = (
+            retrieval_trace.get("workspace_policy_context") or {}
+        )
+        if workspace_policy_context.get("policy_available"):
+            total_workspace_policy_context_policy_available += 1
+        if workspace_policy_context.get("applied"):
+            total_workspace_policy_context_applied += 1
         selected_context = retrieval_trace.get("selected_context") or {}
         if selected_context.get("applied"):
             total_selected_context_applied += 1
@@ -2021,6 +2030,33 @@ def main() -> int:
             .get("selected_context", {})
             .get("risk_audit", {})
             .get("source_grounded_min_coverage"),
+            "workspace_policy_context_enabled": config.get("retrieval", {})
+            .get("workspace_policy_context", {})
+            .get("enabled", False),
+            "workspace_policy_context_information_needs": config.get(
+                "retrieval", {}
+            )
+            .get("workspace_policy_context", {})
+            .get("information_needs"),
+            "workspace_policy_context_apply_selected_context_pressure_policy": (
+                config.get("retrieval", {})
+                .get("workspace_policy_context", {})
+                .get("apply_selected_context_pressure_policy", True)
+            ),
+            "workspace_policy_context_policy_available_count": (
+                total_workspace_policy_context_policy_available
+            ),
+            "workspace_policy_context_policy_available_rate": _safe_average(
+                total_workspace_policy_context_policy_available,
+                sample_count,
+            ),
+            "workspace_policy_context_applied_count": (
+                total_workspace_policy_context_applied
+            ),
+            "workspace_policy_context_applied_rate": _safe_average(
+                total_workspace_policy_context_applied,
+                sample_count,
+            ),
             "selected_context_applied_count": total_selected_context_applied,
             "selected_context_applied_rate": _safe_average(
                 total_selected_context_applied, sample_count
@@ -4409,6 +4445,10 @@ def _write_summary(
         f"- granularity_profile_audit_selected_count: {metrics['retrieval']['granularity_profile_audit_selected_count']}",
         f"- granularity_profile_audit_behavior_risk_count: {metrics['retrieval']['granularity_profile_audit_behavior_risk_count']}",
         f"- selected_context_enabled: {metrics['retrieval']['selected_context_enabled']}",
+        f"- workspace_policy_context_enabled: {metrics['retrieval']['workspace_policy_context_enabled']}",
+        f"- workspace_policy_context_policy_available_count: {metrics['retrieval']['workspace_policy_context_policy_available_count']}",
+        f"- workspace_policy_context_applied_count: {metrics['retrieval']['workspace_policy_context_applied_count']}",
+        f"- workspace_policy_context_applied_rate: {metrics['retrieval']['workspace_policy_context_applied_rate']}",
         f"- selected_context_window_before: {metrics['retrieval']['selected_context_window_before']}",
         f"- selected_context_window_after: {metrics['retrieval']['selected_context_window_after']}",
         f"- selected_context_max_rows: {metrics['retrieval']['selected_context_max_rows']}",
@@ -4943,6 +4983,10 @@ def _write_diagnosis(
         f"- granularity_profile_audit_selected_count: {metrics['retrieval']['granularity_profile_audit_selected_count']}",
         f"- granularity_profile_audit_behavior_risk_count: {metrics['retrieval']['granularity_profile_audit_behavior_risk_count']}",
         f"- selected_context_enabled: {metrics['retrieval']['selected_context_enabled']}",
+        f"- workspace_policy_context_enabled: {metrics['retrieval']['workspace_policy_context_enabled']}",
+        f"- workspace_policy_context_policy_available_count: {metrics['retrieval']['workspace_policy_context_policy_available_count']}",
+        f"- workspace_policy_context_applied_count: {metrics['retrieval']['workspace_policy_context_applied_count']}",
+        f"- workspace_policy_context_applied_rate: {metrics['retrieval']['workspace_policy_context_applied_rate']}",
         f"- selected_context_applied_count: {metrics['retrieval']['selected_context_applied_count']}",
         f"- selected_context_applied_rate: {metrics['retrieval']['selected_context_applied_rate']}",
         f"- selected_context_budget_gate_applied_count: {metrics['retrieval']['selected_context_budget_gate_applied_count']}",

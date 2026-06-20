@@ -1300,6 +1300,131 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertNotIn("Local dialogue context from the same session", row_text)
         self.assertIn("Nothing is Impossible", row_text)
 
+    def test_workspace_policy_context_drives_selected_context_format(self) -> None:
+        memory_record = MemoryRecord(
+            memory_id="m-book",
+            memory_type="fact",
+            text='Alex read "Nothing is Impossible".',
+            source_ids=("s1:t0",),
+            subject="Alex",
+            predicate="read",
+            value="Nothing is Impossible",
+            status="active",
+        )
+
+        class FakeBuilder:
+            def build(self, turns: tuple[Turn, ...]) -> BuiltMemory:
+                del turns
+                return BuiltMemory(
+                    records=(memory_record,),
+                    token_usage=TokenUsage(),
+                    management=_management_summary(
+                        (memory_record,),
+                        policy="stateful_only",
+                        managed_memory_types=frozenset({"fact"}),
+                        include_memory_system_graph=True,
+                    ),
+                )
+
+        config = {
+            "build_memory": {
+                "enabled": True,
+                "mode": "openai_compatible",
+                "model": "fake",
+                "top_k": 1,
+                "max_sources_per_record": 1,
+            },
+            "retrieval": {
+                "top_k": 2,
+                "max_top_k": 2,
+                "neighbor_window": 0,
+                "workspace_policy_context": {
+                    "enabled": True,
+                    "information_needs": ["list_count"],
+                    "apply_selected_context_pressure_policy": True,
+                },
+                "selected_context": {
+                    "enabled": True,
+                    "window_before": 1,
+                    "window_after": 0,
+                    "max_rows": 2,
+                    "max_neighbor_chars": 80,
+                    "max_center_chars": 0,
+                    "require_anaphora": True,
+                    "information_needs": ["list_count"],
+                },
+            },
+            "route": {"enable_broad_list_patterns": True},
+            "compiler": {
+                "prompt_mode": "external_naive",
+                "max_evidence_items": 2,
+                "max_evidence_chars": 4000,
+            },
+            "answer": {"fallback_answer": "unknown"},
+        }
+        pipeline = Stage1Pipeline(config)
+        pipeline._memory_builder = FakeBuilder()
+        request = PredictionRequest(
+            question="What books has Alex read?",
+            turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text='Alex read "Nothing is Impossible" last year.',
+                    timestamp="2024-01-01",
+                ),
+                Turn(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="assistant",
+                    text="This book inspired Alex to keep training.",
+                    timestamp="2024-01-02",
+                ),
+            ),
+        )
+
+        result = pipeline.predict(request)
+        retrieval = result["trace"]["retrieval"]
+        policy_context = retrieval["workspace_policy_context"]
+        selected_context = retrieval["selected_context"]
+        manifest_policy_context = result["trace"]["context_manifest"][
+            "context_organization"
+        ]["workspace_policy_context"]
+        row_text = "\n".join(
+            row["text"]
+            for row in result["trace"]["compiled_context"]["evidence_rows"]
+        )
+
+        self.assertTrue(policy_context["policy_available"])
+        self.assertTrue(policy_context["applied"])
+        self.assertEqual(
+            policy_context["reason"], "workspace_policy_pressure_policy"
+        )
+        self.assertEqual(
+            policy_context["selected_context_before"],
+            {"context_format": "verbose", "timestamp_policy": "all"},
+        )
+        self.assertEqual(
+            policy_context["selected_context_after"],
+            {"context_format": "compact", "timestamp_policy": "center_only"},
+        )
+        self.assertEqual(selected_context["context_format"], "compact")
+        self.assertEqual(selected_context["timestamp_policy"], "center_only")
+        self.assertIn("Same-session context:", row_text)
+        self.assertIn("- center (2024-01-02) | assistant:", row_text)
+        self.assertIn("- near | user:", row_text)
+        self.assertNotIn("- near (2024-01-01) | user:", row_text)
+        self.assertTrue(manifest_policy_context["applied"])
+        self.assertEqual(
+            manifest_policy_context["selected_context_overrides"][
+                "context_format"
+            ],
+            "compact",
+        )
+
     def test_selected_context_can_require_question_reference(self) -> None:
         config = {
             "retrieval": {
