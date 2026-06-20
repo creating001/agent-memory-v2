@@ -38,6 +38,7 @@ v269 关键证据见 `experiments/diagnostic/stage1_memory_activation_utility_v2
 
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
+| `configs/stage1_explicit_date_temporal_route_v271_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_explicit_date_temporal_route_v271_full_summary.md` | rejected full | full changed answers: LME `5/500`、LoCoMo `75/1540`；changed-answer dual judge delta LME strict/lenient `-2/-2`，LoCoMo `-13/-14`；query tokens 下降但 accuracy 回退 | 不升 LTS；显式日期无条件抢过 fact/list/current 路由过宽 |
 | `configs/stage1_priority_memory_retrieval_v270_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_priority_memory_retrieval_v270_full_summary.md` | evaluated candidate | full changed answers: LME `1/500`、LoCoMo `8/1540`；changed-answer dual judge delta strict/lenient 均为 `0/0`；priority reordered LME `6`、LoCoMo `46` | 不升 LTS；未带来 accuracy 提升，且增加 query-side prior |
 | `configs/stage1_memory_activation_utility_v269_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_memory_activation_utility_v269_full_summary.md` | current LTS | vs v268 full answer/prompt/final-evidence/retrieval/token diff `0`；activation utility manifest applied LME `500/500`、LoCoMo `1540/1540`；answer cache hits LME `500/500`、LoCoMo `1540/1540` | 当前 LTS；性能不退，build memory object 有了 utility/role/priority 结构 |
 | `configs/stage1_governed_memory_activation_v268_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_governed_memory_activation_v268_full_summary.md` | previous LTS | vs v267 full diff `0`；governance activation applied LME `500/500`、LoCoMo `1540/1540`；filtered records `0` | 被 v269 继承；typed-memory activation 从诊断推进到真实 gate |
@@ -53,6 +54,7 @@ v269 关键证据见 `experiments/diagnostic/stage1_memory_activation_utility_v2
 | `diagnostic/stage1_profile_aware_gated_fact_list_rerank_v228_scope_summary.md` | profile-aware gated fact/list rerank clean，但 LoCoMo changed judge 回退。 |
 | `diagnostic/stage1_route_tail_cap56_v223_scope_summary.md` | route-scoped final evidence cap 降 token，但 changed judge 明显回退。 |
 | `diagnostic/stage1_temporal_materialized_context_source_gate_v219_scope_summary.md` | selected-context hard gate 降 token / risk，但 answer regression 明显。 |
+| `diagnostic/stage1_explicit_date_temporal_route_v271_full_summary.md` | 显式日期可以帮助识别 temporal intent，但不能无条件抢过 fact/list；应只修正 latest/recent 与 explicit-date 冲突的窄场景。 |
 
 ## 输出路径
 
