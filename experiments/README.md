@@ -6,15 +6,15 @@
 
 | 项目 | 结果 |
 |---|---|
-| 当前 LTS 配置 | `configs/stage1_memory_activation_utility_v269_seeded_qwen36_no_think_build4k_cached.json` |
+| 当前 LTS 配置 | `configs/stage1_explicit_date_recent_route_v272_seeded_qwen36_no_think_build4k_cached.json` |
 | Backbone | `Qwen/Qwen3.6-35B-A3B` answer/build，`chat_template_kwargs.enable_thinking=false` |
-| 方法定位 | source-backed build memory management + operation ledger + schema/quality-aware memory system graph + governed typed-memory activation + build-stage activation utility manifest + lifecycle-gated graph evidence utility + raw evidence compiler + source-grounded answer audit。Typed memory 只能作为受 governance/utility 约束的 activation、ranking hint 和 audit；最终 evidence 仍回到 raw Memory rows。 |
+| 方法定位 | source-backed build memory management + operation ledger + schema/quality-aware memory system graph + governed typed-memory activation + build-stage activation utility manifest + narrow explicit-date/recent route conflict resolver + lifecycle-gated graph evidence utility + raw evidence compiler + source-grounded answer audit。Typed memory 只能作为受 governance/utility 约束的 activation、ranking hint 和 audit；最终 evidence 仍回到 raw Memory rows。 |
 | LongMemEval-S full | strict/lenient `0.832000 / 0.844000`，`416/500` strict，`422/500` lenient；avg build/query tokens `85393.566 / 6462.478` |
-| LoCoMo non-adversarial full | strict/lenient `0.794156 / 0.819481`，`1223/1540` strict，`1262/1540` lenient；avg build/query tokens `62015.57402597403 / 6094.017532467533` |
-| LTS 理由 | v269 与 v268 full 的 answer/prompt/final-evidence/retrieval/token diff 全为 `0`，继承 v268 accuracy；同时在 build memory graph 内显式记录 activation utility score/bucket/role/priority，为后续用通用 memory utility 替代 query-time 复杂规则打基础。 |
-| 主要局限 | v269 目前不改变 retrieval/answer 行为，所以是系统风险降低而非直接提分；query stack 仍有 route/selected-context/state-guide/ledger/audit 兼容层；LME query tokens 仍略高于 6K 目标但低于 8K hard diagnostic 线。 |
+| LoCoMo non-adversarial full | strict/lenient `0.794156 / 0.819481`，`1223/1540` strict，`1262/1540` lenient；avg build/query tokens `62015.57402597403 / 6093.84025974026` |
+| LTS 理由 | v272 对 LME full 完全 `0` diff；LoCoMo full 只有 `2/1540` answer diff，changed-answer dual judge delta strict/lenient `0/0`。它继承 v269 build activation utility，同时把 v271 的显式日期路由风险收窄成 clean、可关闭的信息需求冲突策略，accuracy 不退且 query tokens 不增。 |
+| 主要局限 | v272 仍是小步 LTS，不是 build memory system 的根本升级；query stack 仍有 route/selected-context/state-guide/ledger/audit 兼容层；LME query tokens 仍略高于 6K 目标但低于 8K hard diagnostic 线。 |
 
-v269 关键证据见 `experiments/diagnostic/stage1_memory_activation_utility_v269_full_summary.md`。如果论文级最终汇报需要 fresh full judge，再对最终 LTS 配置完整重跑 dual judge；日常迭代优先用 full diff + changed-answer paired judge，避免无意义重跑。
+v272 关键证据见 `experiments/diagnostic/stage1_explicit_date_recent_route_v272_full_summary.md`。如果论文级最终汇报需要 fresh full judge，再对最终 LTS 配置完整重跑 dual judge；日常迭代优先用 full diff + changed-answer paired judge，避免无意义重跑。
 
 ## 口径
 
@@ -28,7 +28,7 @@ v269 关键证据见 `experiments/diagnostic/stage1_memory_activation_utility_v2
 
 | 优先级 | 方向 | 下一步 |
 |---:|---|---|
-| 1 | Build memory system | 在 v269 activation utility 基础上继续标准化 event/state/profile/relation object schema，让 validity、confidence calibration、merge/supersede、temporal scope 和 usage utility 成为 build 输出的一等字段。 |
+| 1 | Build memory system | 在 v272 LTS 基础上继续标准化 event/state/profile/relation object schema，让 validity、confidence calibration、merge/supersede、temporal scope 和 usage utility 成为 build 输出的一等字段。 |
 | 2 | Query-time 简化 | 收敛为 candidate activation、context compiler、source-grounded answer、consistency verifier 四层；逐步删除确认无用的兼容分支。 |
 | 3 | Evidence utility | 用 build-stage utility/role 替代简单 overflow 或固定 top-k，增加 source pressure、same-slot coverage、temporal validity 和 utility ablation。 |
 | 4 | Answer/verifier | 把 audit 推进为通用 consistency verifier：检查数值、时间、说话人、实体、状态冲突和 unsupported answer，不写 benchmark-specific rewrite。 |
@@ -38,9 +38,10 @@ v269 关键证据见 `experiments/diagnostic/stage1_memory_activation_utility_v2
 
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
+| `configs/stage1_explicit_date_recent_route_v272_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_explicit_date_recent_route_v272_full_summary.md` | current LTS | LME full diff `0/500`；LoCoMo changed answers `2/1540`，changed-answer dual judge delta strict/lenient `0/0`；LoCoMo avg query tokens `6093.84025974026` | 升 LTS；继承 v269 accuracy，同时把 v271 的 broad 显式日期路由收窄成 clean conflict resolver |
 | `configs/stage1_explicit_date_temporal_route_v271_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_explicit_date_temporal_route_v271_full_summary.md` | rejected full | full changed answers: LME `5/500`、LoCoMo `75/1540`；changed-answer dual judge delta LME strict/lenient `-2/-2`，LoCoMo `-13/-14`；query tokens 下降但 accuracy 回退 | 不升 LTS；显式日期无条件抢过 fact/list/current 路由过宽 |
 | `configs/stage1_priority_memory_retrieval_v270_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_priority_memory_retrieval_v270_full_summary.md` | evaluated candidate | full changed answers: LME `1/500`、LoCoMo `8/1540`；changed-answer dual judge delta strict/lenient 均为 `0/0`；priority reordered LME `6`、LoCoMo `46` | 不升 LTS；未带来 accuracy 提升，且增加 query-side prior |
-| `configs/stage1_memory_activation_utility_v269_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_memory_activation_utility_v269_full_summary.md` | current LTS | vs v268 full answer/prompt/final-evidence/retrieval/token diff `0`；activation utility manifest applied LME `500/500`、LoCoMo `1540/1540`；answer cache hits LME `500/500`、LoCoMo `1540/1540` | 当前 LTS；性能不退，build memory object 有了 utility/role/priority 结构 |
+| `configs/stage1_memory_activation_utility_v269_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_memory_activation_utility_v269_full_summary.md` | previous LTS | vs v268 full answer/prompt/final-evidence/retrieval/token diff `0`；activation utility manifest applied LME `500/500`、LoCoMo `1540/1540`；answer cache hits LME `500/500`、LoCoMo `1540/1540` | 被 v272 继承；性能不退，build memory object 有了 utility/role/priority 结构 |
 | `configs/stage1_governed_memory_activation_v268_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_governed_memory_activation_v268_full_summary.md` | previous LTS | vs v267 full diff `0`；governance activation applied LME `500/500`、LoCoMo `1540/1540`；filtered records `0` | 被 v269 继承；typed-memory activation 从诊断推进到真实 gate |
 | v264-v267 memory governance / lifecycle graph line | previous anchors | lifecycle-gated graph utility、memory system quality、query surface simplification、governance manifest 均以 clean/answer-identical 或 changed-answer judge 不退方式降低风险 | 保留为可追溯锚点，详细见对应 full summary 和 git |
 | v216-v263 rejected context/retrieval/prompt/object-slot lines | historical lessons | hard gate、prompt-side operation guide、wide selected context、tail-exchange replacement、simple overflow 多次造成 changed-answer 回退 | 不再逐版展开；需要时查对应 scope summary 和 git |

@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_memory_activation_utility_v269_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_explicit_date_recent_route_v272_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v269 local LTS |
+| Benchmark | 当前 v272 local LTS |
 |---|---:|
 | LongMemEval-S full | strict/lenient `0.832000 / 0.844000`，avg build/query tokens `85393.566 / 6462.478` |
-| LoCoMo non-adversarial full | strict/lenient `0.794156 / 0.819481`，avg build/query tokens `62015.57402597403 / 6094.017532467533` |
+| LoCoMo non-adversarial full | strict/lenient `0.794156 / 0.819481`，avg build/query tokens `62015.57402597403 / 6093.84025974026` |
 
-v269 的 LTS 理由：在 v268 governed activation 基础上，把 build memory object 增加 question-independent activation utility score、bucket、role 和 priority manifest，继续把系统能力前移到 build/management 层。v269 与 v268 full 的 answer、prompt、final evidence、retrieval 和 token 全等，继承 v268 accuracy，风险更低但性能不退。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_memory_activation_utility_v269_full_summary.md`。
+v272 的 LTS 理由：继承 v269 的 build memory activation utility，并把 v271 暴露的显式日期路由问题收窄为通用、可关闭的 explicit-date + recent/current 冲突策略。v272 对 LongMemEval-S full 完全 `0` diff；LoCoMo full 只有 `2/1540` answer diff，changed-answer dual judge strict/lenient delta `0/0`，accuracy 不退且 query tokens 不增。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_explicit_date_recent_route_v272_full_summary.md`。
 
 ## 目录
 
