@@ -1330,6 +1330,20 @@ class Stage1Pipeline:
             memory_operation_context_organizer_max_plans=int(
                 compiler_config.get("memory_operation_context_organizer_max_plans", 4)
             ),
+            memory_operation_evidence_coverage_audit=bool(
+                compiler_config.get("memory_operation_evidence_coverage_audit", False)
+            ),
+            memory_operation_evidence_coverage_audit_information_needs=_tuple_config(
+                compiler_config.get(
+                    "memory_operation_evidence_coverage_audit_information_needs",
+                    ("current_state",),
+                )
+            ),
+            memory_operation_evidence_coverage_audit_max_plans=int(
+                compiler_config.get(
+                    "memory_operation_evidence_coverage_audit_max_plans", 4
+                )
+            ),
             memory_operation_readiness_audit=bool(
                 compiler_config.get("memory_operation_readiness_audit", False)
             ),
@@ -8578,6 +8592,20 @@ def _compiler_trace_config(
         "memory_operation_context_organizer_max_plans": int(
             compiler_config.get("memory_operation_context_organizer_max_plans", 4)
         ),
+        "memory_operation_evidence_coverage_audit": bool(
+            compiler_config.get("memory_operation_evidence_coverage_audit", False)
+        ),
+        "memory_operation_evidence_coverage_audit_information_needs": _tuple_config(
+            compiler_config.get(
+                "memory_operation_evidence_coverage_audit_information_needs",
+                ("current_state",),
+            )
+        ),
+        "memory_operation_evidence_coverage_audit_max_plans": int(
+            compiler_config.get(
+                "memory_operation_evidence_coverage_audit_max_plans", 4
+            )
+        ),
         "memory_operation_readiness_audit": bool(
             compiler_config.get("memory_operation_readiness_audit", False)
         ),
@@ -9014,6 +9042,20 @@ def _configured_compiler(compiler_config: Mapping[str, Any]) -> EvidenceCompiler
         ),
         memory_operation_context_organizer_max_plans=int(
             compiler_config.get("memory_operation_context_organizer_max_plans", 4)
+        ),
+        memory_operation_evidence_coverage_audit=bool(
+            compiler_config.get("memory_operation_evidence_coverage_audit", False)
+        ),
+        memory_operation_evidence_coverage_audit_information_needs=_tuple_config(
+            compiler_config.get(
+                "memory_operation_evidence_coverage_audit_information_needs",
+                ("current_state",),
+            )
+        ),
+        memory_operation_evidence_coverage_audit_max_plans=int(
+            compiler_config.get(
+                "memory_operation_evidence_coverage_audit_max_plans", 4
+            )
         ),
         memory_operation_readiness_audit=bool(
             compiler_config.get("memory_operation_readiness_audit", False)

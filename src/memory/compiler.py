@@ -248,6 +248,8 @@ ROUTE_OVERRIDE_KEYS = {
     "memory_operation_context_organizer",
     "memory_operation_context_organizer_anchor_keep",
     "memory_operation_context_organizer_max_plans",
+    "memory_operation_evidence_coverage_audit",
+    "memory_operation_evidence_coverage_audit_max_plans",
     "memory_operation_readiness_audit",
     "memory_operation_readiness_audit_max_plans",
     "memory_workspace_plan",
@@ -486,6 +488,11 @@ class EvidenceCompiler:
         ),
         memory_operation_context_organizer_anchor_keep: int = 0,
         memory_operation_context_organizer_max_plans: int = 4,
+        memory_operation_evidence_coverage_audit: bool = False,
+        memory_operation_evidence_coverage_audit_information_needs: tuple[str, ...] = (
+            "current_state",
+        ),
+        memory_operation_evidence_coverage_audit_max_plans: int = 4,
         memory_operation_readiness_audit: bool = False,
         memory_operation_readiness_audit_information_needs: tuple[str, ...] = (
             "current_state",
@@ -805,6 +812,18 @@ class EvidenceCompiler:
         )
         self._memory_operation_context_organizer_max_plans = max(
             1, int(memory_operation_context_organizer_max_plans)
+        )
+        self._memory_operation_evidence_coverage_audit = bool(
+            memory_operation_evidence_coverage_audit
+        )
+        self._memory_operation_evidence_coverage_audit_information_needs = (
+            _validate_information_needs(
+                memory_operation_evidence_coverage_audit_information_needs,
+                field_name="memory_operation_evidence_coverage_audit_information_needs",
+            )
+        )
+        self._memory_operation_evidence_coverage_audit_max_plans = max(
+            1, int(memory_operation_evidence_coverage_audit_max_plans)
         )
         self._memory_operation_readiness_audit = bool(
             memory_operation_readiness_audit
@@ -1369,6 +1388,26 @@ class EvidenceCompiler:
                     ],
                 )
             )
+        if (
+            route_settings["memory_operation_evidence_coverage_audit"]
+            and route.information_need
+            in self._memory_operation_evidence_coverage_audit_information_needs
+        ):
+            diagnostics["memory_operation_evidence_coverage_audit"] = (
+                _memory_operation_evidence_coverage_audit(
+                    question=question,
+                    route=route,
+                    rows=laid_out_rows,
+                    memory_operation_plan=memory_operation_plan,
+                    memory_query_readiness_manifest=memory_query_readiness_manifest,
+                    max_plans=route_settings[
+                        "memory_operation_evidence_coverage_audit_max_plans"
+                    ],
+                    required_readiness_modes=route_settings[
+                        "memory_operation_plan_guide_required_readiness_modes"
+                    ],
+                )
+            )
         if self._event_time_candidate_manifest:
             diagnostics["event_time_candidate_manifest"] = (
                 _event_time_candidate_manifest(
@@ -1522,6 +1561,12 @@ class EvidenceCompiler:
             ),
             "memory_operation_context_organizer_max_plans": (
                 self._memory_operation_context_organizer_max_plans
+            ),
+            "memory_operation_evidence_coverage_audit": (
+                self._memory_operation_evidence_coverage_audit
+            ),
+            "memory_operation_evidence_coverage_audit_max_plans": (
+                self._memory_operation_evidence_coverage_audit_max_plans
             ),
             "memory_operation_readiness_audit": (
                 self._memory_operation_readiness_audit
@@ -2039,6 +2084,15 @@ def _validate_route_overrides(
         if "memory_operation_context_organizer_anchor_keep" in raw_overrides:
             overrides["memory_operation_context_organizer_anchor_keep"] = max(
                 0, int(raw_overrides["memory_operation_context_organizer_anchor_keep"])
+            )
+        if "memory_operation_evidence_coverage_audit" in raw_overrides:
+            overrides["memory_operation_evidence_coverage_audit"] = bool(
+                raw_overrides["memory_operation_evidence_coverage_audit"]
+            )
+        if "memory_operation_evidence_coverage_audit_max_plans" in raw_overrides:
+            overrides["memory_operation_evidence_coverage_audit_max_plans"] = max(
+                1,
+                int(raw_overrides["memory_operation_evidence_coverage_audit_max_plans"]),
             )
         if "memory_operation_readiness_audit" in raw_overrides:
             overrides["memory_operation_readiness_audit"] = bool(
@@ -5258,6 +5312,247 @@ def _memory_operation_readiness_audit(
     audit["reason"] = "ready_visible_plans_selected"
     audit["selected_plans"] = selected_plans
     return audit
+
+
+def _memory_operation_evidence_coverage_audit(
+    *,
+    question: str,
+    route: RouteResult,
+    rows: tuple[EvidenceRow, ...],
+    memory_operation_plan: Mapping[str, Any] | None,
+    memory_query_readiness_manifest: Mapping[str, Any] | None,
+    max_plans: int,
+    required_readiness_modes: tuple[str, ...],
+) -> dict[str, Any]:
+    audit: dict[str, Any] = {
+        "enabled": True,
+        "applied": False,
+        "trace_only": True,
+        "information_need": route.information_need,
+        "required_readiness_modes": list(required_readiness_modes),
+        "candidate_count": 0,
+        "ready_plan_count": 0,
+        "selected_plan_count": 0,
+        "selected_source_count": 0,
+        "visible_source_count": 0,
+        "missing_source_count": 0,
+        "current_visible_source_count": 0,
+        "current_missing_source_count": 0,
+        "historical_visible_source_count": 0,
+        "historical_missing_source_count": 0,
+        "full_coverage_plan_count": 0,
+        "partial_coverage_plan_count": 0,
+        "no_visible_source_plan_count": 0,
+        "selected_plans": [],
+        "clean_note": (
+            "Trace-only evidence coverage audit from build-owned operation plans. "
+            "It checks whether guarded operation-plan source chains are visible "
+            "in the raw Memory rows already selected for the prompt. It is not "
+            "rendered to the answer prompt and does not affect retrieval, answer, "
+            "repair, finalizer, or cache construction."
+        ),
+    }
+    if (
+        not rows
+        or not memory_operation_plan
+        or not memory_operation_plan.get("applied")
+        or max_plans <= 0
+    ):
+        audit["reason"] = "missing_rows_or_operation_plan"
+        return audit
+    raw_plans = memory_operation_plan.get("workspace_operation_plans") or ()
+    if not isinstance(raw_plans, Iterable) or isinstance(raw_plans, (str, bytes)):
+        audit["reason"] = "invalid_operation_plan"
+        return audit
+
+    visible_source_ids = {row.source_id for row in rows}
+    visible_source_rank = {row.source_id: index for index, row in enumerate(rows, start=1)}
+    readiness_by_slot = _memory_query_readiness_by_slot(
+        memory_query_readiness_manifest
+    )
+    question_terms = _content_terms(question).difference(
+        MEMORY_STATE_GUIDE_ALIGNMENT_WEAK_TERMS
+    )
+    question_scope = _workspace_question_scope(question, route)
+    candidates: list[
+        tuple[float, int, Mapping[str, Any], Mapping[str, Any], dict[str, tuple[str, ...]]]
+    ] = []
+    raw_candidate_count = 0
+    for ordinal, raw_plan in enumerate(raw_plans):
+        if not isinstance(raw_plan, Mapping):
+            continue
+        raw_candidate_count += 1
+        if raw_plan.get("source_backed") is False:
+            continue
+        if str(raw_plan.get("memory_tier") or "") == "quarantine_memory":
+            continue
+        readiness = _operation_plan_query_readiness(
+            raw_plan,
+            readiness_by_slot=readiness_by_slot,
+            require_readiness=True,
+            required_readiness_modes=required_readiness_modes,
+        )
+        if readiness is None:
+            continue
+        source_sets = _operation_plan_source_coverage_sets(raw_plan)
+        if not source_sets["all"]:
+            continue
+        score = _operation_plan_score(
+            raw_plan,
+            question_terms=question_terms,
+            route=route,
+            question_scope=question_scope,
+        )
+        if score <= 0:
+            continue
+        candidates.append((score, -ordinal, raw_plan, readiness, source_sets))
+
+    audit["candidate_count"] = raw_candidate_count
+    audit["ready_plan_count"] = len(candidates)
+    if not candidates:
+        audit["reason"] = "no_ready_source_plan"
+        return audit
+
+    candidates.sort(reverse=True)
+    selected = candidates[:max_plans]
+    selected_plans: list[dict[str, Any]] = []
+    totals = {
+        "selected_source_count": 0,
+        "visible_source_count": 0,
+        "missing_source_count": 0,
+        "current_visible_source_count": 0,
+        "current_missing_source_count": 0,
+        "historical_visible_source_count": 0,
+        "historical_missing_source_count": 0,
+        "full_coverage_plan_count": 0,
+        "partial_coverage_plan_count": 0,
+        "no_visible_source_plan_count": 0,
+    }
+    for score, _, plan, readiness, source_sets in selected:
+        all_sources = source_sets["all"]
+        visible_sources = tuple(
+            source_id for source_id in all_sources if source_id in visible_source_ids
+        )
+        missing_sources = tuple(
+            source_id for source_id in all_sources if source_id not in visible_source_ids
+        )
+        current_visible = tuple(
+            source_id
+            for source_id in source_sets["current"]
+            if source_id in visible_source_ids
+        )
+        current_missing = tuple(
+            source_id
+            for source_id in source_sets["current"]
+            if source_id not in visible_source_ids
+        )
+        historical_visible = tuple(
+            source_id
+            for source_id in source_sets["historical"]
+            if source_id in visible_source_ids
+        )
+        historical_missing = tuple(
+            source_id
+            for source_id in source_sets["historical"]
+            if source_id not in visible_source_ids
+        )
+        visible_count = len(visible_sources)
+        missing_count = len(missing_sources)
+        source_count = len(all_sources)
+        if visible_count == source_count:
+            totals["full_coverage_plan_count"] += 1
+            coverage_state = "full"
+        elif visible_count == 0:
+            totals["no_visible_source_plan_count"] += 1
+            coverage_state = "none"
+        else:
+            totals["partial_coverage_plan_count"] += 1
+            coverage_state = "partial"
+        totals["selected_source_count"] += source_count
+        totals["visible_source_count"] += visible_count
+        totals["missing_source_count"] += missing_count
+        totals["current_visible_source_count"] += len(current_visible)
+        totals["current_missing_source_count"] += len(current_missing)
+        totals["historical_visible_source_count"] += len(historical_visible)
+        totals["historical_missing_source_count"] += len(historical_missing)
+        selected_plans.append(
+            {
+                "slot_id": str(plan.get("slot_id") or ""),
+                "score": score,
+                "memory_tier": str(plan.get("memory_tier") or ""),
+                "memory_type": str(plan.get("memory_type") or ""),
+                "subject": _single_line(str(plan.get("subject") or "")),
+                "predicate": _single_line(str(plan.get("predicate") or "")),
+                "lifecycle_state": str(plan.get("lifecycle_state") or ""),
+                "readiness_state": str(readiness.get("readiness_state") or ""),
+                "coverage_state": coverage_state,
+                "source_count": source_count,
+                "visible_source_count": visible_count,
+                "missing_source_count": missing_count,
+                "source_coverage": (
+                    float(visible_count) / float(source_count) if source_count else 0.0
+                ),
+                "current_visible_source_count": len(current_visible),
+                "current_missing_source_count": len(current_missing),
+                "historical_visible_source_count": len(historical_visible),
+                "historical_missing_source_count": len(historical_missing),
+                "visible_source_ids": list(visible_sources[:8]),
+                "missing_source_ids": list(missing_sources[:8]),
+                "visible_memory_indices": [
+                    visible_source_rank[source_id]
+                    for source_id in visible_sources[:8]
+                    if source_id in visible_source_rank
+                ],
+                "operation_sequence": list(plan.get("operation_sequence") or ())[:8],
+                "values_rendered_to_prompt": False,
+            }
+        )
+
+    audit.update(totals)
+    audit["applied"] = True
+    audit["reason"] = "ready_source_plans_audited"
+    audit["selected_plan_count"] = len(selected_plans)
+    audit["selected_plans"] = selected_plans
+    audit["overall_source_coverage"] = (
+        float(totals["visible_source_count"]) / float(totals["selected_source_count"])
+        if totals["selected_source_count"]
+        else 0.0
+    )
+    return audit
+
+
+def _operation_plan_source_coverage_sets(
+    plan: Mapping[str, Any],
+) -> dict[str, tuple[str, ...]]:
+    source_expansion = plan.get("source_expansion_plan") or {}
+    if not isinstance(source_expansion, Mapping):
+        source_expansion = {}
+
+    def _source_tuple(field_name: str) -> tuple[str, ...]:
+        raw_source_ids = source_expansion.get(field_name) or ()
+        if not isinstance(raw_source_ids, Iterable) or isinstance(
+            raw_source_ids, (str, bytes)
+        ):
+            return ()
+        source_ids: list[str] = []
+        for raw_source_id in raw_source_ids:
+            source_id = str(raw_source_id)
+            if source_id and source_id not in source_ids:
+                source_ids.append(source_id)
+        return tuple(source_ids)
+
+    current = _source_tuple("current_source_order")
+    historical = _source_tuple("historical_source_order")
+    explicit_all = _source_tuple("all_source_ids")
+    all_sources: list[str] = []
+    for source_id in (*current, *historical, *explicit_all):
+        if source_id not in all_sources:
+            all_sources.append(source_id)
+    return {
+        "current": current,
+        "historical": historical,
+        "all": tuple(all_sources),
+    }
 
 
 def _operation_plan_source_labels(

@@ -1457,6 +1457,115 @@ class CompilerTest(unittest.TestCase):
         self.assertEqual(organizer["planned_boosted_source_ids"][:2], ["s1:t0", "s3:t0"])
         self.assertFalse(organizer["values_rendered_to_prompt"])
 
+    def test_memory_operation_evidence_coverage_audit_reports_missing_sources(
+        self,
+    ) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=2,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            memory_operation_evidence_coverage_audit=True,
+            memory_operation_evidence_coverage_audit_information_needs=(
+                "current_state",
+            ),
+        )
+
+        compiled = compiler.compile(
+            question="Where does Alex live now?",
+            question_time=None,
+            route=RouteResult("current_state", ("current_state",)),
+            hits=(
+                RetrievalHit("s1:t0", 1.0, 1, "test"),
+                RetrievalHit("s2:t0", 0.9, 2, "test"),
+            ),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Alex used to live in Austin.",
+                    timestamp="2023-01-01",
+                ),
+                Turn(
+                    source_id="s2:t0",
+                    session_id="s2",
+                    turn_index=0,
+                    role="user",
+                    text="Alex now lives in Seattle.",
+                    timestamp="2024-02-01",
+                ),
+            ),
+            memory_operation_plan={
+                "schema_version": "memory_operation_plan_v1",
+                "applied": True,
+                "workspace_operation_plans": [
+                    {
+                        "slot_id": "slot_state_alex_lives_in",
+                        "memory_tier": "working_memory",
+                        "memory_type": "state",
+                        "subject": "Alex",
+                        "predicate": "lives in",
+                        "lifecycle_state": "active_with_history",
+                        "source_backed": True,
+                        "operation_sequence": [
+                            "retrieve",
+                            "expand",
+                            "verify",
+                            "audit",
+                            "context_pack",
+                        ],
+                        "source_expansion_plan": {
+                            "current_source_order": ["s2:t0", "s3:t0"],
+                            "historical_source_order": ["s1:t0"],
+                            "all_source_ids": ["s2:t0", "s3:t0", "s1:t0"],
+                        },
+                        "state_management_plan": {
+                            "active_values": ["Seattle"],
+                            "superseded_values": ["Austin"],
+                        },
+                    },
+                ],
+            },
+            memory_query_readiness_manifest={
+                "schema_version": "memory_query_readiness_manifest_v1",
+                "applied": True,
+                "readiness_index": [
+                    {
+                        "slot_id": "slot_state_alex_lives_in",
+                        "readiness_state": "guarded_ready",
+                        "safe_consumption_modes": [
+                            "additive_index",
+                            "source_expansion",
+                            "context_organization",
+                        ],
+                        "query_gate": {
+                            "requires_visible_raw_rows": True,
+                            "replace_state_value_guide_allowed": False,
+                        },
+                    },
+                ],
+            },
+        )
+
+        self.assertNotIn("Memory Operation Evidence Coverage Audit:", compiled.prompt)
+        audit = compiled.diagnostics["memory_operation_evidence_coverage_audit"]
+        self.assertTrue(audit["applied"])
+        self.assertTrue(audit["trace_only"])
+        self.assertEqual(audit["selected_plan_count"], 1)
+        self.assertEqual(audit["selected_source_count"], 3)
+        self.assertEqual(audit["visible_source_count"], 2)
+        self.assertEqual(audit["missing_source_count"], 1)
+        self.assertEqual(audit["current_visible_source_count"], 1)
+        self.assertEqual(audit["current_missing_source_count"], 1)
+        self.assertEqual(audit["historical_visible_source_count"], 1)
+        self.assertEqual(audit["historical_missing_source_count"], 0)
+        selected = audit["selected_plans"][0]
+        self.assertEqual(selected["coverage_state"], "partial")
+        self.assertEqual(selected["visible_source_ids"], ["s2:t0", "s1:t0"])
+        self.assertEqual(selected["missing_source_ids"], ["s3:t0"])
+        self.assertFalse(selected["values_rendered_to_prompt"])
+
     def test_source_backed_memory_state_ledger_diagnostics_use_visible_sources(
         self,
     ) -> None:
