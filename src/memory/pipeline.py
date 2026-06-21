@@ -585,6 +585,20 @@ class Stage1Pipeline:
         self._operation_source_expansion_min_existing_sources = int(
             operation_source_expansion_config.get("min_existing_sources", 0)
         )
+        self._operation_source_expansion_min_plan_score = float(
+            operation_source_expansion_config.get("min_plan_score", 0.0)
+        )
+        self._operation_source_expansion_source_role_policy = str(
+            operation_source_expansion_config.get("source_role_policy", "any")
+        )
+        if self._operation_source_expansion_source_role_policy not in {
+            "any",
+            "opposite_gap",
+        }:
+            raise ValueError(
+                "retrieval.operation_source_expansion.source_role_policy must "
+                "be any or opposite_gap"
+            )
         self._operation_source_expansion_fusion_mode = str(
             operation_source_expansion_config.get("fusion_mode", "tail_exchange")
         )
@@ -2132,6 +2146,12 @@ class Stage1Pipeline:
                 min_existing_sources=(
                     self._operation_source_expansion_min_existing_sources
                 ),
+                min_plan_score=(
+                    self._operation_source_expansion_min_plan_score
+                ),
+                source_role_policy=(
+                    self._operation_source_expansion_source_role_policy
+                ),
                 fusion_mode=self._operation_source_expansion_fusion_mode,
                 tail_exchange_protect_top_n=(
                     self._operation_source_expansion_tail_exchange_protect_top_n
@@ -2674,6 +2694,12 @@ class Stage1Pipeline:
                 ),
                 min_existing_sources=(
                     self._operation_source_expansion_min_existing_sources
+                ),
+                min_plan_score=(
+                    self._operation_source_expansion_min_plan_score
+                ),
+                source_role_policy=(
+                    self._operation_source_expansion_source_role_policy
                 ),
                 fusion_mode=self._operation_source_expansion_fusion_mode,
                 tail_exchange_protect_top_n=(
@@ -5724,6 +5750,8 @@ def _disabled_operation_source_expansion_trace(
     require_new_source: bool,
     require_existing_source: bool,
     min_existing_sources: int,
+    min_plan_score: float,
+    source_role_policy: str,
     fusion_mode: str,
     tail_exchange_protect_top_n: int,
     tail_exchange_max_swaps: int,
@@ -5744,6 +5772,8 @@ def _disabled_operation_source_expansion_trace(
         "require_new_source": require_new_source,
         "require_existing_source": require_existing_source,
         "min_existing_sources": min_existing_sources,
+        "min_plan_score": min_plan_score,
+        "source_role_policy": source_role_policy,
         "fusion_mode": fusion_mode,
         "tail_exchange_protect_top_n": tail_exchange_protect_top_n,
         "tail_exchange_max_swaps": tail_exchange_max_swaps,
@@ -5782,6 +5812,8 @@ def _memory_operation_source_expansion_hits(
     require_new_source: bool,
     require_existing_source: bool,
     min_existing_sources: int,
+    min_plan_score: float,
+    source_role_policy: str,
     fusion_mode: str,
     tail_exchange_protect_top_n: int,
     tail_exchange_max_swaps: int,
@@ -5800,6 +5832,8 @@ def _memory_operation_source_expansion_hits(
         require_new_source=require_new_source,
         require_existing_source=require_existing_source,
         min_existing_sources=min_existing_sources,
+        min_plan_score=min_plan_score,
+        source_role_policy=source_role_policy,
         fusion_mode=fusion_mode,
         tail_exchange_protect_top_n=tail_exchange_protect_top_n,
         tail_exchange_max_swaps=tail_exchange_max_swaps,
@@ -5854,6 +5888,7 @@ def _memory_operation_source_expansion_hits(
             tuple[str, ...],
             tuple[str, ...],
             tuple[str, ...],
+            Mapping[str, Any],
         ]
     ] = []
     raw_plan_count = 0
@@ -5894,7 +5929,11 @@ def _memory_operation_source_expansion_hits(
             route=route,
             question_scope=question_scope,
         )
-        if len(matched_terms) < max(0, min_overlap_terms) or score <= 0:
+        if (
+            len(matched_terms) < max(0, min_overlap_terms)
+            or score <= 0
+            or score < max(0.0, min_plan_score)
+        ):
             continue
 
         existing_sources = tuple(
@@ -5914,8 +5953,16 @@ def _memory_operation_source_expansion_hits(
             min_existing_sources,
         ):
             continue
-        selectable_sources = missing_sources if require_new_source else tuple(
-            source_id for source_id in ordered_sources if source_id in available
+        selectable_sources, source_role_trace = (
+            _operation_source_expansion_selectable_sources(
+                source_sets=source_sets,
+                ordered_sources=ordered_sources,
+                available_source_ids=available,
+                candidate_source_ids=existing_candidates,
+                question_scope=question_scope,
+                require_new_source=require_new_source,
+                source_role_policy=source_role_policy,
+            )
         )
         if not selectable_sources:
             continue
@@ -5928,6 +5975,7 @@ def _memory_operation_source_expansion_hits(
                 matched_terms,
                 selectable_sources[:max_sources_per_plan],
                 existing_sources,
+                source_role_trace,
             )
         )
 
@@ -5945,9 +5993,16 @@ def _memory_operation_source_expansion_hits(
     selected_plan_traces: list[dict[str, Any]] = []
     seen_sources: set[str] = set()
     rank = 1
-    for score, _, plan, readiness, matched_terms, source_ids, existing_sources in (
-        candidates[:max_plans]
-    ):
+    for (
+        score,
+        _,
+        plan,
+        readiness,
+        matched_terms,
+        source_ids,
+        existing_sources,
+        source_role_trace,
+    ) in candidates[:max_plans]:
         if len(selected_hits) >= max_total_sources:
             break
         emitted_sources: list[str] = []
@@ -5987,6 +6042,8 @@ def _memory_operation_source_expansion_hits(
                 "existing_source_ids": list(existing_sources[:8]),
                 "emitted_source_ids": emitted_sources,
                 "candidate_source_ids": list(source_ids[:8]),
+                "source_role_policy": source_role_policy,
+                "source_role_coverage": dict(source_role_trace),
                 "operation_sequence": list(plan.get("operation_sequence") or ())[:8],
                 "values_rendered_to_prompt": False,
             }
@@ -6102,6 +6159,77 @@ def _operation_source_expansion_ordered_sources(
             if source_id and source_id not in ordered:
                 ordered.append(source_id)
     return tuple(ordered)
+
+
+def _operation_source_expansion_selectable_sources(
+    *,
+    source_sets: Mapping[str, tuple[str, ...]],
+    ordered_sources: tuple[str, ...],
+    available_source_ids: set[str],
+    candidate_source_ids: set[str],
+    question_scope: str,
+    require_new_source: bool,
+    source_role_policy: str,
+) -> tuple[tuple[str, ...], Mapping[str, Any]]:
+    current_sources = tuple(
+        source_id
+        for source_id in source_sets.get("current", ())
+        if source_id in available_source_ids
+    )
+    historical_sources = tuple(
+        source_id
+        for source_id in source_sets.get("historical", ())
+        if source_id in available_source_ids
+    )
+    current_existing = tuple(
+        source_id for source_id in current_sources if source_id in candidate_source_ids
+    )
+    historical_existing = tuple(
+        source_id
+        for source_id in historical_sources
+        if source_id in candidate_source_ids
+    )
+    current_missing = tuple(
+        source_id
+        for source_id in current_sources
+        if source_id not in candidate_source_ids
+    )
+    historical_missing = tuple(
+        source_id
+        for source_id in historical_sources
+        if source_id not in candidate_source_ids
+    )
+    trace = {
+        "question_scope": question_scope,
+        "current_existing_count": len(current_existing),
+        "current_missing_count": len(current_missing),
+        "historical_existing_count": len(historical_existing),
+        "historical_missing_count": len(historical_missing),
+    }
+    if source_role_policy == "opposite_gap":
+        allowed_missing: set[str] = set()
+        if current_existing and historical_missing:
+            allowed_missing.update(historical_missing)
+        if historical_existing and current_missing:
+            allowed_missing.update(current_missing)
+        selectable = tuple(
+            source_id
+            for source_id in ordered_sources
+            if source_id in available_source_ids and source_id in allowed_missing
+        )
+        return selectable, {**trace, "opposite_gap": bool(selectable)}
+
+    if require_new_source:
+        selectable = tuple(
+            source_id
+            for source_id in ordered_sources
+            if source_id in available_source_ids and source_id not in candidate_source_ids
+        )
+    else:
+        selectable = tuple(
+            source_id for source_id in ordered_sources if source_id in available_source_ids
+        )
+    return selectable, {**trace, "opposite_gap": False}
 
 
 def _operation_source_expansion_plan_score(

@@ -4587,6 +4587,8 @@ class CleanSkeletonTest(unittest.TestCase):
             require_new_source=True,
             require_existing_source=False,
             min_existing_sources=0,
+            min_plan_score=0.0,
+            source_role_policy="any",
             fusion_mode="tail_exchange",
             tail_exchange_protect_top_n=56,
             tail_exchange_max_swaps=2,
@@ -4658,6 +4660,8 @@ class CleanSkeletonTest(unittest.TestCase):
             require_new_source=True,
             require_existing_source=True,
             min_existing_sources=1,
+            min_plan_score=0.0,
+            source_role_policy="any",
             fusion_mode="tail_exchange",
             tail_exchange_protect_top_n=56,
             tail_exchange_max_swaps=2,
@@ -4684,6 +4688,8 @@ class CleanSkeletonTest(unittest.TestCase):
             require_new_source=True,
             require_existing_source=True,
             min_existing_sources=1,
+            min_plan_score=0.0,
+            source_role_policy="any",
             fusion_mode="tail_exchange",
             tail_exchange_protect_top_n=56,
             tail_exchange_max_swaps=2,
@@ -4691,6 +4697,101 @@ class CleanSkeletonTest(unittest.TestCase):
 
         self.assertTrue(anchored_trace["applied"])
         self.assertEqual([hit.source_id for hit in anchored_hits], ["s1:t0"])
+
+    def test_memory_operation_source_expansion_can_require_opposite_role_gap(
+        self,
+    ) -> None:
+        operation_plan = {
+            "applied": True,
+            "workspace_operation_plans": [
+                {
+                    "slot_id": "state:alex:home_city",
+                    "source_backed": True,
+                    "memory_tier": "working_memory",
+                    "memory_type": "state",
+                    "subject": "Alex",
+                    "predicate": "home city",
+                    "lifecycle_state": "active_with_history",
+                    "state_management_plan": {
+                        "active_values": ["Seattle"],
+                        "superseded_values": ["Austin"],
+                    },
+                    "source_expansion_plan": {
+                        "current_source_order": ["s2:t0"],
+                        "historical_source_order": ["s1:t0"],
+                    },
+                }
+            ],
+        }
+        readiness_manifest = {
+            "applied": True,
+            "readiness_index": [
+                {
+                    "slot_id": "state:alex:home_city",
+                    "readiness_state": "guarded_ready",
+                    "safe_consumption_modes": ["source_expansion"],
+                    "query_gate": {"requires_visible_raw_rows": True},
+                }
+            ],
+        }
+
+        hits, trace = _memory_operation_source_expansion_hits(
+            question="Where is Alex's home city now?",
+            route=RouteResult("current_state", ("current_state",)),
+            memory_operation_plan=operation_plan,
+            memory_query_readiness_manifest=readiness_manifest,
+            available_source_ids={"s1:t0", "s2:t0"},
+            candidate_source_ids={"s2:t0"},
+            max_plans=2,
+            max_sources_per_plan=2,
+            max_total_sources=2,
+            min_overlap_terms=2,
+            memory_types=("state",),
+            required_lifecycle_states=("active_with_history",),
+            required_readiness_modes=("source_expansion",),
+            require_new_source=True,
+            require_existing_source=True,
+            min_existing_sources=1,
+            min_plan_score=5.0,
+            source_role_policy="opposite_gap",
+            fusion_mode="tail_exchange",
+            tail_exchange_protect_top_n=56,
+            tail_exchange_max_swaps=2,
+        )
+
+        self.assertTrue(trace["applied"])
+        self.assertEqual([hit.source_id for hit in hits], ["s1:t0"])
+        coverage = trace["plans"][0]["source_role_coverage"]
+        self.assertEqual(coverage["current_existing_count"], 1)
+        self.assertEqual(coverage["historical_missing_count"], 1)
+        self.assertTrue(coverage["opposite_gap"])
+
+        low_score_hits, low_score_trace = _memory_operation_source_expansion_hits(
+            question="Where is Alex's home city now?",
+            route=RouteResult("current_state", ("current_state",)),
+            memory_operation_plan=operation_plan,
+            memory_query_readiness_manifest=readiness_manifest,
+            available_source_ids={"s1:t0", "s2:t0"},
+            candidate_source_ids={"s2:t0"},
+            max_plans=2,
+            max_sources_per_plan=2,
+            max_total_sources=2,
+            min_overlap_terms=2,
+            memory_types=("state",),
+            required_lifecycle_states=("active_with_history",),
+            required_readiness_modes=("source_expansion",),
+            require_new_source=True,
+            require_existing_source=True,
+            min_existing_sources=1,
+            min_plan_score=99.0,
+            source_role_policy="opposite_gap",
+            fusion_mode="tail_exchange",
+            tail_exchange_protect_top_n=56,
+            tail_exchange_max_swaps=2,
+        )
+
+        self.assertFalse(low_score_trace["applied"])
+        self.assertEqual(low_score_hits, ())
 
     def test_memory_graph_utility_can_require_lifecycle_signal(self) -> None:
         record = MemoryRecord(
