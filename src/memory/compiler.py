@@ -1035,6 +1035,7 @@ class EvidenceCompiler:
                 if action == "suppress":
                     working_memory_packet_enabled = False
                 elif action == "structured_guide":
+                    working_memory_packet_enabled = False
                     structured_guide_enabled = True
                     structured_guide_max_rows = min(
                         structured_guide_max_rows,
