@@ -9489,33 +9489,6 @@ def _pairwise_temporal_gaps(
     return [(left, right) for _, _, _, left, right in pairs]
 
 
-def _temporal_normalization_hints(
-    rows: tuple[EvidenceRow, ...],
-    *,
-    enable_weekend_relative_time: bool = False,
-) -> list[str]:
-    hints: list[str] = []
-    seen: set[tuple[str, str, str]] = set()
-    for row in rows:
-        row_date = _parse_date(row.timestamp)
-        if row_date is None:
-            continue
-        for phrase, normalized in _relative_time_values(
-            row.text,
-            row_date,
-            enable_weekend=enable_weekend_relative_time,
-        ):
-            key = (row.source_id, phrase, normalized)
-            if key in seen:
-                continue
-            seen.add(key)
-            hints.append(
-                f"- source_id={row.source_id} row_time={row_date.isoformat()} "
-                f'phrase="{phrase}" normalized="{normalized}"'
-            )
-    return hints
-
-
 def _relative_time_values(
     text: str,
     row_date: date,
