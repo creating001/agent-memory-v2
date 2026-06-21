@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_memory_operation_readiness_audit_v298_query_restore_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_anchor48_operation_context_organizer_v301_query_restore_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v298 local LTS |
+| Benchmark | 当前 v301 local LTS |
 |---|---:|
 | LongMemEval-S full | strict/lenient `0.834000 / 0.846000`，avg build/query tokens `85393.566 / 6455.588` |
-| LoCoMo non-adversarial full | strict/lenient `0.794156 / 0.819481`，avg build/query tokens `62015.57402597403 / 6093.962337662338` |
+| LoCoMo non-adversarial full | strict/lenient `0.794156 / 0.819481`，avg build/query tokens `62015.57402597403 / 6093.879220779221` |
 
-v298 的 LTS 理由：在 v294 build-owned readiness contract 基础上新增 trace-only `memory_operation_readiness_audit`，让 `memory_operation_plan_v1` 和 `memory_query_readiness_manifest_v1` 先参与 query-time governance/audit，而不进入 answer prompt、retrieval、repair、finalizer 或 final evidence。v298 相对 v294 的 LongMemEval-S 和 LoCoMo full answer/prompt diff 均为 `0`，因此沿用已验证 dual judge accuracy，同时降低 memory 使用过浅和 build/query 边界不清的风险。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_memory_operation_readiness_audit_v298_full_summary.md`。
+v301 的 LTS 理由：在 v298 readiness audit 基础上新增 anchor-gated `memory_operation_context_organizer`，让 `memory_operation_plan_v1` 和 `memory_query_readiness_manifest_v1` 可以参与 very-late tail context organization，同时保护前 `48` 条 raw evidence anchors，不渲染 derived values，不添加 hidden evidence，最终答案仍以 raw Memory rows 为证据。v301 相对 v298 的 LongMemEval-S 和 LoCoMo full answer diff 均为 `0`，因此沿用已验证 dual judge accuracy，同时降低 memory 使用过浅和 build/query 边界不清的风险。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_anchor48_operation_context_organizer_v301_full_summary.md`。
 
 ## 目录
 

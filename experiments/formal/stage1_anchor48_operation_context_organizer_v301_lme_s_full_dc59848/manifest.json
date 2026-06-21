@@ -1,0 +1,31 @@
+{
+  "benchmark": "LongMemEval-S",
+  "clean_assertions": [
+    "Prediction loader rejects gold/reference/target answers.",
+    "Prediction loader rejects judge outputs and benchmark labels.",
+    "Prediction loader rejects sample ids, qids, and row indices.",
+    "record_key is copied only by the runner and is not passed into pipeline modules.",
+    "Derived context rows always retain raw source_id back-links.",
+    "Build-stage typed memory is created only from raw dialogue turns and visible metadata."
+  ],
+  "config_path": "/data/home_new/wujinqi/agent-memory/configs/stage1_anchor48_operation_context_organizer_v301_query_restore_seeded_qwen36_no_think_build4k_cached.json",
+  "created_at_utc": "2026-06-21T11:16:07+00:00",
+  "experiment_dir": "/data/home_new/wujinqi/agent-memory/experiments/formal/stage1_anchor48_operation_context_organizer_v301_lme_s_full_dc59848",
+  "experiment_kind": "formal",
+  "git": {
+    "commit": "dc59848e3372b5360465f7efcc9976febf0bddef",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "?? experiments/formal/stage1_anchor48_operation_context_organizer_v301_locomo_nonadv_full_dc59848/"
+  },
+  "input_path": "/data/home_new/wujinqi/agent-memory/outputs/prepare_longmemeval_s_cleaned/prediction_input.jsonl",
+  "output_path": "/data/home_new/wujinqi/agent-memory/outputs/formal/stage1_anchor48_operation_context_organizer_v301_lme_s_full_dc59848/predictions.jsonl",
+  "outputs": {
+    "predictions": "/data/home_new/wujinqi/agent-memory/outputs/formal/stage1_anchor48_operation_context_organizer_v301_lme_s_full_dc59848/predictions.jsonl",
+    "traces": "/data/home_new/wujinqi/agent-memory/outputs/formal/stage1_anchor48_operation_context_organizer_v301_lme_s_full_dc59848/traces.jsonl"
+  },
+  "run_id": "stage1_anchor48_operation_context_organizer_v301_lme_s_full_dc59848",
+  "subset": "full",
+  "trace_path": "/data/home_new/wujinqi/agent-memory/outputs/formal/stage1_anchor48_operation_context_organizer_v301_lme_s_full_dc59848/traces.jsonl"
+}
