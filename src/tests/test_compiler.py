@@ -71,6 +71,156 @@ class CompilerTest(unittest.TestCase):
         self.assertIn("### Memory 1", compact.prompt)
         self.assertIn('"evidence_report"', compact.prompt)
 
+    def test_workspace_query_policy_replaces_ready_guides_with_source_backed_packet(
+        self,
+    ) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=2,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            structured_guide=True,
+            memory_value_slot_guide=True,
+            workspace_query_policy=True,
+            workspace_query_policy_replacement_components=(
+                "structured_guide",
+                "memory_value_slot_guide",
+            ),
+        )
+        memory_object_index = {
+            "applied": True,
+            "memory_workspace_policy": {
+                "applied": True,
+                "schema_version": "memory_workspace_policy_v1",
+                "query_component_policy": {
+                    "structured_guide": {"ready": True},
+                    "memory_value_slot_guide": {"ready": True},
+                },
+            },
+            "memory_system_state": {
+                "applied": True,
+                "entries": (
+                    {
+                        "target_type": "value_slot",
+                        "memory_type": "state",
+                        "memory_tier": "working_memory",
+                        "focus": "current_state",
+                        "status": "active",
+                        "source_backed": True,
+                        "subject": "Alex",
+                        "predicate": "lives_in",
+                        "value": "Austin",
+                        "values": ("Austin",),
+                        "operations": ("retrieve", "expand", "verify"),
+                        "source_expansion": {"source_ids": ("s1:t1",)},
+                        "slot_coverage_terms": ("alex", "live", "lives", "austin"),
+                    },
+                ),
+            },
+            "value_slot_index": (
+                {
+                    "memory_type": "state",
+                    "subject": "Alex",
+                    "predicate": "lives_in",
+                    "source_backed": True,
+                    "value_objects": (
+                        {
+                            "value": "Austin",
+                            "status": "active",
+                            "source_ids": ("s1:t1",),
+                        },
+                    ),
+                },
+            ),
+        }
+
+        compiled = compiler.compile(
+            question="Where does Alex live now?",
+            question_time=None,
+            route=RouteResult("current_state", ("current_state",)),
+            hits=(RetrievalHit("s1:t1", 1.0, 1, "test"),),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="I live in Austin now.",
+                    timestamp="2024-04-01",
+                ),
+            ),
+            memory_object_index=memory_object_index,
+        )
+
+        self.assertIn("Working Memory Packet:", compiled.prompt)
+        self.assertNotIn("Structured Evidence Guide:", compiled.prompt)
+        self.assertNotIn("Memory Value Slot Guide:", compiled.prompt)
+        self.assertEqual(
+            compiled.diagnostics["workspace_query_policy"]["replaced_components"],
+            ["structured_guide", "memory_value_slot_guide"],
+        )
+
+    def test_workspace_query_policy_keeps_guides_without_visible_packet_sources(
+        self,
+    ) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=2,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            structured_guide=True,
+            workspace_query_policy=True,
+            workspace_query_policy_replacement_components=("structured_guide",),
+        )
+        memory_object_index = {
+            "applied": True,
+            "memory_workspace_policy": {
+                "applied": True,
+                "schema_version": "memory_workspace_policy_v1",
+                "query_component_policy": {
+                    "structured_guide": {"ready": True},
+                },
+            },
+            "memory_system_state": {
+                "applied": True,
+                "entries": (
+                    {
+                        "target_type": "value_slot",
+                        "memory_type": "state",
+                        "source_backed": True,
+                        "subject": "Alex",
+                        "predicate": "lives_in",
+                        "value": "Austin",
+                        "values": ("Austin",),
+                        "source_expansion": {"source_ids": ("s1:t9",)},
+                    },
+                ),
+            },
+        }
+
+        compiled = compiler.compile(
+            question="Where does Alex live now?",
+            question_time=None,
+            route=RouteResult("current_state", ("current_state",)),
+            hits=(RetrievalHit("s1:t1", 1.0, 1, "test"),),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="I live in Austin now.",
+                    timestamp="2024-04-01",
+                ),
+            ),
+            memory_object_index=memory_object_index,
+        )
+
+        self.assertIn("Structured Evidence Guide:", compiled.prompt)
+        self.assertNotIn("Working Memory Packet:", compiled.prompt)
+        self.assertEqual(
+            compiled.diagnostics["workspace_query_policy"]["reason"],
+            "no_source_backed_packet_candidates",
+        )
+
     def test_compact_query_can_keep_answer_contract_detailed(self) -> None:
         kwargs = {
             "max_evidence_items": 4,

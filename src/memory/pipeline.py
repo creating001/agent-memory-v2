@@ -1398,6 +1398,64 @@ class Stage1Pipeline:
             working_memory_packet_slot_guard_max_rows=int(
                 compiler_config.get("working_memory_packet_slot_guard_max_rows", 6)
             ),
+            workspace_query_policy=bool(
+                compiler_config.get("workspace_query_policy", False)
+            ),
+            workspace_query_policy_information_needs=_tuple_config(
+                compiler_config.get(
+                    "workspace_query_policy_information_needs",
+                    ("current_state", "fact_lookup", "profile_preference"),
+                )
+            ),
+            workspace_query_policy_replacement_components=_tuple_config(
+                compiler_config.get(
+                    "workspace_query_policy_replacement_components",
+                    (
+                        "structured_guide",
+                        "memory_state_guide",
+                        "memory_value_slot_guide",
+                    ),
+                )
+            ),
+            workspace_query_policy_packet_source=str(
+                compiler_config.get(
+                    "workspace_query_policy_packet_source",
+                    "memory_system_state",
+                )
+            ),
+            workspace_query_policy_packet_max_items=int(
+                compiler_config.get("workspace_query_policy_packet_max_items", 3)
+            ),
+            workspace_query_policy_packet_value_chars=int(
+                compiler_config.get("workspace_query_policy_packet_value_chars", 80)
+            ),
+            workspace_query_policy_packet_format=str(
+                compiler_config.get("workspace_query_policy_packet_format", "compact")
+            ),
+            workspace_query_policy_packet_compact_short_header=bool(
+                compiler_config.get(
+                    "workspace_query_policy_packet_compact_short_header",
+                    True,
+                )
+            ),
+            workspace_query_policy_packet_compact_dedupe=bool(
+                compiler_config.get(
+                    "workspace_query_policy_packet_compact_dedupe",
+                    True,
+                )
+            ),
+            workspace_query_policy_slot_guard=bool(
+                compiler_config.get("workspace_query_policy_slot_guard", True)
+            ),
+            workspace_query_policy_slot_guard_action=str(
+                compiler_config.get(
+                    "workspace_query_policy_slot_guard_action",
+                    "structured_guide",
+                )
+            ),
+            workspace_query_policy_slot_guard_max_rows=int(
+                compiler_config.get("workspace_query_policy_slot_guard_max_rows", 6)
+            ),
             profile_activation_guide=bool(
                 compiler_config.get("profile_activation_guide", False)
             ),
@@ -11203,6 +11261,64 @@ def _compiler_trace_config(
         "working_memory_packet_slot_guard_max_rows": int(
             compiler_config.get("working_memory_packet_slot_guard_max_rows", 6)
         ),
+        "workspace_query_policy": bool(
+            compiler_config.get("workspace_query_policy", False)
+        ),
+        "workspace_query_policy_information_needs": _tuple_config(
+            compiler_config.get(
+                "workspace_query_policy_information_needs",
+                ("current_state", "fact_lookup", "profile_preference"),
+            )
+        ),
+        "workspace_query_policy_replacement_components": _tuple_config(
+            compiler_config.get(
+                "workspace_query_policy_replacement_components",
+                (
+                    "structured_guide",
+                    "memory_state_guide",
+                    "memory_value_slot_guide",
+                ),
+            )
+        ),
+        "workspace_query_policy_packet_source": str(
+            compiler_config.get(
+                "workspace_query_policy_packet_source",
+                "memory_system_state",
+            )
+        ),
+        "workspace_query_policy_packet_max_items": int(
+            compiler_config.get("workspace_query_policy_packet_max_items", 3)
+        ),
+        "workspace_query_policy_packet_value_chars": int(
+            compiler_config.get("workspace_query_policy_packet_value_chars", 80)
+        ),
+        "workspace_query_policy_packet_format": str(
+            compiler_config.get("workspace_query_policy_packet_format", "compact")
+        ),
+        "workspace_query_policy_packet_compact_short_header": bool(
+            compiler_config.get(
+                "workspace_query_policy_packet_compact_short_header",
+                True,
+            )
+        ),
+        "workspace_query_policy_packet_compact_dedupe": bool(
+            compiler_config.get(
+                "workspace_query_policy_packet_compact_dedupe",
+                True,
+            )
+        ),
+        "workspace_query_policy_slot_guard": bool(
+            compiler_config.get("workspace_query_policy_slot_guard", True)
+        ),
+        "workspace_query_policy_slot_guard_action": str(
+            compiler_config.get(
+                "workspace_query_policy_slot_guard_action",
+                "structured_guide",
+            )
+        ),
+        "workspace_query_policy_slot_guard_max_rows": int(
+            compiler_config.get("workspace_query_policy_slot_guard_max_rows", 6)
+        ),
         "profile_activation_guide": bool(
             compiler_config.get("profile_activation_guide", False)
         ),
@@ -11610,6 +11726,64 @@ def _configured_compiler(compiler_config: Mapping[str, Any]) -> EvidenceCompiler
         ),
         working_memory_packet_slot_guard_max_rows=int(
             compiler_config.get("working_memory_packet_slot_guard_max_rows", 6)
+        ),
+        workspace_query_policy=bool(
+            compiler_config.get("workspace_query_policy", False)
+        ),
+        workspace_query_policy_information_needs=_tuple_config(
+            compiler_config.get(
+                "workspace_query_policy_information_needs",
+                ("current_state", "fact_lookup", "profile_preference"),
+            )
+        ),
+        workspace_query_policy_replacement_components=_tuple_config(
+            compiler_config.get(
+                "workspace_query_policy_replacement_components",
+                (
+                    "structured_guide",
+                    "memory_state_guide",
+                    "memory_value_slot_guide",
+                ),
+            )
+        ),
+        workspace_query_policy_packet_source=str(
+            compiler_config.get(
+                "workspace_query_policy_packet_source",
+                "memory_system_state",
+            )
+        ),
+        workspace_query_policy_packet_max_items=int(
+            compiler_config.get("workspace_query_policy_packet_max_items", 3)
+        ),
+        workspace_query_policy_packet_value_chars=int(
+            compiler_config.get("workspace_query_policy_packet_value_chars", 80)
+        ),
+        workspace_query_policy_packet_format=str(
+            compiler_config.get("workspace_query_policy_packet_format", "compact")
+        ),
+        workspace_query_policy_packet_compact_short_header=bool(
+            compiler_config.get(
+                "workspace_query_policy_packet_compact_short_header",
+                True,
+            )
+        ),
+        workspace_query_policy_packet_compact_dedupe=bool(
+            compiler_config.get(
+                "workspace_query_policy_packet_compact_dedupe",
+                True,
+            )
+        ),
+        workspace_query_policy_slot_guard=bool(
+            compiler_config.get("workspace_query_policy_slot_guard", True)
+        ),
+        workspace_query_policy_slot_guard_action=str(
+            compiler_config.get(
+                "workspace_query_policy_slot_guard_action",
+                "structured_guide",
+            )
+        ),
+        workspace_query_policy_slot_guard_max_rows=int(
+            compiler_config.get("workspace_query_policy_slot_guard_max_rows", 6)
         ),
         profile_activation_guide=bool(
             compiler_config.get("profile_activation_guide", False)

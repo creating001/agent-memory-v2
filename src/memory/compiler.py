@@ -47,6 +47,11 @@ WORKING_MEMORY_PACKET_SOURCES = {
 }
 WORKING_MEMORY_PACKET_FORMATS = {"verbose", "compact"}
 WORKING_MEMORY_PACKET_SLOT_GUARD_ACTIONS = {"suppress", "structured_guide"}
+WORKSPACE_QUERY_POLICY_COMPONENTS = {
+    "structured_guide",
+    "memory_state_guide",
+    "memory_value_slot_guide",
+}
 WORKING_MEMORY_PACKET_SLOT_GUARD_TERMS = {
     "dating",
     "girlfriend",
@@ -520,6 +525,26 @@ class EvidenceCompiler:
         working_memory_packet_slot_guard: bool = False,
         working_memory_packet_slot_guard_action: str = "suppress",
         working_memory_packet_slot_guard_max_rows: int = 6,
+        workspace_query_policy: bool = False,
+        workspace_query_policy_information_needs: tuple[str, ...] = (
+            "current_state",
+            "fact_lookup",
+            "profile_preference",
+        ),
+        workspace_query_policy_replacement_components: tuple[str, ...] = (
+            "structured_guide",
+            "memory_state_guide",
+            "memory_value_slot_guide",
+        ),
+        workspace_query_policy_packet_source: str = "memory_system_state",
+        workspace_query_policy_packet_max_items: int = 3,
+        workspace_query_policy_packet_value_chars: int = 80,
+        workspace_query_policy_packet_format: str = "compact",
+        workspace_query_policy_packet_compact_short_header: bool = True,
+        workspace_query_policy_packet_compact_dedupe: bool = True,
+        workspace_query_policy_slot_guard: bool = True,
+        workspace_query_policy_slot_guard_action: str = "structured_guide",
+        workspace_query_policy_slot_guard_max_rows: int = 6,
         profile_activation_guide: bool = False,
         profile_activation_guide_information_needs: tuple[str, ...] = (
             "profile_preference",
@@ -823,6 +848,45 @@ class EvidenceCompiler:
         self._working_memory_packet_slot_guard_max_rows = max(
             1, int(working_memory_packet_slot_guard_max_rows)
         )
+        self._workspace_query_policy = bool(workspace_query_policy)
+        self._workspace_query_policy_information_needs = _validate_information_needs(
+            workspace_query_policy_information_needs,
+            field_name="workspace_query_policy_information_needs",
+        )
+        self._workspace_query_policy_replacement_components = (
+            _validate_workspace_query_policy_components(
+                workspace_query_policy_replacement_components
+            )
+        )
+        self._workspace_query_policy_packet_source = (
+            _validate_working_memory_packet_source(workspace_query_policy_packet_source)
+        )
+        self._workspace_query_policy_packet_max_items = max(
+            1, int(workspace_query_policy_packet_max_items)
+        )
+        self._workspace_query_policy_packet_value_chars = max(
+            40, int(workspace_query_policy_packet_value_chars)
+        )
+        self._workspace_query_policy_packet_format = (
+            _validate_working_memory_packet_format(workspace_query_policy_packet_format)
+        )
+        self._workspace_query_policy_packet_compact_short_header = bool(
+            workspace_query_policy_packet_compact_short_header
+        )
+        self._workspace_query_policy_packet_compact_dedupe = bool(
+            workspace_query_policy_packet_compact_dedupe
+        )
+        self._workspace_query_policy_slot_guard = bool(
+            workspace_query_policy_slot_guard
+        )
+        self._workspace_query_policy_slot_guard_action = (
+            _validate_working_memory_packet_slot_guard_action(
+                workspace_query_policy_slot_guard_action
+            )
+        )
+        self._workspace_query_policy_slot_guard_max_rows = max(
+            1, int(workspace_query_policy_slot_guard_max_rows)
+        )
         self._profile_activation_guide = bool(profile_activation_guide)
         self._profile_activation_guide_information_needs = _validate_information_needs(
             profile_activation_guide_information_needs,
@@ -1022,6 +1086,37 @@ class EvidenceCompiler:
         )
 
         diagnostics: dict[str, Any] = {}
+        route_settings, workspace_query_policy = (
+            _apply_workspace_query_policy_settings(
+                enabled=self._workspace_query_policy,
+                information_needs=self._workspace_query_policy_information_needs,
+                replacement_components=(
+                    self._workspace_query_policy_replacement_components
+                ),
+                route=route,
+                question=question,
+                rows=laid_out_rows,
+                memory_object_index=memory_object_index,
+                route_settings=route_settings,
+                packet_source=self._workspace_query_policy_packet_source,
+                packet_max_items=self._workspace_query_policy_packet_max_items,
+                packet_value_chars=self._workspace_query_policy_packet_value_chars,
+                packet_format=self._workspace_query_policy_packet_format,
+                packet_compact_short_header=(
+                    self._workspace_query_policy_packet_compact_short_header
+                ),
+                packet_compact_dedupe=(
+                    self._workspace_query_policy_packet_compact_dedupe
+                ),
+                slot_guard=self._workspace_query_policy_slot_guard,
+                slot_guard_action=self._workspace_query_policy_slot_guard_action,
+                slot_guard_max_rows=(
+                    self._workspace_query_policy_slot_guard_max_rows
+                ),
+            )
+        )
+        if self._workspace_query_policy:
+            diagnostics["workspace_query_policy"] = workspace_query_policy
         structured_guide_enabled = (
             route_settings["structured_guide"]
             and not set(route.signals).intersection(
@@ -1654,6 +1749,22 @@ def _validate_working_memory_packet_slot_guard_action(value: str) -> str:
             f"{sorted(WORKING_MEMORY_PACKET_SLOT_GUARD_ACTIONS)}"
         )
     return value
+
+
+def _validate_workspace_query_policy_components(
+    components: tuple[str, ...],
+) -> tuple[str, ...]:
+    normalized: list[str] = []
+    for component in components:
+        component_name = str(component).strip()
+        if component_name not in WORKSPACE_QUERY_POLICY_COMPONENTS:
+            raise ValueError(
+                "Unsupported workspace_query_policy_replacement_components item: "
+                f"{component_name}. Expected one of "
+                f"{sorted(WORKSPACE_QUERY_POLICY_COMPONENTS)}"
+            )
+        normalized.append(component_name)
+    return tuple(dict.fromkeys(normalized))
 
 
 def _validate_route_overrides(
@@ -4828,6 +4939,122 @@ def _profile_activation_record_score(
     if record.subject or record.predicate or record.value:
         score += 0.4
     return score
+
+
+def _apply_workspace_query_policy_settings(
+    *,
+    enabled: bool,
+    information_needs: tuple[str, ...],
+    replacement_components: tuple[str, ...],
+    route: RouteResult,
+    question: str,
+    rows: tuple[EvidenceRow, ...],
+    memory_object_index: Mapping[str, Any] | None,
+    route_settings: Mapping[str, Any],
+    packet_source: str,
+    packet_max_items: int,
+    packet_value_chars: int,
+    packet_format: str,
+    packet_compact_short_header: bool,
+    packet_compact_dedupe: bool,
+    slot_guard: bool,
+    slot_guard_action: str,
+    slot_guard_max_rows: int,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    settings = dict(route_settings)
+    trace: dict[str, Any] = {
+        "enabled": enabled,
+        "applied": False,
+        "reason": "disabled" if not enabled else "no_workspace_policy",
+        "information_needs": information_needs,
+        "configured_components": replacement_components,
+        "policy_available": False,
+        "policy_schema_version": "",
+        "ready_components": [],
+        "prompt_components_before": [],
+        "replaced_components": [],
+        "packet_source": packet_source,
+        "packet_selected_source": "",
+        "packet_candidate_count": 0,
+        "slot_guard": slot_guard,
+        "slot_guard_action": slot_guard_action,
+        "slot_guard_max_rows": slot_guard_max_rows,
+    }
+    if not enabled:
+        return settings, trace
+    if information_needs and route.information_need not in information_needs:
+        trace["reason"] = "route_not_enabled"
+        return settings, trace
+    if not replacement_components:
+        trace["reason"] = "no_replacement_components"
+        return settings, trace
+    if not isinstance(memory_object_index, Mapping):
+        return settings, trace
+    memory_workspace_policy = memory_object_index.get("memory_workspace_policy")
+    if not isinstance(memory_workspace_policy, Mapping):
+        return settings, trace
+    trace["policy_schema_version"] = str(
+        memory_workspace_policy.get("schema_version") or ""
+    )
+    if not memory_workspace_policy.get("applied"):
+        trace["reason"] = "workspace_policy_not_applied"
+        return settings, trace
+    query_component_policy = memory_workspace_policy.get("query_component_policy")
+    if not isinstance(query_component_policy, Mapping):
+        trace["reason"] = "missing_query_component_policy"
+        return settings, trace
+    trace["policy_available"] = True
+
+    ready_components: list[str] = []
+    for component in replacement_components:
+        component_policy = query_component_policy.get(component)
+        if isinstance(component_policy, Mapping) and component_policy.get("ready"):
+            ready_components.append(component)
+    trace["ready_components"] = ready_components
+    if not ready_components:
+        trace["reason"] = "no_ready_components"
+        return settings, trace
+
+    prompt_components = [
+        component for component in ready_components if bool(settings.get(component))
+    ]
+    trace["prompt_components_before"] = prompt_components
+    if not prompt_components:
+        trace["reason"] = "no_enabled_prompt_components"
+        return settings, trace
+
+    selected_candidates, selected_source = _working_memory_packet_candidates_for_context(
+        question=question,
+        route=route,
+        rows=rows,
+        memory_object_index=memory_object_index,
+        max_items=packet_max_items,
+        source=packet_source,
+    )
+    trace["packet_selected_source"] = selected_source
+    trace["packet_candidate_count"] = len(selected_candidates)
+    if not selected_candidates:
+        trace["reason"] = "no_source_backed_packet_candidates"
+        return settings, trace
+
+    for component in prompt_components:
+        settings[component] = False
+    settings["working_memory_packet"] = True
+    settings["working_memory_packet_source"] = packet_source
+    settings["working_memory_packet_max_items"] = packet_max_items
+    settings["working_memory_packet_value_chars"] = packet_value_chars
+    settings["working_memory_packet_format"] = packet_format
+    settings["working_memory_packet_compact_short_header"] = (
+        packet_compact_short_header
+    )
+    settings["working_memory_packet_compact_dedupe"] = packet_compact_dedupe
+    settings["working_memory_packet_slot_guard"] = slot_guard
+    settings["working_memory_packet_slot_guard_action"] = slot_guard_action
+    settings["working_memory_packet_slot_guard_max_rows"] = slot_guard_max_rows
+    trace["applied"] = True
+    trace["reason"] = "workspace_policy_replaced_prompt_components"
+    trace["replaced_components"] = prompt_components
+    return settings, trace
 
 
 def _external_working_memory_packet_lines(
