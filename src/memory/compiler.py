@@ -245,6 +245,8 @@ ROUTE_OVERRIDE_KEYS = {
     "memory_operation_plan_guide_render_values",
     "memory_operation_plan_guide_require_readiness",
     "memory_operation_plan_guide_required_readiness_modes",
+    "memory_operation_context_organizer",
+    "memory_operation_context_organizer_max_plans",
     "memory_operation_readiness_audit",
     "memory_operation_readiness_audit_max_plans",
     "memory_workspace_plan",
@@ -477,6 +479,11 @@ class EvidenceCompiler:
         memory_operation_plan_guide_required_readiness_modes: tuple[str, ...] = (
             MEMORY_OPERATION_PLAN_REQUIRED_READINESS_MODES
         ),
+        memory_operation_context_organizer: bool = False,
+        memory_operation_context_organizer_information_needs: tuple[str, ...] = (
+            "current_state",
+        ),
+        memory_operation_context_organizer_max_plans: int = 4,
         memory_operation_readiness_audit: bool = False,
         memory_operation_readiness_audit_information_needs: tuple[str, ...] = (
             "current_state",
@@ -782,6 +789,18 @@ class EvidenceCompiler:
                 memory_operation_plan_guide_required_readiness_modes
             )
         )
+        self._memory_operation_context_organizer = bool(
+            memory_operation_context_organizer
+        )
+        self._memory_operation_context_organizer_information_needs = (
+            _validate_information_needs(
+                memory_operation_context_organizer_information_needs,
+                field_name="memory_operation_context_organizer_information_needs",
+            )
+        )
+        self._memory_operation_context_organizer_max_plans = max(
+            1, int(memory_operation_context_organizer_max_plans)
+        )
         self._memory_operation_readiness_audit = bool(
             memory_operation_readiness_audit
         )
@@ -988,6 +1007,27 @@ class EvidenceCompiler:
             tuple(rows),
             context_layout=route_settings["context_layout"],
         )
+        context_organizer_trace: dict[str, Any] | None = None
+        if (
+            route_settings["memory_operation_context_organizer"]
+            and route.information_need
+            in self._memory_operation_context_organizer_information_needs
+        ):
+            laid_out_rows, context_organizer_trace = (
+                _memory_operation_context_organizer(
+                    question=question,
+                    route=route,
+                    rows=laid_out_rows,
+                    memory_operation_plan=memory_operation_plan,
+                    memory_query_readiness_manifest=memory_query_readiness_manifest,
+                    max_plans=route_settings[
+                        "memory_operation_context_organizer_max_plans"
+                    ],
+                    required_readiness_modes=route_settings[
+                        "memory_operation_plan_guide_required_readiness_modes"
+                    ],
+                )
+            )
 
         prompt = _build_prompt(
             question,
@@ -1283,6 +1323,10 @@ class EvidenceCompiler:
             prompt_mode=self._prompt_mode,
         )
         diagnostics: dict[str, Any] = {}
+        if context_organizer_trace is not None:
+            diagnostics["memory_operation_context_organizer"] = (
+                context_organizer_trace
+            )
         if (
             route_settings["memory_state_guide"]
             and route.information_need in self._memory_state_guide_information_needs
@@ -1461,6 +1505,12 @@ class EvidenceCompiler:
             ),
             "memory_operation_plan_guide_required_readiness_modes": (
                 self._memory_operation_plan_guide_required_readiness_modes
+            ),
+            "memory_operation_context_organizer": (
+                self._memory_operation_context_organizer
+            ),
+            "memory_operation_context_organizer_max_plans": (
+                self._memory_operation_context_organizer_max_plans
             ),
             "memory_operation_readiness_audit": (
                 self._memory_operation_readiness_audit
@@ -1966,6 +2016,14 @@ def _validate_route_overrides(
                         "memory_operation_plan_guide_required_readiness_modes"
                     ]
                 )
+            )
+        if "memory_operation_context_organizer" in raw_overrides:
+            overrides["memory_operation_context_organizer"] = bool(
+                raw_overrides["memory_operation_context_organizer"]
+            )
+        if "memory_operation_context_organizer_max_plans" in raw_overrides:
+            overrides["memory_operation_context_organizer_max_plans"] = max(
+                1, int(raw_overrides["memory_operation_context_organizer_max_plans"])
             )
         if "memory_operation_readiness_audit" in raw_overrides:
             overrides["memory_operation_readiness_audit"] = bool(
@@ -4833,6 +4891,185 @@ def _operation_plan_readiness_fields(
         if answer_gate:
             fields.append(f"answer_gate={_truncate_text(answer_gate, 42)}")
     return tuple(fields)
+
+
+def _operation_plan_visible_source_ids(
+    plan: Mapping[str, Any],
+    *,
+    visible_source_ids: frozenset[str],
+    question_scope: str,
+) -> tuple[str, ...]:
+    source_expansion = plan.get("source_expansion_plan") or {}
+    if not isinstance(source_expansion, Mapping):
+        source_expansion = {}
+    source_fields = (
+        ("current_source_order", "historical_source_order", "all_source_ids")
+        if question_scope == "current"
+        else ("historical_source_order", "current_source_order", "all_source_ids")
+    )
+    source_ids: list[str] = []
+    for field_name in source_fields:
+        raw_source_ids = source_expansion.get(field_name) or ()
+        if not isinstance(raw_source_ids, Iterable) or isinstance(
+            raw_source_ids, (str, bytes)
+        ):
+            continue
+        for raw_source_id in raw_source_ids:
+            source_id = str(raw_source_id)
+            if source_id not in visible_source_ids or source_id in source_ids:
+                continue
+            source_ids.append(source_id)
+    return tuple(source_ids)
+
+
+def _memory_operation_context_organizer(
+    *,
+    question: str,
+    route: RouteResult,
+    rows: tuple[EvidenceRow, ...],
+    memory_operation_plan: Mapping[str, Any] | None,
+    memory_query_readiness_manifest: Mapping[str, Any] | None,
+    max_plans: int,
+    required_readiness_modes: tuple[str, ...],
+) -> tuple[tuple[EvidenceRow, ...], dict[str, Any]]:
+    trace: dict[str, Any] = {
+        "enabled": True,
+        "applied": False,
+        "trace_only": False,
+        "information_need": route.information_need,
+        "required_readiness_modes": list(required_readiness_modes),
+        "candidate_count": 0,
+        "ready_visible_plan_count": 0,
+        "selected_plan_count": 0,
+        "boosted_source_ids": [],
+        "changed_order": False,
+        "values_rendered_to_prompt": False,
+        "clean_note": (
+            "Readiness-gated context organization over already selected raw rows. "
+            "It uses build-owned operation plans only to order visible source rows; "
+            "derived values are not rendered and final answer evidence remains raw rows."
+        ),
+    }
+    if (
+        not rows
+        or not memory_operation_plan
+        or not memory_operation_plan.get("applied")
+        or max_plans <= 0
+    ):
+        trace["reason"] = "missing_rows_or_operation_plan"
+        return rows, trace
+    raw_plans = memory_operation_plan.get("workspace_operation_plans") or ()
+    if not isinstance(raw_plans, Iterable) or isinstance(raw_plans, (str, bytes)):
+        trace["reason"] = "invalid_operation_plan"
+        return rows, trace
+
+    visible_source_ids = frozenset(row.source_id for row in rows)
+    readiness_by_slot = _memory_query_readiness_by_slot(
+        memory_query_readiness_manifest
+    )
+    question_terms = _content_terms(question).difference(
+        MEMORY_STATE_GUIDE_ALIGNMENT_WEAK_TERMS
+    )
+    question_scope = _workspace_question_scope(question, route)
+    candidates: list[
+        tuple[float, int, Mapping[str, Any], tuple[str, ...], Mapping[str, Any]]
+    ] = []
+    raw_candidate_count = 0
+    for ordinal, raw_plan in enumerate(raw_plans):
+        if not isinstance(raw_plan, Mapping):
+            continue
+        if raw_plan.get("source_backed") is False:
+            continue
+        if str(raw_plan.get("memory_tier") or "") == "quarantine_memory":
+            continue
+        raw_candidate_count += 1
+        readiness = _operation_plan_query_readiness(
+            raw_plan,
+            readiness_by_slot=readiness_by_slot,
+            require_readiness=True,
+            required_readiness_modes=required_readiness_modes,
+        )
+        if readiness is None:
+            continue
+        source_ids = _operation_plan_visible_source_ids(
+            raw_plan,
+            visible_source_ids=visible_source_ids,
+            question_scope=question_scope,
+        )
+        if not source_ids:
+            continue
+        score = _operation_plan_score(
+            raw_plan,
+            question_terms=question_terms,
+            route=route,
+            question_scope=question_scope,
+        )
+        if score <= 0:
+            continue
+        candidates.append((score, -ordinal, raw_plan, source_ids, readiness))
+
+    trace["candidate_count"] = raw_candidate_count
+    trace["ready_visible_plan_count"] = len(candidates)
+    if not candidates:
+        trace["reason"] = "no_ready_visible_plan"
+        return rows, trace
+
+    candidates.sort(reverse=True)
+    selected = candidates[:max_plans]
+    source_scores: dict[str, float] = {}
+    selected_plans: list[dict[str, Any]] = []
+    for score, _, plan, source_ids, readiness in selected:
+        selected_plans.append(
+            {
+                "slot_id": str(plan.get("slot_id") or ""),
+                "score": score,
+                "memory_tier": str(plan.get("memory_tier") or ""),
+                "memory_type": str(plan.get("memory_type") or ""),
+                "subject": _single_line(str(plan.get("subject") or "")),
+                "predicate": _single_line(str(plan.get("predicate") or "")),
+                "lifecycle_state": str(plan.get("lifecycle_state") or ""),
+                "readiness_state": str(readiness.get("readiness_state") or ""),
+                "source_ids": list(source_ids[:8]),
+                "operation_sequence": list(plan.get("operation_sequence") or ())[:8],
+            }
+        )
+        for source_rank, source_id in enumerate(source_ids):
+            source_score = score + max(0.0, 1.0 - (source_rank * 0.1))
+            source_scores[source_id] = max(
+                source_scores.get(source_id, 0.0), source_score
+            )
+
+    if not source_scores:
+        trace["reason"] = "no_visible_sources_selected"
+        return rows, trace
+
+    original_source_order = [row.source_id for row in rows]
+    original_index = {row.source_id: index for index, row in enumerate(rows)}
+    organized_rows = tuple(
+        sorted(
+            rows,
+            key=lambda row: (
+                0 if row.source_id in source_scores else 1,
+                -source_scores.get(row.source_id, 0.0),
+                original_index.get(row.source_id, 1_000_000),
+            ),
+        )
+    )
+    new_source_order = [row.source_id for row in organized_rows]
+    boosted_source_ids = [
+        source_id for source_id in new_source_order if source_id in source_scores
+    ]
+    trace.update(
+        {
+            "applied": True,
+            "reason": "ready_visible_sources_prioritized",
+            "selected_plan_count": len(selected_plans),
+            "selected_plans": selected_plans,
+            "boosted_source_ids": boosted_source_ids[:16],
+            "changed_order": original_source_order != new_source_order,
+        }
+    )
+    return organized_rows, trace
 
 
 def _memory_operation_readiness_audit(
