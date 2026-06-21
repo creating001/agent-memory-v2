@@ -244,6 +244,7 @@ ROUTE_OVERRIDE_KEYS = {
     "memory_operation_plan_guide_max_plans",
     "memory_operation_plan_guide_max_values",
     "memory_operation_plan_guide_value_chars",
+    "memory_operation_plan_guide_render_values",
     "memory_operation_plan_guide_require_readiness",
     "memory_operation_plan_guide_required_readiness_modes",
     "memory_workspace_plan",
@@ -473,6 +474,7 @@ class EvidenceCompiler:
         memory_operation_plan_guide_max_plans: int = 3,
         memory_operation_plan_guide_max_values: int = 4,
         memory_operation_plan_guide_value_chars: int = 90,
+        memory_operation_plan_guide_render_values: bool = True,
         memory_operation_plan_guide_require_readiness: bool = False,
         memory_operation_plan_guide_required_readiness_modes: tuple[str, ...] = (
             MEMORY_OPERATION_PLAN_REQUIRED_READINESS_MODES
@@ -770,6 +772,9 @@ class EvidenceCompiler:
         )
         self._memory_operation_plan_guide_value_chars = max(
             40, int(memory_operation_plan_guide_value_chars)
+        )
+        self._memory_operation_plan_guide_render_values = bool(
+            memory_operation_plan_guide_render_values
         )
         self._memory_operation_plan_guide_require_readiness = bool(
             memory_operation_plan_guide_require_readiness
@@ -1161,6 +1166,9 @@ class EvidenceCompiler:
             memory_operation_plan_guide_value_chars=route_settings[
                 "memory_operation_plan_guide_value_chars"
             ],
+            memory_operation_plan_guide_render_values=route_settings[
+                "memory_operation_plan_guide_render_values"
+            ],
             memory_operation_plan_guide_require_readiness=route_settings[
                 "memory_operation_plan_guide_require_readiness"
             ],
@@ -1422,6 +1430,9 @@ class EvidenceCompiler:
             ),
             "memory_operation_plan_guide_value_chars": (
                 self._memory_operation_plan_guide_value_chars
+            ),
+            "memory_operation_plan_guide_render_values": (
+                self._memory_operation_plan_guide_render_values
             ),
             "memory_operation_plan_guide_require_readiness": (
                 self._memory_operation_plan_guide_require_readiness
@@ -1913,6 +1924,10 @@ def _validate_route_overrides(
         if "memory_operation_plan_guide_value_chars" in raw_overrides:
             overrides["memory_operation_plan_guide_value_chars"] = max(
                 40, int(raw_overrides["memory_operation_plan_guide_value_chars"])
+            )
+        if "memory_operation_plan_guide_render_values" in raw_overrides:
+            overrides["memory_operation_plan_guide_render_values"] = bool(
+                raw_overrides["memory_operation_plan_guide_render_values"]
             )
         if "memory_operation_plan_guide_require_readiness" in raw_overrides:
             overrides["memory_operation_plan_guide_require_readiness"] = bool(
@@ -3242,6 +3257,7 @@ def _build_prompt(
     memory_operation_plan_guide_max_plans: int,
     memory_operation_plan_guide_max_values: int,
     memory_operation_plan_guide_value_chars: int,
+    memory_operation_plan_guide_render_values: bool,
     memory_operation_plan_guide_require_readiness: bool,
     memory_operation_plan_guide_required_readiness_modes: tuple[str, ...],
     memory_workspace_plan: bool,
@@ -3407,6 +3423,9 @@ def _build_prompt(
             ),
             memory_operation_plan_guide_value_chars=(
                 memory_operation_plan_guide_value_chars
+            ),
+            memory_operation_plan_guide_render_values=(
+                memory_operation_plan_guide_render_values
             ),
             memory_operation_plan_guide_require_readiness=(
                 memory_operation_plan_guide_require_readiness
@@ -3666,6 +3685,7 @@ def _build_external_naive_prompt(
     memory_operation_plan_guide_max_plans: int,
     memory_operation_plan_guide_max_values: int,
     memory_operation_plan_guide_value_chars: int,
+    memory_operation_plan_guide_render_values: bool,
     memory_operation_plan_guide_require_readiness: bool,
     memory_operation_plan_guide_required_readiness_modes: tuple[str, ...],
     memory_workspace_plan: bool,
@@ -3823,6 +3843,7 @@ def _build_external_naive_prompt(
             max_plans=memory_operation_plan_guide_max_plans,
             max_values=memory_operation_plan_guide_max_values,
             max_value_chars=memory_operation_plan_guide_value_chars,
+            render_values=memory_operation_plan_guide_render_values,
             require_readiness=memory_operation_plan_guide_require_readiness,
             required_readiness_modes=(
                 memory_operation_plan_guide_required_readiness_modes
@@ -4610,6 +4631,7 @@ def _external_memory_operation_plan_guide_lines(
     max_plans: int,
     max_values: int,
     max_value_chars: int,
+    render_values: bool,
     require_readiness: bool,
     required_readiness_modes: tuple[str, ...],
 ) -> list[str]:
@@ -4698,6 +4720,11 @@ def _external_memory_operation_plan_guide_lines(
             1,
             "- Readiness gate: rendered plans are guarded_ready and only safe for additive source-backed organization; they do not replace the state/value guide.",
         )
+    if not render_values:
+        lines.insert(
+            2 if require_readiness else 1,
+            "- Values are intentionally not rendered here; use visible Memory Context rows and the state/value guide for final values.",
+        )
     for _, _, plan, source_labels, readiness in selected:
         fields = [
             f"tier={_single_line(str(plan.get('memory_tier') or 'memory'))}",
@@ -4717,30 +4744,33 @@ def _external_memory_operation_plan_guide_lines(
         view_modes = _operation_plan_view_modes_text(plan)
         if view_modes:
             fields.append(f"views={view_modes}")
-        active_text = _operation_plan_values_text(
-            plan,
-            field_name="active_values",
-            max_values=max_values,
-            max_chars=max_value_chars,
-        )
-        if active_text:
-            fields.append(f"active={active_text}")
-        historical_text = _operation_plan_values_text(
-            plan,
-            field_name="superseded_values",
-            max_values=max_values,
-            max_chars=max_value_chars,
-        )
-        if historical_text:
-            fields.append(f"historical={historical_text}")
-        scalar_text = _operation_plan_values_text(
-            plan,
-            field_name="scalar_values",
-            max_values=max_values,
-            max_chars=max_value_chars,
-        )
-        if scalar_text:
-            fields.append(f"scalars={scalar_text}")
+        if render_values:
+            active_text = _operation_plan_values_text(
+                plan,
+                field_name="active_values",
+                max_values=max_values,
+                max_chars=max_value_chars,
+            )
+            if active_text:
+                fields.append(f"active={active_text}")
+            historical_text = _operation_plan_values_text(
+                plan,
+                field_name="superseded_values",
+                max_values=max_values,
+                max_chars=max_value_chars,
+            )
+            if historical_text:
+                fields.append(f"historical={historical_text}")
+            scalar_text = _operation_plan_values_text(
+                plan,
+                field_name="scalar_values",
+                max_values=max_values,
+                max_chars=max_value_chars,
+            )
+            if scalar_text:
+                fields.append(f"scalars={scalar_text}")
+        else:
+            fields.append("values=raw_rows_only")
         fields.append(f"sources={', '.join(source_labels[:8])}")
         operations = _operation_plan_sequence_text(plan)
         if operations:

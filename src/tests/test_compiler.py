@@ -1065,6 +1065,87 @@ class CompilerTest(unittest.TestCase):
         self.assertIn("historical=Austin", operation_block)
         self.assertNotIn("architect", operation_block)
 
+    def test_memory_operation_plan_guide_can_hide_derived_values(
+        self,
+    ) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=2,
+            max_evidence_chars=2000,
+            prompt_mode="external_naive",
+            memory_operation_plan_guide=True,
+            memory_operation_plan_guide_information_needs=("current_state",),
+            memory_operation_plan_guide_require_readiness=True,
+            memory_operation_plan_guide_render_values=False,
+        )
+
+        compiled = compiler.compile(
+            question="Where does Alex live now?",
+            question_time=None,
+            route=RouteResult("current_state", ("current_state",)),
+            hits=(RetrievalHit("s1:t0", 1.0, 1, "test"),),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Alex now lives in Seattle after leaving Austin.",
+                    timestamp="2024-02-01",
+                ),
+            ),
+            memory_operation_plan={
+                "schema_version": "memory_operation_plan_v1",
+                "applied": True,
+                "workspace_operation_plans": [
+                    {
+                        "slot_id": "slot_state_alex_lives_in",
+                        "memory_tier": "working_memory",
+                        "memory_type": "state",
+                        "subject": "Alex",
+                        "predicate": "lives in",
+                        "source_backed": True,
+                        "operation_sequence": ["retrieve", "expand", "verify"],
+                        "source_expansion_plan": {
+                            "current_source_order": ["s1:t0"],
+                            "all_source_ids": ["s1:t0"],
+                        },
+                        "state_management_plan": {
+                            "active_values": ["Seattle"],
+                            "superseded_values": ["Austin"],
+                        },
+                    },
+                ],
+            },
+            memory_query_readiness_manifest={
+                "schema_version": "memory_query_readiness_manifest_v1",
+                "applied": True,
+                "readiness_index": [
+                    {
+                        "slot_id": "slot_state_alex_lives_in",
+                        "readiness_state": "guarded_ready",
+                        "safe_consumption_modes": [
+                            "additive_index",
+                            "source_expansion",
+                            "context_organization",
+                        ],
+                        "query_gate": {
+                            "requires_visible_raw_rows": True,
+                            "replace_state_value_guide_allowed": False,
+                        },
+                    },
+                ],
+            },
+        )
+
+        operation_block = compiled.prompt.split(
+            "Memory Operation Plan Guide:", 1
+        )[1].split("\n\n", 1)[0]
+        self.assertIn("values=raw_rows_only", operation_block)
+        self.assertIn("sources=Memory 1", operation_block)
+        self.assertIn("ops=retrieve, expand, verify", operation_block)
+        self.assertNotIn("active=Seattle", operation_block)
+        self.assertNotIn("historical=Austin", operation_block)
+
     def test_source_backed_memory_state_ledger_diagnostics_use_visible_sources(
         self,
     ) -> None:

@@ -1299,6 +1299,9 @@ class Stage1Pipeline:
             memory_operation_plan_guide_value_chars=int(
                 compiler_config.get("memory_operation_plan_guide_value_chars", 90)
             ),
+            memory_operation_plan_guide_render_values=bool(
+                compiler_config.get("memory_operation_plan_guide_render_values", True)
+            ),
             memory_operation_plan_guide_require_readiness=bool(
                 compiler_config.get(
                     "memory_operation_plan_guide_require_readiness", False
@@ -8537,6 +8540,9 @@ def _compiler_trace_config(
         "memory_operation_plan_guide_value_chars": int(
             compiler_config.get("memory_operation_plan_guide_value_chars", 90)
         ),
+        "memory_operation_plan_guide_render_values": bool(
+            compiler_config.get("memory_operation_plan_guide_render_values", True)
+        ),
         "memory_operation_plan_guide_require_readiness": bool(
             compiler_config.get("memory_operation_plan_guide_require_readiness", False)
         ),
@@ -8945,6 +8951,9 @@ def _configured_compiler(compiler_config: Mapping[str, Any]) -> EvidenceCompiler
         ),
         memory_operation_plan_guide_value_chars=int(
             compiler_config.get("memory_operation_plan_guide_value_chars", 90)
+        ),
+        memory_operation_plan_guide_render_values=bool(
+            compiler_config.get("memory_operation_plan_guide_render_values", True)
         ),
         memory_operation_plan_guide_require_readiness=bool(
             compiler_config.get("memory_operation_plan_guide_require_readiness", False)
