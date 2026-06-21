@@ -94,6 +94,11 @@ MEMORY_STATE_GUIDE_STATEFUL_SLOT_PATTERN = re.compile(
     r")\b",
     re.IGNORECASE,
 )
+MEMORY_OPERATION_PLAN_REQUIRED_READINESS_MODES = (
+    "additive_index",
+    "source_expansion",
+    "context_organization",
+)
 UPDATE_CONFLICT_VALUE_UNIT_STOPWORDS = {
     "a",
     "about",
@@ -239,6 +244,8 @@ ROUTE_OVERRIDE_KEYS = {
     "memory_operation_plan_guide_max_plans",
     "memory_operation_plan_guide_max_values",
     "memory_operation_plan_guide_value_chars",
+    "memory_operation_plan_guide_require_readiness",
+    "memory_operation_plan_guide_required_readiness_modes",
     "memory_workspace_plan",
     "memory_workspace_plan_max_groups",
     "memory_workspace_plan_max_values",
@@ -466,6 +473,10 @@ class EvidenceCompiler:
         memory_operation_plan_guide_max_plans: int = 3,
         memory_operation_plan_guide_max_values: int = 4,
         memory_operation_plan_guide_value_chars: int = 90,
+        memory_operation_plan_guide_require_readiness: bool = False,
+        memory_operation_plan_guide_required_readiness_modes: tuple[str, ...] = (
+            MEMORY_OPERATION_PLAN_REQUIRED_READINESS_MODES
+        ),
         memory_workspace_plan: bool = False,
         memory_workspace_plan_information_needs: tuple[str, ...] = (
             "current_state",
@@ -760,6 +771,14 @@ class EvidenceCompiler:
         self._memory_operation_plan_guide_value_chars = max(
             40, int(memory_operation_plan_guide_value_chars)
         )
+        self._memory_operation_plan_guide_require_readiness = bool(
+            memory_operation_plan_guide_require_readiness
+        )
+        self._memory_operation_plan_guide_required_readiness_modes = (
+            _validate_operation_plan_readiness_modes(
+                memory_operation_plan_guide_required_readiness_modes
+            )
+        )
         self._memory_workspace_plan = bool(memory_workspace_plan)
         self._memory_workspace_plan_information_needs = _validate_information_needs(
             memory_workspace_plan_information_needs,
@@ -852,6 +871,7 @@ class EvidenceCompiler:
         memory_object_index: Mapping[str, Any] | None = None,
         memory_workspace_manifest: Mapping[str, Any] | None = None,
         memory_operation_plan: Mapping[str, Any] | None = None,
+        memory_query_readiness_manifest: Mapping[str, Any] | None = None,
     ) -> CompiledContext:
         hit_by_source_id = {hit.source_id: hit for hit in hits}
         candidates: list[EvidenceRow] = []
@@ -1126,6 +1146,7 @@ class EvidenceCompiler:
             memory_object_index=memory_object_index,
             memory_workspace_manifest=memory_workspace_manifest,
             memory_operation_plan=memory_operation_plan,
+            memory_query_readiness_manifest=memory_query_readiness_manifest,
             memory_operation_plan_guide=(
                 route_settings["memory_operation_plan_guide"]
                 and route.information_need
@@ -1139,6 +1160,12 @@ class EvidenceCompiler:
             ],
             memory_operation_plan_guide_value_chars=route_settings[
                 "memory_operation_plan_guide_value_chars"
+            ],
+            memory_operation_plan_guide_require_readiness=route_settings[
+                "memory_operation_plan_guide_require_readiness"
+            ],
+            memory_operation_plan_guide_required_readiness_modes=route_settings[
+                "memory_operation_plan_guide_required_readiness_modes"
             ],
             memory_workspace_plan=(
                 route_settings["memory_workspace_plan"]
@@ -1396,6 +1423,12 @@ class EvidenceCompiler:
             "memory_operation_plan_guide_value_chars": (
                 self._memory_operation_plan_guide_value_chars
             ),
+            "memory_operation_plan_guide_require_readiness": (
+                self._memory_operation_plan_guide_require_readiness
+            ),
+            "memory_operation_plan_guide_required_readiness_modes": (
+                self._memory_operation_plan_guide_required_readiness_modes
+            ),
             "memory_workspace_plan": self._memory_workspace_plan,
             "memory_workspace_plan_max_groups": (
                 self._memory_workspace_plan_max_groups
@@ -1535,6 +1568,23 @@ def _validate_memory_state_guide_conflict_source(value: str) -> str:
             f"{value}. Expected one of {sorted(MEMORY_STATE_GUIDE_CONFLICT_SOURCES)}"
         )
     return value
+
+
+def _validate_operation_plan_readiness_modes(value: object) -> tuple[str, ...]:
+    if value is None:
+        return MEMORY_OPERATION_PLAN_REQUIRED_READINESS_MODES
+    if isinstance(value, str):
+        raw_modes = (value,)
+    elif isinstance(value, Iterable):
+        raw_modes = tuple(value)
+    else:
+        raw_modes = (value,)
+    modes = tuple(
+        str(mode).strip()
+        for mode in raw_modes
+        if str(mode).strip()
+    )
+    return modes or MEMORY_OPERATION_PLAN_REQUIRED_READINESS_MODES
 
 
 def _validate_route_overrides(
@@ -1863,6 +1913,18 @@ def _validate_route_overrides(
         if "memory_operation_plan_guide_value_chars" in raw_overrides:
             overrides["memory_operation_plan_guide_value_chars"] = max(
                 40, int(raw_overrides["memory_operation_plan_guide_value_chars"])
+            )
+        if "memory_operation_plan_guide_require_readiness" in raw_overrides:
+            overrides["memory_operation_plan_guide_require_readiness"] = bool(
+                raw_overrides["memory_operation_plan_guide_require_readiness"]
+            )
+        if "memory_operation_plan_guide_required_readiness_modes" in raw_overrides:
+            overrides["memory_operation_plan_guide_required_readiness_modes"] = (
+                _validate_operation_plan_readiness_modes(
+                    raw_overrides[
+                        "memory_operation_plan_guide_required_readiness_modes"
+                    ]
+                )
             )
         if "memory_workspace_plan" in raw_overrides:
             overrides["memory_workspace_plan"] = bool(
@@ -3175,10 +3237,13 @@ def _build_prompt(
     memory_object_index: Mapping[str, Any] | None,
     memory_workspace_manifest: Mapping[str, Any] | None,
     memory_operation_plan: Mapping[str, Any] | None,
+    memory_query_readiness_manifest: Mapping[str, Any] | None,
     memory_operation_plan_guide: bool,
     memory_operation_plan_guide_max_plans: int,
     memory_operation_plan_guide_max_values: int,
     memory_operation_plan_guide_value_chars: int,
+    memory_operation_plan_guide_require_readiness: bool,
+    memory_operation_plan_guide_required_readiness_modes: tuple[str, ...],
     memory_workspace_plan: bool,
     memory_workspace_plan_max_groups: int,
     memory_workspace_plan_max_values: int,
@@ -3334,6 +3399,7 @@ def _build_prompt(
             memory_object_index=memory_object_index,
             memory_workspace_manifest=memory_workspace_manifest,
             memory_operation_plan=memory_operation_plan,
+            memory_query_readiness_manifest=memory_query_readiness_manifest,
             memory_operation_plan_guide=memory_operation_plan_guide,
             memory_operation_plan_guide_max_plans=memory_operation_plan_guide_max_plans,
             memory_operation_plan_guide_max_values=(
@@ -3341,6 +3407,12 @@ def _build_prompt(
             ),
             memory_operation_plan_guide_value_chars=(
                 memory_operation_plan_guide_value_chars
+            ),
+            memory_operation_plan_guide_require_readiness=(
+                memory_operation_plan_guide_require_readiness
+            ),
+            memory_operation_plan_guide_required_readiness_modes=(
+                memory_operation_plan_guide_required_readiness_modes
             ),
             memory_workspace_plan=memory_workspace_plan,
             memory_workspace_plan_max_groups=memory_workspace_plan_max_groups,
@@ -3589,10 +3661,13 @@ def _build_external_naive_prompt(
     memory_object_index: Mapping[str, Any] | None,
     memory_workspace_manifest: Mapping[str, Any] | None,
     memory_operation_plan: Mapping[str, Any] | None,
+    memory_query_readiness_manifest: Mapping[str, Any] | None,
     memory_operation_plan_guide: bool,
     memory_operation_plan_guide_max_plans: int,
     memory_operation_plan_guide_max_values: int,
     memory_operation_plan_guide_value_chars: int,
+    memory_operation_plan_guide_require_readiness: bool,
+    memory_operation_plan_guide_required_readiness_modes: tuple[str, ...],
     memory_workspace_plan: bool,
     memory_workspace_plan_max_groups: int,
     memory_workspace_plan_max_values: int,
@@ -3744,9 +3819,14 @@ def _build_external_naive_prompt(
             route=route,
             rows=rows,
             memory_operation_plan=memory_operation_plan,
+            memory_query_readiness_manifest=memory_query_readiness_manifest,
             max_plans=memory_operation_plan_guide_max_plans,
             max_values=memory_operation_plan_guide_max_values,
             max_value_chars=memory_operation_plan_guide_value_chars,
+            require_readiness=memory_operation_plan_guide_require_readiness,
+            required_readiness_modes=(
+                memory_operation_plan_guide_required_readiness_modes
+            ),
         )
         if memory_operation_plan_lines:
             memory_operation_plan_guide_block = "\n".join(
@@ -4526,9 +4606,12 @@ def _external_memory_operation_plan_guide_lines(
     route: RouteResult,
     rows: tuple[EvidenceRow, ...],
     memory_operation_plan: Mapping[str, Any] | None,
+    memory_query_readiness_manifest: Mapping[str, Any] | None,
     max_plans: int,
     max_values: int,
     max_value_chars: int,
+    require_readiness: bool,
+    required_readiness_modes: tuple[str, ...],
 ) -> list[str]:
     """Compact operation-plan guide grounded in visible raw rows."""
 
@@ -4547,17 +4630,30 @@ def _external_memory_operation_plan_guide_lines(
     source_to_memory_index = {
         row.source_id: index for index, row in enumerate(rows, start=1)
     }
+    readiness_by_slot = _memory_query_readiness_by_slot(
+        memory_query_readiness_manifest
+    )
     question_terms = _content_terms(question).difference(
         MEMORY_STATE_GUIDE_ALIGNMENT_WEAK_TERMS
     )
     question_scope = _workspace_question_scope(question, route)
-    candidates: list[tuple[float, int, Mapping[str, Any], tuple[str, ...]]] = []
+    candidates: list[
+        tuple[float, int, Mapping[str, Any], tuple[str, ...], Mapping[str, Any] | None]
+    ] = []
     for ordinal, raw_plan in enumerate(raw_plans):
         if not isinstance(raw_plan, Mapping):
             continue
         if raw_plan.get("source_backed") is False:
             continue
         if str(raw_plan.get("memory_tier") or "") == "quarantine_memory":
+            continue
+        readiness = _operation_plan_query_readiness(
+            raw_plan,
+            readiness_by_slot=readiness_by_slot,
+            require_readiness=require_readiness,
+            required_readiness_modes=required_readiness_modes,
+        )
+        if require_readiness and readiness is None:
             continue
         source_labels = _operation_plan_source_labels(
             raw_plan,
@@ -4574,7 +4670,7 @@ def _external_memory_operation_plan_guide_lines(
         )
         if score <= 0:
             continue
-        candidates.append((score, -ordinal, raw_plan, source_labels))
+        candidates.append((score, -ordinal, raw_plan, source_labels, readiness))
 
     if not candidates:
         return []
@@ -4597,11 +4693,18 @@ def _external_memory_operation_plan_guide_lines(
         "- operation order: retrieve -> expand -> verify -> audit_if_needed -> context_pack -> answer_from_raw_rows.",
         "- plans:",
     ]
-    for _, _, plan, source_labels in selected:
+    if require_readiness:
+        lines.insert(
+            1,
+            "- Readiness gate: rendered plans are guarded_ready and only safe for additive source-backed organization; they do not replace the state/value guide.",
+        )
+    for _, _, plan, source_labels, readiness in selected:
         fields = [
             f"tier={_single_line(str(plan.get('memory_tier') or 'memory'))}",
             f"type={_single_line(str(plan.get('memory_type') or 'memory'))}",
         ]
+        readiness_fields = _operation_plan_readiness_fields(readiness)
+        fields.extend(readiness_fields)
         subject = _single_line(str(plan.get("subject") or ""))
         predicate = _single_line(str(plan.get("predicate") or ""))
         if subject:
@@ -4647,6 +4750,82 @@ def _external_memory_operation_plan_guide_lines(
             fields.append(f"audit={audit}")
         lines.append(f"  - {' | '.join(fields)}")
     return lines
+
+
+def _memory_query_readiness_by_slot(
+    memory_query_readiness_manifest: Mapping[str, Any] | None,
+) -> dict[str, Mapping[str, Any]]:
+    if (
+        not isinstance(memory_query_readiness_manifest, Mapping)
+        or not memory_query_readiness_manifest.get("applied")
+    ):
+        return {}
+    raw_readiness = memory_query_readiness_manifest.get("readiness_index") or ()
+    if not isinstance(raw_readiness, Iterable) or isinstance(
+        raw_readiness, (str, bytes)
+    ):
+        return {}
+    readiness_by_slot: dict[str, Mapping[str, Any]] = {}
+    for readiness in raw_readiness:
+        if not isinstance(readiness, Mapping):
+            continue
+        slot_id = str(readiness.get("slot_id") or "")
+        if not slot_id:
+            continue
+        readiness_by_slot[slot_id] = readiness
+    return readiness_by_slot
+
+
+def _operation_plan_query_readiness(
+    plan: Mapping[str, Any],
+    *,
+    readiness_by_slot: Mapping[str, Mapping[str, Any]],
+    require_readiness: bool,
+    required_readiness_modes: tuple[str, ...],
+) -> Mapping[str, Any] | None:
+    slot_id = str(plan.get("slot_id") or "")
+    if not slot_id:
+        return None
+    readiness = readiness_by_slot.get(slot_id)
+    if not isinstance(readiness, Mapping):
+        return None
+    if str(readiness.get("readiness_state") or "") != "guarded_ready":
+        return None
+    raw_safe_modes = readiness.get("safe_consumption_modes") or ()
+    if not isinstance(raw_safe_modes, Iterable) or isinstance(
+        raw_safe_modes, (str, bytes)
+    ):
+        return None
+    safe_modes = {str(mode) for mode in raw_safe_modes}
+    if not set(required_readiness_modes).issubset(safe_modes):
+        return None
+    query_gate = readiness.get("query_gate") or {}
+    if not isinstance(query_gate, Mapping):
+        return None
+    if query_gate.get("requires_visible_raw_rows") is False:
+        return None
+    if not require_readiness:
+        return readiness
+    return readiness
+
+
+def _operation_plan_readiness_fields(
+    readiness: Mapping[str, Any] | None,
+) -> tuple[str, ...]:
+    if not isinstance(readiness, Mapping):
+        return ()
+    fields = ["ready=guarded_additive"]
+    query_gate = readiness.get("query_gate") or {}
+    if isinstance(query_gate, Mapping) and not bool(
+        query_gate.get("replace_state_value_guide_allowed", False)
+    ):
+        fields.append("replace=blocked")
+    verification = readiness.get("verification_readiness") or {}
+    if isinstance(verification, Mapping):
+        answer_gate = _single_line(str(verification.get("answer_gate") or ""))
+        if answer_gate:
+            fields.append(f"answer_gate={_truncate_text(answer_gate, 42)}")
+    return tuple(fields)
 
 
 def _operation_plan_source_labels(

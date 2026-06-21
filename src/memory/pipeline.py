@@ -1299,6 +1299,21 @@ class Stage1Pipeline:
             memory_operation_plan_guide_value_chars=int(
                 compiler_config.get("memory_operation_plan_guide_value_chars", 90)
             ),
+            memory_operation_plan_guide_require_readiness=bool(
+                compiler_config.get(
+                    "memory_operation_plan_guide_require_readiness", False
+                )
+            ),
+            memory_operation_plan_guide_required_readiness_modes=_tuple_config(
+                compiler_config.get(
+                    "memory_operation_plan_guide_required_readiness_modes",
+                    (
+                        "additive_index",
+                        "source_expansion",
+                        "context_organization",
+                    ),
+                )
+            ),
             memory_workspace_plan=bool(
                 compiler_config.get("memory_workspace_plan", False)
             ),
@@ -2688,6 +2703,9 @@ class Stage1Pipeline:
                 built_memory.management
             ),
             memory_operation_plan=_memory_operation_plan_from_management(
+                built_memory.management
+            ),
+            memory_query_readiness_manifest=_memory_query_readiness_manifest_from_management(
                 built_memory.management
             ),
         )
@@ -4158,6 +4176,20 @@ def _memory_operation_plan_from_management(
     if not isinstance(operation_plan, Mapping):
         return None
     return operation_plan
+
+
+def _memory_query_readiness_manifest_from_management(
+    management: Mapping[str, Any] | None,
+) -> Mapping[str, Any] | None:
+    if not isinstance(management, Mapping):
+        return None
+    memory_system_graph = management.get("memory_system_graph")
+    if not isinstance(memory_system_graph, Mapping):
+        return None
+    readiness_manifest = memory_system_graph.get("memory_query_readiness_manifest")
+    if not isinstance(readiness_manifest, Mapping):
+        return None
+    return readiness_manifest
 
 
 def _dedupe_memory_records(records: tuple[Any, ...]) -> tuple[Any, ...]:
@@ -8505,6 +8537,15 @@ def _compiler_trace_config(
         "memory_operation_plan_guide_value_chars": int(
             compiler_config.get("memory_operation_plan_guide_value_chars", 90)
         ),
+        "memory_operation_plan_guide_require_readiness": bool(
+            compiler_config.get("memory_operation_plan_guide_require_readiness", False)
+        ),
+        "memory_operation_plan_guide_required_readiness_modes": _tuple_config(
+            compiler_config.get(
+                "memory_operation_plan_guide_required_readiness_modes",
+                ("additive_index", "source_expansion", "context_organization"),
+            )
+        ),
         "memory_workspace_plan": bool(
             compiler_config.get("memory_workspace_plan", False)
         ),
@@ -8904,6 +8945,15 @@ def _configured_compiler(compiler_config: Mapping[str, Any]) -> EvidenceCompiler
         ),
         memory_operation_plan_guide_value_chars=int(
             compiler_config.get("memory_operation_plan_guide_value_chars", 90)
+        ),
+        memory_operation_plan_guide_require_readiness=bool(
+            compiler_config.get("memory_operation_plan_guide_require_readiness", False)
+        ),
+        memory_operation_plan_guide_required_readiness_modes=_tuple_config(
+            compiler_config.get(
+                "memory_operation_plan_guide_required_readiness_modes",
+                ("additive_index", "source_expansion", "context_organization"),
+            )
         ),
         memory_workspace_plan=bool(
             compiler_config.get("memory_workspace_plan", False)
