@@ -235,6 +235,10 @@ ROUTE_OVERRIDE_KEYS = {
     "memory_value_slot_guide_max_slots",
     "memory_value_slot_guide_max_values",
     "memory_value_slot_guide_memory_types",
+    "memory_operation_plan_guide",
+    "memory_operation_plan_guide_max_plans",
+    "memory_operation_plan_guide_max_values",
+    "memory_operation_plan_guide_value_chars",
     "memory_workspace_plan",
     "memory_workspace_plan_max_groups",
     "memory_workspace_plan_max_values",
@@ -454,6 +458,14 @@ class EvidenceCompiler:
         memory_value_slot_guide_max_slots: int = 4,
         memory_value_slot_guide_max_values: int = 6,
         memory_value_slot_guide_memory_types: tuple[str, ...] = (),
+        memory_operation_plan_guide: bool = False,
+        memory_operation_plan_guide_information_needs: tuple[str, ...] = (
+            "current_state",
+            "profile_preference",
+        ),
+        memory_operation_plan_guide_max_plans: int = 3,
+        memory_operation_plan_guide_max_values: int = 4,
+        memory_operation_plan_guide_value_chars: int = 90,
         memory_workspace_plan: bool = False,
         memory_workspace_plan_information_needs: tuple[str, ...] = (
             "current_state",
@@ -732,6 +744,22 @@ class EvidenceCompiler:
             for value in memory_value_slot_guide_memory_types
             if str(value).strip()
         )
+        self._memory_operation_plan_guide = bool(memory_operation_plan_guide)
+        self._memory_operation_plan_guide_information_needs = (
+            _validate_information_needs(
+                memory_operation_plan_guide_information_needs,
+                field_name="memory_operation_plan_guide_information_needs",
+            )
+        )
+        self._memory_operation_plan_guide_max_plans = max(
+            1, int(memory_operation_plan_guide_max_plans)
+        )
+        self._memory_operation_plan_guide_max_values = max(
+            1, int(memory_operation_plan_guide_max_values)
+        )
+        self._memory_operation_plan_guide_value_chars = max(
+            40, int(memory_operation_plan_guide_value_chars)
+        )
         self._memory_workspace_plan = bool(memory_workspace_plan)
         self._memory_workspace_plan_information_needs = _validate_information_needs(
             memory_workspace_plan_information_needs,
@@ -823,6 +851,7 @@ class EvidenceCompiler:
         memory_scalar_value_manifest: Mapping[str, Any] | None = None,
         memory_object_index: Mapping[str, Any] | None = None,
         memory_workspace_manifest: Mapping[str, Any] | None = None,
+        memory_operation_plan: Mapping[str, Any] | None = None,
     ) -> CompiledContext:
         hit_by_source_id = {hit.source_id: hit for hit in hits}
         candidates: list[EvidenceRow] = []
@@ -1096,6 +1125,21 @@ class EvidenceCompiler:
             memory_scalar_value_manifest=memory_scalar_value_manifest,
             memory_object_index=memory_object_index,
             memory_workspace_manifest=memory_workspace_manifest,
+            memory_operation_plan=memory_operation_plan,
+            memory_operation_plan_guide=(
+                route_settings["memory_operation_plan_guide"]
+                and route.information_need
+                in self._memory_operation_plan_guide_information_needs
+            ),
+            memory_operation_plan_guide_max_plans=route_settings[
+                "memory_operation_plan_guide_max_plans"
+            ],
+            memory_operation_plan_guide_max_values=route_settings[
+                "memory_operation_plan_guide_max_values"
+            ],
+            memory_operation_plan_guide_value_chars=route_settings[
+                "memory_operation_plan_guide_value_chars"
+            ],
             memory_workspace_plan=(
                 route_settings["memory_workspace_plan"]
                 and route.information_need
@@ -1341,6 +1385,16 @@ class EvidenceCompiler:
             ),
             "memory_value_slot_guide_memory_types": (
                 self._memory_value_slot_guide_memory_types
+            ),
+            "memory_operation_plan_guide": self._memory_operation_plan_guide,
+            "memory_operation_plan_guide_max_plans": (
+                self._memory_operation_plan_guide_max_plans
+            ),
+            "memory_operation_plan_guide_max_values": (
+                self._memory_operation_plan_guide_max_values
+            ),
+            "memory_operation_plan_guide_value_chars": (
+                self._memory_operation_plan_guide_value_chars
             ),
             "memory_workspace_plan": self._memory_workspace_plan,
             "memory_workspace_plan_max_groups": (
@@ -1793,6 +1847,22 @@ def _validate_route_overrides(
                 str(value).strip().lower()
                 for value in raw_types
                 if str(value).strip()
+            )
+        if "memory_operation_plan_guide" in raw_overrides:
+            overrides["memory_operation_plan_guide"] = bool(
+                raw_overrides["memory_operation_plan_guide"]
+            )
+        if "memory_operation_plan_guide_max_plans" in raw_overrides:
+            overrides["memory_operation_plan_guide_max_plans"] = max(
+                1, int(raw_overrides["memory_operation_plan_guide_max_plans"])
+            )
+        if "memory_operation_plan_guide_max_values" in raw_overrides:
+            overrides["memory_operation_plan_guide_max_values"] = max(
+                1, int(raw_overrides["memory_operation_plan_guide_max_values"])
+            )
+        if "memory_operation_plan_guide_value_chars" in raw_overrides:
+            overrides["memory_operation_plan_guide_value_chars"] = max(
+                40, int(raw_overrides["memory_operation_plan_guide_value_chars"])
             )
         if "memory_workspace_plan" in raw_overrides:
             overrides["memory_workspace_plan"] = bool(
@@ -3104,6 +3174,11 @@ def _build_prompt(
     memory_scalar_value_manifest: Mapping[str, Any] | None,
     memory_object_index: Mapping[str, Any] | None,
     memory_workspace_manifest: Mapping[str, Any] | None,
+    memory_operation_plan: Mapping[str, Any] | None,
+    memory_operation_plan_guide: bool,
+    memory_operation_plan_guide_max_plans: int,
+    memory_operation_plan_guide_max_values: int,
+    memory_operation_plan_guide_value_chars: int,
     memory_workspace_plan: bool,
     memory_workspace_plan_max_groups: int,
     memory_workspace_plan_max_values: int,
@@ -3258,6 +3333,15 @@ def _build_prompt(
             memory_scalar_value_manifest=memory_scalar_value_manifest,
             memory_object_index=memory_object_index,
             memory_workspace_manifest=memory_workspace_manifest,
+            memory_operation_plan=memory_operation_plan,
+            memory_operation_plan_guide=memory_operation_plan_guide,
+            memory_operation_plan_guide_max_plans=memory_operation_plan_guide_max_plans,
+            memory_operation_plan_guide_max_values=(
+                memory_operation_plan_guide_max_values
+            ),
+            memory_operation_plan_guide_value_chars=(
+                memory_operation_plan_guide_value_chars
+            ),
             memory_workspace_plan=memory_workspace_plan,
             memory_workspace_plan_max_groups=memory_workspace_plan_max_groups,
             memory_workspace_plan_max_values=memory_workspace_plan_max_values,
@@ -3504,6 +3588,11 @@ def _build_external_naive_prompt(
     memory_scalar_value_manifest: Mapping[str, Any] | None,
     memory_object_index: Mapping[str, Any] | None,
     memory_workspace_manifest: Mapping[str, Any] | None,
+    memory_operation_plan: Mapping[str, Any] | None,
+    memory_operation_plan_guide: bool,
+    memory_operation_plan_guide_max_plans: int,
+    memory_operation_plan_guide_max_values: int,
+    memory_operation_plan_guide_value_chars: int,
     memory_workspace_plan: bool,
     memory_workspace_plan_max_groups: int,
     memory_workspace_plan_max_values: int,
@@ -3648,6 +3737,21 @@ def _build_external_naive_prompt(
             memory_workspace_plan_block = "\n".join(
                 ["", "Memory Workspace Plan:", *memory_workspace_lines, ""]
             )
+    memory_operation_plan_guide_block = ""
+    if memory_operation_plan_guide:
+        memory_operation_plan_lines = _external_memory_operation_plan_guide_lines(
+            question=question,
+            route=route,
+            rows=rows,
+            memory_operation_plan=memory_operation_plan,
+            max_plans=memory_operation_plan_guide_max_plans,
+            max_values=memory_operation_plan_guide_max_values,
+            max_value_chars=memory_operation_plan_guide_value_chars,
+        )
+        if memory_operation_plan_lines:
+            memory_operation_plan_guide_block = "\n".join(
+                ["", "Memory Operation Plan Guide:", *memory_operation_plan_lines, ""]
+            )
     candidate_guide_block = ""
     if candidate_guide:
         candidate_lines = _external_candidate_guide_lines(
@@ -3743,6 +3847,10 @@ def _build_external_naive_prompt(
     if memory_workspace_plan_block:
         rules.append(
             "Use Memory Workspace Plan only as a source-backed memory-system index into cited Memory Context rows; it is not independent evidence."
+        )
+    if memory_operation_plan_guide_block:
+        rules.append(
+            "Use Memory Operation Plan Guide only as a source-backed state/context operation contract over cited Memory Context rows; it is not independent evidence."
         )
     if profile_activation_guide_block:
         rules.append(
@@ -3928,6 +4036,7 @@ def _build_external_naive_prompt(
         for block in (
             structured_guide_block,
             memory_workspace_plan_block,
+            memory_operation_plan_guide_block,
             event_time_candidate_map_block,
             candidate_guide_block,
             profile_activation_guide_block,
@@ -4409,6 +4518,266 @@ def _external_memory_workspace_plan_lines(
             fields.append(f"ops={', '.join(operations)}")
         lines.append(f"  - {' | '.join(fields)}")
     return lines
+
+
+def _external_memory_operation_plan_guide_lines(
+    *,
+    question: str,
+    route: RouteResult,
+    rows: tuple[EvidenceRow, ...],
+    memory_operation_plan: Mapping[str, Any] | None,
+    max_plans: int,
+    max_values: int,
+    max_value_chars: int,
+) -> list[str]:
+    """Compact operation-plan guide grounded in visible raw rows."""
+
+    if (
+        not rows
+        or not memory_operation_plan
+        or not memory_operation_plan.get("applied")
+        or max_plans <= 0
+    ):
+        return []
+
+    raw_plans = memory_operation_plan.get("workspace_operation_plans") or ()
+    if not isinstance(raw_plans, Iterable) or isinstance(raw_plans, (str, bytes)):
+        return []
+
+    source_to_memory_index = {
+        row.source_id: index for index, row in enumerate(rows, start=1)
+    }
+    question_terms = _content_terms(question).difference(
+        MEMORY_STATE_GUIDE_ALIGNMENT_WEAK_TERMS
+    )
+    question_scope = _workspace_question_scope(question, route)
+    candidates: list[tuple[float, int, Mapping[str, Any], tuple[str, ...]]] = []
+    for ordinal, raw_plan in enumerate(raw_plans):
+        if not isinstance(raw_plan, Mapping):
+            continue
+        if raw_plan.get("source_backed") is False:
+            continue
+        if str(raw_plan.get("memory_tier") or "") == "quarantine_memory":
+            continue
+        source_labels = _operation_plan_source_labels(
+            raw_plan,
+            source_to_memory_index=source_to_memory_index,
+            question_scope=question_scope,
+        )
+        if not source_labels:
+            continue
+        score = _operation_plan_score(
+            raw_plan,
+            question_terms=question_terms,
+            route=route,
+            question_scope=question_scope,
+        )
+        if score <= 0:
+            continue
+        candidates.append((score, -ordinal, raw_plan, source_labels))
+
+    if not candidates:
+        return []
+
+    candidates.sort(reverse=True)
+    selected = sorted(
+        candidates[:max_plans],
+        key=lambda item: (
+            str(item[2].get("memory_tier") or ""),
+            str(item[2].get("memory_type") or ""),
+            str(item[2].get("subject") or ""),
+            str(item[2].get("predicate") or ""),
+            item[1],
+        ),
+    )
+
+    lines = [
+        "Use this build-owned operation plan to activate state slots, expand raw rows, verify lifecycle/source support, audit stale values, and pack context before answering.",
+        "- Every listed plan is backed by visible Memory Context rows; final facts must still come from those rows.",
+        "- operation order: retrieve -> expand -> verify -> audit_if_needed -> context_pack -> answer_from_raw_rows.",
+        "- plans:",
+    ]
+    for _, _, plan, source_labels in selected:
+        fields = [
+            f"tier={_single_line(str(plan.get('memory_tier') or 'memory'))}",
+            f"type={_single_line(str(plan.get('memory_type') or 'memory'))}",
+        ]
+        subject = _single_line(str(plan.get("subject") or ""))
+        predicate = _single_line(str(plan.get("predicate") or ""))
+        if subject:
+            fields.append(f"subject={_truncate_text(subject, 52)}")
+        if predicate:
+            fields.append(f"predicate={_truncate_text(predicate, 52)}")
+        lifecycle = _single_line(str(plan.get("lifecycle_state") or ""))
+        if lifecycle:
+            fields.append(f"lifecycle={lifecycle}")
+        view_modes = _operation_plan_view_modes_text(plan)
+        if view_modes:
+            fields.append(f"views={view_modes}")
+        active_text = _operation_plan_values_text(
+            plan,
+            field_name="active_values",
+            max_values=max_values,
+            max_chars=max_value_chars,
+        )
+        if active_text:
+            fields.append(f"active={active_text}")
+        historical_text = _operation_plan_values_text(
+            plan,
+            field_name="superseded_values",
+            max_values=max_values,
+            max_chars=max_value_chars,
+        )
+        if historical_text:
+            fields.append(f"historical={historical_text}")
+        scalar_text = _operation_plan_values_text(
+            plan,
+            field_name="scalar_values",
+            max_values=max_values,
+            max_chars=max_value_chars,
+        )
+        if scalar_text:
+            fields.append(f"scalars={scalar_text}")
+        fields.append(f"sources={', '.join(source_labels[:8])}")
+        operations = _operation_plan_sequence_text(plan)
+        if operations:
+            fields.append(f"ops={operations}")
+        audit = _operation_plan_audit_text(plan)
+        if audit:
+            fields.append(f"audit={audit}")
+        lines.append(f"  - {' | '.join(fields)}")
+    return lines
+
+
+def _operation_plan_source_labels(
+    plan: Mapping[str, Any],
+    *,
+    source_to_memory_index: Mapping[str, int],
+    question_scope: str,
+) -> tuple[str, ...]:
+    source_expansion = plan.get("source_expansion_plan") or {}
+    if not isinstance(source_expansion, Mapping):
+        source_expansion = {}
+    source_fields = (
+        ("current_source_order", "historical_source_order", "all_source_ids")
+        if question_scope == "current"
+        else ("historical_source_order", "current_source_order", "all_source_ids")
+    )
+    labels: list[str] = []
+    for field_name in source_fields:
+        raw_source_ids = source_expansion.get(field_name) or ()
+        if not isinstance(raw_source_ids, Iterable) or isinstance(
+            raw_source_ids, (str, bytes)
+        ):
+            continue
+        for source_id in raw_source_ids:
+            index = source_to_memory_index.get(str(source_id))
+            if index is None:
+                continue
+            label = f"Memory {index}"
+            if label not in labels:
+                labels.append(label)
+    return tuple(labels)
+
+
+def _operation_plan_score(
+    plan: Mapping[str, Any],
+    *,
+    question_terms: frozenset[str],
+    route: RouteResult,
+    question_scope: str,
+) -> float:
+    state_management = plan.get("state_management_plan") or {}
+    if not isinstance(state_management, Mapping):
+        state_management = {}
+    text_parts = [
+        str(plan.get("memory_type") or ""),
+        str(plan.get("subject") or ""),
+        str(plan.get("predicate") or ""),
+        *(str(value) for value in state_management.get("active_values") or ()),
+        *(str(value) for value in state_management.get("superseded_values") or ()),
+        *(str(value) for value in state_management.get("scalar_values") or ()),
+    ]
+    slot_terms = _content_terms(" ".join(text_parts)).difference(
+        MEMORY_STATE_GUIDE_ALIGNMENT_WEAK_TERMS
+    )
+    overlap = len(question_terms.intersection(slot_terms))
+    score = float(overlap)
+    memory_type = str(plan.get("memory_type") or "").lower()
+    if route.information_need == "current_state":
+        if memory_type in {"state", "profile", "preference", "relationship"}:
+            score += 2.0
+        if str(plan.get("lifecycle_state") or "") == "active_with_history":
+            score += 1.0
+        if bool(plan.get("conflict_cluster")):
+            score += 1.0
+        if question_scope == "current" and state_management.get("active_values"):
+            score += 1.0
+    elif route.information_need == "profile_preference":
+        if memory_type in {"profile", "preference", "relationship"}:
+            score += 1.5
+    if state_management.get("active_values") or state_management.get(
+        "superseded_values"
+    ):
+        score += 0.5
+    return score
+
+
+def _operation_plan_values_text(
+    plan: Mapping[str, Any],
+    *,
+    field_name: str,
+    max_values: int,
+    max_chars: int,
+) -> str:
+    state_management = plan.get("state_management_plan") or {}
+    if not isinstance(state_management, Mapping):
+        return ""
+    values = [
+        _truncate_text(_single_line(str(value)), max_chars)
+        for value in state_management.get(field_name) or ()
+        if str(value).strip()
+    ][:max_values]
+    return ", ".join(dict.fromkeys(values))
+
+
+def _operation_plan_view_modes_text(plan: Mapping[str, Any]) -> str:
+    view_policy = plan.get("view_policy") or {}
+    if not isinstance(view_policy, Mapping):
+        return ""
+    modes = [
+        _single_line(str(mode))
+        for mode in view_policy.get("supported_views") or ()
+        if str(mode).strip()
+    ][:4]
+    return ", ".join(dict.fromkeys(modes))
+
+
+def _operation_plan_sequence_text(plan: Mapping[str, Any]) -> str:
+    operations = [
+        _single_line(str(operation))
+        for operation in plan.get("operation_sequence") or ()
+        if str(operation).strip()
+    ][:6]
+    return ", ".join(dict.fromkeys(operations))
+
+
+def _operation_plan_audit_text(plan: Mapping[str, Any]) -> str:
+    audit_plan = plan.get("audit_plan") or {}
+    if not isinstance(audit_plan, Mapping):
+        return ""
+    obligations = [
+        _single_line(str(obligation))
+        for obligation in audit_plan.get("obligations") or ()
+        if str(obligation).strip()
+    ]
+    interesting = [
+        obligation
+        for obligation in obligations
+        if obligation
+        not in {"verify_raw_source_support", "audit_slot_scope"}
+    ][:4]
+    return ", ".join(dict.fromkeys(interesting))
 
 
 def _workspace_question_scope(question: str, route: RouteResult) -> str:

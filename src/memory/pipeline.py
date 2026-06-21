@@ -1281,6 +1281,24 @@ class Stage1Pipeline:
             memory_value_slot_guide_memory_types=_tuple_config(
                 compiler_config.get("memory_value_slot_guide_memory_types")
             ),
+            memory_operation_plan_guide=bool(
+                compiler_config.get("memory_operation_plan_guide", False)
+            ),
+            memory_operation_plan_guide_information_needs=_tuple_config(
+                compiler_config.get(
+                    "memory_operation_plan_guide_information_needs",
+                    ("current_state", "profile_preference"),
+                )
+            ),
+            memory_operation_plan_guide_max_plans=int(
+                compiler_config.get("memory_operation_plan_guide_max_plans", 3)
+            ),
+            memory_operation_plan_guide_max_values=int(
+                compiler_config.get("memory_operation_plan_guide_max_values", 4)
+            ),
+            memory_operation_plan_guide_value_chars=int(
+                compiler_config.get("memory_operation_plan_guide_value_chars", 90)
+            ),
             memory_workspace_plan=bool(
                 compiler_config.get("memory_workspace_plan", False)
             ),
@@ -2667,6 +2685,9 @@ class Stage1Pipeline:
                 built_memory.management
             ),
             memory_workspace_manifest=_memory_workspace_manifest_from_management(
+                built_memory.management
+            ),
+            memory_operation_plan=_memory_operation_plan_from_management(
                 built_memory.management
             ),
         )
@@ -4123,6 +4144,20 @@ def _memory_workspace_manifest_from_management(
     if not isinstance(workspace_manifest, Mapping):
         return None
     return workspace_manifest
+
+
+def _memory_operation_plan_from_management(
+    management: Mapping[str, Any] | None,
+) -> Mapping[str, Any] | None:
+    if not isinstance(management, Mapping):
+        return None
+    memory_system_graph = management.get("memory_system_graph")
+    if not isinstance(memory_system_graph, Mapping):
+        return None
+    operation_plan = memory_system_graph.get("memory_operation_plan")
+    if not isinstance(operation_plan, Mapping):
+        return None
+    return operation_plan
 
 
 def _dedupe_memory_records(records: tuple[Any, ...]) -> tuple[Any, ...]:
@@ -8452,6 +8487,24 @@ def _compiler_trace_config(
         "memory_value_slot_guide_memory_types": _tuple_config(
             compiler_config.get("memory_value_slot_guide_memory_types")
         ),
+        "memory_operation_plan_guide": bool(
+            compiler_config.get("memory_operation_plan_guide", False)
+        ),
+        "memory_operation_plan_guide_information_needs": _tuple_config(
+            compiler_config.get(
+                "memory_operation_plan_guide_information_needs",
+                ("current_state", "profile_preference"),
+            )
+        ),
+        "memory_operation_plan_guide_max_plans": int(
+            compiler_config.get("memory_operation_plan_guide_max_plans", 3)
+        ),
+        "memory_operation_plan_guide_max_values": int(
+            compiler_config.get("memory_operation_plan_guide_max_values", 4)
+        ),
+        "memory_operation_plan_guide_value_chars": int(
+            compiler_config.get("memory_operation_plan_guide_value_chars", 90)
+        ),
         "memory_workspace_plan": bool(
             compiler_config.get("memory_workspace_plan", False)
         ),
@@ -8833,6 +8886,24 @@ def _configured_compiler(compiler_config: Mapping[str, Any]) -> EvidenceCompiler
         ),
         memory_value_slot_guide_memory_types=_tuple_config(
             compiler_config.get("memory_value_slot_guide_memory_types")
+        ),
+        memory_operation_plan_guide=bool(
+            compiler_config.get("memory_operation_plan_guide", False)
+        ),
+        memory_operation_plan_guide_information_needs=_tuple_config(
+            compiler_config.get(
+                "memory_operation_plan_guide_information_needs",
+                ("current_state", "profile_preference"),
+            )
+        ),
+        memory_operation_plan_guide_max_plans=int(
+            compiler_config.get("memory_operation_plan_guide_max_plans", 3)
+        ),
+        memory_operation_plan_guide_max_values=int(
+            compiler_config.get("memory_operation_plan_guide_max_values", 4)
+        ),
+        memory_operation_plan_guide_value_chars=int(
+            compiler_config.get("memory_operation_plan_guide_value_chars", 90)
         ),
         memory_workspace_plan=bool(
             compiler_config.get("memory_workspace_plan", False)
