@@ -1052,6 +1052,13 @@ def _memory_system_graph_summary(
         scalar_value_manifest=scalar_value_manifest,
         memory_object_index=memory_object_index,
     )
+    memory_operation_plan = _memory_operation_plan(
+        memory_workspace_manifest=memory_workspace_manifest,
+        operation_manifest=operation_manifest,
+        state_conflict_manifest=state_conflict_manifest,
+        scalar_value_manifest=scalar_value_manifest,
+        memory_object_index=memory_object_index,
+    )
     operation_edge_counts = {
         "create": len(deduped_records),
         "merge": sum(len(group.get("merged") or ()) for group in merge_groups),
@@ -1071,13 +1078,14 @@ def _memory_system_graph_summary(
             1 for record in managed_records if record.source_ids
         ),
         "audit_slot": len(groups),
+        "workspace_operation_plan": memory_operation_plan["operation_plan_count"],
     }
 
     return {
         "enabled": True,
         "trace_only": False,
         "applied": True,
-        "schema_version": "memory_system_graph_v3",
+        "schema_version": "memory_system_graph_v4",
         "object_schema": _memory_system_object_schema(),
         "raw_record_count": len(raw_records),
         "deduped_record_count": len(deduped_records),
@@ -1120,6 +1128,7 @@ def _memory_system_graph_summary(
         "scalar_value_manifest": scalar_value_manifest,
         "memory_object_index": memory_object_index,
         "memory_workspace_manifest": memory_workspace_manifest,
+        "memory_operation_plan": memory_operation_plan,
         "governance": {
             "raw_evidence_policy": "immutable_final_authority",
             "derived_memory_policy": "source_backed_activation_and_audit",
@@ -1449,6 +1458,313 @@ def _workspace_operation_hints(
     return list(dict.fromkeys(hints))
 
 
+def _memory_operation_plan(
+    *,
+    memory_workspace_manifest: dict[str, Any],
+    operation_manifest: dict[str, Any],
+    state_conflict_manifest: dict[str, Any],
+    scalar_value_manifest: dict[str, Any],
+    memory_object_index: dict[str, Any],
+) -> dict[str, Any]:
+    """Slot-level operation plan over the build-owned memory workspace.
+
+    The plan is intentionally query-independent. It turns lower-level memory
+    artifacts into an auditable state-management contract, while final answers
+    still have to resolve activated objects back to raw source rows.
+    """
+
+    conflict_slots = {
+        str(cluster.get("cluster_id") or ""): cluster
+        for cluster in state_conflict_manifest.get("clusters") or ()
+        if isinstance(cluster, dict) and cluster.get("cluster_id")
+    }
+    scalar_slots = {
+        str(slot.get("slot_id") or ""): slot
+        for slot in scalar_value_manifest.get("slot_index") or ()
+        if isinstance(slot, dict) and slot.get("slot_id")
+    }
+    object_slots = {
+        str(slot.get("slot_id") or ""): slot
+        for slot in memory_object_index.get("value_slot_index") or ()
+        if isinstance(slot, dict) and slot.get("slot_id")
+    }
+
+    operation_plans: list[dict[str, Any]] = []
+    operation_counts: dict[str, int] = defaultdict(int)
+    audit_obligation_counts: dict[str, int] = defaultdict(int)
+    view_policy_counts: dict[str, int] = defaultdict(int)
+    for raw_group in memory_workspace_manifest.get("activation_groups") or ():
+        if not isinstance(raw_group, dict):
+            continue
+        slot_id = str(raw_group.get("slot_id") or "")
+        if not slot_id:
+            continue
+        scalar_slot = scalar_slots.get(slot_id, {})
+        object_slot = object_slots.get(slot_id, {})
+        conflict_cluster = conflict_slots.get(slot_id, {})
+        allowed_operations = _workspace_allowed_operations(raw_group)
+        audit_obligations = _workspace_audit_obligations(
+            raw_group,
+            scalar_slot=scalar_slot,
+            conflict_cluster=conflict_cluster,
+        )
+        operation_sequence = _workspace_operation_sequence(
+            allowed_operations=allowed_operations,
+            audit_obligations=audit_obligations,
+        )
+        view_policy = _workspace_view_policy(raw_group)
+        for operation in allowed_operations:
+            operation_counts[operation] += 1
+        for obligation in audit_obligations:
+            audit_obligation_counts[obligation] += 1
+        for view_mode in view_policy["supported_views"]:
+            view_policy_counts[view_mode] += 1
+
+        operation_plans.append(
+            {
+                "plan_id": f"operation_plan_{slot_id}",
+                "workspace_group_id": str(raw_group.get("group_id") or ""),
+                "slot_id": slot_id,
+                "memory_type": str(raw_group.get("memory_type") or ""),
+                "layer": str(raw_group.get("layer") or ""),
+                "memory_tier": str(raw_group.get("memory_tier") or ""),
+                "subject": str(raw_group.get("subject") or ""),
+                "predicate": str(raw_group.get("predicate") or ""),
+                "lifecycle_state": str(raw_group.get("lifecycle_state") or ""),
+                "conflict_cluster": bool(raw_group.get("conflict_cluster")),
+                "source_backed": bool(raw_group.get("source_backed")),
+                "allowed_operations": allowed_operations,
+                "operation_sequence": operation_sequence,
+                "view_policy": view_policy,
+                "source_expansion_plan": {
+                    "current_source_order": list(
+                        raw_group.get("current_source_order") or ()
+                    )[:8],
+                    "historical_source_order": list(
+                        raw_group.get("historical_source_order") or ()
+                    )[:8],
+                    "all_source_ids": list(raw_group.get("source_ids") or ())[:12],
+                    "source_policy": (
+                        object_slot.get("source_policy")
+                        or {"raw_evidence_required": True}
+                    ),
+                    "raw_evidence_required": True,
+                    "final_evidence_policy": "raw_source_rows",
+                },
+                "state_management_plan": {
+                    "active_memory_ids": list(
+                        raw_group.get("active_memory_ids") or ()
+                    )[:8],
+                    "superseded_memory_ids": list(
+                        raw_group.get("superseded_memory_ids") or ()
+                    )[:8],
+                    "active_values": list(raw_group.get("active_values") or ())[:8],
+                    "superseded_values": list(
+                        raw_group.get("superseded_values") or ()
+                    )[:8],
+                    "scalar_values": list(raw_group.get("scalar_values") or ())[:8],
+                    "non_destructive_update": True,
+                    "superseded_values_remain_retrievable": True,
+                },
+                "verification_plan": {
+                    "checks": [
+                        "source_backed",
+                        "slot_scope",
+                        "lifecycle_state",
+                        "temporal_anchor",
+                        "raw_evidence_before_answer",
+                    ],
+                    "required_source_ids": list(raw_group.get("source_ids") or ())[
+                        :12
+                    ],
+                    "value_count": int(len(raw_group.get("values") or ())),
+                    "confidence_values": _workspace_confidence_values(raw_group),
+                    "answer_gate": "raw_rows_must_support_final_answer",
+                },
+                "audit_plan": {
+                    "obligations": audit_obligations,
+                    "conflict_cluster_id": str(
+                        conflict_cluster.get("cluster_id") or ""
+                    ),
+                    "audit_source": "build_memory_operation_plan_v1",
+                    "trace_only": False,
+                },
+                "context_pack_plan": {
+                    "pack_order": [
+                        "question_scope_view",
+                        "expanded_raw_rows",
+                        "active_values",
+                        "historical_values_when_needed",
+                        "audit_notes",
+                    ],
+                    "derived_memory_role": "activation_and_organization_only",
+                    "max_source_ids": 12,
+                    "raw_rows_first": True,
+                },
+            }
+        )
+
+    return {
+        "schema_version": "memory_operation_plan_v1",
+        "trace_only": False,
+        "applied": True,
+        "operation_plan_count": len(operation_plans),
+        "operation_counts": dict(sorted(operation_counts.items())),
+        "audit_obligation_counts": dict(sorted(audit_obligation_counts.items())),
+        "view_policy_counts": dict(sorted(view_policy_counts.items())),
+        "build_operation_counts": dict(
+            operation_manifest.get("operation_counts") or {}
+        ),
+        "operation_contract": {
+            "scope": "workspace_slot",
+            "operations": [
+                "create",
+                "update",
+                "merge",
+                "supersede",
+                "retrieve",
+                "expand",
+                "verify",
+                "audit",
+                "context_pack",
+            ],
+            "view_modes": [
+                "current_state",
+                "historical_state",
+                "as_of_state",
+                "all_source_backed",
+            ],
+            "final_evidence_policy": "raw_source_rows",
+            "query_independent": True,
+            "clean_protocol": (
+                "No gold answers, judge output, benchmark labels, sample ids, "
+                "test feedback, or sample-level rules."
+            ),
+        },
+        "workspace_operation_plans": operation_plans,
+        "operation_plan_samples": operation_plans[:24],
+        "clean_note": (
+            "Question-independent build memory operation plan. It promotes "
+            "workspace groups into source-backed create/update/merge/supersede/"
+            "retrieve/expand/verify/audit/context-pack plans with current, "
+            "historical, and as-of views. Derived memory remains activation and "
+            "state-management metadata only; final answer evidence is raw source "
+            "rows."
+        ),
+    }
+
+
+def _workspace_allowed_operations(group: dict[str, Any]) -> list[str]:
+    raw_hints = {
+        str(hint).strip()
+        for hint in group.get("operation_hints") or ()
+        if str(hint).strip()
+    }
+    operations = ["retrieve", "expand", "verify", "audit", "context_pack"]
+    if "create_value_object" in raw_hints:
+        operations.insert(0, "create")
+    if raw_hints.intersection({"update", "update_value_slot"}):
+        operations.append("update")
+    if "merge_value_slot" in raw_hints:
+        operations.append("merge")
+    if raw_hints.intersection({"supersede", "supersede_value"}):
+        operations.append("supersede")
+    return list(dict.fromkeys(operations))
+
+
+def _workspace_audit_obligations(
+    group: dict[str, Any],
+    *,
+    scalar_slot: dict[str, Any],
+    conflict_cluster: dict[str, Any],
+) -> list[str]:
+    obligations = ["verify_raw_source_support", "audit_slot_scope"]
+    values = tuple(value for value in group.get("values") or () if isinstance(value, dict))
+    if group.get("conflict_cluster") or conflict_cluster:
+        obligations.append("audit_conflict_cluster")
+    if group.get("superseded_values") or group.get("superseded_memory_ids"):
+        obligations.append("audit_superseded_chain")
+    if len(values) > 1 or int(scalar_slot.get("value_count") or 0) > 1:
+        obligations.append("audit_multi_value_slot")
+    if group.get("scalar_values") or scalar_slot.get("scalar_values"):
+        obligations.append("audit_scalar_values")
+    if any(not value.get("source_ids") for value in values):
+        obligations.append("audit_source_gap")
+    if any(float(value.get("confidence") or 0.0) < 0.5 for value in values):
+        obligations.append("audit_low_confidence_value")
+    if str(group.get("memory_tier") or "") == "quarantine_memory":
+        obligations.append("block_quarantine_activation")
+    return list(dict.fromkeys(obligations))
+
+
+def _workspace_operation_sequence(
+    *,
+    allowed_operations: list[str],
+    audit_obligations: list[str],
+) -> list[str]:
+    sequence = []
+    for operation in ("retrieve", "expand", "verify"):
+        if operation in allowed_operations:
+            sequence.append(operation)
+    if "audit" in allowed_operations and (
+        len(audit_obligations) > 2
+        or any("conflict" in obligation for obligation in audit_obligations)
+    ):
+        sequence.append("audit")
+    if "context_pack" in allowed_operations:
+        sequence.append("context_pack")
+    if "update" in allowed_operations:
+        sequence.append("update")
+    if "supersede" in allowed_operations:
+        sequence.append("supersede")
+    return sequence
+
+
+def _workspace_view_policy(group: dict[str, Any]) -> dict[str, Any]:
+    supported_views = ["all_source_backed"]
+    if group.get("current_source_order"):
+        supported_views.insert(0, "current_state")
+    if group.get("historical_source_order") or group.get("superseded_values"):
+        supported_views.append("historical_state")
+        supported_views.append("as_of_state")
+    return {
+        "supported_views": list(dict.fromkeys(supported_views)),
+        "default_view": (
+            "current_state" if "current_state" in supported_views else "all_source_backed"
+        ),
+        "current_state": {
+            "source_order": list(group.get("current_source_order") or ())[:8],
+            "value_view": "active_values",
+        },
+        "historical_state": {
+            "source_order": list(group.get("historical_source_order") or ())[:8],
+            "value_view": "superseded_or_event_scoped_values",
+        },
+        "as_of_state": {
+            "requires_question_time": True,
+            "candidate_source_order": list(group.get("historical_source_order") or ())[
+                :8
+            ],
+            "validity_fields": ["valid_from", "valid_to", "timestamp", "event_time"],
+        },
+    }
+
+
+def _workspace_confidence_values(group: dict[str, Any]) -> list[float]:
+    values = []
+    for value in group.get("values") or ():
+        if not isinstance(value, dict):
+            continue
+        confidence = value.get("confidence")
+        if confidence is None:
+            continue
+        try:
+            values.append(float(confidence))
+        except (TypeError, ValueError):
+            continue
+    return values[:8]
+
+
 def _memory_system_object_schema() -> dict[str, Any]:
     return {
         "memory_object_fields": [
@@ -1483,6 +1799,7 @@ def _memory_system_object_schema() -> dict[str, Any]:
             "operation_contract",
             "value_object",
             "scalar_value_object",
+            "workspace_operation_plan",
         ],
         "quality_signals": [
             "source_backed",
@@ -1503,6 +1820,7 @@ def _memory_system_object_schema() -> dict[str, Any]:
             "value_object",
             "scalar_value",
             "build_owned_scalar_value_manifest",
+            "build_owned_memory_operation_plan",
         ],
         "governance_signals": [
             "source_activation_ready",
@@ -1520,6 +1838,8 @@ def _memory_system_object_schema() -> dict[str, Any]:
             "build_owned_operation_manifest",
             "build_owned_scalar_value_manifest",
             "build_owned_memory_object_index",
+            "build_owned_memory_workspace_manifest",
+            "build_owned_memory_operation_plan",
         ],
 }
 

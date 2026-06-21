@@ -821,6 +821,61 @@ class BuildMemoryTest(unittest.TestCase):
             "archival_memory",
             operation_manifest["object_contract"]["memory_layers"],
         )
+        operation_plan = graph["memory_operation_plan"]
+        self.assertEqual(
+            operation_plan["schema_version"],
+            "memory_operation_plan_v1",
+        )
+        self.assertFalse(operation_plan["trace_only"])
+        self.assertTrue(operation_plan["applied"])
+        self.assertEqual(operation_plan["operation_plan_count"], 2)
+        self.assertEqual(
+            operation_plan["operation_contract"]["final_evidence_policy"],
+            "raw_source_rows",
+        )
+        self.assertIn(
+            "as_of_state",
+            operation_plan["operation_contract"]["view_modes"],
+        )
+        lives_in_plan = next(
+            plan
+            for plan in operation_plan["workspace_operation_plans"]
+            if plan["predicate"] == "lives_in"
+        )
+        self.assertEqual(lives_in_plan["memory_tier"], "working_memory")
+        self.assertTrue(lives_in_plan["conflict_cluster"])
+        self.assertIn("retrieve", lives_in_plan["allowed_operations"])
+        self.assertIn("expand", lives_in_plan["allowed_operations"])
+        self.assertIn("verify", lives_in_plan["allowed_operations"])
+        self.assertIn("audit", lives_in_plan["allowed_operations"])
+        self.assertIn("context_pack", lives_in_plan["allowed_operations"])
+        self.assertIn("update", lives_in_plan["allowed_operations"])
+        self.assertIn("supersede", lives_in_plan["allowed_operations"])
+        self.assertEqual(
+            lives_in_plan["operation_sequence"][:3],
+            ["retrieve", "expand", "verify"],
+        )
+        self.assertEqual(
+            lives_in_plan["source_expansion_plan"]["current_source_order"],
+            ["s1:t1", "s1:t0"],
+        )
+        self.assertEqual(
+            lives_in_plan["source_expansion_plan"]["historical_source_order"],
+            ["s1:t0", "s1:t1"],
+        )
+        self.assertIn(
+            "audit_conflict_cluster",
+            lives_in_plan["audit_plan"]["obligations"],
+        )
+        self.assertIn(
+            "audit_superseded_chain",
+            lives_in_plan["audit_plan"]["obligations"],
+        )
+        self.assertEqual(
+            lives_in_plan["verification_plan"]["answer_gate"],
+            "raw_rows_must_support_final_answer",
+        )
+        self.assertTrue(lives_in_plan["context_pack_plan"]["raw_rows_first"])
         state_conflict_manifest = graph["state_conflict_manifest"]
         self.assertEqual(
             state_conflict_manifest["schema_version"],

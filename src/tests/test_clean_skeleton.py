@@ -2902,8 +2902,12 @@ class CleanSkeletonTest(unittest.TestCase):
         )
 
         system_graph = summary["memory_system_graph"]
-        self.assertEqual(system_graph["schema_version"], "memory_system_graph_v3")
+        self.assertEqual(system_graph["schema_version"], "memory_system_graph_v4")
         self.assertIn("source_backed", system_graph["object_schema"]["quality_signals"])
+        self.assertIn(
+            "build_owned_memory_operation_plan",
+            system_graph["object_schema"]["quality_signals"],
+        )
         self.assertIn(
             "temporal_scope_kind",
             system_graph["object_schema"]["quality_signals"],
@@ -3229,6 +3233,52 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertIn("verify", city_workspace["operation_hints"])
         self.assertIn("audit", city_workspace["operation_hints"])
         self.assertIn("context_pack", city_workspace["operation_hints"])
+        operation_plan = system_graph["memory_operation_plan"]
+        self.assertEqual(
+            operation_plan["schema_version"],
+            "memory_operation_plan_v1",
+        )
+        self.assertFalse(operation_plan["trace_only"])
+        self.assertTrue(operation_plan["applied"])
+        self.assertEqual(operation_plan["operation_plan_count"], 2)
+        self.assertEqual(
+            operation_plan["operation_contract"]["final_evidence_policy"],
+            "raw_source_rows",
+        )
+        self.assertIn(
+            "current_state",
+            operation_plan["operation_contract"]["view_modes"],
+        )
+        city_operation_plan = next(
+            plan
+            for plan in operation_plan["workspace_operation_plans"]
+            if plan["predicate"] == "location"
+        )
+        self.assertEqual(city_operation_plan["memory_tier"], "working_memory")
+        self.assertTrue(city_operation_plan["conflict_cluster"])
+        self.assertEqual(
+            city_operation_plan["operation_sequence"][:3],
+            ["retrieve", "expand", "verify"],
+        )
+        self.assertIn("update", city_operation_plan["allowed_operations"])
+        self.assertIn("supersede", city_operation_plan["allowed_operations"])
+        self.assertIn(
+            "audit_conflict_cluster",
+            city_operation_plan["audit_plan"]["obligations"],
+        )
+        self.assertEqual(
+            city_operation_plan["view_policy"]["default_view"],
+            "current_state",
+        )
+        self.assertIn(
+            "as_of_state",
+            city_operation_plan["view_policy"]["supported_views"],
+        )
+        self.assertEqual(
+            city_operation_plan["source_expansion_plan"]["current_source_order"],
+            ["s2:t1", "s2:t2", "s1:t1"],
+        )
+        self.assertTrue(city_operation_plan["context_pack_plan"]["raw_rows_first"])
         city_value_slot = next(
             slot
             for slot in scalar_value_manifest["slot_samples"]
