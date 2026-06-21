@@ -1,0 +1,31 @@
+{
+  "benchmark": "locomo",
+  "clean_assertions": [
+    "Prediction loader rejects gold/reference/target answers.",
+    "Prediction loader rejects judge outputs and benchmark labels.",
+    "Prediction loader rejects sample ids, qids, and row indices.",
+    "record_key is copied only by the runner and is not passed into pipeline modules.",
+    "Derived context rows always retain raw source_id back-links.",
+    "Build-stage typed memory is created only from raw dialogue turns and visible metadata."
+  ],
+  "config_path": "/data/home_new/wujinqi/agent-memory/configs/stage1_operation_source_expansion_v303_query_restore_seeded_qwen36_no_think_build4k_cached.json",
+  "created_at_utc": "2026-06-21T11:47:50+00:00",
+  "experiment_dir": "/data/home_new/wujinqi/agent-memory/experiments/formal/stage1_operation_source_expansion_v303_locomo_nonadv_full_9a83ab3",
+  "experiment_kind": "formal",
+  "git": {
+    "commit": "9a83ab3dbd2dcd1807619e8b84cc50fb2dd8efae",
+    "dirty": false,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": ""
+  },
+  "input_path": "/data/home_new/wujinqi/agent-memory/outputs/prepare_locomo_non_adversarial/prediction_input.jsonl",
+  "output_path": "/data/home_new/wujinqi/agent-memory/outputs/formal/stage1_operation_source_expansion_v303_locomo_nonadv_full_9a83ab3/predictions.jsonl",
+  "outputs": {
+    "predictions": "/data/home_new/wujinqi/agent-memory/outputs/formal/stage1_operation_source_expansion_v303_locomo_nonadv_full_9a83ab3/predictions.jsonl",
+    "traces": "/data/home_new/wujinqi/agent-memory/outputs/formal/stage1_operation_source_expansion_v303_locomo_nonadv_full_9a83ab3/traces.jsonl"
+  },
+  "run_id": "stage1_operation_source_expansion_v303_locomo_nonadv_full_9a83ab3",
+  "subset": "non_adversarial_full",
+  "trace_path": "/data/home_new/wujinqi/agent-memory/outputs/formal/stage1_operation_source_expansion_v303_locomo_nonadv_full_9a83ab3/traces.jsonl"
+}

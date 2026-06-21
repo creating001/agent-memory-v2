@@ -35,7 +35,7 @@ v302 关键证据见 `experiments/diagnostic/stage1_operation_evidence_coverage_
 
 | 优先级 | 方向 | 下一步 |
 |---:|---|---|
-| 1 | Build memory system | 基于 v302 `memory_operation_evidence_coverage_audit` 把 missing source chain 转成 guarded source expansion policy：优先 current-state，保护 raw anchors，确保 derived memory 只做 source-backed expansion/verification。 |
+| 1 | Build memory system | 基于 v303 负向结果收紧 guarded source expansion：要求更强 slot overlap、lifecycle/conflict usefulness、避免 active-only working-memory 泛化 source；目标是让 build operation 真正参与 source-backed expansion/verification，但不扰动 raw retrieval salience。 |
 | 2 | Design-for-benchmark cleanup | 检查 route、selected context、Managed Memory State Guide、ledger diagnostics、repair、finalizer、top-k/context budget；能通用化的改成 memory policy，不能通用化的删掉或降级为 diagnostic。 |
 | 3 | Retrieval/context | 探索通用 candidate pooling + rerank + anchor retention + source expansion + evidence utility selection，减少固定大 top-k 和长/短 turn 规则。 |
 | 4 | Answer/verifier | 整理成 source-grounded answer + 通用 consistency verifier，只检查数值、时间、说话人、实体、状态冲突和 unsupported answer，不写 benchmark-specific rewrite。 |
@@ -45,6 +45,7 @@ v302 关键证据见 `experiments/diagnostic/stage1_operation_evidence_coverage_
 
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
+| `configs/stage1_operation_source_expansion_v303_query_restore_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_operation_source_expansion_v303_changed_vs_v302/summary.md` | rejected LTS candidate | guarded operation source expansion：LME answer/prompt/evidence diff `3/3/3`，changed judge v302 `3/3` vs v303 `0/1`，derived full strict/lenient `0.828000 / 0.842000`，avg build/query `85393.566 / 6376.56`；LoCoMo answer/prompt/evidence diff `1/3/3`，changed judge v302 `1/1` vs v303 `1/1`，derived full `0.794156 / 0.819481`，avg build/query `62015.57402597403 / 6094.018831168831` | 不升 LTS；source-backed expansion 方向保留，但 1-term overlap + active-only working-memory slot 太宽，会把 `work/trip/job` 等弱相关 source 拉入 tail 并扰动 LME |
 | `configs/stage1_operation_evidence_coverage_audit_v302_query_restore_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_operation_evidence_coverage_audit_v302_full_summary.md` | current LTS | operation evidence coverage audit：LME/LoCoMo full answer/prompt diff vs v301 `0/0`；strict/lenient 继承 `0.834000 / 0.846000`、`0.794156 / 0.819481`；avg build/query tokens `85393.566 / 6455.588`、`62015.57402597403 / 6093.879220779221`；coverage audit LME selected sources visible/missing `31/274`，LoCoMo `12/46` | 升 LTS；在 v301 context organization consumer 之外补齐 operation source-chain verification/audit，给后续 source expansion consumer 明确 clean target |
 | `configs/stage1_anchor48_operation_context_organizer_v301_query_restore_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_anchor48_operation_context_organizer_v301_full_summary.md` | previous LTS | anchor-gated operation context organizer：LME answer/prompt diff vs v298 `0/0`；LoCoMo answer/prompt diff `0/3`；strict/lenient 继承 `0.834000 / 0.846000`、`0.794156 / 0.819481`；avg build/query tokens `85393.566 / 6455.588`、`62015.57402597403 / 6093.879220779221`；LME organizer present/applied `22/0`，LoCoMo `3/3`，values rendered `0` | 被 v302 继承；operation/readiness artifacts 进入 anchor-gated context organization consumer，保护前 `48` 条 raw evidence anchors，不牺牲 full accuracy |
 | `configs/stage1_memory_operation_readiness_audit_v298_query_restore_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_memory_operation_readiness_audit_v298_full_summary.md` | previous LTS | LME/LoCoMo full answer diff vs v294 `0`、prompt diff `0`；strict/lenient `0.834000 / 0.846000`、`0.794156 / 0.819481`；avg build/query tokens `85393.566 / 6455.588`、`62015.57402597403 / 6093.962337662338`；trace-only readiness audit applied LME `22`、LoCoMo `3`，selected plans `88`、`12`，prompt guide rendered `0` | 被 v301 继承；把 operation/readiness artifacts 接入 query-time governance/audit，但不改变 prompt、retrieval、repair、finalizer 或 final evidence |
@@ -69,6 +70,7 @@ v302 关键证据见 `experiments/diagnostic/stage1_operation_evidence_coverage_
 
 | 文档/目录 | 教训 |
 |---|---|
+| `diagnostic/stage1_operation_source_expansion_v303_changed_vs_v302/summary.md` | source-backed 不等于足够相关；active-only working-memory source expansion 只靠 1 个弱 overlap 会扰动 LME。下一版必须要求 lifecycle/conflict usefulness、强 overlap 或 visible-anchor linkage。 |
 | `diagnostic/stage1_anchor_preserving_operation_context_organizer_v300_full_summary.md` | anchor-preserving organizer 明显降低 v299 扰动，但 `anchor_keep=32` 仍会让少量 tail reorder 影响 LME；继续提高 anchor 或加入 safe-change gate。 |
 | `diagnostic/stage1_memory_operation_context_organizer_v299_full_summary.md` | build operation/readiness artifacts 可以驱动 context organization，但不能用 hard row-order boost 压过原始 retrieval salience；下一步优先做 soft utility、source expansion、verification 和 audit。 |
 | `diagnostic/stage1_state_only_value_slot_guide_v287_full_summary.md` | memory object 可以进入 query，但必须 source-backed、typed、intent-gated，并保持 raw evidence-first。 |

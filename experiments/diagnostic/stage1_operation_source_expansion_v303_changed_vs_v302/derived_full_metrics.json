@@ -1,0 +1,53 @@
+{
+  "clean_note": "Derived offline after prediction and changed-output judge. Unchanged predictions inherit v302 full dual judge counts; changed-answer subsets were judged for both v302 and v303.",
+  "baseline": {
+    "version": "v302",
+    "longmemeval": {
+      "n": 500,
+      "strict_correct": 417,
+      "lenient_correct": 423
+    },
+    "locomo": {
+      "n": 1540,
+      "strict_correct": 1223,
+      "lenient_correct": 1262
+    }
+  },
+  "changed_answer_judge": {
+    "longmemeval": {
+      "changed_answer_count": 3,
+      "v302_strict_correct": 3,
+      "v302_lenient_correct": 3,
+      "v303_strict_correct": 0,
+      "v303_lenient_correct": 1
+    },
+    "locomo": {
+      "changed_answer_count": 1,
+      "v302_strict_correct": 1,
+      "v302_lenient_correct": 1,
+      "v303_strict_correct": 1,
+      "v303_lenient_correct": 1
+    }
+  },
+  "v303_derived_full": {
+    "longmemeval": {
+      "n": 500,
+      "strict_correct": 414,
+      "lenient_correct": 421,
+      "strict_accuracy": 0.828,
+      "lenient_accuracy": 0.842,
+      "avg_build_tokens": 85393.566,
+      "avg_query_tokens": 6376.56
+    },
+    "locomo": {
+      "n": 1540,
+      "strict_correct": 1223,
+      "lenient_correct": 1262,
+      "strict_accuracy": 0.7941558441558442,
+      "lenient_accuracy": 0.8194805194805195,
+      "avg_build_tokens": 62015.57402597403,
+      "avg_query_tokens": 6094.018831168831
+    }
+  },
+  "decision": "rejected_lts_candidate"
+}
