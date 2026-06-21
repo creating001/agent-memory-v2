@@ -76,6 +76,36 @@ _MEMORY_SCALAR_UNIT_STOPWORDS = frozenset(
         "with",
     }
 )
+_MEMORY_SLOT_COVERAGE_SCHEMA_VERSION = "memory_slot_coverage_v1"
+_MEMORY_SLOT_COVERAGE_POLICY = "source_backed_slot_coverage"
+_MEMORY_SLOT_COVERAGE_FIELD_NAMES = (
+    "slot_coverage_schema_version",
+    "slot_coverage_policy",
+    "slot_family",
+    "slot_coverage_terms",
+    "slot_subject_terms",
+    "slot_predicate_terms",
+    "slot_value_terms",
+)
+_MEMORY_SLOT_RELATIONSHIP_TERMS = frozenset(
+    {
+        "boyfriend",
+        "dating",
+        "friend",
+        "girlfriend",
+        "husband",
+        "marital",
+        "married",
+        "partner",
+        "relationship",
+        "relationships",
+        "romantic",
+        "single",
+        "spouse",
+        "wife",
+    }
+)
+_MEMORY_SLOT_STATUS_TERMS = frozenset({"state", "status"})
 
 
 @dataclass(frozen=True)
@@ -1217,6 +1247,7 @@ def _memory_system_object_schema() -> dict[str, Any]:
             "memory_workspace_contract",
             "memory_workspace_snapshot",
             "memory_workspace_policy",
+            "memory_slot_coverage",
         ],
         "governance_signals": [
             "source_activation_ready",
@@ -1246,6 +1277,7 @@ def _memory_system_object_schema() -> dict[str, Any]:
             "build_owned_memory_workspace_contract",
             "build_owned_memory_workspace_snapshot",
             "build_owned_memory_workspace_policy",
+            "build_owned_slot_coverage",
         ],
     }
 
@@ -1289,10 +1321,23 @@ def _memory_object_index_manifest(
             continue
         slot_id = str(raw_slot.get("slot_id") or "")
         slot_policy = source_policy_by_slot.get(slot_id, {})
+        values = _ordered_strings(raw_slot.get("values") or ())[:12]
+        lexical_terms = _ordered_strings(raw_slot.get("lexical_terms") or ())[:32]
+        coverage_fields = _memory_slot_coverage_fields(
+            memory_type=str(raw_slot.get("memory_type") or ""),
+            target_type="value_slot",
+            subject=str(raw_slot.get("subject") or ""),
+            predicate=str(raw_slot.get("predicate") or ""),
+            values=values,
+            lexical_terms=lexical_terms,
+        )
         value_slots.append(
             {
                 **raw_slot,
                 "index_source": "scalar_value_manifest",
+                "values": values,
+                "lexical_terms": lexical_terms,
+                **coverage_fields,
                 "memory_tier": _slot_memory_tier(
                     raw_slot,
                     managed_memory_types=managed_memory_types,
@@ -1399,6 +1444,14 @@ def _memory_object_index_manifest(
                 )["source_activation_ready"]
             ),
             "operation_hints": _memory_object_operation_hints(record),
+            **_memory_slot_coverage_fields(
+                memory_type=record.memory_type,
+                target_type="object",
+                subject=record.subject,
+                predicate=record.predicate,
+                values=(record.value, record.text, *record.entities),
+                lexical_terms=(),
+            ),
         }
         for record in managed_records[:24]
     ]
@@ -1419,6 +1472,17 @@ def _memory_object_index_manifest(
     layer_counts: dict[str, int] = defaultdict(int)
     for record in managed_records:
         layer_counts[_memory_layer(record.memory_type)] += 1
+    operation_registry_entries = tuple(
+        entry
+        for entry in operation_registry.get("entries") or ()
+        if isinstance(entry, dict)
+    )
+    slot_coverage_entry_count = sum(
+        1 for entry in operation_registry_entries if entry.get("slot_coverage_terms")
+    )
+    slot_family_counts = _memory_slot_coverage_family_counts(
+        operation_registry_entries
+    )
 
     return {
         "schema_version": "memory_object_index_v1",
@@ -1521,6 +1585,9 @@ def _memory_object_index_manifest(
                 workspace_policy.get("query_component_policy") or {}
             ).items()
         },
+        "slot_coverage_schema_version": _MEMORY_SLOT_COVERAGE_SCHEMA_VERSION,
+        "slot_coverage_entry_count": slot_coverage_entry_count,
+        "slot_family_counts": slot_family_counts,
         "source_backed_object_count": sum(
             1 for record in managed_records if record.source_ids
         ),
@@ -1747,6 +1814,16 @@ def _memory_object_index_manifest(
                 "source_order_policy": "memory_slot_source_policy_v1",
                 "policy": "compiler_uses_as_conflict_filter_only",
             },
+            "slot_coverage_contract": {
+                "schema_version": _MEMORY_SLOT_COVERAGE_SCHEMA_VERSION,
+                "coverage_fields": list(_MEMORY_SLOT_COVERAGE_FIELD_NAMES),
+                "source": "memory_operation_registry",
+                "policy": (
+                    "query consumers use source-backed slot coverage for "
+                    "activation completeness and compact context organization; "
+                    "coverage metadata is not final evidence"
+                ),
+            },
         },
         "activation_ready_memory_ids": activation_ready_memory_ids,
         "activation_priority_memory_ids": activation_priority_memory_ids,
@@ -1786,10 +1863,29 @@ def _memory_object_state_conflict_slot_index(
     for cluster in state_conflict_manifest.get("clusters", ()) or ():
         if not isinstance(cluster, dict):
             continue
+        values = _ordered_strings(
+            (
+                *(cluster.get("active_values") or ()),
+                *(cluster.get("superseded_values") or ()),
+                *(cluster.get("values") or ()),
+            )
+        )[:12]
+        lexical_terms = _ordered_strings(cluster.get("lexical_terms") or ())[:32]
+        coverage_fields = _memory_slot_coverage_fields(
+            memory_type=str(cluster.get("memory_type") or ""),
+            target_type="conflict_slot",
+            subject=str(cluster.get("subject") or ""),
+            predicate=str(cluster.get("predicate") or ""),
+            values=values,
+            lexical_terms=lexical_terms,
+        )
         slots.append(
             {
                 **cluster,
                 "index_source": "state_conflict_manifest",
+                "values": values,
+                "lexical_terms": lexical_terms,
+                **coverage_fields,
                 "operation_hints": [
                     "audit_state_conflict_slot",
                     "compare_active_superseded",
@@ -1844,6 +1940,7 @@ def _memory_working_memory_view(
                 "lexical_terms": _ordered_strings(
                     raw_entry.get("lexical_terms") or ()
                 )[:32],
+                **_memory_slot_coverage_projection(raw_entry),
                 "record_count": int(raw_entry.get("record_count") or 0),
                 "status_counts": dict(raw_entry.get("status_counts") or {}),
                 "operation_current_source_order": _ordered_strings(
@@ -2194,6 +2291,7 @@ def _memory_operation_api(
                 "operations": query_operations,
                 "graph_signals": graph_signals,
                 "lexical_terms": _memory_operation_api_lexical_terms(raw_entry)[:32],
+                **_memory_slot_coverage_projection(raw_entry),
                 "record_count": int(raw_entry.get("record_count") or 0),
                 "operation_map": {
                     action: {
@@ -2625,6 +2723,7 @@ def _memory_operation_lifecycle(
                 "subject": _normalize_key_text(str(entry.get("subject") or "")),
                 "predicate": _normalize_key_text(str(entry.get("predicate") or "")),
                 "values": _ordered_strings(entry.get("values") or ())[:8],
+                **_memory_slot_coverage_projection(entry),
                 "manager_decision": decision,
                 "phase": phase,
                 "state_transition": transition,
@@ -2785,6 +2884,7 @@ def _memory_working_memory_compiler_plan(
                 "subject": _normalize_key_text(str(decision.get("subject") or "")),
                 "predicate": _normalize_key_text(str(decision.get("predicate") or "")),
                 "values": _ordered_strings(decision.get("values") or ())[:8],
+                **_memory_slot_coverage_projection(decision),
                 "context_actions": context_actions,
                 "source_expansion": {
                     "policy": "expand_to_raw_source_rows",
@@ -3031,6 +3131,7 @@ def _memory_system_state(
                     str(plan_entry.get("predicate") or "")
                 ),
                 "values": _ordered_strings(plan_entry.get("values") or ())[:8],
+                **_memory_slot_coverage_projection(plan_entry),
                 "context_actions": context_actions,
                 "verifier_checks": verifier_checks,
                 "operations": _ordered_strings(plan_entry.get("operations") or ()),
@@ -3200,6 +3301,7 @@ def _memory_operation_journal(
                         str(state_entry.get("predicate") or "")
                     ),
                     "values": _ordered_strings(state_entry.get("values") or ())[:8],
+                    **_memory_slot_coverage_projection(state_entry),
                     "context_actions": _ordered_strings(
                         state_entry.get("context_actions") or ()
                     ),
@@ -4610,6 +4712,7 @@ def _memory_lifecycle_audit(
                 "lexical_terms": _ordered_strings(
                     raw_entry.get("lexical_terms") or ()
                 )[:32],
+                **_memory_slot_coverage_projection(raw_entry),
                 "record_count": int(raw_entry.get("record_count") or 0),
                 "audit_actions": audit_actions,
                 "audit_flags": flags,
@@ -5018,6 +5121,14 @@ def _memory_object_operation_registry_object_entry(
     managed_memory_types: frozenset[str],
 ) -> dict[str, Any]:
     source_ids = list(record.source_ids[:12])
+    coverage_fields = _memory_slot_coverage_fields(
+        memory_type=record.memory_type,
+        target_type="object",
+        subject=record.subject,
+        predicate=record.predicate,
+        values=(record.value, record.text, *record.entities),
+        lexical_terms=(),
+    )
     return {
         "entry_id": f"op:object:{record.memory_id}",
         "target_type": "object",
@@ -5033,6 +5144,7 @@ def _memory_object_operation_registry_object_entry(
         "status": record.status,
         "subject": _normalize_key_text(record.subject),
         "predicate": _normalize_key_text(record.predicate),
+        **coverage_fields,
         "operations": _memory_object_operation_hints(record),
         "source_backed": bool(source_ids),
         "source_ids": source_ids,
@@ -5061,6 +5173,16 @@ def _memory_object_operation_registry_slot_entry(
     )
     if not source_ids:
         source_ids = _ordered_strings(slot.get("source_ids") or ())
+    values = _ordered_strings(slot.get("values") or ())[:12]
+    lexical_terms = _ordered_strings(slot.get("lexical_terms") or ())[:32]
+    coverage_fields = _memory_slot_coverage_fields(
+        memory_type=str(slot.get("memory_type") or ""),
+        target_type=target_type,
+        subject=str(slot.get("subject") or ""),
+        predicate=str(slot.get("predicate") or ""),
+        values=values,
+        lexical_terms=lexical_terms,
+    )
     return {
         "entry_id": f"op:{target_type}:{target_id}",
         "target_type": target_type,
@@ -5077,7 +5199,8 @@ def _memory_object_operation_registry_slot_entry(
         "predicate": _normalize_key_text(str(slot.get("predicate") or "")),
         "operations": _ordered_strings(operations),
         "graph_signals": _ordered_strings(slot.get("graph_signals") or ()),
-        "lexical_terms": _ordered_strings(slot.get("lexical_terms") or ())[:32],
+        "lexical_terms": lexical_terms,
+        **coverage_fields,
         "source_backed": bool(slot.get("source_backed") or source_ids),
         "source_ids": source_ids[:12],
         "expand_source_order": source_ids[:12],
@@ -5099,7 +5222,7 @@ def _memory_object_operation_registry_slot_entry(
         )[:12],
         "record_count": int(slot.get("record_count") or 0),
         "status_counts": dict(slot.get("status_counts") or {}),
-        "values": _ordered_strings(slot.get("values") or ())[:12],
+        "values": values,
         "source_policy": {
             **dict(slot.get("source_policy") or {}),
             "raw_evidence_required": True,
@@ -5133,6 +5256,18 @@ def _memory_object_operation_slot_index(
             source_id for record in record_tuple for source_id in record.source_ids
         )
         memory_type, subject, predicate = key
+        lexical_terms = _memory_operation_slot_lexical_terms(record_tuple)[:32]
+        values = _ordered_normalized_values(
+            record.value or record.text for record in record_tuple
+        )[:12]
+        coverage_fields = _memory_slot_coverage_fields(
+            memory_type=memory_type,
+            target_type="operation_slot",
+            subject=subject,
+            predicate=predicate,
+            values=values,
+            lexical_terms=lexical_terms,
+        )
         slots.append(
             {
                 "slot_id": _slot_id(key),
@@ -5162,7 +5297,8 @@ def _memory_object_operation_slot_index(
                     record_tuple,
                     managed_memory_types=managed_memory_types,
                 ),
-                "lexical_terms": _memory_operation_slot_lexical_terms(record_tuple)[:32],
+                "lexical_terms": lexical_terms,
+                **coverage_fields,
                 "source_backed": bool(source_ids),
                 "source_ids": source_ids[:12],
                 "operation_current_source_order": _memory_operation_slot_source_order(
@@ -5196,9 +5332,7 @@ def _memory_object_operation_slot_index(
                     for record in record_tuple
                     if record.status == "superseded"
                 ][:12],
-                "values": _ordered_normalized_values(
-                    record.value or record.text for record in record_tuple
-                )[:12],
+                "values": values,
                 "temporal_anchors": _ordered_strings(
                     _record_time_value(record) for record in record_tuple
                 )[:12],
@@ -5253,6 +5387,153 @@ def _memory_operation_slot_text_terms(value: str) -> set[str]:
         if token.endswith("s") and len(token) > 3:
             terms.add(token[:-1])
     return terms
+
+
+def _memory_slot_coverage_fields(
+    *,
+    memory_type: str,
+    target_type: str,
+    subject: str,
+    predicate: str,
+    values: Any = (),
+    lexical_terms: Any = (),
+) -> dict[str, Any]:
+    subject_terms = _ordered_strings(
+        sorted(_memory_operation_slot_text_terms(subject))
+    )[:16]
+    predicate_terms = _ordered_strings(
+        sorted(_memory_operation_slot_text_terms(predicate))
+    )[:16]
+    value_terms = _ordered_strings(
+        sorted(
+            _memory_operation_slot_text_terms(
+                " ".join(str(value) for value in values if value)
+            )
+        )
+    )[:24]
+    inherited_terms = _ordered_strings(str(term).lower() for term in lexical_terms)[:32]
+    slot_family = _memory_slot_family(
+        memory_type=memory_type,
+        predicate_terms=predicate_terms,
+        value_terms=value_terms,
+        lexical_terms=inherited_terms,
+    )
+    family_terms = tuple(term for term in slot_family.split("_") if term)
+    coverage_terms = _ordered_strings(
+        (
+            str(memory_type or "").lower(),
+            str(target_type or "").lower(),
+            *subject_terms,
+            *predicate_terms,
+            *value_terms,
+            *inherited_terms,
+            *family_terms,
+        )
+    )[:48]
+    return {
+        "slot_coverage_schema_version": _MEMORY_SLOT_COVERAGE_SCHEMA_VERSION,
+        "slot_coverage_policy": _MEMORY_SLOT_COVERAGE_POLICY,
+        "slot_family": slot_family,
+        "slot_coverage_terms": coverage_terms,
+        "slot_subject_terms": subject_terms,
+        "slot_predicate_terms": predicate_terms,
+        "slot_value_terms": value_terms,
+    }
+
+
+def _memory_slot_coverage_projection(entry: dict[str, Any]) -> dict[str, Any]:
+    projected = {
+        "slot_coverage_schema_version": str(
+            entry.get("slot_coverage_schema_version")
+            or _MEMORY_SLOT_COVERAGE_SCHEMA_VERSION
+        ),
+        "slot_coverage_policy": str(
+            entry.get("slot_coverage_policy") or _MEMORY_SLOT_COVERAGE_POLICY
+        ),
+        "slot_family": str(entry.get("slot_family") or ""),
+        "slot_coverage_terms": _memory_slot_coverage_term_list(
+            entry.get("slot_coverage_terms"),
+            max_items=48,
+        ),
+        "slot_subject_terms": _memory_slot_coverage_term_list(
+            entry.get("slot_subject_terms"),
+            max_items=16,
+        ),
+        "slot_predicate_terms": _memory_slot_coverage_term_list(
+            entry.get("slot_predicate_terms"),
+            max_items=16,
+        ),
+        "slot_value_terms": _memory_slot_coverage_term_list(
+            entry.get("slot_value_terms"),
+            max_items=24,
+        ),
+    }
+    if projected["slot_family"] and projected["slot_coverage_terms"]:
+        return projected
+    return _memory_slot_coverage_fields(
+        memory_type=str(entry.get("memory_type") or ""),
+        target_type=str(entry.get("target_type") or ""),
+        subject=str(entry.get("subject") or ""),
+        predicate=str(entry.get("predicate") or ""),
+        values=entry.get("values") or (),
+        lexical_terms=entry.get("lexical_terms") or (),
+    )
+
+
+def _memory_slot_coverage_term_list(value: Any, *, max_items: int) -> list[str]:
+    if isinstance(value, str):
+        raw_terms = sorted(_memory_operation_slot_text_terms(value))
+    else:
+        raw_terms = value or ()
+    return _ordered_strings(str(term).lower() for term in raw_terms)[:max_items]
+
+
+def _memory_slot_family(
+    *,
+    memory_type: str,
+    predicate_terms: list[str],
+    value_terms: list[str],
+    lexical_terms: list[str],
+) -> str:
+    normalized_type = str(memory_type or "").lower()
+    terms = {
+        normalized_type,
+        *predicate_terms,
+        *value_terms,
+        *lexical_terms,
+    }
+    has_relationship = bool(
+        terms.intersection(_MEMORY_SLOT_RELATIONSHIP_TERMS)
+        or normalized_type == "relationship"
+    )
+    has_status = bool(terms.intersection(_MEMORY_SLOT_STATUS_TERMS))
+    if has_relationship and (has_status or terms.intersection({"single", "married"})):
+        return "relationship_status"
+    if has_status or normalized_type == "state":
+        return "state_status"
+    if has_relationship:
+        return "relationship"
+    if normalized_type == "preference":
+        return "preference"
+    if normalized_type == "profile":
+        return "profile"
+    if normalized_type == "event":
+        return "event"
+    if normalized_type == "plan":
+        return "plan"
+    if normalized_type == "fact":
+        return "fact"
+    return "general"
+
+
+def _memory_slot_coverage_family_counts(entries: Any) -> dict[str, int]:
+    counts: dict[str, int] = defaultdict(int)
+    for entry in entries or ():
+        if not isinstance(entry, dict):
+            continue
+        family = str(entry.get("slot_family") or "unknown")
+        counts[family] += 1
+    return dict(sorted(counts.items()))
 
 
 def _memory_operation_slot_types_for_index(

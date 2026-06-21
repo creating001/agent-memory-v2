@@ -4989,6 +4989,14 @@ def _working_memory_packet_slot_guard_diagnostics(
         }
 
     subject_terms = _working_memory_packet_subject_terms(question, required_slot_terms)
+    coverage_source = (
+        "build_slot_coverage"
+        if any(
+            _working_memory_packet_entry_build_coverage_terms(entry)
+            for _, _, _, entry, _ in selected_candidates
+        )
+        else "entry_text_fallback"
+    )
     for _, _, _, entry, _ in selected_candidates:
         entry_terms = _working_memory_packet_entry_terms(entry)
         if not required_slot_terms.issubset(entry_terms):
@@ -5000,6 +5008,7 @@ def _working_memory_packet_slot_guard_diagnostics(
             "reason": "slot_covered",
             "required_slot_terms": sorted(required_slot_terms),
             "subject_terms": sorted(subject_terms),
+            "coverage_source": coverage_source,
             "source": selected_source,
         }
 
@@ -5008,6 +5017,7 @@ def _working_memory_packet_slot_guard_diagnostics(
         "reason": "selected_packet_missing_requested_slot",
         "required_slot_terms": sorted(required_slot_terms),
         "subject_terms": sorted(subject_terms),
+        "coverage_source": coverage_source,
         "selected_slots": list(
             dict.fromkeys(
                 _working_memory_packet_entry_slot_label(entry)
@@ -5058,6 +5068,45 @@ def _working_memory_packet_subject_terms(
 
 
 def _working_memory_packet_entry_terms(entry: Mapping[str, Any]) -> frozenset[str]:
+    build_terms = _working_memory_packet_entry_build_coverage_terms(entry)
+    if build_terms:
+        return build_terms
+    return _working_memory_packet_entry_fallback_terms(entry)
+
+
+def _working_memory_packet_entry_score_terms(
+    entry: Mapping[str, Any],
+) -> frozenset[str]:
+    fallback_terms = _working_memory_packet_entry_fallback_terms(entry)
+    return fallback_terms or _working_memory_packet_entry_build_coverage_terms(entry)
+
+
+def _working_memory_packet_entry_build_coverage_terms(
+    entry: Mapping[str, Any],
+) -> frozenset[str]:
+    parts: list[str] = []
+    for key in (
+        "slot_coverage_terms",
+        "slot_subject_terms",
+        "slot_predicate_terms",
+        "slot_value_terms",
+    ):
+        value = entry.get(key)
+        if isinstance(value, str):
+            parts.append(value)
+        else:
+            parts.extend(str(item) for item in value or () if item)
+    slot_family = str(entry.get("slot_family") or "")
+    if slot_family:
+        parts.append(slot_family.replace("_", " "))
+    if not parts:
+        return frozenset()
+    return _content_terms(" ".join(parts))
+
+
+def _working_memory_packet_entry_fallback_terms(
+    entry: Mapping[str, Any],
+) -> frozenset[str]:
     parts = [
         entry.get("target_type"),
         entry.get("target_id"),
@@ -5108,11 +5157,15 @@ def _compact_working_memory_packet_lines(
     max_value_chars: int,
 ) -> list[str]:
     lines = [
-        "Compact source-backed workspace packet "
-        f"(source={selected_source}); activation hints only. Use slot/source "
-        "links to choose rows, then preserve final qualifiers from Memory Context.",
+        f"Source-backed workspace packet (source={selected_source}); "
+        "index only, verify final facts in Memory Context.",
         "- slots:",
     ]
+    slot_line_indexes: dict[tuple[str, str, tuple[str, ...], str, str, str], int] = {}
+    slot_line_has_hint: dict[
+        tuple[str, str, tuple[str, ...], str, str, str],
+        bool,
+    ] = {}
     for _, _, _, entry, source_labels in selected_candidates:
         subject = _truncate_text(_single_line(str(entry.get("subject") or "")), 48)
         predicate = _truncate_text(
@@ -5147,7 +5200,17 @@ def _compact_working_memory_packet_lines(
                 + _truncate_text(_single_line(value), max(40, int(max_value_chars)))
             )
         fields.append(f"src={', '.join(source_labels)}")
-        lines.append(f"  - {' | '.join(fields)}")
+        dedupe_key = (subject, predicate, tuple(source_labels), focus, decision, status)
+        line = f"  - {' | '.join(fields)}"
+        prior_index = slot_line_indexes.get(dedupe_key)
+        if prior_index is None:
+            slot_line_indexes[dedupe_key] = len(lines)
+            slot_line_has_hint[dedupe_key] = bool(value)
+            lines.append(line)
+            continue
+        if value and not slot_line_has_hint.get(dedupe_key, False):
+            lines[prior_index] = line
+            slot_line_has_hint[dedupe_key] = True
     return lines
 
 
@@ -5263,33 +5326,7 @@ def _working_memory_packet_entry_score(
     route: RouteResult,
 ) -> float:
     memory_type = str(entry.get("memory_type") or "")
-    terms = _content_terms(
-        " ".join(
-            str(part)
-            for part in (
-                entry.get("target_type"),
-                entry.get("target_id"),
-                entry.get("slot_id"),
-                entry.get("workspace_layer"),
-                entry.get("workspace_role"),
-                entry.get("memory_layer"),
-                entry.get("context_role"),
-                entry.get("memory_type"),
-                entry.get("focus"),
-                entry.get("manager_decision"),
-                entry.get("lifecycle_stage"),
-                entry.get("subject"),
-                entry.get("predicate"),
-                _working_memory_packet_entry_value(entry),
-                " ".join(str(item) for item in entry.get("context_actions") or ()),
-                " ".join(str(item) for item in entry.get("verifier_checks") or ()),
-                " ".join(str(item) for item in entry.get("operations") or ()),
-                " ".join(str(item) for item in entry.get("audit_actions") or ()),
-                " ".join(str(item) for item in entry.get("audit_flags") or ()),
-            )
-            if part
-        )
-    )
+    terms = _working_memory_packet_entry_score_terms(entry)
     overlap = len(question_terms.intersection(terms))
     type_match = _memory_type_matches_route(memory_type, route)
     if overlap == 0 and not type_match:

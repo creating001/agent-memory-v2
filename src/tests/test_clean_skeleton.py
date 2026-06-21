@@ -4188,6 +4188,14 @@ class CleanSkeletonTest(unittest.TestCase):
             "build_owned_memory_operation_api",
             system_graph["object_schema"]["governance_signals"],
         )
+        self.assertIn(
+            "memory_slot_coverage",
+            system_graph["object_schema"]["quality_signals"],
+        )
+        self.assertIn(
+            "build_owned_slot_coverage",
+            system_graph["object_schema"]["governance_signals"],
+        )
         self.assertEqual(
             system_graph["governance"]["final_evidence_policy"],
             "raw_source_rows_only",
@@ -4425,6 +4433,15 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual(
             memory_object_index["memory_workspace_policy_query_component_count"],
             8,
+        )
+        self.assertEqual(
+            memory_object_index["slot_coverage_schema_version"],
+            "memory_slot_coverage_v1",
+        )
+        self.assertEqual(memory_object_index["slot_coverage_entry_count"], 8)
+        self.assertEqual(
+            memory_object_index["slot_family_counts"],
+            {"fact": 3, "state_status": 5},
         )
         self.assertGreater(
             memory_object_index[
@@ -4750,6 +4767,12 @@ class CleanSkeletonTest(unittest.TestCase):
             ],
             "memory_workspace_policy",
         )
+        self.assertEqual(
+            memory_object_index["index_contract"]["slot_coverage_contract"][
+                "schema_version"
+            ],
+            "memory_slot_coverage_v1",
+        )
         working_compiler_plan = memory_object_index["memory_working_compiler_plan"]
         self.assertEqual(
             working_compiler_plan["schema_version"],
@@ -4834,6 +4857,9 @@ class CleanSkeletonTest(unittest.TestCase):
             city_system_state["source_expansion"]["source_ids"],
             ["s2:t1", "s2:t2", "s1:t1"],
         )
+        self.assertEqual(city_system_state["slot_family"], "state_status")
+        self.assertIn("location", city_system_state["slot_coverage_terms"])
+        self.assertIn("seattle", city_system_state["slot_value_terms"])
         self.assertEqual(
             memory_system_state["source_policy"]["final_evidence_policy"],
             "raw_source_rows",
@@ -13025,9 +13051,9 @@ class CleanSkeletonTest(unittest.TestCase):
             memory_object_index=management["memory_system_graph"]["memory_object_index"],
         )
 
-        self.assertIn("Compact source-backed workspace packet", compiled.prompt)
+        self.assertIn("Source-backed workspace packet", compiled.prompt)
         self.assertIn("slot=alex/follower count", compiled.prompt)
-        self.assertIn("hint=1250 followers; 1300 followers", compiled.prompt)
+        self.assertIn("hint=1300 followers; 1250 followers", compiled.prompt)
         self.assertIn("src=Memory 2, Memory 1", compiled.prompt)
         self.assertNotIn("context=retrieve_source_rows", compiled.prompt)
         self.assertNotIn("checks=source_backing", compiled.prompt)
@@ -13105,6 +13131,7 @@ class CleanSkeletonTest(unittest.TestCase):
             "selected_packet_missing_requested_slot",
         )
         self.assertEqual(slot_guard["action"], "suppress")
+        self.assertEqual(slot_guard["coverage_source"], "build_slot_coverage")
         self.assertEqual(slot_guard["selected_slots"], ["caroline/friend of"])
 
     def test_working_memory_packet_slot_guard_keeps_covered_status_slot(self) -> None:
@@ -13167,6 +13194,7 @@ class CleanSkeletonTest(unittest.TestCase):
         slot_guard = compiled.diagnostics["working_memory_packet_slot_guard"]
         self.assertFalse(slot_guard["applied"])
         self.assertEqual(slot_guard["reason"], "slot_covered")
+        self.assertEqual(slot_guard["coverage_source"], "build_slot_coverage")
 
     def test_working_memory_packet_slot_guard_can_replace_with_short_guide(
         self,
@@ -13251,6 +13279,7 @@ class CleanSkeletonTest(unittest.TestCase):
         slot_guard = compiled.diagnostics["working_memory_packet_slot_guard"]
         self.assertTrue(slot_guard["applied"])
         self.assertEqual(slot_guard["action"], "structured_guide")
+        self.assertEqual(slot_guard["coverage_source"], "build_slot_coverage")
 
     def test_working_memory_packet_auto_falls_back_to_operation_registry(self) -> None:
         old_record = MemoryRecord(
