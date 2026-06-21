@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_memory_operation_plan_v291_query_restore_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_memory_layer_transition_v293_query_restore_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v291 local LTS |
+| Benchmark | 当前 v293 local LTS |
 |---|---:|
 | LongMemEval-S full | strict/lenient `0.834000 / 0.846000`，avg build/query tokens `85393.566 / 6455.588` |
 | LoCoMo non-adversarial full | strict/lenient `0.794156 / 0.819481`，avg build/query tokens `62015.57402597403 / 6093.962337662338` |
 
-v291 的 LTS 理由：在 v290 `memory_workspace_manifest_v1` 基础上新增 build-owned `memory_operation_plan_v1`，把每个 source-backed workspace slot 转成 create / update / merge / supersede / retrieve / expand / verify / audit / context_pack 操作计划，并显式记录 current、historical、as-of view、source expansion、verification、audit 和 context-pack contract。v291 保持 v290/v288 query behavior；相对 v290，LongMemEval-S 和 LoCoMo full answer/prompt/route/compiled evidence/compiled memory/stable retrieval/build records diff 全部 `0`，因此继承 v290/v288 dual judge accuracy，同时进一步降低 build 阶段不够像 Agent Memory system 的风险。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_memory_operation_plan_v291_full_summary.md`。
+v293 的 LTS 理由：在 v291 `memory_operation_plan_v1` 基础上新增 build-owned `memory_layer_transition_manifest_v1`，显式记录 raw turn -> typed memory object -> tiered slot -> workspace operation plan -> expanded raw rows 的转换，以及 non-destructive supersede/archive、quarantine block、source-backed activation 和 layer/tier transition counts。v293 保持 v291 query behavior；LongMemEval-S 和 LoCoMo full answer diff 均为 `0`，因此继承 v291 dual judge accuracy，同时进一步降低 build 阶段不够系统化的风险。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_memory_layer_transition_v293_full_summary.md`。
 
 ## 目录
 

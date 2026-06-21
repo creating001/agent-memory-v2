@@ -1,0 +1,51 @@
+{
+  "base_lts": "v291",
+  "benchmarks": {
+    "lme": {
+      "answer_cache_hits": 500,
+      "answer_cache_misses": 0,
+      "answer_changed_vs_v291": 0,
+      "avg_build_tokens": 85393.566,
+      "avg_query_tokens": 6455.588,
+      "experiment_dir": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_memory_layer_transition_v293_lme_full",
+      "full_output_dir": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_memory_layer_transition_v293_lme_full",
+      "layer_transition_applied": 500,
+      "layer_transition_total_records": 57909,
+      "layer_transition_total_slots": 44630,
+      "layer_transition_total_transitions": 102539,
+      "lenient_accuracy_inherited": 0.846,
+      "lenient_correct_inherited": 423,
+      "n_samples": 500,
+      "operation_plan_applied": 500,
+      "operation_plan_total_plans": 44630,
+      "strict_accuracy_inherited": 0.834,
+      "strict_correct_inherited": 417
+    },
+    "locomo": {
+      "answer_cache_hits": 1540,
+      "answer_cache_misses": 0,
+      "answer_changed_vs_v291": 0,
+      "avg_build_tokens": 62015.57402597403,
+      "avg_query_tokens": 6093.962337662338,
+      "experiment_dir": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_memory_layer_transition_v293_locomo_full",
+      "full_output_dir": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_memory_layer_transition_v293_locomo_full",
+      "layer_transition_applied": 1540,
+      "layer_transition_total_records": 232409,
+      "layer_transition_total_slots": 196651,
+      "layer_transition_total_transitions": 429060,
+      "lenient_accuracy_inherited": 0.8194805194805195,
+      "lenient_correct_inherited": 1262,
+      "n_samples": 1540,
+      "operation_plan_applied": 1540,
+      "operation_plan_total_plans": 196651,
+      "strict_accuracy_inherited": 0.7941558441558442,
+      "strict_correct_inherited": 1223
+    }
+  },
+  "candidate": "v293",
+  "config": "configs/stage1_memory_layer_transition_v293_query_restore_seeded_qwen36_no_think_build4k_cached.json",
+  "decision": "promote_lts_candidate",
+  "git_commit": "50e90f8bec858ad0551250adcb3818c294f91cd2",
+  "reason": "Build-owned memory_layer_transition_manifest_v1 reduces build-system risk while LME/LoCoMo answers and tokens remain v291-identical.",
+  "schema_version": "v293_diff_vs_v291_v1"
+}
