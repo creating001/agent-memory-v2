@@ -50,3 +50,5 @@ python -m unittest discover -s src/tests
 每个算法版本先做本地 git commit，后续 dry-run、subset、judge 或分析记录引用该 commit。dirty 状态只用于如实说明当时工作区，不是重跑条件；不要为了让 manifest 变成 clean 反复重跑。
 
 实验记录按用途分层：普通诊断/dry-run 只需记录目的、配置或 commit、关键 trace/metrics 结论和 outputs 路径；准备升 LTS、正式汇报、full/split best，或需要下性能结论的 run，才必须在 `experiments/` 下留下 summary、metrics、diagnosis、配置快照、token 成本和完整 outputs 路径。方法性能主指标是 DeepSeek dual flash judge accuracy：`deepseek-v4-flash` 独立跑两遍，strict 为两遍都判对，lenient 为任一遍判对；两遍 judge 均保持 temperature `0` 和 default thinking。Exact/F1/BLEU 只作参考。
+
+本地运行 offline judge 时可以读取仓库根目录 `.env` 注入 API key，例如在单条命令子进程里 `source .env` 后执行 judge 脚本；但禁止打印、复制、写入实验记录或提交 `.env` 内容。`.env` 只能用于离线评测/外部服务认证，不能进入 prediction、retrieval、compiler、answer、verifier 或 cache build 逻辑。
