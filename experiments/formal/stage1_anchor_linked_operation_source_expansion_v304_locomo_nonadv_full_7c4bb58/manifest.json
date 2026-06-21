@@ -1,0 +1,31 @@
+{
+  "benchmark": "locomo",
+  "clean_assertions": [
+    "Prediction loader rejects gold/reference/target answers.",
+    "Prediction loader rejects judge outputs and benchmark labels.",
+    "Prediction loader rejects sample ids, qids, and row indices.",
+    "record_key is copied only by the runner and is not passed into pipeline modules.",
+    "Derived context rows always retain raw source_id back-links.",
+    "Build-stage typed memory is created only from raw dialogue turns and visible metadata."
+  ],
+  "config_path": "/data/home_new/wujinqi/agent-memory/configs/stage1_anchor_linked_operation_source_expansion_v304_query_restore_seeded_qwen36_no_think_build4k_cached.json",
+  "created_at_utc": "2026-06-21T12:19:12+00:00",
+  "experiment_dir": "/data/home_new/wujinqi/agent-memory/experiments/formal/stage1_anchor_linked_operation_source_expansion_v304_locomo_nonadv_full_7c4bb58",
+  "experiment_kind": "formal",
+  "git": {
+    "commit": "5e1853c4f8f17a478079a3518b9b8b691e9bafd1",
+    "dirty": false,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": ""
+  },
+  "input_path": "/data/home_new/wujinqi/agent-memory/outputs/prepare_locomo_non_adversarial/prediction_input.jsonl",
+  "output_path": "/data/home_new/wujinqi/agent-memory/outputs/formal/stage1_anchor_linked_operation_source_expansion_v304_locomo_nonadv_full_7c4bb58/predictions.jsonl",
+  "outputs": {
+    "predictions": "/data/home_new/wujinqi/agent-memory/outputs/formal/stage1_anchor_linked_operation_source_expansion_v304_locomo_nonadv_full_7c4bb58/predictions.jsonl",
+    "traces": "/data/home_new/wujinqi/agent-memory/outputs/formal/stage1_anchor_linked_operation_source_expansion_v304_locomo_nonadv_full_7c4bb58/traces.jsonl"
+  },
+  "run_id": "stage1_anchor_linked_operation_source_expansion_v304_locomo_nonadv_full_7c4bb58",
+  "subset": "non_adversarial_full",
+  "trace_path": "/data/home_new/wujinqi/agent-memory/outputs/formal/stage1_anchor_linked_operation_source_expansion_v304_locomo_nonadv_full_7c4bb58/traces.jsonl"
+}
