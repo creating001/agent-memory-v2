@@ -1,0 +1,412 @@
+# stage1_readiness_gated_operation_guide_v296_locomo_nonadv_full_7b4c4e2
+
+## Purpose
+
+Stage-1 clean skeleton run: validate raw evidence storage, lexical retrieval, neighbor expansion, evidence compilation, answer generation, trace output, and experiment bookkeeping.
+
+## Scope
+
+- benchmark: LoCoMo
+- subset: non-adversarial-full
+- experiment_kind: formal
+- limit: None
+- workers: 6
+- input_path: /data/home_new/wujinqi/agent-memory/outputs/prepare_locomo_non_adversarial/prediction_input.jsonl
+- config_path: /data/home_new/wujinqi/agent-memory/configs/stage1_readiness_gated_operation_guide_v296_query_restore_seeded_qwen36_no_think_build4k_cached.json
+- answer: OpenAI-compatible answerer using Qwen/Qwen3.6-35B-A3B at http://127.0.0.1:8000/v1 with temperature 0, max_input_tokens 131072, and max_output_tokens 16384, chat_template_kwargs {'enable_thinking': False}.
+
+## Git
+
+- inside_work_tree: True
+- commit: 7b4c4e2f27dd69ee471a42beb6e4406be129cdb0
+- dirty: False
+- note: None
+
+## Metrics
+
+- n_samples: 1540
+- accuracy: None
+- f1: None
+- bleu: None
+- avg_build_tokens: 62015.57402597403
+- avg_build_think_tokens: 0.0
+- avg_build_total_tokens: 62015.57402597403
+- build_token_accounting: logical cold-build visible LLM tokens; cached build chunks count from stored usage, while cache hits only avoid repeated local API calls.
+- avg_query_tokens: 6094.875974025974
+- avg_query_think_tokens: 0.0
+- avg_query_total_tokens: 6094.875974025974
+- token_accounting_note: avg_build_tokens / avg_query_tokens exclude explicit reasoning tokens when the provider reports them; avg_*_total_tokens include visible plus think tokens.
+- avg_compiled_evidence_items: 54.12467532467532
+- retrieval_route_overrides: {'temporal_lookup': {'dense_protect_top_n': 32, 'dense_top_k': 40, 'lexical_protect_top_n': 0, 'max_top_k': 40, 'top_k': 40}}
+- retrieval_route_override_precedence: after_profile
+- avg_effective_top_k: 55.5974025974026
+- avg_effective_dense_top_k: 55.5974025974026
+- avg_effective_dense_protect_top_n: 44.47792207792208
+- build_memory_enabled: True
+- build_memory_model: Qwen/Qwen3.6-35B-A3B
+- build_memory_temporal_fields: False
+- build_memory_prompt_profile: typed_compact
+- build_memory_manage_facts: False
+- build_memory_management_policy: stateful_only
+- build_memory_management_policy_counts: {'stateful_only': 1540}
+- build_memory_management_operation_counts: {'create': 232409, 'retain_active': 218787, 'supersede': 13622, 'retain_collection_multi_value_slot': 13470}
+- build_memory_management_layer_counts: {'episodic': 79615, 'profile_state': 109005, 'prospective': 21928, 'semantic': 21861}
+- build_memory_operation_ledger: {'enabled': True}
+- build_memory_operation_ledger_applied_count: 1540
+- build_memory_operation_ledger_applied_rate: 1.0
+- build_memory_operation_ledger_counts: {'create': 232409, 'merge': 0, 'supersede': 13622, 'retain_active': 218787, 'retain_superseded': 13622, 'retain_collection_multi_value_slot': 13470, 'verify_source_backed': 232409, 'audit_slot': 196651, 'audit_conflict_slot': 8514}
+- avg_build_memory_operation_ledger_source_backed_records: 150.91493506493507
+- avg_build_memory_operation_ledger_source_unbacked_records: 0.0
+- build_memory_system_graph: {'enabled': True}
+- build_memory_system_graph_applied_count: 1540
+- build_memory_system_graph_applied_rate: 1.0
+- build_memory_system_graph_operation_edge_counts: {'create': 232409, 'merge': 0, 'supersede': 13622, 'source_support': 319724, 'slot_member': 232409, 'value_object': 232409, 'scalar_value_object': 3718, 'audit_value_slot': 196651, 'state_conflict_cluster': 8514, 'verify_source_backed': 232409, 'audit_slot': 196651, 'workspace_operation_plan': 196651, 'layer_transition': 429060, 'query_readiness': 196651}
+- build_memory_system_graph_namespace_counts: {'long_term_episodic': 79615, 'long_term_profile_state': 109005, 'long_term_semantic': 21861, 'prospective': 21928}
+- avg_build_memory_system_graph_objects: 150.91493506493507
+- avg_build_memory_system_graph_source_spans: 178.95194805194805
+- avg_build_memory_system_graph_slots: 127.69545454545455
+- avg_build_memory_system_graph_source_backed_records: 150.91493506493507
+- avg_build_memory_system_graph_complete_slot_key_records: 150.91493506493507
+- avg_build_memory_system_graph_temporal_anchor_records: 150.91493506493507
+- avg_build_memory_system_graph_multi_source_records: 44.46363636363636
+- avg_build_memory_system_graph_low_confidence_records: 0.0
+- avg_build_memory_system_graph_source_backed_slots: 127.69545454545455
+- avg_build_memory_system_graph_active_superseded_pair_slots: 5.5285714285714285
+- avg_build_memory_system_graph_activation_ready_records: 150.91493506493507
+- avg_build_memory_system_graph_governance_risk_records: 0.0
+- build_memory_system_graph_governance_risk_counts: {}
+- build_memory_system_graph_activation_role_counts: {'episodic_candidate': 79615, 'lifecycle_context': 13622, 'prospective_candidate': 21928, 'semantic_candidate': 21861, 'stateful_candidate': 95383}
+- build_memory_system_graph_activation_utility_bucket_counts: {'high': 232409}
+- build_memory_system_graph_scalar_value_manifest_applied_count: 1540
+- build_memory_system_graph_scalar_value_manifest_applied_rate: 1.0
+- build_memory_system_graph_scalar_value_manifest_counts: {'create_value_object': 232409, 'create_scalar_value': 3718, 'update_value_slot': 8514, 'merge_value_slot': 3075, 'supersede_value': 13622, 'retrieve_value': 232409, 'expand_value_source': 319724, 'verify_value_source': 232409, 'audit_value_slot': 196651, 'audit_scalar_value_slot': 3595, 'audit_conflict_value_slot': 8514, 'quarantine_value': 0}
+- avg_build_memory_system_graph_value_objects: 150.91493506493507
+- avg_build_memory_system_graph_source_backed_value_objects: 150.91493506493507
+- avg_build_memory_system_graph_source_incomplete_value_objects: 0.0
+- avg_build_memory_system_graph_scalar_value_objects: 2.414285714285714
+- avg_build_memory_system_graph_scalar_value_expressions: 2.494155844155844
+- avg_build_memory_system_graph_value_slots: 127.69545454545455
+- avg_build_memory_system_graph_scalar_value_slots: 2.3344155844155843
+- avg_build_memory_system_graph_multi_value_slots: 14.275324675324676
+- avg_build_memory_system_graph_lifecycle_value_slots: 14.275324675324676
+- avg_build_memory_system_graph_active_superseded_value_slots: 5.5285714285714285
+- avg_build_memory_system_graph_scalar_active_superseded_value_slots: 0.07987012987012987
+- avg_build_memory_collection_retained_records: 8.746753246753247
+- avg_build_memory_managed_lifecycle_slots: 5.5285714285714285
+- avg_build_memory_nonmanaged_multi_value_slots: 8.746753246753247
+- build_memory_overlap_turns: 0
+- build_memory_chat_template_kwargs: {'enable_thinking': False}
+- build_memory_cache_enabled: True
+- build_memory_cache_path: outputs/cache/qwen36_no_think_build4k_memory_v102.sqlite
+- build_memory_cache_hits: 12411
+- build_memory_cache_misses: 0
+- build_memory_cache_writes: 0
+- build_memory_source_alignment: {}
+- build_memory_source_alignment_changed_records: 0
+- build_memory_source_alignment_added_sources: 0
+- avg_build_memory_source_alignment_changed_records: 0.0
+- avg_build_memory_source_alignment_added_sources: 0.0
+- avg_build_memory_records: 150.91493506493507
+- avg_active_build_memory_records: 142.06948051948052
+- avg_memory_hits: 19.85844155844156
+- avg_memory_source_hits: 25.948701298701298
+- memory_activation_priority_enabled: True
+- memory_activation_priority_pool_k: 32
+- memory_activation_priority_score_boost: 0.25
+- memory_activation_priority_max_rank: 64
+- memory_activation_priority_applied_count: 49
+- memory_activation_priority_reordered_count: 38
+- avg_memory_activation_priority_hits: 0.4538961038961039
+- operation_utility_enabled: True
+- operation_utility_fusion_mode: tail_rescue
+- operation_utility_applied_count: 21
+- avg_operation_utility_source_hits: 0.03701298701298701
+- graph_utility_enabled: True
+- graph_utility_fusion_mode: overflow_tail_rescue
+- graph_utility_overflow_max_hits: 4
+- graph_utility_require_new_source: True
+- graph_utility_required_signals: ['supersede', 'conflict_slot']
+- graph_utility_applied_count: 439
+- avg_graph_utility_source_hits: 0.8331168831168831
+- build_memory_include_superseded: False
+- build_memory_include_superseded_information_needs: ['temporal_lookup', 'list_count', 'profile_preference', 'current_state']
+- neighbor_order: hit_priority
+- drop_query_stopwords: True
+- lexical_enabled: True
+- dense_enabled: True
+- lexical_protect_top_n: 0
+- dense_protect_top_n: 48
+- dense_document_text_mode: external_naive
+- dense_query_text_mode: external_naive
+- embedding_cache_enabled: True
+- embedding_cache_path: outputs/cache/qwen3_embedding.sqlite
+- embedding_cache_hits: 7422
+- embedding_cache_misses: 0
+- embedding_cache_writes: 0
+- turn_window_bm25_enabled: False
+- turn_window_top_k: None
+- turn_window_window_before: None
+- turn_window_window_after: None
+- turn_window_max_sources_per_window: None
+- turn_window_max_chars_per_turn: None
+- turn_window_enabled_route_signals: None
+- turn_window_enabled_information_needs: None
+- turn_window_enabled_query_patterns: None
+- turn_window_bm25_applied_count: 0
+- turn_window_bm25_applied_rate: 0.0
+- avg_turn_window_hits: 0.0
+- avg_turn_window_source_hits: 0.0
+- granularity_profile_audit_enabled: True
+- granularity_profile_audit_selected_count: 0
+- granularity_profile_audit_behavior_risk_count: 0
+- selected_context_enabled: True
+- selected_context_window_before: 1
+- selected_context_window_after: 2
+- selected_context_max_rows: 6
+- selected_context_max_neighbor_chars: 180
+- selected_context_max_center_chars: 320
+- selected_context_information_needs: ['fact_lookup', 'list_count', 'profile_preference']
+- selected_context_require_anaphora: True
+- selected_context_require_question_reference: None
+- selected_context_require_question_reference_min_center_chars: None
+- selected_context_min_context_budget_headroom_chars: None
+- selected_context_applied_count: 1537
+- selected_context_applied_rate: 0.9980519480519481
+- selected_context_budget_gate_applied_count: 0
+- selected_context_budget_gate_blocked_count: 0
+- avg_selected_context_budget_gate_headroom_chars: None
+- avg_selected_context_materialized_rows: 5.548051948051948
+- avg_selected_context_skipped_long_center_rows: 1.1987012987012986
+- avg_selected_context_skipped_question_reference_center_rows: 0.0
+- selected_context_risk_audit_enabled: True
+- selected_context_risk_audit_applied_count: 1494
+- selected_context_risk_audit_risk_count: 5843
+- avg_selected_context_risk_audit_audited_rows: 5.392207792207792
+- avg_selected_context_risk_audit_risk_rows: 3.7941558441558443
+- rerank_enabled: True
+- rerank_model: Qwen/Qwen3-Reranker-0.6B
+- rerank_pool_k: 60
+- rerank_min_effective_top_k: 56
+- rerank_return_top_k: 56
+- rerank_document_text_mode: turn_with_neighbors_and_memory
+- rerank_document_neighbor_window: 1
+- rerank_document_max_memory_records: 2
+- rerank_anchor_keep: 52
+- rerank_anchor_after_top: 0
+- rerank_exchange_guard_enabled: True
+- rerank_exchange_guard_skipped_count: 880
+- rerank_exchange_guard_skipped_reasons: {'exchange_tail_protected_adjacent_session': 59, 'exchange_tail_protected_memory_source': 805, 'exchange_tail_protected_question_overlap': 16}
+- rerank_applied_count: 2
+- rerank_applied_rate: 0.0012987012987012987
+- avg_rerank_candidate_count: 60.0
+- avg_rerank_returned_count: 56.0
+- avg_rerank_tokens_when_applied: 12698.0
+- rerank_token_accounting: rerank model tokens are reported separately and are not included in build/query LLM token budgets.
+- context_budget_enabled: True
+- context_budget_max_chars: 22000
+- context_budget_min_hits: 32
+- context_budget_protect_top_n: 32
+- context_budget_max_hits: 60
+- context_budget_information_needs: ['current_state', 'fact_lookup', 'list_count', 'profile_preference', 'temporal_lookup']
+- context_budget_applied_count: 1540
+- context_budget_applied_rate: 1.0
+- avg_context_budget_candidate_count: 56.005194805194805
+- avg_context_budget_returned_count: 55.81233766233766
+- avg_context_budget_estimated_chars: 6912.803246753247
+- avg_context_budget_dropped_count: 0.19285714285714287
+- context_budget_audit_enabled: True
+- context_budget_audit_max_chars: 22000
+- context_budget_audit_min_hits: 32
+- context_budget_audit_protect_top_n: 32
+- context_budget_audit_max_hits: 60
+- context_budget_audit_information_needs: ['current_state', 'fact_lookup', 'list_count', 'profile_preference', 'temporal_lookup']
+- context_budget_audit_applied_count: 1540
+- context_budget_audit_applied_rate: 1.0
+- avg_context_budget_audit_candidate_count: 56.005194805194805
+- avg_context_budget_audit_returned_count: 55.81233766233766
+- avg_context_budget_audit_dropped_count: 0.19285714285714287
+- context_budget_audit_prompt_risk_count: 0
+- avg_context_budget_audit_prompt_missing_rows: 0.0
+- context_budget_audit_selected_context_risk_count: 0
+- avg_context_budget_audit_selected_context_missing_rows: 0.0
+- avg_embedding_tokens: 0.0
+- avg_context_chars: 17404.905844155845
+- compiler_prompt_mode: external_naive
+- compiler_memory_record_source: retrieval
+- avg_compiled_memory_records: 0.0
+- answer_mode: openai_compatible
+- answer_model: Qwen/Qwen3.6-35B-A3B
+- answer_max_input_tokens: 131072
+- answer_max_output_tokens: 16384
+- answer_chat_template_kwargs: {'enable_thinking': False}
+- answer_output_format: json_answer
+- answer_cache_enabled: True
+- answer_cache_path: outputs/cache/qwen36_no_think_build4k_answer_v296_readiness_gated_operation_guide_seeded_v294.sqlite
+- answer_cache_namespace: stage1_readiness_gated_operation_guide_v296_qwen36_no_think_build4k_seeded_v294
+- answer_cache_hits: 1537
+- answer_cache_misses: 3
+- answer_cache_writes: 3
+- answer_finalizer_enabled: False
+- answer_finalizer_applied_count: 0
+- answer_finalizer_applied_rate: 0.0
+- answer_verifier_enabled: True
+- answer_verifier_mode: source_grounded_audit
+- answer_verifier_trace_only: True
+- answer_verifier_require_structured_payload: True
+- answer_verifier_require_evidence_report: True
+- answer_verifier_check_support_presence: True
+- answer_verifier_check_sufficiency_consistency: True
+- answer_verifier_check_memory_references: True
+- answer_verifier_applied_count: 1540
+- answer_verifier_applied_rate: 1.0
+- answer_verifier_risk_sample_count: 10
+- answer_verifier_risk_sample_rate: 0.006493506493506494
+- answer_verifier_risk_flag_count: 15
+- answer_verifier_risk_reasons: {'missing_evidence_report': 5, 'answered_without_support_item': 6, 'missing_structured_payload': 3, 'sufficiency_false_but_answered': 1}
+- answer_verifier_avg_support_items: 2.3292207792207793
+- answer_verifier_avg_evidence_report_items: 3.274025974025974
+- answer_repair_enabled: False
+- answer_repair_cache_hits: 0
+- answer_repair_cache_misses: 0
+- answer_repair_cache_writes: 0
+- answer_repair_triggered_count: 0
+- answer_repair_triggered_rate: 0.0
+- answer_repair_applied_count: 0
+- answer_repair_applied_rate: 0.0
+- answer_repair_total_query_tokens: 0
+- answer_repair_avg_query_tokens_when_triggered: None
+- answer_style: concise
+- evidence_order: retrieval
+- memory_order: retrieval
+- memory_layout: flat
+- row_text_mode: full
+- max_row_text_chars: 0
+- evidence_row_labels: False
+- final_answer_checklist: False
+- max_memory_records: 0
+- route_guidance: False
+- temporal_grounding: False
+- temporal_hints: False
+- temporal_workpad: True
+- temporal_text_normalization: True
+- temporal_event_contract: True
+- temporal_workpad_scope: route
+- temporal_workpad_max_rows: 12
+- temporal_workpad_max_pairs: 12
+- event_timeline: False
+- event_timeline_information_needs: None
+- event_timeline_max_rows: 12
+- event_timeline_snippet_chars: 180
+- event_time_candidate_manifest: True
+- event_time_candidate_manifest_information_needs: ['current_state', 'list_count', 'temporal_lookup']
+- event_time_candidate_manifest_max_rows: 12
+- event_time_candidate_manifest_question_gate: True
+- event_time_candidate_manifest_grouped_view: True
+- event_time_candidate_manifest_max_groups: 8
+- event_time_candidate_manifest_snippet_chars: 160
+- event_time_candidate_map: True
+- event_time_candidate_map_information_needs: ['temporal_lookup']
+- event_time_candidate_map_max_groups: 1
+- event_time_candidate_map_snippet_chars: 140
+- event_time_candidate_map_min_terms: 2
+- event_time_candidate_map_min_coverage: 0.6
+- event_time_candidate_map_allowed_time_kinds: ['exact_today', 'explicit_date']
+- event_time_candidate_map_strip_context_wrappers: True
+- event_time_candidate_map_segment_local_context: False
+- event_time_candidate_map_rank_by_coverage: False
+- event_time_candidate_map_normalize_terms: False
+- event_time_candidate_map_exact_today_min_coverage: None
+- event_time_candidate_map_require_role_match: False
+- event_time_candidate_map_allow_time_of_day_questions: False
+- event_time_candidate_map_audit: True
+- event_time_candidate_map_temporal_ambiguity_contract: False
+- event_time_candidate_map_include_mention_time: False
+- event_time_candidate_map_mention_time_fallback: True
+- event_time_candidate_map_mention_time_fallback_min_coverage: 0.8
+- event_time_candidate_map_mention_time_fallback_trigger_max_coverage: 0.8
+- event_time_candidate_map_applied_count: 3
+- event_time_candidate_map_applied_rate: 0.001948051948051948
+- event_time_candidate_map_audit_applied_count: 241
+- event_time_candidate_map_audit_applied_rate: 0.1564935064935065
+- avg_event_time_candidate_map_audit_prompt_candidates: 0.012448132780082987
+- avg_event_time_candidate_map_audit_risk_flags: 0.03319502074688797
+- event_time_candidate_manifest_applied_count: 356
+- event_time_candidate_manifest_applied_rate: 0.23116883116883116
+- avg_event_time_candidate_manifest_items: 11.98876404494382
+- avg_event_time_candidate_manifest_groups: 6.75561797752809
+- avg_event_time_candidate_manifest_conflict_groups: 1.7640449438202248
+- event_time_candidate_manifest_safe_order_count: 2
+- operation_workpad_question_gate: False
+- personalized_advice_contract: False
+- personalized_advice_contract_applied: 0
+- context_pressure_enabled: False
+- context_pressure_max_headroom_chars: None
+- context_pressure_information_needs: None
+- context_pressure_overrides: None
+- context_pressure_applied_count: 0
+- context_pressure_applied_rate: 0.0
+- avg_context_pressure_headroom_chars: None
+- structured_guide: True
+- structured_guide_max_rows: 12
+- structured_guide_include_rows: True
+- structured_guide_include_memory: False
+- structured_guide_disabled_signals: ['personalized_recommendation']
+- structured_answer_contract: False
+- structured_answer_contract_information_needs: None
+- structured_answer_contract_max_items: 10
+- evidence_report_contract: True
+- evidence_report_information_needs: ['current_state', 'fact_lookup', 'list_count', 'profile_preference', 'temporal_lookup']
+- evidence_report_max_items: 8
+- evidence_report_detail: False
+- aggregation_report_contract: False
+- aggregation_report_information_needs: None
+- candidate_guide: False
+- candidate_guide_information_needs: None
+- candidate_guide_max_rows: 6
+- candidate_guide_snippet_chars: 160
+- update_conflict_guide: False
+- update_conflict_guide_information_needs: None
+- update_conflict_guide_max_rows: 6
+- update_conflict_guide_snippet_chars: 180
+- update_conflict_guide_applied: 0
+- memory_value_slot_guide: True
+- memory_value_slot_guide_information_needs: ['current_state']
+- memory_value_slot_guide_max_slots: 3
+- memory_value_slot_guide_max_values: 4
+- memory_value_slot_guide_memory_types: ['state']
+- memory_value_slot_guide_applied: 1
+- memory_state_guide: True
+- memory_state_guide_information_needs: ['current_state']
+- memory_state_guide_max_records: 4
+- memory_state_guide_value_chars: 120
+- memory_state_guide_include_superseded: True
+- profile_activation_guide: False
+- profile_activation_guide_information_needs: None
+- profile_activation_guide_max_records: 4
+- profile_activation_guide_value_chars: 160
+- current_state_update_contract: False
+- dialogue_inference_contract: False
+- temporal_order_contract: False
+- source_anchor_keep: 0
+- source_anchor_memory_rows: 0
+- source_anchor_per_session: 0
+- source_anchor_session_rows: 0
+- route_overrides: {'current_state': {'evidence_order': 'memory_source_interleave', 'grounded_inference_contract': True, 'grounded_inference_gate': 'modal_only', 'source_anchor_keep': 32, 'source_anchor_memory_rows': 4, 'source_anchor_per_session': 1, 'source_anchor_session_rows': 0}, 'fact_lookup': {'grounded_inference_contract': True, 'grounded_inference_gate': 'modal_only'}, 'profile_preference': {'evidence_order': 'memory_source_interleave', 'grounded_inference_contract': True, 'grounded_inference_gate': 'modal_only', 'source_anchor_keep': 32, 'source_anchor_memory_rows': 4, 'source_anchor_per_session': 1, 'source_anchor_session_rows': 0}, 'temporal_lookup': {'max_evidence_chars': 18000, 'max_evidence_items': 40}}
+- enable_broad_list_patterns: True
+- enable_recommendation_profile_patterns: True
+- enable_advice_profile_patterns: False
+- temporal_priority_over_recent: False
+
+## Outputs
+
+- predictions: /data/home_new/wujinqi/agent-memory/outputs/formal/stage1_readiness_gated_operation_guide_v296_locomo_nonadv_full_7b4c4e2/predictions.jsonl
+- traces: /data/home_new/wujinqi/agent-memory/outputs/formal/stage1_readiness_gated_operation_guide_v296_locomo_nonadv_full_7b4c4e2/traces.jsonl
+- metrics: /data/home_new/wujinqi/agent-memory/experiments/formal/stage1_readiness_gated_operation_guide_v296_locomo_nonadv_full_7b4c4e2/metrics.json
+- manifest: /data/home_new/wujinqi/agent-memory/experiments/formal/stage1_readiness_gated_operation_guide_v296_locomo_nonadv_full_7b4c4e2/manifest.json
+
+## Clean Notes
+
+- No gold/reference/target answer, judge output, benchmark label, sample id, qid, or row index is passed into the prediction pipeline.
+- Build-stage typed memory is generated only from raw dialogue and visible metadata; it is recorded separately from offline labels and judge outputs.
+- Raw context remains available for fallback and diagnosis; build memory records keep source back-links when produced by the current builder.
+- Accuracy is intentionally not computed by the prediction runner; any gold or judge metrics must be produced offline after prediction.
