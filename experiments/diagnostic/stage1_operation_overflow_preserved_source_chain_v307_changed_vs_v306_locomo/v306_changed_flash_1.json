@@ -1,0 +1,59 @@
+{
+  "api_key_env": "DEEPSEEK_API_KEY",
+  "base_url": "https://api.deepseek.com",
+  "benchmark": "locomo",
+  "clean_note": "Offline judge reads gold labels only after prediction. This output must not be consumed by prediction, retrieval, compiler, answer, or verifier.",
+  "created_at_utc": "2026-06-21T13:27:09+00:00",
+  "dry_run": false,
+  "git": {
+    "commit": "e9940e7b7d66606727acd451a4155a7c4ed05d66",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "?? experiments/diagnostic/stage1_operation_overflow_preserved_source_chain_v307_changed_vs_v306_locomo/\n?? experiments/formal/stage1_operation_overflow_preserved_source_chain_v307_lme_s_full_e9940e7/\n?? experiments/formal/stage1_operation_overflow_preserved_source_chain_v307_locomo_nonadv_full_e9940e7/"
+  },
+  "judgments": [
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "751380b946249fb8",
+      "question_type": null,
+      "raw_response": "CORRECT",
+      "record_key": "27baf30e807665dacb4ec386",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 72,
+        "completion_tokens_details": {
+          "reasoning_tokens": 69
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 117,
+        "prompt_tokens": 373,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "total_tokens": 445
+      }
+    }
+  ],
+  "labels": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_operation_overflow_preserved_source_chain_v307_changed_vs_v306_locomo/changed_labels.jsonl",
+  "metrics": {
+    "accuracy": 1.0,
+    "n_invalid": 0,
+    "n_judgments": 1,
+    "n_valid": 1
+  },
+  "model": "deepseek-v4-flash",
+  "partial_output": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_operation_overflow_preserved_source_chain_v307_changed_vs_v306_locomo/v306_changed_flash_1.json.partial.jsonl",
+  "predictions": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_operation_overflow_preserved_source_chain_v307_changed_vs_v306_locomo/v306_changed_predictions.jsonl",
+  "request_body_options": {},
+  "temperature": 0.0,
+  "thinking": null,
+  "usage": {
+    "completion_tokens": 72,
+    "prompt_tokens": 373,
+    "total_tokens": 445
+  },
+  "workers": 2
+}

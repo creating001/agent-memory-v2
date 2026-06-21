@@ -1,0 +1,1 @@
+{"benchmark": "locomo", "category": 3, "evidence": ["D4:8"], "gold_answer": "likely John's friend, colleague or family", "question": "Who is Anthony?", "question_type": null, "record_key": "27baf30e807665dacb4ec386", "source_sample_id": "conv-43", "subset": "non-adversarial"}
