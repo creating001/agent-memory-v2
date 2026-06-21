@@ -317,6 +317,12 @@ EVIDENCE_ORDER_MODES = {
     "fixed_set_memory_source_interleave",
 }
 FIXED_SET_EVIDENCE_ORDER_MODES = {"fixed_set_memory_source_interleave"}
+ROW_TEXT_MODES = {
+    "full",
+    "query_snippet",
+    "role_query_snippet",
+    "assistant_query_miss_snippet",
+}
 SUPPORTED_PROMPT_MODES = {"default", "external_naive", "raw_context_only"}
 DEFAULT_STRUCTURED_ANSWER_CONTRACT_NEEDS = ("list_count", "temporal_lookup")
 QUESTION_STOPWORDS = {
@@ -364,6 +370,7 @@ QUESTION_STOPWORDS = {
     "which",
     "who",
     "whom",
+    "with",
     "why",
     "would",
     "you",
@@ -859,11 +866,11 @@ class EvidenceCompiler:
         if memory_layout not in {"flat", "typed_sections"}:
             raise ValueError(f"Unsupported memory_layout: {memory_layout}")
         self._memory_layout = memory_layout
-        if row_text_mode not in {"full", "query_snippet", "role_query_snippet"}:
+        if row_text_mode not in ROW_TEXT_MODES:
             raise ValueError(f"Unsupported row_text_mode: {row_text_mode}")
         self._row_text_mode = row_text_mode
         self._max_row_text_chars = max_row_text_chars or 800
-        if tail_row_text_mode not in {"full", "query_snippet", "role_query_snippet"}:
+        if tail_row_text_mode not in ROW_TEXT_MODES:
             raise ValueError(f"Unsupported tail_row_text_mode: {tail_row_text_mode}")
         self._tail_row_text_mode = tail_row_text_mode
         self._tail_row_text_after_rank = max(0, int(tail_row_text_after_rank))
@@ -1711,16 +1718,12 @@ def _validate_route_overrides(
             )
         if "row_text_mode" in raw_overrides:
             row_text_mode = str(raw_overrides["row_text_mode"])
-            if row_text_mode not in {"full", "query_snippet", "role_query_snippet"}:
+            if row_text_mode not in ROW_TEXT_MODES:
                 raise ValueError(f"Unsupported row_text_mode: {row_text_mode}")
             overrides["row_text_mode"] = row_text_mode
         if "tail_row_text_mode" in raw_overrides:
             tail_row_text_mode = str(raw_overrides["tail_row_text_mode"])
-            if tail_row_text_mode not in {
-                "full",
-                "query_snippet",
-                "role_query_snippet",
-            }:
+            if tail_row_text_mode not in ROW_TEXT_MODES:
                 raise ValueError(
                     f"Unsupported tail_row_text_mode: {tail_row_text_mode}"
                 )
@@ -8723,9 +8726,26 @@ def _row_prompt_text(
         if len(text) > user_budget:
             return _query_snippet(text, question, user_budget)
         return text
+    if row_text_mode == "assistant_query_miss_snippet":
+        if role.lower() != "assistant":
+            return text
+        if _text_has_question_term(text, question):
+            return text
+        return _truncate_text(text, max_row_text_chars)
     if row_text_mode != "query_snippet":
         raise ValueError(f"Unsupported row_text_mode: {row_text_mode}")
     return _query_snippet(text, question, max_row_text_chars)
+
+
+def _text_has_question_term(text: str, question: str) -> bool:
+    terms = _content_terms(question)
+    if not terms:
+        return True
+    lower_text = text.lower()
+    for term in terms:
+        if re.search(rf"(?<![\w-]){re.escape(term)}(?![\w-])", lower_text):
+            return True
+    return False
 
 
 def _query_snippet(text: str, question: str, max_chars: int) -> str:
@@ -8739,7 +8759,7 @@ def _query_snippet(text: str, question: str, max_chars: int) -> str:
     lower_text = text.lower()
     positions: list[int] = []
     for term in terms:
-        pattern = re.compile(rf"\b{re.escape(term)}\b")
+        pattern = re.compile(rf"(?<![\w-]){re.escape(term)}(?![\w-])")
         positions.extend(match.start() for match in pattern.finditer(lower_text))
     if not positions:
         return _truncate_text(text, max_chars)

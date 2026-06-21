@@ -2388,6 +2388,89 @@ class CompilerTest(unittest.TestCase):
         self.assertNotIn("TAIL_PREFIX", compiled.prompt)
         self.assertNotIn("EXTRA_ROW_SHOULD_NOT_BE_SELECTED", compiled.prompt)
 
+    def test_assistant_query_miss_tail_snippet_preserves_supported_rows(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=5,
+            max_evidence_chars=12000,
+            prompt_mode="external_naive",
+            route_overrides={
+                "fact_lookup": {
+                    "tail_row_text_after_rank": 2,
+                    "tail_row_text_mode": "assistant_query_miss_snippet",
+                    "tail_max_row_text_chars": 80,
+                }
+            },
+        )
+
+        turns = (
+            Turn(
+                source_id="s1:t0",
+                session_id="s1",
+                turn_index=0,
+                role="assistant",
+                text="TOP_ASSISTANT_FULL_START " + ("general advice " * 20)
+                + "TOP_ASSISTANT_FULL_END",
+                timestamp="2024-01-08",
+            ),
+            Turn(
+                source_id="s1:t1",
+                session_id="s1",
+                turn_index=1,
+                role="user",
+                text="SECOND_RANK_FULL_SENTINEL",
+                timestamp="2024-01-08",
+            ),
+            Turn(
+                source_id="s1:t2",
+                session_id="s1",
+                turn_index=2,
+                role="assistant",
+                text="ASSISTANT_MISS_START " + ("unrelated planning filler " * 20)
+                + "ASSISTANT_MISS_END",
+                timestamp="2024-01-08",
+            ),
+            Turn(
+                source_id="s1:t3",
+                session_id="s1",
+                turn_index=3,
+                role="assistant",
+                text="ASSISTANT_HIT_START The degree was Business Administration. "
+                + ("support detail " * 12)
+                + "ASSISTANT_HIT_END",
+                timestamp="2024-01-08",
+            ),
+            Turn(
+                source_id="s1:t4",
+                session_id="s1",
+                turn_index=4,
+                role="user",
+                text="USER_TAIL_FULL_START " + ("unrelated user detail " * 20)
+                + "USER_TAIL_FULL_END",
+                timestamp="2024-01-08",
+            ),
+        )
+
+        compiled = compiler.compile(
+            question="What degree did I graduate with?",
+            question_time=None,
+            route=RouteResult("fact_lookup", ("factoid",)),
+            hits=(
+                RetrievalHit("s1:t0", 1.0, 1, "test"),
+                RetrievalHit("s1:t1", 0.9, 2, "test"),
+                RetrievalHit("s1:t2", 0.8, 3, "test"),
+                RetrievalHit("s1:t3", 0.7, 4, "test"),
+                RetrievalHit("s1:t4", 0.6, 5, "test"),
+            ),
+            evidence_turns=turns,
+            memory_records=(),
+        )
+
+        self.assertIn("TOP_ASSISTANT_FULL_END", compiled.prompt)
+        self.assertIn("ASSISTANT_MISS_START", compiled.prompt)
+        self.assertNotIn("ASSISTANT_MISS_END", compiled.prompt)
+        self.assertIn("ASSISTANT_HIT_END", compiled.prompt)
+        self.assertIn("USER_TAIL_FULL_END", compiled.prompt)
+
 
 if __name__ == "__main__":
     unittest.main()
