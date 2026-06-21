@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_memory_object_index_v288_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_memory_workspace_v290_query_restore_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v288 local LTS |
+| Benchmark | 当前 v290 local LTS |
 |---|---:|
 | LongMemEval-S full | strict/lenient `0.834000 / 0.846000`，avg build/query tokens `85393.566 / 6455.588` |
 | LoCoMo non-adversarial full | strict/lenient `0.794156 / 0.819481`，avg build/query tokens `62015.57402597403 / 6093.962337662338` |
 
-v288 的 LTS 理由：在 build 阶段新增 source-backed `memory_object_index_v1`，把 tier、operation、state-conflict、source-policy 和 value-slot manifest 收敛成统一 Agent Memory object interface。query compiler 优先从该 index 读取 state-only value slots，但最终 evidence 仍回到 raw Memory rows。v288 相对 v287：LongMemEval-S 和 LoCoMo full answer/prompt/route/evidence/retrieval diff 全部 `0`，build management diff 只来自新增 index，剥离后为 `0`，因此继承 v287/v283 dual judge accuracy，同时减少“build memory system 分散、typed memory 只是 retrieval hint”的系统风险。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_memory_object_index_v288_full_summary.md`。
+v290 的 LTS 理由：在 v288 `memory_object_index_v1` 基础上新增 build-owned `memory_workspace_manifest_v1`，把 source-backed activation group、memory tier、lifecycle state、conflict state、operation hints 和 context-pack policy 收敛成统一 memory workspace。v290 恢复 v288 query behavior，关闭 v289 的 compact workspace plan；相对 v288，LongMemEval-S 和 LoCoMo full answer/prompt/route/compiled evidence/compiled memory/stable retrieval/build records diff 全部 `0`，因此继承 v288 dual judge accuracy，同时降低 build memory system 不够系统化的风险。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_memory_workspace_v290_query_restore_full_summary.md`。
 
 ## 目录
 

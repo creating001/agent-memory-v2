@@ -1,0 +1,72 @@
+{
+  "description": "v290 query-restore diff audit against v288 LTS. retrieval_stable ignores volatile retrieval trace keys: embedding_cache, rerank_response.",
+  "volatile_retrieval_keys": [
+    "embedding_cache",
+    "rerank_response"
+  ],
+  "pairs": [
+    {
+      "benchmark": "longmemeval-s",
+      "n_old_predictions": 500,
+      "n_new_predictions": 500,
+      "n_old_traces": 500,
+      "n_new_traces": 500,
+      "diff_counts": {
+        "answer": 0,
+        "prompt": 0,
+        "route": 0,
+        "compiled_evidence": 0,
+        "compiled_memory": 0,
+        "retrieval_raw": 0,
+        "retrieval_stable": 0,
+        "build_records": 0,
+        "memory_object_index_summary": 0,
+        "workspace_manifest_summary": 500
+      },
+      "diff_examples": {
+        "workspace_manifest_summary": [
+          "004224772b616dd627a96a35",
+          "00c7a05a91938a123f46650c",
+          "02e16bd2f4719927af0b2006",
+          "040a4510206229039b25c860",
+          "043303ed21aae98eeeba9d0e"
+        ]
+      }
+    },
+    {
+      "benchmark": "locomo",
+      "n_old_predictions": 1540,
+      "n_new_predictions": 1540,
+      "n_old_traces": 1540,
+      "n_new_traces": 1540,
+      "diff_counts": {
+        "answer": 0,
+        "prompt": 0,
+        "route": 0,
+        "compiled_evidence": 0,
+        "compiled_memory": 0,
+        "retrieval_raw": 10,
+        "retrieval_stable": 0,
+        "build_records": 0,
+        "memory_object_index_summary": 0,
+        "workspace_manifest_summary": 1540
+      },
+      "diff_examples": {
+        "retrieval_raw": [
+          "2135d59179a15a1917237e23",
+          "27baf30e807665dacb4ec386",
+          "64e51d8f2b9b17e45dd03ff6",
+          "7626d7e7e74558461ed93a39",
+          "7f1a1fb0fad8829a2c63f579"
+        ],
+        "workspace_manifest_summary": [
+          "00314c7eed1f53455d0d7bb6",
+          "0063882ab0a923bfdb529626",
+          "00cb2762eabaf86347b3330f",
+          "00d3ade031c967a337a45caa",
+          "0103488090eae48e0eec23b5"
+        ]
+      }
+    }
+  ]
+}
