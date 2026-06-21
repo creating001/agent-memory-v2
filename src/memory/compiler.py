@@ -247,6 +247,8 @@ ROUTE_OVERRIDE_KEYS = {
     "memory_operation_plan_guide_render_values",
     "memory_operation_plan_guide_require_readiness",
     "memory_operation_plan_guide_required_readiness_modes",
+    "memory_operation_readiness_audit",
+    "memory_operation_readiness_audit_max_plans",
     "memory_workspace_plan",
     "memory_workspace_plan_max_groups",
     "memory_workspace_plan_max_values",
@@ -479,6 +481,11 @@ class EvidenceCompiler:
         memory_operation_plan_guide_required_readiness_modes: tuple[str, ...] = (
             MEMORY_OPERATION_PLAN_REQUIRED_READINESS_MODES
         ),
+        memory_operation_readiness_audit: bool = False,
+        memory_operation_readiness_audit_information_needs: tuple[str, ...] = (
+            "current_state",
+        ),
+        memory_operation_readiness_audit_max_plans: int = 4,
         memory_workspace_plan: bool = False,
         memory_workspace_plan_information_needs: tuple[str, ...] = (
             "current_state",
@@ -783,6 +790,18 @@ class EvidenceCompiler:
             _validate_operation_plan_readiness_modes(
                 memory_operation_plan_guide_required_readiness_modes
             )
+        )
+        self._memory_operation_readiness_audit = bool(
+            memory_operation_readiness_audit
+        )
+        self._memory_operation_readiness_audit_information_needs = (
+            _validate_information_needs(
+                memory_operation_readiness_audit_information_needs,
+                field_name="memory_operation_readiness_audit_information_needs",
+            )
+        )
+        self._memory_operation_readiness_audit_max_plans = max(
+            1, int(memory_operation_readiness_audit_max_plans)
         )
         self._memory_workspace_plan = bool(memory_workspace_plan)
         self._memory_workspace_plan_information_needs = _validate_information_needs(
@@ -1295,6 +1314,26 @@ class EvidenceCompiler:
             )
             if memory_state_ledger["applied"]:
                 diagnostics["source_backed_memory_state_ledger"] = memory_state_ledger
+        if (
+            route_settings["memory_operation_readiness_audit"]
+            and route.information_need
+            in self._memory_operation_readiness_audit_information_needs
+        ):
+            diagnostics["memory_operation_readiness_audit"] = (
+                _memory_operation_readiness_audit(
+                    question=question,
+                    route=route,
+                    rows=laid_out_rows,
+                    memory_operation_plan=memory_operation_plan,
+                    memory_query_readiness_manifest=memory_query_readiness_manifest,
+                    max_plans=route_settings[
+                        "memory_operation_readiness_audit_max_plans"
+                    ],
+                    required_readiness_modes=route_settings[
+                        "memory_operation_plan_guide_required_readiness_modes"
+                    ],
+                )
+            )
         if self._event_time_candidate_manifest:
             diagnostics["event_time_candidate_manifest"] = (
                 _event_time_candidate_manifest(
@@ -1439,6 +1478,12 @@ class EvidenceCompiler:
             ),
             "memory_operation_plan_guide_required_readiness_modes": (
                 self._memory_operation_plan_guide_required_readiness_modes
+            ),
+            "memory_operation_readiness_audit": (
+                self._memory_operation_readiness_audit
+            ),
+            "memory_operation_readiness_audit_max_plans": (
+                self._memory_operation_readiness_audit_max_plans
             ),
             "memory_workspace_plan": self._memory_workspace_plan,
             "memory_workspace_plan_max_groups": (
@@ -1940,6 +1985,14 @@ def _validate_route_overrides(
                         "memory_operation_plan_guide_required_readiness_modes"
                     ]
                 )
+            )
+        if "memory_operation_readiness_audit" in raw_overrides:
+            overrides["memory_operation_readiness_audit"] = bool(
+                raw_overrides["memory_operation_readiness_audit"]
+            )
+        if "memory_operation_readiness_audit_max_plans" in raw_overrides:
+            overrides["memory_operation_readiness_audit_max_plans"] = max(
+                1, int(raw_overrides["memory_operation_readiness_audit_max_plans"])
             )
         if "memory_workspace_plan" in raw_overrides:
             overrides["memory_workspace_plan"] = bool(
@@ -4856,6 +4909,142 @@ def _operation_plan_readiness_fields(
         if answer_gate:
             fields.append(f"answer_gate={_truncate_text(answer_gate, 42)}")
     return tuple(fields)
+
+
+def _memory_operation_readiness_audit(
+    *,
+    question: str,
+    route: RouteResult,
+    rows: tuple[EvidenceRow, ...],
+    memory_operation_plan: Mapping[str, Any] | None,
+    memory_query_readiness_manifest: Mapping[str, Any] | None,
+    max_plans: int,
+    required_readiness_modes: tuple[str, ...],
+) -> dict[str, Any]:
+    audit: dict[str, Any] = {
+        "enabled": True,
+        "applied": False,
+        "trace_only": True,
+        "information_need": route.information_need,
+        "required_readiness_modes": list(required_readiness_modes),
+        "candidate_count": 0,
+        "ready_visible_plan_count": 0,
+        "selected_plans": [],
+        "clean_note": (
+            "Trace-only readiness audit from build-owned operation plans. It is "
+            "not included in the answer prompt, answer cache key, retrieval, "
+            "repair, or finalizer."
+        ),
+    }
+    if (
+        not rows
+        or not memory_operation_plan
+        or not memory_operation_plan.get("applied")
+        or max_plans <= 0
+    ):
+        audit["reason"] = "missing_rows_or_operation_plan"
+        return audit
+    raw_plans = memory_operation_plan.get("workspace_operation_plans") or ()
+    if not isinstance(raw_plans, Iterable) or isinstance(raw_plans, (str, bytes)):
+        audit["reason"] = "invalid_operation_plan"
+        return audit
+    source_to_memory_index = {
+        row.source_id: index for index, row in enumerate(rows, start=1)
+    }
+    readiness_by_slot = _memory_query_readiness_by_slot(
+        memory_query_readiness_manifest
+    )
+    question_terms = _content_terms(question).difference(
+        MEMORY_STATE_GUIDE_ALIGNMENT_WEAK_TERMS
+    )
+    question_scope = _workspace_question_scope(question, route)
+    candidates: list[
+        tuple[float, int, Mapping[str, Any], tuple[str, ...], Mapping[str, Any]]
+    ] = []
+    raw_candidate_count = 0
+    for ordinal, raw_plan in enumerate(raw_plans):
+        if not isinstance(raw_plan, Mapping):
+            continue
+        raw_candidate_count += 1
+        if raw_plan.get("source_backed") is False:
+            continue
+        if str(raw_plan.get("memory_tier") or "") == "quarantine_memory":
+            continue
+        readiness = _operation_plan_query_readiness(
+            raw_plan,
+            readiness_by_slot=readiness_by_slot,
+            require_readiness=True,
+            required_readiness_modes=required_readiness_modes,
+        )
+        if readiness is None:
+            continue
+        source_labels = _operation_plan_source_labels(
+            raw_plan,
+            source_to_memory_index=source_to_memory_index,
+            question_scope=question_scope,
+        )
+        if not source_labels:
+            continue
+        score = _operation_plan_score(
+            raw_plan,
+            question_terms=question_terms,
+            route=route,
+            question_scope=question_scope,
+        )
+        if score <= 0:
+            continue
+        candidates.append((score, -ordinal, raw_plan, source_labels, readiness))
+    audit["candidate_count"] = raw_candidate_count
+    audit["ready_visible_plan_count"] = len(candidates)
+    if not candidates:
+        audit["reason"] = "no_ready_visible_plan"
+        return audit
+    candidates.sort(reverse=True)
+    selected = sorted(
+        candidates[:max_plans],
+        key=lambda item: (
+            str(item[2].get("memory_tier") or ""),
+            str(item[2].get("memory_type") or ""),
+            str(item[2].get("subject") or ""),
+            str(item[2].get("predicate") or ""),
+            item[1],
+        ),
+    )
+    selected_plans: list[dict[str, Any]] = []
+    for score, _, plan, source_labels, readiness in selected:
+        query_gate = readiness.get("query_gate") or {}
+        verification = readiness.get("verification_readiness") or {}
+        selected_plans.append(
+            {
+                "slot_id": str(plan.get("slot_id") or ""),
+                "score": score,
+                "memory_tier": str(plan.get("memory_tier") or ""),
+                "memory_type": str(plan.get("memory_type") or ""),
+                "subject": _single_line(str(plan.get("subject") or "")),
+                "predicate": _single_line(str(plan.get("predicate") or "")),
+                "lifecycle_state": str(plan.get("lifecycle_state") or ""),
+                "readiness_state": str(readiness.get("readiness_state") or ""),
+                "safe_consumption_modes": list(
+                    readiness.get("safe_consumption_modes") or ()
+                )[:8],
+                "replace_state_value_guide_allowed": bool(
+                    isinstance(query_gate, Mapping)
+                    and query_gate.get("replace_state_value_guide_allowed", False)
+                ),
+                "answer_gate": (
+                    str(verification.get("answer_gate") or "")
+                    if isinstance(verification, Mapping)
+                    else ""
+                ),
+                "source_labels": list(source_labels[:8]),
+                "operation_sequence": list(plan.get("operation_sequence") or ())[:8],
+                "values_rendered_to_prompt": False,
+            }
+        )
+    audit["applied"] = True
+    audit["reason"] = "ready_visible_plans_selected"
+    audit["selected_plans"] = selected_plans
+    return audit
 
 
 def _operation_plan_source_labels(

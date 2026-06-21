@@ -1317,6 +1317,18 @@ class Stage1Pipeline:
                     ),
                 )
             ),
+            memory_operation_readiness_audit=bool(
+                compiler_config.get("memory_operation_readiness_audit", False)
+            ),
+            memory_operation_readiness_audit_information_needs=_tuple_config(
+                compiler_config.get(
+                    "memory_operation_readiness_audit_information_needs",
+                    ("current_state",),
+                )
+            ),
+            memory_operation_readiness_audit_max_plans=int(
+                compiler_config.get("memory_operation_readiness_audit_max_plans", 4)
+            ),
             memory_workspace_plan=bool(
                 compiler_config.get("memory_workspace_plan", False)
             ),
@@ -8552,6 +8564,18 @@ def _compiler_trace_config(
                 ("additive_index", "source_expansion", "context_organization"),
             )
         ),
+        "memory_operation_readiness_audit": bool(
+            compiler_config.get("memory_operation_readiness_audit", False)
+        ),
+        "memory_operation_readiness_audit_information_needs": _tuple_config(
+            compiler_config.get(
+                "memory_operation_readiness_audit_information_needs",
+                ("current_state",),
+            )
+        ),
+        "memory_operation_readiness_audit_max_plans": int(
+            compiler_config.get("memory_operation_readiness_audit_max_plans", 4)
+        ),
         "memory_workspace_plan": bool(
             compiler_config.get("memory_workspace_plan", False)
         ),
@@ -8963,6 +8987,18 @@ def _configured_compiler(compiler_config: Mapping[str, Any]) -> EvidenceCompiler
                 "memory_operation_plan_guide_required_readiness_modes",
                 ("additive_index", "source_expansion", "context_organization"),
             )
+        ),
+        memory_operation_readiness_audit=bool(
+            compiler_config.get("memory_operation_readiness_audit", False)
+        ),
+        memory_operation_readiness_audit_information_needs=_tuple_config(
+            compiler_config.get(
+                "memory_operation_readiness_audit_information_needs",
+                ("current_state",),
+            )
+        ),
+        memory_operation_readiness_audit_max_plans=int(
+            compiler_config.get("memory_operation_readiness_audit_max_plans", 4)
         ),
         memory_workspace_plan=bool(
             compiler_config.get("memory_workspace_plan", False)
