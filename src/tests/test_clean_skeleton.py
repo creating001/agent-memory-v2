@@ -53,6 +53,7 @@ from memory.pipeline import (
     _memory_lifecycle_manifest,
     _memory_object_slot_index,
     _memory_object_slot_source_hits,
+    _memory_operation_source_expansion_hits,
     _memory_operation_utility_source_hits,
     _memory_slot_chain_source_hits,
     _memory_records_by_source,
@@ -4522,6 +4523,83 @@ class CleanSkeletonTest(unittest.TestCase):
         )
         self.assertIn("supersede", trace["slots"][0]["signals"])
         self.assertEqual(trace["slots"][0]["status_counts"], {"active": 1, "superseded": 1})
+
+    def test_memory_operation_source_expansion_uses_guarded_plan_sources(
+        self,
+    ) -> None:
+        operation_plan = {
+            "applied": True,
+            "workspace_operation_plans": [
+                {
+                    "slot_id": "state:alex:home_city",
+                    "source_backed": True,
+                    "memory_tier": "long_term_memory",
+                    "memory_type": "state",
+                    "subject": "Alex",
+                    "predicate": "home city",
+                    "lifecycle_state": "active_with_history",
+                    "operation_sequence": [
+                        "create_value_object",
+                        "supersede_value",
+                        "expand_value_source",
+                    ],
+                    "state_management_plan": {
+                        "active_values": ["Seattle"],
+                        "superseded_values": ["Austin"],
+                    },
+                    "source_expansion_plan": {
+                        "current_source_order": ["s2:t0"],
+                        "historical_source_order": ["s1:t0"],
+                        "all_source_ids": ["s2:t0", "s1:t0"],
+                    },
+                }
+            ],
+        }
+        readiness_manifest = {
+            "applied": True,
+            "readiness_index": [
+                {
+                    "slot_id": "state:alex:home_city",
+                    "readiness_state": "guarded_ready",
+                    "safe_consumption_modes": [
+                        "source_expansion",
+                        "context_organization",
+                    ],
+                    "query_gate": {"requires_visible_raw_rows": True},
+                }
+            ],
+        }
+
+        hits, trace = _memory_operation_source_expansion_hits(
+            question="Where does Alex live now?",
+            route=RouteResult("current_state", ("current_state",)),
+            memory_operation_plan=operation_plan,
+            memory_query_readiness_manifest=readiness_manifest,
+            available_source_ids={"s1:t0", "s2:t0"},
+            candidate_source_ids={"s2:t0"},
+            max_plans=2,
+            max_sources_per_plan=2,
+            max_total_sources=2,
+            min_overlap_terms=1,
+            memory_types=("state",),
+            required_readiness_modes=("source_expansion",),
+            require_new_source=True,
+            fusion_mode="tail_exchange",
+            tail_exchange_protect_top_n=56,
+            tail_exchange_max_swaps=2,
+        )
+
+        self.assertTrue(trace["applied"])
+        self.assertEqual(trace["existing_source_count"], 1)
+        self.assertEqual(trace["missing_source_count"], 1)
+        self.assertEqual(trace["emitted_source_count"], 1)
+        self.assertEqual([hit.source_id for hit in hits], ["s1:t0"])
+        self.assertEqual(
+            {hit.retriever for hit in hits},
+            {"build_memory_operation_source_expansion"},
+        )
+        self.assertEqual(trace["plans"][0]["emitted_source_ids"], ["s1:t0"])
+        self.assertFalse(trace["plans"][0]["values_rendered_to_prompt"])
 
     def test_memory_graph_utility_can_require_lifecycle_signal(self) -> None:
         record = MemoryRecord(

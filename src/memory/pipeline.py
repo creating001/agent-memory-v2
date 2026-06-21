@@ -137,6 +137,13 @@ class Stage1Pipeline:
         operation_utility_config = retrieval_config.get("operation_utility", {})
         if not isinstance(operation_utility_config, Mapping):
             raise ValueError("retrieval.operation_utility must be an object")
+        operation_source_expansion_config = retrieval_config.get(
+            "operation_source_expansion", {}
+        )
+        if not isinstance(operation_source_expansion_config, Mapping):
+            raise ValueError(
+                "retrieval.operation_source_expansion must be an object"
+            )
         graph_utility_config = retrieval_config.get("graph_utility", {})
         if not isinstance(graph_utility_config, Mapping):
             raise ValueError("retrieval.graph_utility must be an object")
@@ -531,6 +538,62 @@ class Stage1Pipeline:
         )
         self._operation_utility_tail_exchange_max_swaps = int(
             operation_utility_config.get("tail_exchange_max_swaps", 0)
+        )
+        self._operation_source_expansion_enabled = bool(
+            operation_source_expansion_config.get("enabled", False)
+        )
+        self._operation_source_expansion_information_needs = _tuple_config(
+            operation_source_expansion_config.get("information_needs", ("current_state",))
+        )
+        self._operation_source_expansion_required_readiness_modes = _tuple_config(
+            operation_source_expansion_config.get(
+                "required_readiness_modes", ("source_expansion",)
+            )
+        )
+        self._operation_source_expansion_memory_types = _tuple_config(
+            operation_source_expansion_config.get(
+                "memory_types",
+                (
+                    "preference",
+                    "profile",
+                    "relationship",
+                    "state",
+                ),
+            )
+        )
+        self._operation_source_expansion_max_plans = int(
+            operation_source_expansion_config.get("max_plans", 2)
+        )
+        self._operation_source_expansion_max_sources_per_plan = int(
+            operation_source_expansion_config.get("max_sources_per_plan", 2)
+        )
+        self._operation_source_expansion_max_total_sources = int(
+            operation_source_expansion_config.get("max_total_sources", 2)
+        )
+        self._operation_source_expansion_min_overlap_terms = int(
+            operation_source_expansion_config.get("min_overlap_terms", 1)
+        )
+        self._operation_source_expansion_require_new_source = bool(
+            operation_source_expansion_config.get("require_new_source", True)
+        )
+        self._operation_source_expansion_fusion_mode = str(
+            operation_source_expansion_config.get("fusion_mode", "tail_exchange")
+        )
+        if self._operation_source_expansion_fusion_mode not in {
+            "audit",
+            "tail_rescue",
+            "tail_exchange",
+            "overflow_tail_rescue",
+        }:
+            raise ValueError(
+                "retrieval.operation_source_expansion.fusion_mode must be "
+                "audit, tail_rescue, tail_exchange, or overflow_tail_rescue"
+            )
+        self._operation_source_expansion_tail_exchange_protect_top_n = int(
+            operation_source_expansion_config.get("tail_exchange_protect_top_n", 56)
+        )
+        self._operation_source_expansion_tail_exchange_max_swaps = int(
+            operation_source_expansion_config.get("tail_exchange_max_swaps", 2)
         )
         self._graph_utility_enabled = bool(
             graph_utility_config.get("enabled", False)
@@ -1921,6 +1984,12 @@ class Stage1Pipeline:
                 source_order=self._build_memory_source_alignment_source_order,
             )
             built_memory = replace(built_memory, records=aligned_records)
+        memory_operation_plan = _memory_operation_plan_from_management(
+            built_memory.management
+        )
+        memory_query_readiness_manifest = (
+            _memory_query_readiness_manifest_from_management(built_memory.management)
+        )
         (
             memory_activation_records,
             memory_governance_activation_trace,
@@ -1959,6 +2028,7 @@ class Stage1Pipeline:
         memory_slot_chain_source_hits = ()
         object_slot_source_hits = ()
         operation_utility_source_hits = ()
+        operation_source_expansion_source_hits = ()
         graph_utility_source_hits = ()
         memory_slot_chain_trace = _disabled_memory_slot_chain_trace(
             enabled=self._memory_slot_chain_enabled,
@@ -2020,6 +2090,38 @@ class Stage1Pipeline:
             tail_exchange_max_swaps=(
                 self._operation_utility_tail_exchange_max_swaps
             ),
+        )
+        operation_source_expansion_trace = (
+            _disabled_operation_source_expansion_trace(
+                enabled=self._operation_source_expansion_enabled,
+                information_needs=(
+                    self._operation_source_expansion_information_needs
+                ),
+                required_readiness_modes=(
+                    self._operation_source_expansion_required_readiness_modes
+                ),
+                memory_types=self._operation_source_expansion_memory_types,
+                max_plans=self._operation_source_expansion_max_plans,
+                max_sources_per_plan=(
+                    self._operation_source_expansion_max_sources_per_plan
+                ),
+                max_total_sources=(
+                    self._operation_source_expansion_max_total_sources
+                ),
+                min_overlap_terms=(
+                    self._operation_source_expansion_min_overlap_terms
+                ),
+                require_new_source=(
+                    self._operation_source_expansion_require_new_source
+                ),
+                fusion_mode=self._operation_source_expansion_fusion_mode,
+                tail_exchange_protect_top_n=(
+                    self._operation_source_expansion_tail_exchange_protect_top_n
+                ),
+                tail_exchange_max_swaps=(
+                    self._operation_source_expansion_tail_exchange_max_swaps
+                ),
+            )
         )
         graph_utility_trace = _disabled_graph_utility_trace(
             enabled=self._graph_utility_enabled,
@@ -2514,6 +2616,80 @@ class Stage1Pipeline:
                         + max(0, self._graph_utility_overflow_max_hits)
                     ),
                 )
+        if _operation_source_expansion_applies(
+            enabled=self._operation_source_expansion_enabled,
+            route=route,
+            information_needs=self._operation_source_expansion_information_needs,
+        ):
+            (
+                operation_source_expansion_source_hits,
+                operation_source_expansion_trace,
+            ) = _memory_operation_source_expansion_hits(
+                question=request.question,
+                route=route,
+                memory_operation_plan=memory_operation_plan,
+                memory_query_readiness_manifest=memory_query_readiness_manifest,
+                available_source_ids={turn.source_id for turn in store.turns},
+                candidate_source_ids=set(_source_ids_from_hits(hits)),
+                max_plans=self._operation_source_expansion_max_plans,
+                max_sources_per_plan=(
+                    self._operation_source_expansion_max_sources_per_plan
+                ),
+                max_total_sources=(
+                    self._operation_source_expansion_max_total_sources
+                ),
+                min_overlap_terms=(
+                    self._operation_source_expansion_min_overlap_terms
+                ),
+                memory_types=self._operation_source_expansion_memory_types,
+                required_readiness_modes=(
+                    self._operation_source_expansion_required_readiness_modes
+                ),
+                require_new_source=(
+                    self._operation_source_expansion_require_new_source
+                ),
+                fusion_mode=self._operation_source_expansion_fusion_mode,
+                tail_exchange_protect_top_n=(
+                    self._operation_source_expansion_tail_exchange_protect_top_n
+                ),
+                tail_exchange_max_swaps=(
+                    self._operation_source_expansion_tail_exchange_max_swaps
+                ),
+            )
+            if operation_source_expansion_source_hits and (
+                self._operation_source_expansion_fusion_mode == "tail_rescue"
+            ):
+                hits = _append_tail_rescue_hits(
+                    hits,
+                    operation_source_expansion_source_hits,
+                    top_k=candidate_top_k,
+                )
+            if operation_source_expansion_source_hits and (
+                self._operation_source_expansion_fusion_mode == "tail_exchange"
+            ):
+                hits = _append_tail_exchange_hits(
+                    hits,
+                    operation_source_expansion_source_hits,
+                    top_k=candidate_top_k,
+                    protect_top_n=(
+                        self._operation_source_expansion_tail_exchange_protect_top_n
+                    ),
+                    max_swaps=(
+                        self._operation_source_expansion_tail_exchange_max_swaps
+                    ),
+                )
+            if operation_source_expansion_source_hits and (
+                self._operation_source_expansion_fusion_mode
+                == "overflow_tail_rescue"
+            ):
+                hits = _append_tail_rescue_hits(
+                    hits,
+                    operation_source_expansion_source_hits,
+                    top_k=(
+                        candidate_top_k
+                        + max(0, self._operation_source_expansion_max_total_sources)
+                    ),
+                )
         embedding_cache_after = _embedding_cache_stats(self._embedding_client)
         turn_hits = hits
         pre_rerank_hits = hits
@@ -2548,6 +2724,7 @@ class Stage1Pipeline:
                     if self._operation_utility_fusion_mode == "rrf"
                     else ()
                 ),
+                *_source_ids_from_hits(operation_source_expansion_source_hits),
                 *(
                     _source_ids_from_hits(graph_utility_source_hits)
                     if self._graph_utility_fusion_mode
@@ -2737,12 +2914,8 @@ class Stage1Pipeline:
             memory_workspace_manifest=_memory_workspace_manifest_from_management(
                 built_memory.management
             ),
-            memory_operation_plan=_memory_operation_plan_from_management(
-                built_memory.management
-            ),
-            memory_query_readiness_manifest=_memory_query_readiness_manifest_from_management(
-                built_memory.management
-            ),
+            memory_operation_plan=memory_operation_plan,
+            memory_query_readiness_manifest=memory_query_readiness_manifest,
         )
         memory_lifecycle_manifest = _memory_lifecycle_manifest(
             question=request.question,
@@ -2793,6 +2966,9 @@ class Stage1Pipeline:
             memory_slot_chain_source_hits=memory_slot_chain_source_hits,
             object_slot_source_hits=object_slot_source_hits,
             operation_utility_source_hits=operation_utility_source_hits,
+            operation_source_expansion_source_hits=(
+                operation_source_expansion_source_hits
+            ),
             graph_utility_source_hits=graph_utility_source_hits,
             turn_window_source_hits=turn_window_source_hits,
             pre_context_budget_hits=pre_context_budget_hits,
@@ -3258,6 +3434,73 @@ class Stage1Pipeline:
                     "operation_utility_slots": operation_utility_trace["slots"],
                     "operation_utility_skipped_reason": (
                         operation_utility_trace["skipped_reason"]
+                    ),
+                    "operation_source_expansion_enabled": (
+                        self._operation_source_expansion_enabled
+                    ),
+                    "operation_source_expansion_applied": (
+                        operation_source_expansion_trace["applied"]
+                    ),
+                    "operation_source_expansion_information_needs": (
+                        self._operation_source_expansion_information_needs
+                    ),
+                    "operation_source_expansion_required_readiness_modes": (
+                        self._operation_source_expansion_required_readiness_modes
+                    ),
+                    "operation_source_expansion_memory_types": (
+                        self._operation_source_expansion_memory_types
+                    ),
+                    "operation_source_expansion_max_plans": (
+                        self._operation_source_expansion_max_plans
+                    ),
+                    "operation_source_expansion_max_sources_per_plan": (
+                        self._operation_source_expansion_max_sources_per_plan
+                    ),
+                    "operation_source_expansion_max_total_sources": (
+                        self._operation_source_expansion_max_total_sources
+                    ),
+                    "operation_source_expansion_min_overlap_terms": (
+                        self._operation_source_expansion_min_overlap_terms
+                    ),
+                    "operation_source_expansion_require_new_source": (
+                        self._operation_source_expansion_require_new_source
+                    ),
+                    "operation_source_expansion_fusion_mode": (
+                        self._operation_source_expansion_fusion_mode
+                    ),
+                    "operation_source_expansion_tail_exchange_protect_top_n": (
+                        self._operation_source_expansion_tail_exchange_protect_top_n
+                    ),
+                    "operation_source_expansion_tail_exchange_max_swaps": (
+                        self._operation_source_expansion_tail_exchange_max_swaps
+                    ),
+                    "operation_source_expansion_source_hits": [
+                        hit.to_dict()
+                        for hit in operation_source_expansion_source_hits
+                    ],
+                    "operation_source_expansion_question_scope": (
+                        operation_source_expansion_trace["question_scope"]
+                    ),
+                    "operation_source_expansion_candidate_plan_count": (
+                        operation_source_expansion_trace["candidate_plan_count"]
+                    ),
+                    "operation_source_expansion_selected_plan_count": (
+                        operation_source_expansion_trace["selected_plan_count"]
+                    ),
+                    "operation_source_expansion_emitted_source_count": (
+                        operation_source_expansion_trace["emitted_source_count"]
+                    ),
+                    "operation_source_expansion_existing_source_count": (
+                        operation_source_expansion_trace["existing_source_count"]
+                    ),
+                    "operation_source_expansion_missing_source_count": (
+                        operation_source_expansion_trace["missing_source_count"]
+                    ),
+                    "operation_source_expansion_plans": (
+                        operation_source_expansion_trace["plans"]
+                    ),
+                    "operation_source_expansion_skipped_reason": (
+                        operation_source_expansion_trace["skipped_reason"]
                     ),
                     "graph_utility_enabled": self._graph_utility_enabled,
                     "graph_utility_applied": graph_utility_trace["applied"],
@@ -4346,6 +4589,7 @@ def _context_manifest(
     compiled_context_chars: int | None = None,
     object_slot_source_hits: tuple[Any, ...] = (),
     operation_utility_source_hits: tuple[Any, ...] = (),
+    operation_source_expansion_source_hits: tuple[Any, ...] = (),
     graph_utility_source_hits: tuple[Any, ...] = (),
 ) -> dict[str, Any]:
     """Trace-only source flow manifest for memory/context organization.
@@ -4366,6 +4610,7 @@ def _context_manifest(
             *_source_ids_from_hits(memory_slot_chain_source_hits),
             *_source_ids_from_hits(object_slot_source_hits),
             *_source_ids_from_hits(operation_utility_source_hits),
+            *_source_ids_from_hits(operation_source_expansion_source_hits),
             *_source_ids_from_hits(graph_utility_source_hits),
         )
     )
@@ -4409,6 +4654,9 @@ def _context_manifest(
             "operation_utility_source_hit_count": len(
                 operation_utility_source_hits
             ),
+            "operation_source_expansion_source_hit_count": len(
+                operation_source_expansion_source_hits
+            ),
             "graph_utility_source_hit_count": len(graph_utility_source_hits),
             "turn_window_source_hit_count": len(turn_window_source_hits),
             "pre_context_budget_hit_count": len(pre_context_budget_hits),
@@ -4430,6 +4678,9 @@ def _context_manifest(
             ),
             "operation_utility_source_ids": _source_ids_from_hits(
                 operation_utility_source_hits
+            ),
+            "operation_source_expansion_source_ids": _source_ids_from_hits(
+                operation_source_expansion_source_hits
             ),
             "graph_utility_source_ids": _source_ids_from_hits(
                 graph_utility_source_hits
@@ -5408,6 +5659,429 @@ def _memory_operation_utility_source_hits(
         "operation_counts": dict(sorted(operation_counts.items())),
         "slots": slot_traces,
     }
+
+
+def _operation_source_expansion_applies(
+    *,
+    enabled: bool,
+    route: RouteResult,
+    information_needs: tuple[str, ...],
+) -> bool:
+    if not enabled:
+        return False
+    if information_needs and route.information_need not in information_needs:
+        return False
+    return route.information_need in SUPPORTED_INFORMATION_NEEDS
+
+
+def _disabled_operation_source_expansion_trace(
+    *,
+    enabled: bool,
+    information_needs: tuple[str, ...],
+    required_readiness_modes: tuple[str, ...],
+    memory_types: tuple[str, ...],
+    max_plans: int,
+    max_sources_per_plan: int,
+    max_total_sources: int,
+    min_overlap_terms: int,
+    require_new_source: bool,
+    fusion_mode: str,
+    tail_exchange_protect_top_n: int,
+    tail_exchange_max_swaps: int,
+    question_scope: str = "unspecified",
+    skipped_reason: str = "",
+) -> dict[str, Any]:
+    return {
+        "enabled": enabled,
+        "applied": False,
+        "information_needs": information_needs,
+        "required_readiness_modes": required_readiness_modes,
+        "memory_types": memory_types,
+        "max_plans": max_plans,
+        "max_sources_per_plan": max_sources_per_plan,
+        "max_total_sources": max_total_sources,
+        "min_overlap_terms": min_overlap_terms,
+        "require_new_source": require_new_source,
+        "fusion_mode": fusion_mode,
+        "tail_exchange_protect_top_n": tail_exchange_protect_top_n,
+        "tail_exchange_max_swaps": tail_exchange_max_swaps,
+        "question_scope": question_scope,
+        "candidate_plan_count": 0,
+        "selected_plan_count": 0,
+        "emitted_source_count": 0,
+        "existing_source_count": 0,
+        "missing_source_count": 0,
+        "skipped_reason": skipped_reason,
+        "plans": [],
+        "clean_note": (
+            "Source-backed retrieval action from build-owned operation plans. "
+            "It consumes only guarded readiness and source_expansion_plan "
+            "pointers, emits raw source_id hits, and never renders synthetic "
+            "memory values as final evidence."
+        ),
+    }
+
+
+def _memory_operation_source_expansion_hits(
+    *,
+    question: str,
+    route: RouteResult,
+    memory_operation_plan: Mapping[str, Any] | None,
+    memory_query_readiness_manifest: Mapping[str, Any] | None,
+    available_source_ids: set[str],
+    candidate_source_ids: set[str],
+    max_plans: int,
+    max_sources_per_plan: int,
+    max_total_sources: int,
+    min_overlap_terms: int,
+    memory_types: tuple[str, ...],
+    required_readiness_modes: tuple[str, ...],
+    require_new_source: bool,
+    fusion_mode: str,
+    tail_exchange_protect_top_n: int,
+    tail_exchange_max_swaps: int,
+) -> tuple[tuple[RetrievalHit, ...], dict[str, Any]]:
+    question_scope = _memory_slot_chain_question_scope(question)
+    trace = _disabled_operation_source_expansion_trace(
+        enabled=True,
+        information_needs=(route.information_need,),
+        required_readiness_modes=required_readiness_modes,
+        memory_types=memory_types,
+        max_plans=max_plans,
+        max_sources_per_plan=max_sources_per_plan,
+        max_total_sources=max_total_sources,
+        min_overlap_terms=min_overlap_terms,
+        require_new_source=require_new_source,
+        fusion_mode=fusion_mode,
+        tail_exchange_protect_top_n=tail_exchange_protect_top_n,
+        tail_exchange_max_swaps=tail_exchange_max_swaps,
+        question_scope=question_scope,
+    )
+    if max_plans <= 0 or max_sources_per_plan <= 0 or max_total_sources <= 0:
+        return (), {**trace, "skipped_reason": "non_positive_budget"}
+    if (
+        not memory_operation_plan
+        or not memory_operation_plan.get("applied")
+        or not memory_query_readiness_manifest
+        or not memory_query_readiness_manifest.get("applied")
+    ):
+        return (), {**trace, "skipped_reason": "missing_operation_plan_or_readiness"}
+    raw_plans = memory_operation_plan.get("workspace_operation_plans") or ()
+    if not isinstance(raw_plans, (list, tuple)):
+        return (), {**trace, "skipped_reason": "invalid_operation_plan"}
+
+    question_terms = _memory_object_slot_question_terms(question)
+    if not question_terms and min_overlap_terms > 0:
+        return (), {**trace, "skipped_reason": "no_question_terms"}
+
+    readiness_by_slot = _operation_source_expansion_readiness_by_slot(
+        memory_query_readiness_manifest
+    )
+    if not readiness_by_slot:
+        return (), {**trace, "skipped_reason": "empty_readiness_index"}
+
+    available = {str(source_id) for source_id in available_source_ids}
+    existing_candidates = {str(source_id) for source_id in candidate_source_ids}
+    allowed_memory_types = {
+        str(memory_type).strip().lower()
+        for memory_type in memory_types
+        if str(memory_type).strip()
+    }
+    required_modes = tuple(
+        str(mode).strip()
+        for mode in required_readiness_modes
+        if str(mode).strip()
+    )
+    candidates: list[
+        tuple[
+            float,
+            int,
+            Mapping[str, Any],
+            Mapping[str, Any],
+            tuple[str, ...],
+            tuple[str, ...],
+            tuple[str, ...],
+        ]
+    ] = []
+    raw_plan_count = 0
+    existing_source_count = 0
+    missing_source_count = 0
+    for ordinal, raw_plan in enumerate(raw_plans):
+        if not isinstance(raw_plan, Mapping):
+            continue
+        raw_plan_count += 1
+        memory_type = str(raw_plan.get("memory_type") or "").lower()
+        if allowed_memory_types and memory_type not in allowed_memory_types:
+            continue
+        if raw_plan.get("source_backed") is not True:
+            continue
+        if str(raw_plan.get("memory_tier") or "") == "quarantine_memory":
+            continue
+        readiness = _operation_source_expansion_query_readiness(
+            raw_plan,
+            readiness_by_slot=readiness_by_slot,
+            required_readiness_modes=required_modes,
+        )
+        if readiness is None:
+            continue
+        source_sets = _operation_source_expansion_source_sets(raw_plan)
+        ordered_sources = _operation_source_expansion_ordered_sources(
+            source_sets,
+            question_scope=question_scope,
+        )
+        if not ordered_sources:
+            continue
+
+        score, matched_terms = _operation_source_expansion_plan_score(
+            raw_plan,
+            question_terms=question_terms,
+            route=route,
+            question_scope=question_scope,
+        )
+        if len(matched_terms) < max(0, min_overlap_terms) or score <= 0:
+            continue
+
+        existing_sources = tuple(
+            source_id
+            for source_id in ordered_sources
+            if source_id in available and source_id in existing_candidates
+        )
+        missing_sources = tuple(
+            source_id
+            for source_id in ordered_sources
+            if source_id in available and source_id not in existing_candidates
+        )
+        existing_source_count += len(existing_sources)
+        missing_source_count += len(missing_sources)
+        selectable_sources = missing_sources if require_new_source else tuple(
+            source_id for source_id in ordered_sources if source_id in available
+        )
+        if not selectable_sources:
+            continue
+        candidates.append(
+            (
+                score,
+                -ordinal,
+                raw_plan,
+                readiness,
+                matched_terms,
+                selectable_sources[:max_sources_per_plan],
+                existing_sources,
+            )
+        )
+
+    trace = {
+        **trace,
+        "candidate_plan_count": raw_plan_count,
+        "existing_source_count": existing_source_count,
+        "missing_source_count": missing_source_count,
+    }
+    if not candidates:
+        return (), {**trace, "skipped_reason": "no_ready_missing_source_plan"}
+
+    candidates.sort(reverse=True)
+    selected_hits: list[RetrievalHit] = []
+    selected_plan_traces: list[dict[str, Any]] = []
+    seen_sources: set[str] = set()
+    rank = 1
+    for score, _, plan, readiness, matched_terms, source_ids, existing_sources in (
+        candidates[:max_plans]
+    ):
+        if len(selected_hits) >= max_total_sources:
+            break
+        emitted_sources: list[str] = []
+        for offset, source_id in enumerate(source_ids):
+            if len(selected_hits) >= max_total_sources:
+                break
+            if source_id in seen_sources:
+                continue
+            seen_sources.add(source_id)
+            emitted_sources.append(source_id)
+            selected_hits.append(
+                RetrievalHit(
+                    source_id=source_id,
+                    score=score - (offset * 1e-6),
+                    rank=rank,
+                    retriever="build_memory_operation_source_expansion",
+                    matched_terms=matched_terms,
+                )
+            )
+            rank += 1
+        if not emitted_sources:
+            continue
+        selected_plan_traces.append(
+            {
+                "slot_id": str(plan.get("slot_id") or ""),
+                "score": score,
+                "memory_tier": str(plan.get("memory_tier") or ""),
+                "memory_type": str(plan.get("memory_type") or ""),
+                "subject": _single_line(str(plan.get("subject") or "")),
+                "predicate": _single_line(str(plan.get("predicate") or "")),
+                "lifecycle_state": str(plan.get("lifecycle_state") or ""),
+                "readiness_state": str(readiness.get("readiness_state") or ""),
+                "safe_consumption_modes": list(
+                    readiness.get("safe_consumption_modes") or ()
+                )[:8],
+                "matched_terms": matched_terms,
+                "existing_source_ids": list(existing_sources[:8]),
+                "emitted_source_ids": emitted_sources,
+                "candidate_source_ids": list(source_ids[:8]),
+                "operation_sequence": list(plan.get("operation_sequence") or ())[:8],
+                "values_rendered_to_prompt": False,
+            }
+        )
+
+    if not selected_hits:
+        return (), {**trace, "skipped_reason": "no_emitted_source"}
+    return tuple(selected_hits), {
+        **trace,
+        "applied": True,
+        "selected_plan_count": len(selected_plan_traces),
+        "emitted_source_count": len(selected_hits),
+        "plans": selected_plan_traces,
+    }
+
+
+def _operation_source_expansion_readiness_by_slot(
+    memory_query_readiness_manifest: Mapping[str, Any] | None,
+) -> dict[str, Mapping[str, Any]]:
+    if (
+        not isinstance(memory_query_readiness_manifest, Mapping)
+        or not memory_query_readiness_manifest.get("applied")
+    ):
+        return {}
+    raw_readiness = memory_query_readiness_manifest.get("readiness_index") or ()
+    if not isinstance(raw_readiness, (list, tuple)):
+        return {}
+    readiness_by_slot: dict[str, Mapping[str, Any]] = {}
+    for readiness in raw_readiness:
+        if not isinstance(readiness, Mapping):
+            continue
+        slot_id = str(readiness.get("slot_id") or "")
+        if not slot_id:
+            continue
+        readiness_by_slot[slot_id] = readiness
+    return readiness_by_slot
+
+
+def _operation_source_expansion_query_readiness(
+    plan: Mapping[str, Any],
+    *,
+    readiness_by_slot: Mapping[str, Mapping[str, Any]],
+    required_readiness_modes: tuple[str, ...],
+) -> Mapping[str, Any] | None:
+    slot_id = str(plan.get("slot_id") or "")
+    if not slot_id:
+        return None
+    readiness = readiness_by_slot.get(slot_id)
+    if not isinstance(readiness, Mapping):
+        return None
+    if str(readiness.get("readiness_state") or "") != "guarded_ready":
+        return None
+    raw_safe_modes = readiness.get("safe_consumption_modes") or ()
+    if not isinstance(raw_safe_modes, (list, tuple)):
+        return None
+    safe_modes = {str(mode) for mode in raw_safe_modes}
+    if required_readiness_modes and not set(required_readiness_modes).issubset(
+        safe_modes
+    ):
+        return None
+    query_gate = readiness.get("query_gate") or {}
+    if not isinstance(query_gate, Mapping):
+        return None
+    if query_gate.get("requires_visible_raw_rows") is False:
+        return None
+    return readiness
+
+
+def _operation_source_expansion_source_sets(
+    plan: Mapping[str, Any],
+) -> dict[str, tuple[str, ...]]:
+    source_expansion = plan.get("source_expansion_plan") or {}
+    if not isinstance(source_expansion, Mapping):
+        source_expansion = {}
+
+    def source_tuple(field_name: str) -> tuple[str, ...]:
+        raw_source_ids = source_expansion.get(field_name) or ()
+        if not isinstance(raw_source_ids, (list, tuple)):
+            return ()
+        source_ids: list[str] = []
+        for raw_source_id in raw_source_ids:
+            source_id = str(raw_source_id)
+            if source_id and source_id not in source_ids:
+                source_ids.append(source_id)
+        return tuple(source_ids)
+
+    current = source_tuple("current_source_order")
+    historical = source_tuple("historical_source_order")
+    explicit_all = source_tuple("all_source_ids")
+    all_sources: list[str] = []
+    for source_id in (*current, *historical, *explicit_all):
+        if source_id not in all_sources:
+            all_sources.append(source_id)
+    return {
+        "current": current,
+        "historical": historical,
+        "all": tuple(all_sources),
+    }
+
+
+def _operation_source_expansion_ordered_sources(
+    source_sets: Mapping[str, tuple[str, ...]],
+    *,
+    question_scope: str,
+) -> tuple[str, ...]:
+    if question_scope == "historical":
+        fields = ("historical", "current", "all")
+    else:
+        fields = ("current", "historical", "all")
+    ordered: list[str] = []
+    for field_name in fields:
+        for source_id in source_sets.get(field_name, ()):
+            if source_id and source_id not in ordered:
+                ordered.append(source_id)
+    return tuple(ordered)
+
+
+def _operation_source_expansion_plan_score(
+    plan: Mapping[str, Any],
+    *,
+    question_terms: frozenset[str],
+    route: RouteResult,
+    question_scope: str,
+) -> tuple[float, tuple[str, ...]]:
+    state_management = plan.get("state_management_plan") or {}
+    if not isinstance(state_management, Mapping):
+        state_management = {}
+    text_parts = [
+        str(plan.get("memory_type") or ""),
+        str(plan.get("subject") or ""),
+        str(plan.get("predicate") or ""),
+        *(str(value) for value in state_management.get("active_values") or ()),
+        *(str(value) for value in state_management.get("superseded_values") or ()),
+        *(str(value) for value in state_management.get("scalar_values") or ()),
+    ]
+    plan_terms = _memory_slot_chain_text_terms(" ".join(text_parts))
+    matched_terms = tuple(sorted(question_terms.intersection(plan_terms)))
+    score = float(len(matched_terms))
+    memory_type = str(plan.get("memory_type") or "").lower()
+    if route.information_need == "current_state":
+        if memory_type in {"state", "profile", "preference", "relationship"}:
+            score += 2.0
+        if str(plan.get("lifecycle_state") or "") == "active_with_history":
+            score += 1.0
+        if bool(plan.get("conflict_cluster")):
+            score += 1.0
+        if question_scope == "current" and state_management.get("active_values"):
+            score += 1.0
+    elif route.information_need == "profile_preference":
+        if memory_type in {"profile", "preference", "relationship"}:
+            score += 1.5
+    if state_management.get("active_values") or state_management.get(
+        "superseded_values"
+    ):
+        score += 0.5
+    return score, matched_terms
 
 
 def _graph_utility_applies(
@@ -8132,6 +8806,10 @@ def _truncate_text(text: str, max_chars: int) -> str:
     if len(normalized) <= max_chars:
         return normalized
     return normalized[: max(0, max_chars - 3)].rstrip() + "..."
+
+
+def _single_line(text: str) -> str:
+    return " ".join(str(text or "").split())
 
 
 def _tuple_config(value: object) -> tuple[str, ...]:
