@@ -1,0 +1,74 @@
+[
+  {
+    "benchmark": "longmemeval",
+    "category": null,
+    "gold_answer": "Target",
+    "new_answer": "The provided information is not enough to determine where the coupon was redeemed, only that it was found in the email inbox.",
+    "new_version": "v347",
+    "old_answer": "The provided information is not enough.",
+    "old_version": "v343",
+    "question": "Where did I redeem a $5 coupon on coffee creamer?",
+    "question_type": "single-session-user",
+    "record_key": "ea4e66b0d90b6834b4168cfe"
+  },
+  {
+    "benchmark": "longmemeval",
+    "category": null,
+    "gold_answer": "a lighter shade of gray",
+    "new_answer": "lighter shade of gray",
+    "new_version": "v347",
+    "old_answer": "A lighter shade of gray",
+    "old_version": "v343",
+    "question": "What color did I repaint my bedroom walls?",
+    "question_type": "single-session-user",
+    "record_key": "2c842d5e9f311258d8f4cf7f"
+  },
+  {
+    "benchmark": "longmemeval",
+    "category": null,
+    "gold_answer": "February 14th",
+    "new_answer": "February 14, 2023",
+    "new_version": "v347",
+    "old_answer": "February (specifically Valentine's Day)",
+    "old_version": "v343",
+    "question": "When did I volunteer at the local animal shelter's fundraising dinner?",
+    "question_type": "single-session-user",
+    "record_key": "d823172b5baf1eff81acb20c"
+  },
+  {
+    "benchmark": "longmemeval",
+    "category": null,
+    "gold_answer": "lavender gin fizz",
+    "new_answer": "Lavender Gin Fizz",
+    "new_version": "v347",
+    "old_answer": "the Lavender Gin Fizz as the answer",
+    "old_version": "v343",
+    "question": "What type of cocktail recipe did I try last weekend?",
+    "question_type": "single-session-user",
+    "record_key": "c5db16a030f4d1308a724d03"
+  },
+  {
+    "benchmark": "longmemeval",
+    "category": null,
+    "gold_answer": "500",
+    "new_answer": "500 copies",
+    "new_version": "v347",
+    "old_answer": "500",
+    "old_version": "v343",
+    "question": "How many copies of my favorite artist's debut album were released worldwide?",
+    "question_type": "single-session-user",
+    "record_key": "0edbddd6beebf30c533efce3"
+  },
+  {
+    "benchmark": "longmemeval",
+    "category": null,
+    "gold_answer": "three months",
+    "new_answer": "three months",
+    "new_version": "v347",
+    "old_answer": "You have been collecting vintage cameras for three months.",
+    "old_version": "v343",
+    "question": "How long have I been collecting vintage cameras?",
+    "question_type": "single-session-user",
+    "record_key": "3c4c6d348462c8af763e09d4"
+  }
+]

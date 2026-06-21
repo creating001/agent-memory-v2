@@ -1,0 +1,41 @@
+{
+  "cases": {
+    "lme": {
+      "benchmark": "longmemeval",
+      "changed_answer_n": 6,
+      "new_predictions": "outputs/diagnostic/v347_guard_only_short_packet_lme_probe50/predictions.jsonl",
+      "new_version": "v347",
+      "old_predictions": "outputs/diagnostic/v343_guard_only_slot_coverage_packet_lme_probe50/predictions.jsonl",
+      "old_version": "v343",
+      "outputs": {
+        "answer_diff": "lme_changed_answer_diff.json",
+        "labels": "lme_labels.jsonl",
+        "new_changed_predictions": "lme_v347_changed_predictions.jsonl",
+        "old_changed_predictions": "lme_v343_changed_predictions.jsonl"
+      },
+      "row_set_changed_n": 0,
+      "shared_n": 50,
+      "source_labels": "outputs/prepare_longmemeval_s_cleaned/labels.jsonl"
+    },
+    "locomo": {
+      "benchmark": "locomo",
+      "changed_answer_n": 19,
+      "new_predictions": "outputs/diagnostic/v347_guard_only_short_packet_locomo_probe50/predictions.jsonl",
+      "new_version": "v347",
+      "old_predictions": "outputs/diagnostic/v343_guard_only_slot_coverage_packet_locomo_probe50/predictions.jsonl",
+      "old_version": "v343",
+      "outputs": {
+        "answer_diff": "locomo_changed_answer_diff.json",
+        "labels": "locomo_labels.jsonl",
+        "new_changed_predictions": "locomo_v347_changed_predictions.jsonl",
+        "old_changed_predictions": "locomo_v343_changed_predictions.jsonl"
+      },
+      "row_set_changed_n": 0,
+      "shared_n": 50,
+      "source_labels": "outputs/prepare_locomo_non_adversarial/labels.jsonl"
+    }
+  },
+  "clean_note": "Gold labels are extracted only after predictions for offline changed-answer judge; they are not used by build, retrieval, compiler, answer, verifier, or caches.",
+  "comparison": "v347_guard_only_short_packet_vs_v343_guard_only_slot_coverage_packet",
+  "created_at_utc": "2026-06-21T02:25:21.447532+00:00"
+}
