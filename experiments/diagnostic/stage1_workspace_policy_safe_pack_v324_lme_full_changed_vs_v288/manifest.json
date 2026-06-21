@@ -1,7 +1,0 @@
-{
-  "base_run": "stage1_memory_object_index_v288_lme_full",
-  "changed_answers": 1,
-  "clean_note": "Offline eval only; no labels/judge used by prediction.",
-  "new_run": "stage1_workspace_policy_safe_pack_v324_lme_full",
-  "outputs": "outputs/diagnostic/stage1_workspace_policy_safe_pack_v324_lme_full_changed_vs_v288"
-}

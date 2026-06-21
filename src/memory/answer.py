@@ -267,14 +267,14 @@ def _parse_answer_content(raw_content: str, *, output_format: str) -> str:
 
 def _extract_json_object(text: str) -> dict[str, Any] | None:
     try:
-        value = json.loads(text, parse_int=str)
+        value = json.loads(text)
     except json.JSONDecodeError:
         start = text.find("{")
         end = text.rfind("}")
         if start < 0 or end <= start:
             return None
         try:
-            value = json.loads(text[start : end + 1], parse_int=str)
+            value = json.loads(text[start : end + 1])
         except json.JSONDecodeError:
             return None
     return value if isinstance(value, dict) else None

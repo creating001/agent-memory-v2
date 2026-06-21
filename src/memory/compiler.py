@@ -37,47 +37,6 @@ MAX_RELATIVE_TIME_SPANS = {
 }
 MEMORY_STATE_GUIDE_VALUE_CONFLICT_TYPES = {"fact", "preference", "profile", "state"}
 MEMORY_STATE_GUIDE_CONFLICT_SOURCES = {"records", "build_manifest"}
-WORKING_MEMORY_PACKET_SOURCES = {
-    "auto",
-    "lifecycle_audit",
-    "working_compiler_plan",
-    "memory_system_state",
-    "working_view",
-    "operation_registry",
-}
-WORKING_MEMORY_PACKET_FORMATS = {"verbose", "compact", "micro"}
-WORKING_MEMORY_PACKET_SLOT_GUARD_ACTIONS = {"suppress", "structured_guide"}
-WORKSPACE_QUERY_POLICY_COMPONENTS = {
-    "structured_guide",
-    "memory_state_guide",
-    "memory_value_slot_guide",
-}
-WORKING_MEMORY_PACKET_SLOT_GUARD_TERMS = {
-    "dating",
-    "girlfriend",
-    "boyfriend",
-    "husband",
-    "marital",
-    "married",
-    "partner",
-    "relationship",
-    "relationships",
-    "romantic",
-    "single",
-    "spouse",
-    "state",
-    "status",
-    "wife",
-}
-WORKING_MEMORY_PACKET_SLOT_GUARD_SUBJECT_STOPWORDS = {
-    "current",
-    "currently",
-    "latest",
-    "now",
-    "recent",
-    "recently",
-    "s",
-}
 MEMORY_STATE_GUIDE_ALIGNMENT_WEAK_TERMS = {
     "a",
     "about",
@@ -228,7 +187,6 @@ SUPPORTED_INFORMATION_NEEDS = {
     "temporal_lookup",
 }
 SUPPORTED_CONTEXT_LAYOUTS = {"flat", "session_thread", "chronological_session_thread"}
-SUPPORTED_MEMORY_CONTEXT_HEADER_FORMATS = {"multiline", "inline", "inline_spaced"}
 ROUTE_OVERRIDE_KEYS = {
     "candidate_guide",
     "candidate_guide_include_memory_hints",
@@ -288,7 +246,6 @@ ROUTE_OVERRIDE_KEYS = {
     "source_anchor_memory_rows",
     "source_anchor_per_session",
     "source_anchor_session_rows",
-    "structured_guide",
     "structured_guide_include_memory",
     "structured_guide_include_rows",
     "structured_guide_max_memory_hints_per_row",
@@ -299,16 +256,6 @@ ROUTE_OVERRIDE_KEYS = {
     "update_conflict_guide",
     "update_conflict_guide_max_rows",
     "update_conflict_guide_snippet_chars",
-    "working_memory_packet",
-    "working_memory_packet_compact_dedupe",
-    "working_memory_packet_format",
-    "working_memory_packet_max_items",
-    "working_memory_packet_compact_short_header",
-    "working_memory_packet_source",
-    "working_memory_packet_slot_guard",
-    "working_memory_packet_slot_guard_action",
-    "working_memory_packet_slot_guard_max_rows",
-    "working_memory_packet_value_chars",
 }
 EVIDENCE_ORDER_MODES = {
     "retrieval",
@@ -322,12 +269,6 @@ EVIDENCE_ORDER_MODES = {
     "fixed_set_memory_source_interleave",
 }
 FIXED_SET_EVIDENCE_ORDER_MODES = {"fixed_set_memory_source_interleave"}
-ROW_TEXT_MODES = {
-    "full",
-    "query_snippet",
-    "role_query_snippet",
-    "assistant_query_miss_snippet",
-}
 SUPPORTED_PROMPT_MODES = {"default", "external_naive", "raw_context_only"}
 DEFAULT_STRUCTURED_ANSWER_CONTRACT_NEEDS = ("list_count", "temporal_lookup")
 QUESTION_STOPWORDS = {
@@ -375,7 +316,6 @@ QUESTION_STOPWORDS = {
     "which",
     "who",
     "whom",
-    "with",
     "why",
     "would",
     "you",
@@ -510,41 +450,6 @@ class EvidenceCompiler:
         memory_value_slot_guide_max_slots: int = 4,
         memory_value_slot_guide_max_values: int = 6,
         memory_value_slot_guide_memory_types: tuple[str, ...] = (),
-        working_memory_packet: bool = False,
-        working_memory_packet_information_needs: tuple[str, ...] = (
-            "current_state",
-            "fact_lookup",
-            "profile_preference",
-        ),
-        working_memory_packet_max_items: int = 4,
-        working_memory_packet_value_chars: int = 120,
-        working_memory_packet_source: str = "working_view",
-        working_memory_packet_format: str = "verbose",
-        working_memory_packet_compact_short_header: bool = False,
-        working_memory_packet_compact_dedupe: bool = False,
-        working_memory_packet_slot_guard: bool = False,
-        working_memory_packet_slot_guard_action: str = "suppress",
-        working_memory_packet_slot_guard_max_rows: int = 6,
-        workspace_query_policy: bool = False,
-        workspace_query_policy_information_needs: tuple[str, ...] = (
-            "current_state",
-            "fact_lookup",
-            "profile_preference",
-        ),
-        workspace_query_policy_replacement_components: tuple[str, ...] = (
-            "structured_guide",
-            "memory_state_guide",
-            "memory_value_slot_guide",
-        ),
-        workspace_query_policy_packet_source: str = "memory_system_state",
-        workspace_query_policy_packet_max_items: int = 3,
-        workspace_query_policy_packet_value_chars: int = 80,
-        workspace_query_policy_packet_format: str = "compact",
-        workspace_query_policy_packet_compact_short_header: bool = True,
-        workspace_query_policy_packet_compact_dedupe: bool = True,
-        workspace_query_policy_slot_guard: bool = True,
-        workspace_query_policy_slot_guard_action: str = "structured_guide",
-        workspace_query_policy_slot_guard_max_rows: int = 6,
         profile_activation_guide: bool = False,
         profile_activation_guide_information_needs: tuple[str, ...] = (
             "profile_preference",
@@ -580,10 +485,6 @@ class EvidenceCompiler:
         final_answer_checklist: bool = False,
         max_memory_records: int = 12,
         memory_context_newlines_after_blocks: int = 3,
-        memory_context_header_format: str = "multiline",
-        compact_query_contract: bool = False,
-        compact_query_guide_blocks: bool | None = None,
-        compact_query_answer_contract: bool | None = None,
         prompt_mode: str = "default",
         route_overrides: Mapping[str, Mapping[str, Any]] | None = None,
     ):
@@ -816,77 +717,6 @@ class EvidenceCompiler:
             for value in memory_value_slot_guide_memory_types
             if str(value).strip()
         )
-        self._working_memory_packet = bool(working_memory_packet)
-        self._working_memory_packet_information_needs = _validate_information_needs(
-            working_memory_packet_information_needs,
-            field_name="working_memory_packet_information_needs",
-        )
-        self._working_memory_packet_max_items = max(
-            1, int(working_memory_packet_max_items)
-        )
-        self._working_memory_packet_value_chars = max(
-            40, int(working_memory_packet_value_chars)
-        )
-        self._working_memory_packet_source = _validate_working_memory_packet_source(
-            working_memory_packet_source
-        )
-        self._working_memory_packet_format = _validate_working_memory_packet_format(
-            working_memory_packet_format
-        )
-        self._working_memory_packet_compact_short_header = bool(
-            working_memory_packet_compact_short_header
-        )
-        self._working_memory_packet_compact_dedupe = bool(
-            working_memory_packet_compact_dedupe
-        )
-        self._working_memory_packet_slot_guard = bool(working_memory_packet_slot_guard)
-        self._working_memory_packet_slot_guard_action = (
-            _validate_working_memory_packet_slot_guard_action(
-                working_memory_packet_slot_guard_action
-            )
-        )
-        self._working_memory_packet_slot_guard_max_rows = max(
-            1, int(working_memory_packet_slot_guard_max_rows)
-        )
-        self._workspace_query_policy = bool(workspace_query_policy)
-        self._workspace_query_policy_information_needs = _validate_information_needs(
-            workspace_query_policy_information_needs,
-            field_name="workspace_query_policy_information_needs",
-        )
-        self._workspace_query_policy_replacement_components = (
-            _validate_workspace_query_policy_components(
-                workspace_query_policy_replacement_components
-            )
-        )
-        self._workspace_query_policy_packet_source = (
-            _validate_working_memory_packet_source(workspace_query_policy_packet_source)
-        )
-        self._workspace_query_policy_packet_max_items = max(
-            1, int(workspace_query_policy_packet_max_items)
-        )
-        self._workspace_query_policy_packet_value_chars = max(
-            40, int(workspace_query_policy_packet_value_chars)
-        )
-        self._workspace_query_policy_packet_format = (
-            _validate_working_memory_packet_format(workspace_query_policy_packet_format)
-        )
-        self._workspace_query_policy_packet_compact_short_header = bool(
-            workspace_query_policy_packet_compact_short_header
-        )
-        self._workspace_query_policy_packet_compact_dedupe = bool(
-            workspace_query_policy_packet_compact_dedupe
-        )
-        self._workspace_query_policy_slot_guard = bool(
-            workspace_query_policy_slot_guard
-        )
-        self._workspace_query_policy_slot_guard_action = (
-            _validate_working_memory_packet_slot_guard_action(
-                workspace_query_policy_slot_guard_action
-            )
-        )
-        self._workspace_query_policy_slot_guard_max_rows = max(
-            1, int(workspace_query_policy_slot_guard_max_rows)
-        )
         self._profile_activation_guide = bool(profile_activation_guide)
         self._profile_activation_guide_information_needs = _validate_information_needs(
             profile_activation_guide_information_needs,
@@ -930,11 +760,11 @@ class EvidenceCompiler:
         if memory_layout not in {"flat", "typed_sections"}:
             raise ValueError(f"Unsupported memory_layout: {memory_layout}")
         self._memory_layout = memory_layout
-        if row_text_mode not in ROW_TEXT_MODES:
+        if row_text_mode not in {"full", "query_snippet", "role_query_snippet"}:
             raise ValueError(f"Unsupported row_text_mode: {row_text_mode}")
         self._row_text_mode = row_text_mode
         self._max_row_text_chars = max_row_text_chars or 800
-        if tail_row_text_mode not in ROW_TEXT_MODES:
+        if tail_row_text_mode not in {"full", "query_snippet", "role_query_snippet"}:
             raise ValueError(f"Unsupported tail_row_text_mode: {tail_row_text_mode}")
         self._tail_row_text_mode = tail_row_text_mode
         self._tail_row_text_after_rank = max(0, int(tail_row_text_after_rank))
@@ -945,23 +775,6 @@ class EvidenceCompiler:
         self._max_memory_records = max(0, max_memory_records)
         self._memory_context_newlines_after_blocks = max(
             2, int(memory_context_newlines_after_blocks)
-        )
-        if memory_context_header_format not in SUPPORTED_MEMORY_CONTEXT_HEADER_FORMATS:
-            raise ValueError(
-                f"Unsupported memory_context_header_format: "
-                f"{memory_context_header_format}"
-            )
-        self._memory_context_header_format = memory_context_header_format
-        self._compact_query_contract = bool(compact_query_contract)
-        self._compact_query_guide_blocks = (
-            self._compact_query_contract
-            if compact_query_guide_blocks is None
-            else bool(compact_query_guide_blocks)
-        )
-        self._compact_query_answer_contract = (
-            self._compact_query_contract
-            if compact_query_answer_contract is None
-            else bool(compact_query_answer_contract)
         )
         if prompt_mode not in SUPPORTED_PROMPT_MODES:
             raise ValueError(f"Unsupported prompt_mode: {prompt_mode}")
@@ -1085,76 +898,6 @@ class EvidenceCompiler:
             context_layout=route_settings["context_layout"],
         )
 
-        diagnostics: dict[str, Any] = {}
-        route_settings, workspace_query_policy = (
-            _apply_workspace_query_policy_settings(
-                enabled=self._workspace_query_policy,
-                information_needs=self._workspace_query_policy_information_needs,
-                replacement_components=(
-                    self._workspace_query_policy_replacement_components
-                ),
-                route=route,
-                question=question,
-                rows=laid_out_rows,
-                memory_object_index=memory_object_index,
-                route_settings=route_settings,
-                packet_source=self._workspace_query_policy_packet_source,
-                packet_max_items=self._workspace_query_policy_packet_max_items,
-                packet_value_chars=self._workspace_query_policy_packet_value_chars,
-                packet_format=self._workspace_query_policy_packet_format,
-                packet_compact_short_header=(
-                    self._workspace_query_policy_packet_compact_short_header
-                ),
-                packet_compact_dedupe=(
-                    self._workspace_query_policy_packet_compact_dedupe
-                ),
-                slot_guard=self._workspace_query_policy_slot_guard,
-                slot_guard_action=self._workspace_query_policy_slot_guard_action,
-                slot_guard_max_rows=(
-                    self._workspace_query_policy_slot_guard_max_rows
-                ),
-            )
-        )
-        if self._workspace_query_policy:
-            diagnostics["workspace_query_policy"] = workspace_query_policy
-        structured_guide_enabled = (
-            route_settings["structured_guide"]
-            and not set(route.signals).intersection(
-                self._structured_guide_disabled_signals
-            )
-        )
-        structured_guide_max_rows = route_settings["structured_guide_max_rows"]
-        working_memory_packet_enabled = (
-            route_settings["working_memory_packet"]
-            and route.information_need in self._working_memory_packet_information_needs
-        )
-        if (
-            route_settings["working_memory_packet_slot_guard"]
-            and working_memory_packet_enabled
-            and route_settings["working_memory_packet_format"] == "compact"
-        ):
-            slot_guard = _working_memory_packet_slot_guard_diagnostics(
-                question=question,
-                route=route,
-                rows=laid_out_rows,
-                memory_object_index=memory_object_index,
-                max_items=route_settings["working_memory_packet_max_items"],
-                source=route_settings["working_memory_packet_source"],
-            )
-            if slot_guard["applied"]:
-                action = route_settings["working_memory_packet_slot_guard_action"]
-                slot_guard["action"] = action
-                if action == "suppress":
-                    working_memory_packet_enabled = False
-                elif action == "structured_guide":
-                    working_memory_packet_enabled = False
-                    structured_guide_enabled = True
-                    structured_guide_max_rows = min(
-                        structured_guide_max_rows,
-                        route_settings["working_memory_packet_slot_guard_max_rows"],
-                    )
-            diagnostics["working_memory_packet_slot_guard"] = slot_guard
-
         prompt = _build_prompt(
             question,
             question_time,
@@ -1244,8 +987,13 @@ class EvidenceCompiler:
             enable_weekend_relative_time=route_settings[
                 "enable_weekend_relative_time"
             ],
-            structured_guide=structured_guide_enabled,
-            structured_guide_max_rows=structured_guide_max_rows,
+            structured_guide=(
+                self._structured_guide
+                and not set(route.signals).intersection(
+                    self._structured_guide_disabled_signals
+                )
+            ),
+            structured_guide_max_rows=route_settings["structured_guide_max_rows"],
             structured_guide_include_rows=route_settings[
                 "structured_guide_include_rows"
             ],
@@ -1355,21 +1103,6 @@ class EvidenceCompiler:
             memory_value_slot_guide_memory_types=route_settings[
                 "memory_value_slot_guide_memory_types"
             ],
-            working_memory_packet=working_memory_packet_enabled,
-            working_memory_packet_max_items=route_settings[
-                "working_memory_packet_max_items"
-            ],
-            working_memory_packet_value_chars=route_settings[
-                "working_memory_packet_value_chars"
-            ],
-            working_memory_packet_source=route_settings["working_memory_packet_source"],
-            working_memory_packet_format=route_settings["working_memory_packet_format"],
-            working_memory_packet_compact_short_header=route_settings[
-                "working_memory_packet_compact_short_header"
-            ],
-            working_memory_packet_compact_dedupe=route_settings[
-                "working_memory_packet_compact_dedupe"
-            ],
             profile_activation_guide=(
                 route_settings["profile_activation_guide"]
                 and route.information_need
@@ -1421,12 +1154,9 @@ class EvidenceCompiler:
             memory_context_newlines_after_blocks=(
                 self._memory_context_newlines_after_blocks
             ),
-            memory_context_header_format=self._memory_context_header_format,
-            compact_query_contract=self._compact_query_contract,
-            compact_query_guide_blocks=self._compact_query_guide_blocks,
-            compact_query_answer_contract=self._compact_query_answer_contract,
             prompt_mode=self._prompt_mode,
         )
+        diagnostics: dict[str, Any] = {}
         if (
             route_settings["memory_state_guide"]
             and route.information_need in self._memory_state_guide_information_needs
@@ -1567,30 +1297,6 @@ class EvidenceCompiler:
             "memory_value_slot_guide_memory_types": (
                 self._memory_value_slot_guide_memory_types
             ),
-            "working_memory_packet": self._working_memory_packet,
-            "working_memory_packet_format": self._working_memory_packet_format,
-            "working_memory_packet_compact_short_header": (
-                self._working_memory_packet_compact_short_header
-            ),
-            "working_memory_packet_compact_dedupe": (
-                self._working_memory_packet_compact_dedupe
-            ),
-            "working_memory_packet_max_items": (
-                self._working_memory_packet_max_items
-            ),
-            "working_memory_packet_value_chars": (
-                self._working_memory_packet_value_chars
-            ),
-            "working_memory_packet_source": self._working_memory_packet_source,
-            "working_memory_packet_slot_guard": (
-                self._working_memory_packet_slot_guard
-            ),
-            "working_memory_packet_slot_guard_action": (
-                self._working_memory_packet_slot_guard_action
-            ),
-            "working_memory_packet_slot_guard_max_rows": (
-                self._working_memory_packet_slot_guard_max_rows
-            ),
             "profile_activation_guide": self._profile_activation_guide,
             "profile_activation_guide_max_records": (
                 self._profile_activation_guide_max_records
@@ -1674,7 +1380,6 @@ class EvidenceCompiler:
             "source_anchor_memory_rows": self._source_anchor_memory_rows,
             "source_anchor_per_session": self._source_anchor_per_session,
             "source_anchor_session_rows": self._source_anchor_session_rows,
-            "structured_guide": self._structured_guide,
             "structured_guide_include_memory": self._structured_guide_include_memory,
             "structured_guide_include_rows": self._structured_guide_include_rows,
             "structured_guide_max_memory_hints_per_row": (
@@ -1723,50 +1428,6 @@ def _validate_memory_state_guide_conflict_source(value: str) -> str:
     return value
 
 
-def _validate_working_memory_packet_source(value: str) -> str:
-    if value not in WORKING_MEMORY_PACKET_SOURCES:
-        raise ValueError(
-            "Unsupported working_memory_packet_source: "
-            f"{value}. Expected one of {sorted(WORKING_MEMORY_PACKET_SOURCES)}"
-        )
-    return value
-
-
-def _validate_working_memory_packet_format(value: str) -> str:
-    if value not in WORKING_MEMORY_PACKET_FORMATS:
-        raise ValueError(
-            "Unsupported working_memory_packet_format: "
-            f"{value}. Expected one of {sorted(WORKING_MEMORY_PACKET_FORMATS)}"
-        )
-    return value
-
-
-def _validate_working_memory_packet_slot_guard_action(value: str) -> str:
-    if value not in WORKING_MEMORY_PACKET_SLOT_GUARD_ACTIONS:
-        raise ValueError(
-            "Unsupported working_memory_packet_slot_guard_action: "
-            f"{value}. Expected one of "
-            f"{sorted(WORKING_MEMORY_PACKET_SLOT_GUARD_ACTIONS)}"
-        )
-    return value
-
-
-def _validate_workspace_query_policy_components(
-    components: tuple[str, ...],
-) -> tuple[str, ...]:
-    normalized: list[str] = []
-    for component in components:
-        component_name = str(component).strip()
-        if component_name not in WORKSPACE_QUERY_POLICY_COMPONENTS:
-            raise ValueError(
-                "Unsupported workspace_query_policy_replacement_components item: "
-                f"{component_name}. Expected one of "
-                f"{sorted(WORKSPACE_QUERY_POLICY_COMPONENTS)}"
-            )
-        normalized.append(component_name)
-    return tuple(dict.fromkeys(normalized))
-
-
 def _validate_route_overrides(
     route_overrides: Mapping[str, Mapping[str, Any]],
 ) -> dict[str, dict[str, Any]]:
@@ -1805,8 +1466,6 @@ def _validate_route_overrides(
             overrides["structured_guide_max_rows"] = max(
                 1, int(raw_overrides["structured_guide_max_rows"])
             )
-        if "structured_guide" in raw_overrides:
-            overrides["structured_guide"] = bool(raw_overrides["structured_guide"])
         if "structured_guide_include_rows" in raw_overrides:
             overrides["structured_guide_include_rows"] = bool(
                 raw_overrides["structured_guide_include_rows"]
@@ -1829,12 +1488,16 @@ def _validate_route_overrides(
             )
         if "row_text_mode" in raw_overrides:
             row_text_mode = str(raw_overrides["row_text_mode"])
-            if row_text_mode not in ROW_TEXT_MODES:
+            if row_text_mode not in {"full", "query_snippet", "role_query_snippet"}:
                 raise ValueError(f"Unsupported row_text_mode: {row_text_mode}")
             overrides["row_text_mode"] = row_text_mode
         if "tail_row_text_mode" in raw_overrides:
             tail_row_text_mode = str(raw_overrides["tail_row_text_mode"])
-            if tail_row_text_mode not in ROW_TEXT_MODES:
+            if tail_row_text_mode not in {
+                "full",
+                "query_snippet",
+                "role_query_snippet",
+            }:
                 raise ValueError(
                     f"Unsupported tail_row_text_mode: {tail_row_text_mode}"
                 )
@@ -2075,52 +1738,6 @@ def _validate_route_overrides(
                 str(value).strip().lower()
                 for value in raw_types
                 if str(value).strip()
-            )
-        if "working_memory_packet" in raw_overrides:
-            overrides["working_memory_packet"] = bool(
-                raw_overrides["working_memory_packet"]
-            )
-        if "working_memory_packet_max_items" in raw_overrides:
-            overrides["working_memory_packet_max_items"] = max(
-                1, int(raw_overrides["working_memory_packet_max_items"])
-            )
-        if "working_memory_packet_value_chars" in raw_overrides:
-            overrides["working_memory_packet_value_chars"] = max(
-                40, int(raw_overrides["working_memory_packet_value_chars"])
-            )
-        if "working_memory_packet_source" in raw_overrides:
-            overrides["working_memory_packet_source"] = (
-                _validate_working_memory_packet_source(
-                    str(raw_overrides["working_memory_packet_source"])
-                )
-            )
-        if "working_memory_packet_format" in raw_overrides:
-            overrides["working_memory_packet_format"] = (
-                _validate_working_memory_packet_format(
-                    str(raw_overrides["working_memory_packet_format"])
-                )
-            )
-        if "working_memory_packet_compact_short_header" in raw_overrides:
-            overrides["working_memory_packet_compact_short_header"] = bool(
-                raw_overrides["working_memory_packet_compact_short_header"]
-            )
-        if "working_memory_packet_compact_dedupe" in raw_overrides:
-            overrides["working_memory_packet_compact_dedupe"] = bool(
-                raw_overrides["working_memory_packet_compact_dedupe"]
-            )
-        if "working_memory_packet_slot_guard" in raw_overrides:
-            overrides["working_memory_packet_slot_guard"] = bool(
-                raw_overrides["working_memory_packet_slot_guard"]
-            )
-        if "working_memory_packet_slot_guard_action" in raw_overrides:
-            overrides["working_memory_packet_slot_guard_action"] = (
-                _validate_working_memory_packet_slot_guard_action(
-                    str(raw_overrides["working_memory_packet_slot_guard_action"])
-                )
-            )
-        if "working_memory_packet_slot_guard_max_rows" in raw_overrides:
-            overrides["working_memory_packet_slot_guard_max_rows"] = max(
-                1, int(raw_overrides["working_memory_packet_slot_guard_max_rows"])
             )
         if "profile_activation_guide" in raw_overrides:
             overrides["profile_activation_guide"] = bool(
@@ -3428,13 +3045,6 @@ def _build_prompt(
     memory_value_slot_guide_max_slots: int,
     memory_value_slot_guide_max_values: int,
     memory_value_slot_guide_memory_types: tuple[str, ...],
-    working_memory_packet: bool,
-    working_memory_packet_max_items: int,
-    working_memory_packet_value_chars: int,
-    working_memory_packet_source: str,
-    working_memory_packet_format: str,
-    working_memory_packet_compact_short_header: bool,
-    working_memory_packet_compact_dedupe: bool,
     profile_activation_guide: bool,
     profile_activation_guide_max_records: int,
     profile_activation_guide_value_chars: int,
@@ -3457,10 +3067,6 @@ def _build_prompt(
     evidence_row_labels: bool,
     final_answer_checklist: bool,
     memory_context_newlines_after_blocks: int,
-    memory_context_header_format: str,
-    compact_query_contract: bool,
-    compact_query_guide_blocks: bool,
-    compact_query_answer_contract: bool,
     prompt_mode: str,
 ) -> str:
     if prompt_mode == "raw_context_only":
@@ -3600,15 +3206,6 @@ def _build_prompt(
             memory_value_slot_guide_max_slots=memory_value_slot_guide_max_slots,
             memory_value_slot_guide_max_values=memory_value_slot_guide_max_values,
             memory_value_slot_guide_memory_types=memory_value_slot_guide_memory_types,
-            working_memory_packet=working_memory_packet,
-            working_memory_packet_max_items=working_memory_packet_max_items,
-            working_memory_packet_value_chars=working_memory_packet_value_chars,
-            working_memory_packet_source=working_memory_packet_source,
-            working_memory_packet_format=working_memory_packet_format,
-            working_memory_packet_compact_short_header=(
-                working_memory_packet_compact_short_header
-            ),
-            working_memory_packet_compact_dedupe=working_memory_packet_compact_dedupe,
             profile_activation_guide=profile_activation_guide,
             profile_activation_guide_max_records=profile_activation_guide_max_records,
             profile_activation_guide_value_chars=profile_activation_guide_value_chars,
@@ -3624,10 +3221,6 @@ def _build_prompt(
             memory_context_newlines_after_blocks=(
                 memory_context_newlines_after_blocks
             ),
-            memory_context_header_format=memory_context_header_format,
-            compact_query_contract=compact_query_contract,
-            compact_query_guide_blocks=compact_query_guide_blocks,
-            compact_query_answer_contract=compact_query_answer_contract,
             context_layout=context_layout,
         )
 
@@ -3842,13 +3435,6 @@ def _build_external_naive_prompt(
     memory_value_slot_guide_max_slots: int,
     memory_value_slot_guide_max_values: int,
     memory_value_slot_guide_memory_types: tuple[str, ...],
-    working_memory_packet: bool,
-    working_memory_packet_max_items: int,
-    working_memory_packet_value_chars: int,
-    working_memory_packet_source: str,
-    working_memory_packet_format: str,
-    working_memory_packet_compact_short_header: bool,
-    working_memory_packet_compact_dedupe: bool,
     profile_activation_guide: bool,
     profile_activation_guide_max_records: int,
     profile_activation_guide_value_chars: int,
@@ -3862,10 +3448,6 @@ def _build_external_naive_prompt(
     temporal_order_contract: bool,
     final_answer_checklist: bool,
     memory_context_newlines_after_blocks: int,
-    memory_context_header_format: str,
-    compact_query_contract: bool,
-    compact_query_guide_blocks: bool,
-    compact_query_answer_contract: bool,
     context_layout: str,
 ) -> str:
     use_temporal_event_contract = (
@@ -3889,7 +3471,6 @@ def _build_external_naive_prompt(
             include_relative_text=temporal_text_normalization,
             event_contract=use_temporal_event_contract,
             enable_weekend_relative_time=enable_weekend_relative_time,
-            compact=compact_query_guide_blocks,
         )
         if temporal_aid_lines:
             temporal_aid = "\n".join(["", "Temporal Aid:", *temporal_aid_lines, ""])
@@ -3961,7 +3542,6 @@ def _build_external_naive_prompt(
             include_inline_memory_hints=structured_guide_memory_hints,
             max_memory_hints_per_row=structured_guide_max_memory_hints_per_row,
             memory_hint_chars=structured_guide_memory_hint_chars,
-            compact=compact_query_guide_blocks,
         )
         if guide_lines:
             structured_guide_block = "\n".join(
@@ -3998,24 +3578,6 @@ def _build_external_naive_prompt(
             profile_activation_guide_block = "\n".join(
                 ["", "Profile Memory Activation Guide:", *profile_activation_lines, ""]
             )
-    working_memory_packet_block = ""
-    if working_memory_packet:
-        working_memory_packet_lines = _external_working_memory_packet_lines(
-            question=question,
-            route=route,
-            rows=rows,
-            memory_object_index=memory_object_index,
-            max_items=working_memory_packet_max_items,
-            max_value_chars=working_memory_packet_value_chars,
-            source=working_memory_packet_source,
-            packet_format=working_memory_packet_format,
-            compact_short_header=working_memory_packet_compact_short_header,
-            compact_dedupe=working_memory_packet_compact_dedupe,
-        )
-        if working_memory_packet_lines:
-            working_memory_packet_block = "\n".join(
-                ["", "Working Memory Packet:", *working_memory_packet_lines, ""]
-            )
     memory_state_guide_block = ""
     if memory_state_guide:
         memory_state_lines = _external_memory_state_guide_lines(
@@ -4024,7 +3586,6 @@ def _build_external_naive_prompt(
             rows=rows,
             memory_records=memory_state_guide_records,
             state_conflict_manifest=memory_state_conflict_manifest,
-            memory_object_index=memory_object_index,
             max_records=memory_state_guide_max_records,
             max_value_chars=memory_state_guide_value_chars,
             include_superseded=memory_state_guide_include_superseded,
@@ -4070,65 +3631,42 @@ def _build_external_naive_prompt(
                 ["", "Update/Conflict Candidate Chain:", *update_conflict_lines, ""]
             )
     rules = ["Use only the memory context."]
-    guide_or_aid_block_present = any(
-        (
-            structured_guide_block,
-            candidate_guide_block,
-            profile_activation_guide_block,
-            working_memory_packet_block,
-            memory_state_guide_block,
-            memory_value_slot_guide_block,
-            update_conflict_guide_block,
-            temporal_aid,
-            event_timeline_block,
-            event_time_candidate_map_block,
-        )
-    )
-    if compact_query_answer_contract and guide_or_aid_block_present:
+    if structured_guide_block:
         rules.append(
-            "Guide, aid, packet, timeline, and workpad blocks are indexes/checklists only; verify final facts in Memory Context."
+            "Use Structured Evidence Guide only as an index into Memory Context; it is not independent evidence."
         )
-    else:
-        if structured_guide_block:
-            rules.append(
-                "Use Structured Evidence Guide only as an index into Memory Context; it is not independent evidence."
-            )
-        if candidate_guide_block:
-            rules.append(
-                "Use Candidate Evidence Map only as a compact index into Memory Context; it is not independent evidence."
-            )
-        if profile_activation_guide_block:
-            rules.append(
-                "Use Profile Memory Activation Guide only as a source-backed preference/profile index into cited Memory Context rows; it is not independent evidence."
-            )
-        if working_memory_packet_block:
-            rules.append(
-                "Use Working Memory Packet only as a source-backed state and operation index into cited Memory Context rows; it is not independent evidence."
-            )
-        if memory_state_guide_block:
-            rules.append(
-                "Use Managed Memory State Guide only as a state/conflict index into cited Memory Context rows; it is not independent evidence."
-            )
-        if memory_value_slot_guide_block:
-            rules.append(
-                "Use Memory Value Slot Guide only as a build-owned value/state index into cited Memory Context rows; it is not independent evidence."
-            )
-        if update_conflict_guide_block:
-            rules.append(
-                "Use Update/Conflict Candidate Chain only as a compact index into Memory Context; it is not independent evidence."
-            )
-        if temporal_aid:
-            rules.append(
-                "Use Temporal Aid only to interpret row dates and relative time phrases in the memory context; it is not independent evidence."
-            )
-        if event_timeline_block:
-            rules.append(
-                "Use Source Event Timeline only as a source-backed index into cited Memory Context rows; it is not independent evidence."
-            )
-        if event_time_candidate_map_block:
-            rules.append(
-                "Use Event-Time Candidate Map only as a high-confidence source-backed index into cited Memory Context rows; it is not independent evidence."
-            )
+    if candidate_guide_block:
+        rules.append(
+            "Use Candidate Evidence Map only as a compact index into Memory Context; it is not independent evidence."
+        )
+    if profile_activation_guide_block:
+        rules.append(
+            "Use Profile Memory Activation Guide only as a source-backed preference/profile index into cited Memory Context rows; it is not independent evidence."
+        )
+    if memory_state_guide_block:
+        rules.append(
+            "Use Managed Memory State Guide only as a state/conflict index into cited Memory Context rows; it is not independent evidence."
+        )
+    if memory_value_slot_guide_block:
+        rules.append(
+            "Use Memory Value Slot Guide only as a build-owned value/state index into cited Memory Context rows; it is not independent evidence."
+        )
+    if update_conflict_guide_block:
+        rules.append(
+            "Use Update/Conflict Candidate Chain only as a compact index into Memory Context; it is not independent evidence."
+        )
+    if temporal_aid:
+        rules.append(
+            "Use Temporal Aid only to interpret row dates and relative time phrases in the memory context; it is not independent evidence."
+        )
+    if event_timeline_block:
+        rules.append(
+            "Use Source Event Timeline only as a source-backed index into cited Memory Context rows; it is not independent evidence."
+        )
+    if event_time_candidate_map_block:
+        rules.append(
+            "Use Event-Time Candidate Map only as a high-confidence source-backed index into cited Memory Context rows; it is not independent evidence."
+        )
     personalized_advice_block = ""
     if personalized_advice_contract:
         personalized_advice_block = "\n".join(
@@ -4142,20 +3680,11 @@ def _build_external_naive_prompt(
         grounded_inference_block = "\n".join(
             ["", "Grounded Inference Discipline:", *_grounded_inference_lines(), ""]
         )
-        if compact_query_answer_contract:
-            rules.append(
-                "Use Grounded Inference Discipline only as a checklist over Memory Context."
-            )
-        else:
-            rules.append(
-                "Use Grounded Inference Discipline only to interpret Memory Context rows; it is not independent evidence."
-            )
+        rules.append(
+            "Use Grounded Inference Discipline only to interpret Memory Context rows; it is not independent evidence."
+        )
     if context_layout in {"session_thread", "chronological_session_thread"}:
-        if compact_query_answer_contract:
-            rules.append(
-                "Memory Context is grouped by session in chronological order; use nearby same-session turns for implicit references and do not merge unrelated sessions."
-            )
-        elif context_layout == "chronological_session_thread":
+        if context_layout == "chronological_session_thread":
             rules.append(
                 "Memory Context is grouped by session; sessions and turns are shown in chronological order. Use nearby turns in the same session to resolve implicit references, but do not merge unrelated sessions."
             )
@@ -4164,52 +3693,31 @@ def _build_external_naive_prompt(
                 "Memory Context is grouped by session in chronological turn order within each session; use nearby turns in the same session to resolve implicit references, but do not merge unrelated sessions."
             )
     if structured_answer_contract:
-        if compact_query_answer_contract:
-            rules.extend(
-                [
-                    "Before answering, identify in-scope evidence_items; mark include/exclude, merge duplicates by canonical_item, and show compact arithmetic when needed.",
-                    "For temporal items, prefer event dates or text time phrases over row Date; resolve relative phrases from that row Date.",
-                ]
-            )
-        else:
-            rules.extend(
-                [
-                    "Before the final answer, identify the in-scope evidence items needed for count, list, sum, duration, order, or date questions.",
-                    "For count/list/sum questions, mark each candidate as included or excluded, merge duplicates under one canonical_item, and show compact arithmetic when needed.",
-                    "For temporal questions, prefer an event date or time phrase stated in the content over the Memory row Date; resolve relative phrases from that row Date and preserve the original phrase when useful.",
-                    "Keep evidence_items compact; include excluded candidates only when they explain a duplicate or out-of-scope decision.",
-                ]
-            )
+        rules.extend(
+            [
+                "Before the final answer, identify the in-scope evidence items needed for count, list, sum, duration, order, or date questions.",
+                "For count/list/sum questions, mark each candidate as included or excluded, merge duplicates under one canonical_item, and show compact arithmetic when needed.",
+                "For temporal questions, prefer an event date or time phrase stated in the content over the Memory row Date; resolve relative phrases from that row Date and preserve the original phrase when useful.",
+                "Keep evidence_items compact; include excluded candidates only when they explain a duplicate or out-of-scope decision.",
+            ]
+        )
     use_aggregation_report_contract = (
         evidence_report_contract
         and aggregation_report_contract
         and not structured_answer_contract
     )
     if evidence_report_contract and not structured_answer_contract:
-        if compact_query_answer_contract:
-            rules.extend(
-                _external_compact_evidence_report_rules(
-                    question,
-                    route,
-                    temporal_event_contract=use_temporal_event_contract,
-                    detailed=evidence_report_detail,
-                    current_state_update_contract=current_state_update_contract,
-                    dialogue_inference_contract=dialogue_inference_contract,
-                    temporal_order_contract=temporal_order_contract,
-                )
+        rules.extend(
+            _external_evidence_report_rules(
+                question,
+                route,
+                temporal_event_contract=use_temporal_event_contract,
+                detailed=evidence_report_detail,
+                current_state_update_contract=current_state_update_contract,
+                dialogue_inference_contract=dialogue_inference_contract,
+                temporal_order_contract=temporal_order_contract,
             )
-        else:
-            rules.extend(
-                _external_evidence_report_rules(
-                    question,
-                    route,
-                    temporal_event_contract=use_temporal_event_contract,
-                    detailed=evidence_report_detail,
-                    current_state_update_contract=current_state_update_contract,
-                    dialogue_inference_contract=dialogue_inference_contract,
-                    temporal_order_contract=temporal_order_contract,
-                )
-            )
+        )
     if use_aggregation_report_contract:
         rules.extend(_external_aggregation_report_rules())
     operation_workpad_block = ""
@@ -4219,14 +3727,9 @@ def _build_external_naive_prompt(
             operation_workpad_block = "\n".join(
                 ["", "Private Operation Discipline:", *operation_lines, ""]
             )
-            if compact_query_answer_contract:
-                rules.append(
-                    "Use Private Operation Discipline internally; do not add checklist fields."
-                )
-            else:
-                rules.append(
-                    "Use Private Operation Discipline as an internal checklist only; do not add checklist fields to the output JSON."
-                )
+            rules.append(
+                "Use Private Operation Discipline as an internal checklist only; do not add checklist fields to the output JSON."
+            )
     final_answer_checklist_block = ""
     if final_answer_checklist:
         checklist_lines = _final_answer_checklist_lines(route)
@@ -4234,51 +3737,31 @@ def _build_external_naive_prompt(
             final_answer_checklist_block = "\n".join(
                 ["", "Final Answer Checklist:", *checklist_lines, ""]
             )
-            if compact_query_answer_contract:
-                rules.append(
-                    "Use Final Answer Checklist internally; do not add checklist fields."
-                )
-            else:
-                rules.append(
-                    "Use Final Answer Checklist as an internal validation step only; do not add checklist fields to the output JSON."
-                )
-    if compact_query_answer_contract:
-        rules.extend(
-            [
-                "If insufficient, set sufficient=false and say the provided information is not enough.",
-                "Keep the answer concise.",
-                "Return only valid JSON.",
-            ]
-        )
-    else:
-        rules.extend(
-            [
-                "If the context is insufficient, say the provided information is not enough.",
-                "Keep the answer concise and specific.",
-                "Return only valid JSON.",
-            ]
-        )
+            rules.append(
+                "Use Final Answer Checklist as an internal validation step only; do not add checklist fields to the output JSON."
+            )
+    rules.extend(
+        [
+            "If the context is insufficient, say the provided information is not enough.",
+            "Keep the answer concise and specific.",
+            "Return only valid JSON.",
+        ]
+    )
     rule_lines = [f"{index}. {rule}" for index, rule in enumerate(rules, start=1)]
     if structured_answer_contract:
-        if compact_query_answer_contract:
-            output_json_lines = [
-                '{"reasoning":"one short sentence","sufficient":true,"answer_type":"fact|count|list|sum|duration|date|order|preference|unknown","evidence_items":[{"memory":"Memory 1","canonical_item":"item/event/operand","date":"date or empty","value":"number/name/date/unit or empty","include":true,"reason":"why it counts or is excluded"}],"calculation":"short arithmetic or selection rule; empty if none","answer":"concise answer"}',
-                f"Use at most {structured_answer_contract_max_items} evidence_items.",
-            ]
-        else:
-            output_json_lines = [
-                "{",
-                '  "reasoning": "one short sentence",',
-                '  "sufficient": true,',
-                '  "answer_type": "fact|count|list|sum|duration|date|order|preference|unknown",',
-                '  "evidence_items": [',
-                '    {"memory": "Memory 1", "canonical_item": "item/event/operand", "date": "date or empty", "value": "number/name/date/unit or empty", "include": true, "reason": "why it counts or is excluded"}',
-                "  ],",
-                '  "calculation": "short arithmetic or selection rule; empty if none",',
-                '  "answer": "concise answer"',
-                "}",
-                f"Use at most {structured_answer_contract_max_items} evidence_items.",
-            ]
+        output_json_lines = [
+            "{",
+            '  "reasoning": "one short sentence",',
+            '  "sufficient": true,',
+            '  "answer_type": "fact|count|list|sum|duration|date|order|preference|unknown",',
+            '  "evidence_items": [',
+            '    {"memory": "Memory 1", "canonical_item": "item/event/operand", "date": "date or empty", "value": "number/name/date/unit or empty", "include": true, "reason": "why it counts or is excluded"}',
+            "  ],",
+            '  "calculation": "short arithmetic or selection rule; empty if none",',
+            '  "answer": "concise answer"',
+            "}",
+            f"Use at most {structured_answer_contract_max_items} evidence_items.",
+        ]
     elif evidence_report_contract:
         if use_temporal_event_contract:
             evidence_item_schema = (
@@ -4304,74 +3787,31 @@ def _build_external_naive_prompt(
                 '"slot": "requested answer slot", "value": "number/name/date/unit or empty", '
                 '"reason": "why it supports or is excluded"}'
             )
-        if compact_query_answer_contract:
-            if use_temporal_event_contract:
-                item_schema = (
-                    '{"memory":"Memory 1","status":"support|exclude",'
-                    '"slot":"requested answer slot","mention_time":"Memory Date or empty",'
-                    '"time_phrase":"explicit/relative phrase or empty",'
-                    '"event_time":"target event date/time/span/duration or empty",'
-                    '"value":"answer value or empty","reason":"support/exclude reason"}'
-                )
-            elif use_aggregation_report_contract:
-                item_schema = (
-                    '{"memory":"Memory 1","status":"support|exclude",'
-                    '"canonical_item":"distinct item/event/operand or empty",'
-                    '"slot":"counted_item|operand|date|duration|order|exclude",'
-                    '"count_increment":"integer or empty",'
-                    '"operand_value":"number/unit or empty",'
-                    '"value":"final value/date/name if not count increment",'
-                    '"reason":"support/exclude reason"}'
-                )
-            else:
-                item_schema = (
-                    '{"memory":"Memory 1","status":"support|exclude",'
-                    '"slot":"requested answer slot","value":"number/name/date/unit or empty",'
-                    '"reason":"support/exclude reason"}'
-                )
-            calculation = (
-                ',"calculation":"count/sum/difference/duration/order calculation or empty"'
-                if use_aggregation_report_contract
-                else ""
+        output_json_lines = [
+            "{",
+            '  "reasoning": "compact evidence decision",',
+            '  "sufficient": true,',
+            '  "answer_type": "fact|count|list|sum|duration|date|order|preference|unknown",',
+            '  "evidence_report": [',
+            evidence_item_schema,
+            "  ],",
+            '  "missing": "missing required target/operand/endpoint or empty",',
+            '  "answer": "concise answer"',
+            "}",
+            f"Use at most {evidence_report_max_items} evidence_report items.",
+        ]
+        if use_aggregation_report_contract:
+            output_json_lines.insert(
+                -4,
+                '  "calculation": "count/sum/difference/duration/order calculation or empty",',
             )
-            output_json_lines = [
-                '{"reasoning":"compact evidence decision","sufficient":true,'
-                '"answer_type":"fact|count|list|sum|duration|date|order|preference|unknown",'
-                f'"evidence_report":[{item_schema}],"missing":"missing required target/operand/endpoint or empty"'
-                f'{calculation},"answer":"concise answer"}}',
-                f"Use at most {evidence_report_max_items} evidence_report items.",
-            ]
-        else:
-            output_json_lines = [
-                "{",
-                '  "reasoning": "compact evidence decision",',
-                '  "sufficient": true,',
-                '  "answer_type": "fact|count|list|sum|duration|date|order|preference|unknown",',
-                '  "evidence_report": [',
-                evidence_item_schema,
-                "  ],",
-                '  "missing": "missing required target/operand/endpoint or empty",',
-                '  "answer": "concise answer"',
-                "}",
-                f"Use at most {evidence_report_max_items} evidence_report items.",
-            ]
-            if use_aggregation_report_contract:
-                output_json_lines.insert(
-                    -4,
-                    '  "calculation": "count/sum/difference/duration/order calculation or empty",',
-                )
     else:
-        if compact_query_answer_contract:
-            output_json_lines = [
-                '{"reasoning":"one short sentence","answer":"concise answer"}',
-            ]
-        else:
-            output_json_lines = [
-                "{",
-                '  "reasoning": "one short sentence",',
-                '  "answer": "concise answer"',
-                "}",
-            ]
+        output_json_lines = [
+            "{",
+            '  "reasoning": "one short sentence",',
+            '  "answer": "concise answer"',
+            "}",
+        ]
     prompt_parts = [
         "Answer the user's question using only the provided memory context.",
         "",
@@ -4385,7 +3825,6 @@ def _build_external_naive_prompt(
             event_time_candidate_map_block,
             candidate_guide_block,
             profile_activation_guide_block,
-            working_memory_packet_block,
             memory_state_guide_block,
             memory_value_slot_guide_block,
             update_conflict_guide_block,
@@ -4417,7 +3856,6 @@ def _build_external_naive_prompt(
                 tail_row_text_after_rank=tail_row_text_after_rank,
                 tail_max_row_text_chars=tail_max_row_text_chars,
                 context_layout=context_layout,
-                memory_context_header_format=memory_context_header_format,
             ),
             temporal_aid,
             "",
@@ -4523,90 +3961,6 @@ def _external_evidence_report_rules(
     return rules
 
 
-def _external_compact_evidence_report_rules(
-    question: str,
-    route: RouteResult,
-    *,
-    temporal_event_contract: bool = False,
-    detailed: bool = False,
-    current_state_update_contract: bool = False,
-    dialogue_inference_contract: bool = False,
-    temporal_order_contract: bool = False,
-) -> list[str]:
-    """Short source-grounded report contract for lower query-token prompts."""
-
-    lowered_question = question.lower()
-    rules = [
-        "Build evidence_report before answering: support must match requested entity, object, action, relation, speaker, time scope, and slot; mark close wrong candidates as exclude.",
-        "If a required target, operand, endpoint, or speaker source is missing, set sufficient=false and name the missing part.",
-        "Keep answer values slot-complete: do not drop qualifiers needed for role, employer, location, unit, date, subtype, or scope.",
-    ]
-    if re.search(
-        r"\b(where|which\s+(studio|store|venue|place|location|organization)|"
-        r"what\s+(studio|store|venue|place|location|organization))\b",
-        lowered_question,
-    ) and not re.search(r"\b(address|street|city|zip|postal|exact location)\b", lowered_question):
-        rules.append(
-            "For where/place questions, a named venue, studio, store, or organization can be the location answer; do not require a street address unless asked."
-        )
-    if re.search(
-        r"\b(occupation|job|role|position|employer|workplace)\b",
-        lowered_question,
-    ) or re.search(r"\b(previous|former|past|old)\b.*\b(work|worked|did)\b", lowered_question):
-        rules.append(
-            "For occupation/role answers, preserve employer, workplace, domain, seniority, and previous/current qualifiers when evidence states them."
-        )
-    if detailed:
-        rules.append(
-            "Preserve exact names, numbers, dates, units, and event wording; do not turn related discussion/plans/suggestions into completed facts unless confirmed."
-        )
-        if _asks_collection_operation(
-            lowered_question
-        ) or _looks_like_plural_slot_question(
-            lowered_question
-        ):
-            rules.append(
-                "For list-style questions, preserve all distinct in-scope values; merge duplicates and treat ambiguous duplicates as exclude unless giving a lower bound."
-            )
-    if dialogue_inference_contract:
-        rules.append(
-            "Same-session neighbors may resolve omitted slots only in the same exchange; assistant suggestions/examples support only when asked or user-confirmed."
-        )
-    if route.information_need == "list_count":
-        rules.append(
-            "For count/list/sum/comparison, enumerate distinct in-scope items or operands, preserve item names/subtypes, merge duplicates, exclude unconfirmed suggestions/hypotheticals, and answer from the calculation."
-        )
-    elif route.information_need == "temporal_lookup":
-        rules.append(
-            "For date/duration/order, identify the exact target event/state; row Date is mention_time, while text dates/relative phrases give event_time when they match."
-        )
-        if temporal_order_contract:
-            rules.append(
-                "For order/comparison, normalize each candidate event/state time before comparing; started/since/for-N-ago phrases indicate earlier start times."
-            )
-        if temporal_event_contract:
-            rules.append(
-                "In evidence_report, keep mention_time separate from event_time; answer with event_time or direct duration unless asked when it was mentioned."
-            )
-    elif route.information_need == "current_state":
-        rules.append(
-            "For current/latest/recent, compare older and newer directly relevant candidates and answer the newest supported state."
-        )
-        if current_state_update_contract:
-            rules.append(
-                "Newer approximate or self-reported states can support current state; preserve qualifiers such as about, close to, almost, or nearing."
-            )
-    elif route.information_need == "profile_preference":
-        rules.append(
-            "For preference/advice, use stated preferences, dislikes, constraints, habits, owned resources, and prior experiences; do not invent absent named recommendations."
-        )
-    else:
-        rules.append(
-            "For fact lookup, match the exact requested slot; do not substitute related source, method, topic, or explanation."
-        )
-    return rules
-
-
 def _external_aggregation_report_rules() -> list[str]:
     """Schema discipline for question-derived aggregation, without labels."""
 
@@ -4671,17 +4025,13 @@ def _external_structured_guide_lines(
     include_inline_memory_hints: bool,
     max_memory_hints_per_row: int,
     memory_hint_chars: int,
-    compact: bool = False,
 ) -> list[str]:
     if (not include_rows and not include_memory) or (not rows and not memory_records):
         return []
 
-    if compact:
-        lines = ["Index only; verify final facts in Memory Context rows."]
-    else:
-        lines = [
-            "Use this compact guide to locate relevant raw Memory Context rows; verify final facts in those rows."
-        ]
+    lines = [
+        "Use this compact guide to locate relevant raw Memory Context rows; verify final facts in those rows."
+    ]
     question_terms = _content_terms(question)
     source_to_memory_index = {
         row.source_id: index for index, row in enumerate(rows, start=1)
@@ -4711,13 +4061,7 @@ def _external_structured_guide_lines(
                     )
                 )
                 if relative_times:
-                    if compact:
-                        label = "ev" if event_contract else "rel"
-                        relative_text = f" | {label}=" + "; ".join(
-                            f'"{phrase}"->{normalized}'
-                            for phrase, normalized in relative_times[:4]
-                        )
-                    elif event_contract:
+                    if event_contract:
                         relative_text = " | event_time_candidates=" + "; ".join(
                             f'phrase="{phrase}" event_time="{normalized}"'
                             for phrase, normalized in relative_times[:4]
@@ -4736,16 +4080,10 @@ def _external_structured_guide_lines(
             )
             if memory_hint:
                 memory_hint_text = f" | memory_hint={memory_hint}"
-            if compact:
-                lines.append(
-                    f"  - Memory {index}: date={row_date_text} role={row.role} "
-                    f"terms={matched_text}{relative_text}{memory_hint_text}"
-                )
-            else:
-                lines.append(
-                    f"  - Memory {index}: row_date={row_date_text} role={row.role} "
-                    f"matched_terms={matched_text}{relative_text}{memory_hint_text}"
-                )
+            lines.append(
+                f"  - Memory {index}: row_date={row_date_text} role={row.role} "
+                f"matched_terms={matched_text}{relative_text}{memory_hint_text}"
+            )
 
     if include_memory:
         memory_lines = _external_memory_guide_lines(
@@ -4941,851 +4279,6 @@ def _profile_activation_record_score(
     return score
 
 
-def _apply_workspace_query_policy_settings(
-    *,
-    enabled: bool,
-    information_needs: tuple[str, ...],
-    replacement_components: tuple[str, ...],
-    route: RouteResult,
-    question: str,
-    rows: tuple[EvidenceRow, ...],
-    memory_object_index: Mapping[str, Any] | None,
-    route_settings: Mapping[str, Any],
-    packet_source: str,
-    packet_max_items: int,
-    packet_value_chars: int,
-    packet_format: str,
-    packet_compact_short_header: bool,
-    packet_compact_dedupe: bool,
-    slot_guard: bool,
-    slot_guard_action: str,
-    slot_guard_max_rows: int,
-) -> tuple[dict[str, Any], dict[str, Any]]:
-    settings = dict(route_settings)
-    trace: dict[str, Any] = {
-        "enabled": enabled,
-        "applied": False,
-        "reason": "disabled" if not enabled else "no_workspace_policy",
-        "information_needs": information_needs,
-        "configured_components": replacement_components,
-        "policy_available": False,
-        "policy_schema_version": "",
-        "ready_components": [],
-        "prompt_components_before": [],
-        "replaced_components": [],
-        "packet_source": packet_source,
-        "packet_selected_source": "",
-        "packet_candidate_count": 0,
-        "packet_candidate_source_labels": [],
-        "packet_candidate_slots": [],
-        "packet_candidate_focus_counts": {},
-        "packet_candidate_verifier_checks": [],
-        "slot_guard": slot_guard,
-        "slot_guard_action": slot_guard_action,
-        "slot_guard_max_rows": slot_guard_max_rows,
-    }
-    if not enabled:
-        return settings, trace
-    if information_needs and route.information_need not in information_needs:
-        trace["reason"] = "route_not_enabled"
-        return settings, trace
-    if not replacement_components:
-        trace["reason"] = "no_replacement_components"
-        return settings, trace
-    if not isinstance(memory_object_index, Mapping):
-        return settings, trace
-    memory_workspace_policy = memory_object_index.get("memory_workspace_policy")
-    if not isinstance(memory_workspace_policy, Mapping):
-        return settings, trace
-    trace["policy_schema_version"] = str(
-        memory_workspace_policy.get("schema_version") or ""
-    )
-    if not memory_workspace_policy.get("applied"):
-        trace["reason"] = "workspace_policy_not_applied"
-        return settings, trace
-    query_component_policy = memory_workspace_policy.get("query_component_policy")
-    if not isinstance(query_component_policy, Mapping):
-        trace["reason"] = "missing_query_component_policy"
-        return settings, trace
-    trace["policy_available"] = True
-
-    ready_components: list[str] = []
-    for component in replacement_components:
-        component_policy = query_component_policy.get(component)
-        if isinstance(component_policy, Mapping) and component_policy.get("ready"):
-            ready_components.append(component)
-    trace["ready_components"] = ready_components
-    if not ready_components:
-        trace["reason"] = "no_ready_components"
-        return settings, trace
-
-    prompt_components = [
-        component for component in ready_components if bool(settings.get(component))
-    ]
-    trace["prompt_components_before"] = prompt_components
-    if not prompt_components:
-        trace["reason"] = "no_enabled_prompt_components"
-        return settings, trace
-
-    selected_candidates, selected_source = _working_memory_packet_candidates_for_context(
-        question=question,
-        route=route,
-        rows=rows,
-        memory_object_index=memory_object_index,
-        max_items=packet_max_items,
-        source=packet_source,
-    )
-    trace["packet_selected_source"] = selected_source
-    trace["packet_candidate_count"] = len(selected_candidates)
-    trace.update(_workspace_packet_candidate_diagnostics(selected_candidates))
-    if not selected_candidates:
-        trace["reason"] = "no_source_backed_packet_candidates"
-        return settings, trace
-
-    for component in prompt_components:
-        settings[component] = False
-    settings["working_memory_packet"] = True
-    settings["working_memory_packet_source"] = packet_source
-    settings["working_memory_packet_max_items"] = packet_max_items
-    settings["working_memory_packet_value_chars"] = packet_value_chars
-    settings["working_memory_packet_format"] = packet_format
-    settings["working_memory_packet_compact_short_header"] = (
-        packet_compact_short_header
-    )
-    settings["working_memory_packet_compact_dedupe"] = packet_compact_dedupe
-    settings["working_memory_packet_slot_guard"] = slot_guard
-    settings["working_memory_packet_slot_guard_action"] = slot_guard_action
-    settings["working_memory_packet_slot_guard_max_rows"] = slot_guard_max_rows
-    trace["applied"] = True
-    trace["reason"] = "workspace_policy_replaced_prompt_components"
-    trace["replaced_components"] = prompt_components
-    return settings, trace
-
-
-def _external_working_memory_packet_lines(
-    *,
-    question: str,
-    route: RouteResult,
-    rows: tuple[EvidenceRow, ...],
-    memory_object_index: Mapping[str, Any] | None,
-    max_items: int,
-    max_value_chars: int,
-    source: str,
-    packet_format: str,
-    compact_short_header: bool = False,
-    compact_dedupe: bool = False,
-) -> list[str]:
-    """Source-backed memory organization packet grounded in visible rows."""
-
-    packet_format = _validate_working_memory_packet_format(packet_format)
-    selected_candidates, selected_source = _working_memory_packet_candidates_for_context(
-        question=question,
-        route=route,
-        rows=rows,
-        memory_object_index=memory_object_index,
-        max_items=max_items,
-        source=source,
-    )
-    if not selected_candidates:
-        return []
-    if packet_format == "compact":
-        return _compact_working_memory_packet_lines(
-            selected_candidates,
-            selected_source=selected_source,
-            max_value_chars=max_value_chars,
-            short_header=compact_short_header,
-            dedupe=compact_dedupe,
-        )
-    if packet_format == "micro":
-        return _micro_working_memory_packet_lines(
-            selected_candidates,
-            selected_source=selected_source,
-            max_value_chars=max_value_chars,
-            dedupe=compact_dedupe,
-        )
-    lines = [
-        "Source-backed memory organization packet "
-        f"(source={selected_source}); use it to track active working state, "
-        "long-term recall, archival conflicts, and operation targets before "
-        "verifying final facts in cited rows.",
-        "- items:",
-    ]
-    for _, _, _, entry, source_labels in selected_candidates:
-        fields = [
-            f"target={str(entry.get('target_type') or 'object')}",
-            f"type={str(entry.get('memory_type') or 'unknown')}",
-        ]
-        lifecycle_stage = str(entry.get("lifecycle_stage") or "")
-        if lifecycle_stage:
-            fields.append(f"stage={lifecycle_stage}")
-        focus = str(entry.get("focus") or "")
-        if focus:
-            fields.append(f"focus={focus}")
-        manager_decision = str(entry.get("manager_decision") or "")
-        if manager_decision:
-            fields.append(f"decision={manager_decision}")
-        workspace_layer = str(entry.get("workspace_layer") or "")
-        if workspace_layer:
-            fields.insert(1, f"workspace={workspace_layer}")
-        memory_layer = str(entry.get("memory_layer") or "")
-        if memory_layer and not workspace_layer:
-            fields.insert(1, f"memory_layer={memory_layer}")
-        workspace_role = str(entry.get("workspace_role") or entry.get("context_role") or "")
-        if workspace_role:
-            fields.append(f"role={workspace_role}")
-        tier = str(entry.get("memory_tier") or "")
-        if tier:
-            fields.insert(1, f"tier={tier}")
-        else:
-            layer = str(entry.get("layer") or "")
-            if layer:
-                fields.insert(1, f"layer={layer}")
-        status = str(entry.get("status") or "")
-        if status:
-            fields.append(f"status={status}")
-        subject = str(entry.get("subject") or "")
-        if subject:
-            fields.append(f"subject={_truncate_text(_single_line(subject), 60)}")
-        predicate = str(entry.get("predicate") or "")
-        if predicate:
-            fields.append(
-                f"predicate={_truncate_text(_single_line(predicate), 60)}"
-            )
-        value = _working_memory_packet_entry_value(entry)
-        if value:
-            fields.append(
-                f"value={_truncate_text(_single_line(value), max_value_chars)}"
-            )
-        operations = tuple(str(item) for item in entry.get("operations") or () if item)
-        if operations:
-            fields.append(f"ops={', '.join(operations[:6])}")
-        audit_actions = tuple(
-            str(item) for item in entry.get("audit_actions") or () if item
-        )
-        if audit_actions:
-            fields.append(f"actions={', '.join(audit_actions[:6])}")
-        context_actions = tuple(
-            str(item) for item in entry.get("context_actions") or () if item
-        )
-        if context_actions:
-            fields.append(f"context={', '.join(context_actions[:6])}")
-        verifier_checks = tuple(
-            str(item) for item in entry.get("verifier_checks") or () if item
-        )
-        if verifier_checks:
-            fields.append(f"checks={', '.join(verifier_checks[:6])}")
-        fields.append(f"sources={', '.join(source_labels)}")
-        lines.append(f"  - {' | '.join(fields)}")
-    return lines
-
-
-def _working_memory_packet_candidates_for_context(
-    *,
-    question: str,
-    route: RouteResult,
-    rows: tuple[EvidenceRow, ...],
-    memory_object_index: Mapping[str, Any] | None,
-    max_items: int,
-    source: str,
-) -> tuple[
-    list[tuple[float, float, int, Mapping[str, Any], tuple[str, ...]]],
-    str,
-]:
-    if not rows or max_items <= 0 or not isinstance(memory_object_index, Mapping):
-        return [], source
-    raw_entries, selected_source = _working_memory_packet_source_entries(
-        memory_object_index,
-        source=_validate_working_memory_packet_source(source),
-    )
-    if not raw_entries:
-        return [], selected_source
-
-    source_to_memory_index = {
-        row.source_id: index for index, row in enumerate(rows, start=1)
-    }
-    question_terms = _content_terms(question)
-    candidates: list[tuple[float, float, int, Mapping[str, Any], tuple[str, ...]]] = []
-    for ordinal, entry in enumerate(raw_entries):
-        if not isinstance(entry, Mapping):
-            continue
-        if not entry.get("source_backed"):
-            continue
-        if str(entry.get("memory_tier") or "") == "quarantine_memory":
-            continue
-        source_ids = _working_memory_packet_entry_source_ids(entry)
-        source_labels = _source_labels_for_source_ids(
-            source_ids,
-            source_to_memory_index,
-        )
-        if not source_labels:
-            continue
-        score = _working_memory_packet_entry_score(
-            entry,
-            question_terms=question_terms,
-            route=route,
-        )
-        if score <= 0:
-            continue
-        candidates.append(
-            (
-                score,
-                _working_memory_packet_target_priority(
-                    str(entry.get("target_type") or "")
-                ),
-                ordinal,
-                entry,
-                source_labels,
-            )
-        )
-    if not candidates:
-        return [], selected_source
-    return (
-        _select_working_memory_packet_candidates(candidates, max_items=max_items),
-        selected_source,
-    )
-
-
-def _working_memory_packet_slot_guard_diagnostics(
-    *,
-    question: str,
-    route: RouteResult,
-    rows: tuple[EvidenceRow, ...],
-    memory_object_index: Mapping[str, Any] | None,
-    max_items: int,
-    source: str,
-) -> dict[str, Any]:
-    required_slot_terms = _working_memory_packet_required_slot_terms(question)
-    if not required_slot_terms:
-        return {"applied": False, "reason": "not_slot_status_question"}
-
-    selected_candidates, selected_source = _working_memory_packet_candidates_for_context(
-        question=question,
-        route=route,
-        rows=rows,
-        memory_object_index=memory_object_index,
-        max_items=max_items,
-        source=source,
-    )
-    if not selected_candidates:
-        return {
-            "applied": False,
-            "reason": "no_source_backed_packet_candidates",
-            "required_slot_terms": sorted(required_slot_terms),
-            "source": selected_source,
-        }
-
-    subject_terms = _working_memory_packet_subject_terms(question, required_slot_terms)
-    coverage_source = (
-        "build_slot_coverage"
-        if any(
-            _working_memory_packet_entry_build_coverage_terms(entry)
-            for _, _, _, entry, _ in selected_candidates
-        )
-        else "entry_text_fallback"
-    )
-    for _, _, _, entry, _ in selected_candidates:
-        entry_terms = _working_memory_packet_entry_terms(entry)
-        if not required_slot_terms.issubset(entry_terms):
-            continue
-        if subject_terms and not subject_terms.intersection(entry_terms):
-            continue
-        return {
-            "applied": False,
-            "reason": "slot_covered",
-            "required_slot_terms": sorted(required_slot_terms),
-            "subject_terms": sorted(subject_terms),
-            "coverage_source": coverage_source,
-            "source": selected_source,
-        }
-
-    return {
-        "applied": True,
-        "reason": "selected_packet_missing_requested_slot",
-        "required_slot_terms": sorted(required_slot_terms),
-        "subject_terms": sorted(subject_terms),
-        "coverage_source": coverage_source,
-        "selected_slots": list(
-            dict.fromkeys(
-                _working_memory_packet_entry_slot_label(entry)
-                for _, _, _, entry, _ in selected_candidates
-            )
-        ),
-        "source": selected_source,
-    }
-
-
-def _working_memory_packet_required_slot_terms(question: str) -> frozenset[str]:
-    terms = _content_terms(question)
-    slot_terms = terms.intersection(WORKING_MEMORY_PACKET_SLOT_GUARD_TERMS)
-    if "status" in slot_terms and slot_terms.intersection(
-        {
-            "dating",
-            "girlfriend",
-            "boyfriend",
-            "husband",
-            "marital",
-            "married",
-            "partner",
-            "relationship",
-            "relationships",
-            "romantic",
-            "single",
-            "spouse",
-            "wife",
-        }
-    ):
-        return frozenset({"relationship", "status"})
-    if "status" in slot_terms:
-        return frozenset({"status"})
-    if "state" in slot_terms:
-        return frozenset(slot_terms.intersection({"state", "status"}))
-    return frozenset()
-
-
-def _working_memory_packet_subject_terms(
-    question: str,
-    required_slot_terms: frozenset[str],
-) -> frozenset[str]:
-    subject_terms = set(_content_terms(question))
-    subject_terms.difference_update(required_slot_terms)
-    subject_terms.difference_update(WORKING_MEMORY_PACKET_SLOT_GUARD_TERMS)
-    subject_terms.difference_update(WORKING_MEMORY_PACKET_SLOT_GUARD_SUBJECT_STOPWORDS)
-    return frozenset(subject_terms)
-
-
-def _working_memory_packet_entry_terms(entry: Mapping[str, Any]) -> frozenset[str]:
-    build_terms = _working_memory_packet_entry_build_coverage_terms(entry)
-    if build_terms:
-        return build_terms
-    return _working_memory_packet_entry_fallback_terms(entry)
-
-
-def _working_memory_packet_entry_score_terms(
-    entry: Mapping[str, Any],
-) -> frozenset[str]:
-    fallback_terms = _working_memory_packet_entry_fallback_terms(entry)
-    return fallback_terms or _working_memory_packet_entry_build_coverage_terms(entry)
-
-
-def _working_memory_packet_entry_build_coverage_terms(
-    entry: Mapping[str, Any],
-) -> frozenset[str]:
-    parts: list[str] = []
-    for key in (
-        "slot_coverage_terms",
-        "slot_subject_terms",
-        "slot_predicate_terms",
-        "slot_value_terms",
-    ):
-        value = entry.get(key)
-        if isinstance(value, str):
-            parts.append(value)
-        else:
-            parts.extend(str(item) for item in value or () if item)
-    slot_family = str(entry.get("slot_family") or "")
-    if slot_family:
-        parts.append(slot_family.replace("_", " "))
-    if not parts:
-        return frozenset()
-    return _content_terms(" ".join(parts))
-
-
-def _working_memory_packet_entry_fallback_terms(
-    entry: Mapping[str, Any],
-) -> frozenset[str]:
-    parts = [
-        entry.get("target_type"),
-        entry.get("target_id"),
-        entry.get("slot_id"),
-        entry.get("workspace_layer"),
-        entry.get("workspace_role"),
-        entry.get("memory_layer"),
-        entry.get("context_role"),
-        entry.get("memory_type"),
-        entry.get("focus"),
-        entry.get("manager_decision"),
-        entry.get("lifecycle_stage"),
-        entry.get("subject"),
-        entry.get("predicate"),
-        _working_memory_packet_entry_value(entry),
-        " ".join(str(item) for item in entry.get("context_actions") or ()),
-        " ".join(str(item) for item in entry.get("verifier_checks") or ()),
-        " ".join(str(item) for item in entry.get("operations") or ()),
-        " ".join(str(item) for item in entry.get("audit_actions") or ()),
-        " ".join(str(item) for item in entry.get("audit_flags") or ()),
-    ]
-    normalized = " ".join(
-        str(part).replace("_", " ").replace("-", " ") for part in parts if part
-    )
-    return _content_terms(normalized)
-
-
-def _working_memory_packet_entry_slot_label(entry: Mapping[str, Any]) -> str:
-    subject = _single_line(str(entry.get("subject") or "")).strip()
-    predicate = _single_line(
-        str(
-            entry.get("predicate")
-            or entry.get("slot_id")
-            or entry.get("target_id")
-            or entry.get("target_type")
-            or "memory"
-        )
-    ).strip()
-    return f"{subject + '/' if subject else ''}{predicate}"
-
-
-def _compact_working_memory_packet_lines(
-    selected_candidates: list[
-        tuple[float, float, int, Mapping[str, Any], tuple[str, ...]]
-    ],
-    *,
-    selected_source: str,
-    max_value_chars: int,
-    short_header: bool = False,
-    dedupe: bool = False,
-) -> list[str]:
-    header = (
-        f"Source-backed workspace packet (source={selected_source}); "
-        "index only, verify final facts in Memory Context."
-        if short_header
-        else (
-            "Compact source-backed workspace packet "
-            f"(source={selected_source}); activation hints only. Use slot/source "
-            "links to choose rows, then preserve final qualifiers from Memory Context."
-        )
-    )
-    lines = [header, "- slots:"]
-    slot_line_indexes: dict[tuple[str, str, tuple[str, ...], str, str, str], int] = {}
-    slot_line_has_hint: dict[
-        tuple[str, str, tuple[str, ...], str, str, str],
-        bool,
-    ] = {}
-    for _, _, _, entry, source_labels in selected_candidates:
-        subject = _truncate_text(_single_line(str(entry.get("subject") or "")), 48)
-        predicate = _truncate_text(
-            _single_line(
-                str(
-                    entry.get("predicate")
-                    or entry.get("slot_id")
-                    or entry.get("target_id")
-                    or entry.get("target_type")
-                    or "memory"
-                )
-            ),
-            48,
-        )
-        value = _working_memory_packet_entry_value(entry)
-        fields = [
-            f"slot={subject + '/' if subject else ''}{predicate}",
-            f"type={str(entry.get('memory_type') or 'unknown')}",
-        ]
-        focus = str(entry.get("focus") or "")
-        if focus:
-            fields.append(f"focus={focus}")
-        decision = str(entry.get("manager_decision") or "")
-        if decision:
-            fields.append(f"decision={decision}")
-        status = str(entry.get("status") or "")
-        if status:
-            fields.append(f"status={status}")
-        if value:
-            fields.append(
-                "hint="
-                + _truncate_text(_single_line(value), max(40, int(max_value_chars)))
-            )
-        fields.append(f"src={', '.join(source_labels)}")
-        line = f"  - {' | '.join(fields)}"
-        if not dedupe:
-            lines.append(line)
-            continue
-        dedupe_key = (subject, predicate, tuple(source_labels), focus, decision, status)
-        prior_index = slot_line_indexes.get(dedupe_key)
-        if prior_index is None:
-            slot_line_indexes[dedupe_key] = len(lines)
-            slot_line_has_hint[dedupe_key] = bool(value)
-            lines.append(line)
-            continue
-        if value and not slot_line_has_hint.get(dedupe_key, False):
-            lines[prior_index] = line
-            slot_line_has_hint[dedupe_key] = True
-    return lines
-
-
-def _micro_working_memory_packet_lines(
-    selected_candidates: list[
-        tuple[float, float, int, Mapping[str, Any], tuple[str, ...]]
-    ],
-    *,
-    selected_source: str,
-    max_value_chars: int,
-    dedupe: bool = False,
-) -> list[str]:
-    lines = [
-        "Workspace packet "
-        f"(source={selected_source}; index only; verify final facts in Memory Context):"
-    ]
-    slot_line_indexes: dict[tuple[str, str, tuple[str, ...], str, str, str], int] = {}
-    slot_line_has_hint: dict[
-        tuple[str, str, tuple[str, ...], str, str, str],
-        bool,
-    ] = {}
-    for _, _, _, entry, source_labels in selected_candidates:
-        subject = _truncate_text(_single_line(str(entry.get("subject") or "")), 42)
-        predicate = _truncate_text(
-            _single_line(
-                str(
-                    entry.get("predicate")
-                    or entry.get("slot_id")
-                    or entry.get("target_id")
-                    or entry.get("target_type")
-                    or "memory"
-                )
-            ),
-            42,
-        )
-        slot = f"{subject + '/' if subject else ''}{predicate}"
-        fields = [
-            f"slot={slot}",
-            f"type={str(entry.get('memory_type') or 'unknown')}",
-        ]
-        focus = str(entry.get("focus") or "")
-        if focus:
-            fields.append(f"focus={focus}")
-        status = str(entry.get("status") or "")
-        if status:
-            fields.append(f"status={status}")
-        value = _working_memory_packet_entry_value(entry)
-        if value:
-            fields.append(
-                "hint="
-                + _truncate_text(_single_line(value), max(40, int(max_value_chars)))
-            )
-        fields.append(f"src={', '.join(source_labels)}")
-        line = f"- {' | '.join(fields)}"
-        if not dedupe:
-            lines.append(line)
-            continue
-        dedupe_key = (subject, predicate, tuple(source_labels), focus, "", status)
-        prior_index = slot_line_indexes.get(dedupe_key)
-        if prior_index is None:
-            slot_line_indexes[dedupe_key] = len(lines)
-            slot_line_has_hint[dedupe_key] = bool(value)
-            lines.append(line)
-            continue
-        if value and not slot_line_has_hint.get(dedupe_key, False):
-            lines[prior_index] = line
-            slot_line_has_hint[dedupe_key] = True
-    return lines
-
-
-def _workspace_packet_candidate_diagnostics(
-    selected_candidates: list[
-        tuple[float, float, int, Mapping[str, Any], tuple[str, ...]]
-    ],
-) -> dict[str, Any]:
-    source_labels: list[str] = []
-    slots: list[str] = []
-    focus_counts: dict[str, int] = {}
-    verifier_checks: list[str] = []
-    for _, _, _, entry, labels in selected_candidates:
-        source_labels.extend(labels)
-        slots.append(_working_memory_packet_entry_slot_label(entry))
-        focus = str(entry.get("focus") or "")
-        if focus:
-            focus_counts[focus] = focus_counts.get(focus, 0) + 1
-        for check in entry.get("verifier_checks") or ():
-            check_text = str(check).strip()
-            if check_text:
-                verifier_checks.append(check_text)
-    return {
-        "packet_candidate_source_labels": list(dict.fromkeys(source_labels)),
-        "packet_candidate_slots": list(dict.fromkeys(slots)),
-        "packet_candidate_focus_counts": dict(sorted(focus_counts.items())),
-        "packet_candidate_verifier_checks": list(dict.fromkeys(verifier_checks)),
-    }
-
-
-def _working_memory_packet_source_entries(
-    memory_object_index: Mapping[str, Any],
-    *,
-    source: str,
-) -> tuple[Iterable[Any], str]:
-    source_order = (
-        ("lifecycle_audit", "lifecycle_audit"),
-        ("working_view", "working_memory_view"),
-        ("operation_registry", "operation_registry"),
-        ("working_compiler_plan", "memory_working_compiler_plan"),
-        ("memory_system_state", "memory_system_state"),
-    )
-    if source != "auto":
-        source_order = tuple(item for item in source_order if item[0] == source)
-    for source_name, index_key in source_order:
-        source_manifest = memory_object_index.get(index_key)
-        if not isinstance(source_manifest, Mapping):
-            continue
-        if not source_manifest.get("applied"):
-            continue
-        entries = source_manifest.get("entries") or ()
-        if entries:
-            return entries, source_name
-    return (), source
-
-
-def _select_working_memory_packet_candidates(
-    candidates: list[tuple[float, float, int, Mapping[str, Any], tuple[str, ...]]],
-    *,
-    max_items: int,
-) -> list[tuple[float, float, int, Mapping[str, Any], tuple[str, ...]]]:
-    ranked = sorted(
-        candidates,
-        key=lambda item: (item[0], item[1], -item[2]),
-        reverse=True,
-    )
-    selected: list[
-        tuple[float, float, int, Mapping[str, Any], tuple[str, ...]]
-    ] = []
-    selected_ordinals: set[int] = set()
-
-    for target_type in ("conflict_slot", "value_slot", "operation_slot", "object"):
-        for candidate in ranked:
-            _, _, ordinal, entry, _ = candidate
-            if ordinal in selected_ordinals:
-                continue
-            if str(entry.get("target_type") or "object") != target_type:
-                continue
-            selected.append(candidate)
-            selected_ordinals.add(ordinal)
-            break
-        if len(selected) >= max_items:
-            return selected[:max_items]
-
-    for candidate in ranked:
-        _, _, ordinal, _, _ = candidate
-        if ordinal in selected_ordinals:
-            continue
-        selected.append(candidate)
-        selected_ordinals.add(ordinal)
-        if len(selected) >= max_items:
-            break
-    return selected
-
-
-def _source_labels_for_source_ids(
-    source_ids: tuple[str, ...],
-    source_to_memory_index: Mapping[str, int],
-) -> tuple[str, ...]:
-    labels = []
-    for source_id in source_ids:
-        memory_index = source_to_memory_index.get(source_id)
-        if memory_index is not None:
-            labels.append(f"Memory {memory_index}")
-    return tuple(dict.fromkeys(labels))
-
-
-def _working_memory_packet_entry_source_ids(entry: Mapping[str, Any]) -> tuple[str, ...]:
-    ordered_sources: list[str] = []
-    source_expansion = entry.get("source_expansion")
-    if isinstance(source_expansion, Mapping):
-        for source_id in source_expansion.get("source_ids") or ():
-            source_text = str(source_id).strip()
-            if source_text:
-                ordered_sources.append(source_text)
-    for key in (
-        "expand_source_order",
-        "current_source_order",
-        "historical_source_order",
-        "source_ids",
-    ):
-        for source_id in entry.get(key) or ():
-            source_text = str(source_id).strip()
-            if source_text:
-                ordered_sources.append(source_text)
-    return tuple(dict.fromkeys(ordered_sources))
-
-
-def _working_memory_packet_entry_value(entry: Mapping[str, Any]) -> str:
-    if str(entry.get("target_type") or "") == "conflict_slot":
-        # Conflict slots organize competing values for guard/audit. Keep their
-        # values out of prompt-visible packet hints unless a future explicit
-        # renderer policy makes that tradeoff measurable.
-        return str(entry.get("value") or "")
-    values = tuple(str(value) for value in entry.get("values") or () if value)
-    if values:
-        return "; ".join(values[:4])
-    return str(entry.get("value") or "")
-
-
-def _working_memory_packet_entry_score(
-    entry: Mapping[str, Any],
-    *,
-    question_terms: frozenset[str],
-    route: RouteResult,
-) -> float:
-    memory_type = str(entry.get("memory_type") or "")
-    terms = _working_memory_packet_entry_score_terms(entry)
-    overlap = len(question_terms.intersection(terms))
-    type_match = _memory_type_matches_route(memory_type, route)
-    if overlap == 0 and not type_match:
-        return 0.0
-
-    score = float(overlap * 2)
-    if type_match:
-        score += 2.0
-    memory_layer = str(
-        entry.get("memory_tier")
-        or entry.get("memory_layer")
-        or entry.get("workspace_layer")
-        or ""
-    )
-    score += {
-        "working_memory": 1.5,
-        "long_term_memory": 1.0,
-        "archival_memory": 0.5,
-    }.get(memory_layer, 0.0)
-    if str(entry.get("target_type") or "") in {"operation_slot", "conflict_slot"}:
-        score += 1.0
-    score += {
-        "conflict_chain": 1.25,
-        "current_state": 1.0,
-        "temporal_validity": 0.8,
-        "long_term_recall": 0.4,
-    }.get(str(entry.get("focus") or ""), 0.0)
-    score += _working_memory_packet_target_priority(
-        str(entry.get("target_type") or "")
-    )
-    operations = {str(item) for item in entry.get("operations") or ()}
-    operations.update(str(item) for item in entry.get("audit_actions") or ())
-    if route.information_need == "current_state" and operations.intersection(
-        {"supersede", "conflict_slot", "audit_conflict_slot"}
-    ):
-        score += 1.0
-    lifecycle_stage = str(entry.get("lifecycle_stage") or "")
-    score += {
-        "conflict_resolution": 1.0,
-        "state_value_management": 0.75,
-        "active_state": 0.5,
-        "operation_management": 0.4,
-        "long_term_recall": 0.2,
-    }.get(lifecycle_stage, 0.0)
-    audit_flags = {str(item) for item in entry.get("audit_flags") or ()}
-    if route.information_need == "current_state" and audit_flags.intersection(
-        {"active_state", "active_superseded_pair", "conflict_resolution"}
-    ):
-        score += 0.5
-    if str(entry.get("status") or "") == "active":
-        score += 0.25
-    return score
-
-
-def _working_memory_packet_target_priority(target_type: str) -> float:
-    return {
-        "conflict_slot": 3.0,
-        "value_slot": 2.0,
-        "operation_slot": 1.0,
-        "object": 0.5,
-    }.get(target_type, 0.0)
-
-
 def _external_memory_state_guide_lines(
     *,
     question: str,
@@ -5793,7 +4286,6 @@ def _external_memory_state_guide_lines(
     rows: tuple[EvidenceRow, ...],
     memory_records: tuple[MemoryRecord, ...],
     state_conflict_manifest: Mapping[str, Any] | None,
-    memory_object_index: Mapping[str, Any] | None,
     max_records: int,
     max_value_chars: int,
     include_superseded: bool,
@@ -5840,7 +4332,6 @@ def _external_memory_state_guide_lines(
         if conflict_source == "build_manifest":
             conflict_slot_keys = _memory_state_manifest_conflict_slot_keys(
                 state_conflict_manifest,
-                memory_object_index=memory_object_index,
                 candidate_records_by_slot=candidate_records_by_slot,
                 question_terms=question_terms,
                 require_active_superseded_pair=require_active_superseded_pair,
@@ -6461,24 +4952,16 @@ def _memory_state_slot_key(record: MemoryRecord) -> tuple[str, str, str]:
 def _memory_state_manifest_conflict_slot_keys(
     state_conflict_manifest: Mapping[str, Any] | None,
     *,
-    memory_object_index: Mapping[str, Any] | None = None,
     candidate_records_by_slot: Mapping[tuple[str, str, str], list[MemoryRecord]],
     question_terms: frozenset[str],
     require_active_superseded_pair: bool,
     require_slot_overlap: bool,
     require_stateful_slot: bool,
 ) -> set[tuple[str, str, str]]:
-    conflict_slots = _memory_state_conflict_slots_from_object_index(
-        memory_object_index
-    )
-    if not conflict_slots:
-        if not state_conflict_manifest or not state_conflict_manifest.get("applied"):
-            return set()
-        conflict_slots = tuple(state_conflict_manifest.get("clusters") or ())
-    if not conflict_slots:
+    if not state_conflict_manifest or not state_conflict_manifest.get("applied"):
         return set()
     keys: set[tuple[str, str, str]] = set()
-    for cluster in conflict_slots:
+    for cluster in state_conflict_manifest.get("clusters") or ():
         if not isinstance(cluster, Mapping):
             continue
         if not cluster.get("source_backed"):
@@ -6507,19 +4990,6 @@ def _memory_state_manifest_conflict_slot_keys(
             continue
         keys.add(key)
     return keys
-
-
-def _memory_state_conflict_slots_from_object_index(
-    memory_object_index: Mapping[str, Any] | None,
-) -> tuple[Mapping[str, Any], ...]:
-    if not isinstance(memory_object_index, Mapping):
-        return ()
-    if not memory_object_index.get("applied"):
-        return ()
-    raw_slots = memory_object_index.get("state_conflict_slot_index") or ()
-    if not isinstance(raw_slots, Iterable) or isinstance(raw_slots, (str, bytes)):
-        return ()
-    return tuple(slot for slot in raw_slots if isinstance(slot, Mapping))
 
 
 def _external_candidate_guide_lines(
@@ -8637,7 +7107,6 @@ def _external_temporal_aid_lines(
     include_relative_text: bool,
     event_contract: bool = False,
     enable_weekend_relative_time: bool = False,
-    compact: bool = False,
 ) -> list[str]:
     candidates = _external_dated_candidate_rows(
         question,
@@ -8648,13 +7117,7 @@ def _external_temporal_aid_lines(
     if not candidates:
         return []
 
-    if compact and event_contract:
-        lines = [
-            "Date aid only; mention_time=Memory Date, event_time=matched text date/relative phrase; verify in Memory Context."
-        ]
-    elif compact:
-        lines = ["Date aid only; verify in Memory Context."]
-    elif event_contract:
+    if event_contract:
         lines = [
             "Use this only as a date arithmetic aid derived from Memory Context row timestamps and relative phrases; final facts must still come from Memory Context.",
             "- mention_time is the Memory Date. event_time_candidates come from relative or explicit time phrases in the row text and should answer the target event time when they match the question.",
@@ -8665,23 +7128,16 @@ def _external_temporal_aid_lines(
         ]
     question_date = _parse_date(question_time)
     if question_date is not None:
-        label = "q_date" if compact else "question_date"
-        lines.append(f"- {label}={question_date.isoformat()}")
+        lines.append(f"- question_date={question_date.isoformat()}")
 
     selected = candidates[:max(1, max_rows)]
-    lines.append("- dates:" if compact else "- memory_dates:")
+    lines.append("- memory_dates:")
     for candidate in selected:
         matched = ", ".join(candidate["matched_terms"]) or "none"
         relative = ""
         relative_times = candidate.get("relative_times", ())
         if include_relative_text and relative_times:
-            if compact:
-                label = "ev" if event_contract else "rel"
-                relative = f" | {label}=" + "; ".join(
-                    f'"{phrase}"->{normalized}'
-                    for phrase, normalized in relative_times
-                )
-            elif event_contract:
+            if event_contract:
                 relative = " | event_time_candidates=" + "; ".join(
                     f'phrase="{phrase}" event_time="{normalized}"'
                     for phrase, normalized in relative_times
@@ -8692,17 +7148,10 @@ def _external_temporal_aid_lines(
                     for phrase, normalized in relative_times
                 )
         date_label = "mention_time" if event_contract else "row_date"
-        if compact:
-            date_label = "mention" if event_contract else "date"
-            lines.append(
-                f"  - Memory {candidate['memory_index']}: {date_label}={candidate['date']} "
-                f"role={candidate['role']} terms={matched}{relative}"
-            )
-        else:
-            lines.append(
-                f"  - Memory {candidate['memory_index']}: {date_label}={candidate['date']} "
-                f"role={candidate['role']} matched_terms={matched}{relative}"
-            )
+        lines.append(
+            f"  - Memory {candidate['memory_index']}: {date_label}={candidate['date']} "
+            f"role={candidate['role']} matched_terms={matched}{relative}"
+        )
 
     chronological = sorted(
         selected,
@@ -8712,11 +7161,10 @@ def _external_temporal_aid_lines(
         order = " -> ".join(
             f"Memory {item['memory_index']}({item['date']})" for item in chronological
         )
-        label = "chrono_by_row_date" if compact else "chronological_order_by_row_date"
-        lines.append(f"- {label}: {order}")
+        lines.append(f"- chronological_order_by_row_date: {order}")
 
     if max_pairs > 0 and _asks_pairwise_duration(question) and len(selected) >= 2:
-        lines.append("- date_gaps:" if compact else "- pairwise_date_gaps:")
+        lines.append("- pairwise_date_gaps:")
         for left, right in _external_pairwise_temporal_gaps(selected)[:max_pairs]:
             start = _parse_date(str(left["date"]))
             end = _parse_date(str(right["date"]))
@@ -8724,20 +7172,12 @@ def _external_temporal_aid_lines(
                 continue
             days = abs((end - start).days)
             inclusive_days = days + 1
-            if compact:
-                lines.append(
-                    f"  - Memory {left['memory_index']}({start.isoformat()}) <-> "
-                    f"Memory {right['memory_index']}({end.isoformat()}): {days}d "
-                    f"({inclusive_days} incl), {days / 7:.2f}w, "
-                    f"{days / 30.44:.2f}mo, {days / 365.25:.2f}y"
-                )
-            else:
-                lines.append(
-                    f"  - Memory {left['memory_index']}({start.isoformat()}) <-> "
-                    f"Memory {right['memory_index']}({end.isoformat()}): {days} days "
-                    f"({inclusive_days} inclusive), {days / 7:.2f} weeks, "
-                    f"{days / 30.44:.2f} approx months, {days / 365.25:.2f} approx years"
-                )
+            lines.append(
+                f"  - Memory {left['memory_index']}({start.isoformat()}) <-> "
+                f"Memory {right['memory_index']}({end.isoformat()}): {days} days "
+                f"({inclusive_days} inclusive), {days / 7:.2f} weeks, "
+                f"{days / 30.44:.2f} approx months, {days / 365.25:.2f} approx years"
+            )
     return lines
 
 
@@ -8815,15 +7255,9 @@ def _external_naive_context(
     tail_row_text_after_rank: int,
     tail_max_row_text_chars: int,
     context_layout: str = "flat",
-    memory_context_header_format: str = "multiline",
 ) -> str:
     if not rows:
         return "None"
-    if memory_context_header_format not in SUPPORTED_MEMORY_CONTEXT_HEADER_FORMATS:
-        raise ValueError(
-            f"Unsupported memory_context_header_format: "
-            f"{memory_context_header_format}"
-        )
     if context_layout in {"session_thread", "chronological_session_thread"}:
         return _external_session_thread_context(
             rows,
@@ -8833,26 +7267,16 @@ def _external_naive_context(
             tail_row_text_mode=tail_row_text_mode,
             tail_row_text_after_rank=tail_row_text_after_rank,
             tail_max_row_text_chars=tail_max_row_text_chars,
-            memory_context_header_format=memory_context_header_format,
         )
     if context_layout != "flat":
         raise ValueError(f"Unsupported context_layout: {context_layout}")
     blocks = []
     for index, row in enumerate(rows, start=1):
-        if memory_context_header_format in {"inline", "inline_spaced"}:
-            header_parts = [f"### Memory {index}"]
-            if row.timestamp:
-                header_parts.append(row.timestamp)
-            if row.session_id:
-                header_parts.append(row.session_id)
-            metadata = "; ".join(header_parts[1:])
-            header = f"{header_parts[0]} [{metadata}]" if metadata else header_parts[0]
-        else:
-            header = f"### Memory {index}"
-            if row.timestamp:
-                header += f"\nDate: {row.timestamp}"
-            if row.session_id:
-                header += f"\nSession: {row.session_id}"
+        header = f"### Memory {index}"
+        if row.timestamp:
+            header += f"\nDate: {row.timestamp}"
+        if row.session_id:
+            header += f"\nSession: {row.session_id}"
         text = _row_prompt_text_for_row(
             row,
             question=question,
@@ -8863,8 +7287,7 @@ def _external_naive_context(
             tail_max_row_text_chars=tail_max_row_text_chars,
         )
         blocks.append(f"{header}\n{row.role}: {text}")
-    separator = "\n" if memory_context_header_format == "inline" else "\n\n"
-    return separator.join(blocks)
+    return "\n\n".join(blocks)
 
 
 def _external_session_thread_context(
@@ -8876,7 +7299,6 @@ def _external_session_thread_context(
     tail_row_text_mode: str,
     tail_row_text_after_rank: int,
     tail_max_row_text_chars: int,
-    memory_context_header_format: str = "multiline",
 ) -> str:
     blocks: list[str] = []
     current_session: str | None = None
@@ -8885,26 +7307,13 @@ def _external_session_thread_context(
         if row.session_id != current_session:
             episode_index += 1
             current_session = row.session_id
-            if memory_context_header_format in {"inline", "inline_spaced"}:
-                blocks.append(f"### Episode {episode_index} [{row.session_id}]")
-            else:
-                blocks.append(f"### Episode {episode_index}\nSession: {row.session_id}")
-        if memory_context_header_format in {"inline", "inline_spaced"}:
-            header_parts = [f"#### Memory {index}"]
-            if row.timestamp:
-                header_parts.append(row.timestamp)
-            header_parts.append(f"t={row.turn_index}")
-            if row.retrieval_rank is not None:
-                header_parts.append(f"r={row.retrieval_rank}")
-            metadata = "; ".join(header_parts[1:])
-            header = f"{header_parts[0]} [{metadata}]" if metadata else header_parts[0]
-        else:
-            header = f"#### Memory {index}"
-            if row.timestamp:
-                header += f"\nDate: {row.timestamp}"
-            header += f"\nTurn: {row.turn_index}"
-            if row.retrieval_rank is not None:
-                header += f"\nRetrieval rank: {row.retrieval_rank}"
+            blocks.append(f"### Episode {episode_index}\nSession: {row.session_id}")
+        header = f"#### Memory {index}"
+        if row.timestamp:
+            header += f"\nDate: {row.timestamp}"
+        header += f"\nTurn: {row.turn_index}"
+        if row.retrieval_rank is not None:
+            header += f"\nRetrieval rank: {row.retrieval_rank}"
         text = _row_prompt_text_for_row(
             row,
             question=question,
@@ -8915,8 +7324,7 @@ def _external_session_thread_context(
             tail_max_row_text_chars=tail_max_row_text_chars,
         )
         blocks.append(f"{header}\n{row.role}: {text}")
-    separator = "\n" if memory_context_header_format == "inline" else "\n\n"
-    return separator.join(blocks)
+    return "\n\n".join(blocks)
 
 
 def _format_memory_records(
@@ -9059,26 +7467,9 @@ def _row_prompt_text(
         if len(text) > user_budget:
             return _query_snippet(text, question, user_budget)
         return text
-    if row_text_mode == "assistant_query_miss_snippet":
-        if role.lower() != "assistant":
-            return text
-        if _text_has_question_term(text, question):
-            return text
-        return _truncate_text(text, max_row_text_chars)
     if row_text_mode != "query_snippet":
         raise ValueError(f"Unsupported row_text_mode: {row_text_mode}")
     return _query_snippet(text, question, max_row_text_chars)
-
-
-def _text_has_question_term(text: str, question: str) -> bool:
-    terms = _content_terms(question)
-    if not terms:
-        return True
-    lower_text = text.lower()
-    for term in terms:
-        if re.search(rf"(?<![\w-]){re.escape(term)}(?![\w-])", lower_text):
-            return True
-    return False
 
 
 def _query_snippet(text: str, question: str, max_chars: int) -> str:
@@ -9092,7 +7483,7 @@ def _query_snippet(text: str, question: str, max_chars: int) -> str:
     lower_text = text.lower()
     positions: list[int] = []
     for term in terms:
-        pattern = re.compile(rf"(?<![\w-]){re.escape(term)}(?![\w-])")
+        pattern = re.compile(rf"\b{re.escape(term)}\b")
         positions.extend(match.start() for match in pattern.finditer(lower_text))
     if not positions:
         return _truncate_text(text, max_chars)

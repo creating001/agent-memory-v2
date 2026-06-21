@@ -9,7 +9,7 @@ import json
 import sys
 import threading
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SRC_ROOT = REPO_ROOT / "src"
@@ -57,7 +57,6 @@ def main() -> int:
     total_context_chars = 0
     total_update_conflict_guide_applied = 0
     total_memory_value_slot_guide_applied = 0
-    total_working_memory_packet_applied = 0
     total_personalized_advice_contract_applied = 0
     total_event_time_candidate_manifest_applied = 0
     total_event_time_candidate_manifest_items = 0
@@ -92,14 +91,6 @@ def main() -> int:
     total_selected_context_risk_audit_applied = 0
     total_selected_context_risk_audit_audited = 0
     total_selected_context_risk_audit_risk = 0
-    total_workspace_policy_context_policy_available = 0
-    total_workspace_policy_context_applied = 0
-    total_workspace_source_expansion_applied = 0
-    total_workspace_source_expansion_candidate_entries = 0
-    total_workspace_source_expansion_selected_sources = 0
-    total_workspace_source_expansion_final_sources = 0
-    total_workspace_source_expansion_replaced_tail = 0
-    total_workspace_source_expansion_skipped_low_core = 0
     total_rerank_applied = 0
     total_rerank_candidate_count = 0
     total_rerank_returned_count = 0
@@ -111,34 +102,10 @@ def main() -> int:
     total_context_budget_returned_count = 0
     total_context_budget_estimated_chars = 0
     total_context_budget_dropped_count = 0
-    total_context_budget_anchor_registry_source_count = 0
-    total_context_budget_anchor_layer_manifest_source_count = 0
-    total_context_budget_anchor_operation_api_source_count = 0
-    total_context_budget_anchor_context_interface_source_count = 0
-    total_context_budget_anchor_working_compiler_plan_source_count = 0
-    total_context_budget_anchor_memory_system_state_source_count = 0
-    total_context_budget_anchor_memory_workspace_contract_source_count = 0
-    context_budget_anchor_selected_source_counts: dict[str, int] = {}
-    total_context_budget_registry_anchor_candidate_count = 0
-    total_context_budget_registry_anchor_retained_count = 0
-    total_context_budget_registry_anchor_dropped_count = 0
-    total_context_budget_registry_anchor_sample_count = 0
     total_context_budget_audit_applied = 0
     total_context_budget_audit_candidate_count = 0
     total_context_budget_audit_returned_count = 0
     total_context_budget_audit_dropped_count = 0
-    total_context_budget_audit_anchor_registry_source_count = 0
-    total_context_budget_audit_anchor_layer_manifest_source_count = 0
-    total_context_budget_audit_anchor_operation_api_source_count = 0
-    total_context_budget_audit_anchor_context_interface_source_count = 0
-    total_context_budget_audit_anchor_working_compiler_plan_source_count = 0
-    total_context_budget_audit_anchor_memory_system_state_source_count = 0
-    total_context_budget_audit_anchor_memory_workspace_contract_source_count = 0
-    context_budget_audit_anchor_selected_source_counts: dict[str, int] = {}
-    total_context_budget_audit_registry_anchor_candidate_count = 0
-    total_context_budget_audit_registry_anchor_retained_count = 0
-    total_context_budget_audit_registry_anchor_dropped_count = 0
-    total_context_budget_audit_registry_anchor_sample_count = 0
     total_context_budget_audit_prompt_missing = 0
     total_context_budget_audit_prompt_risk_samples = 0
     total_context_budget_audit_selected_context_missing = 0
@@ -172,24 +139,6 @@ def main() -> int:
     build_memory_system_graph_operation_manifest_counts: dict[str, int] = {}
     build_memory_system_graph_scalar_value_manifest_counts: dict[str, int] = {}
     build_memory_system_graph_memory_object_index_operation_counts: dict[str, int] = {}
-    build_memory_system_graph_memory_object_index_registry_operation_counts: dict[
-        str, int
-    ] = {}
-    build_memory_system_graph_memory_object_index_working_view_layer_counts: dict[
-        str, int
-    ] = {}
-    build_memory_system_graph_memory_object_index_working_view_role_counts: dict[
-        str, int
-    ] = {}
-    build_memory_system_graph_memory_object_index_working_view_target_counts: dict[
-        str, int
-    ] = {}
-    build_memory_system_graph_memory_object_index_working_view_operation_counts: dict[
-        str, int
-    ] = {}
-    build_memory_system_graph_memory_object_index_lifecycle_audit_operation_coverage: dict[
-        str, int
-    ] = {}
     total_build_memory_operation_ledger_applied = 0
     total_build_memory_operation_ledger_source_backed = 0
     total_build_memory_operation_ledger_source_unbacked = 0
@@ -223,141 +172,9 @@ def main() -> int:
     total_build_memory_system_graph_index_objects = 0
     total_build_memory_system_graph_index_source_backed_objects = 0
     total_build_memory_system_graph_index_activation_ready_objects = 0
-    total_build_memory_system_graph_index_activation_ready_ids = 0
-    total_build_memory_system_graph_index_activation_priority_ids = 0
     total_build_memory_system_graph_index_slots = 0
     total_build_memory_system_graph_index_value_slots = 0
-    total_build_memory_system_graph_index_operation_slots = 0
     total_build_memory_system_graph_index_state_conflict_slots = 0
-    total_build_memory_system_graph_index_operation_registry_entries = 0
-    total_build_memory_system_graph_index_operation_registry_object_entries = 0
-    total_build_memory_system_graph_index_operation_registry_slot_entries = 0
-    total_build_memory_system_graph_index_operation_registry_conflict_entries = 0
-    total_build_memory_system_graph_index_operation_registry_source_backed_entries = 0
-    total_build_memory_system_graph_index_working_memory_view_applied = 0
-    total_build_memory_system_graph_index_working_memory_view_entries = 0
-    total_build_memory_system_graph_index_working_memory_view_source_backed_entries = 0
-    total_build_memory_system_graph_index_working_memory_view_source_incomplete_entries = 0
-    total_build_memory_system_graph_index_lifecycle_audit_applied = 0
-    total_build_memory_system_graph_index_lifecycle_audit_entries = 0
-    total_build_memory_system_graph_index_lifecycle_audit_source_backed_entries = 0
-    total_build_memory_system_graph_index_lifecycle_audit_conflict_entries = 0
-    total_build_memory_system_graph_index_operation_api_applied = 0
-    total_build_memory_system_graph_index_operation_api_entries = 0
-    total_build_memory_system_graph_index_operation_api_source_backed_entries = 0
-    total_build_memory_system_graph_index_operation_api_anchor_sources = 0
-    build_memory_system_graph_memory_object_index_operation_api_action_counts: dict[
-        str, int
-    ] = {}
-    total_build_memory_system_graph_index_context_interface_applied = 0
-    total_build_memory_system_graph_index_context_interface_entries = 0
-    total_build_memory_system_graph_index_context_interface_source_backed_entries = 0
-    total_build_memory_system_graph_index_context_interface_role_count = 0
-    total_build_memory_system_graph_index_context_interface_anchor_sources = 0
-    total_build_memory_system_graph_index_context_interface_operation_slots = 0
-    total_build_memory_system_graph_index_context_interface_source_backed_operation_slots = 0
-    build_memory_system_graph_memory_object_index_context_interface_action_counts: dict[
-        str, int
-    ] = {}
-    build_memory_system_graph_memory_object_index_context_interface_role_source_counts: dict[
-        str, int
-    ] = {}
-    build_memory_system_graph_memory_object_index_context_interface_operation_view_source_counts: dict[
-        str, int
-    ] = {}
-    total_build_memory_system_graph_index_operation_lifecycle_applied = 0
-    total_build_memory_system_graph_index_operation_lifecycle_entries = 0
-    total_build_memory_system_graph_index_operation_lifecycle_source_backed_entries = 0
-    total_build_memory_system_graph_index_operation_lifecycle_context_slots = 0
-    build_memory_system_graph_memory_object_index_operation_lifecycle_decision_counts: dict[
-        str, int
-    ] = {}
-    build_memory_system_graph_memory_object_index_operation_lifecycle_phase_counts: dict[
-        str, int
-    ] = {}
-    total_build_memory_system_graph_index_working_compiler_plan_applied = 0
-    total_build_memory_system_graph_index_working_compiler_plan_entries = 0
-    total_build_memory_system_graph_index_working_compiler_plan_source_backed_entries = 0
-    total_build_memory_system_graph_index_working_compiler_plan_context_slots = 0
-    total_build_memory_system_graph_index_working_compiler_plan_source_expansion_sources = 0
-    build_memory_system_graph_memory_object_index_working_compiler_plan_focus_counts: dict[
-        str, int
-    ] = {}
-    build_memory_system_graph_memory_object_index_working_compiler_plan_context_action_counts: dict[
-        str, int
-    ] = {}
-    build_memory_system_graph_memory_object_index_working_compiler_plan_verifier_check_counts: dict[
-        str, int
-    ] = {}
-    total_build_memory_system_graph_index_memory_system_state_applied = 0
-    total_build_memory_system_graph_index_memory_system_state_entries = 0
-    total_build_memory_system_graph_index_memory_system_state_source_backed_entries = 0
-    total_build_memory_system_graph_index_memory_system_state_layers = 0
-    total_build_memory_system_graph_index_memory_system_state_source_expansion_sources = 0
-    build_memory_system_graph_memory_object_index_memory_system_state_focus_counts: dict[
-        str, int
-    ] = {}
-    build_memory_system_graph_memory_object_index_memory_system_state_decision_counts: dict[
-        str, int
-    ] = {}
-    build_memory_system_graph_memory_object_index_memory_system_state_context_action_counts: dict[
-        str, int
-    ] = {}
-    build_memory_system_graph_memory_object_index_memory_system_state_verifier_check_counts: dict[
-        str, int
-    ] = {}
-    total_build_memory_system_graph_index_memory_operation_journal_applied = 0
-    total_build_memory_system_graph_index_memory_operation_journal_entries = 0
-    total_build_memory_system_graph_index_memory_operation_journal_source_backed_entries = 0
-    total_build_memory_system_graph_index_memory_operation_journal_source_expansion_sources = 0
-    build_memory_system_graph_memory_object_index_memory_operation_journal_operation_counts: dict[
-        str, int
-    ] = {}
-    build_memory_system_graph_memory_object_index_memory_operation_journal_family_counts: dict[
-        str, int
-    ] = {}
-    build_memory_system_graph_memory_object_index_memory_operation_journal_decision_counts: dict[
-        str, int
-    ] = {}
-    total_build_memory_system_graph_index_memory_workspace_contract_applied = 0
-    total_build_memory_system_graph_index_memory_workspace_contract_entries = 0
-    total_build_memory_system_graph_index_memory_workspace_contract_source_backed_entries = 0
-    total_build_memory_system_graph_index_memory_workspace_contract_layers = 0
-    total_build_memory_system_graph_index_memory_workspace_contract_anchor_sources = 0
-    build_memory_system_graph_memory_object_index_memory_workspace_contract_operation_counts: dict[
-        str, int
-    ] = {}
-    build_memory_system_graph_memory_object_index_memory_workspace_contract_family_counts: dict[
-        str, int
-    ] = {}
-    build_memory_system_graph_memory_object_index_memory_workspace_contract_readiness_counts: dict[
-        str, int
-    ] = {}
-    total_build_memory_system_graph_index_memory_workspace_snapshot_applied = 0
-    total_build_memory_system_graph_index_memory_workspace_snapshot_state_worklists = 0
-    total_build_memory_system_graph_index_memory_workspace_snapshot_verifier_worklists = 0
-    total_build_memory_system_graph_index_memory_workspace_snapshot_source_expansion_sources = 0
-    build_memory_system_graph_memory_object_index_memory_workspace_snapshot_state_worklist_counts: dict[
-        str, int
-    ] = {}
-    build_memory_system_graph_memory_object_index_memory_workspace_snapshot_verifier_worklist_counts: dict[
-        str, int
-    ] = {}
-    build_memory_system_graph_memory_object_index_memory_workspace_snapshot_operation_readiness_counts: dict[
-        str, int
-    ] = {}
-    total_build_memory_system_graph_index_memory_workspace_policy_applied = 0
-    total_build_memory_system_graph_index_memory_workspace_policy_stages = 0
-    total_build_memory_system_graph_index_memory_workspace_policy_query_components = 0
-    total_build_memory_system_graph_index_memory_workspace_policy_ready_query_components = 0
-    build_memory_system_graph_memory_object_index_memory_workspace_policy_component_status_counts: dict[
-        str, int
-    ] = {}
-    total_build_memory_system_graph_index_layer_manifest_applied = 0
-    total_build_memory_system_graph_index_layer_manifest_entries = 0
-    build_memory_system_graph_memory_object_index_layer_manifest_layer_entries: dict[
-        str, int
-    ] = {}
     total_build_memory_system_graph_source_backed_records = 0
     total_build_memory_system_graph_complete_slot_key_records = 0
     total_build_memory_system_graph_temporal_anchor_records = 0
@@ -381,10 +198,8 @@ def main() -> int:
     total_object_slot_activation_source_hits = 0
     total_operation_utility_applied = 0
     total_operation_utility_source_hits = 0
-    operation_utility_slot_index_source_counts: dict[str, int] = {}
     total_graph_utility_applied = 0
     total_graph_utility_source_hits = 0
-    graph_utility_slot_index_source_counts: dict[str, int] = {}
     total_answer_cache_hits = 0
     total_answer_cache_misses = 0
     total_answer_cache_writes = 0
@@ -394,41 +209,6 @@ def main() -> int:
     total_answer_verifier_risk_flags = 0
     total_answer_verifier_support_items = 0
     total_answer_verifier_evidence_report_items = 0
-    total_answer_verifier_registry_backed_final_evidence = 0
-    total_answer_verifier_registry_backed_support_refs = 0
-    total_answer_verifier_working_compiler_plan_available = 0
-    total_answer_verifier_working_compiler_plan_final_evidence = 0
-    answer_verifier_working_compiler_plan_focus_counts: dict[str, int] = {}
-    answer_verifier_working_compiler_plan_verifier_check_counts: dict[str, int] = {}
-    total_answer_verifier_memory_system_state_available = 0
-    total_answer_verifier_memory_system_state_final_evidence = 0
-    answer_verifier_memory_system_state_focus_counts: dict[str, int] = {}
-    answer_verifier_memory_system_state_decision_counts: dict[str, int] = {}
-    answer_verifier_memory_system_state_context_action_counts: dict[str, int] = {}
-    answer_verifier_memory_system_state_verifier_check_counts: dict[str, int] = {}
-    total_answer_verifier_memory_operation_journal_available = 0
-    total_answer_verifier_memory_operation_journal_final_evidence = 0
-    answer_verifier_memory_operation_journal_operation_counts: dict[str, int] = {}
-    answer_verifier_memory_operation_journal_family_counts: dict[str, int] = {}
-    total_answer_verifier_memory_workspace_snapshot_available = 0
-    total_answer_verifier_memory_workspace_snapshot_final_evidence = 0
-    answer_verifier_memory_workspace_snapshot_state_worklist_counts: dict[str, int] = {}
-    answer_verifier_memory_workspace_snapshot_verifier_worklist_counts: dict[str, int] = {}
-    answer_verifier_memory_workspace_snapshot_operation_readiness_counts: dict[str, int] = {}
-    total_answer_verifier_workspace_query_policy_available = 0
-    total_answer_verifier_workspace_query_policy_applied = 0
-    total_answer_verifier_workspace_query_policy_packet_candidates = 0
-    total_answer_verifier_workspace_query_policy_packet_source_labels = 0
-    answer_verifier_workspace_query_policy_replaced_component_counts: dict[str, int] = {}
-    answer_verifier_workspace_query_policy_packet_focus_counts: dict[str, int] = {}
-    answer_verifier_workspace_query_policy_packet_verifier_check_counts: dict[str, int] = {}
-    total_answer_verifier_consistency_audit_applied = 0
-    total_answer_verifier_consistency_valid_support_rows = 0
-    total_answer_verifier_consistency_risk_samples = 0
-    total_answer_verifier_consistency_risk_flags = 0
-    answer_verifier_consistency_dimension_counts: dict[str, int] = {}
-    answer_verifier_consistency_risk_counts: dict[str, int] = {}
-    answer_verifier_consistency_risk_reasons: dict[str, int] = {}
     answer_verifier_risk_reasons: dict[str, int] = {}
     total_answer_repair_triggered = 0
     total_answer_repair_applied = 0
@@ -474,8 +254,6 @@ def main() -> int:
             total_update_conflict_guide_applied += 1
         if "Memory Value Slot Guide:" in prompt_text:
             total_memory_value_slot_guide_applied += 1
-        if "Working Memory Packet:" in prompt_text:
-            total_working_memory_packet_applied += 1
         if "Personalized Advice Discipline:" in prompt_text:
             total_personalized_advice_contract_applied += 1
         if "Event-Time Candidate Map:" in prompt_text:
@@ -539,38 +317,6 @@ def main() -> int:
         total_turn_window_source_hits += len(
             retrieval_trace.get("turn_window_source_hits") or []
         )
-        workspace_policy_context = (
-            retrieval_trace.get("workspace_policy_context") or {}
-        )
-        if workspace_policy_context.get("policy_available"):
-            total_workspace_policy_context_policy_available += 1
-        if workspace_policy_context.get("applied"):
-            total_workspace_policy_context_applied += 1
-        workspace_source_expansion = (
-            retrieval_trace.get("workspace_source_expansion") or {}
-        )
-        if workspace_source_expansion.get("applied"):
-            total_workspace_source_expansion_applied += 1
-        total_workspace_source_expansion_candidate_entries += int(
-            workspace_source_expansion.get("candidate_entry_count") or 0
-        )
-        total_workspace_source_expansion_selected_sources += int(
-            workspace_source_expansion.get("selected_source_count") or 0
-        )
-        total_workspace_source_expansion_replaced_tail += int(
-            workspace_source_expansion.get("replaced_tail_count") or 0
-        )
-        total_workspace_source_expansion_skipped_low_core += int(
-            workspace_source_expansion.get("skipped_low_core_count") or 0
-        )
-        context_manifest = result["trace"].get("context_manifest") or {}
-        context_organization = context_manifest.get("context_organization") or {}
-        workspace_source_expansion_manifest = (
-            context_organization.get("workspace_source_expansion") or {}
-        )
-        total_workspace_source_expansion_final_sources += int(
-            workspace_source_expansion_manifest.get("final_source_count") or 0
-        )
         selected_context = retrieval_trace.get("selected_context") or {}
         if selected_context.get("applied"):
             total_selected_context_applied += 1
@@ -630,82 +376,6 @@ def main() -> int:
         total_context_budget_dropped_count += int(
             retrieval_trace.get("context_budget_dropped_count") or 0
         )
-        context_budget_anchor_selected_source = str(
-            retrieval_trace.get("context_budget_anchor_selected_source") or ""
-        )
-        if context_budget_anchor_selected_source:
-            context_budget_anchor_selected_source_counts[
-                context_budget_anchor_selected_source
-            ] = (
-                context_budget_anchor_selected_source_counts.get(
-                    context_budget_anchor_selected_source, 0
-                )
-                + 1
-            )
-        total_context_budget_anchor_registry_source_count += int(
-            retrieval_trace.get("context_budget_anchor_registry_source_count") or 0
-        )
-        total_context_budget_anchor_layer_manifest_source_count += int(
-            retrieval_trace.get("context_budget_anchor_layer_manifest_source_count")
-            or 0
-        )
-        total_context_budget_anchor_operation_api_source_count += int(
-            retrieval_trace.get("context_budget_anchor_operation_api_source_count")
-            or 0
-        )
-        total_context_budget_anchor_context_interface_source_count += int(
-            retrieval_trace.get(
-                "context_budget_anchor_context_interface_source_count"
-            )
-            or 0
-        )
-        total_context_budget_anchor_working_compiler_plan_source_count += int(
-            retrieval_trace.get(
-                "context_budget_anchor_working_compiler_plan_source_count"
-            )
-            or 0
-        )
-        total_context_budget_anchor_memory_system_state_source_count += int(
-            retrieval_trace.get(
-                "context_budget_anchor_memory_system_state_source_count"
-            )
-            or 0
-        )
-        total_context_budget_anchor_memory_workspace_contract_source_count += int(
-            retrieval_trace.get(
-                "context_budget_anchor_memory_workspace_contract_source_count"
-            )
-            or 0
-        )
-        context_budget_registry_anchor_candidates = len(
-            retrieval_trace.get(
-                "context_budget_registry_anchor_candidate_source_ids"
-            )
-            or ()
-        )
-        context_budget_registry_anchor_retained = len(
-            retrieval_trace.get(
-                "context_budget_registry_anchor_retained_source_ids"
-            )
-            or ()
-        )
-        context_budget_registry_anchor_dropped = len(
-            retrieval_trace.get(
-                "context_budget_registry_anchor_dropped_source_ids"
-            )
-            or ()
-        )
-        total_context_budget_registry_anchor_candidate_count += (
-            context_budget_registry_anchor_candidates
-        )
-        total_context_budget_registry_anchor_retained_count += (
-            context_budget_registry_anchor_retained
-        )
-        total_context_budget_registry_anchor_dropped_count += (
-            context_budget_registry_anchor_dropped
-        )
-        if context_budget_registry_anchor_candidates:
-            total_context_budget_registry_anchor_sample_count += 1
         context_budget_audit = retrieval_trace.get("context_budget_audit") or {}
         if context_budget_audit.get("applied"):
             total_context_budget_audit_applied += 1
@@ -718,76 +388,6 @@ def main() -> int:
             total_context_budget_audit_dropped_count += int(
                 context_budget_audit.get("projected_dropped_count") or 0
             )
-            audit_anchor_selected_source = str(
-                context_budget_audit.get("anchor_selected_source") or ""
-            )
-            if audit_anchor_selected_source:
-                context_budget_audit_anchor_selected_source_counts[
-                    audit_anchor_selected_source
-                ] = (
-                    context_budget_audit_anchor_selected_source_counts.get(
-                        audit_anchor_selected_source, 0
-                    )
-                    + 1
-                )
-            total_context_budget_audit_anchor_registry_source_count += int(
-                context_budget_audit.get("anchor_registry_source_count") or 0
-            )
-            total_context_budget_audit_anchor_layer_manifest_source_count += int(
-                context_budget_audit.get("anchor_layer_manifest_source_count") or 0
-            )
-            total_context_budget_audit_anchor_operation_api_source_count += int(
-                context_budget_audit.get("anchor_operation_api_source_count") or 0
-            )
-            total_context_budget_audit_anchor_context_interface_source_count += int(
-                context_budget_audit.get("anchor_context_interface_source_count")
-                or 0
-            )
-            total_context_budget_audit_anchor_working_compiler_plan_source_count += int(
-                context_budget_audit.get(
-                    "anchor_working_compiler_plan_source_count"
-                )
-                or 0
-            )
-            total_context_budget_audit_anchor_memory_system_state_source_count += int(
-                context_budget_audit.get("anchor_memory_system_state_source_count")
-                or 0
-            )
-            total_context_budget_audit_anchor_memory_workspace_contract_source_count += int(
-                context_budget_audit.get(
-                    "anchor_memory_workspace_contract_source_count"
-                )
-                or 0
-            )
-            audit_registry_anchor_candidates = len(
-                context_budget_audit.get(
-                    "registry_anchor_candidate_source_ids"
-                )
-                or ()
-            )
-            audit_registry_anchor_retained = len(
-                context_budget_audit.get(
-                    "registry_anchor_retained_source_ids"
-                )
-                or ()
-            )
-            audit_registry_anchor_dropped = len(
-                context_budget_audit.get(
-                    "registry_anchor_dropped_source_ids"
-                )
-                or ()
-            )
-            total_context_budget_audit_registry_anchor_candidate_count += (
-                audit_registry_anchor_candidates
-            )
-            total_context_budget_audit_registry_anchor_retained_count += (
-                audit_registry_anchor_retained
-            )
-            total_context_budget_audit_registry_anchor_dropped_count += (
-                audit_registry_anchor_dropped
-            )
-            if audit_registry_anchor_candidates:
-                total_context_budget_audit_registry_anchor_sample_count += 1
             prompt_missing = int(
                 context_budget_audit.get("prompt_rows_missing_count") or 0
             )
@@ -991,417 +591,15 @@ def main() -> int:
                 total_build_memory_system_graph_index_activation_ready_objects += int(
                     memory_object_index.get("activation_ready_object_count") or 0
                 )
-                total_build_memory_system_graph_index_activation_ready_ids += int(
-                    memory_object_index.get("activation_ready_memory_id_count")
-                    or len(memory_object_index.get("activation_ready_memory_ids") or ())
-                )
-                total_build_memory_system_graph_index_activation_priority_ids += int(
-                    memory_object_index.get("activation_priority_memory_id_count")
-                    or len(
-                        memory_object_index.get("activation_priority_memory_ids") or ()
-                    )
-                )
                 total_build_memory_system_graph_index_slots += int(
                     memory_object_index.get("slot_count") or 0
                 )
                 total_build_memory_system_graph_index_value_slots += int(
                     memory_object_index.get("value_slot_count") or 0
                 )
-                total_build_memory_system_graph_index_operation_slots += int(
-                    memory_object_index.get("operation_slot_count")
-                    or len(memory_object_index.get("operation_slot_index") or ())
-                )
                 total_build_memory_system_graph_index_state_conflict_slots += int(
                     memory_object_index.get("state_conflict_slot_count") or 0
                 )
-                operation_registry = (
-                    memory_object_index.get("operation_registry") or {}
-                )
-                if isinstance(operation_registry, Mapping) and operation_registry.get(
-                    "applied"
-                ):
-                    _merge_int_counts(
-                        build_memory_system_graph_memory_object_index_registry_operation_counts,
-                        operation_registry.get("operation_counts") or {},
-                    )
-                    total_build_memory_system_graph_index_operation_registry_entries += int(
-                        operation_registry.get("entry_count") or 0
-                    )
-                    total_build_memory_system_graph_index_operation_registry_object_entries += int(
-                        operation_registry.get("object_entry_count") or 0
-                    )
-                    total_build_memory_system_graph_index_operation_registry_slot_entries += int(
-                        operation_registry.get("slot_entry_count") or 0
-                    )
-                    total_build_memory_system_graph_index_operation_registry_conflict_entries += int(
-                        operation_registry.get("conflict_entry_count") or 0
-                    )
-                    total_build_memory_system_graph_index_operation_registry_source_backed_entries += int(
-                        operation_registry.get("source_backed_entry_count") or 0
-                    )
-                working_memory_view = (
-                    memory_object_index.get("working_memory_view") or {}
-                )
-                if isinstance(working_memory_view, Mapping) and working_memory_view.get(
-                    "applied"
-                ):
-                    total_build_memory_system_graph_index_working_memory_view_applied += 1
-                    _merge_int_counts(
-                        build_memory_system_graph_memory_object_index_working_view_layer_counts,
-                        working_memory_view.get("layer_counts") or {},
-                    )
-                    _merge_int_counts(
-                        build_memory_system_graph_memory_object_index_working_view_role_counts,
-                        working_memory_view.get("role_counts") or {},
-                    )
-                    _merge_int_counts(
-                        build_memory_system_graph_memory_object_index_working_view_target_counts,
-                        working_memory_view.get("target_counts") or {},
-                    )
-                    _merge_int_counts(
-                        build_memory_system_graph_memory_object_index_working_view_operation_counts,
-                        working_memory_view.get("operation_counts") or {},
-                    )
-                    total_build_memory_system_graph_index_working_memory_view_entries += int(
-                        working_memory_view.get("entry_count") or 0
-                    )
-                    total_build_memory_system_graph_index_working_memory_view_source_backed_entries += int(
-                        working_memory_view.get("source_backed_entry_count") or 0
-                    )
-                    total_build_memory_system_graph_index_working_memory_view_source_incomplete_entries += int(
-                        working_memory_view.get("source_incomplete_entry_count") or 0
-                    )
-                lifecycle_audit = (
-                    memory_object_index.get("lifecycle_audit") or {}
-                )
-                if isinstance(lifecycle_audit, Mapping) and lifecycle_audit.get(
-                    "applied"
-                ):
-                    total_build_memory_system_graph_index_lifecycle_audit_applied += 1
-                    _merge_int_counts(
-                        build_memory_system_graph_memory_object_index_lifecycle_audit_operation_coverage,
-                        lifecycle_audit.get("operation_coverage") or {},
-                    )
-                    total_build_memory_system_graph_index_lifecycle_audit_entries += int(
-                        lifecycle_audit.get("entry_count") or 0
-                    )
-                    total_build_memory_system_graph_index_lifecycle_audit_source_backed_entries += int(
-                        lifecycle_audit.get("source_backed_entry_count") or 0
-                    )
-                    total_build_memory_system_graph_index_lifecycle_audit_conflict_entries += int(
-                        lifecycle_audit.get("conflict_entry_count") or 0
-                    )
-                operation_api = memory_object_index.get("memory_operation_api") or {}
-                if isinstance(operation_api, Mapping) and operation_api.get(
-                    "applied"
-                ):
-                    total_build_memory_system_graph_index_operation_api_applied += 1
-                    _merge_int_counts(
-                        build_memory_system_graph_memory_object_index_operation_api_action_counts,
-                        operation_api.get("operation_action_counts") or {},
-                    )
-                    total_build_memory_system_graph_index_operation_api_entries += int(
-                        operation_api.get("entry_count") or 0
-                    )
-                    total_build_memory_system_graph_index_operation_api_source_backed_entries += int(
-                        operation_api.get("source_backed_entry_count") or 0
-                    )
-                    total_build_memory_system_graph_index_operation_api_anchor_sources += int(
-                        operation_api.get("context_anchor_source_count") or 0
-                    )
-                context_interface = (
-                    memory_object_index.get("memory_context_interface") or {}
-                )
-                if isinstance(context_interface, Mapping) and context_interface.get(
-                    "applied"
-                ):
-                    total_build_memory_system_graph_index_context_interface_applied += 1
-                    _merge_int_counts(
-                        build_memory_system_graph_memory_object_index_context_interface_action_counts,
-                        context_interface.get("operation_action_counts") or {},
-                    )
-                    total_build_memory_system_graph_index_context_interface_entries += int(
-                        context_interface.get("entry_count") or 0
-                    )
-                    total_build_memory_system_graph_index_context_interface_source_backed_entries += int(
-                        context_interface.get("source_backed_entry_count") or 0
-                    )
-                    total_build_memory_system_graph_index_context_interface_role_count += int(
-                        context_interface.get("role_count") or 0
-                    )
-                    total_build_memory_system_graph_index_context_interface_anchor_sources += int(
-                        context_interface.get("context_anchor_source_count") or 0
-                    )
-                    total_build_memory_system_graph_index_context_interface_operation_slots += int(
-                        context_interface.get("operation_slot_count") or 0
-                    )
-                    total_build_memory_system_graph_index_context_interface_source_backed_operation_slots += int(
-                        context_interface.get("source_backed_operation_slot_count")
-                        or 0
-                    )
-                    source_roles = context_interface.get("source_roles") or {}
-                    if isinstance(source_roles, Mapping):
-                        _merge_int_counts(
-                            build_memory_system_graph_memory_object_index_context_interface_role_source_counts,
-                            {
-                                str(role): int(summary.get("source_count") or 0)
-                                for role, summary in source_roles.items()
-                                if isinstance(summary, Mapping)
-                            },
-                        )
-                    operation_views = context_interface.get("operation_views") or {}
-                    if isinstance(operation_views, Mapping):
-                        _merge_int_counts(
-                            build_memory_system_graph_memory_object_index_context_interface_operation_view_source_counts,
-                            {
-                                str(view): int(summary.get("source_count") or 0)
-                                for view, summary in operation_views.items()
-                                if isinstance(summary, Mapping)
-                            },
-                        )
-                operation_lifecycle = (
-                    memory_object_index.get("memory_operation_lifecycle") or {}
-                )
-                if isinstance(operation_lifecycle, Mapping) and operation_lifecycle.get(
-                    "applied"
-                ):
-                    total_build_memory_system_graph_index_operation_lifecycle_applied += 1
-                    total_build_memory_system_graph_index_operation_lifecycle_entries += int(
-                        operation_lifecycle.get("entry_count") or 0
-                    )
-                    total_build_memory_system_graph_index_operation_lifecycle_source_backed_entries += int(
-                        operation_lifecycle.get("source_backed_entry_count") or 0
-                    )
-                    total_build_memory_system_graph_index_operation_lifecycle_context_slots += int(
-                        operation_lifecycle.get("context_interface_slot_count") or 0
-                    )
-                    _merge_int_counts(
-                        build_memory_system_graph_memory_object_index_operation_lifecycle_decision_counts,
-                        operation_lifecycle.get("decision_counts") or {},
-                    )
-                    _merge_int_counts(
-                        build_memory_system_graph_memory_object_index_operation_lifecycle_phase_counts,
-                        operation_lifecycle.get("phase_counts") or {},
-                    )
-                working_compiler_plan = (
-                    memory_object_index.get("memory_working_compiler_plan") or {}
-                )
-                if isinstance(working_compiler_plan, Mapping) and working_compiler_plan.get(
-                    "applied"
-                ):
-                    total_build_memory_system_graph_index_working_compiler_plan_applied += 1
-                    total_build_memory_system_graph_index_working_compiler_plan_entries += int(
-                        working_compiler_plan.get("entry_count") or 0
-                    )
-                    total_build_memory_system_graph_index_working_compiler_plan_source_backed_entries += int(
-                        working_compiler_plan.get("source_backed_entry_count") or 0
-                    )
-                    total_build_memory_system_graph_index_working_compiler_plan_context_slots += int(
-                        working_compiler_plan.get("context_interface_slot_count") or 0
-                    )
-                    total_build_memory_system_graph_index_working_compiler_plan_source_expansion_sources += int(
-                        working_compiler_plan.get("source_expansion_source_count") or 0
-                    )
-                    _merge_int_counts(
-                        build_memory_system_graph_memory_object_index_working_compiler_plan_focus_counts,
-                        working_compiler_plan.get("focus_counts") or {},
-                    )
-                    _merge_int_counts(
-                        build_memory_system_graph_memory_object_index_working_compiler_plan_context_action_counts,
-                        working_compiler_plan.get("context_action_counts") or {},
-                    )
-                    _merge_int_counts(
-                        build_memory_system_graph_memory_object_index_working_compiler_plan_verifier_check_counts,
-                        working_compiler_plan.get("verifier_check_counts") or {},
-                    )
-                memory_system_state = memory_object_index.get("memory_system_state") or {}
-                if isinstance(memory_system_state, Mapping) and memory_system_state.get(
-                    "applied"
-                ):
-                    total_build_memory_system_graph_index_memory_system_state_applied += 1
-                    total_build_memory_system_graph_index_memory_system_state_entries += int(
-                        memory_system_state.get("entry_count") or 0
-                    )
-                    total_build_memory_system_graph_index_memory_system_state_source_backed_entries += int(
-                        memory_system_state.get("source_backed_entry_count") or 0
-                    )
-                    total_build_memory_system_graph_index_memory_system_state_layers += int(
-                        memory_system_state.get("layer_count") or 0
-                    )
-                    total_build_memory_system_graph_index_memory_system_state_source_expansion_sources += int(
-                        memory_system_state.get("source_expansion_source_count") or 0
-                    )
-                    _merge_int_counts(
-                        build_memory_system_graph_memory_object_index_memory_system_state_focus_counts,
-                        memory_system_state.get("focus_counts") or {},
-                    )
-                    _merge_int_counts(
-                        build_memory_system_graph_memory_object_index_memory_system_state_decision_counts,
-                        memory_system_state.get("decision_counts") or {},
-                    )
-                    _merge_int_counts(
-                        build_memory_system_graph_memory_object_index_memory_system_state_context_action_counts,
-                        memory_system_state.get("context_action_counts") or {},
-                    )
-                    _merge_int_counts(
-                        build_memory_system_graph_memory_object_index_memory_system_state_verifier_check_counts,
-                        memory_system_state.get("verifier_check_counts") or {},
-                    )
-                operation_journal = (
-                    memory_object_index.get("memory_operation_journal") or {}
-                )
-                if isinstance(operation_journal, Mapping) and operation_journal.get(
-                    "applied"
-                ):
-                    total_build_memory_system_graph_index_memory_operation_journal_applied += 1
-                    total_build_memory_system_graph_index_memory_operation_journal_entries += int(
-                        operation_journal.get("entry_count") or 0
-                    )
-                    total_build_memory_system_graph_index_memory_operation_journal_source_backed_entries += int(
-                        operation_journal.get("source_backed_entry_count") or 0
-                    )
-                    total_build_memory_system_graph_index_memory_operation_journal_source_expansion_sources += int(
-                        operation_journal.get("source_expansion_source_count") or 0
-                    )
-                    _merge_int_counts(
-                        build_memory_system_graph_memory_object_index_memory_operation_journal_operation_counts,
-                        operation_journal.get("operation_counts") or {},
-                    )
-                    _merge_int_counts(
-                        build_memory_system_graph_memory_object_index_memory_operation_journal_family_counts,
-                        operation_journal.get("family_counts") or {},
-                    )
-                    _merge_int_counts(
-                        build_memory_system_graph_memory_object_index_memory_operation_journal_decision_counts,
-                        operation_journal.get("decision_counts") or {},
-                    )
-                workspace_contract = (
-                    memory_object_index.get("memory_workspace_contract") or {}
-                )
-                if isinstance(
-                    workspace_contract, Mapping
-                ) and workspace_contract.get("applied"):
-                    total_build_memory_system_graph_index_memory_workspace_contract_applied += 1
-                    total_build_memory_system_graph_index_memory_workspace_contract_entries += int(
-                        workspace_contract.get("entry_count") or 0
-                    )
-                    total_build_memory_system_graph_index_memory_workspace_contract_source_backed_entries += int(
-                        workspace_contract.get("source_backed_entry_count") or 0
-                    )
-                    total_build_memory_system_graph_index_memory_workspace_contract_layers += int(
-                        workspace_contract.get("layer_count") or 0
-                    )
-                    total_build_memory_system_graph_index_memory_workspace_contract_anchor_sources += int(
-                        workspace_contract.get("context_anchor_source_count") or 0
-                    )
-                    _merge_int_counts(
-                        build_memory_system_graph_memory_object_index_memory_workspace_contract_operation_counts,
-                        workspace_contract.get("operation_counts") or {},
-                    )
-                    _merge_int_counts(
-                        build_memory_system_graph_memory_object_index_memory_workspace_contract_family_counts,
-                        workspace_contract.get("family_counts") or {},
-                    )
-                    readiness = workspace_contract.get("readiness") or {}
-                    if isinstance(readiness, Mapping):
-                        for key, value in readiness.items():
-                            if bool(value):
-                                build_memory_system_graph_memory_object_index_memory_workspace_contract_readiness_counts[
-                                    str(key)
-                                ] = (
-                                    build_memory_system_graph_memory_object_index_memory_workspace_contract_readiness_counts.get(
-                                        str(key),
-                                        0,
-                                    )
-                                    + 1
-                                )
-                workspace_snapshot = (
-                    memory_object_index.get("memory_workspace_snapshot") or {}
-                )
-                if isinstance(
-                    workspace_snapshot, Mapping
-                ) and workspace_snapshot.get("applied"):
-                    total_build_memory_system_graph_index_memory_workspace_snapshot_applied += 1
-                    total_build_memory_system_graph_index_memory_workspace_snapshot_state_worklists += int(
-                        workspace_snapshot.get("state_worklist_count") or 0
-                    )
-                    total_build_memory_system_graph_index_memory_workspace_snapshot_verifier_worklists += int(
-                        workspace_snapshot.get("verifier_worklist_count") or 0
-                    )
-                    total_build_memory_system_graph_index_memory_workspace_snapshot_source_expansion_sources += int(
-                        workspace_snapshot.get("source_expansion_source_count") or 0
-                    )
-                    _merge_int_counts(
-                        build_memory_system_graph_memory_object_index_memory_workspace_snapshot_state_worklist_counts,
-                        workspace_snapshot.get("state_worklist_counts") or {},
-                    )
-                    _merge_int_counts(
-                        build_memory_system_graph_memory_object_index_memory_workspace_snapshot_verifier_worklist_counts,
-                        workspace_snapshot.get("verifier_worklist_counts") or {},
-                    )
-                    readiness = workspace_snapshot.get("operation_readiness") or {}
-                    if isinstance(readiness, Mapping):
-                        for key, value in readiness.items():
-                            if bool(value):
-                                build_memory_system_graph_memory_object_index_memory_workspace_snapshot_operation_readiness_counts[
-                                    str(key)
-                                ] = (
-                                    build_memory_system_graph_memory_object_index_memory_workspace_snapshot_operation_readiness_counts.get(
-                                        str(key),
-                                        0,
-                                    )
-                                    + 1
-                                )
-                workspace_policy = (
-                    memory_object_index.get("memory_workspace_policy") or {}
-                )
-                if isinstance(
-                    workspace_policy, Mapping
-                ) and workspace_policy.get("applied"):
-                    total_build_memory_system_graph_index_memory_workspace_policy_applied += 1
-                    total_build_memory_system_graph_index_memory_workspace_policy_stages += int(
-                        workspace_policy.get("stage_count") or 0
-                    )
-                    total_build_memory_system_graph_index_memory_workspace_policy_query_components += int(
-                        workspace_policy.get("query_component_count") or 0
-                    )
-                    total_build_memory_system_graph_index_memory_workspace_policy_ready_query_components += int(
-                        workspace_policy.get("query_component_ready_count") or 0
-                    )
-                    query_component_policy = (
-                        workspace_policy.get("query_component_policy") or {}
-                    )
-                    if isinstance(query_component_policy, Mapping):
-                        for policy in query_component_policy.values():
-                            if not isinstance(policy, Mapping):
-                                continue
-                            status = str(policy.get("migration_status") or "unknown")
-                            build_memory_system_graph_memory_object_index_memory_workspace_policy_component_status_counts[
-                                status
-                            ] = (
-                                build_memory_system_graph_memory_object_index_memory_workspace_policy_component_status_counts.get(
-                                    status, 0
-                                )
-                                + 1
-                            )
-                layer_manifest = memory_object_index.get("memory_layer_manifest") or {}
-                if isinstance(layer_manifest, Mapping) and layer_manifest.get(
-                    "applied"
-                ):
-                    total_build_memory_system_graph_index_layer_manifest_applied += 1
-                    total_build_memory_system_graph_index_layer_manifest_entries += int(
-                        layer_manifest.get("entry_count") or 0
-                    )
-                    layers = layer_manifest.get("layers") or {}
-                    if isinstance(layers, Mapping):
-                        _merge_int_counts(
-                            build_memory_system_graph_memory_object_index_layer_manifest_layer_entries,
-                            {
-                                str(layer): int(summary.get("entry_count") or 0)
-                                for layer, summary in layers.items()
-                                if isinstance(summary, Mapping)
-                            },
-                        )
             source_quality = memory_system_graph.get("source_quality") or {}
             total_build_memory_system_graph_source_backed_records += int(
                 source_quality.get("source_backed_record_count") or 0
@@ -1486,35 +684,11 @@ def main() -> int:
         )
         if retrieval_trace.get("operation_utility_applied"):
             total_operation_utility_applied += 1
-            operation_slot_index = retrieval_trace.get("operation_utility_slot_index")
-            if isinstance(operation_slot_index, Mapping):
-                operation_slot_index_source = str(
-                    operation_slot_index.get("source") or ""
-                )
-                if operation_slot_index_source:
-                    operation_utility_slot_index_source_counts[
-                        operation_slot_index_source
-                    ] = (
-                        operation_utility_slot_index_source_counts.get(
-                            operation_slot_index_source, 0
-                        )
-                        + 1
-                    )
         total_operation_utility_source_hits += len(
             retrieval_trace.get("operation_utility_source_hits") or []
         )
         if retrieval_trace.get("graph_utility_applied"):
             total_graph_utility_applied += 1
-            graph_slot_index = retrieval_trace.get("graph_utility_slot_index")
-            if isinstance(graph_slot_index, Mapping):
-                graph_slot_index_source = str(graph_slot_index.get("source") or "")
-                if graph_slot_index_source:
-                    graph_utility_slot_index_source_counts[graph_slot_index_source] = (
-                        graph_utility_slot_index_source_counts.get(
-                            graph_slot_index_source, 0
-                        )
-                        + 1
-                    )
         total_graph_utility_source_hits += len(
             retrieval_trace.get("graph_utility_source_hits") or []
         )
@@ -1534,179 +708,6 @@ def main() -> int:
             total_answer_verifier_evidence_report_items += int(
                 answer_verifier.get("evidence_report_count") or 0
             )
-            total_answer_verifier_registry_backed_final_evidence += int(
-                answer_verifier.get("registry_backed_final_evidence_count") or 0
-            )
-            total_answer_verifier_registry_backed_support_refs += int(
-                answer_verifier.get("registry_backed_support_reference_count") or 0
-            )
-            if answer_verifier.get("working_compiler_plan_available"):
-                total_answer_verifier_working_compiler_plan_available += 1
-            total_answer_verifier_working_compiler_plan_final_evidence += int(
-                answer_verifier.get("working_compiler_plan_final_evidence_count") or 0
-            )
-            _merge_int_counts(
-                answer_verifier_working_compiler_plan_focus_counts,
-                answer_verifier.get("working_compiler_plan_focus_counts") or {},
-            )
-            _merge_int_counts(
-                answer_verifier_working_compiler_plan_verifier_check_counts,
-                answer_verifier.get("working_compiler_plan_verifier_check_counts")
-                or {},
-            )
-            if answer_verifier.get("memory_system_state_available"):
-                total_answer_verifier_memory_system_state_available += 1
-            total_answer_verifier_memory_system_state_final_evidence += int(
-                answer_verifier.get("memory_system_state_final_evidence_count") or 0
-            )
-            _merge_int_counts(
-                answer_verifier_memory_system_state_focus_counts,
-                answer_verifier.get("memory_system_state_focus_counts") or {},
-            )
-            _merge_int_counts(
-                answer_verifier_memory_system_state_decision_counts,
-                answer_verifier.get("memory_system_state_decision_counts") or {},
-            )
-            _merge_int_counts(
-                answer_verifier_memory_system_state_context_action_counts,
-                answer_verifier.get("memory_system_state_context_action_counts") or {},
-            )
-            _merge_int_counts(
-                answer_verifier_memory_system_state_verifier_check_counts,
-                answer_verifier.get("memory_system_state_verifier_check_counts")
-                or {},
-            )
-            if answer_verifier.get("memory_operation_journal_available"):
-                total_answer_verifier_memory_operation_journal_available += 1
-            total_answer_verifier_memory_operation_journal_final_evidence += int(
-                answer_verifier.get(
-                    "memory_operation_journal_final_evidence_count"
-                )
-                or 0
-            )
-            _merge_int_counts(
-                answer_verifier_memory_operation_journal_operation_counts,
-                answer_verifier.get("memory_operation_journal_operation_counts")
-                or {},
-            )
-            _merge_int_counts(
-                answer_verifier_memory_operation_journal_family_counts,
-                answer_verifier.get("memory_operation_journal_family_counts") or {},
-            )
-            if answer_verifier.get("memory_workspace_snapshot_available"):
-                total_answer_verifier_memory_workspace_snapshot_available += 1
-            total_answer_verifier_memory_workspace_snapshot_final_evidence += int(
-                answer_verifier.get(
-                    "memory_workspace_snapshot_final_evidence_count"
-                )
-                or 0
-            )
-            _merge_int_counts(
-                answer_verifier_memory_workspace_snapshot_state_worklist_counts,
-                answer_verifier.get(
-                    "memory_workspace_snapshot_state_worklist_counts"
-                )
-                or {},
-            )
-            _merge_int_counts(
-                answer_verifier_memory_workspace_snapshot_verifier_worklist_counts,
-                answer_verifier.get(
-                    "memory_workspace_snapshot_verifier_worklist_counts"
-                )
-                or {},
-            )
-            readiness = answer_verifier.get(
-                "memory_workspace_snapshot_operation_readiness"
-            )
-            if isinstance(readiness, Mapping):
-                for key, value in readiness.items():
-                    if bool(value):
-                        answer_verifier_memory_workspace_snapshot_operation_readiness_counts[
-                            str(key)
-                        ] = (
-                            answer_verifier_memory_workspace_snapshot_operation_readiness_counts.get(
-                                str(key),
-                                0,
-                            )
-                            + 1
-                        )
-            if answer_verifier.get("workspace_query_policy_available"):
-                total_answer_verifier_workspace_query_policy_available += 1
-            if answer_verifier.get("workspace_query_policy_applied"):
-                total_answer_verifier_workspace_query_policy_applied += 1
-            total_answer_verifier_workspace_query_policy_packet_candidates += int(
-                answer_verifier.get(
-                    "workspace_query_policy_packet_candidate_count"
-                )
-                or 0
-            )
-            total_answer_verifier_workspace_query_policy_packet_source_labels += len(
-                answer_verifier.get(
-                    "workspace_query_policy_packet_candidate_source_labels"
-                )
-                or ()
-            )
-            for component in (
-                answer_verifier.get("workspace_query_policy_replaced_components")
-                or ()
-            ):
-                component_text = str(component)
-                answer_verifier_workspace_query_policy_replaced_component_counts[
-                    component_text
-                ] = (
-                    answer_verifier_workspace_query_policy_replaced_component_counts.get(
-                        component_text,
-                        0,
-                    )
-                    + 1
-                )
-            _merge_int_counts(
-                answer_verifier_workspace_query_policy_packet_focus_counts,
-                answer_verifier.get(
-                    "workspace_query_policy_packet_candidate_focus_counts"
-                )
-                or {},
-            )
-            for check in (
-                answer_verifier.get(
-                    "workspace_query_policy_packet_candidate_verifier_checks"
-                )
-                or ()
-            ):
-                check_text = str(check)
-                answer_verifier_workspace_query_policy_packet_verifier_check_counts[
-                    check_text
-                ] = (
-                    answer_verifier_workspace_query_policy_packet_verifier_check_counts.get(
-                        check_text,
-                        0,
-                    )
-                    + 1
-                )
-            if answer_verifier.get("consistency_audit_applied"):
-                total_answer_verifier_consistency_audit_applied += 1
-            total_answer_verifier_consistency_valid_support_rows += int(
-                answer_verifier.get("consistency_valid_support_row_count") or 0
-            )
-            _merge_int_counts(
-                answer_verifier_consistency_dimension_counts,
-                answer_verifier.get("consistency_dimension_counts") or {},
-            )
-            _merge_int_counts(
-                answer_verifier_consistency_risk_counts,
-                answer_verifier.get("consistency_risk_counts") or {},
-            )
-            consistency_risk_count = int(
-                answer_verifier.get("consistency_risk_count") or 0
-            )
-            total_answer_verifier_consistency_risk_flags += consistency_risk_count
-            if consistency_risk_count:
-                total_answer_verifier_consistency_risk_samples += 1
-            for reason in answer_verifier.get("consistency_risks") or []:
-                answer_verifier_consistency_risk_reasons[str(reason)] = (
-                    answer_verifier_consistency_risk_reasons.get(str(reason), 0)
-                    + 1
-                )
             risk_count = int(answer_verifier.get("risk_count") or 0)
             total_answer_verifier_risk_flags += risk_count
             if risk_count:
@@ -1942,12 +943,6 @@ def main() -> int:
             "operation_utility_fusion_mode": config.get("retrieval", {})
             .get("operation_utility", {})
             .get("fusion_mode", "tail_rescue"),
-            "operation_utility_slot_source": config.get("retrieval", {})
-            .get("operation_utility", {})
-            .get("slot_source", "auto"),
-            "operation_utility_slot_index_source_counts": dict(
-                sorted(operation_utility_slot_index_source_counts.items())
-            ),
             "operation_utility_applied_count": total_operation_utility_applied,
             "operation_utility_applied_rate": _safe_average(
                 total_operation_utility_applied, sample_count
@@ -1979,12 +974,6 @@ def main() -> int:
             "graph_utility_required_signals": config.get("retrieval", {})
             .get("graph_utility", {})
             .get("required_signals"),
-            "graph_utility_slot_source": config.get("retrieval", {})
-            .get("graph_utility", {})
-            .get("slot_source", "auto"),
-            "graph_utility_slot_index_source_counts": dict(
-                sorted(graph_utility_slot_index_source_counts.items())
-            ),
             "graph_utility_fusion_mode": config.get("retrieval", {})
             .get("graph_utility", {})
             .get("fusion_mode", "tail_rescue"),
@@ -2144,84 +1133,6 @@ def main() -> int:
             .get("selected_context", {})
             .get("risk_audit", {})
             .get("source_grounded_min_coverage"),
-            "workspace_policy_context_enabled": config.get("retrieval", {})
-            .get("workspace_policy_context", {})
-            .get("enabled", False),
-            "workspace_policy_context_information_needs": config.get(
-                "retrieval", {}
-            )
-            .get("workspace_policy_context", {})
-            .get("information_needs"),
-            "workspace_policy_context_apply_selected_context_pressure_policy": (
-                config.get("retrieval", {})
-                .get("workspace_policy_context", {})
-                .get("apply_selected_context_pressure_policy", True)
-            ),
-            "workspace_policy_context_policy_available_count": (
-                total_workspace_policy_context_policy_available
-            ),
-            "workspace_policy_context_policy_available_rate": _safe_average(
-                total_workspace_policy_context_policy_available,
-                sample_count,
-            ),
-            "workspace_policy_context_applied_count": (
-                total_workspace_policy_context_applied
-            ),
-            "workspace_policy_context_applied_rate": _safe_average(
-                total_workspace_policy_context_applied,
-                sample_count,
-            ),
-            "workspace_source_expansion_enabled": config.get("retrieval", {})
-            .get("workspace_source_expansion", {})
-            .get("enabled", False),
-            "workspace_source_expansion_sources": config.get("retrieval", {})
-            .get("workspace_source_expansion", {})
-            .get("sources")
-            or config.get("retrieval", {})
-            .get("workspace_source_expansion", {})
-            .get("source"),
-            "workspace_source_expansion_information_needs": config.get(
-                "retrieval", {}
-            )
-            .get("workspace_source_expansion", {})
-            .get("information_needs"),
-            "workspace_source_expansion_min_core_terms": config.get(
-                "retrieval", {}
-            )
-            .get("workspace_source_expansion", {})
-            .get("min_core_terms"),
-            "workspace_source_expansion_route_overrides": config.get(
-                "retrieval", {}
-            )
-            .get("workspace_source_expansion", {})
-            .get("route_overrides"),
-            "workspace_source_expansion_applied_count": (
-                total_workspace_source_expansion_applied
-            ),
-            "workspace_source_expansion_applied_rate": _safe_average(
-                total_workspace_source_expansion_applied,
-                sample_count,
-            ),
-            "avg_workspace_source_expansion_candidate_entries": _safe_average(
-                total_workspace_source_expansion_candidate_entries,
-                sample_count,
-            ),
-            "avg_workspace_source_expansion_selected_sources": _safe_average(
-                total_workspace_source_expansion_selected_sources,
-                sample_count,
-            ),
-            "avg_workspace_source_expansion_final_sources": _safe_average(
-                total_workspace_source_expansion_final_sources,
-                sample_count,
-            ),
-            "avg_workspace_source_expansion_replaced_tail": _safe_average(
-                total_workspace_source_expansion_replaced_tail,
-                sample_count,
-            ),
-            "avg_workspace_source_expansion_skipped_low_core": _safe_average(
-                total_workspace_source_expansion_skipped_low_core,
-                sample_count,
-            ),
             "selected_context_applied_count": total_selected_context_applied,
             "selected_context_applied_rate": _safe_average(
                 total_selected_context_applied, sample_count
@@ -2351,14 +1262,6 @@ def main() -> int:
             "context_budget_information_needs": config.get("retrieval", {})
             .get("context_budget", {})
             .get("information_needs"),
-            "context_budget_registry_anchor_retention": config.get(
-                "retrieval", {}
-            )
-            .get("context_budget", {})
-            .get("registry_anchor_retention", False),
-            "context_budget_anchor_source": config.get("retrieval", {})
-            .get("context_budget", {})
-            .get("anchor_source", "operation_registry"),
             "context_budget_applied_count": total_context_budget_applied,
             "context_budget_applied_rate": _safe_average(
                 total_context_budget_applied, sample_count
@@ -2379,73 +1282,6 @@ def main() -> int:
                 total_context_budget_dropped_count,
                 total_context_budget_applied,
             ),
-            "context_budget_anchor_selected_source_counts": dict(
-                sorted(context_budget_anchor_selected_source_counts.items())
-            ),
-            "avg_context_budget_anchor_registry_source_count": _safe_average(
-                total_context_budget_anchor_registry_source_count,
-                sample_count,
-            ),
-            "avg_context_budget_anchor_layer_manifest_source_count": (
-                _safe_average(
-                    total_context_budget_anchor_layer_manifest_source_count,
-                    sample_count,
-                )
-            ),
-            "avg_context_budget_anchor_operation_api_source_count": (
-                _safe_average(
-                    total_context_budget_anchor_operation_api_source_count,
-                    sample_count,
-                )
-            ),
-            "avg_context_budget_anchor_context_interface_source_count": (
-                _safe_average(
-                    total_context_budget_anchor_context_interface_source_count,
-                    sample_count,
-                )
-            ),
-            "avg_context_budget_anchor_working_compiler_plan_source_count": (
-                _safe_average(
-                    total_context_budget_anchor_working_compiler_plan_source_count,
-                    sample_count,
-                )
-            ),
-            "avg_context_budget_anchor_memory_system_state_source_count": (
-                _safe_average(
-                    total_context_budget_anchor_memory_system_state_source_count,
-                    sample_count,
-                )
-            ),
-            "avg_context_budget_anchor_memory_workspace_contract_source_count": (
-                _safe_average(
-                    total_context_budget_anchor_memory_workspace_contract_source_count,
-                    sample_count,
-                )
-            ),
-            "context_budget_registry_anchor_sample_count": (
-                total_context_budget_registry_anchor_sample_count
-            ),
-            "context_budget_registry_anchor_candidate_count": (
-                total_context_budget_registry_anchor_candidate_count
-            ),
-            "context_budget_registry_anchor_retained_count": (
-                total_context_budget_registry_anchor_retained_count
-            ),
-            "context_budget_registry_anchor_dropped_count": (
-                total_context_budget_registry_anchor_dropped_count
-            ),
-            "avg_context_budget_registry_anchor_candidates": _safe_average(
-                total_context_budget_registry_anchor_candidate_count,
-                total_context_budget_registry_anchor_sample_count,
-            ),
-            "avg_context_budget_registry_anchor_retained": _safe_average(
-                total_context_budget_registry_anchor_retained_count,
-                total_context_budget_registry_anchor_sample_count,
-            ),
-            "avg_context_budget_registry_anchor_dropped": _safe_average(
-                total_context_budget_registry_anchor_dropped_count,
-                total_context_budget_registry_anchor_sample_count,
-            ),
             "context_budget_audit_enabled": config.get("retrieval", {})
             .get("context_budget_audit", {})
             .get("enabled", False),
@@ -2464,19 +1300,6 @@ def main() -> int:
             "context_budget_audit_information_needs": config.get("retrieval", {})
             .get("context_budget_audit", {})
             .get("information_needs"),
-            "context_budget_audit_registry_anchor_retention": config.get(
-                "retrieval", {}
-            )
-            .get("context_budget_audit", {})
-            .get("registry_anchor_retention", False),
-            "context_budget_audit_anchor_source": config.get("retrieval", {})
-            .get("context_budget_audit", {})
-            .get(
-                "anchor_source",
-                config.get("retrieval", {})
-                .get("context_budget", {})
-                .get("anchor_source", "operation_registry"),
-            ),
             "context_budget_audit_applied_count": (
                 total_context_budget_audit_applied
             ),
@@ -2494,75 +1317,6 @@ def main() -> int:
             "avg_context_budget_audit_dropped_count": _safe_average(
                 total_context_budget_audit_dropped_count,
                 total_context_budget_audit_applied,
-            ),
-            "context_budget_audit_anchor_selected_source_counts": dict(
-                sorted(context_budget_audit_anchor_selected_source_counts.items())
-            ),
-            "avg_context_budget_audit_anchor_registry_source_count": (
-                _safe_average(
-                    total_context_budget_audit_anchor_registry_source_count,
-                    sample_count,
-                )
-            ),
-            "avg_context_budget_audit_anchor_layer_manifest_source_count": (
-                _safe_average(
-                    total_context_budget_audit_anchor_layer_manifest_source_count,
-                    sample_count,
-                )
-            ),
-            "avg_context_budget_audit_anchor_operation_api_source_count": (
-                _safe_average(
-                    total_context_budget_audit_anchor_operation_api_source_count,
-                    sample_count,
-                )
-            ),
-            "avg_context_budget_audit_anchor_context_interface_source_count": (
-                _safe_average(
-                    total_context_budget_audit_anchor_context_interface_source_count,
-                    sample_count,
-                )
-            ),
-            "avg_context_budget_audit_anchor_working_compiler_plan_source_count": (
-                _safe_average(
-                    total_context_budget_audit_anchor_working_compiler_plan_source_count,
-                    sample_count,
-                )
-            ),
-            "avg_context_budget_audit_anchor_memory_system_state_source_count": (
-                _safe_average(
-                    total_context_budget_audit_anchor_memory_system_state_source_count,
-                    sample_count,
-                )
-            ),
-            "avg_context_budget_audit_anchor_memory_workspace_contract_source_count": (
-                _safe_average(
-                    total_context_budget_audit_anchor_memory_workspace_contract_source_count,
-                    sample_count,
-                )
-            ),
-            "context_budget_audit_registry_anchor_sample_count": (
-                total_context_budget_audit_registry_anchor_sample_count
-            ),
-            "context_budget_audit_registry_anchor_candidate_count": (
-                total_context_budget_audit_registry_anchor_candidate_count
-            ),
-            "context_budget_audit_registry_anchor_retained_count": (
-                total_context_budget_audit_registry_anchor_retained_count
-            ),
-            "context_budget_audit_registry_anchor_dropped_count": (
-                total_context_budget_audit_registry_anchor_dropped_count
-            ),
-            "avg_context_budget_audit_registry_anchor_candidates": _safe_average(
-                total_context_budget_audit_registry_anchor_candidate_count,
-                total_context_budget_audit_registry_anchor_sample_count,
-            ),
-            "avg_context_budget_audit_registry_anchor_retained": _safe_average(
-                total_context_budget_audit_registry_anchor_retained_count,
-                total_context_budget_audit_registry_anchor_sample_count,
-            ),
-            "avg_context_budget_audit_registry_anchor_dropped": _safe_average(
-                total_context_budget_audit_registry_anchor_dropped_count,
-                total_context_budget_audit_registry_anchor_sample_count,
             ),
             "context_budget_audit_prompt_risk_count": (
                 total_context_budget_audit_prompt_risk_samples
@@ -2723,74 +1477,6 @@ def main() -> int:
             "memory_system_graph_memory_object_index_operation_counts": (
                 build_memory_system_graph_memory_object_index_operation_counts
             ),
-            "memory_system_graph_memory_object_index_registry_operation_counts": (
-                build_memory_system_graph_memory_object_index_registry_operation_counts
-            ),
-            "memory_system_graph_memory_object_index_working_memory_view_applied_count": (
-                total_build_memory_system_graph_index_working_memory_view_applied
-            ),
-            "memory_system_graph_memory_object_index_working_memory_view_applied_rate": _safe_average(
-                total_build_memory_system_graph_index_working_memory_view_applied,
-                sample_count,
-            ),
-            "memory_system_graph_memory_object_index_working_memory_view_layer_counts": (
-                build_memory_system_graph_memory_object_index_working_view_layer_counts
-            ),
-            "memory_system_graph_memory_object_index_working_memory_view_role_counts": (
-                build_memory_system_graph_memory_object_index_working_view_role_counts
-            ),
-            "memory_system_graph_memory_object_index_working_memory_view_target_counts": (
-                build_memory_system_graph_memory_object_index_working_view_target_counts
-            ),
-            "memory_system_graph_memory_object_index_working_memory_view_operation_counts": (
-                build_memory_system_graph_memory_object_index_working_view_operation_counts
-            ),
-            "memory_system_graph_memory_object_index_lifecycle_audit_applied_count": (
-                total_build_memory_system_graph_index_lifecycle_audit_applied
-            ),
-            "memory_system_graph_memory_object_index_lifecycle_audit_applied_rate": _safe_average(
-                total_build_memory_system_graph_index_lifecycle_audit_applied,
-                sample_count,
-            ),
-            "memory_system_graph_memory_object_index_lifecycle_audit_operation_coverage": (
-                build_memory_system_graph_memory_object_index_lifecycle_audit_operation_coverage
-            ),
-            "memory_system_graph_memory_object_index_operation_api_applied_count": (
-                total_build_memory_system_graph_index_operation_api_applied
-            ),
-            "memory_system_graph_memory_object_index_operation_api_applied_rate": _safe_average(
-                total_build_memory_system_graph_index_operation_api_applied,
-                sample_count,
-            ),
-            "memory_system_graph_memory_object_index_operation_api_action_counts": (
-                build_memory_system_graph_memory_object_index_operation_api_action_counts
-            ),
-            "memory_system_graph_memory_object_index_context_interface_applied_count": (
-                total_build_memory_system_graph_index_context_interface_applied
-            ),
-            "memory_system_graph_memory_object_index_context_interface_applied_rate": _safe_average(
-                total_build_memory_system_graph_index_context_interface_applied,
-                sample_count,
-            ),
-            "memory_system_graph_memory_object_index_context_interface_action_counts": (
-                build_memory_system_graph_memory_object_index_context_interface_action_counts
-            ),
-            "memory_system_graph_memory_object_index_context_interface_role_source_counts": (
-                build_memory_system_graph_memory_object_index_context_interface_role_source_counts
-            ),
-            "memory_system_graph_memory_object_index_context_interface_operation_view_source_counts": (
-                build_memory_system_graph_memory_object_index_context_interface_operation_view_source_counts
-            ),
-            "memory_system_graph_memory_object_index_layer_manifest_applied_count": (
-                total_build_memory_system_graph_index_layer_manifest_applied
-            ),
-            "memory_system_graph_memory_object_index_layer_manifest_applied_rate": _safe_average(
-                total_build_memory_system_graph_index_layer_manifest_applied,
-                sample_count,
-            ),
-            "memory_system_graph_memory_object_index_layer_manifest_layer_entries": (
-                build_memory_system_graph_memory_object_index_layer_manifest_layer_entries
-            ),
             "avg_memory_system_graph_objects": _safe_average(
                 total_build_memory_system_graph_objects,
                 total_build_memory_system_graph_applied,
@@ -2897,18 +1583,6 @@ def main() -> int:
                     total_build_memory_system_graph_memory_object_index_applied,
                 )
             ),
-            "avg_memory_system_graph_memory_object_index_activation_ready_ids": (
-                _safe_average(
-                    total_build_memory_system_graph_index_activation_ready_ids,
-                    total_build_memory_system_graph_memory_object_index_applied,
-                )
-            ),
-            "avg_memory_system_graph_memory_object_index_activation_priority_ids": (
-                _safe_average(
-                    total_build_memory_system_graph_index_activation_priority_ids,
-                    total_build_memory_system_graph_memory_object_index_applied,
-                )
-            ),
             "avg_memory_system_graph_memory_object_index_slots": _safe_average(
                 total_build_memory_system_graph_index_slots,
                 total_build_memory_system_graph_memory_object_index_applied,
@@ -2917,402 +1591,10 @@ def main() -> int:
                 total_build_memory_system_graph_index_value_slots,
                 total_build_memory_system_graph_memory_object_index_applied,
             ),
-            "avg_memory_system_graph_memory_object_index_operation_slots": (
-                _safe_average(
-                    total_build_memory_system_graph_index_operation_slots,
-                    total_build_memory_system_graph_memory_object_index_applied,
-                )
-            ),
             "avg_memory_system_graph_memory_object_index_state_conflict_slots": (
                 _safe_average(
                     total_build_memory_system_graph_index_state_conflict_slots,
                     total_build_memory_system_graph_memory_object_index_applied,
-                )
-            ),
-            "avg_memory_system_graph_memory_object_index_operation_registry_entries": (
-                _safe_average(
-                    total_build_memory_system_graph_index_operation_registry_entries,
-                    total_build_memory_system_graph_memory_object_index_applied,
-                )
-            ),
-            "avg_memory_system_graph_memory_object_index_operation_registry_object_entries": (
-                _safe_average(
-                    total_build_memory_system_graph_index_operation_registry_object_entries,
-                    total_build_memory_system_graph_memory_object_index_applied,
-                )
-            ),
-            "avg_memory_system_graph_memory_object_index_operation_registry_slot_entries": (
-                _safe_average(
-                    total_build_memory_system_graph_index_operation_registry_slot_entries,
-                    total_build_memory_system_graph_memory_object_index_applied,
-                )
-            ),
-            "avg_memory_system_graph_memory_object_index_operation_registry_conflict_entries": (
-                _safe_average(
-                    total_build_memory_system_graph_index_operation_registry_conflict_entries,
-                    total_build_memory_system_graph_memory_object_index_applied,
-                )
-            ),
-            "avg_memory_system_graph_memory_object_index_operation_registry_source_backed_entries": (
-                _safe_average(
-                    total_build_memory_system_graph_index_operation_registry_source_backed_entries,
-                    total_build_memory_system_graph_memory_object_index_applied,
-                )
-            ),
-            "avg_memory_system_graph_memory_object_index_working_memory_view_entries": (
-                _safe_average(
-                    total_build_memory_system_graph_index_working_memory_view_entries,
-                    total_build_memory_system_graph_index_working_memory_view_applied,
-                )
-            ),
-            "avg_memory_system_graph_memory_object_index_working_memory_view_source_backed_entries": (
-                _safe_average(
-                    total_build_memory_system_graph_index_working_memory_view_source_backed_entries,
-                    total_build_memory_system_graph_index_working_memory_view_applied,
-                )
-            ),
-            "avg_memory_system_graph_memory_object_index_working_memory_view_source_incomplete_entries": (
-                _safe_average(
-                    total_build_memory_system_graph_index_working_memory_view_source_incomplete_entries,
-                    total_build_memory_system_graph_index_working_memory_view_applied,
-                )
-            ),
-            "avg_memory_system_graph_memory_object_index_lifecycle_audit_entries": (
-                _safe_average(
-                    total_build_memory_system_graph_index_lifecycle_audit_entries,
-                    total_build_memory_system_graph_index_lifecycle_audit_applied,
-                )
-            ),
-            "avg_memory_system_graph_memory_object_index_lifecycle_audit_source_backed_entries": (
-                _safe_average(
-                    total_build_memory_system_graph_index_lifecycle_audit_source_backed_entries,
-                    total_build_memory_system_graph_index_lifecycle_audit_applied,
-                )
-            ),
-            "avg_memory_system_graph_memory_object_index_lifecycle_audit_conflict_entries": (
-                _safe_average(
-                    total_build_memory_system_graph_index_lifecycle_audit_conflict_entries,
-                    total_build_memory_system_graph_index_lifecycle_audit_applied,
-                )
-            ),
-            "avg_memory_system_graph_memory_object_index_operation_api_entries": (
-                _safe_average(
-                    total_build_memory_system_graph_index_operation_api_entries,
-                    total_build_memory_system_graph_index_operation_api_applied,
-                )
-            ),
-            "avg_memory_system_graph_memory_object_index_operation_api_source_backed_entries": (
-                _safe_average(
-                    total_build_memory_system_graph_index_operation_api_source_backed_entries,
-                    total_build_memory_system_graph_index_operation_api_applied,
-                )
-            ),
-            "avg_memory_system_graph_memory_object_index_operation_api_anchor_sources": (
-                _safe_average(
-                    total_build_memory_system_graph_index_operation_api_anchor_sources,
-                    total_build_memory_system_graph_index_operation_api_applied,
-                )
-            ),
-            "avg_memory_system_graph_memory_object_index_context_interface_entries": (
-                _safe_average(
-                    total_build_memory_system_graph_index_context_interface_entries,
-                    total_build_memory_system_graph_index_context_interface_applied,
-                )
-            ),
-            "avg_memory_system_graph_memory_object_index_context_interface_source_backed_entries": (
-                _safe_average(
-                    total_build_memory_system_graph_index_context_interface_source_backed_entries,
-                    total_build_memory_system_graph_index_context_interface_applied,
-                )
-            ),
-            "avg_memory_system_graph_memory_object_index_context_interface_role_count": (
-                _safe_average(
-                    total_build_memory_system_graph_index_context_interface_role_count,
-                    total_build_memory_system_graph_index_context_interface_applied,
-                )
-            ),
-            "avg_memory_system_graph_memory_object_index_context_interface_anchor_sources": (
-                _safe_average(
-                    total_build_memory_system_graph_index_context_interface_anchor_sources,
-                    total_build_memory_system_graph_index_context_interface_applied,
-                )
-            ),
-            "avg_memory_system_graph_memory_object_index_context_interface_operation_slots": (
-                _safe_average(
-                    total_build_memory_system_graph_index_context_interface_operation_slots,
-                    total_build_memory_system_graph_index_context_interface_applied,
-                )
-            ),
-            "avg_memory_system_graph_memory_object_index_context_interface_source_backed_operation_slots": (
-                _safe_average(
-                    total_build_memory_system_graph_index_context_interface_source_backed_operation_slots,
-                    total_build_memory_system_graph_index_context_interface_applied,
-                )
-            ),
-            "memory_system_graph_memory_object_index_operation_lifecycle_applied_count": (
-                total_build_memory_system_graph_index_operation_lifecycle_applied
-            ),
-            "avg_memory_system_graph_memory_object_index_operation_lifecycle_entries": (
-                _safe_average(
-                    total_build_memory_system_graph_index_operation_lifecycle_entries,
-                    total_build_memory_system_graph_index_operation_lifecycle_applied,
-                )
-            ),
-            "avg_memory_system_graph_memory_object_index_operation_lifecycle_source_backed_entries": (
-                _safe_average(
-                    total_build_memory_system_graph_index_operation_lifecycle_source_backed_entries,
-                    total_build_memory_system_graph_index_operation_lifecycle_applied,
-                )
-            ),
-            "avg_memory_system_graph_memory_object_index_operation_lifecycle_context_slots": (
-                _safe_average(
-                    total_build_memory_system_graph_index_operation_lifecycle_context_slots,
-                    total_build_memory_system_graph_index_operation_lifecycle_applied,
-                )
-            ),
-            "memory_system_graph_memory_object_index_operation_lifecycle_decision_counts": dict(
-                sorted(
-                    build_memory_system_graph_memory_object_index_operation_lifecycle_decision_counts.items()
-                )
-            ),
-            "memory_system_graph_memory_object_index_operation_lifecycle_phase_counts": dict(
-                sorted(
-                    build_memory_system_graph_memory_object_index_operation_lifecycle_phase_counts.items()
-                )
-            ),
-            "memory_system_graph_memory_object_index_working_compiler_plan_applied_count": (
-                total_build_memory_system_graph_index_working_compiler_plan_applied
-            ),
-            "avg_memory_system_graph_memory_object_index_working_compiler_plan_entries": (
-                _safe_average(
-                    total_build_memory_system_graph_index_working_compiler_plan_entries,
-                    total_build_memory_system_graph_index_working_compiler_plan_applied,
-                )
-            ),
-            "avg_memory_system_graph_memory_object_index_working_compiler_plan_source_backed_entries": (
-                _safe_average(
-                    total_build_memory_system_graph_index_working_compiler_plan_source_backed_entries,
-                    total_build_memory_system_graph_index_working_compiler_plan_applied,
-                )
-            ),
-            "avg_memory_system_graph_memory_object_index_working_compiler_plan_context_slots": (
-                _safe_average(
-                    total_build_memory_system_graph_index_working_compiler_plan_context_slots,
-                    total_build_memory_system_graph_index_working_compiler_plan_applied,
-                )
-            ),
-            "avg_memory_system_graph_memory_object_index_working_compiler_plan_source_expansion_sources": (
-                _safe_average(
-                    total_build_memory_system_graph_index_working_compiler_plan_source_expansion_sources,
-                    total_build_memory_system_graph_index_working_compiler_plan_applied,
-                )
-            ),
-            "memory_system_graph_memory_object_index_working_compiler_plan_focus_counts": dict(
-                sorted(
-                    build_memory_system_graph_memory_object_index_working_compiler_plan_focus_counts.items()
-                )
-            ),
-            "memory_system_graph_memory_object_index_working_compiler_plan_context_action_counts": dict(
-                sorted(
-                    build_memory_system_graph_memory_object_index_working_compiler_plan_context_action_counts.items()
-                )
-            ),
-            "memory_system_graph_memory_object_index_working_compiler_plan_verifier_check_counts": dict(
-                sorted(
-                    build_memory_system_graph_memory_object_index_working_compiler_plan_verifier_check_counts.items()
-                )
-            ),
-            "memory_system_graph_memory_object_index_memory_system_state_applied_count": (
-                total_build_memory_system_graph_index_memory_system_state_applied
-            ),
-            "avg_memory_system_graph_memory_object_index_memory_system_state_entries": (
-                _safe_average(
-                    total_build_memory_system_graph_index_memory_system_state_entries,
-                    total_build_memory_system_graph_index_memory_system_state_applied,
-                )
-            ),
-            "avg_memory_system_graph_memory_object_index_memory_system_state_source_backed_entries": (
-                _safe_average(
-                    total_build_memory_system_graph_index_memory_system_state_source_backed_entries,
-                    total_build_memory_system_graph_index_memory_system_state_applied,
-                )
-            ),
-            "avg_memory_system_graph_memory_object_index_memory_system_state_layers": (
-                _safe_average(
-                    total_build_memory_system_graph_index_memory_system_state_layers,
-                    total_build_memory_system_graph_index_memory_system_state_applied,
-                )
-            ),
-            "avg_memory_system_graph_memory_object_index_memory_system_state_source_expansion_sources": (
-                _safe_average(
-                    total_build_memory_system_graph_index_memory_system_state_source_expansion_sources,
-                    total_build_memory_system_graph_index_memory_system_state_applied,
-                )
-            ),
-            "memory_system_graph_memory_object_index_memory_system_state_focus_counts": dict(
-                sorted(
-                    build_memory_system_graph_memory_object_index_memory_system_state_focus_counts.items()
-                )
-            ),
-            "memory_system_graph_memory_object_index_memory_system_state_decision_counts": dict(
-                sorted(
-                    build_memory_system_graph_memory_object_index_memory_system_state_decision_counts.items()
-                )
-            ),
-            "memory_system_graph_memory_object_index_memory_system_state_context_action_counts": dict(
-                sorted(
-                    build_memory_system_graph_memory_object_index_memory_system_state_context_action_counts.items()
-                )
-            ),
-            "memory_system_graph_memory_object_index_memory_system_state_verifier_check_counts": dict(
-                sorted(
-                    build_memory_system_graph_memory_object_index_memory_system_state_verifier_check_counts.items()
-                )
-            ),
-            "memory_system_graph_memory_object_index_memory_operation_journal_applied_count": (
-                total_build_memory_system_graph_index_memory_operation_journal_applied
-            ),
-            "avg_memory_system_graph_memory_object_index_memory_operation_journal_entries": (
-                _safe_average(
-                    total_build_memory_system_graph_index_memory_operation_journal_entries,
-                    total_build_memory_system_graph_index_memory_operation_journal_applied,
-                )
-            ),
-            "avg_memory_system_graph_memory_object_index_memory_operation_journal_source_backed_entries": (
-                _safe_average(
-                    total_build_memory_system_graph_index_memory_operation_journal_source_backed_entries,
-                    total_build_memory_system_graph_index_memory_operation_journal_applied,
-                )
-            ),
-            "avg_memory_system_graph_memory_object_index_memory_operation_journal_source_expansion_sources": (
-                _safe_average(
-                    total_build_memory_system_graph_index_memory_operation_journal_source_expansion_sources,
-                    total_build_memory_system_graph_index_memory_operation_journal_applied,
-                )
-            ),
-            "memory_system_graph_memory_object_index_memory_operation_journal_operation_counts": dict(
-                sorted(
-                    build_memory_system_graph_memory_object_index_memory_operation_journal_operation_counts.items()
-                )
-            ),
-            "memory_system_graph_memory_object_index_memory_operation_journal_family_counts": dict(
-                sorted(
-                    build_memory_system_graph_memory_object_index_memory_operation_journal_family_counts.items()
-                )
-            ),
-            "memory_system_graph_memory_object_index_memory_operation_journal_decision_counts": dict(
-                sorted(
-                    build_memory_system_graph_memory_object_index_memory_operation_journal_decision_counts.items()
-                )
-            ),
-            "memory_system_graph_memory_object_index_memory_workspace_contract_applied_count": (
-                total_build_memory_system_graph_index_memory_workspace_contract_applied
-            ),
-            "avg_memory_system_graph_memory_object_index_memory_workspace_contract_entries": (
-                _safe_average(
-                    total_build_memory_system_graph_index_memory_workspace_contract_entries,
-                    total_build_memory_system_graph_index_memory_workspace_contract_applied,
-                )
-            ),
-            "avg_memory_system_graph_memory_object_index_memory_workspace_contract_source_backed_entries": (
-                _safe_average(
-                    total_build_memory_system_graph_index_memory_workspace_contract_source_backed_entries,
-                    total_build_memory_system_graph_index_memory_workspace_contract_applied,
-                )
-            ),
-            "avg_memory_system_graph_memory_object_index_memory_workspace_contract_layers": (
-                _safe_average(
-                    total_build_memory_system_graph_index_memory_workspace_contract_layers,
-                    total_build_memory_system_graph_index_memory_workspace_contract_applied,
-                )
-            ),
-            "avg_memory_system_graph_memory_object_index_memory_workspace_contract_anchor_sources": (
-                _safe_average(
-                    total_build_memory_system_graph_index_memory_workspace_contract_anchor_sources,
-                    total_build_memory_system_graph_index_memory_workspace_contract_applied,
-                )
-            ),
-            "memory_system_graph_memory_object_index_memory_workspace_contract_operation_counts": dict(
-                sorted(
-                    build_memory_system_graph_memory_object_index_memory_workspace_contract_operation_counts.items()
-                )
-            ),
-            "memory_system_graph_memory_object_index_memory_workspace_contract_family_counts": dict(
-                sorted(
-                    build_memory_system_graph_memory_object_index_memory_workspace_contract_family_counts.items()
-                )
-            ),
-            "memory_system_graph_memory_object_index_memory_workspace_contract_readiness_counts": dict(
-                sorted(
-                    build_memory_system_graph_memory_object_index_memory_workspace_contract_readiness_counts.items()
-                )
-            ),
-            "memory_system_graph_memory_object_index_memory_workspace_snapshot_applied_count": (
-                total_build_memory_system_graph_index_memory_workspace_snapshot_applied
-            ),
-            "avg_memory_system_graph_memory_object_index_memory_workspace_snapshot_state_worklists": (
-                _safe_average(
-                    total_build_memory_system_graph_index_memory_workspace_snapshot_state_worklists,
-                    total_build_memory_system_graph_index_memory_workspace_snapshot_applied,
-                )
-            ),
-            "avg_memory_system_graph_memory_object_index_memory_workspace_snapshot_verifier_worklists": (
-                _safe_average(
-                    total_build_memory_system_graph_index_memory_workspace_snapshot_verifier_worklists,
-                    total_build_memory_system_graph_index_memory_workspace_snapshot_applied,
-                )
-            ),
-            "avg_memory_system_graph_memory_object_index_memory_workspace_snapshot_source_expansion_sources": (
-                _safe_average(
-                    total_build_memory_system_graph_index_memory_workspace_snapshot_source_expansion_sources,
-                    total_build_memory_system_graph_index_memory_workspace_snapshot_applied,
-                )
-            ),
-            "memory_system_graph_memory_object_index_memory_workspace_snapshot_state_worklist_counts": dict(
-                sorted(
-                    build_memory_system_graph_memory_object_index_memory_workspace_snapshot_state_worklist_counts.items()
-                )
-            ),
-            "memory_system_graph_memory_object_index_memory_workspace_snapshot_verifier_worklist_counts": dict(
-                sorted(
-                    build_memory_system_graph_memory_object_index_memory_workspace_snapshot_verifier_worklist_counts.items()
-                )
-            ),
-            "memory_system_graph_memory_object_index_memory_workspace_snapshot_operation_readiness_counts": dict(
-                sorted(
-                    build_memory_system_graph_memory_object_index_memory_workspace_snapshot_operation_readiness_counts.items()
-                )
-            ),
-            "memory_system_graph_memory_object_index_memory_workspace_policy_applied_count": (
-                total_build_memory_system_graph_index_memory_workspace_policy_applied
-            ),
-            "avg_memory_system_graph_memory_object_index_memory_workspace_policy_stages": (
-                _safe_average(
-                    total_build_memory_system_graph_index_memory_workspace_policy_stages,
-                    total_build_memory_system_graph_index_memory_workspace_policy_applied,
-                )
-            ),
-            "avg_memory_system_graph_memory_object_index_memory_workspace_policy_query_components": (
-                _safe_average(
-                    total_build_memory_system_graph_index_memory_workspace_policy_query_components,
-                    total_build_memory_system_graph_index_memory_workspace_policy_applied,
-                )
-            ),
-            "avg_memory_system_graph_memory_object_index_memory_workspace_policy_ready_query_components": (
-                _safe_average(
-                    total_build_memory_system_graph_index_memory_workspace_policy_ready_query_components,
-                    total_build_memory_system_graph_index_memory_workspace_policy_applied,
-                )
-            ),
-            "memory_system_graph_memory_object_index_memory_workspace_policy_component_status_counts": dict(
-                sorted(
-                    build_memory_system_graph_memory_object_index_memory_workspace_policy_component_status_counts.items()
-                )
-            ),
-            "avg_memory_system_graph_memory_object_index_layer_manifest_entries": (
-                _safe_average(
-                    total_build_memory_system_graph_index_layer_manifest_entries,
-                    total_build_memory_system_graph_index_layer_manifest_applied,
                 )
             ),
             "avg_memory_system_graph_source_backed_records": _safe_average(
@@ -3453,166 +1735,6 @@ def main() -> int:
                 total_answer_verifier_evidence_report_items,
                 total_answer_verifier_applied,
             ),
-            "verifier_avg_registry_backed_final_evidence": _safe_average(
-                total_answer_verifier_registry_backed_final_evidence,
-                total_answer_verifier_applied,
-            ),
-            "verifier_avg_registry_backed_support_refs": _safe_average(
-                total_answer_verifier_registry_backed_support_refs,
-                total_answer_verifier_applied,
-            ),
-            "verifier_working_compiler_plan_available_count": (
-                total_answer_verifier_working_compiler_plan_available
-            ),
-            "verifier_working_compiler_plan_available_rate": _safe_average(
-                total_answer_verifier_working_compiler_plan_available,
-                total_answer_verifier_applied,
-            ),
-            "verifier_avg_working_compiler_plan_final_evidence": _safe_average(
-                total_answer_verifier_working_compiler_plan_final_evidence,
-                total_answer_verifier_applied,
-            ),
-            "verifier_working_compiler_plan_focus_counts": dict(
-                sorted(answer_verifier_working_compiler_plan_focus_counts.items())
-            ),
-            "verifier_working_compiler_plan_verifier_check_counts": dict(
-                sorted(
-                    answer_verifier_working_compiler_plan_verifier_check_counts.items()
-                )
-            ),
-            "verifier_memory_system_state_available_count": (
-                total_answer_verifier_memory_system_state_available
-            ),
-            "verifier_memory_system_state_available_rate": _safe_average(
-                total_answer_verifier_memory_system_state_available,
-                total_answer_verifier_applied,
-            ),
-            "verifier_avg_memory_system_state_final_evidence": _safe_average(
-                total_answer_verifier_memory_system_state_final_evidence,
-                total_answer_verifier_applied,
-            ),
-            "verifier_memory_system_state_focus_counts": dict(
-                sorted(answer_verifier_memory_system_state_focus_counts.items())
-            ),
-            "verifier_memory_system_state_decision_counts": dict(
-                sorted(answer_verifier_memory_system_state_decision_counts.items())
-            ),
-            "verifier_memory_system_state_context_action_counts": dict(
-                sorted(
-                    answer_verifier_memory_system_state_context_action_counts.items()
-                )
-            ),
-            "verifier_memory_system_state_verifier_check_counts": dict(
-                sorted(
-                    answer_verifier_memory_system_state_verifier_check_counts.items()
-                )
-            ),
-            "verifier_memory_operation_journal_available_count": (
-                total_answer_verifier_memory_operation_journal_available
-            ),
-            "verifier_memory_operation_journal_available_rate": _safe_average(
-                total_answer_verifier_memory_operation_journal_available,
-                total_answer_verifier_applied,
-            ),
-            "verifier_avg_memory_operation_journal_final_evidence": _safe_average(
-                total_answer_verifier_memory_operation_journal_final_evidence,
-                total_answer_verifier_applied,
-            ),
-            "verifier_memory_operation_journal_operation_counts": dict(
-                sorted(answer_verifier_memory_operation_journal_operation_counts.items())
-            ),
-            "verifier_memory_operation_journal_family_counts": dict(
-                sorted(answer_verifier_memory_operation_journal_family_counts.items())
-            ),
-            "verifier_memory_workspace_snapshot_available_count": (
-                total_answer_verifier_memory_workspace_snapshot_available
-            ),
-            "verifier_memory_workspace_snapshot_available_rate": _safe_average(
-                total_answer_verifier_memory_workspace_snapshot_available,
-                total_answer_verifier_applied,
-            ),
-            "verifier_avg_memory_workspace_snapshot_final_evidence": _safe_average(
-                total_answer_verifier_memory_workspace_snapshot_final_evidence,
-                total_answer_verifier_applied,
-            ),
-            "verifier_memory_workspace_snapshot_state_worklist_counts": dict(
-                sorted(
-                    answer_verifier_memory_workspace_snapshot_state_worklist_counts.items()
-                )
-            ),
-            "verifier_memory_workspace_snapshot_verifier_worklist_counts": dict(
-                sorted(
-                    answer_verifier_memory_workspace_snapshot_verifier_worklist_counts.items()
-                )
-            ),
-            "verifier_memory_workspace_snapshot_operation_readiness_counts": dict(
-                sorted(
-                    answer_verifier_memory_workspace_snapshot_operation_readiness_counts.items()
-                )
-            ),
-            "verifier_workspace_query_policy_available_count": (
-                total_answer_verifier_workspace_query_policy_available
-            ),
-            "verifier_workspace_query_policy_available_rate": _safe_average(
-                total_answer_verifier_workspace_query_policy_available,
-                total_answer_verifier_applied,
-            ),
-            "verifier_workspace_query_policy_applied_count": (
-                total_answer_verifier_workspace_query_policy_applied
-            ),
-            "verifier_workspace_query_policy_applied_rate": _safe_average(
-                total_answer_verifier_workspace_query_policy_applied,
-                total_answer_verifier_applied,
-            ),
-            "verifier_workspace_query_policy_packet_candidate_count": (
-                total_answer_verifier_workspace_query_policy_packet_candidates
-            ),
-            "verifier_workspace_query_policy_packet_source_label_count": (
-                total_answer_verifier_workspace_query_policy_packet_source_labels
-            ),
-            "verifier_workspace_query_policy_replaced_component_counts": dict(
-                sorted(
-                    answer_verifier_workspace_query_policy_replaced_component_counts.items()
-                )
-            ),
-            "verifier_workspace_query_policy_packet_focus_counts": dict(
-                sorted(answer_verifier_workspace_query_policy_packet_focus_counts.items())
-            ),
-            "verifier_workspace_query_policy_packet_verifier_check_counts": dict(
-                sorted(
-                    answer_verifier_workspace_query_policy_packet_verifier_check_counts.items()
-                )
-            ),
-            "verifier_consistency_audit_applied_count": (
-                total_answer_verifier_consistency_audit_applied
-            ),
-            "verifier_consistency_audit_applied_rate": _safe_average(
-                total_answer_verifier_consistency_audit_applied,
-                total_answer_verifier_applied,
-            ),
-            "verifier_avg_consistency_valid_support_rows": _safe_average(
-                total_answer_verifier_consistency_valid_support_rows,
-                total_answer_verifier_applied,
-            ),
-            "verifier_consistency_dimension_counts": dict(
-                sorted(answer_verifier_consistency_dimension_counts.items())
-            ),
-            "verifier_consistency_risk_sample_count": (
-                total_answer_verifier_consistency_risk_samples
-            ),
-            "verifier_consistency_risk_sample_rate": _safe_average(
-                total_answer_verifier_consistency_risk_samples,
-                total_answer_verifier_applied,
-            ),
-            "verifier_consistency_risk_flag_count": (
-                total_answer_verifier_consistency_risk_flags
-            ),
-            "verifier_consistency_risk_counts": dict(
-                sorted(answer_verifier_consistency_risk_counts.items())
-            ),
-            "verifier_consistency_risk_reasons": dict(
-                sorted(answer_verifier_consistency_risk_reasons.items())
-            ),
             "repair_triggered_count": total_answer_repair_triggered,
             "repair_triggered_rate": _safe_average(
                 total_answer_repair_triggered,
@@ -3634,20 +1756,6 @@ def main() -> int:
         },
         "compiler": {
             "prompt_mode": config.get("compiler", {}).get("prompt_mode", "default"),
-            "compact_query_contract": config.get("compiler", {}).get(
-                "compact_query_contract", False
-            ),
-            "compact_query_guide_blocks": config.get("compiler", {}).get(
-                "compact_query_guide_blocks",
-                config.get("compiler", {}).get("compact_query_contract", False),
-            ),
-            "compact_query_answer_contract": config.get("compiler", {}).get(
-                "compact_query_answer_contract",
-                config.get("compiler", {}).get("compact_query_contract", False),
-            ),
-            "memory_context_header_format": config.get("compiler", {}).get(
-                "memory_context_header_format", "multiline"
-            ),
             "answer_style": config.get("compiler", {}).get("answer_style", "grounded"),
             "memory_record_source": config.get("compiler", {}).get(
                 "memory_record_source", "retrieval"
@@ -3925,28 +2033,6 @@ def main() -> int:
                 "memory_value_slot_guide_memory_types"
             ),
             "memory_value_slot_guide_applied": total_memory_value_slot_guide_applied,
-            "working_memory_packet": config.get("compiler", {}).get(
-                "working_memory_packet", False
-            ),
-            "working_memory_packet_information_needs": config.get(
-                "compiler", {}
-            ).get("working_memory_packet_information_needs"),
-            "working_memory_packet_max_items": config.get("compiler", {}).get(
-                "working_memory_packet_max_items", 4
-            ),
-            "working_memory_packet_value_chars": config.get("compiler", {}).get(
-                "working_memory_packet_value_chars", 120
-            ),
-            "working_memory_packet_compact_short_header": config.get(
-                "compiler", {}
-            ).get("working_memory_packet_compact_short_header", False),
-            "working_memory_packet_compact_dedupe": config.get("compiler", {}).get(
-                "working_memory_packet_compact_dedupe", False
-            ),
-            "working_memory_packet_source": config.get("compiler", {}).get(
-                "working_memory_packet_source", "working_view"
-            ),
-            "working_memory_packet_applied": total_working_memory_packet_applied,
             "memory_state_guide": config.get("compiler", {}).get(
                 "memory_state_guide", False
             ),
@@ -4528,70 +2614,6 @@ def _write_summary(
         f"- build_memory_system_graph_scalar_value_manifest_applied_count: {metrics['build_memory']['memory_system_graph_scalar_value_manifest_applied_count']}",
         f"- build_memory_system_graph_scalar_value_manifest_applied_rate: {metrics['build_memory']['memory_system_graph_scalar_value_manifest_applied_rate']}",
         f"- build_memory_system_graph_scalar_value_manifest_counts: {metrics['build_memory']['memory_system_graph_scalar_value_manifest_counts']}",
-        f"- build_memory_system_graph_memory_object_index_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_applied_count']}",
-        f"- avg_build_memory_system_graph_memory_object_index_activation_ready_ids: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_activation_ready_ids']}",
-        f"- avg_build_memory_system_graph_memory_object_index_activation_priority_ids: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_activation_priority_ids']}",
-        f"- avg_build_memory_system_graph_memory_object_index_operation_slots: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_operation_slots']}",
-        f"- avg_build_memory_system_graph_memory_object_index_operation_registry_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_operation_registry_entries']}",
-        f"- avg_build_memory_system_graph_memory_object_index_operation_registry_source_backed_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_operation_registry_source_backed_entries']}",
-        f"- build_memory_system_graph_memory_object_index_lifecycle_audit_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_lifecycle_audit_applied_count']}",
-        f"- avg_build_memory_system_graph_memory_object_index_lifecycle_audit_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_lifecycle_audit_entries']}",
-        f"- avg_build_memory_system_graph_memory_object_index_lifecycle_audit_conflict_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_lifecycle_audit_conflict_entries']}",
-        f"- build_memory_system_graph_memory_object_index_operation_api_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_operation_api_applied_count']}",
-        f"- avg_build_memory_system_graph_memory_object_index_operation_api_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_operation_api_entries']}",
-        f"- avg_build_memory_system_graph_memory_object_index_operation_api_anchor_sources: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_operation_api_anchor_sources']}",
-        f"- build_memory_system_graph_memory_object_index_context_interface_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_context_interface_applied_count']}",
-        f"- avg_build_memory_system_graph_memory_object_index_context_interface_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_context_interface_entries']}",
-        f"- avg_build_memory_system_graph_memory_object_index_context_interface_role_count: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_context_interface_role_count']}",
-        f"- avg_build_memory_system_graph_memory_object_index_context_interface_anchor_sources: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_context_interface_anchor_sources']}",
-        f"- avg_build_memory_system_graph_memory_object_index_context_interface_operation_slots: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_context_interface_operation_slots']}",
-        f"- build_memory_system_graph_memory_object_index_context_interface_role_source_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_context_interface_role_source_counts']}",
-        f"- build_memory_system_graph_memory_object_index_context_interface_operation_view_source_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_context_interface_operation_view_source_counts']}",
-        f"- build_memory_system_graph_memory_object_index_operation_lifecycle_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_operation_lifecycle_applied_count']}",
-        f"- avg_build_memory_system_graph_memory_object_index_operation_lifecycle_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_operation_lifecycle_entries']}",
-        f"- avg_build_memory_system_graph_memory_object_index_operation_lifecycle_context_slots: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_operation_lifecycle_context_slots']}",
-        f"- build_memory_system_graph_memory_object_index_operation_lifecycle_decision_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_operation_lifecycle_decision_counts']}",
-        f"- build_memory_system_graph_memory_object_index_operation_lifecycle_phase_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_operation_lifecycle_phase_counts']}",
-        f"- build_memory_system_graph_memory_object_index_working_compiler_plan_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_working_compiler_plan_applied_count']}",
-        f"- avg_build_memory_system_graph_memory_object_index_working_compiler_plan_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_working_compiler_plan_entries']}",
-        f"- avg_build_memory_system_graph_memory_object_index_working_compiler_plan_source_backed_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_working_compiler_plan_source_backed_entries']}",
-        f"- avg_build_memory_system_graph_memory_object_index_working_compiler_plan_context_slots: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_working_compiler_plan_context_slots']}",
-        f"- build_memory_system_graph_memory_object_index_working_compiler_plan_focus_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_working_compiler_plan_focus_counts']}",
-        f"- build_memory_system_graph_memory_object_index_working_compiler_plan_context_action_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_working_compiler_plan_context_action_counts']}",
-        f"- build_memory_system_graph_memory_object_index_working_compiler_plan_verifier_check_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_working_compiler_plan_verifier_check_counts']}",
-        f"- build_memory_system_graph_memory_object_index_memory_system_state_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_system_state_applied_count']}",
-        f"- avg_build_memory_system_graph_memory_object_index_memory_system_state_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_memory_system_state_entries']}",
-        f"- avg_build_memory_system_graph_memory_object_index_memory_system_state_source_backed_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_memory_system_state_source_backed_entries']}",
-        f"- avg_build_memory_system_graph_memory_object_index_memory_system_state_layers: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_memory_system_state_layers']}",
-        f"- build_memory_system_graph_memory_object_index_memory_system_state_focus_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_system_state_focus_counts']}",
-        f"- build_memory_system_graph_memory_object_index_memory_system_state_decision_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_system_state_decision_counts']}",
-        f"- build_memory_system_graph_memory_object_index_memory_system_state_context_action_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_system_state_context_action_counts']}",
-        f"- build_memory_system_graph_memory_object_index_memory_system_state_verifier_check_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_system_state_verifier_check_counts']}",
-        f"- build_memory_system_graph_memory_object_index_memory_operation_journal_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_operation_journal_applied_count']}",
-        f"- avg_build_memory_system_graph_memory_object_index_memory_operation_journal_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_memory_operation_journal_entries']}",
-        f"- avg_build_memory_system_graph_memory_object_index_memory_operation_journal_source_backed_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_memory_operation_journal_source_backed_entries']}",
-        f"- build_memory_system_graph_memory_object_index_memory_operation_journal_operation_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_operation_journal_operation_counts']}",
-        f"- build_memory_system_graph_memory_object_index_memory_operation_journal_family_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_operation_journal_family_counts']}",
-        f"- build_memory_system_graph_memory_object_index_memory_workspace_contract_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_workspace_contract_applied_count']}",
-        f"- avg_build_memory_system_graph_memory_object_index_memory_workspace_contract_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_memory_workspace_contract_entries']}",
-        f"- avg_build_memory_system_graph_memory_object_index_memory_workspace_contract_source_backed_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_memory_workspace_contract_source_backed_entries']}",
-        f"- avg_build_memory_system_graph_memory_object_index_memory_workspace_contract_anchor_sources: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_memory_workspace_contract_anchor_sources']}",
-        f"- build_memory_system_graph_memory_object_index_memory_workspace_contract_operation_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_workspace_contract_operation_counts']}",
-        f"- build_memory_system_graph_memory_object_index_memory_workspace_contract_readiness_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_workspace_contract_readiness_counts']}",
-        f"- build_memory_system_graph_memory_object_index_memory_workspace_snapshot_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_workspace_snapshot_applied_count']}",
-        f"- avg_build_memory_system_graph_memory_object_index_memory_workspace_snapshot_state_worklists: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_memory_workspace_snapshot_state_worklists']}",
-        f"- avg_build_memory_system_graph_memory_object_index_memory_workspace_snapshot_verifier_worklists: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_memory_workspace_snapshot_verifier_worklists']}",
-        f"- build_memory_system_graph_memory_object_index_memory_workspace_snapshot_state_worklist_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_workspace_snapshot_state_worklist_counts']}",
-        f"- build_memory_system_graph_memory_object_index_memory_workspace_snapshot_verifier_worklist_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_workspace_snapshot_verifier_worklist_counts']}",
-        f"- build_memory_system_graph_memory_object_index_memory_workspace_snapshot_operation_readiness_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_workspace_snapshot_operation_readiness_counts']}",
-        f"- build_memory_system_graph_memory_object_index_memory_workspace_policy_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_workspace_policy_applied_count']}",
-        f"- avg_build_memory_system_graph_memory_object_index_memory_workspace_policy_stages: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_memory_workspace_policy_stages']}",
-        f"- avg_build_memory_system_graph_memory_object_index_memory_workspace_policy_query_components: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_memory_workspace_policy_query_components']}",
-        f"- avg_build_memory_system_graph_memory_object_index_memory_workspace_policy_ready_query_components: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_memory_workspace_policy_ready_query_components']}",
-        f"- build_memory_system_graph_memory_object_index_memory_workspace_policy_component_status_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_workspace_policy_component_status_counts']}",
-        f"- build_memory_system_graph_memory_object_index_layer_manifest_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_layer_manifest_applied_count']}",
-        f"- avg_build_memory_system_graph_memory_object_index_layer_manifest_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_layer_manifest_entries']}",
-        f"- build_memory_system_graph_memory_object_index_layer_manifest_layer_entries: {metrics['build_memory']['memory_system_graph_memory_object_index_layer_manifest_layer_entries']}",
         f"- avg_build_memory_system_graph_value_objects: {metrics['build_memory']['avg_memory_system_graph_value_objects']}",
         f"- avg_build_memory_system_graph_source_backed_value_objects: {metrics['build_memory']['avg_memory_system_graph_source_backed_value_objects']}",
         f"- avg_build_memory_system_graph_source_incomplete_value_objects: {metrics['build_memory']['avg_memory_system_graph_source_incomplete_value_objects']}",
@@ -4631,8 +2653,6 @@ def _write_summary(
         f"- avg_memory_activation_priority_hits: {metrics['retrieval']['avg_memory_activation_priority_hits']}",
         f"- operation_utility_enabled: {metrics['retrieval']['operation_utility_enabled']}",
         f"- operation_utility_fusion_mode: {metrics['retrieval']['operation_utility_fusion_mode']}",
-        f"- operation_utility_slot_source: {metrics['retrieval']['operation_utility_slot_source']}",
-        f"- operation_utility_slot_index_source_counts: {metrics['retrieval']['operation_utility_slot_index_source_counts']}",
         f"- operation_utility_applied_count: {metrics['retrieval']['operation_utility_applied_count']}",
         f"- avg_operation_utility_source_hits: {metrics['retrieval']['avg_operation_utility_source_hits']}",
         f"- graph_utility_enabled: {metrics['retrieval']['graph_utility_enabled']}",
@@ -4640,8 +2660,6 @@ def _write_summary(
         f"- graph_utility_overflow_max_hits: {metrics['retrieval']['graph_utility_overflow_max_hits']}",
         f"- graph_utility_require_new_source: {metrics['retrieval']['graph_utility_require_new_source']}",
         f"- graph_utility_required_signals: {metrics['retrieval']['graph_utility_required_signals']}",
-        f"- graph_utility_slot_source: {metrics['retrieval']['graph_utility_slot_source']}",
-        f"- graph_utility_slot_index_source_counts: {metrics['retrieval']['graph_utility_slot_index_source_counts']}",
         f"- graph_utility_applied_count: {metrics['retrieval']['graph_utility_applied_count']}",
         f"- avg_graph_utility_source_hits: {metrics['retrieval']['avg_graph_utility_source_hits']}",
         f"- build_memory_include_superseded: {metrics['retrieval']['build_memory_include_superseded']}",
@@ -4676,16 +2694,6 @@ def _write_summary(
         f"- granularity_profile_audit_selected_count: {metrics['retrieval']['granularity_profile_audit_selected_count']}",
         f"- granularity_profile_audit_behavior_risk_count: {metrics['retrieval']['granularity_profile_audit_behavior_risk_count']}",
         f"- selected_context_enabled: {metrics['retrieval']['selected_context_enabled']}",
-        f"- workspace_policy_context_enabled: {metrics['retrieval']['workspace_policy_context_enabled']}",
-        f"- workspace_policy_context_policy_available_count: {metrics['retrieval']['workspace_policy_context_policy_available_count']}",
-        f"- workspace_policy_context_applied_count: {metrics['retrieval']['workspace_policy_context_applied_count']}",
-        f"- workspace_policy_context_applied_rate: {metrics['retrieval']['workspace_policy_context_applied_rate']}",
-        f"- workspace_source_expansion_enabled: {metrics['retrieval']['workspace_source_expansion_enabled']}",
-        f"- workspace_source_expansion_applied_count: {metrics['retrieval']['workspace_source_expansion_applied_count']}",
-        f"- workspace_source_expansion_applied_rate: {metrics['retrieval']['workspace_source_expansion_applied_rate']}",
-        f"- avg_workspace_source_expansion_selected_sources: {metrics['retrieval']['avg_workspace_source_expansion_selected_sources']}",
-        f"- avg_workspace_source_expansion_final_sources: {metrics['retrieval']['avg_workspace_source_expansion_final_sources']}",
-        f"- avg_workspace_source_expansion_replaced_tail: {metrics['retrieval']['avg_workspace_source_expansion_replaced_tail']}",
         f"- selected_context_window_before: {metrics['retrieval']['selected_context_window_before']}",
         f"- selected_context_window_after: {metrics['retrieval']['selected_context_window_after']}",
         f"- selected_context_max_rows: {metrics['retrieval']['selected_context_max_rows']}",
@@ -4734,49 +2742,23 @@ def _write_summary(
         f"- context_budget_protect_top_n: {metrics['retrieval']['context_budget_protect_top_n']}",
         f"- context_budget_max_hits: {metrics['retrieval']['context_budget_max_hits']}",
         f"- context_budget_information_needs: {metrics['retrieval']['context_budget_information_needs']}",
-        f"- context_budget_registry_anchor_retention: {metrics['retrieval']['context_budget_registry_anchor_retention']}",
-        f"- context_budget_anchor_source: {metrics['retrieval']['context_budget_anchor_source']}",
-        f"- context_budget_anchor_selected_source_counts: {metrics['retrieval']['context_budget_anchor_selected_source_counts']}",
-        f"- avg_context_budget_anchor_layer_manifest_source_count: {metrics['retrieval']['avg_context_budget_anchor_layer_manifest_source_count']}",
-        f"- avg_context_budget_anchor_operation_api_source_count: {metrics['retrieval']['avg_context_budget_anchor_operation_api_source_count']}",
-        f"- avg_context_budget_anchor_context_interface_source_count: {metrics['retrieval']['avg_context_budget_anchor_context_interface_source_count']}",
-        f"- avg_context_budget_anchor_working_compiler_plan_source_count: {metrics['retrieval']['avg_context_budget_anchor_working_compiler_plan_source_count']}",
-        f"- avg_context_budget_anchor_memory_system_state_source_count: {metrics['retrieval']['avg_context_budget_anchor_memory_system_state_source_count']}",
-        f"- avg_context_budget_anchor_memory_workspace_contract_source_count: {metrics['retrieval']['avg_context_budget_anchor_memory_workspace_contract_source_count']}",
         f"- context_budget_applied_count: {metrics['retrieval']['context_budget_applied_count']}",
         f"- context_budget_applied_rate: {metrics['retrieval']['context_budget_applied_rate']}",
         f"- avg_context_budget_candidate_count: {metrics['retrieval']['avg_context_budget_candidate_count']}",
         f"- avg_context_budget_returned_count: {metrics['retrieval']['avg_context_budget_returned_count']}",
         f"- avg_context_budget_estimated_chars: {metrics['retrieval']['avg_context_budget_estimated_chars']}",
         f"- avg_context_budget_dropped_count: {metrics['retrieval']['avg_context_budget_dropped_count']}",
-        f"- context_budget_registry_anchor_sample_count: {metrics['retrieval']['context_budget_registry_anchor_sample_count']}",
-        f"- context_budget_registry_anchor_candidate_count: {metrics['retrieval']['context_budget_registry_anchor_candidate_count']}",
-        f"- context_budget_registry_anchor_retained_count: {metrics['retrieval']['context_budget_registry_anchor_retained_count']}",
-        f"- context_budget_registry_anchor_dropped_count: {metrics['retrieval']['context_budget_registry_anchor_dropped_count']}",
-        f"- avg_context_budget_registry_anchor_retained: {metrics['retrieval']['avg_context_budget_registry_anchor_retained']}",
         f"- context_budget_audit_enabled: {metrics['retrieval']['context_budget_audit_enabled']}",
         f"- context_budget_audit_max_chars: {metrics['retrieval']['context_budget_audit_max_chars']}",
         f"- context_budget_audit_min_hits: {metrics['retrieval']['context_budget_audit_min_hits']}",
         f"- context_budget_audit_protect_top_n: {metrics['retrieval']['context_budget_audit_protect_top_n']}",
         f"- context_budget_audit_max_hits: {metrics['retrieval']['context_budget_audit_max_hits']}",
         f"- context_budget_audit_information_needs: {metrics['retrieval']['context_budget_audit_information_needs']}",
-        f"- context_budget_audit_registry_anchor_retention: {metrics['retrieval']['context_budget_audit_registry_anchor_retention']}",
-        f"- context_budget_audit_anchor_source: {metrics['retrieval']['context_budget_audit_anchor_source']}",
-        f"- context_budget_audit_anchor_selected_source_counts: {metrics['retrieval']['context_budget_audit_anchor_selected_source_counts']}",
-        f"- avg_context_budget_audit_anchor_layer_manifest_source_count: {metrics['retrieval']['avg_context_budget_audit_anchor_layer_manifest_source_count']}",
-        f"- avg_context_budget_audit_anchor_operation_api_source_count: {metrics['retrieval']['avg_context_budget_audit_anchor_operation_api_source_count']}",
-        f"- avg_context_budget_audit_anchor_context_interface_source_count: {metrics['retrieval']['avg_context_budget_audit_anchor_context_interface_source_count']}",
-        f"- avg_context_budget_audit_anchor_working_compiler_plan_source_count: {metrics['retrieval']['avg_context_budget_audit_anchor_working_compiler_plan_source_count']}",
-        f"- avg_context_budget_audit_anchor_memory_system_state_source_count: {metrics['retrieval']['avg_context_budget_audit_anchor_memory_system_state_source_count']}",
-        f"- avg_context_budget_audit_anchor_memory_workspace_contract_source_count: {metrics['retrieval']['avg_context_budget_audit_anchor_memory_workspace_contract_source_count']}",
         f"- context_budget_audit_applied_count: {metrics['retrieval']['context_budget_audit_applied_count']}",
         f"- context_budget_audit_applied_rate: {metrics['retrieval']['context_budget_audit_applied_rate']}",
         f"- avg_context_budget_audit_candidate_count: {metrics['retrieval']['avg_context_budget_audit_candidate_count']}",
         f"- avg_context_budget_audit_returned_count: {metrics['retrieval']['avg_context_budget_audit_returned_count']}",
         f"- avg_context_budget_audit_dropped_count: {metrics['retrieval']['avg_context_budget_audit_dropped_count']}",
-        f"- context_budget_audit_registry_anchor_candidate_count: {metrics['retrieval']['context_budget_audit_registry_anchor_candidate_count']}",
-        f"- context_budget_audit_registry_anchor_retained_count: {metrics['retrieval']['context_budget_audit_registry_anchor_retained_count']}",
-        f"- context_budget_audit_registry_anchor_dropped_count: {metrics['retrieval']['context_budget_audit_registry_anchor_dropped_count']}",
         f"- context_budget_audit_prompt_risk_count: {metrics['retrieval']['context_budget_audit_prompt_risk_count']}",
         f"- avg_context_budget_audit_prompt_missing_rows: {metrics['retrieval']['avg_context_budget_audit_prompt_missing_rows']}",
         f"- context_budget_audit_selected_context_risk_count: {metrics['retrieval']['context_budget_audit_selected_context_risk_count']}",
@@ -4827,40 +2809,6 @@ def _write_summary(
         f"- answer_verifier_risk_reasons: {metrics['answer']['verifier_risk_reasons']}",
         f"- answer_verifier_avg_support_items: {metrics['answer']['verifier_avg_support_items']}",
         f"- answer_verifier_avg_evidence_report_items: {metrics['answer']['verifier_avg_evidence_report_items']}",
-        f"- answer_verifier_avg_registry_backed_final_evidence: {metrics['answer']['verifier_avg_registry_backed_final_evidence']}",
-        f"- answer_verifier_avg_registry_backed_support_refs: {metrics['answer']['verifier_avg_registry_backed_support_refs']}",
-        f"- answer_verifier_working_compiler_plan_available_count: {metrics['answer']['verifier_working_compiler_plan_available_count']}",
-        f"- answer_verifier_working_compiler_plan_available_rate: {metrics['answer']['verifier_working_compiler_plan_available_rate']}",
-        f"- answer_verifier_avg_working_compiler_plan_final_evidence: {metrics['answer']['verifier_avg_working_compiler_plan_final_evidence']}",
-        f"- answer_verifier_working_compiler_plan_focus_counts: {metrics['answer']['verifier_working_compiler_plan_focus_counts']}",
-        f"- answer_verifier_working_compiler_plan_verifier_check_counts: {metrics['answer']['verifier_working_compiler_plan_verifier_check_counts']}",
-        f"- answer_verifier_memory_system_state_available_count: {metrics['answer']['verifier_memory_system_state_available_count']}",
-        f"- answer_verifier_memory_system_state_available_rate: {metrics['answer']['verifier_memory_system_state_available_rate']}",
-        f"- answer_verifier_avg_memory_system_state_final_evidence: {metrics['answer']['verifier_avg_memory_system_state_final_evidence']}",
-        f"- answer_verifier_memory_system_state_focus_counts: {metrics['answer']['verifier_memory_system_state_focus_counts']}",
-        f"- answer_verifier_memory_system_state_decision_counts: {metrics['answer']['verifier_memory_system_state_decision_counts']}",
-        f"- answer_verifier_memory_system_state_context_action_counts: {metrics['answer']['verifier_memory_system_state_context_action_counts']}",
-        f"- answer_verifier_memory_system_state_verifier_check_counts: {metrics['answer']['verifier_memory_system_state_verifier_check_counts']}",
-        f"- answer_verifier_memory_operation_journal_available_count: {metrics['answer']['verifier_memory_operation_journal_available_count']}",
-        f"- answer_verifier_memory_operation_journal_available_rate: {metrics['answer']['verifier_memory_operation_journal_available_rate']}",
-        f"- answer_verifier_avg_memory_operation_journal_final_evidence: {metrics['answer']['verifier_avg_memory_operation_journal_final_evidence']}",
-        f"- answer_verifier_memory_operation_journal_operation_counts: {metrics['answer']['verifier_memory_operation_journal_operation_counts']}",
-        f"- answer_verifier_memory_operation_journal_family_counts: {metrics['answer']['verifier_memory_operation_journal_family_counts']}",
-        f"- answer_verifier_memory_workspace_snapshot_available_count: {metrics['answer']['verifier_memory_workspace_snapshot_available_count']}",
-        f"- answer_verifier_memory_workspace_snapshot_available_rate: {metrics['answer']['verifier_memory_workspace_snapshot_available_rate']}",
-        f"- answer_verifier_avg_memory_workspace_snapshot_final_evidence: {metrics['answer']['verifier_avg_memory_workspace_snapshot_final_evidence']}",
-        f"- answer_verifier_memory_workspace_snapshot_state_worklist_counts: {metrics['answer']['verifier_memory_workspace_snapshot_state_worklist_counts']}",
-        f"- answer_verifier_memory_workspace_snapshot_verifier_worklist_counts: {metrics['answer']['verifier_memory_workspace_snapshot_verifier_worklist_counts']}",
-        f"- answer_verifier_memory_workspace_snapshot_operation_readiness_counts: {metrics['answer']['verifier_memory_workspace_snapshot_operation_readiness_counts']}",
-        f"- answer_verifier_consistency_audit_applied_count: {metrics['answer']['verifier_consistency_audit_applied_count']}",
-        f"- answer_verifier_consistency_audit_applied_rate: {metrics['answer']['verifier_consistency_audit_applied_rate']}",
-        f"- answer_verifier_avg_consistency_valid_support_rows: {metrics['answer']['verifier_avg_consistency_valid_support_rows']}",
-        f"- answer_verifier_consistency_dimension_counts: {metrics['answer']['verifier_consistency_dimension_counts']}",
-        f"- answer_verifier_consistency_risk_sample_count: {metrics['answer']['verifier_consistency_risk_sample_count']}",
-        f"- answer_verifier_consistency_risk_sample_rate: {metrics['answer']['verifier_consistency_risk_sample_rate']}",
-        f"- answer_verifier_consistency_risk_flag_count: {metrics['answer']['verifier_consistency_risk_flag_count']}",
-        f"- answer_verifier_consistency_risk_counts: {metrics['answer']['verifier_consistency_risk_counts']}",
-        f"- answer_verifier_consistency_risk_reasons: {metrics['answer']['verifier_consistency_risk_reasons']}",
         f"- answer_repair_enabled: {metrics['answer']['repair_enabled']}",
         f"- answer_repair_mode: {metrics['answer']['repair_mode']}",
         f"- answer_repair_model: {metrics['answer']['repair_model']}",
@@ -4963,10 +2911,6 @@ def _write_summary(
         f"- avg_event_time_candidate_manifest_groups: {metrics['compiler']['avg_event_time_candidate_manifest_groups']}",
         f"- avg_event_time_candidate_manifest_conflict_groups: {metrics['compiler']['avg_event_time_candidate_manifest_conflict_groups']}",
         f"- event_time_candidate_manifest_safe_order_count: {metrics['compiler']['event_time_candidate_manifest_safe_order_count']}",
-        f"- compact_query_contract: {metrics['compiler']['compact_query_contract']}",
-        f"- compact_query_guide_blocks: {metrics['compiler']['compact_query_guide_blocks']}",
-        f"- compact_query_answer_contract: {metrics['compiler']['compact_query_answer_contract']}",
-        f"- memory_context_header_format: {metrics['compiler']['memory_context_header_format']}",
         f"- operation_workpad_question_gate: {metrics['compiler']['operation_workpad_question_gate']}",
         f"- personalized_advice_contract: {metrics['compiler']['personalized_advice_contract']}",
         f"- personalized_advice_contract_applied: {metrics['compiler']['personalized_advice_contract_applied']}",
@@ -5006,14 +2950,6 @@ def _write_summary(
         f"- memory_value_slot_guide_max_values: {metrics['compiler']['memory_value_slot_guide_max_values']}",
         f"- memory_value_slot_guide_memory_types: {metrics['compiler']['memory_value_slot_guide_memory_types']}",
         f"- memory_value_slot_guide_applied: {metrics['compiler']['memory_value_slot_guide_applied']}",
-        f"- working_memory_packet: {metrics['compiler']['working_memory_packet']}",
-        f"- working_memory_packet_information_needs: {metrics['compiler']['working_memory_packet_information_needs']}",
-        f"- working_memory_packet_max_items: {metrics['compiler']['working_memory_packet_max_items']}",
-        f"- working_memory_packet_value_chars: {metrics['compiler']['working_memory_packet_value_chars']}",
-        f"- working_memory_packet_compact_short_header: {metrics['compiler']['working_memory_packet_compact_short_header']}",
-        f"- working_memory_packet_compact_dedupe: {metrics['compiler']['working_memory_packet_compact_dedupe']}",
-        f"- working_memory_packet_source: {metrics['compiler']['working_memory_packet_source']}",
-        f"- working_memory_packet_applied: {metrics['compiler']['working_memory_packet_applied']}",
         f"- memory_state_guide: {metrics['compiler']['memory_state_guide']}",
         f"- memory_state_guide_information_needs: {metrics['compiler']['memory_state_guide_information_needs']}",
         f"- memory_state_guide_max_records: {metrics['compiler']['memory_state_guide_max_records']}",
@@ -5099,70 +3035,6 @@ def _write_diagnosis(
         f"- build_memory_system_graph_scalar_value_manifest_applied_count: {metrics['build_memory']['memory_system_graph_scalar_value_manifest_applied_count']}",
         f"- build_memory_system_graph_scalar_value_manifest_applied_rate: {metrics['build_memory']['memory_system_graph_scalar_value_manifest_applied_rate']}",
         f"- build_memory_system_graph_scalar_value_manifest_counts: {metrics['build_memory']['memory_system_graph_scalar_value_manifest_counts']}",
-        f"- build_memory_system_graph_memory_object_index_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_applied_count']}",
-        f"- avg_build_memory_system_graph_memory_object_index_activation_ready_ids: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_activation_ready_ids']}",
-        f"- avg_build_memory_system_graph_memory_object_index_activation_priority_ids: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_activation_priority_ids']}",
-        f"- avg_build_memory_system_graph_memory_object_index_operation_slots: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_operation_slots']}",
-        f"- avg_build_memory_system_graph_memory_object_index_operation_registry_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_operation_registry_entries']}",
-        f"- avg_build_memory_system_graph_memory_object_index_operation_registry_source_backed_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_operation_registry_source_backed_entries']}",
-        f"- build_memory_system_graph_memory_object_index_lifecycle_audit_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_lifecycle_audit_applied_count']}",
-        f"- avg_build_memory_system_graph_memory_object_index_lifecycle_audit_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_lifecycle_audit_entries']}",
-        f"- avg_build_memory_system_graph_memory_object_index_lifecycle_audit_conflict_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_lifecycle_audit_conflict_entries']}",
-        f"- build_memory_system_graph_memory_object_index_operation_api_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_operation_api_applied_count']}",
-        f"- avg_build_memory_system_graph_memory_object_index_operation_api_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_operation_api_entries']}",
-        f"- avg_build_memory_system_graph_memory_object_index_operation_api_anchor_sources: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_operation_api_anchor_sources']}",
-        f"- build_memory_system_graph_memory_object_index_context_interface_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_context_interface_applied_count']}",
-        f"- avg_build_memory_system_graph_memory_object_index_context_interface_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_context_interface_entries']}",
-        f"- avg_build_memory_system_graph_memory_object_index_context_interface_role_count: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_context_interface_role_count']}",
-        f"- avg_build_memory_system_graph_memory_object_index_context_interface_anchor_sources: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_context_interface_anchor_sources']}",
-        f"- avg_build_memory_system_graph_memory_object_index_context_interface_operation_slots: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_context_interface_operation_slots']}",
-        f"- build_memory_system_graph_memory_object_index_context_interface_role_source_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_context_interface_role_source_counts']}",
-        f"- build_memory_system_graph_memory_object_index_context_interface_operation_view_source_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_context_interface_operation_view_source_counts']}",
-        f"- build_memory_system_graph_memory_object_index_operation_lifecycle_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_operation_lifecycle_applied_count']}",
-        f"- avg_build_memory_system_graph_memory_object_index_operation_lifecycle_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_operation_lifecycle_entries']}",
-        f"- avg_build_memory_system_graph_memory_object_index_operation_lifecycle_context_slots: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_operation_lifecycle_context_slots']}",
-        f"- build_memory_system_graph_memory_object_index_operation_lifecycle_decision_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_operation_lifecycle_decision_counts']}",
-        f"- build_memory_system_graph_memory_object_index_operation_lifecycle_phase_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_operation_lifecycle_phase_counts']}",
-        f"- build_memory_system_graph_memory_object_index_working_compiler_plan_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_working_compiler_plan_applied_count']}",
-        f"- avg_build_memory_system_graph_memory_object_index_working_compiler_plan_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_working_compiler_plan_entries']}",
-        f"- avg_build_memory_system_graph_memory_object_index_working_compiler_plan_source_backed_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_working_compiler_plan_source_backed_entries']}",
-        f"- avg_build_memory_system_graph_memory_object_index_working_compiler_plan_context_slots: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_working_compiler_plan_context_slots']}",
-        f"- build_memory_system_graph_memory_object_index_working_compiler_plan_focus_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_working_compiler_plan_focus_counts']}",
-        f"- build_memory_system_graph_memory_object_index_working_compiler_plan_context_action_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_working_compiler_plan_context_action_counts']}",
-        f"- build_memory_system_graph_memory_object_index_working_compiler_plan_verifier_check_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_working_compiler_plan_verifier_check_counts']}",
-        f"- build_memory_system_graph_memory_object_index_memory_system_state_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_system_state_applied_count']}",
-        f"- avg_build_memory_system_graph_memory_object_index_memory_system_state_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_memory_system_state_entries']}",
-        f"- avg_build_memory_system_graph_memory_object_index_memory_system_state_source_backed_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_memory_system_state_source_backed_entries']}",
-        f"- avg_build_memory_system_graph_memory_object_index_memory_system_state_layers: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_memory_system_state_layers']}",
-        f"- build_memory_system_graph_memory_object_index_memory_system_state_focus_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_system_state_focus_counts']}",
-        f"- build_memory_system_graph_memory_object_index_memory_system_state_decision_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_system_state_decision_counts']}",
-        f"- build_memory_system_graph_memory_object_index_memory_system_state_context_action_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_system_state_context_action_counts']}",
-        f"- build_memory_system_graph_memory_object_index_memory_system_state_verifier_check_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_system_state_verifier_check_counts']}",
-        f"- build_memory_system_graph_memory_object_index_memory_operation_journal_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_operation_journal_applied_count']}",
-        f"- avg_build_memory_system_graph_memory_object_index_memory_operation_journal_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_memory_operation_journal_entries']}",
-        f"- avg_build_memory_system_graph_memory_object_index_memory_operation_journal_source_backed_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_memory_operation_journal_source_backed_entries']}",
-        f"- build_memory_system_graph_memory_object_index_memory_operation_journal_operation_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_operation_journal_operation_counts']}",
-        f"- build_memory_system_graph_memory_object_index_memory_operation_journal_family_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_operation_journal_family_counts']}",
-        f"- build_memory_system_graph_memory_object_index_memory_workspace_contract_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_workspace_contract_applied_count']}",
-        f"- avg_build_memory_system_graph_memory_object_index_memory_workspace_contract_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_memory_workspace_contract_entries']}",
-        f"- avg_build_memory_system_graph_memory_object_index_memory_workspace_contract_source_backed_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_memory_workspace_contract_source_backed_entries']}",
-        f"- avg_build_memory_system_graph_memory_object_index_memory_workspace_contract_anchor_sources: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_memory_workspace_contract_anchor_sources']}",
-        f"- build_memory_system_graph_memory_object_index_memory_workspace_contract_operation_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_workspace_contract_operation_counts']}",
-        f"- build_memory_system_graph_memory_object_index_memory_workspace_contract_readiness_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_workspace_contract_readiness_counts']}",
-        f"- build_memory_system_graph_memory_object_index_memory_workspace_snapshot_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_workspace_snapshot_applied_count']}",
-        f"- avg_build_memory_system_graph_memory_object_index_memory_workspace_snapshot_state_worklists: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_memory_workspace_snapshot_state_worklists']}",
-        f"- avg_build_memory_system_graph_memory_object_index_memory_workspace_snapshot_verifier_worklists: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_memory_workspace_snapshot_verifier_worklists']}",
-        f"- build_memory_system_graph_memory_object_index_memory_workspace_snapshot_state_worklist_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_workspace_snapshot_state_worklist_counts']}",
-        f"- build_memory_system_graph_memory_object_index_memory_workspace_snapshot_verifier_worklist_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_workspace_snapshot_verifier_worklist_counts']}",
-        f"- build_memory_system_graph_memory_object_index_memory_workspace_snapshot_operation_readiness_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_workspace_snapshot_operation_readiness_counts']}",
-        f"- build_memory_system_graph_memory_object_index_memory_workspace_policy_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_workspace_policy_applied_count']}",
-        f"- avg_build_memory_system_graph_memory_object_index_memory_workspace_policy_stages: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_memory_workspace_policy_stages']}",
-        f"- avg_build_memory_system_graph_memory_object_index_memory_workspace_policy_query_components: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_memory_workspace_policy_query_components']}",
-        f"- avg_build_memory_system_graph_memory_object_index_memory_workspace_policy_ready_query_components: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_memory_workspace_policy_ready_query_components']}",
-        f"- build_memory_system_graph_memory_object_index_memory_workspace_policy_component_status_counts: {metrics['build_memory']['memory_system_graph_memory_object_index_memory_workspace_policy_component_status_counts']}",
-        f"- build_memory_system_graph_memory_object_index_layer_manifest_applied_count: {metrics['build_memory']['memory_system_graph_memory_object_index_layer_manifest_applied_count']}",
-        f"- avg_build_memory_system_graph_memory_object_index_layer_manifest_entries: {metrics['build_memory']['avg_memory_system_graph_memory_object_index_layer_manifest_entries']}",
-        f"- build_memory_system_graph_memory_object_index_layer_manifest_layer_entries: {metrics['build_memory']['memory_system_graph_memory_object_index_layer_manifest_layer_entries']}",
         f"- avg_build_memory_system_graph_value_objects: {metrics['build_memory']['avg_memory_system_graph_value_objects']}",
         f"- avg_build_memory_system_graph_source_backed_value_objects: {metrics['build_memory']['avg_memory_system_graph_source_backed_value_objects']}",
         f"- avg_build_memory_system_graph_source_incomplete_value_objects: {metrics['build_memory']['avg_memory_system_graph_source_incomplete_value_objects']}",
@@ -5192,14 +3064,10 @@ def _write_diagnosis(
         f"- memory_activation_priority_applied_count: {metrics['retrieval']['memory_activation_priority_applied_count']}",
         f"- memory_activation_priority_reordered_count: {metrics['retrieval']['memory_activation_priority_reordered_count']}",
         f"- avg_memory_activation_priority_hits: {metrics['retrieval']['avg_memory_activation_priority_hits']}",
-        f"- operation_utility_slot_source: {metrics['retrieval']['operation_utility_slot_source']}",
-        f"- operation_utility_slot_index_source_counts: {metrics['retrieval']['operation_utility_slot_index_source_counts']}",
         f"- graph_utility_enabled: {metrics['retrieval']['graph_utility_enabled']}",
         f"- graph_utility_fusion_mode: {metrics['retrieval']['graph_utility_fusion_mode']}",
         f"- graph_utility_overflow_max_hits: {metrics['retrieval']['graph_utility_overflow_max_hits']}",
         f"- graph_utility_required_signals: {metrics['retrieval']['graph_utility_required_signals']}",
-        f"- graph_utility_slot_source: {metrics['retrieval']['graph_utility_slot_source']}",
-        f"- graph_utility_slot_index_source_counts: {metrics['retrieval']['graph_utility_slot_index_source_counts']}",
         f"- graph_utility_applied_count: {metrics['retrieval']['graph_utility_applied_count']}",
         f"- avg_graph_utility_source_hits: {metrics['retrieval']['avg_graph_utility_source_hits']}",
         f"- build_memory_include_superseded: {metrics['retrieval']['build_memory_include_superseded']}",
@@ -5228,16 +3096,6 @@ def _write_diagnosis(
         f"- granularity_profile_audit_selected_count: {metrics['retrieval']['granularity_profile_audit_selected_count']}",
         f"- granularity_profile_audit_behavior_risk_count: {metrics['retrieval']['granularity_profile_audit_behavior_risk_count']}",
         f"- selected_context_enabled: {metrics['retrieval']['selected_context_enabled']}",
-        f"- workspace_policy_context_enabled: {metrics['retrieval']['workspace_policy_context_enabled']}",
-        f"- workspace_policy_context_policy_available_count: {metrics['retrieval']['workspace_policy_context_policy_available_count']}",
-        f"- workspace_policy_context_applied_count: {metrics['retrieval']['workspace_policy_context_applied_count']}",
-        f"- workspace_policy_context_applied_rate: {metrics['retrieval']['workspace_policy_context_applied_rate']}",
-        f"- workspace_source_expansion_enabled: {metrics['retrieval']['workspace_source_expansion_enabled']}",
-        f"- workspace_source_expansion_applied_count: {metrics['retrieval']['workspace_source_expansion_applied_count']}",
-        f"- workspace_source_expansion_applied_rate: {metrics['retrieval']['workspace_source_expansion_applied_rate']}",
-        f"- avg_workspace_source_expansion_final_sources: {metrics['retrieval']['avg_workspace_source_expansion_final_sources']}",
-        f"- avg_workspace_source_expansion_replaced_tail: {metrics['retrieval']['avg_workspace_source_expansion_replaced_tail']}",
-        f"- avg_workspace_source_expansion_skipped_low_core: {metrics['retrieval']['avg_workspace_source_expansion_skipped_low_core']}",
         f"- selected_context_applied_count: {metrics['retrieval']['selected_context_applied_count']}",
         f"- selected_context_applied_rate: {metrics['retrieval']['selected_context_applied_rate']}",
         f"- selected_context_budget_gate_applied_count: {metrics['retrieval']['selected_context_budget_gate_applied_count']}",
@@ -5269,42 +3127,18 @@ def _write_diagnosis(
         f"- avg_rerank_returned_count: {metrics['retrieval']['avg_rerank_returned_count']}",
         f"- avg_rerank_tokens_when_applied: {metrics['retrieval']['avg_rerank_tokens_when_applied']}",
         f"- context_budget_enabled: {metrics['retrieval']['context_budget_enabled']}",
-        f"- context_budget_registry_anchor_retention: {metrics['retrieval']['context_budget_registry_anchor_retention']}",
-        f"- context_budget_anchor_source: {metrics['retrieval']['context_budget_anchor_source']}",
-        f"- context_budget_anchor_selected_source_counts: {metrics['retrieval']['context_budget_anchor_selected_source_counts']}",
-        f"- avg_context_budget_anchor_layer_manifest_source_count: {metrics['retrieval']['avg_context_budget_anchor_layer_manifest_source_count']}",
-        f"- avg_context_budget_anchor_operation_api_source_count: {metrics['retrieval']['avg_context_budget_anchor_operation_api_source_count']}",
-        f"- avg_context_budget_anchor_context_interface_source_count: {metrics['retrieval']['avg_context_budget_anchor_context_interface_source_count']}",
-        f"- avg_context_budget_anchor_working_compiler_plan_source_count: {metrics['retrieval']['avg_context_budget_anchor_working_compiler_plan_source_count']}",
-        f"- avg_context_budget_anchor_memory_system_state_source_count: {metrics['retrieval']['avg_context_budget_anchor_memory_system_state_source_count']}",
-        f"- avg_context_budget_anchor_memory_workspace_contract_source_count: {metrics['retrieval']['avg_context_budget_anchor_memory_workspace_contract_source_count']}",
         f"- context_budget_applied_count: {metrics['retrieval']['context_budget_applied_count']}",
         f"- context_budget_applied_rate: {metrics['retrieval']['context_budget_applied_rate']}",
         f"- avg_context_budget_candidate_count: {metrics['retrieval']['avg_context_budget_candidate_count']}",
         f"- avg_context_budget_returned_count: {metrics['retrieval']['avg_context_budget_returned_count']}",
         f"- avg_context_budget_estimated_chars: {metrics['retrieval']['avg_context_budget_estimated_chars']}",
         f"- avg_context_budget_dropped_count: {metrics['retrieval']['avg_context_budget_dropped_count']}",
-        f"- context_budget_registry_anchor_candidate_count: {metrics['retrieval']['context_budget_registry_anchor_candidate_count']}",
-        f"- context_budget_registry_anchor_retained_count: {metrics['retrieval']['context_budget_registry_anchor_retained_count']}",
-        f"- context_budget_registry_anchor_dropped_count: {metrics['retrieval']['context_budget_registry_anchor_dropped_count']}",
         f"- context_budget_audit_enabled: {metrics['retrieval']['context_budget_audit_enabled']}",
-        f"- context_budget_audit_registry_anchor_retention: {metrics['retrieval']['context_budget_audit_registry_anchor_retention']}",
-        f"- context_budget_audit_anchor_source: {metrics['retrieval']['context_budget_audit_anchor_source']}",
-        f"- context_budget_audit_anchor_selected_source_counts: {metrics['retrieval']['context_budget_audit_anchor_selected_source_counts']}",
-        f"- avg_context_budget_audit_anchor_layer_manifest_source_count: {metrics['retrieval']['avg_context_budget_audit_anchor_layer_manifest_source_count']}",
-        f"- avg_context_budget_audit_anchor_operation_api_source_count: {metrics['retrieval']['avg_context_budget_audit_anchor_operation_api_source_count']}",
-        f"- avg_context_budget_audit_anchor_context_interface_source_count: {metrics['retrieval']['avg_context_budget_audit_anchor_context_interface_source_count']}",
-        f"- avg_context_budget_audit_anchor_working_compiler_plan_source_count: {metrics['retrieval']['avg_context_budget_audit_anchor_working_compiler_plan_source_count']}",
-        f"- avg_context_budget_audit_anchor_memory_system_state_source_count: {metrics['retrieval']['avg_context_budget_audit_anchor_memory_system_state_source_count']}",
-        f"- avg_context_budget_audit_anchor_memory_workspace_contract_source_count: {metrics['retrieval']['avg_context_budget_audit_anchor_memory_workspace_contract_source_count']}",
         f"- context_budget_audit_applied_count: {metrics['retrieval']['context_budget_audit_applied_count']}",
         f"- context_budget_audit_applied_rate: {metrics['retrieval']['context_budget_audit_applied_rate']}",
         f"- avg_context_budget_audit_candidate_count: {metrics['retrieval']['avg_context_budget_audit_candidate_count']}",
         f"- avg_context_budget_audit_returned_count: {metrics['retrieval']['avg_context_budget_audit_returned_count']}",
         f"- avg_context_budget_audit_dropped_count: {metrics['retrieval']['avg_context_budget_audit_dropped_count']}",
-        f"- context_budget_audit_registry_anchor_candidate_count: {metrics['retrieval']['context_budget_audit_registry_anchor_candidate_count']}",
-        f"- context_budget_audit_registry_anchor_retained_count: {metrics['retrieval']['context_budget_audit_registry_anchor_retained_count']}",
-        f"- context_budget_audit_registry_anchor_dropped_count: {metrics['retrieval']['context_budget_audit_registry_anchor_dropped_count']}",
         f"- context_budget_audit_prompt_risk_count: {metrics['retrieval']['context_budget_audit_prompt_risk_count']}",
         f"- avg_context_budget_audit_prompt_missing_rows: {metrics['retrieval']['avg_context_budget_audit_prompt_missing_rows']}",
         f"- context_budget_audit_selected_context_risk_count: {metrics['retrieval']['context_budget_audit_selected_context_risk_count']}",
@@ -5323,10 +3157,6 @@ def _write_diagnosis(
         f"- final_answer_checklist: {metrics['compiler']['final_answer_checklist']}",
         f"- max_memory_records: {metrics['compiler']['max_memory_records']}",
         f"- route_guidance: {metrics['compiler']['route_guidance']}",
-        f"- compact_query_contract: {metrics['compiler']['compact_query_contract']}",
-        f"- compact_query_guide_blocks: {metrics['compiler']['compact_query_guide_blocks']}",
-        f"- compact_query_answer_contract: {metrics['compiler']['compact_query_answer_contract']}",
-        f"- memory_context_header_format: {metrics['compiler']['memory_context_header_format']}",
         f"- temporal_workpad: {metrics['compiler']['temporal_workpad']}",
         f"- temporal_text_normalization: {metrics['compiler']['temporal_text_normalization']}",
         f"- temporal_event_contract: {metrics['compiler']['temporal_event_contract']}",
@@ -5373,14 +3203,6 @@ def _write_diagnosis(
         f"- memory_value_slot_guide_max_values: {metrics['compiler']['memory_value_slot_guide_max_values']}",
         f"- memory_value_slot_guide_memory_types: {metrics['compiler']['memory_value_slot_guide_memory_types']}",
         f"- memory_value_slot_guide_applied: {metrics['compiler']['memory_value_slot_guide_applied']}",
-        f"- working_memory_packet: {metrics['compiler']['working_memory_packet']}",
-        f"- working_memory_packet_information_needs: {metrics['compiler']['working_memory_packet_information_needs']}",
-        f"- working_memory_packet_max_items: {metrics['compiler']['working_memory_packet_max_items']}",
-        f"- working_memory_packet_value_chars: {metrics['compiler']['working_memory_packet_value_chars']}",
-        f"- working_memory_packet_compact_short_header: {metrics['compiler']['working_memory_packet_compact_short_header']}",
-        f"- working_memory_packet_compact_dedupe: {metrics['compiler']['working_memory_packet_compact_dedupe']}",
-        f"- working_memory_packet_source: {metrics['compiler']['working_memory_packet_source']}",
-        f"- working_memory_packet_applied: {metrics['compiler']['working_memory_packet_applied']}",
         f"- current_state_update_contract: {metrics['compiler']['current_state_update_contract']}",
         f"- dialogue_inference_contract: {metrics['compiler']['dialogue_inference_contract']}",
         f"- temporal_order_contract: {metrics['compiler']['temporal_order_contract']}",

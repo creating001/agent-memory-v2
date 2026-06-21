@@ -59,64 +59,6 @@ _LIFECYCLE_MEMORY_TYPES = frozenset(
 _STATE_UPDATE_MEMORY_TYPES = frozenset(
     {"preference", "profile", "relationship", "state"}
 )
-_CONTEXT_BUDGET_ANCHOR_SOURCES = frozenset(
-    {
-        "operation_registry",
-        "layer_manifest",
-        "operation_api",
-        "context_interface",
-        "working_compiler_plan",
-        "memory_system_state",
-        "memory_workspace_contract",
-        "auto",
-    }
-)
-_WORKSPACE_SOURCE_EXPANSION_SOURCES = frozenset(
-    {
-        "auto",
-        "working_compiler_plan",
-        "memory_system_state",
-        "memory_operation_journal",
-        "memory_workspace_snapshot",
-    }
-)
-_WORKSPACE_SOURCE_EXPANSION_AUTO_ORDER = (
-    "memory_system_state",
-    "working_compiler_plan",
-    "memory_operation_journal",
-    "memory_workspace_snapshot",
-)
-_WORKSPACE_SOURCE_EXPANSION_GENERIC_TERMS = frozenset(
-    {
-        "about",
-        "as",
-        "activity",
-        "current",
-        "currently",
-        "does",
-        "done",
-        "go",
-        "have",
-        "kind",
-        "likely",
-        "partake",
-        "participate",
-        "still",
-        "type",
-        "way",
-        "would",
-    }
-)
-_MEMORY_OPERATION_SLOT_SOURCES = frozenset(
-    {
-        "auto",
-        "context_interface",
-        "operation_api",
-        "working_view",
-        "operation_registry",
-        "operation_slot_index",
-    }
-)
 _LIFECYCLE_TERM_PATTERN = re.compile(r"[A-Za-z0-9_]+")
 _LIFECYCLE_TERM_STOPWORDS = frozenset(
     {
@@ -162,18 +104,6 @@ class Stage1Pipeline:
         selected_context_audit_config = selected_context_config.get("risk_audit", {})
         if not isinstance(selected_context_audit_config, Mapping):
             raise ValueError("retrieval.selected_context.risk_audit must be an object")
-        workspace_policy_context_config = retrieval_config.get(
-            "workspace_policy_context", {}
-        )
-        if not isinstance(workspace_policy_context_config, Mapping):
-            raise ValueError("retrieval.workspace_policy_context must be an object")
-        workspace_source_expansion_config = retrieval_config.get(
-            "workspace_source_expansion", {}
-        )
-        if not isinstance(workspace_source_expansion_config, Mapping):
-            raise ValueError(
-                "retrieval.workspace_source_expansion must be an object"
-            )
         granularity_profile_audit_config = retrieval_config.get(
             "granularity_profile_audit", {}
         )
@@ -321,17 +251,6 @@ class Stage1Pipeline:
         self._build_memory_system_graph_enabled = bool(
             memory_system_graph_config.get("enabled", False)
         )
-        working_memory_view_config = memory_system_graph_config.get(
-            "working_memory_view",
-            {},
-        )
-        if not isinstance(working_memory_view_config, Mapping):
-            raise ValueError(
-                "build_memory.memory_system_graph.working_memory_view must be an object"
-            )
-        self._build_memory_working_view_enabled = bool(
-            working_memory_view_config.get("enabled", True)
-        )
         source_alignment_config = build_memory_config.get("source_alignment", {})
         self._build_memory_source_alignment_enabled = bool(
             source_alignment_config.get("enabled", False)
@@ -391,10 +310,6 @@ class Stage1Pipeline:
             "memory_system_graph": {
                 "enabled": self._build_memory_system_graph_enabled,
                 "trace_only": False,
-                "working_memory_view": {
-                    "enabled": self._build_memory_working_view_enabled,
-                    "trace_only": False,
-                },
             },
             "source_alignment": {
                 "enabled": self._build_memory_source_alignment_enabled,
@@ -577,9 +492,6 @@ class Stage1Pipeline:
                 ),
             )
         )
-        self._operation_utility_slot_source = _validate_memory_operation_slot_source(
-            operation_utility_config.get("slot_source", "auto")
-        )
         self._operation_utility_memory_types = _tuple_config(
             operation_utility_config.get(
                 "memory_types",
@@ -661,9 +573,6 @@ class Stage1Pipeline:
         )
         self._graph_utility_required_signals = _tuple_config(
             graph_utility_config.get("required_signals")
-        )
-        self._graph_utility_slot_source = _validate_memory_operation_slot_source(
-            graph_utility_config.get("slot_source", "auto")
         )
         self._graph_utility_fusion_mode = str(
             graph_utility_config.get("fusion_mode", "tail_rescue")
@@ -871,57 +780,6 @@ class Stage1Pipeline:
                 "trace_only": True,
             },
         }
-        self._workspace_policy_context_enabled = bool(
-            workspace_policy_context_config.get("enabled", False)
-        )
-        self._workspace_policy_context_apply_selected_context_pressure_policy = bool(
-            workspace_policy_context_config.get(
-                "apply_selected_context_pressure_policy",
-                True,
-            )
-        )
-        self._workspace_policy_context_information_needs = _tuple_config(
-            workspace_policy_context_config.get("information_needs")
-        )
-        self._workspace_source_expansion_enabled = bool(
-            workspace_source_expansion_config.get("enabled", False)
-        )
-        self._workspace_source_expansion_information_needs = _tuple_config(
-            workspace_source_expansion_config.get("information_needs")
-        )
-        self._workspace_source_expansion_sources = (
-            _validate_workspace_source_expansion_sources(
-                workspace_source_expansion_config.get("sources")
-                or workspace_source_expansion_config.get("source")
-                or ("memory_system_state",)
-            )
-        )
-        self._workspace_source_expansion_max_entries = int(
-            workspace_source_expansion_config.get("max_entries", 8)
-        )
-        self._workspace_source_expansion_max_sources = int(
-            workspace_source_expansion_config.get("max_sources", 2)
-        )
-        self._workspace_source_expansion_min_score = float(
-            workspace_source_expansion_config.get("min_score", 1.0)
-        )
-        self._workspace_source_expansion_min_core_terms = int(
-            workspace_source_expansion_config.get("min_core_terms", 1)
-        )
-        self._workspace_source_expansion_require_new_source = bool(
-            workspace_source_expansion_config.get("require_new_source", True)
-        )
-        self._workspace_source_expansion_protect_top_n = int(
-            workspace_source_expansion_config.get("protect_top_n", 32)
-        )
-        self._workspace_source_expansion_preserve_hit_count = bool(
-            workspace_source_expansion_config.get("preserve_hit_count", True)
-        )
-        self._workspace_source_expansion_route_overrides = (
-            _workspace_source_expansion_route_overrides(
-                workspace_source_expansion_config.get("route_overrides") or {}
-            )
-        )
         self._context_budget_enabled = bool(
             context_budget_config.get("enabled", False)
         )
@@ -940,12 +798,6 @@ class Stage1Pipeline:
         self._context_budget_information_needs = _tuple_config(
             context_budget_config.get("information_needs")
         )
-        self._context_budget_registry_anchor_retention = bool(
-            context_budget_config.get("registry_anchor_retention", False)
-        )
-        self._context_budget_anchor_source = _validate_context_budget_anchor_source(
-            context_budget_config.get("anchor_source", "operation_registry")
-        )
         self._context_budget_audit_enabled = bool(
             context_budget_audit_config.get("enabled", False)
         )
@@ -963,17 +815,6 @@ class Stage1Pipeline:
         )
         self._context_budget_audit_information_needs = _tuple_config(
             context_budget_audit_config.get("information_needs")
-        )
-        self._context_budget_audit_registry_anchor_retention = bool(
-            context_budget_audit_config.get("registry_anchor_retention", False)
-        )
-        self._context_budget_audit_anchor_source = (
-            _validate_context_budget_anchor_source(
-                context_budget_audit_config.get(
-                    "anchor_source",
-                    self._context_budget_anchor_source,
-                )
-            )
         )
         self._rerank_enabled = bool(rerank_config.get("enabled", False))
         self._rerank_model = rerank_config.get("model")
@@ -1112,7 +953,6 @@ class Stage1Pipeline:
                 management_policy=build_memory_config.get("management_policy"),
                 operation_ledger=self._build_memory_operation_ledger_enabled,
                 memory_system_graph=self._build_memory_system_graph_enabled,
-                memory_working_view=self._build_memory_working_view_enabled,
                 chat_template_kwargs=_dict_config(
                     build_memory_config.get("chat_template_kwargs")
                 ),
@@ -1442,102 +1282,6 @@ class Stage1Pipeline:
             memory_value_slot_guide_memory_types=_tuple_config(
                 compiler_config.get("memory_value_slot_guide_memory_types")
             ),
-            working_memory_packet=bool(
-                compiler_config.get("working_memory_packet", False)
-            ),
-            working_memory_packet_information_needs=_tuple_config(
-                compiler_config.get(
-                    "working_memory_packet_information_needs",
-                    ("current_state", "fact_lookup", "profile_preference"),
-                )
-            ),
-            working_memory_packet_max_items=int(
-                compiler_config.get("working_memory_packet_max_items", 4)
-            ),
-            working_memory_packet_value_chars=int(
-                compiler_config.get("working_memory_packet_value_chars", 120)
-            ),
-            working_memory_packet_source=str(
-                compiler_config.get("working_memory_packet_source", "working_view")
-            ),
-            working_memory_packet_format=str(
-                compiler_config.get("working_memory_packet_format", "verbose")
-            ),
-            working_memory_packet_compact_short_header=bool(
-                compiler_config.get("working_memory_packet_compact_short_header", False)
-            ),
-            working_memory_packet_compact_dedupe=bool(
-                compiler_config.get("working_memory_packet_compact_dedupe", False)
-            ),
-            working_memory_packet_slot_guard=bool(
-                compiler_config.get("working_memory_packet_slot_guard", False)
-            ),
-            working_memory_packet_slot_guard_action=str(
-                compiler_config.get(
-                    "working_memory_packet_slot_guard_action", "suppress"
-                )
-            ),
-            working_memory_packet_slot_guard_max_rows=int(
-                compiler_config.get("working_memory_packet_slot_guard_max_rows", 6)
-            ),
-            workspace_query_policy=bool(
-                compiler_config.get("workspace_query_policy", False)
-            ),
-            workspace_query_policy_information_needs=_tuple_config(
-                compiler_config.get(
-                    "workspace_query_policy_information_needs",
-                    ("current_state", "fact_lookup", "profile_preference"),
-                )
-            ),
-            workspace_query_policy_replacement_components=_tuple_config(
-                compiler_config.get(
-                    "workspace_query_policy_replacement_components",
-                    (
-                        "structured_guide",
-                        "memory_state_guide",
-                        "memory_value_slot_guide",
-                    ),
-                )
-            ),
-            workspace_query_policy_packet_source=str(
-                compiler_config.get(
-                    "workspace_query_policy_packet_source",
-                    "memory_system_state",
-                )
-            ),
-            workspace_query_policy_packet_max_items=int(
-                compiler_config.get("workspace_query_policy_packet_max_items", 3)
-            ),
-            workspace_query_policy_packet_value_chars=int(
-                compiler_config.get("workspace_query_policy_packet_value_chars", 80)
-            ),
-            workspace_query_policy_packet_format=str(
-                compiler_config.get("workspace_query_policy_packet_format", "compact")
-            ),
-            workspace_query_policy_packet_compact_short_header=bool(
-                compiler_config.get(
-                    "workspace_query_policy_packet_compact_short_header",
-                    True,
-                )
-            ),
-            workspace_query_policy_packet_compact_dedupe=bool(
-                compiler_config.get(
-                    "workspace_query_policy_packet_compact_dedupe",
-                    True,
-                )
-            ),
-            workspace_query_policy_slot_guard=bool(
-                compiler_config.get("workspace_query_policy_slot_guard", True)
-            ),
-            workspace_query_policy_slot_guard_action=str(
-                compiler_config.get(
-                    "workspace_query_policy_slot_guard_action",
-                    "structured_guide",
-                )
-            ),
-            workspace_query_policy_slot_guard_max_rows=int(
-                compiler_config.get("workspace_query_policy_slot_guard_max_rows", 6)
-            ),
             profile_activation_guide=bool(
                 compiler_config.get("profile_activation_guide", False)
             ),
@@ -1610,18 +1354,6 @@ class Stage1Pipeline:
             max_memory_records=int(compiler_config.get("max_memory_records", 12)),
             memory_context_newlines_after_blocks=int(
                 compiler_config.get("memory_context_newlines_after_blocks", 3)
-            ),
-            memory_context_header_format=str(
-                compiler_config.get("memory_context_header_format", "multiline")
-            ),
-            compact_query_contract=bool(
-                compiler_config.get("compact_query_contract", False)
-            ),
-            compact_query_guide_blocks=compiler_config.get(
-                "compact_query_guide_blocks"
-            ),
-            compact_query_answer_contract=compiler_config.get(
-                "compact_query_answer_contract"
             ),
             prompt_mode=str(compiler_config.get("prompt_mode", "default")),
             route_overrides=compiler_config.get("route_overrides") or {},
@@ -2190,7 +1922,6 @@ class Stage1Pipeline:
             max_slots=self._operation_utility_max_slots,
             max_sources_per_slot=self._operation_utility_max_sources_per_slot,
             min_overlap_terms=self._operation_utility_min_overlap_terms,
-            slot_source=self._operation_utility_slot_source,
             fusion_mode=self._operation_utility_fusion_mode,
             tail_exchange_protect_top_n=(
                 self._operation_utility_tail_exchange_protect_top_n
@@ -2209,7 +1940,6 @@ class Stage1Pipeline:
             require_new_source=self._graph_utility_require_new_source,
             ignored_overlap_terms=self._graph_utility_ignored_overlap_terms,
             required_signals=self._graph_utility_required_signals,
-            slot_source=self._graph_utility_slot_source,
             fusion_mode=self._graph_utility_fusion_mode,
             overflow_max_hits=self._graph_utility_overflow_max_hits,
             source_selection_policy=(
@@ -2364,7 +2094,6 @@ class Stage1Pipeline:
                     ),
                     memory_types=self._operation_utility_memory_types,
                     operations=self._operation_utility_operations,
-                    slot_source=self._operation_utility_slot_source,
                     min_overlap_terms=self._operation_utility_min_overlap_terms,
                     fusion_mode=self._operation_utility_fusion_mode,
                     tail_exchange_protect_top_n=(
@@ -2375,9 +2104,6 @@ class Stage1Pipeline:
                     ),
                     managed_memory_types=tuple(
                         getattr(built_memory, "managed_memory_types", ()) or ()
-                    ),
-                    memory_object_index=_memory_object_index_from_management(
-                        built_memory.management
                     ),
                 )
         turn_window_hits = ()
@@ -2670,14 +2396,10 @@ class Stage1Pipeline:
                     self._graph_utility_ignored_overlap_terms
                 ),
                 required_signals=self._graph_utility_required_signals,
-                slot_source=self._graph_utility_slot_source,
                 fusion_mode=self._graph_utility_fusion_mode,
                 overflow_max_hits=self._graph_utility_overflow_max_hits,
                 source_selection_policy=(
                     self._graph_utility_source_selection_policy
-                ),
-                memory_object_index=_memory_object_index_from_management(
-                    built_memory.management
                 ),
             )
             if (
@@ -2754,43 +2476,6 @@ class Stage1Pipeline:
             )
         elif self._rerank_enabled:
             rerank_trace["skipped_reason"] = rerank_skipped_reason
-        memory_object_index = _memory_object_index_from_management(
-            built_memory.management
-        )
-        hits, workspace_source_expansion_trace = _apply_workspace_source_expansion(
-            store=store,
-            hits=hits,
-            question=request.question,
-            route=route,
-            memory_object_index=memory_object_index,
-            enabled=self._workspace_source_expansion_enabled,
-            information_needs=self._workspace_source_expansion_information_needs,
-            sources=self._workspace_source_expansion_sources,
-            max_entries=self._workspace_source_expansion_max_entries,
-            max_sources=self._workspace_source_expansion_max_sources,
-            min_score=self._workspace_source_expansion_min_score,
-            min_core_terms=self._workspace_source_expansion_min_core_terms,
-            require_new_source=self._workspace_source_expansion_require_new_source,
-            protect_top_n=self._workspace_source_expansion_protect_top_n,
-            preserve_hit_count=self._workspace_source_expansion_preserve_hit_count,
-            route_overrides=self._workspace_source_expansion_route_overrides,
-        )
-        context_budget_anchor_source_ids, context_budget_anchor_trace = (
-            _context_budget_anchor_source_ids(
-                anchor_source=self._context_budget_anchor_source,
-                memory_object_index=memory_object_index,
-                operation_utility_trace=operation_utility_trace,
-                graph_utility_trace=graph_utility_trace,
-            )
-        )
-        context_budget_audit_anchor_source_ids, context_budget_audit_anchor_trace = (
-            _context_budget_anchor_source_ids(
-                anchor_source=self._context_budget_audit_anchor_source,
-                memory_object_index=memory_object_index,
-                operation_utility_trace=operation_utility_trace,
-                graph_utility_trace=graph_utility_trace,
-            )
-        )
         pre_context_budget_hits = hits
         context_budget_trace = _disabled_context_budget_trace(
             enabled=self._context_budget_enabled,
@@ -2799,34 +2484,6 @@ class Stage1Pipeline:
             protect_top_n=self._context_budget_protect_top_n,
             max_hits=self._context_budget_max_hits,
             information_needs=self._context_budget_information_needs,
-            registry_anchor_retention=(
-                self._context_budget_registry_anchor_retention
-            ),
-            anchor_source=context_budget_anchor_trace["anchor_source"],
-            anchor_selected_source=context_budget_anchor_trace[
-                "anchor_selected_source"
-            ],
-            anchor_registry_source_count=context_budget_anchor_trace[
-                "anchor_registry_source_count"
-            ],
-            anchor_layer_manifest_source_count=context_budget_anchor_trace[
-                "anchor_layer_manifest_source_count"
-            ],
-            anchor_operation_api_source_count=context_budget_anchor_trace[
-                "anchor_operation_api_source_count"
-            ],
-            anchor_context_interface_source_count=context_budget_anchor_trace[
-                "anchor_context_interface_source_count"
-            ],
-            anchor_working_compiler_plan_source_count=context_budget_anchor_trace[
-                "anchor_working_compiler_plan_source_count"
-            ],
-            anchor_memory_system_state_source_count=context_budget_anchor_trace[
-                "anchor_memory_system_state_source_count"
-            ],
-            anchor_memory_workspace_contract_source_count=context_budget_anchor_trace[
-                "anchor_memory_workspace_contract_source_count"
-            ],
         )
         if _context_budget_applies(
             route=route,
@@ -2842,45 +2499,6 @@ class Stage1Pipeline:
                 protect_top_n=self._context_budget_protect_top_n,
                 max_hits=self._context_budget_max_hits,
                 information_needs=self._context_budget_information_needs,
-                protected_source_ids=(
-                    context_budget_anchor_source_ids
-                    if self._context_budget_registry_anchor_retention
-                    else ()
-                ),
-                registry_anchor_retention=(
-                    self._context_budget_registry_anchor_retention
-                ),
-                anchor_source=context_budget_anchor_trace["anchor_source"],
-                anchor_selected_source=context_budget_anchor_trace[
-                    "anchor_selected_source"
-                ],
-                anchor_registry_source_count=context_budget_anchor_trace[
-                    "anchor_registry_source_count"
-                ],
-                anchor_layer_manifest_source_count=context_budget_anchor_trace[
-                    "anchor_layer_manifest_source_count"
-                ],
-                anchor_operation_api_source_count=context_budget_anchor_trace[
-                    "anchor_operation_api_source_count"
-                ],
-                anchor_context_interface_source_count=context_budget_anchor_trace[
-                    "anchor_context_interface_source_count"
-                ],
-                anchor_working_compiler_plan_source_count=(
-                    context_budget_anchor_trace[
-                        "anchor_working_compiler_plan_source_count"
-                    ]
-                ),
-                anchor_memory_system_state_source_count=(
-                    context_budget_anchor_trace[
-                        "anchor_memory_system_state_source_count"
-                    ]
-                ),
-                anchor_memory_workspace_contract_source_count=(
-                    context_budget_anchor_trace[
-                        "anchor_memory_workspace_contract_source_count"
-                    ]
-                ),
             )
         evidence_turns = store.expand_neighbors(
             (hit.source_id for hit in hits),
@@ -2890,18 +2508,6 @@ class Stage1Pipeline:
         selected_context_settings = self._selected_context_settings(
             granularity_profile,
             route,
-        )
-        selected_context_settings, workspace_policy_context = (
-            _apply_workspace_policy_context_settings(
-                enabled=self._workspace_policy_context_enabled,
-                apply_selected_context_pressure_policy=(
-                    self._workspace_policy_context_apply_selected_context_pressure_policy
-                ),
-                information_needs=self._workspace_policy_context_information_needs,
-                route=route,
-                memory_object_index=memory_object_index,
-                selected_context_settings=selected_context_settings,
-            )
         )
         selected_context_enabled, selected_context_budget_gate = (
             _selected_context_budget_gate(
@@ -3034,7 +2640,9 @@ class Stage1Pipeline:
             memory_scalar_value_manifest=_memory_scalar_value_manifest_from_management(
                 built_memory.management
             ),
-            memory_object_index=memory_object_index,
+            memory_object_index=_memory_object_index_from_management(
+                built_memory.management
+            ),
         )
         memory_lifecycle_manifest = _memory_lifecycle_manifest(
             question=request.question,
@@ -3050,40 +2658,6 @@ class Stage1Pipeline:
             protect_top_n=self._context_budget_audit_protect_top_n,
             max_hits=self._context_budget_audit_max_hits,
             information_needs=self._context_budget_audit_information_needs,
-            registry_anchor_retention=(
-                self._context_budget_audit_registry_anchor_retention
-            ),
-            anchor_source=context_budget_audit_anchor_trace["anchor_source"],
-            anchor_selected_source=context_budget_audit_anchor_trace[
-                "anchor_selected_source"
-            ],
-            anchor_registry_source_count=context_budget_audit_anchor_trace[
-                "anchor_registry_source_count"
-            ],
-            anchor_layer_manifest_source_count=context_budget_audit_anchor_trace[
-                "anchor_layer_manifest_source_count"
-            ],
-            anchor_operation_api_source_count=context_budget_audit_anchor_trace[
-                "anchor_operation_api_source_count"
-            ],
-            anchor_context_interface_source_count=context_budget_audit_anchor_trace[
-                "anchor_context_interface_source_count"
-            ],
-            anchor_working_compiler_plan_source_count=(
-                context_budget_audit_anchor_trace[
-                    "anchor_working_compiler_plan_source_count"
-                ]
-            ),
-            anchor_memory_system_state_source_count=(
-                context_budget_audit_anchor_trace[
-                    "anchor_memory_system_state_source_count"
-                ]
-            ),
-            anchor_memory_workspace_contract_source_count=(
-                context_budget_audit_anchor_trace[
-                    "anchor_memory_workspace_contract_source_count"
-                ]
-            ),
         )
         if _context_budget_applies(
             route=route,
@@ -3099,51 +2673,6 @@ class Stage1Pipeline:
                 protect_top_n=self._context_budget_audit_protect_top_n,
                 max_hits=self._context_budget_audit_max_hits,
                 information_needs=self._context_budget_audit_information_needs,
-                protected_source_ids=(
-                    context_budget_audit_anchor_source_ids
-                    if self._context_budget_audit_registry_anchor_retention
-                    else ()
-                ),
-                registry_anchor_retention=(
-                    self._context_budget_audit_registry_anchor_retention
-                ),
-                anchor_source=context_budget_audit_anchor_trace["anchor_source"],
-                anchor_selected_source=context_budget_audit_anchor_trace[
-                    "anchor_selected_source"
-                ],
-                anchor_registry_source_count=context_budget_audit_anchor_trace[
-                    "anchor_registry_source_count"
-                ],
-                anchor_layer_manifest_source_count=(
-                    context_budget_audit_anchor_trace[
-                        "anchor_layer_manifest_source_count"
-                    ]
-                ),
-                anchor_operation_api_source_count=(
-                    context_budget_audit_anchor_trace[
-                        "anchor_operation_api_source_count"
-                    ]
-                ),
-                anchor_context_interface_source_count=(
-                    context_budget_audit_anchor_trace[
-                        "anchor_context_interface_source_count"
-                    ]
-                ),
-                anchor_working_compiler_plan_source_count=(
-                    context_budget_audit_anchor_trace[
-                        "anchor_working_compiler_plan_source_count"
-                    ]
-                ),
-                anchor_memory_system_state_source_count=(
-                    context_budget_audit_anchor_trace[
-                        "anchor_memory_system_state_source_count"
-                    ]
-                ),
-                anchor_memory_workspace_contract_source_count=(
-                    context_budget_audit_anchor_trace[
-                        "anchor_memory_workspace_contract_source_count"
-                    ]
-                ),
             )
             context_budget_audit = _context_budget_audit_trace(
                 store=store,
@@ -3176,12 +2705,6 @@ class Stage1Pipeline:
             compiler_memory_records=compiler_memory_records,
             evidence_rows=compiled.evidence_rows,
             compiled_context_chars=compiled.context_chars,
-            compiled_diagnostics=compiled.diagnostics,
-            operation_utility_trace=operation_utility_trace,
-            graph_utility_trace=graph_utility_trace,
-            memory_object_index=memory_object_index,
-            workspace_policy_context=workspace_policy_context,
-            workspace_source_expansion_trace=workspace_source_expansion_trace,
         )
         answer_cache_before = _answer_cache_stats(self._answerer)
         draft_answer = self._answerer.answer(compiled)
@@ -3308,7 +2831,6 @@ class Stage1Pipeline:
             check_memory_references=(
                 self._answer_verifier_check_memory_references
             ),
-            context_manifest=context_manifest,
         )
         token_usage = built_memory.token_usage + answer.token_usage
         return {
@@ -3606,9 +3128,6 @@ class Stage1Pipeline:
                     "operation_utility_operations": (
                         self._operation_utility_operations
                     ),
-                    "operation_utility_slot_source": (
-                        self._operation_utility_slot_source
-                    ),
                     "operation_utility_max_slots": (
                         self._operation_utility_max_slots
                     ),
@@ -3632,9 +3151,6 @@ class Stage1Pipeline:
                     ],
                     "operation_utility_question_scope": (
                         operation_utility_trace["question_scope"]
-                    ),
-                    "operation_utility_slot_index": (
-                        operation_utility_trace.get("slot_index")
                     ),
                     "operation_utility_operation_counts": (
                         operation_utility_trace["operation_counts"]
@@ -3667,7 +3183,6 @@ class Stage1Pipeline:
                     "graph_utility_required_signals": (
                         self._graph_utility_required_signals
                     ),
-                    "graph_utility_slot_source": self._graph_utility_slot_source,
                     "graph_utility_fusion_mode": (
                         self._graph_utility_fusion_mode
                     ),
@@ -3706,32 +3221,6 @@ class Stage1Pipeline:
                     "turn_window_source_hits": [
                         hit.to_dict() for hit in turn_window_source_hits
                     ],
-                    "workspace_source_expansion": (
-                        workspace_source_expansion_trace
-                    ),
-                    "workspace_source_expansion_enabled": (
-                        self._workspace_source_expansion_enabled
-                    ),
-                    "workspace_source_expansion_applied": bool(
-                        workspace_source_expansion_trace.get("applied")
-                    ),
-                    "workspace_source_expansion_sources": (
-                        self._workspace_source_expansion_sources
-                    ),
-                    "workspace_source_expansion_information_needs": (
-                        self._workspace_source_expansion_information_needs
-                    ),
-                    "workspace_source_expansion_selected_source_ids": (
-                        workspace_source_expansion_trace.get(
-                            "selected_source_ids"
-                        )
-                    ),
-                    "workspace_source_expansion_selected_source_count": (
-                        workspace_source_expansion_trace.get(
-                            "selected_source_count"
-                        )
-                    ),
-                    "workspace_policy_context": workspace_policy_context,
                     "selected_context": selected_context,
                     "turn_hits": [hit.to_dict() for hit in turn_hits],
                     "rerank_enabled": self._rerank_enabled,
@@ -3829,70 +3318,6 @@ class Stage1Pipeline:
                     ),
                     "context_budget_dropped_source_ids": (
                         context_budget_trace["dropped_source_ids"]
-                    ),
-                    "context_budget_anchor_source": (
-                        context_budget_trace["anchor_source"]
-                    ),
-                    "context_budget_anchor_selected_source": (
-                        context_budget_trace["anchor_selected_source"]
-                    ),
-                    "context_budget_anchor_registry_source_count": (
-                        context_budget_trace["anchor_registry_source_count"]
-                    ),
-                    "context_budget_anchor_layer_manifest_source_count": (
-                        context_budget_trace[
-                            "anchor_layer_manifest_source_count"
-                        ]
-                    ),
-                    "context_budget_anchor_operation_api_source_count": (
-                        context_budget_trace["anchor_operation_api_source_count"]
-                    ),
-                    "context_budget_anchor_context_interface_source_count": (
-                        context_budget_trace[
-                            "anchor_context_interface_source_count"
-                        ]
-                    ),
-                    "context_budget_anchor_working_compiler_plan_source_count": (
-                        context_budget_trace[
-                            "anchor_working_compiler_plan_source_count"
-                        ]
-                    ),
-                    "context_budget_anchor_memory_system_state_source_count": (
-                        context_budget_trace[
-                            "anchor_memory_system_state_source_count"
-                        ]
-                    ),
-                    "context_budget_anchor_memory_workspace_contract_source_count": (
-                        context_budget_trace[
-                            "anchor_memory_workspace_contract_source_count"
-                        ]
-                    ),
-                    "context_budget_anchor_candidate_source_ids": (
-                        context_budget_trace["anchor_candidate_source_ids"]
-                    ),
-                    "context_budget_anchor_retained_source_ids": (
-                        context_budget_trace["anchor_retained_source_ids"]
-                    ),
-                    "context_budget_anchor_dropped_source_ids": (
-                        context_budget_trace["anchor_dropped_source_ids"]
-                    ),
-                    "context_budget_registry_anchor_retention": (
-                        context_budget_trace["registry_anchor_retention"]
-                    ),
-                    "context_budget_registry_anchor_candidate_source_ids": (
-                        context_budget_trace[
-                            "registry_anchor_candidate_source_ids"
-                        ]
-                    ),
-                    "context_budget_registry_anchor_retained_source_ids": (
-                        context_budget_trace[
-                            "registry_anchor_retained_source_ids"
-                        ]
-                    ),
-                    "context_budget_registry_anchor_dropped_source_ids": (
-                        context_budget_trace[
-                            "registry_anchor_dropped_source_ids"
-                        ]
                     ),
                     "context_budget_audit": context_budget_audit,
                     "pre_context_budget_hits": [
@@ -4777,15 +4202,9 @@ def _context_manifest(
     compiler_memory_records: tuple[Any, ...],
     evidence_rows: tuple[Any, ...],
     compiled_context_chars: int | None = None,
-    compiled_diagnostics: Mapping[str, Any] | None = None,
     object_slot_source_hits: tuple[Any, ...] = (),
     operation_utility_source_hits: tuple[Any, ...] = (),
     graph_utility_source_hits: tuple[Any, ...] = (),
-    operation_utility_trace: Mapping[str, Any] | None = None,
-    graph_utility_trace: Mapping[str, Any] | None = None,
-    memory_object_index: Mapping[str, Any] | None = None,
-    workspace_policy_context: Mapping[str, Any] | None = None,
-    workspace_source_expansion_trace: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Trace-only source flow manifest for memory/context organization.
 
@@ -4831,26 +4250,6 @@ def _context_manifest(
         typed_memory_source_ids=typed_memory_source_ids,
         memory_projected_source_ids=memory_projected_source_ids,
     )
-    memory_operations_manifest = _memory_operations_context_manifest(
-        memory_object_index=memory_object_index,
-        operation_utility_trace=operation_utility_trace,
-        graph_utility_trace=graph_utility_trace,
-        operation_utility_source_hits=operation_utility_source_hits,
-        graph_utility_source_hits=graph_utility_source_hits,
-        final_evidence_source_ids=final_evidence_source_ids,
-    )
-    workspace_policy_context_manifest = _workspace_policy_context_manifest(
-        workspace_policy_context
-    )
-    workspace_source_expansion_manifest = (
-        _workspace_source_expansion_context_manifest(
-            workspace_source_expansion_trace,
-            final_evidence_source_ids=final_evidence_source_ids,
-        )
-    )
-    workspace_query_policy_manifest = _workspace_query_policy_context_manifest(
-        compiled_diagnostics
-    )
     return {
         "enabled": True,
         "trace_only": True,
@@ -4870,78 +4269,11 @@ def _context_manifest(
             ),
             "graph_utility_source_hit_count": len(graph_utility_source_hits),
             "turn_window_source_hit_count": len(turn_window_source_hits),
-            "workspace_source_expansion_applied": bool(
-                workspace_source_expansion_manifest["applied"]
-            ),
-            "workspace_source_expansion_selected_source_count": int(
-                workspace_source_expansion_manifest["selected_source_count"]
-            ),
-            "workspace_source_expansion_final_source_count": int(
-                workspace_source_expansion_manifest["final_source_count"]
-            ),
             "pre_context_budget_hit_count": len(pre_context_budget_hits),
             "final_hit_count": len(retrieval_hits),
             "context_budget_applied": bool(context_budget_trace.get("applied")),
             "context_budget_dropped_count": int(
                 context_budget_trace.get("dropped_count") or 0
-            ),
-            "context_budget_anchor_source": str(
-                context_budget_trace.get("anchor_source") or ""
-            ),
-            "context_budget_anchor_selected_source": str(
-                context_budget_trace.get("anchor_selected_source") or ""
-            ),
-            "context_budget_anchor_registry_source_count": int(
-                context_budget_trace.get("anchor_registry_source_count") or 0
-            ),
-            "context_budget_anchor_layer_manifest_source_count": int(
-                context_budget_trace.get("anchor_layer_manifest_source_count") or 0
-            ),
-            "context_budget_anchor_operation_api_source_count": int(
-                context_budget_trace.get("anchor_operation_api_source_count") or 0
-            ),
-            "context_budget_anchor_context_interface_source_count": int(
-                context_budget_trace.get("anchor_context_interface_source_count") or 0
-            ),
-            "context_budget_anchor_working_compiler_plan_source_count": int(
-                context_budget_trace.get(
-                    "anchor_working_compiler_plan_source_count"
-                )
-                or 0
-            ),
-            "context_budget_anchor_memory_system_state_source_count": int(
-                context_budget_trace.get("anchor_memory_system_state_source_count")
-                or 0
-            ),
-            "context_budget_anchor_memory_workspace_contract_source_count": int(
-                context_budget_trace.get(
-                    "anchor_memory_workspace_contract_source_count"
-                )
-                or 0
-            ),
-            "context_budget_anchor_candidate_count": len(
-                context_budget_trace.get("anchor_candidate_source_ids") or ()
-            ),
-            "context_budget_anchor_retained_count": len(
-                context_budget_trace.get("anchor_retained_source_ids") or ()
-            ),
-            "context_budget_anchor_dropped_count": len(
-                context_budget_trace.get("anchor_dropped_source_ids") or ()
-            ),
-            "context_budget_registry_anchor_retention": bool(
-                context_budget_trace.get("registry_anchor_retention")
-            ),
-            "context_budget_registry_anchor_candidate_count": len(
-                context_budget_trace.get("registry_anchor_candidate_source_ids")
-                or ()
-            ),
-            "context_budget_registry_anchor_retained_count": len(
-                context_budget_trace.get("registry_anchor_retained_source_ids")
-                or ()
-            ),
-            "context_budget_registry_anchor_dropped_count": len(
-                context_budget_trace.get("registry_anchor_dropped_source_ids")
-                or ()
             ),
             "context_budget_safe_for_current_prompt": context_budget_audit.get(
                 "safe_for_current_prompt"
@@ -4963,38 +4295,11 @@ def _context_manifest(
             "turn_window_source_ids": _source_ids_from_hits(
                 turn_window_source_hits
             ),
-            "workspace_source_expansion_source_ids": (
-                workspace_source_expansion_manifest["selected_source_ids"]
-            ),
-            "workspace_source_expansion_final_source_ids": (
-                workspace_source_expansion_manifest["final_source_ids"]
-            ),
             "pre_context_budget_source_ids": _source_ids_from_hits(
                 pre_context_budget_hits
             ),
             "context_budget_dropped_source_ids": list(
                 context_budget_trace.get("dropped_source_ids") or ()
-            ),
-            "context_budget_anchor_candidate_source_ids": list(
-                context_budget_trace.get("anchor_candidate_source_ids") or ()
-            ),
-            "context_budget_anchor_retained_source_ids": list(
-                context_budget_trace.get("anchor_retained_source_ids") or ()
-            ),
-            "context_budget_anchor_dropped_source_ids": list(
-                context_budget_trace.get("anchor_dropped_source_ids") or ()
-            ),
-            "context_budget_registry_anchor_candidate_source_ids": list(
-                context_budget_trace.get("registry_anchor_candidate_source_ids")
-                or ()
-            ),
-            "context_budget_registry_anchor_retained_source_ids": list(
-                context_budget_trace.get("registry_anchor_retained_source_ids")
-                or ()
-            ),
-            "context_budget_registry_anchor_dropped_source_ids": list(
-                context_budget_trace.get("registry_anchor_dropped_source_ids")
-                or ()
             ),
             "final_hit_source_ids": _source_ids_from_hits(retrieval_hits),
             "evidence_turn_source_ids": evidence_turn_source_ids,
@@ -5015,7 +4320,6 @@ def _context_manifest(
                 final_evidence_source_ids=final_evidence_source_ids,
             ),
         },
-        "memory_operations": memory_operations_manifest,
         "coverage": {
             "final_evidence_row_count": len(final_evidence_source_ids),
             "evidence_turn_count": len(evidence_turn_source_ids),
@@ -5025,47 +4329,6 @@ def _context_manifest(
             ),
             "final_evidence_from_typed_memory_source_count": len(
                 final_set & typed_memory_set
-            ),
-            "final_evidence_from_operation_registry_count": len(
-                memory_operations_manifest["registry_projected_final_source_ids"]
-            ),
-            "final_evidence_from_operation_api_count": len(
-                memory_operations_manifest["operation_api_final_source_ids"]
-            ),
-            "final_evidence_from_lifecycle_audit_count": len(
-                memory_operations_manifest["lifecycle_audit_final_source_ids"]
-            ),
-            "final_evidence_from_layer_manifest_count": len(
-                memory_operations_manifest["layer_manifest_final_source_ids"]
-            ),
-            "final_evidence_from_context_interface_count": len(
-                memory_operations_manifest["context_interface_final_source_ids"]
-            ),
-            "final_evidence_from_working_compiler_plan_count": len(
-                memory_operations_manifest[
-                    "working_compiler_plan_final_source_ids"
-                ]
-            ),
-            "final_evidence_from_memory_system_state_count": len(
-                memory_operations_manifest["memory_system_state_final_source_ids"]
-            ),
-            "final_evidence_from_memory_operation_journal_count": len(
-                memory_operations_manifest[
-                    "memory_operation_journal_final_source_ids"
-                ]
-            ),
-            "final_evidence_from_memory_workspace_contract_count": len(
-                memory_operations_manifest[
-                    "memory_workspace_contract_final_source_ids"
-                ]
-            ),
-            "final_evidence_from_memory_workspace_snapshot_count": len(
-                memory_operations_manifest[
-                    "memory_workspace_snapshot_final_source_ids"
-                ]
-            ),
-            "final_evidence_from_workspace_source_expansion_count": int(
-                workspace_source_expansion_manifest["final_source_count"]
             ),
             "typed_memory_source_count": len(typed_memory_source_ids),
             "selected_context_materialized_count": int(
@@ -5085,194 +4348,11 @@ def _context_manifest(
                 "estimated_chars": context_budget_estimated_chars,
                 "headroom_chars": context_budget_headroom_chars,
                 "dropped_count": int(context_budget_trace.get("dropped_count") or 0),
-                "anchor_source": context_budget_trace.get("anchor_source"),
-                "anchor_selected_source": context_budget_trace.get(
-                    "anchor_selected_source"
-                ),
-                "anchor_candidate_count": len(
-                    context_budget_trace.get("anchor_candidate_source_ids") or ()
-                ),
-                "anchor_retained_count": len(
-                    context_budget_trace.get("anchor_retained_source_ids") or ()
-                ),
                 "safe_for_current_prompt": context_budget_audit.get(
                     "safe_for_current_prompt"
                 ),
             },
             "selected_context": selected_context_manifest,
-            "workspace_policy_context": workspace_policy_context_manifest,
-            "workspace_source_expansion": workspace_source_expansion_manifest,
-            "workspace_query_policy": workspace_query_policy_manifest,
-            "memory_operations": {
-                "registry_available": memory_operations_manifest[
-                    "registry_available"
-                ],
-                "registry_projected_final_source_count": len(
-                    memory_operations_manifest[
-                        "registry_projected_final_source_ids"
-                    ]
-                ),
-                "operation_utility_slot_source": memory_operations_manifest[
-                    "operation_utility_slot_source"
-                ],
-                "graph_utility_slot_source": memory_operations_manifest[
-                    "graph_utility_slot_source"
-                ],
-                "lifecycle_audit_available": memory_operations_manifest[
-                    "lifecycle_audit_available"
-                ],
-                "lifecycle_audit_final_source_count": len(
-                    memory_operations_manifest["lifecycle_audit_final_source_ids"]
-                ),
-                "operation_api_available": memory_operations_manifest[
-                    "operation_api_available"
-                ],
-                "operation_api_final_source_count": len(
-                    memory_operations_manifest["operation_api_final_source_ids"]
-                ),
-                "context_interface_available": memory_operations_manifest[
-                    "context_interface_available"
-                ],
-                "context_interface_final_source_count": len(
-                    memory_operations_manifest[
-                        "context_interface_final_source_ids"
-                    ]
-                ),
-                "working_compiler_plan_available": memory_operations_manifest[
-                    "working_compiler_plan_available"
-                ],
-                "working_compiler_plan_final_source_count": len(
-                    memory_operations_manifest[
-                        "working_compiler_plan_final_source_ids"
-                    ]
-                ),
-                "working_compiler_plan_focus_counts": (
-                    memory_operations_manifest[
-                        "working_compiler_plan_focus_counts"
-                    ]
-                ),
-                "working_compiler_plan_verifier_check_counts": (
-                    memory_operations_manifest[
-                        "working_compiler_plan_verifier_check_counts"
-                    ]
-                ),
-                "memory_system_state_available": memory_operations_manifest[
-                    "memory_system_state_available"
-                ],
-                "memory_system_state_final_source_count": len(
-                    memory_operations_manifest[
-                        "memory_system_state_final_source_ids"
-                    ]
-                ),
-                "memory_system_state_focus_counts": memory_operations_manifest[
-                    "memory_system_state_focus_counts"
-                ],
-                "memory_system_state_decision_counts": memory_operations_manifest[
-                    "memory_system_state_decision_counts"
-                ],
-                "memory_system_state_context_action_counts": (
-                    memory_operations_manifest[
-                        "memory_system_state_context_action_counts"
-                    ]
-                ),
-                "memory_system_state_verifier_check_counts": (
-                    memory_operations_manifest[
-                        "memory_system_state_verifier_check_counts"
-                    ]
-                ),
-                "memory_operation_journal_available": memory_operations_manifest[
-                    "memory_operation_journal_available"
-                ],
-                "memory_operation_journal_final_source_count": len(
-                    memory_operations_manifest[
-                        "memory_operation_journal_final_source_ids"
-                    ]
-                ),
-                "memory_operation_journal_operation_counts": (
-                    memory_operations_manifest[
-                        "memory_operation_journal_operation_counts"
-                    ]
-                ),
-                "memory_operation_journal_family_counts": (
-                    memory_operations_manifest[
-                        "memory_operation_journal_family_counts"
-                    ]
-                ),
-                "memory_workspace_contract_available": memory_operations_manifest[
-                    "memory_workspace_contract_available"
-                ],
-                "memory_workspace_contract_final_source_count": len(
-                    memory_operations_manifest[
-                        "memory_workspace_contract_final_source_ids"
-                    ]
-                ),
-                "memory_workspace_contract_operation_counts": (
-                    memory_operations_manifest[
-                        "memory_workspace_contract_operation_counts"
-                    ]
-                ),
-                "memory_workspace_contract_family_counts": (
-                    memory_operations_manifest[
-                        "memory_workspace_contract_family_counts"
-                    ]
-                ),
-                "memory_workspace_contract_readiness": (
-                    memory_operations_manifest[
-                        "memory_workspace_contract_readiness"
-                    ]
-                ),
-                "memory_workspace_snapshot_available": memory_operations_manifest[
-                    "memory_workspace_snapshot_available"
-                ],
-                "memory_workspace_snapshot_final_source_count": len(
-                    memory_operations_manifest[
-                        "memory_workspace_snapshot_final_source_ids"
-                    ]
-                ),
-                "memory_workspace_snapshot_state_worklist_counts": (
-                    memory_operations_manifest[
-                        "memory_workspace_snapshot_state_worklist_counts"
-                    ]
-                ),
-                "memory_workspace_snapshot_verifier_worklist_counts": (
-                    memory_operations_manifest[
-                        "memory_workspace_snapshot_verifier_worklist_counts"
-                    ]
-                ),
-                "memory_workspace_snapshot_operation_readiness": (
-                    memory_operations_manifest[
-                        "memory_workspace_snapshot_operation_readiness"
-                    ]
-                ),
-                "memory_workspace_policy_available": memory_operations_manifest[
-                    "memory_workspace_policy_available"
-                ],
-                "memory_workspace_policy_stage_count": (
-                    memory_operations_manifest[
-                        "memory_workspace_policy_stage_count"
-                    ]
-                ),
-                "memory_workspace_policy_query_component_count": (
-                    memory_operations_manifest[
-                        "memory_workspace_policy_query_component_count"
-                    ]
-                ),
-                "memory_workspace_policy_query_component_ready_count": (
-                    memory_operations_manifest[
-                        "memory_workspace_policy_query_component_ready_count"
-                    ]
-                ),
-                "memory_workspace_policy_query_component_status": (
-                    memory_operations_manifest[
-                        "memory_workspace_policy_query_component_status"
-                    ]
-                ),
-                "memory_workspace_policy_pressure_policy": (
-                    memory_operations_manifest[
-                        "memory_workspace_policy_pressure_policy"
-                    ]
-                ),
-            },
             "evidence_pressure": _evidence_pressure_manifest(evidence_rows),
             "clean_note": (
                 "Trace-only ledger for prompt-visible context organization. It "
@@ -5286,670 +4366,6 @@ def _context_manifest(
             "activation; it does not alter prediction behavior."
         ),
     }
-
-
-def _memory_operations_context_manifest(
-    *,
-    memory_object_index: Mapping[str, Any] | None,
-    operation_utility_trace: Mapping[str, Any] | None,
-    graph_utility_trace: Mapping[str, Any] | None,
-    operation_utility_source_hits: tuple[Any, ...],
-    graph_utility_source_hits: tuple[Any, ...],
-    final_evidence_source_ids: tuple[str, ...],
-) -> dict[str, Any]:
-    operation_utility_trace = (
-        operation_utility_trace if isinstance(operation_utility_trace, Mapping) else {}
-    )
-    graph_utility_trace = (
-        graph_utility_trace if isinstance(graph_utility_trace, Mapping) else {}
-    )
-    operation_slot_source = _operation_consumer_slot_source(operation_utility_trace)
-    graph_slot_source = _operation_consumer_slot_source(graph_utility_trace)
-    operation_interface_sources = {
-        "memory_context_interface",
-        "memory_operation_api",
-        "memory_operation_registry",
-        "memory_working_view",
-    }
-    registry_projected_source_ids = _ordered_unique(
-        (
-            *(
-                _source_ids_from_hits(operation_utility_source_hits)
-                if operation_slot_source in operation_interface_sources
-                else ()
-            ),
-            *(
-                _source_ids_from_hits(graph_utility_source_hits)
-                if graph_slot_source in operation_interface_sources
-                else ()
-            ),
-        )
-    )
-    final_set = set(final_evidence_source_ids)
-    registry_projected_final_source_ids = tuple(
-        source_id
-        for source_id in registry_projected_source_ids
-        if source_id in final_set
-    )
-    operation_registry = {}
-    working_memory_view = {}
-    lifecycle_audit = {}
-    layer_manifest = {}
-    operation_api = {}
-    context_interface = {}
-    working_compiler_plan = {}
-    memory_system_state = {}
-    memory_operation_journal = {}
-    memory_workspace_contract = {}
-    memory_workspace_snapshot = {}
-    memory_workspace_policy = {}
-    if isinstance(memory_object_index, Mapping):
-        raw_registry = memory_object_index.get("operation_registry")
-        if isinstance(raw_registry, Mapping):
-            operation_registry = raw_registry
-        raw_working_view = memory_object_index.get("working_memory_view")
-        if isinstance(raw_working_view, Mapping):
-            working_memory_view = raw_working_view
-        raw_lifecycle_audit = memory_object_index.get("lifecycle_audit")
-        if isinstance(raw_lifecycle_audit, Mapping):
-            lifecycle_audit = raw_lifecycle_audit
-        raw_layer_manifest = memory_object_index.get("memory_layer_manifest")
-        if isinstance(raw_layer_manifest, Mapping):
-            layer_manifest = raw_layer_manifest
-        raw_operation_api = memory_object_index.get("memory_operation_api")
-        if isinstance(raw_operation_api, Mapping):
-            operation_api = raw_operation_api
-        raw_context_interface = memory_object_index.get("memory_context_interface")
-        if isinstance(raw_context_interface, Mapping):
-            context_interface = raw_context_interface
-        raw_working_compiler_plan = memory_object_index.get(
-            "memory_working_compiler_plan"
-        )
-        if isinstance(raw_working_compiler_plan, Mapping):
-            working_compiler_plan = raw_working_compiler_plan
-        raw_memory_system_state = memory_object_index.get("memory_system_state")
-        if isinstance(raw_memory_system_state, Mapping):
-            memory_system_state = raw_memory_system_state
-        raw_memory_operation_journal = memory_object_index.get(
-            "memory_operation_journal"
-        )
-        if isinstance(raw_memory_operation_journal, Mapping):
-            memory_operation_journal = raw_memory_operation_journal
-        raw_memory_workspace_contract = memory_object_index.get(
-            "memory_workspace_contract"
-        )
-        if isinstance(raw_memory_workspace_contract, Mapping):
-            memory_workspace_contract = raw_memory_workspace_contract
-        raw_memory_workspace_snapshot = memory_object_index.get(
-            "memory_workspace_snapshot"
-        )
-        if isinstance(raw_memory_workspace_snapshot, Mapping):
-            memory_workspace_snapshot = raw_memory_workspace_snapshot
-        raw_memory_workspace_policy = memory_object_index.get(
-            "memory_workspace_policy"
-        )
-        if isinstance(raw_memory_workspace_policy, Mapping):
-            memory_workspace_policy = raw_memory_workspace_policy
-    registry_available = bool(operation_registry.get("applied"))
-    working_view_available = bool(working_memory_view.get("applied"))
-    lifecycle_audit_available = bool(lifecycle_audit.get("applied"))
-    layer_manifest_available = bool(layer_manifest.get("applied"))
-    operation_api_available = bool(operation_api.get("applied"))
-    context_interface_available = bool(context_interface.get("applied"))
-    working_compiler_plan_available = bool(working_compiler_plan.get("applied"))
-    memory_system_state_available = bool(memory_system_state.get("applied"))
-    memory_operation_journal_available = bool(
-        memory_operation_journal.get("applied")
-    )
-    memory_workspace_contract_available = bool(
-        memory_workspace_contract.get("applied")
-    )
-    memory_workspace_snapshot_available = bool(
-        memory_workspace_snapshot.get("applied")
-    )
-    memory_workspace_policy_available = bool(memory_workspace_policy.get("applied"))
-    lifecycle_audit_source_ids = _ordered_unique(
-        source_id
-        for entry in lifecycle_audit.get("entries") or ()
-        if isinstance(entry, Mapping)
-        for source_id in (entry.get("source_ids") or ())
-    )
-    lifecycle_audit_final_source_ids = tuple(
-        source_id for source_id in lifecycle_audit_source_ids if source_id in final_set
-    )
-    layer_manifest_layers = layer_manifest.get("layers")
-    if not isinstance(layer_manifest_layers, Mapping):
-        layer_manifest_layers = {}
-    layer_manifest_source_ids = _ordered_unique(
-        source_id
-        for layer_summary in layer_manifest_layers.values()
-        if isinstance(layer_summary, Mapping)
-        for source_id in (layer_summary.get("source_ids") or ())
-    )
-    layer_manifest_final_source_ids = tuple(
-        source_id for source_id in layer_manifest_source_ids if source_id in final_set
-    )
-    layer_manifest_entry_counts = {
-        str(layer): int(summary.get("entry_count") or 0)
-        for layer, summary in layer_manifest_layers.items()
-        if isinstance(summary, Mapping)
-    }
-    operation_api_source_ids = _ordered_unique(
-        (
-            *(operation_api.get("context_anchor_source_ids") or ()),
-            *(
-                source_id
-                for entry in operation_api.get("entries") or ()
-                if isinstance(entry, Mapping)
-                for source_id in (entry.get("source_ids") or ())
-            ),
-        )
-    )
-    operation_api_final_source_ids = tuple(
-        source_id for source_id in operation_api_source_ids if source_id in final_set
-    )
-    context_interface_source_ids = _ordered_unique(
-        (
-            *(context_interface.get("context_anchor_source_ids") or ()),
-            *(
-                source_id
-                for role in _mapping_values(
-                    context_interface.get("source_roles")
-                )
-                if isinstance(role, Mapping)
-                for source_id in (role.get("source_ids") or ())
-            ),
-            *(
-                source_id
-                for view in _mapping_values(
-                    context_interface.get("operation_views")
-                )
-                if isinstance(view, Mapping)
-                for source_id in (view.get("source_ids") or ())
-            ),
-        )
-    )
-    context_interface_final_source_ids = tuple(
-        source_id
-        for source_id in context_interface_source_ids
-        if source_id in final_set
-    )
-    working_compiler_plan_source_ids = _ordered_unique(
-        (
-            *(working_compiler_plan.get("source_expansion_source_ids") or ()),
-            *(
-                source_id
-                for entry in working_compiler_plan.get("entries") or ()
-                if isinstance(entry, Mapping)
-                for source_id in (entry.get("source_ids") or ())
-            ),
-            *(
-                source_id
-                for entry in working_compiler_plan.get("entries") or ()
-                if isinstance(entry, Mapping)
-                and isinstance(entry.get("source_expansion"), Mapping)
-                for source_id in (
-                    entry.get("source_expansion", {}).get("source_ids") or ()
-                )
-            ),
-        )
-    )
-    working_compiler_plan_final_source_ids = tuple(
-        source_id
-        for source_id in working_compiler_plan_source_ids
-        if source_id in final_set
-    )
-    memory_system_state_source_ids = _ordered_unique(
-        (
-            *(memory_system_state.get("source_expansion_source_ids") or ()),
-            *(
-                source_id
-                for entry in memory_system_state.get("entries") or ()
-                if isinstance(entry, Mapping)
-                for source_id in (entry.get("source_ids") or ())
-            ),
-            *(
-                source_id
-                for entry in memory_system_state.get("entries") or ()
-                if isinstance(entry, Mapping)
-                and isinstance(entry.get("source_expansion"), Mapping)
-                for source_id in (
-                    entry.get("source_expansion", {}).get("source_ids") or ()
-                )
-            ),
-        )
-    )
-    memory_system_state_final_source_ids = tuple(
-        source_id for source_id in memory_system_state_source_ids if source_id in final_set
-    )
-    memory_operation_journal_source_ids = _ordered_unique(
-        (
-            *(memory_operation_journal.get("source_expansion_source_ids") or ()),
-            *(
-                source_id
-                for entry in memory_operation_journal.get("entries") or ()
-                if isinstance(entry, Mapping)
-                for source_id in (entry.get("source_ids") or ())
-            ),
-            *(
-                source_id
-                for entry in memory_operation_journal.get("entries") or ()
-                if isinstance(entry, Mapping)
-                and isinstance(entry.get("source_expansion"), Mapping)
-                for source_id in (
-                    entry.get("source_expansion", {}).get("source_ids") or ()
-                )
-            ),
-        )
-    )
-    memory_operation_journal_final_source_ids = tuple(
-        source_id
-        for source_id in memory_operation_journal_source_ids
-        if source_id in final_set
-    )
-    memory_workspace_contract_layers = memory_workspace_contract.get("layers")
-    if not isinstance(memory_workspace_contract_layers, Mapping):
-        memory_workspace_contract_layers = {}
-    memory_workspace_contract_source_ids = _ordered_unique(
-        (
-            *(memory_workspace_contract.get("context_anchor_source_ids") or ()),
-            *(memory_workspace_contract.get("source_expansion_source_ids") or ()),
-            *(
-                source_id
-                for layer in _mapping_values(memory_workspace_contract_layers)
-                if isinstance(layer, Mapping)
-                for source_id in (layer.get("source_ids") or ())
-            ),
-        )
-    )
-    memory_workspace_contract_final_source_ids = tuple(
-        source_id
-        for source_id in memory_workspace_contract_source_ids
-        if source_id in final_set
-    )
-    memory_workspace_snapshot_source_ids = _ordered_unique(
-        (
-            *(memory_workspace_snapshot.get("source_expansion_source_ids") or ()),
-            *(
-                source_id
-                for worklist in _mapping_values(
-                    memory_workspace_snapshot.get("state_worklists")
-                )
-                if isinstance(worklist, list)
-                for item in worklist
-                if isinstance(item, Mapping)
-                for source_id in (item.get("source_ids") or ())
-            ),
-            *(
-                source_id
-                for worklist in _mapping_values(
-                    memory_workspace_snapshot.get("verifier_worklists")
-                )
-                if isinstance(worklist, list)
-                for item in worklist
-                if isinstance(item, Mapping)
-                for source_id in (item.get("source_ids") or ())
-            ),
-        )
-    )
-    memory_workspace_snapshot_final_source_ids = tuple(
-        source_id
-        for source_id in memory_workspace_snapshot_source_ids
-        if source_id in final_set
-    )
-    return {
-        "trace_only": True,
-        "registry_available": registry_available,
-        "registry_schema_version": str(
-            operation_registry.get("schema_version") or ""
-        ),
-        "registry_entry_count": int(operation_registry.get("entry_count") or 0),
-        "registry_source_backed_entry_count": int(
-            operation_registry.get("source_backed_entry_count") or 0
-        ),
-        "working_memory_view_available": working_view_available,
-        "working_memory_view_schema_version": str(
-            working_memory_view.get("schema_version") or ""
-        ),
-        "working_memory_view_entry_count": int(
-            working_memory_view.get("entry_count") or 0
-        ),
-        "working_memory_view_source_backed_entry_count": int(
-            working_memory_view.get("source_backed_entry_count") or 0
-        ),
-        "lifecycle_audit_available": lifecycle_audit_available,
-        "lifecycle_audit_schema_version": str(
-            lifecycle_audit.get("schema_version") or ""
-        ),
-        "lifecycle_audit_interface_source": str(
-            lifecycle_audit.get("interface_source") or ""
-        ),
-        "lifecycle_audit_entry_count": int(lifecycle_audit.get("entry_count") or 0),
-        "lifecycle_audit_source_backed_entry_count": int(
-            lifecycle_audit.get("source_backed_entry_count") or 0
-        ),
-        "lifecycle_audit_conflict_entry_count": int(
-            lifecycle_audit.get("conflict_entry_count") or 0
-        ),
-        "lifecycle_audit_final_source_ids": lifecycle_audit_final_source_ids,
-        "lifecycle_audit_final_source_count": len(lifecycle_audit_final_source_ids),
-        "layer_manifest_available": layer_manifest_available,
-        "layer_manifest_schema_version": str(
-            layer_manifest.get("schema_version") or ""
-        ),
-        "layer_manifest_layer_order": tuple(layer_manifest.get("layer_order") or ()),
-        "layer_manifest_entry_count": int(layer_manifest.get("entry_count") or 0),
-        "layer_manifest_entry_counts": dict(
-            sorted(layer_manifest_entry_counts.items())
-        ),
-        "layer_manifest_final_source_ids": layer_manifest_final_source_ids,
-        "layer_manifest_final_source_count": len(layer_manifest_final_source_ids),
-        "operation_api_available": operation_api_available,
-        "operation_api_schema_version": str(
-            operation_api.get("schema_version") or ""
-        ),
-        "operation_api_entry_count": int(operation_api.get("entry_count") or 0),
-        "operation_api_source_backed_entry_count": int(
-            operation_api.get("source_backed_entry_count") or 0
-        ),
-        "operation_api_context_anchor_source_count": int(
-            operation_api.get("context_anchor_source_count") or 0
-        ),
-        "operation_api_final_source_ids": operation_api_final_source_ids,
-        "operation_api_final_source_count": len(operation_api_final_source_ids),
-        "context_interface_available": context_interface_available,
-        "context_interface_schema_version": str(
-            context_interface.get("schema_version") or ""
-        ),
-        "context_interface_role_count": int(
-            context_interface.get("role_count") or 0
-        ),
-        "context_interface_entry_count": int(
-            context_interface.get("entry_count") or 0
-        ),
-        "context_interface_context_anchor_source_count": int(
-            context_interface.get("context_anchor_source_count") or 0
-        ),
-        "context_interface_final_source_ids": context_interface_final_source_ids,
-        "context_interface_final_source_count": len(
-            context_interface_final_source_ids
-        ),
-        "working_compiler_plan_available": working_compiler_plan_available,
-        "working_compiler_plan_schema_version": str(
-            working_compiler_plan.get("schema_version") or ""
-        ),
-        "working_compiler_plan_entry_count": int(
-            working_compiler_plan.get("entry_count") or 0
-        ),
-        "working_compiler_plan_source_backed_entry_count": int(
-            working_compiler_plan.get("source_backed_entry_count") or 0
-        ),
-        "working_compiler_plan_context_interface_slot_count": int(
-            working_compiler_plan.get("context_interface_slot_count") or 0
-        ),
-        "working_compiler_plan_focus_counts": _mapping_int_counts(
-            working_compiler_plan.get("focus_counts")
-        ),
-        "working_compiler_plan_context_action_counts": _mapping_int_counts(
-            working_compiler_plan.get("context_action_counts")
-        ),
-        "working_compiler_plan_verifier_check_counts": _mapping_int_counts(
-            working_compiler_plan.get("verifier_check_counts")
-        ),
-        "working_compiler_plan_source_ids": working_compiler_plan_source_ids,
-        "working_compiler_plan_final_source_ids": (
-            working_compiler_plan_final_source_ids
-        ),
-        "working_compiler_plan_final_source_count": len(
-            working_compiler_plan_final_source_ids
-        ),
-        "memory_system_state_available": memory_system_state_available,
-        "memory_system_state_schema_version": str(
-            memory_system_state.get("schema_version") or ""
-        ),
-        "memory_system_state_entry_count": int(
-            memory_system_state.get("entry_count") or 0
-        ),
-        "memory_system_state_source_backed_entry_count": int(
-            memory_system_state.get("source_backed_entry_count") or 0
-        ),
-        "memory_system_state_layer_count": int(
-            memory_system_state.get("layer_count") or 0
-        ),
-        "memory_system_state_focus_counts": _mapping_int_counts(
-            memory_system_state.get("focus_counts")
-        ),
-        "memory_system_state_decision_counts": _mapping_int_counts(
-            memory_system_state.get("decision_counts")
-        ),
-        "memory_system_state_context_action_counts": _mapping_int_counts(
-            memory_system_state.get("context_action_counts")
-        ),
-        "memory_system_state_verifier_check_counts": _mapping_int_counts(
-            memory_system_state.get("verifier_check_counts")
-        ),
-        "memory_system_state_source_ids": memory_system_state_source_ids,
-        "memory_system_state_final_source_ids": memory_system_state_final_source_ids,
-        "memory_system_state_final_source_count": len(
-            memory_system_state_final_source_ids
-        ),
-        "memory_operation_journal_available": memory_operation_journal_available,
-        "memory_operation_journal_schema_version": str(
-            memory_operation_journal.get("schema_version") or ""
-        ),
-        "memory_operation_journal_entry_count": int(
-            memory_operation_journal.get("entry_count") or 0
-        ),
-        "memory_operation_journal_source_backed_entry_count": int(
-            memory_operation_journal.get("source_backed_entry_count") or 0
-        ),
-        "memory_operation_journal_operation_counts": _mapping_int_counts(
-            memory_operation_journal.get("operation_counts")
-        ),
-        "memory_operation_journal_family_counts": _mapping_int_counts(
-            memory_operation_journal.get("family_counts")
-        ),
-        "memory_operation_journal_decision_counts": _mapping_int_counts(
-            memory_operation_journal.get("decision_counts")
-        ),
-        "memory_operation_journal_source_ids": memory_operation_journal_source_ids,
-        "memory_operation_journal_final_source_ids": (
-            memory_operation_journal_final_source_ids
-        ),
-        "memory_operation_journal_final_source_count": len(
-            memory_operation_journal_final_source_ids
-        ),
-        "memory_workspace_contract_available": memory_workspace_contract_available,
-        "memory_workspace_contract_schema_version": str(
-            memory_workspace_contract.get("schema_version") or ""
-        ),
-        "memory_workspace_contract_entry_count": int(
-            memory_workspace_contract.get("entry_count") or 0
-        ),
-        "memory_workspace_contract_source_backed_entry_count": int(
-            memory_workspace_contract.get("source_backed_entry_count") or 0
-        ),
-        "memory_workspace_contract_layer_count": int(
-            memory_workspace_contract.get("layer_count") or 0
-        ),
-        "memory_workspace_contract_context_anchor_source_count": int(
-            memory_workspace_contract.get("context_anchor_source_count") or 0
-        ),
-        "memory_workspace_contract_operation_counts": _mapping_int_counts(
-            memory_workspace_contract.get("operation_counts")
-        ),
-        "memory_workspace_contract_family_counts": _mapping_int_counts(
-            memory_workspace_contract.get("family_counts")
-        ),
-        "memory_workspace_contract_readiness": dict(
-            memory_workspace_contract.get("readiness") or {}
-        ),
-        "memory_workspace_contract_source_ids": memory_workspace_contract_source_ids,
-        "memory_workspace_contract_final_source_ids": (
-            memory_workspace_contract_final_source_ids
-        ),
-        "memory_workspace_contract_final_source_count": len(
-            memory_workspace_contract_final_source_ids
-        ),
-        "memory_workspace_snapshot_available": memory_workspace_snapshot_available,
-        "memory_workspace_snapshot_schema_version": str(
-            memory_workspace_snapshot.get("schema_version") or ""
-        ),
-        "memory_workspace_snapshot_layer_count": int(
-            memory_workspace_snapshot.get("layer_count") or 0
-        ),
-        "memory_workspace_snapshot_state_worklist_count": int(
-            memory_workspace_snapshot.get("state_worklist_count") or 0
-        ),
-        "memory_workspace_snapshot_verifier_worklist_count": int(
-            memory_workspace_snapshot.get("verifier_worklist_count") or 0
-        ),
-        "memory_workspace_snapshot_state_worklist_counts": _mapping_int_counts(
-            memory_workspace_snapshot.get("state_worklist_counts")
-        ),
-        "memory_workspace_snapshot_verifier_worklist_counts": _mapping_int_counts(
-            memory_workspace_snapshot.get("verifier_worklist_counts")
-        ),
-        "memory_workspace_snapshot_operation_readiness": {
-            str(key): bool(value)
-            for key, value in (
-                memory_workspace_snapshot.get("operation_readiness") or {}
-            ).items()
-        }
-        if isinstance(memory_workspace_snapshot.get("operation_readiness"), Mapping)
-        else {},
-        "memory_workspace_snapshot_operation_counts": _mapping_int_counts(
-            memory_workspace_snapshot.get("operation_counts")
-        ),
-        "memory_workspace_snapshot_source_ids": memory_workspace_snapshot_source_ids,
-        "memory_workspace_snapshot_final_source_ids": (
-            memory_workspace_snapshot_final_source_ids
-        ),
-        "memory_workspace_snapshot_final_source_count": len(
-            memory_workspace_snapshot_final_source_ids
-        ),
-        "memory_workspace_policy_available": memory_workspace_policy_available,
-        "memory_workspace_policy_schema_version": str(
-            memory_workspace_policy.get("schema_version") or ""
-        ),
-        "memory_workspace_policy_stage_count": int(
-            memory_workspace_policy.get("stage_count") or 0
-        ),
-        "memory_workspace_policy_stage_order": tuple(
-            memory_workspace_policy.get("stage_order") or ()
-        ),
-        "memory_workspace_policy_query_component_count": int(
-            memory_workspace_policy.get("query_component_count") or 0
-        ),
-        "memory_workspace_policy_query_component_ready_count": int(
-            memory_workspace_policy.get("query_component_ready_count") or 0
-        ),
-        "memory_workspace_policy_query_component_status": {
-            str(component): {
-                "ready": bool(policy.get("ready")),
-                "migration_status": str(policy.get("migration_status") or ""),
-                "query_prompt_action": str(policy.get("query_prompt_action") or ""),
-            }
-            for component, policy in (
-                (memory_workspace_policy.get("query_component_policy") or {}).items()
-                if isinstance(
-                    memory_workspace_policy.get("query_component_policy"), Mapping
-                )
-                else ()
-            )
-            if isinstance(policy, Mapping)
-        },
-        "memory_workspace_policy_state_worklist_counts": _mapping_int_counts(
-            memory_workspace_policy.get("state_worklist_counts")
-        ),
-        "memory_workspace_policy_verifier_worklist_counts": _mapping_int_counts(
-            memory_workspace_policy.get("verifier_worklist_counts")
-        ),
-        "memory_workspace_policy_operation_readiness": {
-            str(key): bool(value)
-            for key, value in (
-                memory_workspace_policy.get("operation_readiness") or {}
-            ).items()
-        }
-        if isinstance(memory_workspace_policy.get("operation_readiness"), Mapping)
-        else {},
-        "memory_workspace_policy_pressure_policy": dict(
-            memory_workspace_policy.get("pressure_policy") or {}
-        ),
-        "memory_workspace_policy_source_policy": dict(
-            memory_workspace_policy.get("source_policy") or {}
-        ),
-        "operation_utility_slot_source": operation_slot_source,
-        "graph_utility_slot_source": graph_slot_source,
-        "operation_interface_sources": sorted(operation_interface_sources),
-        "operation_interface_projected_source_ids": registry_projected_source_ids,
-        "operation_interface_projected_final_source_ids": (
-            registry_projected_final_source_ids
-        ),
-        "operation_interface_projected_final_source_count": len(
-            registry_projected_final_source_ids
-        ),
-        "registry_projected_source_ids": registry_projected_source_ids,
-        "registry_projected_final_source_ids": registry_projected_final_source_ids,
-        "registry_projected_final_source_count": len(
-            registry_projected_final_source_ids
-        ),
-        "final_evidence_policy": "raw_source_rows",
-        "clean_note": (
-            "Trace-only audit of registry-backed memory operations after they "
-            "have expanded to raw source rows. It never treats operation "
-            "registry entries as final answer evidence."
-        ),
-    }
-
-
-def _operation_consumer_slot_source(trace: Mapping[str, Any]) -> str:
-    slot_index = trace.get("slot_index")
-    if not isinstance(slot_index, Mapping):
-        return ""
-    return str(slot_index.get("source") or "")
-
-
-def _mapping_values(value: Any) -> tuple[Any, ...]:
-    if not isinstance(value, Mapping):
-        return ()
-    return tuple(value.values())
-
-
-def _mapping_int_counts(value: Any) -> dict[str, int]:
-    if not isinstance(value, Mapping):
-        return {}
-    counts: dict[str, int] = {}
-    for key, raw_count in value.items():
-        try:
-            counts[str(key)] = int(raw_count)
-        except (TypeError, ValueError):
-            counts[str(key)] = 0
-    return dict(sorted(counts.items()))
-
-
-def _registry_backed_operation_source_ids(
-    *,
-    operation_utility_trace: Mapping[str, Any] | None,
-    graph_utility_trace: Mapping[str, Any] | None,
-) -> tuple[str, ...]:
-    operation_interface_sources = {
-        "memory_context_interface",
-        "memory_operation_api",
-        "memory_operation_registry",
-        "memory_working_view",
-    }
-    return _ordered_unique(
-        source_id
-        for trace in (operation_utility_trace, graph_utility_trace)
-        if isinstance(trace, Mapping)
-        and bool(trace.get("applied"))
-        and _operation_consumer_slot_source(trace) in operation_interface_sources
-        for slot in (trace.get("slots") or ())
-        if isinstance(slot, Mapping)
-        for source_id in (slot.get("source_ids") or ())
-        if source_id
-    )
 
 
 def _evidence_pressure_manifest(evidence_rows: tuple[Any, ...]) -> dict[str, Any]:
@@ -6667,473 +5083,6 @@ def _operation_utility_applies(
     return route.information_need in SUPPORTED_INFORMATION_NEEDS
 
 
-_MEMORY_OPERATION_REGISTRY_BASE_OPERATIONS = frozenset(
-    {"retrieve", "expand", "verify", "audit"}
-)
-
-
-def _memory_operation_slot_empty_index_stats(
-    *,
-    enabled: bool,
-    source: str | None = None,
-) -> dict[str, Any]:
-    return {
-        "enabled": enabled,
-        "source": source
-        or ("memory_object_index" if enabled else "query_record_grouping"),
-        "schema_version": "",
-        "slot_count": 0,
-        "source_backed_slot_count": 0,
-        "operation_slot_count": 0,
-        "graph_signal_slot_count": 0,
-    }
-
-
-def _memory_operation_slot_trace_source(slot_source: str) -> str | None:
-    slot_source = _validate_memory_operation_slot_source(slot_source)
-    if slot_source == "context_interface":
-        return "memory_context_interface"
-    if slot_source == "operation_api":
-        return "memory_operation_api"
-    if slot_source == "working_view":
-        return "memory_working_view"
-    if slot_source == "operation_registry":
-        return "memory_operation_registry"
-    if slot_source == "operation_slot_index":
-        return "memory_object_index"
-    return None
-
-
-def _validate_memory_operation_slot_source(value: Any) -> str:
-    source = str(value or "auto")
-    if source not in _MEMORY_OPERATION_SLOT_SOURCES:
-        supported = ", ".join(sorted(_MEMORY_OPERATION_SLOT_SOURCES))
-        raise ValueError(
-            f"Unsupported memory operation slot_source: {source}. "
-            f"Supported values: {supported}"
-        )
-    return source
-
-
-def _memory_operation_slots_from_object_index(
-    memory_object_index: Mapping[str, Any] | None,
-    *,
-    memory_types: tuple[str, ...],
-    slot_source: str = "auto",
-) -> tuple[dict[tuple[str, str, str], Mapping[str, Any]], dict[str, Any]]:
-    slot_source = _validate_memory_operation_slot_source(slot_source)
-    if not isinstance(memory_object_index, Mapping):
-        return {}, _memory_operation_slot_empty_index_stats(enabled=False)
-    if slot_source == "context_interface":
-        return _memory_operation_slots_from_context_interface(
-            memory_object_index,
-            memory_types=memory_types,
-        )
-    if slot_source == "operation_api":
-        return _memory_operation_slots_from_operation_api(
-            memory_object_index,
-            memory_types=memory_types,
-        )
-    if slot_source == "working_view":
-        return _memory_operation_slots_from_working_view(
-            memory_object_index,
-            memory_types=memory_types,
-        )
-    if slot_source == "operation_registry":
-        return _memory_operation_slots_from_registry(
-            memory_object_index,
-            memory_types=memory_types,
-        )
-    if slot_source == "operation_slot_index":
-        return _memory_operation_slots_from_raw_operation_index(
-            memory_object_index,
-            memory_types=memory_types,
-        )
-    context_interface_slots, context_interface_stats = (
-        _memory_operation_slots_from_context_interface(
-            memory_object_index,
-            memory_types=memory_types,
-        )
-    )
-    if context_interface_stats["enabled"]:
-        return context_interface_slots, context_interface_stats
-    operation_api_slots, operation_api_stats = _memory_operation_slots_from_operation_api(
-        memory_object_index,
-        memory_types=memory_types,
-    )
-    if operation_api_stats["enabled"]:
-        return operation_api_slots, operation_api_stats
-    working_view_slots, working_view_stats = _memory_operation_slots_from_working_view(
-        memory_object_index,
-        memory_types=memory_types,
-    )
-    if working_view_stats["enabled"]:
-        return working_view_slots, working_view_stats
-    registry_slots, registry_stats = _memory_operation_slots_from_registry(
-        memory_object_index,
-        memory_types=memory_types,
-    )
-    if registry_stats["enabled"]:
-        return registry_slots, registry_stats
-    return _memory_operation_slots_from_raw_operation_index(
-        memory_object_index,
-        memory_types=memory_types,
-    )
-
-
-def _memory_operation_slots_from_raw_operation_index(
-    memory_object_index: Mapping[str, Any],
-    *,
-    memory_types: tuple[str, ...],
-) -> tuple[dict[tuple[str, str, str], Mapping[str, Any]], dict[str, Any]]:
-    raw_slots = memory_object_index.get("operation_slot_index")
-    if not isinstance(raw_slots, list):
-        return {}, _memory_operation_slot_empty_index_stats(enabled=False)
-    allowed_types = {str(item).lower() for item in memory_types if str(item).strip()}
-    slots: dict[tuple[str, str, str], Mapping[str, Any]] = {}
-    source_backed_slot_count = 0
-    operation_slot_count = 0
-    graph_signal_slot_count = 0
-    for raw_slot in raw_slots:
-        if not isinstance(raw_slot, Mapping):
-            continue
-        memory_type = _normalize_memory_slot_text(
-            str(raw_slot.get("memory_type") or "")
-        )
-        if allowed_types and memory_type not in allowed_types:
-            continue
-        subject = _normalize_memory_slot_text(str(raw_slot.get("subject") or ""))
-        predicate = _normalize_memory_slot_text(str(raw_slot.get("predicate") or ""))
-        if not memory_type or not subject or not predicate:
-            continue
-        key = (memory_type, subject, predicate)
-        slots[key] = raw_slot
-        if raw_slot.get("source_backed") or raw_slot.get("source_ids"):
-            source_backed_slot_count += 1
-        if raw_slot.get("operations"):
-            operation_slot_count += 1
-        if raw_slot.get("graph_signals"):
-            graph_signal_slot_count += 1
-    return slots, {
-        **_memory_operation_slot_empty_index_stats(enabled=True),
-        "schema_version": str(memory_object_index.get("schema_version") or ""),
-        "slot_count": len(slots),
-        "source_backed_slot_count": source_backed_slot_count,
-        "operation_slot_count": operation_slot_count,
-        "graph_signal_slot_count": graph_signal_slot_count,
-    }
-
-
-def _memory_operation_slots_from_context_interface(
-    memory_object_index: Mapping[str, Any],
-    *,
-    memory_types: tuple[str, ...],
-) -> tuple[dict[tuple[str, str, str], Mapping[str, Any]], dict[str, Any]]:
-    context_interface = memory_object_index.get("memory_context_interface")
-    if not isinstance(context_interface, Mapping) or not context_interface.get(
-        "applied"
-    ):
-        return {}, _memory_operation_slot_empty_index_stats(
-            enabled=False,
-            source="memory_context_interface",
-        )
-    raw_entries = context_interface.get("operation_slots")
-    if not isinstance(raw_entries, list):
-        return {}, _memory_operation_slot_empty_index_stats(
-            enabled=True,
-            source="memory_context_interface",
-        )
-    allowed_types = {str(item).lower() for item in memory_types if str(item).strip()}
-    slots: dict[tuple[str, str, str], Mapping[str, Any]] = {}
-    source_backed_slot_count = 0
-    operation_slot_count = 0
-    graph_signal_slot_count = 0
-    for raw_entry in raw_entries:
-        if not isinstance(raw_entry, Mapping):
-            continue
-        if raw_entry.get("target_type") != "operation_slot":
-            continue
-        memory_type = _normalize_memory_slot_text(
-            str(raw_entry.get("memory_type") or "")
-        )
-        if allowed_types and memory_type not in allowed_types:
-            continue
-        subject = _normalize_memory_slot_text(str(raw_entry.get("subject") or ""))
-        predicate = _normalize_memory_slot_text(str(raw_entry.get("predicate") or ""))
-        if not memory_type or not subject or not predicate:
-            continue
-        key = (memory_type, subject, predicate)
-        slots[key] = raw_entry
-        if raw_entry.get("source_backed") or raw_entry.get("source_ids"):
-            source_backed_slot_count += 1
-        operations = {
-            str(operation).strip().lower()
-            for operation in raw_entry.get("operations") or ()
-            if str(operation).strip()
-        }
-        if operations.difference(_MEMORY_OPERATION_REGISTRY_BASE_OPERATIONS):
-            operation_slot_count += 1
-        if raw_entry.get("graph_signals"):
-            graph_signal_slot_count += 1
-    return slots, {
-        **_memory_operation_slot_empty_index_stats(
-            enabled=True,
-            source="memory_context_interface",
-        ),
-        "schema_version": str(context_interface.get("schema_version") or ""),
-        "slot_count": len(slots),
-        "source_backed_slot_count": source_backed_slot_count,
-        "operation_slot_count": operation_slot_count,
-        "graph_signal_slot_count": graph_signal_slot_count,
-    }
-
-
-def _memory_operation_slots_from_operation_api(
-    memory_object_index: Mapping[str, Any],
-    *,
-    memory_types: tuple[str, ...],
-) -> tuple[dict[tuple[str, str, str], Mapping[str, Any]], dict[str, Any]]:
-    operation_api = memory_object_index.get("memory_operation_api")
-    if not isinstance(operation_api, Mapping) or not operation_api.get("applied"):
-        return {}, _memory_operation_slot_empty_index_stats(
-            enabled=False,
-            source="memory_operation_api",
-        )
-    raw_entries = operation_api.get("entries")
-    if not isinstance(raw_entries, list):
-        return {}, _memory_operation_slot_empty_index_stats(
-            enabled=True,
-            source="memory_operation_api",
-        )
-    allowed_types = {str(item).lower() for item in memory_types if str(item).strip()}
-    slots: dict[tuple[str, str, str], Mapping[str, Any]] = {}
-    source_backed_slot_count = 0
-    operation_slot_count = 0
-    graph_signal_slot_count = 0
-    for raw_entry in raw_entries:
-        if not isinstance(raw_entry, Mapping):
-            continue
-        if raw_entry.get("target_type") != "operation_slot":
-            continue
-        memory_type = _normalize_memory_slot_text(
-            str(raw_entry.get("memory_type") or "")
-        )
-        if allowed_types and memory_type not in allowed_types:
-            continue
-        subject = _normalize_memory_slot_text(str(raw_entry.get("subject") or ""))
-        predicate = _normalize_memory_slot_text(str(raw_entry.get("predicate") or ""))
-        if not memory_type or not subject or not predicate:
-            continue
-        key = (memory_type, subject, predicate)
-        slots[key] = raw_entry
-        if raw_entry.get("source_backed") or raw_entry.get("source_ids"):
-            source_backed_slot_count += 1
-        operations = {
-            str(operation).strip().lower()
-            for operation in raw_entry.get("operations") or ()
-            if str(operation).strip()
-        }
-        if operations.difference(_MEMORY_OPERATION_REGISTRY_BASE_OPERATIONS):
-            operation_slot_count += 1
-        if raw_entry.get("graph_signals"):
-            graph_signal_slot_count += 1
-    return slots, {
-        **_memory_operation_slot_empty_index_stats(
-            enabled=True,
-            source="memory_operation_api",
-        ),
-        "schema_version": str(operation_api.get("schema_version") or ""),
-        "slot_count": len(slots),
-        "source_backed_slot_count": source_backed_slot_count,
-        "operation_slot_count": operation_slot_count,
-        "graph_signal_slot_count": graph_signal_slot_count,
-    }
-
-
-def _memory_operation_slots_from_working_view(
-    memory_object_index: Mapping[str, Any],
-    *,
-    memory_types: tuple[str, ...],
-) -> tuple[dict[tuple[str, str, str], Mapping[str, Any]], dict[str, Any]]:
-    working_view = memory_object_index.get("working_memory_view")
-    if not isinstance(working_view, Mapping) or not working_view.get("applied"):
-        return {}, _memory_operation_slot_empty_index_stats(enabled=False)
-    raw_entries = working_view.get("entries")
-    if not isinstance(raw_entries, list):
-        return {}, _memory_operation_slot_empty_index_stats(
-            enabled=True,
-            source="memory_working_view",
-        )
-    allowed_types = {str(item).lower() for item in memory_types if str(item).strip()}
-    slots: dict[tuple[str, str, str], Mapping[str, Any]] = {}
-    source_backed_slot_count = 0
-    operation_slot_count = 0
-    graph_signal_slot_count = 0
-    for raw_entry in raw_entries:
-        if not isinstance(raw_entry, Mapping):
-            continue
-        if raw_entry.get("target_type") != "operation_slot":
-            continue
-        memory_type = _normalize_memory_slot_text(
-            str(raw_entry.get("memory_type") or "")
-        )
-        if allowed_types and memory_type not in allowed_types:
-            continue
-        subject = _normalize_memory_slot_text(str(raw_entry.get("subject") or ""))
-        predicate = _normalize_memory_slot_text(str(raw_entry.get("predicate") or ""))
-        if not memory_type or not subject or not predicate:
-            continue
-        key = (memory_type, subject, predicate)
-        slots[key] = raw_entry
-        if raw_entry.get("source_backed") or raw_entry.get("source_ids"):
-            source_backed_slot_count += 1
-        operations = {
-            str(operation).strip().lower()
-            for operation in raw_entry.get("operations") or ()
-            if str(operation).strip()
-        }
-        if operations.difference(_MEMORY_OPERATION_REGISTRY_BASE_OPERATIONS):
-            operation_slot_count += 1
-        if raw_entry.get("graph_signals"):
-            graph_signal_slot_count += 1
-    return slots, {
-        **_memory_operation_slot_empty_index_stats(
-            enabled=True,
-            source="memory_working_view",
-        ),
-        "schema_version": str(working_view.get("schema_version") or ""),
-        "slot_count": len(slots),
-        "source_backed_slot_count": source_backed_slot_count,
-        "operation_slot_count": operation_slot_count,
-        "graph_signal_slot_count": graph_signal_slot_count,
-    }
-
-
-def _memory_operation_slots_from_registry(
-    memory_object_index: Mapping[str, Any],
-    *,
-    memory_types: tuple[str, ...],
-) -> tuple[dict[tuple[str, str, str], Mapping[str, Any]], dict[str, Any]]:
-    registry = memory_object_index.get("operation_registry")
-    if not isinstance(registry, Mapping) or not registry.get("applied"):
-        return {}, _memory_operation_slot_empty_index_stats(enabled=False)
-    raw_entries = registry.get("entries")
-    if not isinstance(raw_entries, list):
-        return {}, _memory_operation_slot_empty_index_stats(
-            enabled=True,
-            source="memory_operation_registry",
-        )
-    allowed_types = {str(item).lower() for item in memory_types if str(item).strip()}
-    slots: dict[tuple[str, str, str], Mapping[str, Any]] = {}
-    source_backed_slot_count = 0
-    operation_slot_count = 0
-    graph_signal_slot_count = 0
-    for raw_entry in raw_entries:
-        if not isinstance(raw_entry, Mapping):
-            continue
-        if raw_entry.get("target_type") != "operation_slot":
-            continue
-        memory_type = _normalize_memory_slot_text(
-            str(raw_entry.get("memory_type") or "")
-        )
-        if allowed_types and memory_type not in allowed_types:
-            continue
-        subject = _normalize_memory_slot_text(str(raw_entry.get("subject") or ""))
-        predicate = _normalize_memory_slot_text(str(raw_entry.get("predicate") or ""))
-        if not memory_type or not subject or not predicate:
-            continue
-        key = (memory_type, subject, predicate)
-        slots[key] = raw_entry
-        if raw_entry.get("source_backed") or raw_entry.get("source_ids"):
-            source_backed_slot_count += 1
-        operations = {
-            str(operation).strip().lower()
-            for operation in raw_entry.get("operations") or ()
-            if str(operation).strip()
-        }
-        if operations.difference(_MEMORY_OPERATION_REGISTRY_BASE_OPERATIONS):
-            operation_slot_count += 1
-        if raw_entry.get("graph_signals"):
-            graph_signal_slot_count += 1
-    return slots, {
-        **_memory_operation_slot_empty_index_stats(
-            enabled=True,
-            source="memory_operation_registry",
-        ),
-        "schema_version": str(registry.get("schema_version") or ""),
-        "slot_count": len(slots),
-        "source_backed_slot_count": source_backed_slot_count,
-        "operation_slot_count": operation_slot_count,
-        "graph_signal_slot_count": graph_signal_slot_count,
-    }
-
-
-def _memory_operation_index_slot_matched_terms(
-    *,
-    question_terms: frozenset[str],
-    key: tuple[str, str, str],
-    slot: Mapping[str, Any] | None,
-    ignored_overlap_terms: frozenset[str] = frozenset(),
-) -> tuple[str, ...]:
-    if not isinstance(slot, Mapping):
-        return ()
-    _memory_type, subject, _predicate = key
-    subject_terms = _memory_slot_chain_text_terms(subject)
-    scoped_question_terms = question_terms.difference(subject_terms).difference(
-        ignored_overlap_terms
-    )
-    if not scoped_question_terms:
-        return ()
-    slot_terms = {
-        _normalize_memory_slot_text(str(term))
-        for term in (slot.get("lexical_terms") or ())
-        if str(term).strip()
-    }
-    if not slot_terms:
-        slot_terms = _memory_slot_chain_text_terms(
-            " ".join(
-                str(part)
-                for part in (
-                    slot.get("predicate") or "",
-                    " ".join(str(value) for value in (slot.get("values") or ())),
-                )
-                if part
-            )
-        )
-    slot_terms.difference_update(ignored_overlap_terms)
-    return tuple(sorted(scoped_question_terms.intersection(slot_terms)))
-
-
-def _memory_operation_index_slot_sources(
-    slot: Mapping[str, Any] | None,
-    *,
-    available_source_ids: set[str],
-    max_sources: int,
-    question_scope: str,
-    source_selection_policy: str,
-    existing_source_ids: set[str] | None = None,
-) -> tuple[str, ...]:
-    if not isinstance(slot, Mapping) or max_sources <= 0:
-        return ()
-    prefix = "validity" if source_selection_policy == "validity_aware" else "operation"
-    scope = "historical" if question_scope == "historical" else "current"
-    field = f"{prefix}_{scope}_source_order"
-    selected: list[str] = []
-    blocked = existing_source_ids or set()
-    for raw_source_id in slot.get(field) or slot.get("source_ids") or ():
-        source_id = str(raw_source_id)
-        if (
-            source_id not in available_source_ids
-            or source_id in blocked
-            or source_id in selected
-        ):
-            continue
-        selected.append(source_id)
-        if len(selected) >= max_sources:
-            break
-    return tuple(selected)
-
-
 def _disabled_operation_utility_trace(
     *,
     enabled: bool,
@@ -7143,7 +5092,6 @@ def _disabled_operation_utility_trace(
     max_slots: int,
     max_sources_per_slot: int,
     min_overlap_terms: int,
-    slot_source: str = "auto",
     fusion_mode: str = "tail_rescue",
     tail_exchange_protect_top_n: int = 56,
     tail_exchange_max_swaps: int = 0,
@@ -7163,11 +5111,6 @@ def _disabled_operation_utility_trace(
         "tail_exchange_protect_top_n": tail_exchange_protect_top_n,
         "tail_exchange_max_swaps": tail_exchange_max_swaps,
         "question_scope": question_scope,
-        "slot_source": slot_source,
-        "slot_index": _memory_operation_slot_empty_index_stats(
-            enabled=False,
-            source=_memory_operation_slot_trace_source(slot_source),
-        ),
         "operation_counts": {},
         "skipped_reason": skipped_reason,
         "slots": [],
@@ -7185,13 +5128,11 @@ def _memory_operation_utility_source_hits(
     max_sources_per_slot: int,
     memory_types: tuple[str, ...],
     operations: tuple[str, ...],
-    slot_source: str = "auto",
     min_overlap_terms: int = 1,
     fusion_mode: str = "tail_rescue",
     tail_exchange_protect_top_n: int = 56,
     tail_exchange_max_swaps: int = 0,
     managed_memory_types: tuple[str, ...] = (),
-    memory_object_index: Mapping[str, Any] | None = None,
 ) -> tuple[tuple[RetrievalHit, ...], dict[str, Any]]:
     """Activate raw source rows from build-stage memory operations.
 
@@ -7209,26 +5150,12 @@ def _memory_operation_utility_source_hits(
         max_slots=max_slots,
         max_sources_per_slot=max_sources_per_slot,
         min_overlap_terms=min_overlap_terms,
-        slot_source=slot_source,
         fusion_mode=fusion_mode,
         tail_exchange_protect_top_n=tail_exchange_protect_top_n,
         tail_exchange_max_swaps=tail_exchange_max_swaps,
         question_scope=question_scope,
     )
-    indexed_slots, slot_index_stats = _memory_operation_slots_from_object_index(
-        memory_object_index,
-        memory_types=memory_types,
-        slot_source=slot_source,
-    )
-    use_index_slots = bool(indexed_slots)
-    explicit_index_source = slot_source != "auto"
-    if explicit_index_source and not use_index_slots:
-        return (), {
-            **trace,
-            "slot_index": slot_index_stats,
-            "skipped_reason": "no_operation_slots",
-        }
-    if not memory_hits or (not built_memory_records and not use_index_slots):
+    if not memory_hits or not built_memory_records:
         return (), trace
     if max_slots <= 0 or max_sources_per_slot <= 0:
         return (), {**trace, "skipped_reason": "non_positive_budget"}
@@ -7245,15 +5172,10 @@ def _memory_operation_utility_source_hits(
     if not allowed_operations:
         return (), {**trace, "skipped_reason": "no_operations"}
 
-    groups: dict[tuple[str, str, str], tuple[Any, ...]] = {}
-    if use_index_slots:
-        trace = {**trace, "slot_index": slot_index_stats}
-    else:
-        groups, slot_index_stats = _memory_object_slot_index(
-            built_memory_records,
-            memory_types=memory_types,
-        )
-        trace = {**trace, "slot_index": slot_index_stats}
+    groups, _slot_index_stats = _memory_object_slot_index(
+        built_memory_records,
+        memory_types=memory_types,
+    )
     selected_hits: list[RetrievalHit] = []
     slot_traces: list[dict[str, Any]] = []
     operation_counts: dict[str, int] = {}
@@ -7268,15 +5190,10 @@ def _memory_operation_utility_source_hits(
         if key is None or key in seen_keys:
             continue
         seen_keys.add(key)
-        slot = indexed_slots.get(key) if use_index_slots else None
         records = tuple(groups.get(key, ()))
-        slot_operations = (
-            tuple(str(item) for item in slot.get("operations", ()) if str(item))
-            if isinstance(slot, Mapping)
-            else _memory_operation_slot_types(
-                records,
-                managed_memory_types=managed_memory_types,
-            )
+        slot_operations = _memory_operation_slot_types(
+            records,
+            managed_memory_types=managed_memory_types,
         )
         selected_operations = tuple(
             operation
@@ -7286,37 +5203,19 @@ def _memory_operation_utility_source_hits(
         if not selected_operations:
             continue
 
-        matched_terms = (
-            _memory_operation_index_slot_matched_terms(
-                question_terms=question_terms,
-                key=key,
-                slot=slot,
-            )
-            if isinstance(slot, Mapping)
-            else _memory_object_slot_matched_terms(
-                question_terms=question_terms,
-                key=key,
-                records=records,
-            )
+        matched_terms = _memory_object_slot_matched_terms(
+            question_terms=question_terms,
+            key=key,
+            records=records,
         )
         if len(matched_terms) < max(0, min_overlap_terms):
             continue
 
-        source_ids = (
-            _memory_operation_index_slot_sources(
-                slot,
-                available_source_ids=available_source_ids,
-                max_sources=max_sources_per_slot,
-                question_scope=question_scope,
-                source_selection_policy="legacy",
-            )
-            if isinstance(slot, Mapping)
-            else _memory_operation_slot_sources(
-                records,
-                available_source_ids=available_source_ids,
-                max_sources=max_sources_per_slot,
-                question_scope=question_scope,
-            )
+        source_ids = _memory_operation_slot_sources(
+            records,
+            available_source_ids=available_source_ids,
+            max_sources=max_sources_per_slot,
+            question_scope=question_scope,
         )
         if not source_ids:
             continue
@@ -7354,20 +5253,10 @@ def _memory_operation_utility_source_hits(
                 "matched_memory_id": str(getattr(record, "memory_id", "")),
                 "matched_terms": matched_terms,
                 "question_scope": question_scope,
-                "record_count": int(
-                    slot.get("record_count") or 0
-                )
-                if isinstance(slot, Mapping)
-                else len(records),
-                "status_counts": dict(
-                    slot.get("status_counts") or {}
-                )
-                if isinstance(slot, Mapping)
-                else _memory_operation_slot_status_counts(records),
+                "record_count": len(records),
+                "status_counts": _memory_operation_slot_status_counts(records),
                 "source_ids": tuple(emitted_sources),
-                "values": tuple(slot.get("values") or ())[:6]
-                if isinstance(slot, Mapping)
-                else _memory_object_slot_values(records)[:6],
+                "values": _memory_object_slot_values(records)[:6],
             }
         )
 
@@ -7403,7 +5292,6 @@ def _disabled_graph_utility_trace(
     require_new_source: bool,
     ignored_overlap_terms: tuple[str, ...],
     required_signals: tuple[str, ...] = (),
-    slot_source: str = "auto",
     fusion_mode: str = "tail_rescue",
     overflow_max_hits: int = 0,
     source_selection_policy: str = "legacy",
@@ -7425,11 +5313,7 @@ def _disabled_graph_utility_trace(
         "overflow_max_hits": overflow_max_hits,
         "source_selection_policy": source_selection_policy,
         "question_scope": question_scope,
-        "slot_source": slot_source,
-        "slot_index": _memory_operation_slot_empty_index_stats(
-            enabled=False,
-            source=_memory_operation_slot_trace_source(slot_source),
-        ),
+        "slot_index": _memory_object_slot_empty_index_stats(enabled=True),
         "candidate_source_count": 0,
         "emitted_source_count": 0,
         "novel_source_count": 0,
@@ -7453,11 +5337,9 @@ def _memory_graph_utility_source_hits(
     require_new_source: bool = True,
     ignored_overlap_terms: tuple[str, ...] = (),
     required_signals: tuple[str, ...] = (),
-    slot_source: str = "auto",
     fusion_mode: str = "tail_rescue",
     overflow_max_hits: int = 0,
     source_selection_policy: str = "legacy",
-    memory_object_index: Mapping[str, Any] | None = None,
 ) -> tuple[tuple[RetrievalHit, ...], dict[str, Any]]:
     """Use the build memory graph as a source-backed evidence utility index.
 
@@ -7478,7 +5360,6 @@ def _memory_graph_utility_source_hits(
         require_new_source=require_new_source,
         ignored_overlap_terms=ignored_overlap_terms,
         required_signals=required_signals,
-        slot_source=slot_source,
         fusion_mode=fusion_mode,
         overflow_max_hits=overflow_max_hits,
         source_selection_policy=source_selection_policy,
@@ -7488,20 +5369,7 @@ def _memory_graph_utility_source_hits(
         **trace,
         "candidate_source_count": len(candidate_source_ids),
     }
-    indexed_slots, slot_index_stats = _memory_operation_slots_from_object_index(
-        memory_object_index,
-        memory_types=memory_types,
-        slot_source=slot_source,
-    )
-    use_index_slots = bool(indexed_slots)
-    explicit_index_source = slot_source != "auto"
-    if explicit_index_source and not use_index_slots:
-        return (), {
-            **trace,
-            "slot_index": slot_index_stats,
-            "skipped_reason": "no_graph_slots",
-        }
-    if not memory_hits or (not built_memory_records and not use_index_slots):
+    if not memory_hits or not built_memory_records:
         return (), trace
     if max_slots <= 0 or max_sources_per_slot <= 0:
         return (), {**trace, "skipped_reason": "non_positive_budget"}
@@ -7521,15 +5389,11 @@ def _memory_graph_utility_source_hits(
     if not question_terms:
         return (), {**trace, "skipped_reason": "no_question_terms"}
 
-    groups: dict[tuple[str, str, str], tuple[Any, ...]] = {}
-    if use_index_slots:
-        trace = {**trace, "slot_index": slot_index_stats}
-    else:
-        groups, slot_index_stats = _memory_object_slot_index(
-            built_memory_records,
-            memory_types=memory_types,
-        )
-        trace = {**trace, "slot_index": slot_index_stats}
+    groups, slot_index_stats = _memory_object_slot_index(
+        built_memory_records,
+        memory_types=memory_types,
+    )
+    trace = {**trace, "slot_index": slot_index_stats}
 
     selected_hits: list[RetrievalHit] = []
     slot_traces: list[dict[str, Any]] = []
@@ -7544,59 +5408,30 @@ def _memory_graph_utility_source_hits(
         if key is None or key in seen_keys:
             continue
         seen_keys.add(key)
-        slot = indexed_slots.get(key) if use_index_slots else None
         records = tuple(groups.get(key, ()))
-        if not records and not isinstance(slot, Mapping):
+        if not records:
             continue
 
-        matched_terms = (
-            _memory_operation_index_slot_matched_terms(
-                question_terms=question_terms,
-                key=key,
-                slot=slot,
-                ignored_overlap_terms=ignored_terms,
-            )
-            if isinstance(slot, Mapping)
-            else _memory_object_slot_matched_terms(
-                question_terms=question_terms,
-                key=key,
-                records=records,
-                ignored_overlap_terms=ignored_terms,
-            )
+        matched_terms = _memory_object_slot_matched_terms(
+            question_terms=question_terms,
+            key=key,
+            records=records,
+            ignored_overlap_terms=ignored_terms,
         )
         if len(matched_terms) < max(0, min_overlap_terms):
             continue
 
-        signals = (
-            tuple(str(item) for item in slot.get("graph_signals", ()) if str(item))
-            if isinstance(slot, Mapping)
-            else _memory_graph_slot_signals(records)
-        )
+        signals = _memory_graph_slot_signals(records)
         if required_signal_set and not required_signal_set.intersection(signals):
             continue
 
-        source_ids = (
-            _memory_operation_index_slot_sources(
-                slot,
-                available_source_ids=available_source_ids,
-                existing_source_ids=(
-                    candidate_source_ids if require_new_source else set()
-                ),
-                max_sources=max_sources_per_slot,
-                question_scope=question_scope,
-                source_selection_policy=source_selection_policy,
-            )
-            if isinstance(slot, Mapping)
-            else _memory_graph_slot_sources(
-                records,
-                available_source_ids=available_source_ids,
-                existing_source_ids=(
-                    candidate_source_ids if require_new_source else set()
-                ),
-                max_sources=max_sources_per_slot,
-                question_scope=question_scope,
-                source_selection_policy=source_selection_policy,
-            )
+        source_ids = _memory_graph_slot_sources(
+            records,
+            available_source_ids=available_source_ids,
+            existing_source_ids=candidate_source_ids if require_new_source else set(),
+            max_sources=max_sources_per_slot,
+            question_scope=question_scope,
+            source_selection_policy=source_selection_policy,
         )
         if not source_ids:
             continue
@@ -7640,16 +5475,8 @@ def _memory_graph_utility_source_hits(
                 "matched_memory_id": str(getattr(record, "memory_id", "")),
                 "matched_terms": matched_terms,
                 "question_scope": question_scope,
-                "record_count": int(
-                    slot.get("record_count") or 0
-                )
-                if isinstance(slot, Mapping)
-                else len(records),
-                "status_counts": dict(
-                    slot.get("status_counts") or {}
-                )
-                if isinstance(slot, Mapping)
-                else _memory_operation_slot_status_counts(records),
+                "record_count": len(records),
+                "status_counts": _memory_operation_slot_status_counts(records),
                 "source_ids": tuple(emitted_sources),
                 "source_selection_policy": source_selection_policy,
                 "candidate_source_ids": tuple(
@@ -7661,9 +5488,7 @@ def _memory_graph_utility_source_hits(
                     1 for source_id in emitted_sources if source_id not in candidate_source_ids
                 ),
                 "score": slot_score,
-                "values": tuple(slot.get("values") or ())[:6]
-                if isinstance(slot, Mapping)
-                else _memory_object_slot_values(records)[:6],
+                "values": _memory_object_slot_values(records)[:6],
             }
         )
 
@@ -8296,8 +6121,6 @@ def _memory_governance_activation_records(
         "enabled": enabled,
         "applied": False,
         "mode": mode,
-        "manifest_source": "",
-        "manifest_schema_version": "",
         "input_record_count": len(records),
         "manifest_record_count": 0,
         "source_activation_ready_record_count": 0,
@@ -8316,49 +6139,17 @@ def _memory_governance_activation_records(
     memory_system_graph = management.get("memory_system_graph") or {}
     if not isinstance(memory_system_graph, Mapping):
         return records, {**trace, "skipped_reason": "missing_memory_system_graph"}
-
-    memory_object_index = memory_system_graph.get("memory_object_index") or {}
     governance_manifest = memory_system_graph.get("governance_manifest") or {}
-    if not isinstance(memory_object_index, Mapping):
-        memory_object_index = {}
     if not isinstance(governance_manifest, Mapping):
-        governance_manifest = {}
-
-    manifest_source = ""
-    manifest_schema_version = ""
-    manifest_record_count = 0
-    source_activation_ready_record_count = 0
-    raw_ready_ids: Any = ()
-    if "activation_ready_memory_ids" in memory_object_index:
-        manifest_source = "memory_object_index"
-        manifest_schema_version = str(
-            memory_object_index.get("schema_version") or ""
-        )
-        manifest_record_count = int(memory_object_index.get("object_count") or 0)
-        source_activation_ready_record_count = int(
-            memory_object_index.get("activation_ready_memory_id_count")
-            or memory_object_index.get("activation_ready_object_count")
-            or 0
-        )
-        raw_ready_ids = memory_object_index.get("activation_ready_memory_ids") or ()
-    elif "source_activation_ready_memory_ids" in governance_manifest:
-        manifest_source = "governance_manifest"
-        manifest_schema_version = str(
-            governance_manifest.get("schema_version") or ""
-        )
-        manifest_record_count = int(governance_manifest.get("record_count") or 0)
-        source_activation_ready_record_count = int(
-            governance_manifest.get("source_activation_ready_record_count") or 0
-        )
-        raw_ready_ids = (
-            governance_manifest.get("source_activation_ready_memory_ids") or ()
-        )
-    else:
+        return records, {**trace, "skipped_reason": "missing_governance_manifest"}
+    if "source_activation_ready_memory_ids" not in governance_manifest:
         return records, {**trace, "skipped_reason": "missing_activation_ready_ids"}
 
     ready_ids = frozenset(
         str(memory_id)
-        for memory_id in raw_ready_ids
+        for memory_id in (
+            governance_manifest.get("source_activation_ready_memory_ids") or ()
+        )
         if str(memory_id).strip()
     )
     filtered_records = tuple(
@@ -8369,11 +6160,9 @@ def _memory_governance_activation_records(
     return filtered_records, {
         **trace,
         "applied": True,
-        "manifest_source": manifest_source,
-        "manifest_schema_version": manifest_schema_version,
-        "manifest_record_count": manifest_record_count,
-        "source_activation_ready_record_count": (
-            source_activation_ready_record_count or len(ready_ids)
+        "manifest_record_count": int(governance_manifest.get("record_count") or 0),
+        "source_activation_ready_record_count": int(
+            governance_manifest.get("source_activation_ready_record_count") or 0
         ),
         "activation_record_count": len(filtered_records),
         "filtered_record_count": max(0, len(records) - len(filtered_records)),
@@ -8418,8 +6207,6 @@ def _disabled_memory_activation_priority_trace(
         "output_hit_count": 0,
         "manifest_priority_count": 0,
         "priority_hit_count": 0,
-        "manifest_source": "",
-        "manifest_schema_version": "",
         "reordered": False,
         "selected_priority_memory_ids": (),
         "skipped_reason": skipped_reason,
@@ -8465,20 +6252,12 @@ def _memory_activation_priority_hits(
     if score_boost <= 0:
         return default_hits, {**trace, "skipped_reason": "non_positive_boost"}
 
-    priority_ids, manifest_source, manifest_schema_version = (
-        _memory_activation_priority_id_manifest(
-            management,
-            max_rank=max_rank,
-        )
+    priority_ids = _memory_activation_priority_ids(
+        management,
+        max_rank=max_rank,
     )
     if not priority_ids:
-        return default_hits, {
-            **trace,
-            "manifest_source": manifest_source,
-            "manifest_schema_version": manifest_schema_version,
-            "skipped_reason": "missing_priority_manifest",
-        }
-
+        return default_hits, {**trace, "skipped_reason": "missing_priority_manifest"}
     priority_rank = {memory_id: rank for rank, memory_id in enumerate(priority_ids)}
 
     adjusted: list[tuple[float, int, Any, float]] = []
@@ -8497,8 +6276,6 @@ def _memory_activation_priority_hits(
     if priority_hit_count <= 0:
         return default_hits, {
             **trace,
-            "manifest_source": manifest_source,
-            "manifest_schema_version": manifest_schema_version,
             "manifest_priority_count": len(priority_ids),
             "skipped_reason": "no_priority_hits",
         }
@@ -8523,8 +6300,6 @@ def _memory_activation_priority_hits(
     return selected_hits, {
         **trace,
         "applied": True,
-        "manifest_source": manifest_source,
-        "manifest_schema_version": manifest_schema_version,
         "output_hit_count": len(selected_hits),
         "manifest_priority_count": len(priority_ids),
         "priority_hit_count": priority_hit_count,
@@ -8541,39 +6316,15 @@ def _memory_activation_priority_ids(
     *,
     max_rank: int = 0,
 ) -> tuple[str, ...]:
-    priority_ids, _source, _schema_version = _memory_activation_priority_id_manifest(
-        management,
-        max_rank=max_rank,
-    )
-    return priority_ids
-
-
-def _memory_activation_priority_id_manifest(
-    management: Mapping[str, Any] | None,
-    *,
-    max_rank: int = 0,
-) -> tuple[tuple[str, ...], str, str]:
     if not isinstance(management, Mapping):
-        return (), "", ""
+        return ()
     memory_system_graph = management.get("memory_system_graph") or {}
     if not isinstance(memory_system_graph, Mapping):
-        return (), "", ""
-    memory_object_index = memory_system_graph.get("memory_object_index") or {}
+        return ()
     governance_manifest = memory_system_graph.get("governance_manifest") or {}
-    if not isinstance(memory_object_index, Mapping):
-        memory_object_index = {}
     if not isinstance(governance_manifest, Mapping):
-        governance_manifest = {}
-    if "activation_priority_memory_ids" in memory_object_index:
-        raw_ids = memory_object_index.get("activation_priority_memory_ids") or ()
-        manifest_source = "memory_object_index"
-        manifest_schema_version = str(memory_object_index.get("schema_version") or "")
-    elif "activation_priority_memory_ids" in governance_manifest:
-        raw_ids = governance_manifest.get("activation_priority_memory_ids") or ()
-        manifest_source = "governance_manifest"
-        manifest_schema_version = str(governance_manifest.get("schema_version") or "")
-    else:
-        return (), "", ""
+        return ()
+    raw_ids = governance_manifest.get("activation_priority_memory_ids") or ()
     selected: list[str] = []
     seen: set[str] = set()
     limit = max(0, max_rank)
@@ -8585,7 +6336,7 @@ def _memory_activation_priority_id_manifest(
         selected.append(memory_id)
         if limit and len(selected) >= limit:
             break
-    return tuple(selected), manifest_source, manifest_schema_version
+    return tuple(selected)
 
 
 def _memory_object_slot_record_sort_key(record: Any) -> tuple[int, str, str]:
@@ -9253,961 +7004,6 @@ def _context_budget_applies(
     return route.information_need in information_needs
 
 
-def _validate_workspace_source_expansion_sources(value: Any) -> tuple[str, ...]:
-    sources = _tuple_config(value)
-    if not sources:
-        sources = ("memory_system_state",)
-    result: list[str] = []
-    for source in sources:
-        text = str(source or "").strip()
-        if not text:
-            continue
-        if text not in _WORKSPACE_SOURCE_EXPANSION_SOURCES:
-            supported = ", ".join(sorted(_WORKSPACE_SOURCE_EXPANSION_SOURCES))
-            raise ValueError(
-                "Unsupported retrieval.workspace_source_expansion source: "
-                f"{text}. Supported values: {supported}"
-            )
-        if text not in result:
-            result.append(text)
-    return tuple(result or ("memory_system_state",))
-
-
-def _workspace_source_expansion_route_overrides(
-    value: Any,
-) -> dict[str, dict[str, Any]]:
-    if not isinstance(value, Mapping):
-        if value in (None, {}, ()):
-            return {}
-        raise ValueError(
-            "retrieval.workspace_source_expansion.route_overrides must be an object"
-        )
-    supported_keys = {
-        "max_entries",
-        "max_sources",
-        "min_score",
-        "min_core_terms",
-        "protect_top_n",
-        "preserve_hit_count",
-    }
-    result: dict[str, dict[str, Any]] = {}
-    for need, raw_settings in value.items():
-        need_text = str(need)
-        if need_text not in SUPPORTED_INFORMATION_NEEDS:
-            raise ValueError(
-                "Unsupported retrieval.workspace_source_expansion.route_overrides "
-                f"information_need: {need_text}"
-            )
-        if not isinstance(raw_settings, Mapping):
-            raise ValueError(
-                "retrieval.workspace_source_expansion.route_overrides values "
-                "must be objects"
-            )
-        settings: dict[str, Any] = {}
-        for key, raw_value in raw_settings.items():
-            key_text = str(key)
-            if key_text not in supported_keys:
-                supported = ", ".join(sorted(supported_keys))
-                raise ValueError(
-                    "Unsupported retrieval.workspace_source_expansion.route_overrides "
-                    f"key: {key_text}. Supported values: {supported}"
-                )
-            settings[key_text] = raw_value
-        result[need_text] = settings
-    return result
-
-
-def _workspace_source_expansion_effective_settings(
-    *,
-    route: RouteResult,
-    max_entries: int,
-    max_sources: int,
-    min_score: float,
-    min_core_terms: int,
-    protect_top_n: int,
-    preserve_hit_count: bool,
-    route_overrides: Mapping[str, Mapping[str, Any]] | None,
-) -> dict[str, Any]:
-    settings: dict[str, Any] = {
-        "max_entries": max_entries,
-        "max_sources": max_sources,
-        "min_score": min_score,
-        "min_core_terms": min_core_terms,
-        "protect_top_n": protect_top_n,
-        "preserve_hit_count": preserve_hit_count,
-    }
-    overrides = {}
-    if isinstance(route_overrides, Mapping):
-        raw_override = route_overrides.get(route.information_need)
-        if isinstance(raw_override, Mapping):
-            overrides = dict(raw_override)
-    settings.update(overrides)
-    settings["max_entries"] = max(0, int(settings["max_entries"]))
-    settings["max_sources"] = max(0, int(settings["max_sources"]))
-    settings["min_score"] = float(settings["min_score"])
-    settings["min_core_terms"] = max(0, int(settings["min_core_terms"]))
-    settings["protect_top_n"] = max(0, int(settings["protect_top_n"]))
-    settings["preserve_hit_count"] = bool(settings["preserve_hit_count"])
-    return settings
-
-
-def _disabled_workspace_source_expansion_trace(
-    *,
-    enabled: bool,
-    information_needs: tuple[str, ...],
-    sources: tuple[str, ...],
-    max_entries: int,
-    max_sources: int,
-    min_score: float,
-    min_core_terms: int,
-    require_new_source: bool,
-    protect_top_n: int,
-    preserve_hit_count: bool,
-    reason: str = "disabled",
-) -> dict[str, Any]:
-    return {
-        "enabled": enabled,
-        "applied": False,
-        "reason": reason,
-        "information_needs": information_needs,
-        "sources": sources,
-        "selected_source": "none",
-        "max_entries": max_entries,
-        "max_sources": max_sources,
-        "min_score": min_score,
-        "min_core_terms": min_core_terms,
-        "require_new_source": require_new_source,
-        "protect_top_n": protect_top_n,
-        "preserve_hit_count": preserve_hit_count,
-        "input_hit_count": 0,
-        "output_hit_count": 0,
-        "replaced_tail_count": 0,
-        "candidate_entry_count": 0,
-        "candidate_source_count": 0,
-        "selected_entry_count": 0,
-        "selected_source_count": 0,
-        "selected_source_ids": [],
-        "skipped_existing_source_count": 0,
-        "skipped_missing_source_count": 0,
-        "skipped_low_score_count": 0,
-        "skipped_low_core_count": 0,
-        "entries": [],
-        "clean_note": (
-            "Clean query-time expansion from build-owned memory objects to raw "
-            "source rows. Memory objects are activation handles only."
-        ),
-    }
-
-
-def _workspace_source_expansion_applies(
-    *,
-    enabled: bool,
-    route: RouteResult,
-    information_needs: tuple[str, ...],
-    max_sources: int,
-) -> bool:
-    if not enabled or max_sources <= 0:
-        return False
-    if not information_needs:
-        return True
-    return route.information_need in information_needs
-
-
-def _apply_workspace_source_expansion(
-    *,
-    store: RawEvidenceStore,
-    hits: tuple[RetrievalHit, ...],
-    question: str,
-    route: RouteResult,
-    memory_object_index: Mapping[str, Any] | None,
-    enabled: bool,
-    information_needs: tuple[str, ...],
-    sources: tuple[str, ...],
-    max_entries: int,
-    max_sources: int,
-    min_score: float,
-    min_core_terms: int,
-    require_new_source: bool,
-    protect_top_n: int,
-    preserve_hit_count: bool,
-    route_overrides: Mapping[str, Mapping[str, Any]] | None = None,
-) -> tuple[tuple[RetrievalHit, ...], dict[str, Any]]:
-    settings = _workspace_source_expansion_effective_settings(
-        route=route,
-        max_entries=max_entries,
-        max_sources=max_sources,
-        min_score=min_score,
-        min_core_terms=min_core_terms,
-        protect_top_n=protect_top_n,
-        preserve_hit_count=preserve_hit_count,
-        route_overrides=route_overrides,
-    )
-    max_entries = int(settings["max_entries"])
-    max_sources = int(settings["max_sources"])
-    min_score = float(settings["min_score"])
-    min_core_terms = int(settings["min_core_terms"])
-    protect_top_n = int(settings["protect_top_n"])
-    preserve_hit_count = bool(settings["preserve_hit_count"])
-    trace = _disabled_workspace_source_expansion_trace(
-        enabled=enabled,
-        information_needs=information_needs,
-        sources=sources,
-        max_entries=max_entries,
-        max_sources=max_sources,
-        min_score=min_score,
-        min_core_terms=min_core_terms,
-        require_new_source=require_new_source,
-        protect_top_n=protect_top_n,
-        preserve_hit_count=preserve_hit_count,
-        reason="not_applicable",
-    )
-    trace["input_hit_count"] = len(hits)
-    trace["output_hit_count"] = len(hits)
-    if not _workspace_source_expansion_applies(
-        enabled=enabled,
-        route=route,
-        information_needs=information_needs,
-        max_sources=max_sources,
-    ):
-        trace["reason"] = "disabled" if not enabled else "route_not_enabled"
-        return hits, trace
-    if not isinstance(memory_object_index, Mapping):
-        trace["reason"] = "no_memory_object_index"
-        return hits, trace
-
-    expanded_sources = _workspace_source_expansion_configured_sources(sources)
-    hit_source_ids = set(_source_ids_from_hits(hits))
-    available_source_ids = {turn.source_id for turn in store.turns}
-    question_terms = _selected_context_content_terms(question)
-    candidates: list[dict[str, Any]] = []
-    skipped_existing = 0
-    skipped_missing = 0
-    skipped_low_score = 0
-    skipped_low_core = 0
-
-    for source_label, entry in _workspace_source_expansion_entries(
-        memory_object_index,
-        expanded_sources,
-    ):
-        source_ids = _workspace_source_expansion_entry_source_ids(entry)
-        if not source_ids:
-            skipped_missing += 1
-            continue
-        available_ids = tuple(
-            source_id for source_id in source_ids if source_id in available_source_ids
-        )
-        if not available_ids:
-            skipped_missing += 1
-            continue
-        new_ids = tuple(
-            source_id
-            for source_id in available_ids
-            if (not require_new_source or source_id not in hit_source_ids)
-        )
-        if require_new_source and not new_ids:
-            skipped_existing += 1
-            continue
-        entry_terms = _workspace_source_expansion_entry_terms(entry)
-        matched_terms = tuple(sorted(question_terms & entry_terms))
-        core_matched_terms = _workspace_source_expansion_core_matched_terms(
-            matched_terms,
-            entry=entry,
-        )
-        if len(core_matched_terms) < min_core_terms:
-            skipped_low_core += 1
-            continue
-        score = _workspace_source_expansion_score(
-            entry=entry,
-            matched_terms=matched_terms,
-            core_matched_terms=core_matched_terms,
-            route=route,
-        )
-        if score < min_score:
-            skipped_low_score += 1
-            continue
-        candidates.append(
-            {
-                "source_label": source_label,
-                "entry_id": _workspace_source_expansion_entry_id(entry),
-                "score": score,
-                "matched_terms": matched_terms,
-                "core_matched_terms": core_matched_terms,
-                "source_ids": new_ids if require_new_source else available_ids,
-                "all_source_ids": available_ids,
-                "focus": str(entry.get("focus") or ""),
-                "target_type": str(entry.get("target_type") or ""),
-                "memory_type": str(entry.get("memory_type") or ""),
-                "manager_decision": str(entry.get("manager_decision") or ""),
-            }
-        )
-
-    candidates.sort(
-        key=lambda item: (
-            -float(item["score"]),
-            _workspace_source_expansion_entry_sort_priority(item),
-            str(item["source_label"]),
-            str(item["entry_id"]),
-        )
-    )
-    trace["candidate_entry_count"] = len(candidates)
-    trace["candidate_source_count"] = len(
-        _ordered_unique(
-            source_id
-            for candidate in candidates
-            for source_id in candidate["source_ids"]
-        )
-    )
-    trace["skipped_existing_source_count"] = skipped_existing
-    trace["skipped_missing_source_count"] = skipped_missing
-    trace["skipped_low_score_count"] = skipped_low_score
-    trace["skipped_low_core_count"] = skipped_low_core
-    if not candidates:
-        trace["reason"] = "no_matching_entries"
-        return hits, trace
-
-    selected_source_ids: list[str] = []
-    selected_entries: list[dict[str, Any]] = []
-    for candidate in candidates[: max(0, max_entries)]:
-        entry_selected: list[str] = []
-        for source_id in candidate["source_ids"]:
-            if source_id in selected_source_ids:
-                continue
-            selected_source_ids.append(source_id)
-            entry_selected.append(source_id)
-            if len(selected_source_ids) >= max_sources:
-                break
-        if entry_selected:
-            selected = {
-                key: candidate[key]
-                for key in (
-                    "source_label",
-                    "entry_id",
-                    "score",
-                    "matched_terms",
-                    "core_matched_terms",
-                    "focus",
-                    "target_type",
-                    "memory_type",
-                    "manager_decision",
-                )
-            }
-            selected["selected_source_ids"] = tuple(entry_selected)
-            selected["all_source_ids"] = tuple(candidate["all_source_ids"])
-            selected_entries.append(selected)
-        if len(selected_source_ids) >= max_sources:
-            break
-
-    if not selected_source_ids:
-        trace["reason"] = "no_new_sources"
-        trace["entries"] = candidates[:8]
-        return hits, trace
-
-    selected_hits = tuple(
-        RetrievalHit(
-            source_id=source_id,
-            score=max(0.0, min_score) + (len(selected_source_ids) - offset) * 0.01,
-            rank=len(hits) + 1 + offset,
-            retriever="workspace_source_expansion",
-            matched_terms=tuple(
-                sorted(
-                    {
-                        term
-                        for entry in selected_entries
-                        if source_id in entry["selected_source_ids"]
-                        for term in entry["matched_terms"]
-                    }
-                )
-            ),
-        )
-        for offset, source_id in enumerate(selected_source_ids)
-    )
-    protected_count = max(0, min(protect_top_n, len(hits)))
-    expanded_hits = _workspace_source_expansion_exchange_hits(
-        hits=hits,
-        expansion_hits=selected_hits,
-        protect_top_n=protected_count,
-        preserve_hit_count=preserve_hit_count,
-    )
-    trace.update(
-        {
-            "applied": True,
-            "reason": "selected",
-            "selected_source": selected_entries[0]["source_label"]
-            if selected_entries
-            else "none",
-            "output_hit_count": len(expanded_hits),
-            "replaced_tail_count": max(0, len(hits) + len(selected_hits) - len(expanded_hits)),
-            "selected_entry_count": len(selected_entries),
-            "selected_source_count": len(selected_source_ids),
-            "selected_source_ids": list(selected_source_ids),
-            "entries": selected_entries[:8],
-        }
-    )
-    return expanded_hits, trace
-
-
-def _workspace_source_expansion_configured_sources(
-    sources: tuple[str, ...],
-) -> tuple[str, ...]:
-    if "auto" not in sources:
-        return sources
-    return _ordered_unique(
-        (
-            *(
-                source
-                for source in sources
-                if source != "auto"
-            ),
-            *_WORKSPACE_SOURCE_EXPANSION_AUTO_ORDER,
-        )
-    )
-
-
-def _workspace_source_expansion_exchange_hits(
-    *,
-    hits: tuple[RetrievalHit, ...],
-    expansion_hits: tuple[RetrievalHit, ...],
-    protect_top_n: int,
-    preserve_hit_count: bool,
-) -> tuple[RetrievalHit, ...]:
-    limit = len(hits) if preserve_hit_count else len(hits) + len(expansion_hits)
-    selected: list[RetrievalHit] = []
-    seen: set[str] = set()
-
-    def add(hit: RetrievalHit) -> None:
-        if len(selected) >= limit:
-            return
-        if hit.source_id in seen:
-            return
-        seen.add(hit.source_id)
-        selected.append(hit)
-
-    for hit in hits[: max(0, protect_top_n)]:
-        add(hit)
-    for hit in expansion_hits:
-        add(hit)
-    for hit in hits[max(0, protect_top_n) :]:
-        add(hit)
-
-    return tuple(
-        RetrievalHit(
-            source_id=hit.source_id,
-            score=hit.score,
-            rank=rank,
-            retriever=hit.retriever,
-            matched_terms=hit.matched_terms,
-        )
-        for rank, hit in enumerate(selected, start=1)
-    )
-
-
-def _workspace_source_expansion_entries(
-    memory_object_index: Mapping[str, Any],
-    sources: tuple[str, ...],
-) -> tuple[tuple[str, Mapping[str, Any]], ...]:
-    entries: list[tuple[str, Mapping[str, Any]]] = []
-    source_to_key = {
-        "working_compiler_plan": "memory_working_compiler_plan",
-        "memory_system_state": "memory_system_state",
-        "memory_operation_journal": "memory_operation_journal",
-    }
-    for source in sources:
-        if source in source_to_key:
-            raw = memory_object_index.get(source_to_key[source])
-            if not isinstance(raw, Mapping) or not raw.get("applied"):
-                continue
-            entries.extend(
-                (source, entry)
-                for entry in raw.get("entries") or ()
-                if isinstance(entry, Mapping)
-            )
-        elif source == "memory_workspace_snapshot":
-            raw = memory_object_index.get("memory_workspace_snapshot")
-            if not isinstance(raw, Mapping) or not raw.get("applied"):
-                continue
-            entries.extend(
-                _workspace_snapshot_expansion_entries(raw)
-            )
-    return tuple(entries)
-
-
-def _workspace_snapshot_expansion_entries(
-    snapshot: Mapping[str, Any],
-) -> tuple[tuple[str, Mapping[str, Any]], ...]:
-    result: list[tuple[str, Mapping[str, Any]]] = []
-    for worklist_name, worklists in (
-        ("state", snapshot.get("state_worklists")),
-        ("verifier", snapshot.get("verifier_worklists")),
-    ):
-        if not isinstance(worklists, Mapping):
-            continue
-        for lane, items in worklists.items():
-            if not isinstance(items, list):
-                continue
-            for item in items:
-                if not isinstance(item, Mapping):
-                    continue
-                enriched = {
-                    **item,
-                    "workspace_snapshot_worklist": worklist_name,
-                    "workspace_snapshot_lane": str(lane),
-                }
-                result.append(("memory_workspace_snapshot", enriched))
-    return tuple(result)
-
-
-def _workspace_source_expansion_entry_source_ids(
-    entry: Mapping[str, Any],
-) -> tuple[str, ...]:
-    source_ids: list[str] = []
-    source_expansion = entry.get("source_expansion")
-    if isinstance(source_expansion, Mapping):
-        source_ids.extend(str(source_id) for source_id in source_expansion.get("source_ids") or ())
-    for key in (
-        "source_ids",
-        "expand_source_order",
-        "current_source_order",
-        "historical_source_order",
-    ):
-        source_ids.extend(str(source_id) for source_id in entry.get(key) or ())
-    return _ordered_unique(source_ids)
-
-
-def _workspace_source_expansion_entry_terms(entry: Mapping[str, Any]) -> frozenset[str]:
-    values: list[str] = []
-    for key in (
-        "subject",
-        "predicate",
-        "value",
-        "values",
-        "memory_type",
-        "memory_layer",
-        "context_role",
-        "focus",
-        "secondary_focuses",
-        "manager_decision",
-        "operation_type",
-        "operation_family",
-        "target_type",
-        "slot_id",
-        "target_id",
-        "status",
-        "lifecycle_stage",
-        "state_transition",
-        "context_actions",
-        "verifier_checks",
-        "operations",
-        "operation_actions",
-        "query_consumers",
-        "slot_family",
-        "slot_coverage_terms",
-        "slot_subject_terms",
-        "slot_predicate_terms",
-        "slot_value_terms",
-        "workspace_snapshot_lane",
-    ):
-        values.extend(_workspace_source_expansion_text_values(entry.get(key)))
-    return _selected_context_content_terms(" ".join(values))
-
-
-def _workspace_source_expansion_core_matched_terms(
-    matched_terms: tuple[str, ...],
-    *,
-    entry: Mapping[str, Any],
-) -> tuple[str, ...]:
-    subject_terms = _selected_context_content_terms(str(entry.get("subject") or ""))
-    generic_terms = _WORKSPACE_SOURCE_EXPANSION_GENERIC_TERMS
-    return tuple(
-        term
-        for term in matched_terms
-        if term not in subject_terms and term not in generic_terms
-    )
-
-
-def _workspace_source_expansion_text_values(value: Any) -> tuple[str, ...]:
-    if value is None:
-        return ()
-    if isinstance(value, str):
-        return (value,)
-    if isinstance(value, Mapping):
-        result: list[str] = []
-        for item in value.values():
-            result.extend(_workspace_source_expansion_text_values(item))
-        return tuple(result)
-    if isinstance(value, (list, tuple, set)):
-        result = []
-        for item in value:
-            result.extend(_workspace_source_expansion_text_values(item))
-        return tuple(result)
-    return (str(value),)
-
-
-def _workspace_source_expansion_score(
-    *,
-    entry: Mapping[str, Any],
-    matched_terms: tuple[str, ...],
-    core_matched_terms: tuple[str, ...],
-    route: RouteResult,
-) -> float:
-    score = float(len(core_matched_terms))
-    if matched_terms and core_matched_terms:
-        score += min(0.25, 0.05 * len(matched_terms))
-    focus = str(entry.get("focus") or "")
-    target_type = str(entry.get("target_type") or "")
-    manager_decision = str(entry.get("manager_decision") or "")
-    if route.information_need == "current_state":
-        if focus in {"current_state", "conflict_chain", "temporal_validity"}:
-            score += 0.35
-        if manager_decision in {"supersede", "update", "merge"}:
-            score += 0.25
-    elif route.information_need == "temporal_lookup":
-        if focus in {"temporal_validity", "conflict_chain"}:
-            score += 0.35
-    elif route.information_need == "profile_preference":
-        memory_type = str(entry.get("memory_type") or "")
-        if memory_type in {"preference", "profile", "relationship"}:
-            score += 0.25
-    if target_type in {"conflict_slot", "value_slot", "operation_slot", "object"}:
-        score += 0.1
-    if entry.get("source_backed") or _workspace_source_expansion_entry_source_ids(entry):
-        score += 0.1
-    return score
-
-
-def _workspace_source_expansion_entry_sort_priority(
-    item: Mapping[str, Any],
-) -> tuple[int, int, int]:
-    focus_priority = {
-        "conflict_chain": 0,
-        "temporal_validity": 1,
-        "current_state": 2,
-        "long_term_recall": 3,
-        "audit_only": 4,
-    }
-    decision_priority = {
-        "supersede": 0,
-        "audit_conflict": 1,
-        "merge": 2,
-        "update": 3,
-        "retain_slot": 4,
-        "retain": 5,
-        "create": 6,
-    }
-    target_priority = {
-        "object": 0,
-        "conflict_slot": 1,
-        "operation_slot": 2,
-        "value_slot": 3,
-    }
-    return (
-        focus_priority.get(str(item.get("focus") or ""), 9),
-        decision_priority.get(str(item.get("manager_decision") or ""), 9),
-        target_priority.get(str(item.get("target_type") or ""), 9),
-    )
-
-
-def _workspace_source_expansion_entry_id(entry: Mapping[str, Any]) -> str:
-    for key in (
-        "state_id",
-        "plan_id",
-        "journal_id",
-        "memory_id",
-        "source_operation_id",
-        "target_id",
-    ):
-        value = str(entry.get(key) or "")
-        if value:
-            return value
-    return "unknown"
-
-
-def _validate_context_budget_anchor_source(value: Any) -> str:
-    source = str(value or "operation_registry")
-    if source not in _CONTEXT_BUDGET_ANCHOR_SOURCES:
-        supported = ", ".join(sorted(_CONTEXT_BUDGET_ANCHOR_SOURCES))
-        raise ValueError(
-            f"Unsupported retrieval.context_budget.anchor_source: {source}. "
-            f"Supported values: {supported}"
-        )
-    return source
-
-
-def _memory_layer_manifest_anchor_source_ids(
-    memory_object_index: Mapping[str, Any] | None,
-) -> tuple[str, ...]:
-    if not isinstance(memory_object_index, Mapping):
-        return ()
-    layer_manifest = memory_object_index.get("memory_layer_manifest")
-    if not isinstance(layer_manifest, Mapping) or not layer_manifest.get("applied"):
-        return ()
-    layers = layer_manifest.get("layers")
-    if not isinstance(layers, Mapping):
-        return ()
-    anchor_layers = ("archival_memory", "working_memory", "long_term_memory")
-    return _ordered_unique(
-        source_id
-        for layer in anchor_layers
-        for summary in (layers.get(layer),)
-        if isinstance(summary, Mapping)
-        for source_id in (summary.get("source_ids") or ())
-        if source_id
-    )
-
-
-def _memory_operation_api_anchor_source_ids(
-    memory_object_index: Mapping[str, Any] | None,
-) -> tuple[str, ...]:
-    if not isinstance(memory_object_index, Mapping):
-        return ()
-    operation_api = memory_object_index.get("memory_operation_api")
-    if not isinstance(operation_api, Mapping) or not operation_api.get("applied"):
-        return ()
-    return _ordered_unique(operation_api.get("context_anchor_source_ids") or ())
-
-
-def _memory_context_interface_anchor_source_ids(
-    memory_object_index: Mapping[str, Any] | None,
-) -> tuple[str, ...]:
-    if not isinstance(memory_object_index, Mapping):
-        return ()
-    context_interface = memory_object_index.get("memory_context_interface")
-    if (
-        not isinstance(context_interface, Mapping)
-        or not context_interface.get("applied")
-    ):
-        return ()
-    return _ordered_unique(context_interface.get("context_anchor_source_ids") or ())
-
-
-def _memory_working_compiler_plan_anchor_source_ids(
-    memory_object_index: Mapping[str, Any] | None,
-) -> tuple[str, ...]:
-    if not isinstance(memory_object_index, Mapping):
-        return ()
-    working_compiler_plan = memory_object_index.get("memory_working_compiler_plan")
-    if (
-        not isinstance(working_compiler_plan, Mapping)
-        or not working_compiler_plan.get("applied")
-    ):
-        return ()
-    entries = tuple(
-        entry
-        for entry in working_compiler_plan.get("entries") or ()
-        if isinstance(entry, Mapping)
-    )
-    return _ordered_unique(
-        (
-            *(
-                source_id
-                for entry in sorted(
-                    entries,
-                    key=_working_compiler_plan_anchor_entry_sort_key,
-                )
-                for source_id in (entry.get("source_ids") or ())
-            ),
-            *(
-                source_id
-                for entry in sorted(
-                    entries,
-                    key=_working_compiler_plan_anchor_entry_sort_key,
-                )
-                if isinstance(entry.get("source_expansion"), Mapping)
-                for source_id in (
-                    entry.get("source_expansion", {}).get("source_ids") or ()
-                )
-            ),
-            *(working_compiler_plan.get("source_expansion_source_ids") or ()),
-        )
-    )
-
-
-def _memory_system_state_anchor_source_ids(
-    memory_object_index: Mapping[str, Any] | None,
-) -> tuple[str, ...]:
-    if not isinstance(memory_object_index, Mapping):
-        return ()
-    memory_system_state = memory_object_index.get("memory_system_state")
-    if (
-        not isinstance(memory_system_state, Mapping)
-        or not memory_system_state.get("applied")
-    ):
-        return ()
-    entries = tuple(
-        entry
-        for entry in memory_system_state.get("entries") or ()
-        if isinstance(entry, Mapping)
-    )
-    return _ordered_unique(
-        (
-            *(
-                source_id
-                for entry in sorted(
-                    entries,
-                    key=_working_compiler_plan_anchor_entry_sort_key,
-                )
-                for source_id in (entry.get("source_ids") or ())
-            ),
-            *(
-                source_id
-                for entry in sorted(
-                    entries,
-                    key=_working_compiler_plan_anchor_entry_sort_key,
-                )
-                if isinstance(entry.get("source_expansion"), Mapping)
-                for source_id in (
-                    entry.get("source_expansion", {}).get("source_ids") or ()
-                )
-            ),
-            *(memory_system_state.get("source_expansion_source_ids") or ()),
-        )
-    )
-
-
-def _memory_workspace_contract_anchor_source_ids(
-    memory_object_index: Mapping[str, Any] | None,
-) -> tuple[str, ...]:
-    if not isinstance(memory_object_index, Mapping):
-        return ()
-    workspace_contract = memory_object_index.get("memory_workspace_contract")
-    if (
-        not isinstance(workspace_contract, Mapping)
-        or not workspace_contract.get("applied")
-    ):
-        return ()
-    layer_sources = _ordered_unique(
-        source_id
-        for layer in _mapping_values(workspace_contract.get("layers"))
-        if isinstance(layer, Mapping)
-        for source_id in (layer.get("source_ids") or ())
-    )
-    return _ordered_unique(
-        (
-            *(workspace_contract.get("context_anchor_source_ids") or ()),
-            *(workspace_contract.get("source_expansion_source_ids") or ()),
-            *layer_sources,
-        )
-    )
-
-
-def _working_compiler_plan_anchor_entry_sort_key(
-    entry: Mapping[str, Any],
-) -> tuple[int, int, int, str]:
-    focus_priority = {
-        "conflict_chain": 0,
-        "temporal_validity": 1,
-        "current_state": 2,
-        "long_term_recall": 3,
-        "audit_only": 4,
-    }
-    decision_priority = {
-        "supersede": 0,
-        "audit_conflict": 1,
-        "merge": 2,
-        "update": 3,
-        "retain_slot": 4,
-        "retain": 5,
-        "create": 6,
-    }
-    target_priority = {
-        "object": 0,
-        "conflict_slot": 1,
-        "operation_slot": 2,
-        "value_slot": 3,
-    }
-    return (
-        focus_priority.get(str(entry.get("focus") or ""), 9),
-        decision_priority.get(str(entry.get("manager_decision") or ""), 9),
-        target_priority.get(str(entry.get("target_type") or ""), 9),
-        str(entry.get("plan_id") or entry.get("source_operation_id") or ""),
-    )
-
-
-def _context_budget_anchor_source_ids(
-    *,
-    anchor_source: str,
-    memory_object_index: Mapping[str, Any] | None,
-    operation_utility_trace: Mapping[str, Any] | None,
-    graph_utility_trace: Mapping[str, Any] | None,
-) -> tuple[tuple[str, ...], dict[str, Any]]:
-    anchor_source = _validate_context_budget_anchor_source(anchor_source)
-    registry_source_ids = _registry_backed_operation_source_ids(
-        operation_utility_trace=operation_utility_trace,
-        graph_utility_trace=graph_utility_trace,
-    )
-    layer_manifest_source_ids = _memory_layer_manifest_anchor_source_ids(
-        memory_object_index
-    )
-    operation_api_source_ids = _memory_operation_api_anchor_source_ids(
-        memory_object_index
-    )
-    context_interface_source_ids = _memory_context_interface_anchor_source_ids(
-        memory_object_index
-    )
-    working_compiler_plan_source_ids = _memory_working_compiler_plan_anchor_source_ids(
-        memory_object_index
-    )
-    memory_system_state_source_ids = _memory_system_state_anchor_source_ids(
-        memory_object_index
-    )
-    memory_workspace_contract_source_ids = (
-        _memory_workspace_contract_anchor_source_ids(memory_object_index)
-    )
-    selected_source = anchor_source
-    if anchor_source == "auto":
-        if memory_workspace_contract_source_ids:
-            selected_source = "memory_workspace_contract"
-            selected_source_ids = memory_workspace_contract_source_ids
-        elif working_compiler_plan_source_ids:
-            selected_source = "working_compiler_plan"
-            selected_source_ids = working_compiler_plan_source_ids
-        elif memory_system_state_source_ids:
-            selected_source = "memory_system_state"
-            selected_source_ids = memory_system_state_source_ids
-        elif context_interface_source_ids:
-            selected_source = "context_interface"
-            selected_source_ids = context_interface_source_ids
-        elif operation_api_source_ids:
-            selected_source = "operation_api"
-            selected_source_ids = operation_api_source_ids
-        elif layer_manifest_source_ids:
-            selected_source = "layer_manifest"
-            selected_source_ids = layer_manifest_source_ids
-        else:
-            selected_source = "operation_registry"
-            selected_source_ids = registry_source_ids
-    elif anchor_source == "operation_api":
-        selected_source_ids = operation_api_source_ids
-    elif anchor_source == "context_interface":
-        selected_source_ids = context_interface_source_ids
-    elif anchor_source == "working_compiler_plan":
-        selected_source_ids = working_compiler_plan_source_ids
-    elif anchor_source == "memory_system_state":
-        selected_source_ids = memory_system_state_source_ids
-    elif anchor_source == "memory_workspace_contract":
-        selected_source_ids = memory_workspace_contract_source_ids
-    elif anchor_source == "layer_manifest":
-        selected_source_ids = layer_manifest_source_ids
-    else:
-        selected_source_ids = registry_source_ids
-    if not selected_source_ids:
-        selected_source = "none"
-    return selected_source_ids, {
-        "anchor_source": anchor_source,
-        "anchor_selected_source": selected_source,
-        "anchor_registry_source_count": len(registry_source_ids),
-        "anchor_layer_manifest_source_count": len(layer_manifest_source_ids),
-        "anchor_operation_api_source_count": len(operation_api_source_ids),
-        "anchor_context_interface_source_count": len(context_interface_source_ids),
-        "anchor_working_compiler_plan_source_count": len(
-            working_compiler_plan_source_ids
-        ),
-        "anchor_memory_system_state_source_count": len(memory_system_state_source_ids),
-        "anchor_memory_workspace_contract_source_count": len(
-            memory_workspace_contract_source_ids
-        ),
-    }
-
-
 def _disabled_context_budget_trace(
     *,
     enabled: bool,
@@ -10216,16 +7012,6 @@ def _disabled_context_budget_trace(
     protect_top_n: int,
     max_hits: int,
     information_needs: tuple[str, ...],
-    registry_anchor_retention: bool = False,
-    anchor_source: str = "operation_registry",
-    anchor_selected_source: str = "none",
-    anchor_registry_source_count: int = 0,
-    anchor_layer_manifest_source_count: int = 0,
-    anchor_operation_api_source_count: int = 0,
-    anchor_context_interface_source_count: int = 0,
-    anchor_working_compiler_plan_source_count: int = 0,
-    anchor_memory_system_state_source_count: int = 0,
-    anchor_memory_workspace_contract_source_count: int = 0,
 ) -> dict[str, Any]:
     return {
         "enabled": enabled,
@@ -10240,30 +7026,6 @@ def _disabled_context_budget_trace(
         "estimated_chars": 0,
         "dropped_count": 0,
         "dropped_source_ids": [],
-        "anchor_source": anchor_source,
-        "anchor_selected_source": anchor_selected_source,
-        "anchor_registry_source_count": anchor_registry_source_count,
-        "anchor_layer_manifest_source_count": anchor_layer_manifest_source_count,
-        "anchor_operation_api_source_count": anchor_operation_api_source_count,
-        "anchor_context_interface_source_count": (
-            anchor_context_interface_source_count
-        ),
-        "anchor_working_compiler_plan_source_count": (
-            anchor_working_compiler_plan_source_count
-        ),
-        "anchor_memory_system_state_source_count": (
-            anchor_memory_system_state_source_count
-        ),
-        "anchor_memory_workspace_contract_source_count": (
-            anchor_memory_workspace_contract_source_count
-        ),
-        "anchor_candidate_source_ids": [],
-        "anchor_retained_source_ids": [],
-        "anchor_dropped_source_ids": [],
-        "registry_anchor_retention": registry_anchor_retention,
-        "registry_anchor_candidate_source_ids": [],
-        "registry_anchor_retained_source_ids": [],
-        "registry_anchor_dropped_source_ids": [],
     }
 
 
@@ -10275,16 +7037,6 @@ def _disabled_context_budget_audit_trace(
     protect_top_n: int,
     max_hits: int,
     information_needs: tuple[str, ...],
-    registry_anchor_retention: bool = False,
-    anchor_source: str = "operation_registry",
-    anchor_selected_source: str = "none",
-    anchor_registry_source_count: int = 0,
-    anchor_layer_manifest_source_count: int = 0,
-    anchor_operation_api_source_count: int = 0,
-    anchor_context_interface_source_count: int = 0,
-    anchor_working_compiler_plan_source_count: int = 0,
-    anchor_memory_system_state_source_count: int = 0,
-    anchor_memory_workspace_contract_source_count: int = 0,
 ) -> dict[str, Any]:
     return {
         "enabled": enabled,
@@ -10301,30 +7053,6 @@ def _disabled_context_budget_audit_trace(
         "projected_estimated_chars": 0,
         "projected_dropped_count": 0,
         "projected_dropped_source_ids": [],
-        "anchor_source": anchor_source,
-        "anchor_selected_source": anchor_selected_source,
-        "anchor_registry_source_count": anchor_registry_source_count,
-        "anchor_layer_manifest_source_count": anchor_layer_manifest_source_count,
-        "anchor_operation_api_source_count": anchor_operation_api_source_count,
-        "anchor_context_interface_source_count": (
-            anchor_context_interface_source_count
-        ),
-        "anchor_working_compiler_plan_source_count": (
-            anchor_working_compiler_plan_source_count
-        ),
-        "anchor_memory_system_state_source_count": (
-            anchor_memory_system_state_source_count
-        ),
-        "anchor_memory_workspace_contract_source_count": (
-            anchor_memory_workspace_contract_source_count
-        ),
-        "anchor_candidate_source_ids": [],
-        "anchor_retained_source_ids": [],
-        "anchor_dropped_source_ids": [],
-        "registry_anchor_retention": registry_anchor_retention,
-        "registry_anchor_candidate_source_ids": [],
-        "registry_anchor_retained_source_ids": [],
-        "registry_anchor_dropped_source_ids": [],
         "projected_available_source_count": 0,
         "prompt_row_count": 0,
         "prompt_rows_missing_count": 0,
@@ -10349,19 +7077,7 @@ def _apply_context_budget(
     protect_top_n: int,
     max_hits: int,
     information_needs: tuple[str, ...],
-    protected_source_ids: tuple[str, ...] = (),
-    registry_anchor_retention: bool = False,
-    anchor_source: str = "operation_registry",
-    anchor_selected_source: str = "operation_registry",
-    anchor_registry_source_count: int = 0,
-    anchor_layer_manifest_source_count: int = 0,
-    anchor_operation_api_source_count: int = 0,
-    anchor_context_interface_source_count: int = 0,
-    anchor_working_compiler_plan_source_count: int = 0,
-    anchor_memory_system_state_source_count: int = 0,
-    anchor_memory_workspace_contract_source_count: int = 0,
 ) -> tuple[tuple[RetrievalHit, ...], dict[str, Any]]:
-    protected_source_ids = _ordered_unique(protected_source_ids)
     if not hits:
         return hits, {
             **_disabled_context_budget_trace(
@@ -10371,26 +7087,6 @@ def _apply_context_budget(
                 protect_top_n=protect_top_n,
                 max_hits=max_hits,
                 information_needs=information_needs,
-                registry_anchor_retention=registry_anchor_retention,
-                anchor_source=anchor_source,
-                anchor_selected_source=anchor_selected_source,
-                anchor_registry_source_count=anchor_registry_source_count,
-                anchor_layer_manifest_source_count=(
-                    anchor_layer_manifest_source_count
-                ),
-                anchor_operation_api_source_count=anchor_operation_api_source_count,
-                anchor_context_interface_source_count=(
-                    anchor_context_interface_source_count
-                ),
-                anchor_working_compiler_plan_source_count=(
-                    anchor_working_compiler_plan_source_count
-                ),
-                anchor_memory_system_state_source_count=(
-                    anchor_memory_system_state_source_count
-                ),
-                anchor_memory_workspace_contract_source_count=(
-                    anchor_memory_workspace_contract_source_count
-                ),
             ),
             "applied": True,
         }
@@ -10399,64 +7095,21 @@ def _apply_context_budget(
     minimum = max(0, min_hits)
     hard_max = max(0, max_hits)
     selected: list[RetrievalHit] = []
+    dropped: list[str] = []
     estimated_chars = 0
-    selected_indices: set[int] = set()
-    hit_indices_by_source: dict[str, int] = {}
-    for index, hit in enumerate(hits):
-        hit_indices_by_source.setdefault(hit.source_id, index)
-    anchor_candidate_source_ids = tuple(
-        source_id for source_id in protected_source_ids if source_id in hit_indices_by_source
-    )
-    anchor_candidate_indices = tuple(
-        hit_indices_by_source[source_id] for source_id in anchor_candidate_source_ids
-    )
 
-    def add_hit(index: int, *, force_keep: bool) -> None:
-        nonlocal estimated_chars
-        if index in selected_indices:
-            return
-        if hard_max > 0 and len(selected_indices) >= hard_max:
-            return
-        hit = hits[index]
+    for index, hit in enumerate(hits):
+        if hard_max > 0 and len(selected) >= hard_max:
+            dropped.extend(candidate.source_id for candidate in hits[index:])
+            break
         turn = store.get(hit.source_id)
         turn_chars = len(turn.text) if turn is not None else 0
+        force_keep = index < protected or len(selected) < minimum
         if force_keep or estimated_chars + turn_chars <= max_chars:
-            selected_indices.add(index)
+            selected.append(hit)
             estimated_chars += turn_chars
-
-    if not registry_anchor_retention or not anchor_candidate_indices:
-        for index, hit in enumerate(hits):
-            if hard_max > 0 and len(selected) >= hard_max:
-                break
-            turn = store.get(hit.source_id)
-            turn_chars = len(turn.text) if turn is not None else 0
-            force_keep = index < protected or len(selected) < minimum
-            if force_keep or estimated_chars + turn_chars <= max_chars:
-                selected.append(hit)
-                estimated_chars += turn_chars
-        selected_source_ids = {hit.source_id for hit in selected}
-    else:
-        force_keep_count = max(protected, minimum)
-        for index in range(min(force_keep_count, len(hits))):
-            add_hit(index, force_keep=True)
-        for index in anchor_candidate_indices:
-            add_hit(index, force_keep=False)
-        for index in range(len(hits)):
-            add_hit(index, force_keep=False)
-        selected = [hits[index] for index in sorted(selected_indices)]
-        selected_source_ids = {hit.source_id for hit in selected}
-
-    dropped = tuple(hit.source_id for hit in hits if hit.source_id not in selected_source_ids)
-    anchor_retained_source_ids = tuple(
-        source_id
-        for source_id in anchor_candidate_source_ids
-        if source_id in selected_source_ids
-    )
-    anchor_dropped_source_ids = tuple(
-        source_id
-        for source_id in anchor_candidate_source_ids
-        if source_id not in selected_source_ids
-    )
+        else:
+            dropped.append(hit.source_id)
 
     return tuple(selected), {
         "enabled": True,
@@ -10470,37 +7123,7 @@ def _apply_context_budget(
         "returned_count": len(selected),
         "estimated_chars": estimated_chars,
         "dropped_count": len(dropped),
-        "dropped_source_ids": list(dropped),
-        "anchor_source": anchor_source,
-        "anchor_selected_source": anchor_selected_source,
-        "anchor_registry_source_count": anchor_registry_source_count,
-        "anchor_layer_manifest_source_count": anchor_layer_manifest_source_count,
-        "anchor_operation_api_source_count": anchor_operation_api_source_count,
-        "anchor_context_interface_source_count": (
-            anchor_context_interface_source_count
-        ),
-        "anchor_working_compiler_plan_source_count": (
-            anchor_working_compiler_plan_source_count
-        ),
-        "anchor_memory_system_state_source_count": (
-            anchor_memory_system_state_source_count
-        ),
-        "anchor_memory_workspace_contract_source_count": (
-            anchor_memory_workspace_contract_source_count
-        ),
-        "anchor_candidate_source_ids": list(anchor_candidate_source_ids),
-        "anchor_retained_source_ids": list(anchor_retained_source_ids),
-        "anchor_dropped_source_ids": list(anchor_dropped_source_ids),
-        "registry_anchor_retention": registry_anchor_retention,
-        "registry_anchor_candidate_source_ids": list(
-            anchor_candidate_source_ids
-        ),
-        "registry_anchor_retained_source_ids": list(
-            anchor_retained_source_ids
-        ),
-        "registry_anchor_dropped_source_ids": list(
-            anchor_dropped_source_ids
-        ),
+        "dropped_source_ids": dropped,
     }
 
 
@@ -10549,50 +7172,6 @@ def _context_budget_audit_trace(
         "projected_estimated_chars": projected_budget.get("estimated_chars"),
         "projected_dropped_count": projected_budget.get("dropped_count"),
         "projected_dropped_source_ids": projected_budget.get("dropped_source_ids"),
-        "anchor_source": projected_budget.get("anchor_source"),
-        "anchor_selected_source": projected_budget.get("anchor_selected_source"),
-        "anchor_registry_source_count": projected_budget.get(
-            "anchor_registry_source_count"
-        ),
-        "anchor_layer_manifest_source_count": projected_budget.get(
-            "anchor_layer_manifest_source_count"
-        ),
-        "anchor_operation_api_source_count": projected_budget.get(
-            "anchor_operation_api_source_count"
-        ),
-        "anchor_context_interface_source_count": projected_budget.get(
-            "anchor_context_interface_source_count"
-        ),
-        "anchor_working_compiler_plan_source_count": projected_budget.get(
-            "anchor_working_compiler_plan_source_count"
-        ),
-        "anchor_memory_system_state_source_count": projected_budget.get(
-            "anchor_memory_system_state_source_count"
-        ),
-        "anchor_memory_workspace_contract_source_count": projected_budget.get(
-            "anchor_memory_workspace_contract_source_count"
-        ),
-        "anchor_candidate_source_ids": projected_budget.get(
-            "anchor_candidate_source_ids"
-        ),
-        "anchor_retained_source_ids": projected_budget.get(
-            "anchor_retained_source_ids"
-        ),
-        "anchor_dropped_source_ids": projected_budget.get(
-            "anchor_dropped_source_ids"
-        ),
-        "registry_anchor_retention": projected_budget.get(
-            "registry_anchor_retention"
-        ),
-        "registry_anchor_candidate_source_ids": projected_budget.get(
-            "registry_anchor_candidate_source_ids"
-        ),
-        "registry_anchor_retained_source_ids": projected_budget.get(
-            "registry_anchor_retained_source_ids"
-        ),
-        "registry_anchor_dropped_source_ids": projected_budget.get(
-            "registry_anchor_dropped_source_ids"
-        ),
         "projected_available_source_count": len(projected_available),
         "prompt_row_count": len(prompt_source_ids),
         "prompt_rows_missing_count": len(prompt_missing),
@@ -10847,351 +7426,6 @@ def _selected_context_risk_audit(
     trace["materialized_text_audit_count"] = materialized_text_count
     trace["raw_center_text_audit_count"] = raw_center_text_count
     return trace
-
-
-def _apply_workspace_policy_context_settings(
-    *,
-    enabled: bool,
-    apply_selected_context_pressure_policy: bool,
-    information_needs: tuple[str, ...],
-    route: RouteResult,
-    memory_object_index: Mapping[str, Any] | None,
-    selected_context_settings: Mapping[str, Any],
-) -> tuple[dict[str, Any], dict[str, Any]]:
-    settings = dict(selected_context_settings)
-    selected_context_policy_keys = (
-        "context_format",
-        "timestamp_policy",
-        "max_rows",
-        "max_neighbor_chars",
-        "max_center_chars",
-        "window_before",
-        "window_after",
-    )
-    selected_context_before = {
-        key: settings.get(key) for key in selected_context_policy_keys
-    }
-    trace: dict[str, Any] = {
-        "enabled": enabled,
-        "applied": False,
-        "reason": "disabled" if not enabled else "no_workspace_policy",
-        "information_needs": information_needs,
-        "apply_selected_context_pressure_policy": (
-            apply_selected_context_pressure_policy
-        ),
-        "policy_available": False,
-        "policy_schema_version": "",
-        "policy_stage_order": (),
-        "pressure_policy": {},
-        "selected_context_profile_name": "",
-        "selected_context_profile_policy": {},
-        "selected_context_before": selected_context_before,
-        "selected_context_overrides": {},
-        "selected_context_no_widen_existing_profile": False,
-        "selected_context_no_widen_kept": {},
-        "selected_context_after": dict(selected_context_before),
-    }
-    if not enabled:
-        return settings, trace
-    if information_needs and route.information_need not in information_needs:
-        trace["reason"] = "route_not_enabled"
-        return settings, trace
-    if not isinstance(memory_object_index, Mapping):
-        return settings, trace
-    memory_workspace_policy = memory_object_index.get("memory_workspace_policy")
-    if not isinstance(memory_workspace_policy, Mapping):
-        return settings, trace
-    trace["policy_schema_version"] = str(
-        memory_workspace_policy.get("schema_version") or ""
-    )
-    trace["policy_stage_order"] = tuple(
-        memory_workspace_policy.get("stage_order") or ()
-    )
-    if not memory_workspace_policy.get("applied"):
-        trace["reason"] = "workspace_policy_not_applied"
-        return settings, trace
-    trace["policy_available"] = True
-    pressure_policy = memory_workspace_policy.get("pressure_policy")
-    if not isinstance(pressure_policy, Mapping):
-        trace["reason"] = "missing_pressure_policy"
-        return settings, trace
-    trace["pressure_policy"] = dict(pressure_policy)
-    if not apply_selected_context_pressure_policy:
-        trace["reason"] = "selected_context_pressure_policy_disabled"
-        return settings, trace
-
-    profile_name, selected_pressure_policy = (
-        _workspace_policy_selected_context_pressure_policy(
-            pressure_policy=pressure_policy,
-            route=route,
-            selected_context_settings=settings,
-        )
-    )
-    trace["selected_context_profile_name"] = profile_name
-    if profile_name:
-        trace["selected_context_profile_policy"] = dict(selected_pressure_policy)
-
-    overrides: dict[str, Any] = {}
-    no_widen_existing_profile = bool(
-        selected_pressure_policy.get("selected_context_no_widen_existing_profile")
-    )
-    trace["selected_context_no_widen_existing_profile"] = (
-        no_widen_existing_profile
-    )
-    no_widen_kept: dict[str, Any] = {}
-    raw_context_format = selected_pressure_policy.get("selected_context_format")
-    if raw_context_format:
-        try:
-            overrides["context_format"] = _selected_context_context_format(
-                raw_context_format
-            )
-        except ValueError:
-            trace["reason"] = "invalid_selected_context_format"
-            return settings, trace
-    raw_timestamp_policy = selected_pressure_policy.get(
-        "selected_context_timestamp_policy"
-    )
-    if raw_timestamp_policy:
-        try:
-            overrides["timestamp_policy"] = _selected_context_timestamp_policy(
-                raw_timestamp_policy
-            )
-        except ValueError:
-            trace["reason"] = "invalid_selected_context_timestamp_policy"
-            return settings, trace
-    int_policy_keys = {
-        "selected_context_max_rows": "max_rows",
-        "selected_context_max_neighbor_chars": "max_neighbor_chars",
-        "selected_context_max_center_chars": "max_center_chars",
-        "selected_context_window_before": "window_before",
-        "selected_context_window_after": "window_after",
-    }
-    for policy_key, setting_key in int_policy_keys.items():
-        raw_value = selected_pressure_policy.get(policy_key)
-        if raw_value is None:
-            continue
-        try:
-            value = max(0, int(raw_value))
-        except (TypeError, ValueError):
-            trace["reason"] = f"invalid_{policy_key}"
-            return settings, trace
-        current_value = settings.get(setting_key)
-        if (
-            no_widen_existing_profile
-            and isinstance(current_value, int)
-            and current_value > 0
-            and value > current_value
-        ):
-            no_widen_kept[setting_key] = {
-                "policy_value": value,
-                "kept_value": current_value,
-            }
-            continue
-        overrides[setting_key] = value
-    if not overrides:
-        trace["reason"] = "no_selected_context_pressure_policy"
-        return settings, trace
-
-    settings.update(overrides)
-    trace["applied"] = True
-    trace["reason"] = "workspace_policy_pressure_policy"
-    trace["selected_context_overrides"] = dict(overrides)
-    trace["selected_context_no_widen_kept"] = dict(no_widen_kept)
-    trace["selected_context_after"] = {
-        key: settings.get(key) for key in selected_context_policy_keys
-    }
-    return settings, trace
-
-
-def _workspace_policy_selected_context_pressure_policy(
-    *,
-    pressure_policy: Mapping[str, Any],
-    route: RouteResult,
-    selected_context_settings: Mapping[str, Any],
-) -> tuple[str, Mapping[str, Any]]:
-    profiles = pressure_policy.get("selected_context_profiles")
-    if not isinstance(profiles, Mapping):
-        return "", pressure_policy
-    profile_name = ""
-    route_profiles = pressure_policy.get("selected_context_route_profiles")
-    if isinstance(route_profiles, Mapping):
-        profile_name = str(route_profiles.get(route.information_need) or "")
-    if not profile_name and selected_context_settings.get(
-        "require_question_reference"
-    ):
-        profile_name = str(
-            pressure_policy.get("selected_context_question_reference_profile") or ""
-        )
-    if not profile_name:
-        profile_name = str(
-            pressure_policy.get("selected_context_default_profile") or ""
-        )
-    profile = profiles.get(profile_name)
-    if not isinstance(profile, Mapping):
-        return "", pressure_policy
-    selected_policy = dict(pressure_policy)
-    selected_policy.update(profile)
-    return profile_name, selected_policy
-
-
-def _workspace_policy_context_manifest(
-    workspace_policy_context: Mapping[str, Any] | None,
-) -> dict[str, Any]:
-    if not isinstance(workspace_policy_context, Mapping):
-        workspace_policy_context = {}
-    return {
-        "enabled": bool(workspace_policy_context.get("enabled")),
-        "applied": bool(workspace_policy_context.get("applied")),
-        "reason": str(workspace_policy_context.get("reason") or ""),
-        "policy_available": bool(workspace_policy_context.get("policy_available")),
-        "policy_schema_version": str(
-            workspace_policy_context.get("policy_schema_version") or ""
-        ),
-        "policy_stage_order": tuple(
-            workspace_policy_context.get("policy_stage_order") or ()
-        ),
-        "selected_context_overrides": dict(
-            workspace_policy_context.get("selected_context_overrides") or {}
-        ),
-        "selected_context_profile_name": str(
-            workspace_policy_context.get("selected_context_profile_name") or ""
-        ),
-        "selected_context_before": dict(
-            workspace_policy_context.get("selected_context_before") or {}
-        ),
-        "selected_context_after": dict(
-            workspace_policy_context.get("selected_context_after") or {}
-        ),
-    }
-
-
-def _workspace_source_expansion_context_manifest(
-    workspace_source_expansion: Mapping[str, Any] | None,
-    *,
-    final_evidence_source_ids: tuple[str, ...],
-) -> dict[str, Any]:
-    if not isinstance(workspace_source_expansion, Mapping):
-        workspace_source_expansion = {}
-    selected_source_ids = _ordered_unique(
-        workspace_source_expansion.get("selected_source_ids") or ()
-    )
-    final_set = set(final_evidence_source_ids)
-    final_source_ids = tuple(
-        source_id for source_id in selected_source_ids if source_id in final_set
-    )
-    return {
-        "enabled": bool(workspace_source_expansion.get("enabled")),
-        "applied": bool(workspace_source_expansion.get("applied")),
-        "reason": str(workspace_source_expansion.get("reason") or ""),
-        "sources": tuple(workspace_source_expansion.get("sources") or ()),
-        "selected_source": str(
-            workspace_source_expansion.get("selected_source") or ""
-        ),
-        "candidate_entry_count": int(
-            workspace_source_expansion.get("candidate_entry_count") or 0
-        ),
-        "candidate_source_count": int(
-            workspace_source_expansion.get("candidate_source_count") or 0
-        ),
-        "selected_entry_count": int(
-            workspace_source_expansion.get("selected_entry_count") or 0
-        ),
-        "selected_source_count": len(selected_source_ids),
-        "selected_source_ids": selected_source_ids,
-        "final_source_count": len(final_source_ids),
-        "final_source_ids": final_source_ids,
-        "input_hit_count": int(
-            workspace_source_expansion.get("input_hit_count") or 0
-        ),
-        "output_hit_count": int(
-            workspace_source_expansion.get("output_hit_count") or 0
-        ),
-        "replaced_tail_count": int(
-            workspace_source_expansion.get("replaced_tail_count") or 0
-        ),
-        "skipped_existing_source_count": int(
-            workspace_source_expansion.get("skipped_existing_source_count") or 0
-        ),
-        "skipped_missing_source_count": int(
-            workspace_source_expansion.get("skipped_missing_source_count") or 0
-        ),
-        "skipped_low_score_count": int(
-            workspace_source_expansion.get("skipped_low_score_count") or 0
-        ),
-        "skipped_low_core_count": int(
-            workspace_source_expansion.get("skipped_low_core_count") or 0
-        ),
-        "clean_note": (
-            "Source-backed expansion manifest. Selected memory-object handles "
-            "must resolve to raw evidence rows before they can support an answer."
-        ),
-    }
-
-
-def _workspace_query_policy_context_manifest(
-    compiled_diagnostics: Mapping[str, Any] | None,
-) -> dict[str, Any]:
-    if not isinstance(compiled_diagnostics, Mapping):
-        compiled_diagnostics = {}
-    workspace_query_policy = compiled_diagnostics.get("workspace_query_policy")
-    if not isinstance(workspace_query_policy, Mapping):
-        workspace_query_policy = {}
-    replaced_components = tuple(
-        str(component)
-        for component in workspace_query_policy.get("replaced_components") or ()
-        if str(component).strip()
-    )
-    source_labels = tuple(
-        str(label)
-        for label in workspace_query_policy.get("packet_candidate_source_labels") or ()
-        if str(label).strip()
-    )
-    slots = tuple(
-        str(slot)
-        for slot in workspace_query_policy.get("packet_candidate_slots") or ()
-        if str(slot).strip()
-    )
-    verifier_checks = tuple(
-        str(check)
-        for check in workspace_query_policy.get("packet_candidate_verifier_checks")
-        or ()
-        if str(check).strip()
-    )
-    return {
-        "available": bool(workspace_query_policy),
-        "enabled": bool(workspace_query_policy.get("enabled")),
-        "applied": bool(workspace_query_policy.get("applied")),
-        "reason": str(workspace_query_policy.get("reason") or ""),
-        "policy_available": bool(workspace_query_policy.get("policy_available")),
-        "policy_schema_version": str(
-            workspace_query_policy.get("policy_schema_version") or ""
-        ),
-        "ready_components": tuple(
-            str(component)
-            for component in workspace_query_policy.get("ready_components") or ()
-            if str(component).strip()
-        ),
-        "replaced_components": replaced_components,
-        "packet_source": str(workspace_query_policy.get("packet_source") or ""),
-        "packet_selected_source": str(
-            workspace_query_policy.get("packet_selected_source") or ""
-        ),
-        "packet_candidate_count": int(
-            workspace_query_policy.get("packet_candidate_count") or 0
-        ),
-        "packet_candidate_source_labels": source_labels,
-        "packet_candidate_slots": slots,
-        "packet_candidate_focus_counts": _mapping_int_counts(
-            workspace_query_policy.get("packet_candidate_focus_counts")
-        ),
-        "packet_candidate_verifier_checks": verifier_checks,
-        "slot_guard": bool(workspace_query_policy.get("slot_guard")),
-        "clean_note": (
-            "Query-level workspace policy manifest from compiler diagnostics. "
-            "It only reports source-backed packet candidates grounded in the "
-            "current prompt-visible raw rows."
-        ),
-    }
 
 
 def _compiler_context_pressure_trace(
@@ -12178,102 +8412,6 @@ def _compiler_trace_config(
         "memory_value_slot_guide_memory_types": _tuple_config(
             compiler_config.get("memory_value_slot_guide_memory_types")
         ),
-        "working_memory_packet": bool(
-            compiler_config.get("working_memory_packet", False)
-        ),
-        "working_memory_packet_information_needs": _tuple_config(
-            compiler_config.get(
-                "working_memory_packet_information_needs",
-                ("current_state", "fact_lookup", "profile_preference"),
-            )
-        ),
-        "working_memory_packet_max_items": int(
-            compiler_config.get("working_memory_packet_max_items", 4)
-        ),
-        "working_memory_packet_value_chars": int(
-            compiler_config.get("working_memory_packet_value_chars", 120)
-        ),
-        "working_memory_packet_source": str(
-            compiler_config.get("working_memory_packet_source", "working_view")
-        ),
-        "working_memory_packet_format": str(
-            compiler_config.get("working_memory_packet_format", "verbose")
-        ),
-        "working_memory_packet_compact_short_header": bool(
-            compiler_config.get("working_memory_packet_compact_short_header", False)
-        ),
-        "working_memory_packet_compact_dedupe": bool(
-            compiler_config.get("working_memory_packet_compact_dedupe", False)
-        ),
-        "working_memory_packet_slot_guard": bool(
-            compiler_config.get("working_memory_packet_slot_guard", False)
-        ),
-        "working_memory_packet_slot_guard_action": str(
-            compiler_config.get(
-                "working_memory_packet_slot_guard_action", "suppress"
-            )
-        ),
-        "working_memory_packet_slot_guard_max_rows": int(
-            compiler_config.get("working_memory_packet_slot_guard_max_rows", 6)
-        ),
-        "workspace_query_policy": bool(
-            compiler_config.get("workspace_query_policy", False)
-        ),
-        "workspace_query_policy_information_needs": _tuple_config(
-            compiler_config.get(
-                "workspace_query_policy_information_needs",
-                ("current_state", "fact_lookup", "profile_preference"),
-            )
-        ),
-        "workspace_query_policy_replacement_components": _tuple_config(
-            compiler_config.get(
-                "workspace_query_policy_replacement_components",
-                (
-                    "structured_guide",
-                    "memory_state_guide",
-                    "memory_value_slot_guide",
-                ),
-            )
-        ),
-        "workspace_query_policy_packet_source": str(
-            compiler_config.get(
-                "workspace_query_policy_packet_source",
-                "memory_system_state",
-            )
-        ),
-        "workspace_query_policy_packet_max_items": int(
-            compiler_config.get("workspace_query_policy_packet_max_items", 3)
-        ),
-        "workspace_query_policy_packet_value_chars": int(
-            compiler_config.get("workspace_query_policy_packet_value_chars", 80)
-        ),
-        "workspace_query_policy_packet_format": str(
-            compiler_config.get("workspace_query_policy_packet_format", "compact")
-        ),
-        "workspace_query_policy_packet_compact_short_header": bool(
-            compiler_config.get(
-                "workspace_query_policy_packet_compact_short_header",
-                True,
-            )
-        ),
-        "workspace_query_policy_packet_compact_dedupe": bool(
-            compiler_config.get(
-                "workspace_query_policy_packet_compact_dedupe",
-                True,
-            )
-        ),
-        "workspace_query_policy_slot_guard": bool(
-            compiler_config.get("workspace_query_policy_slot_guard", True)
-        ),
-        "workspace_query_policy_slot_guard_action": str(
-            compiler_config.get(
-                "workspace_query_policy_slot_guard_action",
-                "structured_guide",
-            )
-        ),
-        "workspace_query_policy_slot_guard_max_rows": int(
-            compiler_config.get("workspace_query_policy_slot_guard_max_rows", 6)
-        ),
         "profile_activation_guide": bool(
             compiler_config.get("profile_activation_guide", False)
         ),
@@ -12324,24 +8462,6 @@ def _compiler_trace_config(
         "context_layout": str(compiler_config.get("context_layout", "flat")),
         "memory_context_newlines_after_blocks": int(
             compiler_config.get("memory_context_newlines_after_blocks", 3)
-        ),
-        "memory_context_header_format": str(
-            compiler_config.get("memory_context_header_format", "multiline")
-        ),
-        "compact_query_contract": bool(
-            compiler_config.get("compact_query_contract", False)
-        ),
-        "compact_query_guide_blocks": bool(
-            compiler_config.get(
-                "compact_query_guide_blocks",
-                compiler_config.get("compact_query_contract", False),
-            )
-        ),
-        "compact_query_answer_contract": bool(
-            compiler_config.get(
-                "compact_query_answer_contract",
-                compiler_config.get("compact_query_contract", False),
-            )
         ),
         "max_memory_records": int(compiler_config.get("max_memory_records", 12)),
         "route_overrides": compiler_config.get("route_overrides") or {},
@@ -12650,96 +8770,6 @@ def _configured_compiler(compiler_config: Mapping[str, Any]) -> EvidenceCompiler
         memory_value_slot_guide_memory_types=_tuple_config(
             compiler_config.get("memory_value_slot_guide_memory_types")
         ),
-        working_memory_packet=bool(
-            compiler_config.get("working_memory_packet", False)
-        ),
-        working_memory_packet_information_needs=_tuple_config(
-            compiler_config.get(
-                "working_memory_packet_information_needs",
-                ("current_state", "fact_lookup", "profile_preference"),
-            )
-        ),
-        working_memory_packet_max_items=int(
-            compiler_config.get("working_memory_packet_max_items", 4)
-        ),
-        working_memory_packet_value_chars=int(
-            compiler_config.get("working_memory_packet_value_chars", 120)
-        ),
-        working_memory_packet_source=str(
-            compiler_config.get("working_memory_packet_source", "working_view")
-        ),
-        working_memory_packet_format=str(
-            compiler_config.get("working_memory_packet_format", "verbose")
-        ),
-        working_memory_packet_slot_guard=bool(
-            compiler_config.get("working_memory_packet_slot_guard", False)
-        ),
-        working_memory_packet_slot_guard_action=str(
-            compiler_config.get(
-                "working_memory_packet_slot_guard_action", "suppress"
-            )
-        ),
-        working_memory_packet_slot_guard_max_rows=int(
-            compiler_config.get("working_memory_packet_slot_guard_max_rows", 6)
-        ),
-        workspace_query_policy=bool(
-            compiler_config.get("workspace_query_policy", False)
-        ),
-        workspace_query_policy_information_needs=_tuple_config(
-            compiler_config.get(
-                "workspace_query_policy_information_needs",
-                ("current_state", "fact_lookup", "profile_preference"),
-            )
-        ),
-        workspace_query_policy_replacement_components=_tuple_config(
-            compiler_config.get(
-                "workspace_query_policy_replacement_components",
-                (
-                    "structured_guide",
-                    "memory_state_guide",
-                    "memory_value_slot_guide",
-                ),
-            )
-        ),
-        workspace_query_policy_packet_source=str(
-            compiler_config.get(
-                "workspace_query_policy_packet_source",
-                "memory_system_state",
-            )
-        ),
-        workspace_query_policy_packet_max_items=int(
-            compiler_config.get("workspace_query_policy_packet_max_items", 3)
-        ),
-        workspace_query_policy_packet_value_chars=int(
-            compiler_config.get("workspace_query_policy_packet_value_chars", 80)
-        ),
-        workspace_query_policy_packet_format=str(
-            compiler_config.get("workspace_query_policy_packet_format", "compact")
-        ),
-        workspace_query_policy_packet_compact_short_header=bool(
-            compiler_config.get(
-                "workspace_query_policy_packet_compact_short_header",
-                True,
-            )
-        ),
-        workspace_query_policy_packet_compact_dedupe=bool(
-            compiler_config.get(
-                "workspace_query_policy_packet_compact_dedupe",
-                True,
-            )
-        ),
-        workspace_query_policy_slot_guard=bool(
-            compiler_config.get("workspace_query_policy_slot_guard", True)
-        ),
-        workspace_query_policy_slot_guard_action=str(
-            compiler_config.get(
-                "workspace_query_policy_slot_guard_action",
-                "structured_guide",
-            )
-        ),
-        workspace_query_policy_slot_guard_max_rows=int(
-            compiler_config.get("workspace_query_policy_slot_guard_max_rows", 6)
-        ),
         profile_activation_guide=bool(
             compiler_config.get("profile_activation_guide", False)
         ),
@@ -12807,18 +8837,6 @@ def _configured_compiler(compiler_config: Mapping[str, Any]) -> EvidenceCompiler
         ),
         memory_context_newlines_after_blocks=int(
             compiler_config.get("memory_context_newlines_after_blocks", 3)
-        ),
-        memory_context_header_format=str(
-            compiler_config.get("memory_context_header_format", "multiline")
-        ),
-        compact_query_contract=bool(
-            compiler_config.get("compact_query_contract", False)
-        ),
-        compact_query_guide_blocks=compiler_config.get(
-            "compact_query_guide_blocks"
-        ),
-        compact_query_answer_contract=compiler_config.get(
-            "compact_query_answer_contract"
         ),
         prompt_mode=str(compiler_config.get("prompt_mode", "default")),
         route_overrides=compiler_config.get("route_overrides") or {},
