@@ -1,0 +1,89 @@
+{
+  "base_lts": "v291",
+  "benchmarks": {
+    "lme": {
+      "answer_cache_hits": 478,
+      "answer_cache_misses": 22,
+      "avg_build_tokens": 85393.566,
+      "avg_query_tokens": 6327.884,
+      "changed_answers_path": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_memory_operation_plan_guide_v292_changed_vs_v291/lme_changed_answers.jsonl",
+      "changed_answers_vs_v291": 12,
+      "experiment_dir": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_memory_operation_plan_guide_v292_lme_full",
+      "full_output_dir": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_memory_operation_plan_guide_v292_lme_full",
+      "git_in_manifest": {
+        "commit": "9b55eacbedc91ae72c9a20b7eb465a16e555b56f",
+        "dirty": false,
+        "inside_work_tree": true,
+        "note": null,
+        "status_short": ""
+      },
+      "judge_v291_changed": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_memory_operation_plan_guide_v292_changed_vs_v291/lme_v291_changed_dual_judge.json",
+      "judge_v292_changed": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_memory_operation_plan_guide_v292_changed_vs_v291/lme_v292_changed_dual_judge.json",
+      "merged_accuracy": {
+        "changed_n": 12,
+        "delta_lenient_correct": -4,
+        "delta_strict_correct": -5,
+        "n": 500,
+        "v291_changed_lenient_correct": 9,
+        "v291_changed_strict_correct": 9,
+        "v291_full_lenient_accuracy": 0.846,
+        "v291_full_lenient_correct": 423,
+        "v291_full_strict_accuracy": 0.834,
+        "v291_full_strict_correct": 417,
+        "v292_changed_lenient_correct": 5,
+        "v292_changed_strict_correct": 4,
+        "v292_full_lenient_accuracy": 0.838,
+        "v292_full_lenient_correct": 419,
+        "v292_full_strict_accuracy": 0.824,
+        "v292_full_strict_correct": 412
+      },
+      "n_samples": 500
+    },
+    "locomo": {
+      "answer_cache_hits": 1537,
+      "answer_cache_misses": 3,
+      "avg_build_tokens": 62015.57402597403,
+      "avg_query_tokens": 6094.364285714286,
+      "changed_answers_path": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_memory_operation_plan_guide_v292_changed_vs_v291/locomo_changed_answers.jsonl",
+      "changed_answers_vs_v291": 1,
+      "experiment_dir": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_memory_operation_plan_guide_v292_locomo_full",
+      "full_output_dir": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_memory_operation_plan_guide_v292_locomo_full",
+      "git_in_manifest": {
+        "commit": "9b55eacbedc91ae72c9a20b7eb465a16e555b56f",
+        "dirty": true,
+        "inside_work_tree": true,
+        "note": null,
+        "status_short": "?? experiments/diagnostic/stage1_memory_operation_plan_guide_v292_lme_full/"
+      },
+      "judge_v291_changed": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_memory_operation_plan_guide_v292_changed_vs_v291/locomo_v291_changed_dual_judge.json",
+      "judge_v292_changed": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_memory_operation_plan_guide_v292_changed_vs_v291/locomo_v292_changed_dual_judge.json",
+      "merged_accuracy": {
+        "changed_n": 1,
+        "delta_lenient_correct": 0,
+        "delta_strict_correct": 0,
+        "n": 1540,
+        "v291_changed_lenient_correct": 1,
+        "v291_changed_strict_correct": 1,
+        "v291_full_lenient_accuracy": 0.8194805194805195,
+        "v291_full_lenient_correct": 1262,
+        "v291_full_strict_accuracy": 0.7941558441558442,
+        "v291_full_strict_correct": 1223,
+        "v292_changed_lenient_correct": 1,
+        "v292_changed_strict_correct": 1,
+        "v292_full_lenient_accuracy": 0.8194805194805195,
+        "v292_full_lenient_correct": 1262,
+        "v292_full_strict_accuracy": 0.7941558441558442,
+        "v292_full_strict_correct": 1223
+      },
+      "n_samples": 1540
+    }
+  },
+  "candidate": "v292",
+  "changed_subset_manifest": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_memory_operation_plan_guide_v292_changed_vs_v291/changed_subset_manifest.json",
+  "config": "configs/stage1_memory_operation_plan_guide_v292_query_simplify_seeded_qwen36_no_think_build4k_cached.json",
+  "decision": "rejected_lts_candidate",
+  "git_commit": "9b55eacbedc91ae72c9a20b7eb465a16e555b56f",
+  "merged_full_metrics": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_memory_operation_plan_guide_v292_changed_vs_v291/merged_full_metrics.json",
+  "reason": "LME changed-output dual judge regressed; LoCoMo held flat.",
+  "schema_version": "v292_diff_vs_v291_v1"
+}

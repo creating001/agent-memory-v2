@@ -70,6 +70,8 @@ v291 当前 LTS 目标是把 v288-v290 的 build manifests 收敛成更像 Agent
 - 借鉴 MemOS / Hindsight / Mnemis：保留 source expansion、context_pack、audit、candidate organization 思想，但 v291 不直接把 compact workspace plan 放进 query prompt，避免 v289 的 accuracy 回退。
 - 本项目自己的取舍：raw evidence 永远是 final authority；operation plan 先作为 source-backed state management、conflict handling、context organization 和 answer verification contract，后续 query 消费必须 guarded/additive、可消融、可回滚。
 
+v292 负向验证：直接用 compact Memory Operation Plan Guide 替换 current-state 的旧 state/value guide 可以降低 LME query tokens，但 LME changed-output judge 回退明显，因此不升 LTS。后续 query 消费 operation plan 时，应把旧 state/value guide 的 active/superseded value specificity、slot alignment、visible-source expansion 和 conflict audit 先蒸馏进 build operation plan，再做 guarded/additive 消费，不能粗暴替换稳定 query path。
+
 ## 51 项覆盖索引
 
 | # | 方法 | 本地代码入口 | 当前状态 | 当前取舍 |

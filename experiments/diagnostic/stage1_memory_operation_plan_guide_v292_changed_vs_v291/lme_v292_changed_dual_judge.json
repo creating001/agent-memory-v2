@@ -1,0 +1,322 @@
+{
+  "benchmark": "longmemeval",
+  "by_group": {
+    "knowledge-update": {
+      "judge_1_correct": 2,
+      "judge_2_correct": 2,
+      "judge_agreement": 1.0,
+      "lenient_accuracy": 0.5,
+      "lenient_accuracy_both_valid": 0.5,
+      "lenient_correct": 2,
+      "n_any_invalid": 0,
+      "n_both_valid": 4,
+      "n_joined": 4,
+      "strict_accuracy": 0.5,
+      "strict_accuracy_both_valid": 0.5,
+      "strict_correct": 2
+    },
+    "multi-session": {
+      "judge_1_correct": 0,
+      "judge_2_correct": 0,
+      "judge_agreement": 1.0,
+      "lenient_accuracy": 0.0,
+      "lenient_accuracy_both_valid": 0.0,
+      "lenient_correct": 0,
+      "n_any_invalid": 0,
+      "n_both_valid": 1,
+      "n_joined": 1,
+      "strict_accuracy": 0.0,
+      "strict_accuracy_both_valid": 0.0,
+      "strict_correct": 0
+    },
+    "single-session-preference": {
+      "judge_1_correct": 1,
+      "judge_2_correct": 0,
+      "judge_agreement": 0.5,
+      "lenient_accuracy": 0.5,
+      "lenient_accuracy_both_valid": 0.5,
+      "lenient_correct": 1,
+      "n_any_invalid": 0,
+      "n_both_valid": 2,
+      "n_joined": 2,
+      "strict_accuracy": 0.0,
+      "strict_accuracy_both_valid": 0.0,
+      "strict_correct": 0
+    },
+    "temporal-reasoning": {
+      "judge_1_correct": 2,
+      "judge_2_correct": 2,
+      "judge_agreement": 1.0,
+      "lenient_accuracy": 0.4,
+      "lenient_accuracy_both_valid": 0.4,
+      "lenient_correct": 2,
+      "n_any_invalid": 0,
+      "n_both_valid": 5,
+      "n_joined": 5,
+      "strict_accuracy": 0.4,
+      "strict_accuracy_both_valid": 0.4,
+      "strict_correct": 2
+    }
+  },
+  "clean_note": "Dual flash judge is an offline evaluation-only aggregation. It reads gold labels after prediction and must not feed prediction, retrieval, compiler, answer, verifier, or cache construction.",
+  "created_at_utc": "2026-06-21T08:40:01+00:00",
+  "git": {
+    "commit": "9b55eacbedc91ae72c9a20b7eb465a16e555b56f",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "?? experiments/diagnostic/stage1_memory_operation_plan_guide_v292_changed_vs_v291/\n?? experiments/diagnostic/stage1_memory_operation_plan_guide_v292_lme_full/\n?? experiments/diagnostic/stage1_memory_operation_plan_guide_v292_locomo_full/"
+  },
+  "judge_models": {
+    "flash_1": "deepseek-v4-flash",
+    "flash_2": "deepseek-v4-flash"
+  },
+  "judge_outputs": {
+    "flash_1": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_memory_operation_plan_guide_v292_changed_vs_v291/lme_v292_flash1.json",
+    "flash_2": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/stage1_memory_operation_plan_guide_v292_changed_vs_v291/lme_v292_flash2.json"
+  },
+  "judge_request_body_options": {
+    "flash_1": {},
+    "flash_2": {}
+  },
+  "judge_thinking": {
+    "flash_1": null,
+    "flash_2": null
+  },
+  "labels": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_memory_operation_plan_guide_v292_changed_vs_v291/lme_changed_labels.jsonl",
+  "metrics": {
+    "judge_1_correct": 5,
+    "judge_1_name": "flash_1",
+    "judge_2_correct": 4,
+    "judge_2_name": "flash_2",
+    "judge_agreement": 0.9166666666666666,
+    "lenient_accuracy": 0.4166666666666667,
+    "lenient_accuracy_both_valid": 0.4166666666666667,
+    "lenient_correct": 5,
+    "n_any_invalid": 0,
+    "n_both_valid": 12,
+    "n_joined": 12,
+    "n_judge_1_judgments": 12,
+    "n_judge_2_judgments": 12,
+    "n_missing_judge_1": 0,
+    "n_missing_judge_2": 0,
+    "strict_accuracy": 0.3333333333333333,
+    "strict_accuracy_both_valid": 0.3333333333333333,
+    "strict_correct": 4
+  },
+  "predictions": "/data/home_new/wujinqi/agent-memory/outputs/diagnostic/stage1_memory_operation_plan_guide_v292_changed_vs_v291/lme_v292_changed_predictions.jsonl",
+  "records": [
+    {
+      "both_valid": true,
+      "group": "knowledge-update",
+      "judge_1_correct": false,
+      "judge_1_label": "WRONG",
+      "judge_1_name": "flash_1",
+      "judge_1_valid": true,
+      "judge_2_correct": false,
+      "judge_2_label": "WRONG",
+      "judge_2_name": "flash_2",
+      "judge_2_valid": true,
+      "lenient_correct": false,
+      "record_key": "02e16bd2f4719927af0b2006",
+      "strict_correct": false
+    },
+    {
+      "both_valid": true,
+      "group": "single-session-preference",
+      "judge_1_correct": true,
+      "judge_1_label": "CORRECT",
+      "judge_1_name": "flash_1",
+      "judge_1_valid": true,
+      "judge_2_correct": false,
+      "judge_2_label": "WRONG",
+      "judge_2_name": "flash_2",
+      "judge_2_valid": true,
+      "lenient_correct": true,
+      "record_key": "0a537c6dfde0742723049ca4",
+      "strict_correct": false
+    },
+    {
+      "both_valid": true,
+      "group": "temporal-reasoning",
+      "judge_1_correct": true,
+      "judge_1_label": "CORRECT",
+      "judge_1_name": "flash_1",
+      "judge_1_valid": true,
+      "judge_2_correct": true,
+      "judge_2_label": "CORRECT",
+      "judge_2_name": "flash_2",
+      "judge_2_valid": true,
+      "lenient_correct": true,
+      "record_key": "1f7723fca5c03dfc8ff0e0ca",
+      "strict_correct": true
+    },
+    {
+      "both_valid": true,
+      "group": "temporal-reasoning",
+      "judge_1_correct": false,
+      "judge_1_label": "WRONG",
+      "judge_1_name": "flash_1",
+      "judge_1_valid": true,
+      "judge_2_correct": false,
+      "judge_2_label": "WRONG",
+      "judge_2_name": "flash_2",
+      "judge_2_valid": true,
+      "lenient_correct": false,
+      "record_key": "740d3b0bc662060a816e231f",
+      "strict_correct": false
+    },
+    {
+      "both_valid": true,
+      "group": "knowledge-update",
+      "judge_1_correct": true,
+      "judge_1_label": "CORRECT",
+      "judge_1_name": "flash_1",
+      "judge_1_valid": true,
+      "judge_2_correct": true,
+      "judge_2_label": "CORRECT",
+      "judge_2_name": "flash_2",
+      "judge_2_valid": true,
+      "lenient_correct": true,
+      "record_key": "7933cff5854d25ce3c9e8901",
+      "strict_correct": true
+    },
+    {
+      "both_valid": true,
+      "group": "multi-session",
+      "judge_1_correct": false,
+      "judge_1_label": "WRONG",
+      "judge_1_name": "flash_1",
+      "judge_1_valid": true,
+      "judge_2_correct": false,
+      "judge_2_label": "WRONG",
+      "judge_2_name": "flash_2",
+      "judge_2_valid": true,
+      "lenient_correct": false,
+      "record_key": "a1e403c5b6ee9c67eceee109",
+      "strict_correct": false
+    },
+    {
+      "both_valid": true,
+      "group": "temporal-reasoning",
+      "judge_1_correct": false,
+      "judge_1_label": "WRONG",
+      "judge_1_name": "flash_1",
+      "judge_1_valid": true,
+      "judge_2_correct": false,
+      "judge_2_label": "WRONG",
+      "judge_2_name": "flash_2",
+      "judge_2_valid": true,
+      "lenient_correct": false,
+      "record_key": "a3e4c89a8fdf800fa3b2676f",
+      "strict_correct": false
+    },
+    {
+      "both_valid": true,
+      "group": "knowledge-update",
+      "judge_1_correct": true,
+      "judge_1_label": "CORRECT",
+      "judge_1_name": "flash_1",
+      "judge_1_valid": true,
+      "judge_2_correct": true,
+      "judge_2_label": "CORRECT",
+      "judge_2_name": "flash_2",
+      "judge_2_valid": true,
+      "lenient_correct": true,
+      "record_key": "af807a537c4950ead62c23aa",
+      "strict_correct": true
+    },
+    {
+      "both_valid": true,
+      "group": "knowledge-update",
+      "judge_1_correct": false,
+      "judge_1_label": "WRONG",
+      "judge_1_name": "flash_1",
+      "judge_1_valid": true,
+      "judge_2_correct": false,
+      "judge_2_label": "WRONG",
+      "judge_2_name": "flash_2",
+      "judge_2_valid": true,
+      "lenient_correct": false,
+      "record_key": "beb0a3bdb35a23a257132b5e",
+      "strict_correct": false
+    },
+    {
+      "both_valid": true,
+      "group": "temporal-reasoning",
+      "judge_1_correct": true,
+      "judge_1_label": "CORRECT",
+      "judge_1_name": "flash_1",
+      "judge_1_valid": true,
+      "judge_2_correct": true,
+      "judge_2_label": "CORRECT",
+      "judge_2_name": "flash_2",
+      "judge_2_valid": true,
+      "lenient_correct": true,
+      "record_key": "cb96414dbbb017e56ece7a3f",
+      "strict_correct": true
+    },
+    {
+      "both_valid": true,
+      "group": "temporal-reasoning",
+      "judge_1_correct": false,
+      "judge_1_label": "WRONG",
+      "judge_1_name": "flash_1",
+      "judge_1_valid": true,
+      "judge_2_correct": false,
+      "judge_2_label": "WRONG",
+      "judge_2_name": "flash_2",
+      "judge_2_valid": true,
+      "lenient_correct": false,
+      "record_key": "f42847e71c4d486a8c6c7c0b",
+      "strict_correct": false
+    },
+    {
+      "both_valid": true,
+      "group": "single-session-preference",
+      "judge_1_correct": false,
+      "judge_1_label": "WRONG",
+      "judge_1_name": "flash_1",
+      "judge_1_valid": true,
+      "judge_2_correct": false,
+      "judge_2_label": "WRONG",
+      "judge_2_name": "flash_2",
+      "judge_2_valid": true,
+      "lenient_correct": false,
+      "record_key": "f9ae007ab8a08057a78ba572",
+      "strict_correct": false
+    }
+  ],
+  "single_judge_metrics": {
+    "flash_1": {
+      "accuracy": 0.4166666666666667,
+      "n_invalid": 0,
+      "n_judgments": 12,
+      "n_valid": 12
+    },
+    "flash_2": {
+      "accuracy": 0.3333333333333333,
+      "n_invalid": 0,
+      "n_judgments": 12,
+      "n_valid": 12
+    }
+  },
+  "temperature": 0.0,
+  "usage": {
+    "flash_1": {
+      "completion_tokens": 1475,
+      "prompt_tokens": 2327,
+      "total_tokens": 3802
+    },
+    "flash_2": {
+      "completion_tokens": 1375,
+      "prompt_tokens": 2327,
+      "total_tokens": 3702
+    },
+    "total": {
+      "completion_tokens": 2850,
+      "prompt_tokens": 4654,
+      "total_tokens": 7504
+    }
+  }
+}
