@@ -47,6 +47,7 @@ from memory.pipeline import (
     _append_tail_rescue_hits,
     _compiler_memory_records,
     _context_manifest,
+    _apply_context_budget,
     _memory_activation_priority_hits,
     _memory_governance_activation_records,
     _memory_graph_utility_source_hits,
@@ -4792,6 +4793,63 @@ class CleanSkeletonTest(unittest.TestCase):
 
         self.assertFalse(low_score_trace["applied"])
         self.assertEqual(low_score_hits, ())
+
+    def test_context_budget_can_protect_operation_source_expansion_hits(
+        self,
+    ) -> None:
+        store = RawEvidenceStore(
+            (
+                Turn("s1:t0", "s1", 0, "user", "A" * 10),
+                Turn("s1:t1", "s1", 1, "user", "B" * 10),
+                Turn("s1:t2", "s1", 2, "user", "C" * 10),
+            )
+        )
+        hits = (
+            RetrievalHit("s1:t0", 3.0, 1, "dense"),
+            RetrievalHit("s1:t1", 2.0, 2, "dense"),
+            RetrievalHit(
+                "s1:t2",
+                5.0,
+                3,
+                "build_memory_operation_source_expansion",
+            ),
+        )
+
+        default_hits, default_trace = _apply_context_budget(
+            store=store,
+            hits=hits,
+            max_chars=1000,
+            min_hits=0,
+            protect_top_n=0,
+            max_hits=2,
+            information_needs=("current_state",),
+        )
+
+        self.assertEqual([hit.source_id for hit in default_hits], ["s1:t0", "s1:t1"])
+        self.assertEqual(default_trace["dropped_source_ids"], ["s1:t2"])
+
+        protected_hits, protected_trace = _apply_context_budget(
+            store=store,
+            hits=hits,
+            max_chars=1000,
+            min_hits=0,
+            protect_top_n=0,
+            max_hits=2,
+            information_needs=("current_state",),
+            protected_retrievers=("build_memory_operation_source_expansion",),
+            protected_retriever_max_extra_hits=1,
+        )
+
+        self.assertEqual(
+            [hit.source_id for hit in protected_hits],
+            ["s1:t0", "s1:t1", "s1:t2"],
+        )
+        self.assertEqual(protected_trace["protected_retriever_kept_count"], 1)
+        self.assertEqual(
+            protected_trace["protected_retriever_overflow_kept_count"],
+            1,
+        )
+        self.assertEqual(protected_trace["dropped_source_ids"], [])
 
     def test_memory_graph_utility_can_require_lifecycle_signal(self) -> None:
         record = MemoryRecord(

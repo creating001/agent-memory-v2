@@ -883,6 +883,13 @@ class Stage1Pipeline:
         self._context_budget_information_needs = _tuple_config(
             context_budget_config.get("information_needs")
         )
+        self._context_budget_protected_retrievers = _tuple_config(
+            context_budget_config.get("protected_retrievers")
+        )
+        self._context_budget_protected_retriever_max_extra_hits = max(
+            0,
+            int(context_budget_config.get("protected_retriever_max_extra_hits", 0)),
+        )
         self._context_budget_audit_enabled = bool(
             context_budget_audit_config.get("enabled", False)
         )
@@ -900,6 +907,18 @@ class Stage1Pipeline:
         )
         self._context_budget_audit_information_needs = _tuple_config(
             context_budget_audit_config.get("information_needs")
+        )
+        self._context_budget_audit_protected_retrievers = _tuple_config(
+            context_budget_audit_config.get("protected_retrievers")
+        )
+        self._context_budget_audit_protected_retriever_max_extra_hits = max(
+            0,
+            int(
+                context_budget_audit_config.get(
+                    "protected_retriever_max_extra_hits",
+                    0,
+                )
+            ),
         )
         self._rerank_enabled = bool(rerank_config.get("enabled", False))
         self._rerank_model = rerank_config.get("model")
@@ -2805,6 +2824,10 @@ class Stage1Pipeline:
             protect_top_n=self._context_budget_protect_top_n,
             max_hits=self._context_budget_max_hits,
             information_needs=self._context_budget_information_needs,
+            protected_retrievers=self._context_budget_protected_retrievers,
+            protected_retriever_max_extra_hits=(
+                self._context_budget_protected_retriever_max_extra_hits
+            ),
         )
         if _context_budget_applies(
             route=route,
@@ -2820,6 +2843,10 @@ class Stage1Pipeline:
                 protect_top_n=self._context_budget_protect_top_n,
                 max_hits=self._context_budget_max_hits,
                 information_needs=self._context_budget_information_needs,
+                protected_retrievers=self._context_budget_protected_retrievers,
+                protected_retriever_max_extra_hits=(
+                    self._context_budget_protected_retriever_max_extra_hits
+                ),
             )
         evidence_turns = store.expand_neighbors(
             (hit.source_id for hit in hits),
@@ -2984,6 +3011,12 @@ class Stage1Pipeline:
             protect_top_n=self._context_budget_audit_protect_top_n,
             max_hits=self._context_budget_audit_max_hits,
             information_needs=self._context_budget_audit_information_needs,
+            protected_retrievers=(
+                self._context_budget_audit_protected_retrievers
+            ),
+            protected_retriever_max_extra_hits=(
+                self._context_budget_audit_protected_retriever_max_extra_hits
+            ),
         )
         if _context_budget_applies(
             route=route,
@@ -2999,6 +3032,12 @@ class Stage1Pipeline:
                 protect_top_n=self._context_budget_audit_protect_top_n,
                 max_hits=self._context_budget_audit_max_hits,
                 information_needs=self._context_budget_audit_information_needs,
+                protected_retrievers=(
+                    self._context_budget_audit_protected_retrievers
+                ),
+                protected_retriever_max_extra_hits=(
+                    self._context_budget_audit_protected_retriever_max_extra_hits
+                ),
             )
             context_budget_audit = _context_budget_audit_trace(
                 store=store,
@@ -3709,6 +3748,14 @@ class Stage1Pipeline:
                     "context_budget_information_needs": (
                         self._context_budget_information_needs
                     ),
+                    "context_budget_protected_retrievers": (
+                        self._context_budget_protected_retrievers
+                    ),
+                    "context_budget_protected_retriever_max_extra_hits": (
+                        self._context_budget_protected_retriever_max_extra_hits
+                        if self._context_budget_enabled
+                        else 0
+                    ),
                     "context_budget_candidate_count": (
                         context_budget_trace["candidate_count"]
                     ),
@@ -3723,6 +3770,19 @@ class Stage1Pipeline:
                     ),
                     "context_budget_dropped_source_ids": (
                         context_budget_trace["dropped_source_ids"]
+                    ),
+                    "context_budget_protected_retriever_kept_count": (
+                        context_budget_trace["protected_retriever_kept_count"]
+                    ),
+                    "context_budget_protected_retriever_overflow_kept_count": (
+                        context_budget_trace[
+                            "protected_retriever_overflow_kept_count"
+                        ]
+                    ),
+                    "context_budget_protected_retriever_dropped_source_ids": (
+                        context_budget_trace[
+                            "protected_retriever_dropped_source_ids"
+                        ]
                     ),
                     "context_budget_audit": context_budget_audit,
                     "pre_context_budget_hits": [
@@ -8017,6 +8077,8 @@ def _disabled_context_budget_trace(
     protect_top_n: int,
     max_hits: int,
     information_needs: tuple[str, ...],
+    protected_retrievers: tuple[str, ...] = (),
+    protected_retriever_max_extra_hits: int = 0,
 ) -> dict[str, Any]:
     return {
         "enabled": enabled,
@@ -8026,11 +8088,20 @@ def _disabled_context_budget_trace(
         "protect_top_n": protect_top_n,
         "max_hits": max_hits,
         "information_needs": information_needs,
+        "protected_retrievers": protected_retrievers,
+        "protected_retriever_max_extra_hits": max(
+            0,
+            int(protected_retriever_max_extra_hits),
+        ),
         "candidate_count": 0,
         "returned_count": 0,
         "estimated_chars": 0,
         "dropped_count": 0,
         "dropped_source_ids": [],
+        "protected_retriever_kept_count": 0,
+        "protected_retriever_overflow_kept_count": 0,
+        "protected_retriever_dropped_count": 0,
+        "protected_retriever_dropped_source_ids": [],
     }
 
 
@@ -8042,6 +8113,8 @@ def _disabled_context_budget_audit_trace(
     protect_top_n: int,
     max_hits: int,
     information_needs: tuple[str, ...],
+    protected_retrievers: tuple[str, ...] = (),
+    protected_retriever_max_extra_hits: int = 0,
 ) -> dict[str, Any]:
     return {
         "enabled": enabled,
@@ -8053,11 +8126,20 @@ def _disabled_context_budget_audit_trace(
         "protect_top_n": protect_top_n,
         "max_hits": max_hits,
         "information_needs": information_needs,
+        "protected_retrievers": protected_retrievers,
+        "protected_retriever_max_extra_hits": max(
+            0,
+            int(protected_retriever_max_extra_hits),
+        ),
         "candidate_count": 0,
         "projected_returned_count": 0,
         "projected_estimated_chars": 0,
         "projected_dropped_count": 0,
         "projected_dropped_source_ids": [],
+        "projected_protected_retriever_kept_count": 0,
+        "projected_protected_retriever_overflow_kept_count": 0,
+        "projected_protected_retriever_dropped_count": 0,
+        "projected_protected_retriever_dropped_source_ids": [],
         "projected_available_source_count": 0,
         "prompt_row_count": 0,
         "prompt_rows_missing_count": 0,
@@ -8082,6 +8164,8 @@ def _apply_context_budget(
     protect_top_n: int,
     max_hits: int,
     information_needs: tuple[str, ...],
+    protected_retrievers: tuple[str, ...] = (),
+    protected_retriever_max_extra_hits: int = 0,
 ) -> tuple[tuple[RetrievalHit, ...], dict[str, Any]]:
     if not hits:
         return hits, {
@@ -8092,6 +8176,10 @@ def _apply_context_budget(
                 protect_top_n=protect_top_n,
                 max_hits=max_hits,
                 information_needs=information_needs,
+                protected_retrievers=protected_retrievers,
+                protected_retriever_max_extra_hits=(
+                    protected_retriever_max_extra_hits
+                ),
             ),
             "applied": True,
         }
@@ -8099,22 +8187,51 @@ def _apply_context_budget(
     protected = max(0, protect_top_n)
     minimum = max(0, min_hits)
     hard_max = max(0, max_hits)
+    protected_retriever_set = {
+        str(retriever)
+        for retriever in protected_retrievers
+        if str(retriever).strip()
+    }
+    protected_max_extra = max(0, int(protected_retriever_max_extra_hits))
     selected: list[RetrievalHit] = []
     dropped: list[str] = []
+    protected_dropped: list[str] = []
     estimated_chars = 0
+    protected_kept_count = 0
+    protected_overflow_kept_count = 0
 
     for index, hit in enumerate(hits):
-        if hard_max > 0 and len(selected) >= hard_max:
-            dropped.extend(candidate.source_id for candidate in hits[index:])
-            break
         turn = store.get(hit.source_id)
         turn_chars = len(turn.text) if turn is not None else 0
+        protected_retriever_hit = hit.retriever in protected_retriever_set
+        over_hard_max = hard_max > 0 and len(selected) >= hard_max
+        can_keep_protected_overflow = (
+            protected_retriever_hit
+            and protected_overflow_kept_count < protected_max_extra
+        )
+        if over_hard_max and not can_keep_protected_overflow:
+            dropped.append(hit.source_id)
+            if protected_retriever_hit:
+                protected_dropped.append(hit.source_id)
+            continue
         force_keep = index < protected or len(selected) < minimum
+        if (
+            protected_retriever_hit
+            and can_keep_protected_overflow
+            and (max_chars <= 0 or estimated_chars + turn_chars <= max_chars)
+        ):
+            force_keep = True
         if force_keep or estimated_chars + turn_chars <= max_chars:
             selected.append(hit)
             estimated_chars += turn_chars
+            if protected_retriever_hit:
+                protected_kept_count += 1
+                if over_hard_max:
+                    protected_overflow_kept_count += 1
         else:
             dropped.append(hit.source_id)
+            if protected_retriever_hit:
+                protected_dropped.append(hit.source_id)
 
     return tuple(selected), {
         "enabled": True,
@@ -8124,11 +8241,19 @@ def _apply_context_budget(
         "protect_top_n": protect_top_n,
         "max_hits": max_hits,
         "information_needs": information_needs,
+        "protected_retrievers": protected_retrievers,
+        "protected_retriever_max_extra_hits": protected_max_extra,
         "candidate_count": len(hits),
         "returned_count": len(selected),
         "estimated_chars": estimated_chars,
         "dropped_count": len(dropped),
         "dropped_source_ids": dropped,
+        "protected_retriever_kept_count": protected_kept_count,
+        "protected_retriever_overflow_kept_count": (
+            protected_overflow_kept_count
+        ),
+        "protected_retriever_dropped_count": len(protected_dropped),
+        "protected_retriever_dropped_source_ids": protected_dropped,
     }
 
 
@@ -8172,11 +8297,27 @@ def _context_budget_audit_trace(
         "protect_top_n": projected_budget.get("protect_top_n"),
         "max_hits": projected_budget.get("max_hits"),
         "information_needs": projected_budget.get("information_needs"),
+        "protected_retrievers": projected_budget.get("protected_retrievers"),
+        "protected_retriever_max_extra_hits": projected_budget.get(
+            "protected_retriever_max_extra_hits"
+        ),
         "candidate_count": projected_budget.get("candidate_count"),
         "projected_returned_count": projected_budget.get("returned_count"),
         "projected_estimated_chars": projected_budget.get("estimated_chars"),
         "projected_dropped_count": projected_budget.get("dropped_count"),
         "projected_dropped_source_ids": projected_budget.get("dropped_source_ids"),
+        "projected_protected_retriever_kept_count": projected_budget.get(
+            "protected_retriever_kept_count"
+        ),
+        "projected_protected_retriever_overflow_kept_count": projected_budget.get(
+            "protected_retriever_overflow_kept_count"
+        ),
+        "projected_protected_retriever_dropped_count": projected_budget.get(
+            "protected_retriever_dropped_count"
+        ),
+        "projected_protected_retriever_dropped_source_ids": projected_budget.get(
+            "protected_retriever_dropped_source_ids"
+        ),
         "projected_available_source_count": len(projected_available),
         "prompt_row_count": len(prompt_source_ids),
         "prompt_rows_missing_count": len(prompt_missing),
