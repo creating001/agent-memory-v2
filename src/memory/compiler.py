@@ -246,6 +246,7 @@ ROUTE_OVERRIDE_KEYS = {
     "memory_operation_plan_guide_require_readiness",
     "memory_operation_plan_guide_required_readiness_modes",
     "memory_operation_context_organizer",
+    "memory_operation_context_organizer_anchor_keep",
     "memory_operation_context_organizer_max_plans",
     "memory_operation_readiness_audit",
     "memory_operation_readiness_audit_max_plans",
@@ -483,6 +484,7 @@ class EvidenceCompiler:
         memory_operation_context_organizer_information_needs: tuple[str, ...] = (
             "current_state",
         ),
+        memory_operation_context_organizer_anchor_keep: int = 0,
         memory_operation_context_organizer_max_plans: int = 4,
         memory_operation_readiness_audit: bool = False,
         memory_operation_readiness_audit_information_needs: tuple[str, ...] = (
@@ -798,6 +800,9 @@ class EvidenceCompiler:
                 field_name="memory_operation_context_organizer_information_needs",
             )
         )
+        self._memory_operation_context_organizer_anchor_keep = max(
+            0, int(memory_operation_context_organizer_anchor_keep)
+        )
         self._memory_operation_context_organizer_max_plans = max(
             1, int(memory_operation_context_organizer_max_plans)
         )
@@ -1020,6 +1025,9 @@ class EvidenceCompiler:
                     rows=laid_out_rows,
                     memory_operation_plan=memory_operation_plan,
                     memory_query_readiness_manifest=memory_query_readiness_manifest,
+                    anchor_keep=route_settings[
+                        "memory_operation_context_organizer_anchor_keep"
+                    ],
                     max_plans=route_settings[
                         "memory_operation_context_organizer_max_plans"
                     ],
@@ -1508,6 +1516,9 @@ class EvidenceCompiler:
             ),
             "memory_operation_context_organizer": (
                 self._memory_operation_context_organizer
+            ),
+            "memory_operation_context_organizer_anchor_keep": (
+                self._memory_operation_context_organizer_anchor_keep
             ),
             "memory_operation_context_organizer_max_plans": (
                 self._memory_operation_context_organizer_max_plans
@@ -2024,6 +2035,10 @@ def _validate_route_overrides(
         if "memory_operation_context_organizer_max_plans" in raw_overrides:
             overrides["memory_operation_context_organizer_max_plans"] = max(
                 1, int(raw_overrides["memory_operation_context_organizer_max_plans"])
+            )
+        if "memory_operation_context_organizer_anchor_keep" in raw_overrides:
+            overrides["memory_operation_context_organizer_anchor_keep"] = max(
+                0, int(raw_overrides["memory_operation_context_organizer_anchor_keep"])
             )
         if "memory_operation_readiness_audit" in raw_overrides:
             overrides["memory_operation_readiness_audit"] = bool(
@@ -4929,25 +4944,33 @@ def _memory_operation_context_organizer(
     rows: tuple[EvidenceRow, ...],
     memory_operation_plan: Mapping[str, Any] | None,
     memory_query_readiness_manifest: Mapping[str, Any] | None,
+    anchor_keep: int,
     max_plans: int,
     required_readiness_modes: tuple[str, ...],
 ) -> tuple[tuple[EvidenceRow, ...], dict[str, Any]]:
+    anchor_keep = max(0, int(anchor_keep))
     trace: dict[str, Any] = {
         "enabled": True,
         "applied": False,
         "trace_only": False,
         "information_need": route.information_need,
+        "anchor_keep": anchor_keep,
+        "anchored_prefix_count": 0,
         "required_readiness_modes": list(required_readiness_modes),
         "candidate_count": 0,
         "ready_visible_plan_count": 0,
         "selected_plan_count": 0,
+        "eligible_tail_source_count": 0,
+        "anchor_preserved_boosted_source_count": 0,
         "boosted_source_ids": [],
+        "planned_boosted_source_ids": [],
         "changed_order": False,
         "values_rendered_to_prompt": False,
         "clean_note": (
             "Readiness-gated context organization over already selected raw rows. "
             "It uses build-owned operation plans only to order visible source rows; "
-            "derived values are not rendered and final answer evidence remains raw rows."
+            "derived values are not rendered, retrieval anchors can be preserved, "
+            "and final answer evidence remains raw rows."
         ),
     }
     if (
@@ -5045,26 +5068,55 @@ def _memory_operation_context_organizer(
 
     original_source_order = [row.source_id for row in rows]
     original_index = {row.source_id: index for index, row in enumerate(rows)}
-    organized_rows = tuple(
+    anchored_prefix_count = min(anchor_keep, len(rows))
+    anchored_rows = rows[:anchored_prefix_count]
+    tail_rows = rows[anchored_prefix_count:]
+    tail_source_scores = {
+        source_id: score
+        for source_id, score in source_scores.items()
+        if original_index.get(source_id, -1) >= anchored_prefix_count
+    }
+    anchored_boosted_source_count = sum(
+        1
+        for source_id in source_scores
+        if 0 <= original_index.get(source_id, -1) < anchored_prefix_count
+    )
+    planned_boosted_source_ids = [
+        source_id for source_id in original_source_order if source_id in source_scores
+    ]
+    trace.update(
+        {
+            "anchored_prefix_count": anchored_prefix_count,
+            "eligible_tail_source_count": len(tail_source_scores),
+            "anchor_preserved_boosted_source_count": anchored_boosted_source_count,
+            "selected_plan_count": len(selected_plans),
+            "selected_plans": selected_plans,
+            "planned_boosted_source_ids": planned_boosted_source_ids[:16],
+        }
+    )
+    if not tail_source_scores:
+        trace["reason"] = "all_boosted_sources_anchor_preserved"
+        return rows, trace
+
+    organized_tail_rows = tuple(
         sorted(
-            rows,
+            tail_rows,
             key=lambda row: (
-                0 if row.source_id in source_scores else 1,
-                -source_scores.get(row.source_id, 0.0),
+                0 if row.source_id in tail_source_scores else 1,
+                -tail_source_scores.get(row.source_id, 0.0),
                 original_index.get(row.source_id, 1_000_000),
             ),
         )
     )
+    organized_rows = anchored_rows + organized_tail_rows
     new_source_order = [row.source_id for row in organized_rows]
     boosted_source_ids = [
-        source_id for source_id in new_source_order if source_id in source_scores
+        source_id for source_id in new_source_order if source_id in tail_source_scores
     ]
     trace.update(
         {
             "applied": True,
-            "reason": "ready_visible_sources_prioritized",
-            "selected_plan_count": len(selected_plans),
-            "selected_plans": selected_plans,
+            "reason": "ready_visible_tail_sources_prioritized",
             "boosted_source_ids": boosted_source_ids[:16],
             "changed_order": original_source_order != new_source_order,
         }

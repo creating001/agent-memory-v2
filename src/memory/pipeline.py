@@ -1324,6 +1324,9 @@ class Stage1Pipeline:
                     ("current_state",),
                 )
             ),
+            memory_operation_context_organizer_anchor_keep=int(
+                compiler_config.get("memory_operation_context_organizer_anchor_keep", 0)
+            ),
             memory_operation_context_organizer_max_plans=int(
                 compiler_config.get("memory_operation_context_organizer_max_plans", 4)
             ),
@@ -8569,6 +8572,9 @@ def _compiler_trace_config(
                 ("current_state",),
             )
         ),
+        "memory_operation_context_organizer_anchor_keep": int(
+            compiler_config.get("memory_operation_context_organizer_anchor_keep", 0)
+        ),
         "memory_operation_context_organizer_max_plans": int(
             compiler_config.get("memory_operation_context_organizer_max_plans", 4)
         ),
@@ -9002,6 +9008,9 @@ def _configured_compiler(compiler_config: Mapping[str, Any]) -> EvidenceCompiler
                 "memory_operation_context_organizer_information_needs",
                 ("current_state",),
             )
+        ),
+        memory_operation_context_organizer_anchor_keep=int(
+            compiler_config.get("memory_operation_context_organizer_anchor_keep", 0)
         ),
         memory_operation_context_organizer_max_plans=int(
             compiler_config.get("memory_operation_context_organizer_max_plans", 4)
