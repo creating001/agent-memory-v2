@@ -6,15 +6,15 @@
 
 | 项目 | 结果 |
 |---|---|
-| 当前 LTS 配置 | `configs/stage1_memory_workspace_v290_query_restore_seeded_qwen36_no_think_build4k_cached.json` |
+| 当前 LTS 配置 | `configs/stage1_memory_operation_plan_v291_query_restore_seeded_qwen36_no_think_build4k_cached.json` |
 | Backbone | `Qwen/Qwen3.6-35B-A3B` answer/build，`chat_template_kwargs.enable_thinking=false` |
-| 方法定位 | source-backed Agent Memory system：build memory management + memory system graph v3 + `memory_object_index_v1` + `memory_workspace_manifest_v1` + tier manifest + operation ledger + state conflict manifest + scalar/value manifest + state-only value slot guide + raw evidence compiler + source-grounded answer audit。Typed/derived memory 不能直接替代 evidence，只能作为 source-backed activation、state organization、conflict handling、context organization 和 audit signal；最终答案仍以 raw Memory rows 为证据。 |
+| 方法定位 | source-backed Agent Memory system：build memory management + memory system graph v4 + `memory_object_index_v1` + `memory_workspace_manifest_v1` + `memory_operation_plan_v1` + tier manifest + operation ledger + state conflict manifest + scalar/value manifest + state-only value slot guide + raw evidence compiler + source-grounded answer audit。Typed/derived memory 不能直接替代 evidence，只能作为 source-backed activation、state organization、conflict handling、context organization 和 audit signal；最终答案仍以 raw Memory rows 为证据。 |
 | LongMemEval-S full | strict/lenient `0.834000 / 0.846000`，`417/500` strict，`423/500` lenient；avg build/query tokens `85393.566 / 6455.588` |
 | LoCoMo non-adversarial full | strict/lenient `0.794156 / 0.819481`，`1223/1540` strict，`1262/1540` lenient；avg build/query tokens `62015.57402597403 / 6093.962337662338` |
-| LTS 理由 | v290 相对 v288：LME/LoCoMo full answer/prompt/route/compiled evidence/compiled memory/stable retrieval/build records diff 全部 `0`；新增 `memory_workspace_manifest_v1` applied `2040/2040`。它把 source-backed activation group、memory tier、lifecycle state、conflict state、operation hints 和 context-pack policy 收敛成统一 build-owned memory workspace，减少 build memory system 不够系统化的风险，同时不改变已验证 query path。 |
-| 主要局限 | query stack 仍有 state guide、event-time guide、selected context、context budget、audit 等兼容层；`memory_workspace_manifest_v1` 已统一 build-owned workspace contract，但 retrieval/context/verifier 尚未以 guarded/additive 方式系统消费该 workspace；LME/LoCoMo query tokens 仍略高于 6K 目标但低于 8K hard diagnostic 线。 |
+| LTS 理由 | v291 相对 v290：LME/LoCoMo full answer/prompt/route/compiled evidence/compiled memory/stable retrieval/build records、memory object index summary、workspace manifest summary diff 全部 `0`；新增 `memory_operation_plan_v1` applied `2040/2040`，总计 `241281` 个 workspace slot operation plans。它把 create/update/merge/supersede/retrieve/expand/verify/audit/context_pack、current/historical/as-of view、source expansion、verification、audit、context-pack policy 显式化，进一步减少 build memory system 过浅风险，同时不改变已验证 query path。 |
+| 主要局限 | query stack 仍有 state guide、event-time guide、selected context、context budget、audit 等兼容层；`memory_operation_plan_v1` 目前先作为 build-owned system contract 和 audit artifact，retrieval/context/verifier 尚未以 guarded/additive 方式系统消费该 operation plan；LME/LoCoMo query tokens 仍略高于 6K 目标但低于 8K hard diagnostic 线。 |
 
-v290 关键证据见 `experiments/diagnostic/stage1_memory_workspace_v290_query_restore_full_summary.md`。
+v291 关键证据见 `experiments/diagnostic/stage1_memory_operation_plan_v291_full_summary.md`。
 
 ## 重启说明
 
@@ -35,7 +35,7 @@ v290 关键证据见 `experiments/diagnostic/stage1_memory_workspace_v290_query_
 
 | 优先级 | 方向 | 下一步 |
 |---:|---|---|
-| 1 | Build memory system | 从 v288 出发重新设计更系统的 build-stage memory organization：short-term / working / long-term / archival 层次、不同 memory object、create / update / merge / supersede / retrieve / expand / verify / audit 操作，以及 source/provenance/governance。 |
+| 1 | Build memory system | 基于 v291 `memory_operation_plan_v1` 继续做更系统的 build-stage memory organization：补强 short-term/working/long-term/archival 的转换边界、operation plan 的 query policy、audit report 和可消融统计。 |
 | 2 | Design-for-benchmark cleanup | 检查 route、selected context、Managed Memory State Guide、ledger diagnostics、repair、finalizer、top-k/context budget；能通用化的改成 memory policy，不能通用化的删掉或降级为 diagnostic。 |
 | 3 | Retrieval/context | 探索通用 candidate pooling + rerank + anchor retention + source expansion + evidence utility selection，减少固定大 top-k 和长/短 turn 规则。 |
 | 4 | Answer/verifier | 整理成 source-grounded answer + 通用 consistency verifier，只检查数值、时间、说话人、实体、状态冲突和 unsupported answer，不写 benchmark-specific rewrite。 |
@@ -45,7 +45,8 @@ v290 关键证据见 `experiments/diagnostic/stage1_memory_workspace_v290_query_
 
 | 配置/文档 | 类型 | 关键结果 | 决策 |
 |---|---|---|---|
-| `configs/stage1_memory_workspace_v290_query_restore_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_memory_workspace_v290_query_restore_full_summary.md` | current LTS | LME/LoCoMo full answer/prompt/route/evidence/compiled memory/stable retrieval/build records diff vs v288 `0`；workspace manifest applied `2040/2040`；avg query tokens LME `6455.588`、LoCoMo `6093.962337662338` | 升 LTS；保留 build workspace system，恢复 v288 query behavior，性能继承 v288 |
+| `configs/stage1_memory_operation_plan_v291_query_restore_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_memory_operation_plan_v291_full_summary.md` | current LTS | LME/LoCoMo full answer/prompt/route/evidence/compiled memory/stable retrieval/build records diff vs v290 `0`；operation plan applied `2040/2040`；total slot plans `241281`；avg query tokens LME `6455.588`、LoCoMo `6093.962337662338` | 升 LTS；把 workspace slot 提升为 source-backed operation plan，性能继承 v290/v288 |
+| `configs/stage1_memory_workspace_v290_query_restore_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_memory_workspace_v290_query_restore_full_summary.md` | previous LTS | LME/LoCoMo full answer/prompt/route/evidence/compiled memory/stable retrieval/build records diff vs v288 `0`；workspace manifest applied `2040/2040`；avg query tokens LME `6455.588`、LoCoMo `6093.962337662338` | 被 v291 继承；保留 build workspace system，恢复 v288 query behavior |
 | `configs/stage1_memory_workspace_v289_reboot_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_memory_workspace_v289_reboot_full_summary.md` | rejected diagnostic | LME strict/lenient `0.804000 / 0.834000`，avg build/query `85393.566 / 6310.966`；LoCoMo strict/lenient `0.785714 / 0.813636`，avg build/query `62015.57402597403 / 6294.091558441559`；workspace manifest applied `2040/2040`；workspace plan triggered LME `202/500`、LoCoMo `930/1540` | 不升 LTS；build workspace manifest 保留，但 compact workspace plan 不能直接替换 v288 query guide |
 | `configs/stage1_memory_object_index_v288_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_memory_object_index_v288_full_summary.md` | previous LTS | v288 vs v287：LME/LoCoMo full answer/prompt/route/evidence/retrieval/build records diff `0`；`memory_object_index_v1` applied `2040/2040`；avg query tokens LME `6455.588`、LoCoMo `6093.962337662338` | 被 v290 继承；统一 build-owned memory object interface，性能继承 v287 |
 | `configs/stage1_state_only_value_slot_guide_v287_seeded_qwen36_no_think_build4k_cached.json` / `diagnostic/stage1_state_only_value_slot_guide_v287_full_summary.md` | previous LTS | v287 vs v284：LME answer diff `2/500`、LoCoMo `1/1540`；changed-answer dual judge 全部 strict correct；avg query tokens LME `6455.588`、LoCoMo `6093.962337662338` | 被 v288 继承；state-only value slot guide 让 build-owned memory object 参与 state organization |

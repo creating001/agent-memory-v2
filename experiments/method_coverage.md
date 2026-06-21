@@ -60,15 +60,15 @@
 - `external/MemMachine/evaluation/*`：question_type、answer、answer_session_ids、has_answer 等评测字段只可用于评测格式理解，不能进入方法。
 - 官方 LongMemEval / LoCoMo evaluation 代码中的 hidden labels、answer choices、category、question_type 只能用于 offline evaluation 或负面边界。
 
-## 当前 v289 Reboot 设计映射
+## 当前 v291 设计映射
 
-v289 reboot 目标是把 v288 的零散 build manifests 收敛成 query-facing memory workspace：
+v291 当前 LTS 目标是把 v288-v290 的 build manifests 收敛成更像 Agent Memory system 的 build-owned operation layer，而不是马上用 query prompt 替换已验证路径：
 
-- 借鉴 xMemory / EverOS / Nemori：derived memory 必须有 source episode/source row 回链；query 只渲染可见 raw rows 支撑的 activation group。
-- 借鉴 Mem0 / Memanto / Graphiti：把 update/delete 思想改成 non-destructive supersede、archival 和 valid_from/valid_to 生命周期。
-- 借鉴 MemoryOS / Letta / MIRIX：把 working/long-term/archival/quarantine 层次和 memory object taxonomy 放入 build artifact。
-- 借鉴 MemOS / Hindsight / Mnemis：query 侧用 compact workspace plan 做 activation、expand、verify、context_pack，而不是多个窄 guide 堆叠。
-- 本项目自己的取舍：raw evidence 永远是 final authority；workspace plan 只在 source ids 已经出现在 Memory Context 时渲染，避免 derived memory 与 raw evidence 竞争。
+- 借鉴 xMemory / EverOS / Nemori：derived memory 必须有 source episode/source row 回链；`memory_operation_plan_v1` 的 retrieve/expand/verify 都要求回到 raw Memory rows。
+- 借鉴 Mem0 / Memanto / Graphiti：把 update/delete 思想改成 non-destructive supersede、archival、current/historical/as-of view 和 provenance audit。
+- 借鉴 MemoryOS / Letta / MIRIX：把 working/long-term/archival/quarantine 层次、多类 memory object、slot-level state management 放入 build artifact。
+- 借鉴 MemOS / Hindsight / Mnemis：保留 source expansion、context_pack、audit、candidate organization 思想，但 v291 不直接把 compact workspace plan 放进 query prompt，避免 v289 的 accuracy 回退。
+- 本项目自己的取舍：raw evidence 永远是 final authority；operation plan 先作为 source-backed state management、conflict handling、context organization 和 answer verification contract，后续 query 消费必须 guarded/additive、可消融、可回滚。
 
 ## 51 项覆盖索引
 

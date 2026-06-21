@@ -1,0 +1,239 @@
+{
+  "baseline": "v290 memory workspace query restore",
+  "benchmarks": {
+    "locomo": {
+      "baseline_operation_plan_missing_records": 1540,
+      "behavioral_diff_counts": {
+        "answer": {
+          "diff_count": 0,
+          "sample_keys": []
+        },
+        "build_records": {
+          "diff_count": 0,
+          "sample_keys": []
+        },
+        "compiled_evidence": {
+          "diff_count": 0,
+          "sample_keys": []
+        },
+        "compiled_memory": {
+          "diff_count": 0,
+          "sample_keys": []
+        },
+        "memory_object_index_summary": {
+          "diff_count": 0,
+          "sample_keys": []
+        },
+        "prompt": {
+          "diff_count": 0,
+          "sample_keys": []
+        },
+        "route": {
+          "diff_count": 0,
+          "sample_keys": []
+        },
+        "stable_retrieval": {
+          "diff_count": 0,
+          "sample_keys": []
+        },
+        "workspace_manifest_summary": {
+          "diff_count": 0,
+          "sample_keys": []
+        }
+      },
+      "candidate_operation_plan_summary": {
+        "applied_records": 1540,
+        "audit_obligation_counts": {
+          "audit_conflict_cluster": 8514,
+          "audit_multi_value_slot": 23719,
+          "audit_scalar_values": 3595,
+          "audit_slot_scope": 196651,
+          "audit_superseded_chain": 8514,
+          "verify_raw_source_support": 196651
+        },
+        "operation_counts": {
+          "audit": 196651,
+          "context_pack": 196651,
+          "create": 196651,
+          "expand": 196651,
+          "merge": 2800,
+          "retrieve": 196651,
+          "supersede": 8514,
+          "update": 8514,
+          "verify": 196651
+        },
+        "operation_plan_count_histogram": {
+          "110": 156,
+          "116": 158,
+          "125": 199,
+          "134": 152,
+          "147": 150,
+          "148": 123,
+          "152": 191,
+          "153": 178,
+          "80": 81,
+          "85": 152
+        },
+        "schema_counts": {
+          "memory_operation_plan_v1": 1540
+        },
+        "total_operation_plans": 196651,
+        "total_records": 1540,
+        "view_policy_counts": {
+          "all_source_backed": 196651,
+          "as_of_state": 196651,
+          "current_state": 196651,
+          "historical_state": 196651
+        }
+      },
+      "missing_key_samples": {
+        "baseline_predictions_only": [],
+        "baseline_traces_only": [],
+        "candidate_predictions_only": [],
+        "candidate_traces_only": []
+      },
+      "n": 1540
+    },
+    "longmemeval-s": {
+      "baseline_operation_plan_missing_records": 500,
+      "behavioral_diff_counts": {
+        "answer": {
+          "diff_count": 0,
+          "sample_keys": []
+        },
+        "build_records": {
+          "diff_count": 0,
+          "sample_keys": []
+        },
+        "compiled_evidence": {
+          "diff_count": 0,
+          "sample_keys": []
+        },
+        "compiled_memory": {
+          "diff_count": 0,
+          "sample_keys": []
+        },
+        "memory_object_index_summary": {
+          "diff_count": 0,
+          "sample_keys": []
+        },
+        "prompt": {
+          "diff_count": 0,
+          "sample_keys": []
+        },
+        "route": {
+          "diff_count": 0,
+          "sample_keys": []
+        },
+        "stable_retrieval": {
+          "diff_count": 0,
+          "sample_keys": []
+        },
+        "workspace_manifest_summary": {
+          "diff_count": 0,
+          "sample_keys": []
+        }
+      },
+      "candidate_operation_plan_summary": {
+        "applied_records": 500,
+        "audit_obligation_counts": {
+          "audit_conflict_cluster": 2814,
+          "audit_multi_value_slot": 6651,
+          "audit_scalar_values": 4502,
+          "audit_slot_scope": 44630,
+          "audit_superseded_chain": 2814,
+          "verify_raw_source_support": 44630
+        },
+        "operation_counts": {
+          "audit": 44630,
+          "context_pack": 44630,
+          "create": 44630,
+          "expand": 44630,
+          "merge": 76,
+          "retrieve": 44630,
+          "supersede": 2814,
+          "update": 2814,
+          "verify": 44630
+        },
+        "operation_plan_count_histogram": {
+          "100": 6,
+          "101": 10,
+          "102": 9,
+          "103": 4,
+          "104": 5,
+          "105": 5,
+          "106": 5,
+          "107": 6,
+          "108": 6,
+          "109": 4,
+          "110": 2,
+          "111": 3,
+          "112": 1,
+          "113": 4,
+          "114": 3,
+          "116": 2,
+          "120": 1,
+          "121": 1,
+          "126": 1,
+          "61": 1,
+          "63": 1,
+          "65": 2,
+          "66": 2,
+          "67": 3,
+          "68": 4,
+          "69": 2,
+          "70": 4,
+          "71": 7,
+          "72": 4,
+          "73": 5,
+          "74": 6,
+          "75": 8,
+          "76": 10,
+          "77": 8,
+          "78": 9,
+          "79": 11,
+          "80": 17,
+          "81": 15,
+          "82": 15,
+          "83": 14,
+          "84": 28,
+          "85": 15,
+          "86": 22,
+          "87": 12,
+          "88": 16,
+          "89": 15,
+          "90": 27,
+          "91": 13,
+          "92": 20,
+          "93": 11,
+          "94": 17,
+          "95": 14,
+          "96": 20,
+          "97": 11,
+          "98": 18,
+          "99": 15
+        },
+        "schema_counts": {
+          "memory_operation_plan_v1": 500
+        },
+        "total_operation_plans": 44630,
+        "total_records": 500,
+        "view_policy_counts": {
+          "all_source_backed": 44630,
+          "as_of_state": 44630,
+          "current_state": 44630,
+          "historical_state": 44630
+        }
+      },
+      "missing_key_samples": {
+        "baseline_predictions_only": [],
+        "baseline_traces_only": [],
+        "candidate_predictions_only": [],
+        "candidate_traces_only": []
+      },
+      "n": 500
+    }
+  },
+  "candidate": "v291 memory operation plan",
+  "comparison_note": "Behavioral fields compare v291 against v290. memory_operation_plan is new in v291 and is summarized separately."
+}
