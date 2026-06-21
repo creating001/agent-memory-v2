@@ -1065,6 +1065,12 @@ def _memory_system_graph_summary(
         memory_workspace_manifest=memory_workspace_manifest,
         memory_operation_plan=memory_operation_plan,
     )
+    memory_query_readiness_manifest = _memory_query_readiness_manifest(
+        memory_workspace_manifest=memory_workspace_manifest,
+        memory_operation_plan=memory_operation_plan,
+        memory_layer_transition_manifest=memory_layer_transition_manifest,
+        memory_object_index=memory_object_index,
+    )
     operation_edge_counts = {
         "create": len(deduped_records),
         "merge": sum(len(group.get("merged") or ()) for group in merge_groups),
@@ -1086,6 +1092,7 @@ def _memory_system_graph_summary(
         "audit_slot": len(groups),
         "workspace_operation_plan": memory_operation_plan["operation_plan_count"],
         "layer_transition": memory_layer_transition_manifest["transition_count"],
+        "query_readiness": memory_query_readiness_manifest["readiness_slot_count"],
     }
 
     return {
@@ -1137,6 +1144,7 @@ def _memory_system_graph_summary(
         "memory_workspace_manifest": memory_workspace_manifest,
         "memory_operation_plan": memory_operation_plan,
         "memory_layer_transition_manifest": memory_layer_transition_manifest,
+        "memory_query_readiness_manifest": memory_query_readiness_manifest,
         "governance": {
             "raw_evidence_policy": "immutable_final_authority",
             "derived_memory_policy": "source_backed_activation_and_audit",
@@ -1867,6 +1875,342 @@ def _memory_layer_transition_record_sample(
     }
 
 
+def _memory_query_readiness_manifest(
+    *,
+    memory_workspace_manifest: dict[str, Any],
+    memory_operation_plan: dict[str, Any],
+    memory_layer_transition_manifest: dict[str, Any],
+    memory_object_index: dict[str, Any],
+) -> dict[str, Any]:
+    """Guarded query-consumption policy for build-owned memory artifacts.
+
+    The manifest is intentionally build-side and question-independent. It does
+    not change retrieval or prompt construction by itself; it records the gates
+    a query-time consumer must satisfy before using operation plans as anything
+    stronger than an additive source-backed organization/audit signal.
+    """
+
+    plans_by_slot = {
+        str(plan.get("slot_id") or ""): plan
+        for plan in memory_operation_plan.get("workspace_operation_plans") or ()
+        if isinstance(plan, dict) and plan.get("slot_id")
+    }
+    transitions_by_slot = {
+        str(transition.get("slot_id") or ""): transition
+        for transition in memory_layer_transition_manifest.get("slot_transition_index")
+        or ()
+        if isinstance(transition, dict) and transition.get("slot_id")
+    }
+    object_slots_by_slot = {
+        str(slot.get("slot_id") or ""): slot
+        for slot in memory_object_index.get("value_slot_index") or ()
+        if isinstance(slot, dict) and slot.get("slot_id")
+    }
+
+    readiness_index: list[dict[str, Any]] = []
+    readiness_state_counts: dict[str, int] = defaultdict(int)
+    consumer_mode_counts: dict[str, int] = defaultdict(int)
+    audit_obligation_counts: dict[str, int] = defaultdict(int)
+    required_gate_counts: dict[str, int] = defaultdict(int)
+    replace_state_value_guide_blocked_count = 0
+
+    for raw_group in memory_workspace_manifest.get("activation_groups") or ():
+        if not isinstance(raw_group, dict):
+            continue
+        slot_id = str(raw_group.get("slot_id") or "")
+        if not slot_id:
+            continue
+        plan = plans_by_slot.get(slot_id, {})
+        transition = transitions_by_slot.get(slot_id, {})
+        object_slot = object_slots_by_slot.get(slot_id, {})
+        source_expansion_plan = (
+            plan.get("source_expansion_plan") if isinstance(plan, dict) else {}
+        )
+        if not isinstance(source_expansion_plan, dict):
+            source_expansion_plan = {}
+        state_management_plan = (
+            plan.get("state_management_plan") if isinstance(plan, dict) else {}
+        )
+        if not isinstance(state_management_plan, dict):
+            state_management_plan = {}
+        audit_plan = plan.get("audit_plan") if isinstance(plan, dict) else {}
+        if not isinstance(audit_plan, dict):
+            audit_plan = {}
+        verification_plan = (
+            plan.get("verification_plan") if isinstance(plan, dict) else {}
+        )
+        if not isinstance(verification_plan, dict):
+            verification_plan = {}
+        context_pack_plan = (
+            plan.get("context_pack_plan") if isinstance(plan, dict) else {}
+        )
+        if not isinstance(context_pack_plan, dict):
+            context_pack_plan = {}
+        view_policy = plan.get("view_policy") if isinstance(plan, dict) else {}
+        if not isinstance(view_policy, dict):
+            view_policy = {}
+
+        current_sources = list(
+            source_expansion_plan.get("current_source_order")
+            or raw_group.get("current_source_order")
+            or ()
+        )[:8]
+        historical_sources = list(
+            source_expansion_plan.get("historical_source_order")
+            or raw_group.get("historical_source_order")
+            or ()
+        )[:8]
+        all_sources = list(
+            source_expansion_plan.get("all_source_ids")
+            or raw_group.get("source_ids")
+            or ()
+        )[:12]
+        active_values = list(
+            state_management_plan.get("active_values")
+            or raw_group.get("active_values")
+            or ()
+        )[:8]
+        superseded_values = list(
+            state_management_plan.get("superseded_values")
+            or raw_group.get("superseded_values")
+            or ()
+        )[:8]
+        audit_obligations = [
+            str(obligation)
+            for obligation in audit_plan.get("obligations") or ()
+            if str(obligation).strip()
+        ][:8]
+        required_gates = _query_readiness_required_gates(
+            raw_group=raw_group,
+            active_values=active_values,
+            superseded_values=superseded_values,
+            current_sources=current_sources,
+            historical_sources=historical_sources,
+            all_sources=all_sources,
+            audit_obligations=audit_obligations,
+        )
+        readiness_state = _query_readiness_state(
+            raw_group=raw_group,
+            required_gates=required_gates,
+            all_sources=all_sources,
+        )
+        safe_modes = _query_readiness_safe_modes(
+            raw_group=raw_group,
+            readiness_state=readiness_state,
+            audit_obligations=audit_obligations,
+        )
+        for mode in safe_modes:
+            consumer_mode_counts[mode] += 1
+        for obligation in audit_obligations:
+            audit_obligation_counts[obligation] += 1
+        for gate in required_gates:
+            required_gate_counts[gate] += 1
+        readiness_state_counts[readiness_state] += 1
+        replace_state_value_guide_blocked_count += 1
+
+        supported_views = [
+            str(view)
+            for view in view_policy.get("supported_views") or ()
+            if str(view).strip()
+        ]
+        if not supported_views:
+            supported_views = ["all_source_backed"]
+
+        readiness_index.append(
+            {
+                "readiness_id": f"query_readiness_{slot_id}",
+                "slot_id": slot_id,
+                "plan_id": str(plan.get("plan_id") or ""),
+                "transition_id": str(transition.get("transition_id") or ""),
+                "workspace_group_id": str(raw_group.get("group_id") or ""),
+                "memory_type": str(raw_group.get("memory_type") or ""),
+                "layer": str(raw_group.get("layer") or ""),
+                "memory_tier": str(raw_group.get("memory_tier") or ""),
+                "subject": str(raw_group.get("subject") or ""),
+                "predicate": str(raw_group.get("predicate") or ""),
+                "lifecycle_state": str(raw_group.get("lifecycle_state") or ""),
+                "transition_type": str(transition.get("transition_type") or ""),
+                "source_backed": bool(raw_group.get("source_backed")),
+                "readiness_state": readiness_state,
+                "safe_consumption_modes": safe_modes,
+                "unsafe_consumption_modes": [
+                    "derived_memory_as_final_evidence",
+                    "skip_raw_source_expansion",
+                    "replace_state_value_guide_without_equivalence",
+                    "benchmark_route_override",
+                ],
+                "query_gate": {
+                    "requires_visible_raw_rows": True,
+                    "requires_source_overlap": True,
+                    "requires_intent_or_view_gate": True,
+                    "requires_conflict_audit": bool(raw_group.get("conflict_cluster")),
+                    "requires_superseded_chain_audit": bool(superseded_values),
+                    "replace_state_value_guide_allowed": False,
+                    "replacement_block_reason": (
+                        "v1 is additive only; v292 showed direct operation-plan "
+                        "guide replacement can regress unless active/superseded "
+                        "values, source order, and audit coverage are proven "
+                        "equivalent."
+                    ),
+                },
+                "required_gates": required_gates,
+                "consumer_views": supported_views,
+                "source_expansion_readiness": {
+                    "raw_evidence_required": True,
+                    "final_evidence_policy": "raw_source_rows",
+                    "current_source_order": current_sources,
+                    "historical_source_order": historical_sources,
+                    "all_source_ids": all_sources,
+                    "visible_source_alignment": "check_at_query_time",
+                },
+                "state_value_readiness": {
+                    "active_values": active_values,
+                    "superseded_values": superseded_values,
+                    "scalar_values": list(
+                        state_management_plan.get("scalar_values")
+                        or raw_group.get("scalar_values")
+                        or ()
+                    )[:8],
+                    "has_active_value": bool(active_values),
+                    "has_superseded_value": bool(superseded_values),
+                    "state_value_equivalence_verified": False,
+                },
+                "verification_readiness": {
+                    "checks": list(verification_plan.get("checks") or ())[:8],
+                    "audit_obligations": audit_obligations,
+                    "answer_gate": str(
+                        verification_plan.get("answer_gate")
+                        or "raw_rows_must_support_final_answer"
+                    ),
+                },
+                "context_pack_readiness": {
+                    "raw_rows_first": bool(
+                        context_pack_plan.get("raw_rows_first", True)
+                    ),
+                    "derived_memory_role": str(
+                        context_pack_plan.get("derived_memory_role")
+                        or "activation_and_organization_only"
+                    ),
+                    "max_source_ids": int(
+                        context_pack_plan.get("max_source_ids") or 12
+                    ),
+                    "render_policy": (
+                        "render only after expanded raw rows are visible; otherwise "
+                        "keep as trace/audit metadata"
+                    ),
+                },
+                "operation_sequence": list(plan.get("operation_sequence") or ())[:8]
+                if isinstance(plan, dict)
+                else [],
+                "operation_contract_source": "memory_operation_plan_v1",
+                "lineage_contract_source": "memory_layer_transition_manifest_v1",
+                "object_index_source": str(object_slot.get("index_source") or ""),
+            }
+        )
+
+    return {
+        "schema_version": "memory_query_readiness_manifest_v1",
+        "trace_only": False,
+        "applied": True,
+        "readiness_slot_count": len(readiness_index),
+        "readiness_state_counts": dict(sorted(readiness_state_counts.items())),
+        "consumer_mode_counts": dict(sorted(consumer_mode_counts.items())),
+        "audit_obligation_counts": dict(sorted(audit_obligation_counts.items())),
+        "required_gate_counts": dict(sorted(required_gate_counts.items())),
+        "replace_state_value_guide_blocked_count": (
+            replace_state_value_guide_blocked_count
+        ),
+        "readiness_contract": {
+            "scope": "workspace_slot_query_consumer_policy",
+            "default_consumer_mode": "additive_source_backed_index",
+            "final_evidence_policy": "raw_source_rows",
+            "derived_memory_role": "activation_organization_and_audit_only",
+            "replacement_policy": (
+                "Do not replace existing state/value guides until a query consumer "
+                "proves source-order, active/superseded value, conflict-audit, "
+                "and prompt-behavior equivalence."
+            ),
+            "question_independent": True,
+            "clean_protocol": (
+                "No gold answers, judge output, benchmark labels, sample ids, "
+                "test feedback, or sample-level rules."
+            ),
+        },
+        "readiness_index": readiness_index,
+        "readiness_samples": readiness_index[:24],
+        "clean_note": (
+            "Question-independent build memory query-readiness manifest. It turns "
+            "workspace operation plans and layer transitions into guarded query "
+            "consumer policies: additive source-backed index, source expansion, "
+            "context organization, verification, and audit only. It explicitly "
+            "blocks treating derived memory as final evidence or replacing stable "
+            "state/value guides without equivalence validation."
+        ),
+    }
+
+
+def _query_readiness_required_gates(
+    *,
+    raw_group: dict[str, Any],
+    active_values: list[Any],
+    superseded_values: list[Any],
+    current_sources: list[Any],
+    historical_sources: list[Any],
+    all_sources: list[Any],
+    audit_obligations: list[str],
+) -> list[str]:
+    gates = ["visible_raw_rows", "source_overlap", "raw_evidence_before_answer"]
+    if current_sources or active_values:
+        gates.append("current_source_alignment")
+    if historical_sources or superseded_values:
+        gates.append("historical_source_alignment")
+    if raw_group.get("conflict_cluster"):
+        gates.append("conflict_chain_audit")
+    if superseded_values:
+        gates.append("superseded_chain_audit")
+    if any("low_confidence" in obligation for obligation in audit_obligations):
+        gates.append("low_confidence_audit")
+    if not all_sources:
+        gates.append("source_gap_audit")
+    if str(raw_group.get("memory_tier") or "") == "quarantine_memory":
+        gates.append("quarantine_block")
+    return list(dict.fromkeys(gates))
+
+
+def _query_readiness_state(
+    *,
+    raw_group: dict[str, Any],
+    required_gates: list[str],
+    all_sources: list[Any],
+) -> str:
+    if "quarantine_block" in required_gates or not raw_group.get("source_backed"):
+        return "blocked"
+    if not all_sources or "source_gap_audit" in required_gates:
+        return "audit_only"
+    return "guarded_ready"
+
+
+def _query_readiness_safe_modes(
+    *,
+    raw_group: dict[str, Any],
+    readiness_state: str,
+    audit_obligations: list[str],
+) -> list[str]:
+    modes = ["trace_audit"]
+    if readiness_state == "blocked":
+        return modes
+    modes.extend(["additive_index", "source_expansion", "verification_signal"])
+    if readiness_state == "guarded_ready":
+        modes.append("context_organization")
+    if raw_group.get("conflict_cluster") or any(
+        "conflict" in obligation for obligation in audit_obligations
+    ):
+        modes.append("conflict_chain_audit")
+    if raw_group.get("superseded_values"):
+        modes.append("superseded_chain_audit")
+    return list(dict.fromkeys(modes))
+
+
 def _workspace_allowed_operations(group: dict[str, Any]) -> list[str]:
     raw_hints = {
         str(hint).strip()
@@ -2014,6 +2358,7 @@ def _memory_system_object_schema() -> dict[str, Any]:
             "scalar_value_object",
             "workspace_operation_plan",
             "layer_transition",
+            "query_readiness",
         ],
         "quality_signals": [
             "source_backed",
@@ -2036,6 +2381,9 @@ def _memory_system_object_schema() -> dict[str, Any]:
             "build_owned_scalar_value_manifest",
             "build_owned_memory_operation_plan",
             "build_owned_layer_transition_manifest",
+            "build_owned_query_readiness_manifest",
+            "guarded_query_consumption",
+            "source_expansion_readiness",
         ],
         "governance_signals": [
             "source_activation_ready",
@@ -2056,6 +2404,8 @@ def _memory_system_object_schema() -> dict[str, Any]:
             "build_owned_memory_workspace_manifest",
             "build_owned_memory_operation_plan",
             "build_owned_layer_transition_manifest",
+            "build_owned_query_readiness_manifest",
+            "replace_state_value_guide_guard",
         ],
 }
 

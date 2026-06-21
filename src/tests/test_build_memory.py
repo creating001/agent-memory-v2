@@ -905,6 +905,63 @@ class BuildMemoryTest(unittest.TestCase):
             "raw_rows_must_support_final_answer",
         )
         self.assertTrue(lives_in_plan["context_pack_plan"]["raw_rows_first"])
+        readiness_manifest = graph["memory_query_readiness_manifest"]
+        self.assertEqual(
+            readiness_manifest["schema_version"],
+            "memory_query_readiness_manifest_v1",
+        )
+        self.assertFalse(readiness_manifest["trace_only"])
+        self.assertTrue(readiness_manifest["applied"])
+        self.assertEqual(readiness_manifest["readiness_slot_count"], 2)
+        self.assertEqual(
+            readiness_manifest["readiness_contract"]["final_evidence_policy"],
+            "raw_source_rows",
+        )
+        self.assertEqual(
+            readiness_manifest["readiness_contract"]["default_consumer_mode"],
+            "additive_source_backed_index",
+        )
+        self.assertEqual(
+            readiness_manifest["replace_state_value_guide_blocked_count"],
+            2,
+        )
+        lives_in_readiness = next(
+            readiness
+            for readiness in readiness_manifest["readiness_index"]
+            if readiness["predicate"] == "lives_in"
+        )
+        self.assertEqual(lives_in_readiness["readiness_state"], "guarded_ready")
+        self.assertIn("additive_index", lives_in_readiness["safe_consumption_modes"])
+        self.assertIn(
+            "conflict_chain_audit",
+            lives_in_readiness["safe_consumption_modes"],
+        )
+        self.assertIn(
+            "derived_memory_as_final_evidence",
+            lives_in_readiness["unsafe_consumption_modes"],
+        )
+        self.assertFalse(
+            lives_in_readiness["query_gate"]["replace_state_value_guide_allowed"]
+        )
+        self.assertEqual(
+            lives_in_readiness["source_expansion_readiness"][
+                "final_evidence_policy"
+            ],
+            "raw_source_rows",
+        )
+        self.assertEqual(
+            lives_in_readiness["state_value_readiness"]["active_values"],
+            ["seattle"],
+        )
+        self.assertEqual(
+            lives_in_readiness["state_value_readiness"]["superseded_values"],
+            ["austin"],
+        )
+        self.assertFalse(
+            lives_in_readiness["state_value_readiness"][
+                "state_value_equivalence_verified"
+            ]
+        )
         state_conflict_manifest = graph["state_conflict_manifest"]
         self.assertEqual(
             state_conflict_manifest["schema_version"],

@@ -2913,6 +2913,10 @@ class CleanSkeletonTest(unittest.TestCase):
             system_graph["object_schema"]["quality_signals"],
         )
         self.assertIn(
+            "build_owned_query_readiness_manifest",
+            system_graph["object_schema"]["quality_signals"],
+        )
+        self.assertIn(
             "temporal_scope_kind",
             system_graph["object_schema"]["quality_signals"],
         )
@@ -2958,6 +2962,10 @@ class CleanSkeletonTest(unittest.TestCase):
             "layer_transition",
             system_graph["object_schema"]["edge_types"],
         )
+        self.assertIn(
+            "query_readiness",
+            system_graph["object_schema"]["edge_types"],
+        )
         self.assertIn("value_object", system_graph["object_schema"]["edge_types"])
         self.assertIn(
             "scalar_value_object",
@@ -2985,6 +2993,14 @@ class CleanSkeletonTest(unittest.TestCase):
         )
         self.assertIn(
             "build_owned_layer_transition_manifest",
+            system_graph["object_schema"]["governance_signals"],
+        )
+        self.assertIn(
+            "build_owned_query_readiness_manifest",
+            system_graph["object_schema"]["governance_signals"],
+        )
+        self.assertIn(
+            "replace_state_value_guide_guard",
             system_graph["object_schema"]["governance_signals"],
         )
         self.assertIn(
@@ -3315,6 +3331,61 @@ class CleanSkeletonTest(unittest.TestCase):
             ["s2:t1", "s2:t2", "s1:t1"],
         )
         self.assertTrue(city_operation_plan["context_pack_plan"]["raw_rows_first"])
+        query_readiness_manifest = system_graph["memory_query_readiness_manifest"]
+        self.assertEqual(
+            query_readiness_manifest["schema_version"],
+            "memory_query_readiness_manifest_v1",
+        )
+        self.assertFalse(query_readiness_manifest["trace_only"])
+        self.assertTrue(query_readiness_manifest["applied"])
+        self.assertEqual(query_readiness_manifest["readiness_slot_count"], 2)
+        self.assertEqual(
+            query_readiness_manifest["readiness_contract"][
+                "default_consumer_mode"
+            ],
+            "additive_source_backed_index",
+        )
+        self.assertEqual(
+            query_readiness_manifest["readiness_contract"]["final_evidence_policy"],
+            "raw_source_rows",
+        )
+        city_readiness = next(
+            readiness
+            for readiness in query_readiness_manifest["readiness_index"]
+            if readiness["predicate"] == "location"
+        )
+        self.assertEqual(city_readiness["readiness_state"], "guarded_ready")
+        self.assertIn("additive_index", city_readiness["safe_consumption_modes"])
+        self.assertIn(
+            "source_expansion",
+            city_readiness["safe_consumption_modes"],
+        )
+        self.assertIn(
+            "conflict_chain_audit",
+            city_readiness["safe_consumption_modes"],
+        )
+        self.assertIn(
+            "replace_state_value_guide_without_equivalence",
+            city_readiness["unsafe_consumption_modes"],
+        )
+        self.assertFalse(
+            city_readiness["query_gate"]["replace_state_value_guide_allowed"]
+        )
+        self.assertTrue(
+            city_readiness["query_gate"]["requires_visible_raw_rows"]
+        )
+        self.assertEqual(
+            city_readiness["source_expansion_readiness"]["current_source_order"],
+            ["s2:t1", "s2:t2", "s1:t1"],
+        )
+        self.assertEqual(
+            city_readiness["state_value_readiness"]["active_values"],
+            ["seattle"],
+        )
+        self.assertEqual(
+            city_readiness["state_value_readiness"]["superseded_values"],
+            ["austin"],
+        )
         city_value_slot = next(
             slot
             for slot in scalar_value_manifest["slot_samples"]
