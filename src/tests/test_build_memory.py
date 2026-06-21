@@ -821,6 +821,35 @@ class BuildMemoryTest(unittest.TestCase):
             "archival_memory",
             operation_manifest["object_contract"]["memory_layers"],
         )
+        transition_manifest = graph["memory_layer_transition_manifest"]
+        self.assertEqual(
+            transition_manifest["schema_version"],
+            "memory_layer_transition_manifest_v1",
+        )
+        self.assertFalse(transition_manifest["trace_only"])
+        self.assertTrue(transition_manifest["applied"])
+        self.assertEqual(transition_manifest["record_transition_count"], 3)
+        self.assertEqual(transition_manifest["slot_transition_count"], 2)
+        self.assertEqual(
+            transition_manifest["layer_contract"]["final_evidence_policy"],
+            "raw_source_rows",
+        )
+        self.assertEqual(
+            transition_manifest["layer_contract"]["delete_policy"],
+            "non_destructive_supersede_or_archival",
+        )
+        lives_in_transition = next(
+            transition
+            for transition in transition_manifest["slot_transition_index"]
+            if transition["predicate"] == "lives_in"
+        )
+        self.assertEqual(
+            lives_in_transition["transition_type"],
+            "non_destructive_update",
+        )
+        self.assertTrue(lives_in_transition["raw_evidence_required"])
+        self.assertEqual(lives_in_transition["current_source_count"], 2)
+        self.assertEqual(lives_in_transition["historical_source_count"], 2)
         operation_plan = graph["memory_operation_plan"]
         self.assertEqual(
             operation_plan["schema_version"],

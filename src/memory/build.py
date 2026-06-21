@@ -1059,6 +1059,12 @@ def _memory_system_graph_summary(
         scalar_value_manifest=scalar_value_manifest,
         memory_object_index=memory_object_index,
     )
+    memory_layer_transition_manifest = _memory_layer_transition_manifest(
+        managed_records=managed_records,
+        managed_memory_types=managed_memory_types,
+        memory_workspace_manifest=memory_workspace_manifest,
+        memory_operation_plan=memory_operation_plan,
+    )
     operation_edge_counts = {
         "create": len(deduped_records),
         "merge": sum(len(group.get("merged") or ()) for group in merge_groups),
@@ -1079,6 +1085,7 @@ def _memory_system_graph_summary(
         ),
         "audit_slot": len(groups),
         "workspace_operation_plan": memory_operation_plan["operation_plan_count"],
+        "layer_transition": memory_layer_transition_manifest["transition_count"],
     }
 
     return {
@@ -1129,6 +1136,7 @@ def _memory_system_graph_summary(
         "memory_object_index": memory_object_index,
         "memory_workspace_manifest": memory_workspace_manifest,
         "memory_operation_plan": memory_operation_plan,
+        "memory_layer_transition_manifest": memory_layer_transition_manifest,
         "governance": {
             "raw_evidence_policy": "immutable_final_authority",
             "derived_memory_policy": "source_backed_activation_and_audit",
@@ -1654,6 +1662,211 @@ def _memory_operation_plan(
     }
 
 
+def _memory_layer_transition_manifest(
+    *,
+    managed_records: tuple[MemoryRecord, ...],
+    managed_memory_types: frozenset[str],
+    memory_workspace_manifest: dict[str, Any],
+    memory_operation_plan: dict[str, Any],
+) -> dict[str, Any]:
+    """Build-owned transition map from raw memory objects into workspace policy."""
+
+    plans_by_slot = {
+        str(plan.get("slot_id") or ""): plan
+        for plan in memory_operation_plan.get("workspace_operation_plans") or ()
+        if isinstance(plan, dict) and plan.get("slot_id")
+    }
+    transition_counts: dict[str, int] = defaultdict(int)
+    layer_transition_counts: dict[str, int] = defaultdict(int)
+    tier_transition_counts: dict[str, int] = defaultdict(int)
+    audit_obligation_counts: dict[str, int] = defaultdict(int)
+    slot_transition_index: list[dict[str, Any]] = []
+
+    for raw_group in memory_workspace_manifest.get("activation_groups") or ():
+        if not isinstance(raw_group, dict):
+            continue
+        slot_id = str(raw_group.get("slot_id") or "")
+        if not slot_id:
+            continue
+        plan = plans_by_slot.get(slot_id, {})
+        transition_type = _layer_transition_type(raw_group)
+        layer = str(raw_group.get("layer") or "")
+        tier = str(raw_group.get("memory_tier") or "")
+        layer_transition_counts[f"raw_turn_buffer->{layer or 'unknown'}"] += 1
+        tier_transition_counts[f"{layer or 'unknown'}->{tier or 'memory'}"] += 1
+        transition_counts[transition_type] += 1
+        if bool(raw_group.get("source_backed")):
+            transition_counts["source_backed_activation"] += 1
+        if bool(raw_group.get("conflict_cluster")):
+            transition_counts["conflict_audit_required"] += 1
+        if raw_group.get("superseded_values") or raw_group.get(
+            "superseded_memory_ids"
+        ):
+            transition_counts["non_destructive_history_retained"] += 1
+
+        audit_plan = plan.get("audit_plan") if isinstance(plan, dict) else {}
+        if not isinstance(audit_plan, dict):
+            audit_plan = {}
+        audit_obligations = [
+            str(obligation)
+            for obligation in audit_plan.get("obligations") or ()
+            if str(obligation).strip()
+        ]
+        for obligation in audit_obligations:
+            audit_obligation_counts[obligation] += 1
+
+        source_expansion_plan = (
+            plan.get("source_expansion_plan") if isinstance(plan, dict) else {}
+        )
+        if not isinstance(source_expansion_plan, dict):
+            source_expansion_plan = {}
+        state_management_plan = (
+            plan.get("state_management_plan") if isinstance(plan, dict) else {}
+        )
+        if not isinstance(state_management_plan, dict):
+            state_management_plan = {}
+        slot_transition_index.append(
+            {
+                "transition_id": f"layer_transition_{slot_id}",
+                "slot_id": slot_id,
+                "workspace_group_id": str(raw_group.get("group_id") or ""),
+                "memory_type": str(raw_group.get("memory_type") or ""),
+                "layer": layer,
+                "memory_tier": tier,
+                "subject": str(raw_group.get("subject") or ""),
+                "predicate": str(raw_group.get("predicate") or ""),
+                "transition_type": transition_type,
+                "lifecycle_state": str(raw_group.get("lifecycle_state") or ""),
+                "source_backed": bool(raw_group.get("source_backed")),
+                "raw_evidence_required": bool(
+                    source_expansion_plan.get("raw_evidence_required", True)
+                ),
+                "active_value_count": len(
+                    state_management_plan.get("active_values")
+                    or raw_group.get("active_values")
+                    or ()
+                ),
+                "superseded_value_count": len(
+                    state_management_plan.get("superseded_values")
+                    or raw_group.get("superseded_values")
+                    or ()
+                ),
+                "current_source_count": len(
+                    source_expansion_plan.get("current_source_order")
+                    or raw_group.get("current_source_order")
+                    or ()
+                ),
+                "historical_source_count": len(
+                    source_expansion_plan.get("historical_source_order")
+                    or raw_group.get("historical_source_order")
+                    or ()
+                ),
+                "operation_sequence": list(plan.get("operation_sequence") or ())[:8]
+                if isinstance(plan, dict)
+                else [],
+                "audit_obligations": audit_obligations[:8],
+                "query_policy": (
+                    "activate this transition only as a source-backed organization "
+                    "and verification signal; final answer facts must come from "
+                    "expanded raw rows"
+                ),
+            }
+        )
+
+    record_transition_samples = [
+        _memory_layer_transition_record_sample(
+            record,
+            managed_memory_types=managed_memory_types,
+        )
+        for record in managed_records[:24]
+    ]
+    return {
+        "schema_version": "memory_layer_transition_manifest_v1",
+        "trace_only": False,
+        "applied": True,
+        "record_transition_count": len(managed_records),
+        "slot_transition_count": len(slot_transition_index),
+        "transition_count": len(managed_records) + len(slot_transition_index),
+        "transition_counts": dict(sorted(transition_counts.items())),
+        "layer_transition_counts": dict(sorted(layer_transition_counts.items())),
+        "tier_transition_counts": dict(sorted(tier_transition_counts.items())),
+        "audit_obligation_counts": dict(sorted(audit_obligation_counts.items())),
+        "layer_contract": {
+            "stages": [
+                "raw_turn_buffer",
+                "typed_memory_object",
+                "tiered_memory_slot",
+                "workspace_operation_plan",
+                "expanded_raw_rows",
+            ],
+            "memory_tiers": [
+                "working_memory",
+                "long_term_memory",
+                "archival_memory",
+                "quarantine_memory",
+            ],
+            "delete_policy": "non_destructive_supersede_or_archival",
+            "quarantine_policy": "block_activation_until_source_or_confidence_recovers",
+            "final_evidence_policy": "raw_source_rows",
+            "query_independent": True,
+        },
+        "slot_transition_index": slot_transition_index,
+        "slot_transition_samples": slot_transition_index[:24],
+        "record_transition_samples": record_transition_samples,
+        "clean_note": (
+            "Question-independent build memory layer transition manifest. It maps "
+            "raw turns into typed objects, tiered slots, workspace operation "
+            "plans, and raw-row expansion policy. It records non-destructive "
+            "updates, archival history, and quarantine blocking without using "
+            "gold answers, judge output, benchmark labels, sample ids, test "
+            "feedback, or sample-level rules."
+        ),
+    }
+
+
+def _layer_transition_type(group: dict[str, Any]) -> str:
+    tier = str(group.get("memory_tier") or "")
+    lifecycle_state = str(group.get("lifecycle_state") or "")
+    if tier == "quarantine_memory":
+        return "quarantine_block"
+    if lifecycle_state == "active_with_history":
+        return "non_destructive_update"
+    if lifecycle_state == "historical_only":
+        return "archival_recall"
+    if tier == "working_memory":
+        return "working_state_slot"
+    if tier == "long_term_memory":
+        return "long_term_recall_slot"
+    if tier == "archival_memory":
+        return "archival_retention"
+    return "source_backed_activation"
+
+
+def _memory_layer_transition_record_sample(
+    record: MemoryRecord,
+    *,
+    managed_memory_types: frozenset[str],
+) -> dict[str, Any]:
+    tier = _memory_tier(record, managed_memory_types=managed_memory_types)
+    transition_type = "typed_object_create"
+    if tier == "quarantine_memory":
+        transition_type = "typed_object_quarantine"
+    elif record.status == "superseded" or record.superseded_by or record.valid_to:
+        transition_type = "typed_object_archive"
+    return {
+        "memory_id": record.memory_id,
+        "memory_type": record.memory_type,
+        "layer": _memory_layer(record.memory_type),
+        "memory_tier": tier,
+        "status": record.status,
+        "transition_type": transition_type,
+        "source_backed": bool(record.source_ids),
+        "source_count": len(record.source_ids),
+        "confidence": record.confidence,
+        "non_destructive": True,
+    }
+
+
 def _workspace_allowed_operations(group: dict[str, Any]) -> list[str]:
     raw_hints = {
         str(hint).strip()
@@ -1800,6 +2013,7 @@ def _memory_system_object_schema() -> dict[str, Any]:
             "value_object",
             "scalar_value_object",
             "workspace_operation_plan",
+            "layer_transition",
         ],
         "quality_signals": [
             "source_backed",
@@ -1821,6 +2035,7 @@ def _memory_system_object_schema() -> dict[str, Any]:
             "scalar_value",
             "build_owned_scalar_value_manifest",
             "build_owned_memory_operation_plan",
+            "build_owned_layer_transition_manifest",
         ],
         "governance_signals": [
             "source_activation_ready",
@@ -1840,6 +2055,7 @@ def _memory_system_object_schema() -> dict[str, Any]:
             "build_owned_memory_object_index",
             "build_owned_memory_workspace_manifest",
             "build_owned_memory_operation_plan",
+            "build_owned_layer_transition_manifest",
         ],
 }
 
