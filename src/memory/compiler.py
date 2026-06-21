@@ -5368,6 +5368,11 @@ def _working_memory_packet_entry_source_ids(entry: Mapping[str, Any]) -> tuple[s
 
 
 def _working_memory_packet_entry_value(entry: Mapping[str, Any]) -> str:
+    if str(entry.get("target_type") or "") == "conflict_slot":
+        # Conflict slots organize competing values for guard/audit. Keep their
+        # values out of prompt-visible packet hints unless a future explicit
+        # renderer policy makes that tradeoff measurable.
+        return str(entry.get("value") or "")
     values = tuple(str(value) for value in entry.get("values") or () if value)
     if values:
         return "; ".join(values[:4])

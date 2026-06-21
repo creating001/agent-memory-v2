@@ -13059,8 +13059,8 @@ class CleanSkeletonTest(unittest.TestCase):
 
         self.assertIn("Compact source-backed workspace packet", compiled.prompt)
         self.assertIn("slot=alex/follower count", compiled.prompt)
-        self.assertIn("hint=1300 followers; 1250 followers", compiled.prompt)
         self.assertIn("hint=1250 followers; 1300 followers", compiled.prompt)
+        self.assertNotIn("hint=1300 followers; 1250 followers", compiled.prompt)
         self.assertIn("src=Memory 2, Memory 1", compiled.prompt)
         self.assertNotIn("context=retrieve_source_rows", compiled.prompt)
         self.assertNotIn("checks=source_backing", compiled.prompt)
@@ -13108,8 +13108,8 @@ class CleanSkeletonTest(unittest.TestCase):
         ]
         self.assertIn("Source-backed workspace packet", opt_in_packet)
         self.assertNotIn("Compact source-backed workspace packet", opt_in_packet)
-        self.assertIn("hint=1300 followers; 1250 followers", opt_in_packet)
-        self.assertNotIn("hint=1250 followers; 1300 followers", opt_in_packet)
+        self.assertIn("hint=1250 followers; 1300 followers", opt_in_packet)
+        self.assertNotIn("hint=1300 followers; 1250 followers", opt_in_packet)
 
     def test_working_memory_packet_slot_guard_suppresses_incomplete_status_slot(
         self,
