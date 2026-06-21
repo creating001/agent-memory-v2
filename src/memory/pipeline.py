@@ -974,8 +974,6 @@ class Stage1Pipeline:
             max_evidence_items=int(compiler_config.get("max_evidence_items", 20)),
             max_evidence_chars=int(compiler_config.get("max_evidence_chars", 12000)),
             answer_style=str(compiler_config.get("answer_style", "grounded")),
-            temporal_grounding=bool(compiler_config.get("temporal_grounding", False)),
-            temporal_hints=bool(compiler_config.get("temporal_hints", False)),
             temporal_workpad=bool(compiler_config.get("temporal_workpad", False)),
             temporal_text_normalization=bool(
                 compiler_config.get("temporal_text_normalization", False)
@@ -1414,13 +1412,6 @@ class Stage1Pipeline:
             ),
             tail_max_row_text_chars=int(
                 compiler_config.get("tail_max_row_text_chars", 0)
-            ),
-            route_guidance=bool(compiler_config.get("route_guidance", False)),
-            evidence_row_labels=bool(
-                compiler_config.get("evidence_row_labels", False)
-            ),
-            final_answer_checklist=bool(
-                compiler_config.get("final_answer_checklist", False)
             ),
             max_memory_records=int(compiler_config.get("max_memory_records", 12)),
             memory_context_newlines_after_blocks=int(
@@ -8241,14 +8232,7 @@ def _compiler_trace_config(
         "tail_max_row_text_chars": int(
             compiler_config.get("tail_max_row_text_chars", 0)
         ),
-        "evidence_row_labels": bool(compiler_config.get("evidence_row_labels", False)),
-        "final_answer_checklist": bool(
-            compiler_config.get("final_answer_checklist", False)
-        ),
-        "route_guidance": bool(compiler_config.get("route_guidance", False)),
         "answer_style": str(compiler_config.get("answer_style", "grounded")),
-        "temporal_grounding": bool(compiler_config.get("temporal_grounding", False)),
-        "temporal_hints": bool(compiler_config.get("temporal_hints", False)),
         "temporal_workpad": bool(compiler_config.get("temporal_workpad", False)),
         "temporal_text_normalization": bool(
             compiler_config.get("temporal_text_normalization", False)
@@ -8662,8 +8646,6 @@ def _configured_compiler(compiler_config: Mapping[str, Any]) -> EvidenceCompiler
         max_evidence_items=int(compiler_config.get("max_evidence_items", 12)),
         max_evidence_chars=int(compiler_config.get("max_evidence_chars", 12000)),
         max_memory_records=int(compiler_config.get("max_memory_records", 12)),
-        temporal_grounding=bool(compiler_config.get("temporal_grounding", False)),
-        temporal_hints=bool(compiler_config.get("temporal_hints", False)),
         temporal_workpad=bool(compiler_config.get("temporal_workpad", False)),
         temporal_text_normalization=bool(
             compiler_config.get("temporal_text_normalization", False)
@@ -9083,11 +9065,6 @@ def _configured_compiler(compiler_config: Mapping[str, Any]) -> EvidenceCompiler
         ),
         tail_max_row_text_chars=int(
             compiler_config.get("tail_max_row_text_chars", 0)
-        ),
-        route_guidance=bool(compiler_config.get("route_guidance", False)),
-        evidence_row_labels=bool(compiler_config.get("evidence_row_labels", False)),
-        final_answer_checklist=bool(
-            compiler_config.get("final_answer_checklist", False)
         ),
         memory_context_newlines_after_blocks=int(
             compiler_config.get("memory_context_newlines_after_blocks", 3)

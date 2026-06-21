@@ -8625,7 +8625,6 @@ class CleanSkeletonTest(unittest.TestCase):
             evidence_report_information_needs=("fact_lookup",),
             operation_workpad=False,
             candidate_guide=False,
-            final_answer_checklist=False,
             aggregation_report_contract=False,
         )
         context = compiler.compile(
@@ -8957,55 +8956,6 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertIn("earlier normalized event time", temporal_context.prompt)
         self.assertIn("started N ago", temporal_context.prompt)
         self.assertNotIn("earlier normalized event time", list_context.prompt)
-
-    def test_external_naive_final_checklist_is_config_gated(self) -> None:
-        turns = (
-            Turn(
-                source_id="s1:t0",
-                session_id="s1",
-                turn_index=0,
-                role="user",
-                text="Alex fixed the fence yesterday.",
-                timestamp="2024-01-08",
-            ),
-        )
-        route = RouteResult(information_need="temporal_lookup", signals=("temporal",))
-        default_compiler = EvidenceCompiler(
-            max_evidence_items=1,
-            max_evidence_chars=4000,
-            prompt_mode="external_naive",
-            evidence_report_contract=True,
-        )
-        checklist_compiler = EvidenceCompiler(
-            max_evidence_items=1,
-            max_evidence_chars=4000,
-            prompt_mode="external_naive",
-            evidence_report_contract=True,
-            final_answer_checklist=True,
-        )
-
-        default_context = default_compiler.compile(
-            question="Which happened first, Alex fixing the fence or buying cows?",
-            question_time=None,
-            route=route,
-            hits=(),
-            evidence_turns=turns,
-        )
-        checklist_context = checklist_compiler.compile(
-            question="Which happened first, Alex fixing the fence or buying cows?",
-            question_time=None,
-            route=route,
-            hits=(),
-            evidence_turns=turns,
-        )
-
-        self.assertNotIn("Final Answer Checklist", default_context.prompt)
-        self.assertIn("Final Answer Checklist", checklist_context.prompt)
-        self.assertIn("multiple compared alternatives", checklist_context.prompt)
-        self.assertIn("partial support is not enough", checklist_context.prompt)
-        self.assertNotIn("gold answer", checklist_context.prompt)
-        self.assertNotIn("judge output", checklist_context.prompt)
-        self.assertNotIn("sample id", checklist_context.prompt)
 
     def test_detailed_evidence_report_rules_are_config_gated(self) -> None:
         turns = (
@@ -9819,7 +9769,7 @@ class CleanSkeletonTest(unittest.TestCase):
         )
         self.assertNotIn("Source Event Timeline:", choice_question.prompt)
 
-    def test_evidence_labels_role_snippets_and_final_checklist_are_added(self) -> None:
+    def test_role_query_snippet_truncates_long_rows(self) -> None:
         config = {
             "retrieval": {"top_k": 2, "max_top_k": 2, "neighbor_window": 0},
             "compiler": {
@@ -9827,8 +9777,6 @@ class CleanSkeletonTest(unittest.TestCase):
                 "max_evidence_chars": 1000,
                 "row_text_mode": "role_query_snippet",
                 "max_row_text_chars": 80,
-                "evidence_row_labels": True,
-                "final_answer_checklist": True,
             },
             "answer": {"fallback_answer": "I do not know."},
         }
@@ -9859,74 +9807,8 @@ class CleanSkeletonTest(unittest.TestCase):
         result = Stage1Pipeline(config).predict(request)
         prompt = result["trace"]["compiled_context"]["prompt"]
 
-        self.assertIn("- E1 source_id=", prompt)
-        self.assertIn("Final answer checklist:", prompt)
-        self.assertIn("exact asked entity", prompt)
         self.assertIn("Alex serviced the road bike", prompt)
         self.assertIn("...", prompt)
-
-    def test_temporal_grounding_is_added_to_prompt(self) -> None:
-        config = {
-            "retrieval": {"top_k": 1, "max_top_k": 1, "neighbor_window": 0},
-            "compiler": {
-                "max_evidence_items": 1,
-                "max_evidence_chars": 1000,
-                "temporal_grounding": True,
-                "temporal_hints": True,
-            },
-            "answer": {"fallback_answer": "I do not know."},
-        }
-        request = PredictionRequest(
-            question="When did Alex visit?",
-            turns=(
-                Turn(
-                    source_id="s1:t1",
-                    session_id="s1",
-                    turn_index=1,
-                    role="user",
-                    text="Alex visited yesterday.",
-                    timestamp="2023-05-08",
-                ),
-            ),
-        )
-
-        result = Stage1Pipeline(config).predict(request)
-        prompt = result["trace"]["compiled_context"]["prompt"]
-
-        self.assertIn("Resolve relative time expressions", prompt)
-        self.assertIn("supported absolute date", prompt)
-        self.assertIn("Temporal normalization hints", prompt)
-        self.assertIn('phrase="yesterday" normalized="2023-05-07"', prompt)
-
-    def test_temporal_hints_are_disabled_by_default(self) -> None:
-        config = {
-            "retrieval": {"top_k": 1, "max_top_k": 1, "neighbor_window": 0},
-            "compiler": {
-                "max_evidence_items": 1,
-                "max_evidence_chars": 1000,
-                "temporal_grounding": True,
-            },
-            "answer": {"fallback_answer": "I do not know."},
-        }
-        request = PredictionRequest(
-            question="When did Alex visit?",
-            turns=(
-                Turn(
-                    source_id="s1:t1",
-                    session_id="s1",
-                    turn_index=1,
-                    role="user",
-                    text="Alex visited yesterday.",
-                    timestamp="2023-05-08",
-                ),
-            ),
-        )
-
-        result = Stage1Pipeline(config).predict(request)
-        prompt = result["trace"]["compiled_context"]["prompt"]
-
-        self.assertIn("Resolve relative time expressions", prompt)
-        self.assertNotIn("Temporal normalization hints", prompt)
 
     def test_compiler_retrieval_order_is_default(self) -> None:
         compiler = EvidenceCompiler(max_evidence_items=1, max_evidence_chars=4000)
@@ -11055,57 +10937,6 @@ class CleanSkeletonTest(unittest.TestCase):
         self.assertEqual(compiled.evidence_rows[0].text, long_text)
         self.assertIn("reimbursement folder", compiled.prompt)
         self.assertLess(len(compiled.prompt), len(long_text))
-
-    def test_route_guidance_is_disabled_by_default(self) -> None:
-        compiler = EvidenceCompiler(max_evidence_items=1, max_evidence_chars=4000)
-        route = RouteResult(information_need="fact_lookup", signals=())
-        compiled = compiler.compile(
-            question="What degree did Alex earn?",
-            question_time=None,
-            route=route,
-            hits=(RetrievalHit("s1:t0", 1.0, 1, "lexical_bm25"),),
-            evidence_turns=(
-                Turn(
-                    source_id="s1:t0",
-                    session_id="s1",
-                    turn_index=0,
-                    role="user",
-                    text="Alex earned a history degree.",
-                ),
-            ),
-        )
-
-        self.assertNotIn("Information-need guidance", compiled.prompt)
-
-    def test_route_guidance_adds_generic_information_need_prompt(self) -> None:
-        compiler = EvidenceCompiler(
-            max_evidence_items=1,
-            max_evidence_chars=4000,
-            route_guidance=True,
-        )
-        route = RouteResult(information_need="fact_lookup", signals=())
-        compiled = compiler.compile(
-            question="What degree did Alex earn?",
-            question_time=None,
-            route=route,
-            hits=(RetrievalHit("s1:t0", 1.0, 1, "lexical_bm25"),),
-            evidence_turns=(
-                Turn(
-                    source_id="s1:t0",
-                    session_id="s1",
-                    turn_index=0,
-                    role="user",
-                    text="Alex earned a history degree.",
-                ),
-            ),
-        )
-
-        self.assertIn("Information-need guidance", compiled.prompt)
-        self.assertIn("Ignore unrelated rows", compiled.prompt)
-        self.assertLess(
-            compiled.prompt.index("Information-need guidance"),
-            compiled.prompt.index("Raw context table"),
-        )
 
 class _FakeReranker:
     def __init__(self, **kwargs: object) -> None:

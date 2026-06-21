@@ -218,8 +218,6 @@ ROUTE_OVERRIDE_KEYS = {
     "enable_weekend_relative_time",
     "evidence_order",
     "evidence_report_detail",
-    "evidence_row_labels",
-    "final_answer_checklist",
     "grounded_inference_contract",
     "grounded_inference_gate",
     "max_memory_records",
@@ -349,8 +347,6 @@ class EvidenceCompiler:
         max_evidence_items: int,
         max_evidence_chars: int,
         answer_style: str = "grounded",
-        temporal_grounding: bool = False,
-        temporal_hints: bool = False,
         temporal_workpad: bool = False,
         temporal_text_normalization: bool = False,
         temporal_event_contract: bool = False,
@@ -527,9 +523,6 @@ class EvidenceCompiler:
         tail_row_text_mode: str = "full",
         tail_row_text_after_rank: int = 0,
         tail_max_row_text_chars: int = 0,
-        route_guidance: bool = False,
-        evidence_row_labels: bool = False,
-        final_answer_checklist: bool = False,
         max_memory_records: int = 12,
         memory_context_newlines_after_blocks: int = 3,
         prompt_mode: str = "default",
@@ -538,8 +531,6 @@ class EvidenceCompiler:
         self._max_evidence_items = max_evidence_items
         self._max_evidence_chars = max_evidence_chars
         self._answer_style = answer_style
-        self._temporal_grounding = temporal_grounding
-        self._temporal_hints = temporal_hints
         self._temporal_workpad = temporal_workpad
         self._temporal_text_normalization = temporal_text_normalization
         self._temporal_event_contract = temporal_event_contract
@@ -869,9 +860,6 @@ class EvidenceCompiler:
         self._tail_row_text_mode = tail_row_text_mode
         self._tail_row_text_after_rank = max(0, int(tail_row_text_after_rank))
         self._tail_max_row_text_chars = tail_max_row_text_chars or self._max_row_text_chars
-        self._route_guidance = route_guidance
-        self._evidence_row_labels = evidence_row_labels
-        self._final_answer_checklist = final_answer_checklist
         self._max_memory_records = max(0, max_memory_records)
         self._memory_context_newlines_after_blocks = max(
             2, int(memory_context_newlines_after_blocks)
@@ -1008,8 +996,6 @@ class EvidenceCompiler:
             tuple(selected_memory_records),
             laid_out_rows,
             answer_style=self._answer_style,
-            temporal_grounding=self._temporal_grounding,
-            temporal_hints=self._temporal_hints,
             temporal_workpad=self._temporal_workpad,
             temporal_text_normalization=self._temporal_text_normalization,
             temporal_event_contract=self._temporal_event_contract,
@@ -1291,9 +1277,6 @@ class EvidenceCompiler:
             tail_row_text_mode=route_settings["tail_row_text_mode"],
             tail_row_text_after_rank=route_settings["tail_row_text_after_rank"],
             tail_max_row_text_chars=route_settings["tail_max_row_text_chars"],
-            route_guidance=self._route_guidance,
-            evidence_row_labels=route_settings["evidence_row_labels"],
-            final_answer_checklist=route_settings["final_answer_checklist"],
             memory_context_newlines_after_blocks=(
                 self._memory_context_newlines_after_blocks
             ),
@@ -1502,7 +1485,6 @@ class EvidenceCompiler:
             "profile_activation_guide_value_chars": (
                 self._profile_activation_guide_value_chars
             ),
-            "evidence_row_labels": self._evidence_row_labels,
             "context_layout": self._context_layout,
             "current_state_update_contract": self._current_state_update_contract,
             "dialogue_inference_contract": self._dialogue_inference_contract,
@@ -1562,7 +1544,6 @@ class EvidenceCompiler:
                 self._event_time_candidate_map_mention_time_fallback_trigger_max_coverage
             ),
             "enable_weekend_relative_time": self._enable_weekend_relative_time,
-            "final_answer_checklist": self._final_answer_checklist,
             "grounded_inference_contract": self._grounded_inference_contract,
             "grounded_inference_gate": self._grounded_inference_gate,
             "max_evidence_chars": self._max_evidence_chars,
@@ -2022,10 +2003,6 @@ def _validate_route_overrides(
             overrides["profile_activation_guide_value_chars"] = max(
                 60, int(raw_overrides["profile_activation_guide_value_chars"])
             )
-        if "evidence_row_labels" in raw_overrides:
-            overrides["evidence_row_labels"] = bool(
-                raw_overrides["evidence_row_labels"]
-            )
         if "context_layout" in raw_overrides:
             context_layout = str(raw_overrides["context_layout"])
             if context_layout not in SUPPORTED_CONTEXT_LAYOUTS:
@@ -2051,10 +2028,6 @@ def _validate_route_overrides(
         if "temporal_order_contract" in raw_overrides:
             overrides["temporal_order_contract"] = bool(
                 raw_overrides["temporal_order_contract"]
-            )
-        if "final_answer_checklist" in raw_overrides:
-            overrides["final_answer_checklist"] = bool(
-                raw_overrides["final_answer_checklist"]
             )
         normalized[information_need] = overrides
     return normalized
@@ -3249,8 +3222,6 @@ def _build_prompt(
     memory_records: tuple[MemoryRecord, ...],
     rows: tuple[EvidenceRow, ...],
     answer_style: str,
-    temporal_grounding: bool,
-    temporal_hints: bool,
     temporal_workpad: bool,
     temporal_text_normalization: bool,
     temporal_event_contract: bool,
@@ -3348,9 +3319,6 @@ def _build_prompt(
     tail_row_text_mode: str,
     tail_row_text_after_rank: int,
     tail_max_row_text_chars: int,
-    route_guidance: bool,
-    evidence_row_labels: bool,
-    final_answer_checklist: bool,
     memory_context_newlines_after_blocks: int,
     prompt_mode: str,
 ) -> str:
@@ -3365,7 +3333,6 @@ def _build_prompt(
             tail_row_text_mode=tail_row_text_mode,
             tail_row_text_after_rank=tail_row_text_after_rank,
             tail_max_row_text_chars=tail_max_row_text_chars,
-            evidence_row_labels=evidence_row_labels,
             context_layout=context_layout,
         )
     if prompt_mode == "external_naive":
@@ -3526,7 +3493,6 @@ def _build_prompt(
             dialogue_inference_contract=dialogue_inference_contract,
             grounded_inference_contract=grounded_inference_contract,
             temporal_order_contract=temporal_order_contract,
-            final_answer_checklist=final_answer_checklist,
             memory_context_newlines_after_blocks=(
                 memory_context_newlines_after_blocks
             ),
@@ -3549,20 +3515,6 @@ def _build_prompt(
             2,
             "Use the shortest direct answer that is fully supported; avoid explanations unless needed.",
         )
-    if temporal_grounding:
-        lines.insert(
-            3,
-            "Resolve relative time expressions against the evidence row time; for example, yesterday means the calendar day before that row time.",
-        )
-        lines.insert(
-            4,
-            "For when questions, answer with only the supported absolute date, month, or year when possible; avoid relative phrases like last year, next month, or this month and avoid explaining the calculation.",
-        )
-    if route_guidance:
-        guidance_lines = _route_guidance_lines(route)
-        if guidance_lines:
-            lines[-1:-1] = ["", "Information-need guidance:", *guidance_lines, ""]
-
     lines.append("Build-stage typed memory view:")
     lines.extend(_format_memory_records(memory_records, memory_layout=memory_layout))
 
@@ -3595,22 +3547,8 @@ def _build_prompt(
                 tail_row_text_mode=tail_row_text_mode,
                 tail_row_text_after_rank=tail_row_text_after_rank,
                 tail_max_row_text_chars=tail_max_row_text_chars,
-                row_label=f"E{row_index}" if evidence_row_labels else None,
             )
         )
-    if temporal_grounding and temporal_hints:
-        hints = _temporal_normalization_hints(
-            rows,
-            enable_weekend_relative_time=enable_weekend_relative_time,
-        )
-        if hints:
-            lines.extend(("", "Temporal normalization hints derived from row timestamps:"))
-            lines.extend(hints)
-    if final_answer_checklist:
-        checklist = _final_answer_checklist_lines(route)
-        if checklist:
-            lines.extend(("", "Final answer checklist:"))
-            lines.extend(checklist)
     return "\n".join(lines)
 
 
@@ -3625,7 +3563,6 @@ def _build_raw_context_only_prompt(
     tail_row_text_mode: str,
     tail_row_text_after_rank: int,
     tail_max_row_text_chars: int,
-    evidence_row_labels: bool,
     context_layout: str,
 ) -> str:
     lines = [
@@ -3661,7 +3598,6 @@ def _build_raw_context_only_prompt(
                 tail_row_text_mode=tail_row_text_mode,
                 tail_row_text_after_rank=tail_row_text_after_rank,
                 tail_max_row_text_chars=tail_max_row_text_chars,
-                row_label=f"E{row_index}" if evidence_row_labels else None,
             )
         )
     return "\n".join(lines)
@@ -3769,7 +3705,6 @@ def _build_external_naive_prompt(
     dialogue_inference_contract: bool,
     grounded_inference_contract: bool,
     temporal_order_contract: bool,
-    final_answer_checklist: bool,
     memory_context_newlines_after_blocks: int,
     context_layout: str,
 ) -> str:
@@ -4097,16 +4032,6 @@ def _build_external_naive_prompt(
             rules.append(
                 "Use Private Operation Discipline as an internal checklist only; do not add checklist fields to the output JSON."
             )
-    final_answer_checklist_block = ""
-    if final_answer_checklist:
-        checklist_lines = _final_answer_checklist_lines(route)
-        if checklist_lines:
-            final_answer_checklist_block = "\n".join(
-                ["", "Final Answer Checklist:", *checklist_lines, ""]
-            )
-            rules.append(
-                "Use Final Answer Checklist as an internal validation step only; do not add checklist fields to the output JSON."
-            )
     rules.extend(
         [
             "If the context is insufficient, say the provided information is not enough.",
@@ -4201,7 +4126,6 @@ def _build_external_naive_prompt(
             operation_workpad_block,
             personalized_advice_block,
             grounded_inference_block,
-            final_answer_checklist_block,
         )
         if block
     ]
@@ -8736,77 +8660,6 @@ def _truncate_text(text: str, max_chars: int) -> str:
     if max_chars <= 0 or len(text) <= max_chars:
         return text
     return text[:max_chars].rstrip() + " ..."
-
-
-def _route_guidance_lines(route: RouteResult) -> list[str]:
-    if route.information_need == "current_state":
-        return [
-            "- Prefer the most recent directly supported evidence when older rows conflict.",
-            "- If no row establishes the current state, answer that the information is not available.",
-        ]
-    if route.information_need == "temporal_lookup":
-        return [
-            "- Identify the event row first, then convert relative dates using that row time.",
-            "- Return only the supported date, time span, or duration when the question asks when or how long.",
-            "- If the question asks for elapsed days, weeks, months, or years, compute the difference before answering; do not return only a source date.",
-            "- If the question asks which events happened in order, answer with event descriptions in chronological order, not only dates.",
-        ]
-    if route.information_need == "list_count":
-        return [
-            "- Gather all distinct supported items before answering.",
-            "- If the question asks how many, count only items explicitly supported by the evidence.",
-        ]
-    if route.information_need == "profile_preference":
-        return [
-            "- Use stable stated preferences or profile facts; do not turn a one-time event into a preference.",
-            "- If evidence conflicts, prefer the most recent explicit preference.",
-        ]
-    if route.information_need == "fact_lookup":
-        return [
-            "- Answer only the requested entity, value, or fact.",
-            "- Ignore unrelated rows even if they share generic question words.",
-        ]
-    return []
-
-
-def _final_answer_checklist_lines(route: RouteResult) -> list[str]:
-    lines = [
-        "- Privately identify the Memory Context rows that directly support the final answer.",
-        "- If no raw row supports the exact asked entity, object, relation, or time constraint, answer that the information is not available.",
-        "- Do not answer from a related but different entity, object, activity, person, or collection.",
-        "- If the question mentions multiple compared alternatives, required target actions, or scoped entities, each required part must be directly supported; partial support is not enough.",
-        "- Do not infer that an alternative happened, was purchased, attended, completed, or preferred merely because another alternative is supported.",
-        "- Preserve full names, titles, locations, dates, item names, and qualifiers from supporting rows when they are part of the requested answer.",
-        "- If build-stage memory conflicts with raw rows, trust the raw rows.",
-    ]
-    if route.information_need == "current_state":
-        lines.extend(
-            [
-                "- For current/latest questions, prefer the latest explicit raw row that matches the asked entity and relation.",
-                "- If the question asks both previous and current values, provide both and do not collapse them to the latest value.",
-            ]
-        )
-    if route.information_need == "temporal_lookup":
-        lines.extend(
-            [
-                "- For how-long/how-many-days-ago questions, compute the requested duration; do not answer with only the event date.",
-                "- For order/which-happened-first questions, answer with event descriptions in chronological order, not only dates.",
-                "- Use row timestamps only to ground events described in that row; do not treat unrelated rows on the same date as the target event.",
-            ]
-        )
-    if route.information_need == "list_count":
-        lines.extend(
-            [
-                "- For list/count questions, gather all distinct supported items before answering; do not stop at the first matching row.",
-                "- Do not count assistant suggestions unless the question asks for suggestions or assistant-provided items.",
-            ]
-        )
-    if route.information_need == "profile_preference":
-        lines.append(
-            "- For preference/profile questions, require an explicit user preference or stable self-description."
-        )
-    lines.append("- Final response should contain only the answer, not the row ids or reasoning.")
-    return lines
 
 
 def _should_add_temporal_workpad(
