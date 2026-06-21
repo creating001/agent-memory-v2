@@ -1282,6 +1282,30 @@ class Stage1Pipeline:
             memory_value_slot_guide_memory_types=_tuple_config(
                 compiler_config.get("memory_value_slot_guide_memory_types")
             ),
+            memory_workspace_plan=bool(
+                compiler_config.get("memory_workspace_plan", False)
+            ),
+            memory_workspace_plan_information_needs=_tuple_config(
+                compiler_config.get(
+                    "memory_workspace_plan_information_needs",
+                    (
+                        "current_state",
+                        "fact_lookup",
+                        "list_count",
+                        "profile_preference",
+                        "temporal_lookup",
+                    ),
+                )
+            ),
+            memory_workspace_plan_max_groups=int(
+                compiler_config.get("memory_workspace_plan_max_groups", 4)
+            ),
+            memory_workspace_plan_max_values=int(
+                compiler_config.get("memory_workspace_plan_max_values", 3)
+            ),
+            memory_workspace_plan_value_chars=int(
+                compiler_config.get("memory_workspace_plan_value_chars", 100)
+            ),
             profile_activation_guide=bool(
                 compiler_config.get("profile_activation_guide", False)
             ),
@@ -2641,6 +2665,9 @@ class Stage1Pipeline:
                 built_memory.management
             ),
             memory_object_index=_memory_object_index_from_management(
+                built_memory.management
+            ),
+            memory_workspace_manifest=_memory_workspace_manifest_from_management(
                 built_memory.management
             ),
         )
@@ -4083,6 +4110,20 @@ def _memory_object_index_from_management(
     if not isinstance(memory_object_index, Mapping):
         return None
     return memory_object_index
+
+
+def _memory_workspace_manifest_from_management(
+    management: Mapping[str, Any] | None,
+) -> Mapping[str, Any] | None:
+    if not isinstance(management, Mapping):
+        return None
+    memory_system_graph = management.get("memory_system_graph")
+    if not isinstance(memory_system_graph, Mapping):
+        return None
+    workspace_manifest = memory_system_graph.get("memory_workspace_manifest")
+    if not isinstance(workspace_manifest, Mapping):
+        return None
+    return workspace_manifest
 
 
 def _dedupe_memory_records(records: tuple[Any, ...]) -> tuple[Any, ...]:
@@ -8412,6 +8453,30 @@ def _compiler_trace_config(
         "memory_value_slot_guide_memory_types": _tuple_config(
             compiler_config.get("memory_value_slot_guide_memory_types")
         ),
+        "memory_workspace_plan": bool(
+            compiler_config.get("memory_workspace_plan", False)
+        ),
+        "memory_workspace_plan_information_needs": _tuple_config(
+            compiler_config.get(
+                "memory_workspace_plan_information_needs",
+                (
+                    "current_state",
+                    "fact_lookup",
+                    "list_count",
+                    "profile_preference",
+                    "temporal_lookup",
+                ),
+            )
+        ),
+        "memory_workspace_plan_max_groups": int(
+            compiler_config.get("memory_workspace_plan_max_groups", 4)
+        ),
+        "memory_workspace_plan_max_values": int(
+            compiler_config.get("memory_workspace_plan_max_values", 3)
+        ),
+        "memory_workspace_plan_value_chars": int(
+            compiler_config.get("memory_workspace_plan_value_chars", 100)
+        ),
         "profile_activation_guide": bool(
             compiler_config.get("profile_activation_guide", False)
         ),
@@ -8769,6 +8834,30 @@ def _configured_compiler(compiler_config: Mapping[str, Any]) -> EvidenceCompiler
         ),
         memory_value_slot_guide_memory_types=_tuple_config(
             compiler_config.get("memory_value_slot_guide_memory_types")
+        ),
+        memory_workspace_plan=bool(
+            compiler_config.get("memory_workspace_plan", False)
+        ),
+        memory_workspace_plan_information_needs=_tuple_config(
+            compiler_config.get(
+                "memory_workspace_plan_information_needs",
+                (
+                    "current_state",
+                    "fact_lookup",
+                    "list_count",
+                    "profile_preference",
+                    "temporal_lookup",
+                ),
+            )
+        ),
+        memory_workspace_plan_max_groups=int(
+            compiler_config.get("memory_workspace_plan_max_groups", 4)
+        ),
+        memory_workspace_plan_max_values=int(
+            compiler_config.get("memory_workspace_plan_max_values", 3)
+        ),
+        memory_workspace_plan_value_chars=int(
+            compiler_config.get("memory_workspace_plan_value_chars", 100)
         ),
         profile_activation_guide=bool(
             compiler_config.get("profile_activation_guide", False)

@@ -235,6 +235,10 @@ ROUTE_OVERRIDE_KEYS = {
     "memory_value_slot_guide_max_slots",
     "memory_value_slot_guide_max_values",
     "memory_value_slot_guide_memory_types",
+    "memory_workspace_plan",
+    "memory_workspace_plan_max_groups",
+    "memory_workspace_plan_max_values",
+    "memory_workspace_plan_value_chars",
     "profile_activation_guide",
     "profile_activation_guide_max_records",
     "profile_activation_guide_value_chars",
@@ -450,6 +454,17 @@ class EvidenceCompiler:
         memory_value_slot_guide_max_slots: int = 4,
         memory_value_slot_guide_max_values: int = 6,
         memory_value_slot_guide_memory_types: tuple[str, ...] = (),
+        memory_workspace_plan: bool = False,
+        memory_workspace_plan_information_needs: tuple[str, ...] = (
+            "current_state",
+            "fact_lookup",
+            "list_count",
+            "profile_preference",
+            "temporal_lookup",
+        ),
+        memory_workspace_plan_max_groups: int = 4,
+        memory_workspace_plan_max_values: int = 3,
+        memory_workspace_plan_value_chars: int = 100,
         profile_activation_guide: bool = False,
         profile_activation_guide_information_needs: tuple[str, ...] = (
             "profile_preference",
@@ -717,6 +732,20 @@ class EvidenceCompiler:
             for value in memory_value_slot_guide_memory_types
             if str(value).strip()
         )
+        self._memory_workspace_plan = bool(memory_workspace_plan)
+        self._memory_workspace_plan_information_needs = _validate_information_needs(
+            memory_workspace_plan_information_needs,
+            field_name="memory_workspace_plan_information_needs",
+        )
+        self._memory_workspace_plan_max_groups = max(
+            1, int(memory_workspace_plan_max_groups)
+        )
+        self._memory_workspace_plan_max_values = max(
+            1, int(memory_workspace_plan_max_values)
+        )
+        self._memory_workspace_plan_value_chars = max(
+            40, int(memory_workspace_plan_value_chars)
+        )
         self._profile_activation_guide = bool(profile_activation_guide)
         self._profile_activation_guide_information_needs = _validate_information_needs(
             profile_activation_guide_information_needs,
@@ -793,6 +822,7 @@ class EvidenceCompiler:
         memory_state_conflict_manifest: Mapping[str, Any] | None = None,
         memory_scalar_value_manifest: Mapping[str, Any] | None = None,
         memory_object_index: Mapping[str, Any] | None = None,
+        memory_workspace_manifest: Mapping[str, Any] | None = None,
     ) -> CompiledContext:
         hit_by_source_id = {hit.source_id: hit for hit in hits}
         candidates: list[EvidenceRow] = []
@@ -1065,6 +1095,21 @@ class EvidenceCompiler:
             memory_state_conflict_manifest=memory_state_conflict_manifest,
             memory_scalar_value_manifest=memory_scalar_value_manifest,
             memory_object_index=memory_object_index,
+            memory_workspace_manifest=memory_workspace_manifest,
+            memory_workspace_plan=(
+                route_settings["memory_workspace_plan"]
+                and route.information_need
+                in self._memory_workspace_plan_information_needs
+            ),
+            memory_workspace_plan_max_groups=route_settings[
+                "memory_workspace_plan_max_groups"
+            ],
+            memory_workspace_plan_max_values=route_settings[
+                "memory_workspace_plan_max_values"
+            ],
+            memory_workspace_plan_value_chars=route_settings[
+                "memory_workspace_plan_value_chars"
+            ],
             memory_state_guide_candidate_records=route_settings[
                 "memory_state_guide_candidate_records"
             ],
@@ -1296,6 +1341,16 @@ class EvidenceCompiler:
             ),
             "memory_value_slot_guide_memory_types": (
                 self._memory_value_slot_guide_memory_types
+            ),
+            "memory_workspace_plan": self._memory_workspace_plan,
+            "memory_workspace_plan_max_groups": (
+                self._memory_workspace_plan_max_groups
+            ),
+            "memory_workspace_plan_max_values": (
+                self._memory_workspace_plan_max_values
+            ),
+            "memory_workspace_plan_value_chars": (
+                self._memory_workspace_plan_value_chars
             ),
             "profile_activation_guide": self._profile_activation_guide,
             "profile_activation_guide_max_records": (
@@ -1738,6 +1793,22 @@ def _validate_route_overrides(
                 str(value).strip().lower()
                 for value in raw_types
                 if str(value).strip()
+            )
+        if "memory_workspace_plan" in raw_overrides:
+            overrides["memory_workspace_plan"] = bool(
+                raw_overrides["memory_workspace_plan"]
+            )
+        if "memory_workspace_plan_max_groups" in raw_overrides:
+            overrides["memory_workspace_plan_max_groups"] = max(
+                1, int(raw_overrides["memory_workspace_plan_max_groups"])
+            )
+        if "memory_workspace_plan_max_values" in raw_overrides:
+            overrides["memory_workspace_plan_max_values"] = max(
+                1, int(raw_overrides["memory_workspace_plan_max_values"])
+            )
+        if "memory_workspace_plan_value_chars" in raw_overrides:
+            overrides["memory_workspace_plan_value_chars"] = max(
+                40, int(raw_overrides["memory_workspace_plan_value_chars"])
             )
         if "profile_activation_guide" in raw_overrides:
             overrides["profile_activation_guide"] = bool(
@@ -3032,6 +3103,11 @@ def _build_prompt(
     memory_state_conflict_manifest: Mapping[str, Any] | None,
     memory_scalar_value_manifest: Mapping[str, Any] | None,
     memory_object_index: Mapping[str, Any] | None,
+    memory_workspace_manifest: Mapping[str, Any] | None,
+    memory_workspace_plan: bool,
+    memory_workspace_plan_max_groups: int,
+    memory_workspace_plan_max_values: int,
+    memory_workspace_plan_value_chars: int,
     memory_state_guide_max_records: int,
     memory_state_guide_candidate_records: int,
     memory_state_guide_value_chars: int,
@@ -3181,6 +3257,11 @@ def _build_prompt(
             memory_state_conflict_manifest=memory_state_conflict_manifest,
             memory_scalar_value_manifest=memory_scalar_value_manifest,
             memory_object_index=memory_object_index,
+            memory_workspace_manifest=memory_workspace_manifest,
+            memory_workspace_plan=memory_workspace_plan,
+            memory_workspace_plan_max_groups=memory_workspace_plan_max_groups,
+            memory_workspace_plan_max_values=memory_workspace_plan_max_values,
+            memory_workspace_plan_value_chars=memory_workspace_plan_value_chars,
             memory_state_guide_max_records=memory_state_guide_max_records,
             memory_state_guide_candidate_records=(
                 memory_state_guide_candidate_records
@@ -3422,6 +3503,11 @@ def _build_external_naive_prompt(
     memory_state_conflict_manifest: Mapping[str, Any] | None,
     memory_scalar_value_manifest: Mapping[str, Any] | None,
     memory_object_index: Mapping[str, Any] | None,
+    memory_workspace_manifest: Mapping[str, Any] | None,
+    memory_workspace_plan: bool,
+    memory_workspace_plan_max_groups: int,
+    memory_workspace_plan_max_values: int,
+    memory_workspace_plan_value_chars: int,
     memory_state_guide_max_records: int,
     memory_state_guide_candidate_records: int,
     memory_state_guide_value_chars: int,
@@ -3547,6 +3633,21 @@ def _build_external_naive_prompt(
             structured_guide_block = "\n".join(
                 ["", "Structured Evidence Guide:", *guide_lines, ""]
             )
+    memory_workspace_plan_block = ""
+    if memory_workspace_plan:
+        memory_workspace_lines = _external_memory_workspace_plan_lines(
+            question=question,
+            route=route,
+            rows=rows,
+            memory_workspace_manifest=memory_workspace_manifest,
+            max_groups=memory_workspace_plan_max_groups,
+            max_values=memory_workspace_plan_max_values,
+            max_value_chars=memory_workspace_plan_value_chars,
+        )
+        if memory_workspace_lines:
+            memory_workspace_plan_block = "\n".join(
+                ["", "Memory Workspace Plan:", *memory_workspace_lines, ""]
+            )
     candidate_guide_block = ""
     if candidate_guide:
         candidate_lines = _external_candidate_guide_lines(
@@ -3638,6 +3739,10 @@ def _build_external_naive_prompt(
     if candidate_guide_block:
         rules.append(
             "Use Candidate Evidence Map only as a compact index into Memory Context; it is not independent evidence."
+        )
+    if memory_workspace_plan_block:
+        rules.append(
+            "Use Memory Workspace Plan only as a source-backed memory-system index into cited Memory Context rows; it is not independent evidence."
         )
     if profile_activation_guide_block:
         rules.append(
@@ -3822,6 +3927,7 @@ def _build_external_naive_prompt(
         block
         for block in (
             structured_guide_block,
+            memory_workspace_plan_block,
             event_time_candidate_map_block,
             candidate_guide_block,
             profile_activation_guide_block,
@@ -4167,6 +4273,360 @@ def _external_memory_guide_lines(
             fields.append(f"value={_truncate_text(_single_line(record.value), 120)}")
         lines.append(f"  - {' | '.join(fields)}: {text}")
     return lines
+
+
+def _external_memory_workspace_plan_lines(
+    *,
+    question: str,
+    route: RouteResult,
+    rows: tuple[EvidenceRow, ...],
+    memory_workspace_manifest: Mapping[str, Any] | None,
+    max_groups: int,
+    max_values: int,
+    max_value_chars: int,
+) -> list[str]:
+    """Compact source-backed memory workspace plan grounded in visible rows."""
+
+    if (
+        not rows
+        or not memory_workspace_manifest
+        or not memory_workspace_manifest.get("applied")
+        or max_groups <= 0
+    ):
+        return []
+
+    activation_groups = memory_workspace_manifest.get("activation_groups") or ()
+    if (
+        not isinstance(activation_groups, Iterable)
+        or isinstance(activation_groups, (str, bytes))
+    ):
+        return []
+
+    source_to_memory_index = {
+        row.source_id: index for index, row in enumerate(rows, start=1)
+    }
+    question_terms = _content_terms(question).difference(
+        MEMORY_STATE_GUIDE_ALIGNMENT_WEAK_TERMS
+    )
+    question_scope = _workspace_question_scope(question, route)
+    candidates: list[tuple[float, int, Mapping[str, Any], tuple[dict[str, Any], ...], tuple[str, ...]]] = []
+    for ordinal, raw_group in enumerate(activation_groups):
+        if not isinstance(raw_group, Mapping):
+            continue
+        if raw_group.get("source_backed") is False:
+            continue
+        if str(raw_group.get("memory_tier") or "") == "quarantine_memory":
+            continue
+        visible_values = _workspace_visible_values(
+            raw_group,
+            source_to_memory_index=source_to_memory_index,
+            max_values=max_values,
+            question_scope=question_scope,
+        )
+        source_labels = _workspace_group_source_labels(
+            raw_group,
+            source_to_memory_index=source_to_memory_index,
+            question_scope=question_scope,
+        )
+        if not visible_values and not source_labels:
+            continue
+        score = _workspace_group_score(
+            raw_group,
+            visible_values=visible_values,
+            question_terms=question_terms,
+            route=route,
+            question_scope=question_scope,
+        )
+        if score <= 0:
+            continue
+        candidates.append((score, -ordinal, raw_group, visible_values, source_labels))
+
+    if not candidates:
+        return []
+
+    candidates.sort(reverse=True)
+    selected = sorted(
+        candidates[:max_groups],
+        key=lambda item: (
+            str(item[2].get("memory_tier") or ""),
+            str(item[2].get("memory_type") or ""),
+            str(item[2].get("subject") or ""),
+            str(item[2].get("predicate") or ""),
+            item[1],
+        ),
+    )
+    lines = [
+        "Use this build-owned workspace to activate memory slots, expand them to raw rows, verify lifecycle/source support, and audit conflicts before answering.",
+        "- Every listed group is backed by visible Memory Context rows; final facts must still come from those rows.",
+        "- operations: retrieve -> expand -> verify -> context_pack -> answer_from_raw_rows; use audit for conflicts or stale values.",
+        "- groups:",
+    ]
+    for _, _, group, visible_values, source_labels in selected:
+        fields = [
+            f"group={_single_line(str(group.get('group_type') or 'memory_workspace'))}",
+            f"tier={_single_line(str(group.get('memory_tier') or 'memory'))}",
+            f"type={_single_line(str(group.get('memory_type') or 'memory'))}",
+        ]
+        subject = _single_line(str(group.get("subject") or ""))
+        predicate = _single_line(str(group.get("predicate") or ""))
+        if subject:
+            fields.append(f"subject={_truncate_text(subject, 52)}")
+        if predicate:
+            fields.append(f"predicate={_truncate_text(predicate, 52)}")
+        lifecycle = _single_line(str(group.get("lifecycle_state") or ""))
+        if lifecycle:
+            fields.append(f"lifecycle={lifecycle}")
+        active_values = _workspace_values_text(
+            visible_values,
+            status="active",
+            max_values=max_values,
+            max_chars=max_value_chars,
+        )
+        if active_values:
+            fields.append(f"active={active_values}")
+        historical_values = _workspace_historical_values_text(
+            visible_values,
+            max_values=max_values,
+            max_chars=max_value_chars,
+        )
+        if historical_values:
+            fields.append(f"historical={historical_values}")
+        scalar_values = _workspace_scalar_values_text(
+            visible_values,
+            max_values=max_values,
+        )
+        if scalar_values:
+            fields.append(f"scalars={scalar_values}")
+        source_text = ", ".join(source_labels[:8])
+        if source_text:
+            fields.append(f"sources={source_text}")
+        operations = [
+            str(operation)
+            for operation in group.get("operation_hints") or ()
+            if str(operation).strip()
+        ][:5]
+        if operations:
+            fields.append(f"ops={', '.join(operations)}")
+        lines.append(f"  - {' | '.join(fields)}")
+    return lines
+
+
+def _workspace_question_scope(question: str, route: RouteResult) -> str:
+    lowered = question.lower()
+    if route.information_need == "current_state" or re.search(
+        r"\b(current|currently|latest|now|recent|recently|newest|today)\b",
+        lowered,
+    ):
+        return "current"
+    if re.search(
+        r"\b(previous|previously|before|earlier|original|initial|old|past|used to|history)\b",
+        lowered,
+    ):
+        return "historical"
+    return "general"
+
+
+def _workspace_group_source_labels(
+    group: Mapping[str, Any],
+    *,
+    source_to_memory_index: Mapping[str, int],
+    question_scope: str,
+) -> tuple[str, ...]:
+    source_ids: list[str] = []
+    if question_scope == "current":
+        source_ids.extend(str(value) for value in group.get("current_source_order") or ())
+        source_ids.extend(str(value) for value in group.get("historical_source_order") or ())
+    elif question_scope == "historical":
+        source_ids.extend(str(value) for value in group.get("historical_source_order") or ())
+        source_ids.extend(str(value) for value in group.get("current_source_order") or ())
+    else:
+        source_ids.extend(str(value) for value in group.get("source_ids") or ())
+    labels = []
+    for source_id in source_ids:
+        memory_index = source_to_memory_index.get(source_id)
+        if memory_index is not None:
+            labels.append(f"Memory {memory_index}")
+    return tuple(dict.fromkeys(labels))
+
+
+def _workspace_visible_values(
+    group: Mapping[str, Any],
+    *,
+    source_to_memory_index: Mapping[str, int],
+    max_values: int,
+    question_scope: str,
+) -> tuple[dict[str, Any], ...]:
+    raw_values = group.get("values") or ()
+    if not isinstance(raw_values, Iterable) or isinstance(raw_values, (str, bytes)):
+        return ()
+    values: list[dict[str, Any]] = []
+    seen: set[tuple[str, str, tuple[str, ...]]] = set()
+    for raw_value in raw_values:
+        if not isinstance(raw_value, Mapping):
+            continue
+        source_labels = _workspace_value_source_labels(
+            raw_value,
+            source_to_memory_index=source_to_memory_index,
+        )
+        if not source_labels:
+            continue
+        status = _single_line(str(raw_value.get("status") or "active")) or "active"
+        value_text = _single_line(str(raw_value.get("value") or ""))
+        scalar_values = tuple(
+            _single_line(str(value))
+            for value in raw_value.get("scalar_values") or ()
+            if str(value).strip()
+        )
+        if not value_text and not scalar_values:
+            continue
+        key = (status, value_text, source_labels)
+        if key in seen:
+            continue
+        seen.add(key)
+        values.append(
+            {
+                "status": status,
+                "value": value_text,
+                "scalar_values": scalar_values,
+                "source_labels": source_labels,
+                "time": _single_line(str(raw_value.get("time") or "")),
+            }
+        )
+    values.sort(key=lambda value: _workspace_value_sort_key(value, question_scope))
+    return tuple(values[: max(1, max_values * 2)])
+
+
+def _workspace_value_source_labels(
+    value: Mapping[str, Any],
+    *,
+    source_to_memory_index: Mapping[str, int],
+) -> tuple[str, ...]:
+    labels = []
+    for source_id in value.get("source_ids") or ():
+        memory_index = source_to_memory_index.get(str(source_id))
+        if memory_index is not None:
+            labels.append(f"Memory {memory_index}")
+    return tuple(dict.fromkeys(labels))
+
+
+def _workspace_value_sort_key(value: Mapping[str, Any], question_scope: str) -> tuple[int, str]:
+    status = str(value.get("status") or "active")
+    if question_scope == "current":
+        status_rank = 0 if status == "active" else 1
+    elif question_scope == "historical":
+        status_rank = 0 if status != "active" else 1
+    else:
+        status_rank = 0 if status == "active" else 1
+    return (status_rank, str(value.get("time") or ""))
+
+
+def _workspace_group_score(
+    group: Mapping[str, Any],
+    *,
+    visible_values: tuple[dict[str, Any], ...],
+    question_terms: frozenset[str],
+    route: RouteResult,
+    question_scope: str,
+) -> float:
+    basis_parts = [
+        str(group.get("group_type") or ""),
+        str(group.get("memory_type") or ""),
+        str(group.get("subject") or ""),
+        str(group.get("predicate") or ""),
+        str(group.get("lifecycle_state") or ""),
+    ]
+    for value in visible_values:
+        basis_parts.append(str(value.get("value") or ""))
+        basis_parts.extend(str(item) for item in value.get("scalar_values") or ())
+    basis = " ".join(basis_parts).replace("_", " ").replace("-", " ")
+    overlap = len(question_terms.intersection(_content_terms(basis)))
+    memory_type = str(group.get("memory_type") or "")
+    type_match = _memory_type_name_matches_route(memory_type, route)
+    if overlap <= 0 and not type_match:
+        return 0.0
+    if overlap <= 0 and route.information_need != "profile_preference":
+        return 0.0
+    score = overlap * 2.0
+    if type_match:
+        score += 0.7
+    if bool(group.get("conflict_cluster")) and route.information_need == "current_state":
+        score += 0.8
+    lifecycle = str(group.get("lifecycle_state") or "")
+    if lifecycle in {"active_with_history", "has_superseded_context"}:
+        score += 0.4
+    if question_scope == "historical" and any(
+        value.get("status") != "active" for value in visible_values
+    ):
+        score += 0.5
+    if any(value.get("scalar_values") for value in visible_values):
+        score += 0.2
+    return score
+
+
+def _workspace_values_text(
+    visible_values: tuple[dict[str, Any], ...],
+    *,
+    status: str,
+    max_values: int,
+    max_chars: int,
+) -> str:
+    parts = []
+    for value in visible_values:
+        if value.get("status") != status:
+            continue
+        text = _truncate_text(_single_line(str(value.get("value") or "")), max_chars)
+        if not text and value.get("scalar_values"):
+            text = _truncate_text(str(value["scalar_values"][0]), max_chars)
+        if not text:
+            continue
+        source_text = ", ".join(value.get("source_labels") or ())
+        time_text = str(value.get("time") or "unknown")
+        parts.append(f"{text} [{source_text}; time={time_text}]")
+        if len(parts) >= max_values:
+            break
+    return "; ".join(parts)
+
+
+def _workspace_historical_values_text(
+    visible_values: tuple[dict[str, Any], ...],
+    *,
+    max_values: int,
+    max_chars: int,
+) -> str:
+    parts = []
+    for value in visible_values:
+        if value.get("status") == "active":
+            continue
+        text = _truncate_text(_single_line(str(value.get("value") or "")), max_chars)
+        if not text:
+            continue
+        source_text = ", ".join(value.get("source_labels") or ())
+        time_text = str(value.get("time") or "unknown")
+        parts.append(f"{text} [{source_text}; time={time_text}]")
+        if len(parts) >= max_values:
+            break
+    return "; ".join(parts)
+
+
+def _workspace_scalar_values_text(
+    visible_values: tuple[dict[str, Any], ...],
+    *,
+    max_values: int,
+) -> str:
+    scalars = []
+    seen: set[str] = set()
+    for value in visible_values:
+        source_text = ", ".join(value.get("source_labels") or ())
+        for scalar_value in value.get("scalar_values") or ():
+            scalar_text = _truncate_text(_single_line(str(scalar_value)), 60)
+            key = f"{scalar_text}|{source_text}"
+            if not scalar_text or key in seen:
+                continue
+            seen.add(key)
+            scalars.append(f"{scalar_text} [{source_text}]")
+            if len(scalars) >= max_values:
+                return "; ".join(scalars)
+    return "; ".join(scalars)
 
 
 def _external_profile_activation_guide_lines(

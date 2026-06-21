@@ -3183,6 +3183,52 @@ class CleanSkeletonTest(unittest.TestCase):
             city_object_slot["current_source_order"],
             ["s2:t1", "s2:t2", "s1:t1"],
         )
+        workspace_manifest = system_graph["memory_workspace_manifest"]
+        self.assertEqual(
+            workspace_manifest["schema_version"],
+            "memory_workspace_manifest_v1",
+        )
+        self.assertFalse(workspace_manifest["trace_only"])
+        self.assertTrue(workspace_manifest["applied"])
+        self.assertEqual(workspace_manifest["workspace_count"], 2)
+        self.assertEqual(
+            workspace_manifest["workspace_contract"]["final_evidence_policy"],
+            "raw_source_rows",
+        )
+        self.assertIn(
+            "context_pack",
+            workspace_manifest["workspace_contract"]["workspace_operations"],
+        )
+        self.assertIn(
+            "working_memory",
+            workspace_manifest["workspace_contract"]["memory_layers"],
+        )
+        self.assertEqual(
+            workspace_manifest["source_expansion_policy"]["raw_evidence_required"],
+            True,
+        )
+        city_workspace = next(
+            group
+            for group in workspace_manifest["activation_groups"]
+            if group["predicate"] == "location"
+        )
+        self.assertEqual(
+            city_workspace["group_type"],
+            "state_lifecycle_workspace",
+        )
+        self.assertEqual(city_workspace["memory_tier"], "working_memory")
+        self.assertEqual(city_workspace["lifecycle_state"], "active_with_history")
+        self.assertTrue(city_workspace["conflict_cluster"])
+        self.assertEqual(city_workspace["active_values"], ["seattle"])
+        self.assertEqual(city_workspace["superseded_values"], ["austin"])
+        self.assertEqual(
+            city_workspace["current_source_order"],
+            ["s2:t1", "s2:t2", "s1:t1"],
+        )
+        self.assertIn("expand", city_workspace["operation_hints"])
+        self.assertIn("verify", city_workspace["operation_hints"])
+        self.assertIn("audit", city_workspace["operation_hints"])
+        self.assertIn("context_pack", city_workspace["operation_hints"])
         city_value_slot = next(
             slot
             for slot in scalar_value_manifest["slot_samples"]

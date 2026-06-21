@@ -646,6 +646,147 @@ class CompilerTest(unittest.TestCase):
         self.assertIn("sources=Memory 1, Memory 2", compiled.prompt)
         self.assertIn("not independent evidence", compiled.prompt)
 
+    def test_memory_workspace_plan_uses_only_visible_source_backed_groups(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=4,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            memory_workspace_plan=True,
+            memory_workspace_plan_information_needs=("current_state",),
+            memory_workspace_plan_max_groups=3,
+            memory_workspace_plan_max_values=3,
+        )
+
+        compiled = compiler.compile(
+            question="Where does Alex live now?",
+            question_time=None,
+            route=RouteResult("current_state", ("current_state",)),
+            hits=(
+                RetrievalHit("s1:t0", 1.0, 1, "test"),
+                RetrievalHit("s2:t0", 0.9, 2, "test"),
+            ),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Alex lived in Austin before.",
+                    timestamp="2024-01-01",
+                ),
+                Turn(
+                    source_id="s2:t0",
+                    session_id="s2",
+                    turn_index=0,
+                    role="user",
+                    text="Alex now lives in Seattle.",
+                    timestamp="2024-02-01",
+                ),
+            ),
+            memory_workspace_manifest={
+                "schema_version": "memory_workspace_manifest_v1",
+                "applied": True,
+                "activation_groups": [
+                    {
+                        "group_type": "state_lifecycle_workspace",
+                        "memory_tier": "working_memory",
+                        "memory_type": "state",
+                        "subject": "Alex",
+                        "predicate": "lives in",
+                        "lifecycle_state": "active_with_history",
+                        "conflict_cluster": True,
+                        "source_backed": True,
+                        "current_source_order": ["s2:t0", "s1:t0"],
+                        "historical_source_order": ["s1:t0", "s2:t0"],
+                        "source_ids": ["s1:t0", "s2:t0"],
+                        "operation_hints": [
+                            "retrieve",
+                            "expand",
+                            "verify",
+                            "audit",
+                            "context_pack",
+                        ],
+                        "values": [
+                            {
+                                "status": "superseded",
+                                "value": "Austin",
+                                "source_ids": ["s1:t0"],
+                                "time": "2024-01-01",
+                            },
+                            {
+                                "status": "active",
+                                "value": "Seattle",
+                                "source_ids": ["s2:t0"],
+                                "time": "2024-02-01",
+                            },
+                        ],
+                    },
+                    {
+                        "group_type": "working_state_workspace",
+                        "memory_tier": "working_memory",
+                        "memory_type": "state",
+                        "subject": "Alex",
+                        "predicate": "job",
+                        "source_backed": True,
+                        "source_ids": ["missing:t0"],
+                        "values": [
+                            {
+                                "status": "active",
+                                "value": "architect",
+                                "source_ids": ["missing:t0"],
+                            }
+                        ],
+                    },
+                    {
+                        "group_type": "working_state_workspace",
+                        "memory_tier": "working_memory",
+                        "memory_type": "state",
+                        "subject": "Alex",
+                        "predicate": "unverified hobby",
+                        "source_backed": False,
+                        "source_ids": ["s2:t0"],
+                        "values": [
+                            {
+                                "status": "active",
+                                "value": "climbing",
+                                "source_ids": ["s2:t0"],
+                            }
+                        ],
+                    },
+                    {
+                        "group_type": "audit_workspace",
+                        "memory_tier": "quarantine_memory",
+                        "memory_type": "state",
+                        "subject": "Alex",
+                        "predicate": "lives in",
+                        "source_backed": True,
+                        "source_ids": ["s2:t0"],
+                        "values": [
+                            {
+                                "status": "active",
+                                "value": "Denver",
+                                "source_ids": ["s2:t0"],
+                            }
+                        ],
+                    },
+                ],
+            },
+        )
+
+        self.assertIn("Memory Workspace Plan:", compiled.prompt)
+        workspace_block = compiled.prompt.split("Memory Workspace Plan:", 1)[
+            1
+        ].split("\n\n", 1)[0]
+        self.assertIn("state_lifecycle_workspace", workspace_block)
+        self.assertIn("active=Seattle", workspace_block)
+        self.assertIn("historical=Austin", workspace_block)
+        self.assertIn("sources=Memory 2, Memory 1", workspace_block)
+        self.assertIn("ops=retrieve, expand, verify, audit, context_pack", workspace_block)
+        self.assertNotIn("architect", workspace_block)
+        self.assertNotIn("climbing", workspace_block)
+        self.assertNotIn("Denver", workspace_block)
+        self.assertIn("not independent evidence", compiled.prompt)
+
     def test_source_backed_memory_state_ledger_diagnostics_use_visible_sources(
         self,
     ) -> None:

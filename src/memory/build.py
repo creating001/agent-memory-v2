@@ -1042,6 +1042,16 @@ def _memory_system_graph_summary(
         state_conflict_manifest=state_conflict_manifest,
         scalar_value_manifest=scalar_value_manifest,
     )
+    memory_workspace_manifest = _memory_workspace_manifest(
+        groups=groups,
+        managed_memory_types=managed_memory_types,
+        tier_manifest=tier_manifest,
+        operation_manifest=operation_manifest,
+        source_policy=source_policy,
+        state_conflict_manifest=state_conflict_manifest,
+        scalar_value_manifest=scalar_value_manifest,
+        memory_object_index=memory_object_index,
+    )
     operation_edge_counts = {
         "create": len(deduped_records),
         "merge": sum(len(group.get("merged") or ()) for group in merge_groups),
@@ -1109,6 +1119,7 @@ def _memory_system_graph_summary(
         "state_conflict_manifest": state_conflict_manifest,
         "scalar_value_manifest": scalar_value_manifest,
         "memory_object_index": memory_object_index,
+        "memory_workspace_manifest": memory_workspace_manifest,
         "governance": {
             "raw_evidence_policy": "immutable_final_authority",
             "derived_memory_policy": "source_backed_activation_and_audit",
@@ -1141,6 +1152,301 @@ def _memory_system_graph_summary(
             "answer evidence still resolves to raw source rows."
         ),
     }
+
+
+def _memory_workspace_manifest(
+    *,
+    groups: dict[tuple[str, str, str], list[MemoryRecord]],
+    managed_memory_types: frozenset[str],
+    tier_manifest: dict[str, Any],
+    operation_manifest: dict[str, Any],
+    source_policy: dict[str, Any],
+    state_conflict_manifest: dict[str, Any],
+    scalar_value_manifest: dict[str, Any],
+    memory_object_index: dict[str, Any],
+) -> dict[str, Any]:
+    """Build-owned workspace interface for memory activation and use.
+
+    This is the query-facing system contract over lower-level build manifests:
+    it organizes memory by layer/tier, keeps lifecycle/value/source bindings, and
+    describes operations that query-time modules may execute. It creates no new
+    facts; every activation group remains expandable to raw source ids.
+    """
+
+    del groups, source_policy
+    conflict_slot_ids = {
+        str(slot_id)
+        for slot_id in memory_object_index.get("state_conflict_slot_ids", ())
+        if str(slot_id).strip()
+    }
+    activation_groups: list[dict[str, Any]] = []
+    for raw_slot in memory_object_index.get("value_slot_index") or ():
+        if not isinstance(raw_slot, dict) or raw_slot.get("source_backed") is False:
+            continue
+        slot_id = str(raw_slot.get("slot_id") or "")
+        if not slot_id:
+            continue
+        memory_type = str(raw_slot.get("memory_type") or "").strip().lower()
+        layer = str(raw_slot.get("layer") or _memory_layer(memory_type))
+        tier = str(
+            raw_slot.get("memory_tier")
+            or _slot_memory_tier(raw_slot, managed_memory_types=managed_memory_types)
+        )
+        values = _workspace_slot_values(raw_slot)
+        current_source_order = _ordered_strings(
+            str(source_id)
+            for source_id in raw_slot.get("current_source_order") or ()
+        )
+        historical_source_order = _ordered_strings(
+            str(source_id)
+            for source_id in raw_slot.get("historical_source_order") or ()
+        )
+        source_ids = _ordered_strings(
+            [
+                *current_source_order,
+                *historical_source_order,
+                *(
+                    source_id
+                    for value in values
+                    for source_id in value.get("source_ids", ())
+                ),
+            ]
+        )
+        if not source_ids:
+            continue
+        statuses = {
+            str(value.get("status") or "active").lower()
+            for value in values
+            if isinstance(value, dict)
+        }
+        conflict_cluster = bool(raw_slot.get("conflict_cluster") or slot_id in conflict_slot_ids)
+        activation_groups.append(
+            {
+                "group_id": f"workspace_{slot_id}",
+                "slot_id": slot_id,
+                "group_type": _workspace_group_type(
+                    memory_type=memory_type,
+                    tier=tier,
+                    conflict_cluster=conflict_cluster,
+                    statuses=statuses,
+                ),
+                "memory_type": memory_type,
+                "layer": layer,
+                "memory_tier": tier,
+                "managed": bool(raw_slot.get("managed")),
+                "subject": str(raw_slot.get("subject") or ""),
+                "predicate": str(raw_slot.get("predicate") or ""),
+                "record_count": int(raw_slot.get("record_count") or len(values)),
+                "lifecycle_state": _workspace_lifecycle_state(
+                    statuses=statuses,
+                    conflict_cluster=conflict_cluster,
+                ),
+                "conflict_cluster": conflict_cluster,
+                "active_memory_ids": list(raw_slot.get("active_memory_ids") or ())[:8],
+                "superseded_memory_ids": list(
+                    raw_slot.get("superseded_memory_ids") or ()
+                )[:8],
+                "active_values": list(raw_slot.get("active_values") or ())[:8],
+                "superseded_values": list(raw_slot.get("superseded_values") or ())[:8],
+                "scalar_values": list(raw_slot.get("scalar_values") or ())[:8],
+                "values": values,
+                "current_source_order": current_source_order[:8],
+                "historical_source_order": historical_source_order[:8],
+                "source_ids": source_ids[:12],
+                "operation_hints": _workspace_operation_hints(
+                    raw_slot,
+                    conflict_cluster=conflict_cluster,
+                    has_values=bool(values),
+                ),
+                "activation_policy": {
+                    "retrieve": "activate this source-backed group as a candidate slot",
+                    "expand": "open current/historical source ids as raw rows",
+                    "verify": "check source support, lifecycle, and slot scope",
+                    "audit": "record conflicts, superseded values, and source gaps",
+                    "final_evidence_policy": "raw_source_rows",
+                },
+                "source_backed": True,
+            }
+        )
+
+    layer_counts: dict[str, int] = defaultdict(int)
+    tier_counts: dict[str, int] = defaultdict(int)
+    lifecycle_counts: dict[str, int] = defaultdict(int)
+    operation_counts: dict[str, int] = defaultdict(int)
+    for group in activation_groups:
+        layer_counts[str(group["layer"])] += 1
+        tier_counts[str(group["memory_tier"])] += 1
+        lifecycle_counts[str(group["lifecycle_state"])] += 1
+        for operation in group.get("operation_hints", ()):
+            operation_counts[str(operation)] += 1
+
+    return {
+        "schema_version": "memory_workspace_manifest_v1",
+        "trace_only": False,
+        "applied": True,
+        "workspace_count": len(activation_groups),
+        "layer_counts": dict(sorted(layer_counts.items())),
+        "tier_counts": dict(sorted(tier_counts.items())),
+        "lifecycle_counts": dict(sorted(lifecycle_counts.items())),
+        "operation_counts": dict(sorted(operation_counts.items())),
+        "build_operation_counts": dict(
+            operation_manifest.get("operation_counts") or {}
+        ),
+        "value_slot_count": int(scalar_value_manifest.get("value_slot_count") or 0),
+        "state_conflict_slot_count": int(
+            state_conflict_manifest.get("cluster_count") or 0
+        ),
+        "workspace_contract": {
+            "memory_layers": dict(
+                operation_manifest.get("object_contract", {}).get("memory_layers")
+                or {}
+            ),
+            "memory_tiers": list(tier_manifest.get("tier_order") or ()),
+            "memory_objects": [
+                "event",
+                "fact",
+                "preference",
+                "profile",
+                "relationship",
+                "state",
+                "plan",
+            ],
+            "workspace_operations": [
+                "create",
+                "update",
+                "merge",
+                "supersede",
+                "retrieve",
+                "expand",
+                "verify",
+                "audit",
+                "context_pack",
+            ],
+            "query_use_policy": (
+                "Use workspace groups to activate, expand, organize, verify, and "
+                "audit source-backed memory; do not treat derived memory as final "
+                "answer evidence."
+            ),
+            "final_evidence_policy": "raw_source_rows",
+            "question_independent": True,
+        },
+        "source_expansion_policy": {
+            "current_scope": "prefer current_source_order for now/latest/current questions",
+            "historical_scope": (
+                "prefer historical_source_order for previous/original/before/history "
+                "questions"
+            ),
+            "visible_context_policy": (
+                "query compiler may render only groups with source ids present in "
+                "visible Memory Context rows"
+            ),
+            "raw_evidence_required": True,
+        },
+        "activation_groups": activation_groups,
+        "activation_group_samples": activation_groups[:24],
+        "clean_note": (
+            "Question-independent build memory workspace manifest. It turns "
+            "source-backed typed memory into a layered workspace with object "
+            "types, lifecycle state, operation hints, source expansion, verify, "
+            "and audit policies. It does not use gold answers, judge outputs, "
+            "benchmark labels, sample ids, test feedback, or sample-level rules; "
+            "final answer evidence remains raw source rows."
+        ),
+    }
+
+
+def _workspace_slot_values(slot: dict[str, Any]) -> list[dict[str, Any]]:
+    values: list[dict[str, Any]] = []
+    seen: set[tuple[str, str, tuple[str, ...]]] = set()
+    for raw_value in slot.get("value_objects") or ():
+        if not isinstance(raw_value, dict):
+            continue
+        value_text = _normalize_key_text(str(raw_value.get("value") or ""))
+        scalar_values = tuple(
+            _normalize_key_text(str(value))
+            for value in raw_value.get("scalar_values") or ()
+            if str(value).strip()
+        )
+        source_ids = tuple(
+            source_id
+            for source_id in _ordered_strings(
+                str(source_id) for source_id in raw_value.get("source_ids") or ()
+            )
+            if source_id
+        )
+        if not source_ids or (not value_text and not scalar_values):
+            continue
+        status = _normalize_key_text(str(raw_value.get("status") or "active")) or "active"
+        key = (status, value_text, source_ids)
+        if key in seen:
+            continue
+        seen.add(key)
+        values.append(
+            {
+                "memory_id": str(raw_value.get("memory_id") or ""),
+                "status": status,
+                "value": value_text,
+                "scalar_values": list(scalar_values),
+                "source_ids": list(source_ids),
+                "time": str(raw_value.get("time") or ""),
+                "valid_from": raw_value.get("valid_from"),
+                "valid_to": raw_value.get("valid_to"),
+                "superseded_by": raw_value.get("superseded_by"),
+                "confidence": raw_value.get("confidence"),
+            }
+        )
+    return values
+
+
+def _workspace_group_type(
+    *,
+    memory_type: str,
+    tier: str,
+    conflict_cluster: bool,
+    statuses: set[str],
+) -> str:
+    if conflict_cluster or {"active", "superseded"}.issubset(statuses):
+        return "state_lifecycle_workspace"
+    if tier == "archival_memory" or "superseded" in statuses:
+        return "historical_workspace"
+    if memory_type in _STATEFUL_MEMORY_TYPES or tier == "working_memory":
+        return "working_state_workspace"
+    if memory_type in {"event", "fact"}:
+        return "episodic_semantic_workspace"
+    return "general_memory_workspace"
+
+
+def _workspace_lifecycle_state(
+    *,
+    statuses: set[str],
+    conflict_cluster: bool,
+) -> str:
+    if conflict_cluster or {"active", "superseded"}.issubset(statuses):
+        return "active_with_history"
+    if "superseded" in statuses and "active" not in statuses:
+        return "historical_only"
+    if "superseded" in statuses:
+        return "has_superseded_context"
+    return "active_only"
+
+
+def _workspace_operation_hints(
+    slot: dict[str, Any],
+    *,
+    conflict_cluster: bool,
+    has_values: bool,
+) -> list[str]:
+    hints = [
+        str(hint).strip()
+        for hint in slot.get("operation_hints") or ()
+        if str(hint).strip()
+    ]
+    hints.extend(["retrieve", "expand", "verify", "audit", "context_pack"])
+    if conflict_cluster:
+        hints.extend(["update", "supersede"])
+    if has_values:
+        hints.append("create_value_object")
+    return list(dict.fromkeys(hints))
 
 
 def _memory_system_object_schema() -> dict[str, Any]:
