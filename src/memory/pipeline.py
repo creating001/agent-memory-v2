@@ -71,6 +71,21 @@ _CONTEXT_BUDGET_ANCHOR_SOURCES = frozenset(
         "auto",
     }
 )
+_WORKSPACE_SOURCE_EXPANSION_SOURCES = frozenset(
+    {
+        "auto",
+        "working_compiler_plan",
+        "memory_system_state",
+        "memory_operation_journal",
+        "memory_workspace_snapshot",
+    }
+)
+_WORKSPACE_SOURCE_EXPANSION_AUTO_ORDER = (
+    "memory_system_state",
+    "working_compiler_plan",
+    "memory_operation_journal",
+    "memory_workspace_snapshot",
+)
 _MEMORY_OPERATION_SLOT_SOURCES = frozenset(
     {
         "auto",
@@ -131,6 +146,13 @@ class Stage1Pipeline:
         )
         if not isinstance(workspace_policy_context_config, Mapping):
             raise ValueError("retrieval.workspace_policy_context must be an object")
+        workspace_source_expansion_config = retrieval_config.get(
+            "workspace_source_expansion", {}
+        )
+        if not isinstance(workspace_source_expansion_config, Mapping):
+            raise ValueError(
+                "retrieval.workspace_source_expansion must be an object"
+            )
         granularity_profile_audit_config = retrieval_config.get(
             "granularity_profile_audit", {}
         )
@@ -839,6 +861,37 @@ class Stage1Pipeline:
         )
         self._workspace_policy_context_information_needs = _tuple_config(
             workspace_policy_context_config.get("information_needs")
+        )
+        self._workspace_source_expansion_enabled = bool(
+            workspace_source_expansion_config.get("enabled", False)
+        )
+        self._workspace_source_expansion_information_needs = _tuple_config(
+            workspace_source_expansion_config.get("information_needs")
+        )
+        self._workspace_source_expansion_sources = (
+            _validate_workspace_source_expansion_sources(
+                workspace_source_expansion_config.get("sources")
+                or workspace_source_expansion_config.get("source")
+                or ("memory_system_state",)
+            )
+        )
+        self._workspace_source_expansion_max_entries = int(
+            workspace_source_expansion_config.get("max_entries", 8)
+        )
+        self._workspace_source_expansion_max_sources = int(
+            workspace_source_expansion_config.get("max_sources", 2)
+        )
+        self._workspace_source_expansion_min_score = float(
+            workspace_source_expansion_config.get("min_score", 1.0)
+        )
+        self._workspace_source_expansion_require_new_source = bool(
+            workspace_source_expansion_config.get("require_new_source", True)
+        )
+        self._workspace_source_expansion_protect_top_n = int(
+            workspace_source_expansion_config.get("protect_top_n", 32)
+        )
+        self._workspace_source_expansion_preserve_hit_count = bool(
+            workspace_source_expansion_config.get("preserve_hit_count", True)
         )
         self._context_budget_enabled = bool(
             context_budget_config.get("enabled", False)
@@ -2675,6 +2728,22 @@ class Stage1Pipeline:
         memory_object_index = _memory_object_index_from_management(
             built_memory.management
         )
+        hits, workspace_source_expansion_trace = _apply_workspace_source_expansion(
+            store=store,
+            hits=hits,
+            question=request.question,
+            route=route,
+            memory_object_index=memory_object_index,
+            enabled=self._workspace_source_expansion_enabled,
+            information_needs=self._workspace_source_expansion_information_needs,
+            sources=self._workspace_source_expansion_sources,
+            max_entries=self._workspace_source_expansion_max_entries,
+            max_sources=self._workspace_source_expansion_max_sources,
+            min_score=self._workspace_source_expansion_min_score,
+            require_new_source=self._workspace_source_expansion_require_new_source,
+            protect_top_n=self._workspace_source_expansion_protect_top_n,
+            preserve_hit_count=self._workspace_source_expansion_preserve_hit_count,
+        )
         context_budget_anchor_source_ids, context_budget_anchor_trace = (
             _context_budget_anchor_source_ids(
                 anchor_source=self._context_budget_anchor_source,
@@ -3081,6 +3150,7 @@ class Stage1Pipeline:
             graph_utility_trace=graph_utility_trace,
             memory_object_index=memory_object_index,
             workspace_policy_context=workspace_policy_context,
+            workspace_source_expansion_trace=workspace_source_expansion_trace,
         )
         answer_cache_before = _answer_cache_stats(self._answerer)
         draft_answer = self._answerer.answer(compiled)
@@ -3605,6 +3675,31 @@ class Stage1Pipeline:
                     "turn_window_source_hits": [
                         hit.to_dict() for hit in turn_window_source_hits
                     ],
+                    "workspace_source_expansion": (
+                        workspace_source_expansion_trace
+                    ),
+                    "workspace_source_expansion_enabled": (
+                        self._workspace_source_expansion_enabled
+                    ),
+                    "workspace_source_expansion_applied": bool(
+                        workspace_source_expansion_trace.get("applied")
+                    ),
+                    "workspace_source_expansion_sources": (
+                        self._workspace_source_expansion_sources
+                    ),
+                    "workspace_source_expansion_information_needs": (
+                        self._workspace_source_expansion_information_needs
+                    ),
+                    "workspace_source_expansion_selected_source_ids": (
+                        workspace_source_expansion_trace.get(
+                            "selected_source_ids"
+                        )
+                    ),
+                    "workspace_source_expansion_selected_source_count": (
+                        workspace_source_expansion_trace.get(
+                            "selected_source_count"
+                        )
+                    ),
                     "workspace_policy_context": workspace_policy_context,
                     "selected_context": selected_context,
                     "turn_hits": [hit.to_dict() for hit in turn_hits],
@@ -4659,6 +4754,7 @@ def _context_manifest(
     graph_utility_trace: Mapping[str, Any] | None = None,
     memory_object_index: Mapping[str, Any] | None = None,
     workspace_policy_context: Mapping[str, Any] | None = None,
+    workspace_source_expansion_trace: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Trace-only source flow manifest for memory/context organization.
 
@@ -4715,6 +4811,12 @@ def _context_manifest(
     workspace_policy_context_manifest = _workspace_policy_context_manifest(
         workspace_policy_context
     )
+    workspace_source_expansion_manifest = (
+        _workspace_source_expansion_context_manifest(
+            workspace_source_expansion_trace,
+            final_evidence_source_ids=final_evidence_source_ids,
+        )
+    )
     workspace_query_policy_manifest = _workspace_query_policy_context_manifest(
         compiled_diagnostics
     )
@@ -4737,6 +4839,15 @@ def _context_manifest(
             ),
             "graph_utility_source_hit_count": len(graph_utility_source_hits),
             "turn_window_source_hit_count": len(turn_window_source_hits),
+            "workspace_source_expansion_applied": bool(
+                workspace_source_expansion_manifest["applied"]
+            ),
+            "workspace_source_expansion_selected_source_count": int(
+                workspace_source_expansion_manifest["selected_source_count"]
+            ),
+            "workspace_source_expansion_final_source_count": int(
+                workspace_source_expansion_manifest["final_source_count"]
+            ),
             "pre_context_budget_hit_count": len(pre_context_budget_hits),
             "final_hit_count": len(retrieval_hits),
             "context_budget_applied": bool(context_budget_trace.get("applied")),
@@ -4820,6 +4931,12 @@ def _context_manifest(
             ),
             "turn_window_source_ids": _source_ids_from_hits(
                 turn_window_source_hits
+            ),
+            "workspace_source_expansion_source_ids": (
+                workspace_source_expansion_manifest["selected_source_ids"]
+            ),
+            "workspace_source_expansion_final_source_ids": (
+                workspace_source_expansion_manifest["final_source_ids"]
             ),
             "pre_context_budget_source_ids": _source_ids_from_hits(
                 pre_context_budget_hits
@@ -4916,6 +5033,9 @@ def _context_manifest(
                     "memory_workspace_snapshot_final_source_ids"
                 ]
             ),
+            "final_evidence_from_workspace_source_expansion_count": int(
+                workspace_source_expansion_manifest["final_source_count"]
+            ),
             "typed_memory_source_count": len(typed_memory_source_ids),
             "selected_context_materialized_count": int(
                 selected_context.get("materialized_count") or 0
@@ -4950,6 +5070,7 @@ def _context_manifest(
             },
             "selected_context": selected_context_manifest,
             "workspace_policy_context": workspace_policy_context_manifest,
+            "workspace_source_expansion": workspace_source_expansion_manifest,
             "workspace_query_policy": workspace_query_policy_manifest,
             "memory_operations": {
                 "registry_available": memory_operations_manifest[
@@ -9101,6 +9222,545 @@ def _context_budget_applies(
     return route.information_need in information_needs
 
 
+def _validate_workspace_source_expansion_sources(value: Any) -> tuple[str, ...]:
+    sources = _tuple_config(value)
+    if not sources:
+        sources = ("memory_system_state",)
+    result: list[str] = []
+    for source in sources:
+        text = str(source or "").strip()
+        if not text:
+            continue
+        if text not in _WORKSPACE_SOURCE_EXPANSION_SOURCES:
+            supported = ", ".join(sorted(_WORKSPACE_SOURCE_EXPANSION_SOURCES))
+            raise ValueError(
+                "Unsupported retrieval.workspace_source_expansion source: "
+                f"{text}. Supported values: {supported}"
+            )
+        if text not in result:
+            result.append(text)
+    return tuple(result or ("memory_system_state",))
+
+
+def _disabled_workspace_source_expansion_trace(
+    *,
+    enabled: bool,
+    information_needs: tuple[str, ...],
+    sources: tuple[str, ...],
+    max_entries: int,
+    max_sources: int,
+    min_score: float,
+    require_new_source: bool,
+    protect_top_n: int,
+    preserve_hit_count: bool,
+    reason: str = "disabled",
+) -> dict[str, Any]:
+    return {
+        "enabled": enabled,
+        "applied": False,
+        "reason": reason,
+        "information_needs": information_needs,
+        "sources": sources,
+        "selected_source": "none",
+        "max_entries": max_entries,
+        "max_sources": max_sources,
+        "min_score": min_score,
+        "require_new_source": require_new_source,
+        "protect_top_n": protect_top_n,
+        "preserve_hit_count": preserve_hit_count,
+        "input_hit_count": 0,
+        "output_hit_count": 0,
+        "replaced_tail_count": 0,
+        "candidate_entry_count": 0,
+        "candidate_source_count": 0,
+        "selected_entry_count": 0,
+        "selected_source_count": 0,
+        "selected_source_ids": [],
+        "skipped_existing_source_count": 0,
+        "skipped_missing_source_count": 0,
+        "skipped_low_score_count": 0,
+        "entries": [],
+        "clean_note": (
+            "Clean query-time expansion from build-owned memory objects to raw "
+            "source rows. Memory objects are activation handles only."
+        ),
+    }
+
+
+def _workspace_source_expansion_applies(
+    *,
+    enabled: bool,
+    route: RouteResult,
+    information_needs: tuple[str, ...],
+    max_sources: int,
+) -> bool:
+    if not enabled or max_sources <= 0:
+        return False
+    if not information_needs:
+        return True
+    return route.information_need in information_needs
+
+
+def _apply_workspace_source_expansion(
+    *,
+    store: RawEvidenceStore,
+    hits: tuple[RetrievalHit, ...],
+    question: str,
+    route: RouteResult,
+    memory_object_index: Mapping[str, Any] | None,
+    enabled: bool,
+    information_needs: tuple[str, ...],
+    sources: tuple[str, ...],
+    max_entries: int,
+    max_sources: int,
+    min_score: float,
+    require_new_source: bool,
+    protect_top_n: int,
+    preserve_hit_count: bool,
+) -> tuple[tuple[RetrievalHit, ...], dict[str, Any]]:
+    trace = _disabled_workspace_source_expansion_trace(
+        enabled=enabled,
+        information_needs=information_needs,
+        sources=sources,
+        max_entries=max_entries,
+        max_sources=max_sources,
+        min_score=min_score,
+        require_new_source=require_new_source,
+        protect_top_n=protect_top_n,
+        preserve_hit_count=preserve_hit_count,
+        reason="not_applicable",
+    )
+    trace["input_hit_count"] = len(hits)
+    trace["output_hit_count"] = len(hits)
+    if not _workspace_source_expansion_applies(
+        enabled=enabled,
+        route=route,
+        information_needs=information_needs,
+        max_sources=max_sources,
+    ):
+        trace["reason"] = "disabled" if not enabled else "route_not_enabled"
+        return hits, trace
+    if not isinstance(memory_object_index, Mapping):
+        trace["reason"] = "no_memory_object_index"
+        return hits, trace
+
+    expanded_sources = _workspace_source_expansion_configured_sources(sources)
+    hit_source_ids = set(_source_ids_from_hits(hits))
+    available_source_ids = {turn.source_id for turn in store.turns}
+    question_terms = _selected_context_content_terms(question)
+    candidates: list[dict[str, Any]] = []
+    skipped_existing = 0
+    skipped_missing = 0
+    skipped_low_score = 0
+
+    for source_label, entry in _workspace_source_expansion_entries(
+        memory_object_index,
+        expanded_sources,
+    ):
+        source_ids = _workspace_source_expansion_entry_source_ids(entry)
+        if not source_ids:
+            skipped_missing += 1
+            continue
+        available_ids = tuple(
+            source_id for source_id in source_ids if source_id in available_source_ids
+        )
+        if not available_ids:
+            skipped_missing += 1
+            continue
+        new_ids = tuple(
+            source_id
+            for source_id in available_ids
+            if (not require_new_source or source_id not in hit_source_ids)
+        )
+        if require_new_source and not new_ids:
+            skipped_existing += 1
+            continue
+        entry_terms = _workspace_source_expansion_entry_terms(entry)
+        matched_terms = tuple(sorted(question_terms & entry_terms))
+        score = _workspace_source_expansion_score(
+            entry=entry,
+            matched_terms=matched_terms,
+            route=route,
+        )
+        if score < min_score:
+            skipped_low_score += 1
+            continue
+        candidates.append(
+            {
+                "source_label": source_label,
+                "entry_id": _workspace_source_expansion_entry_id(entry),
+                "score": score,
+                "matched_terms": matched_terms,
+                "source_ids": new_ids if require_new_source else available_ids,
+                "all_source_ids": available_ids,
+                "focus": str(entry.get("focus") or ""),
+                "target_type": str(entry.get("target_type") or ""),
+                "memory_type": str(entry.get("memory_type") or ""),
+                "manager_decision": str(entry.get("manager_decision") or ""),
+            }
+        )
+
+    candidates.sort(
+        key=lambda item: (
+            -float(item["score"]),
+            _workspace_source_expansion_entry_sort_priority(item),
+            str(item["source_label"]),
+            str(item["entry_id"]),
+        )
+    )
+    trace["candidate_entry_count"] = len(candidates)
+    trace["candidate_source_count"] = len(
+        _ordered_unique(
+            source_id
+            for candidate in candidates
+            for source_id in candidate["source_ids"]
+        )
+    )
+    trace["skipped_existing_source_count"] = skipped_existing
+    trace["skipped_missing_source_count"] = skipped_missing
+    trace["skipped_low_score_count"] = skipped_low_score
+    if not candidates:
+        trace["reason"] = "no_matching_entries"
+        return hits, trace
+
+    selected_source_ids: list[str] = []
+    selected_entries: list[dict[str, Any]] = []
+    for candidate in candidates[: max(0, max_entries)]:
+        entry_selected: list[str] = []
+        for source_id in candidate["source_ids"]:
+            if source_id in selected_source_ids:
+                continue
+            selected_source_ids.append(source_id)
+            entry_selected.append(source_id)
+            if len(selected_source_ids) >= max_sources:
+                break
+        if entry_selected:
+            selected = {
+                key: candidate[key]
+                for key in (
+                    "source_label",
+                    "entry_id",
+                    "score",
+                    "matched_terms",
+                    "focus",
+                    "target_type",
+                    "memory_type",
+                    "manager_decision",
+                )
+            }
+            selected["selected_source_ids"] = tuple(entry_selected)
+            selected["all_source_ids"] = tuple(candidate["all_source_ids"])
+            selected_entries.append(selected)
+        if len(selected_source_ids) >= max_sources:
+            break
+
+    if not selected_source_ids:
+        trace["reason"] = "no_new_sources"
+        trace["entries"] = candidates[:8]
+        return hits, trace
+
+    selected_hits = tuple(
+        RetrievalHit(
+            source_id=source_id,
+            score=max(0.0, min_score) + (len(selected_source_ids) - offset) * 0.01,
+            rank=len(hits) + 1 + offset,
+            retriever="workspace_source_expansion",
+            matched_terms=tuple(
+                sorted(
+                    {
+                        term
+                        for entry in selected_entries
+                        if source_id in entry["selected_source_ids"]
+                        for term in entry["matched_terms"]
+                    }
+                )
+            ),
+        )
+        for offset, source_id in enumerate(selected_source_ids)
+    )
+    protected_count = max(0, min(protect_top_n, len(hits)))
+    expanded_hits = _workspace_source_expansion_exchange_hits(
+        hits=hits,
+        expansion_hits=selected_hits,
+        protect_top_n=protected_count,
+        preserve_hit_count=preserve_hit_count,
+    )
+    trace.update(
+        {
+            "applied": True,
+            "reason": "selected",
+            "selected_source": selected_entries[0]["source_label"]
+            if selected_entries
+            else "none",
+            "output_hit_count": len(expanded_hits),
+            "replaced_tail_count": max(0, len(hits) + len(selected_hits) - len(expanded_hits)),
+            "selected_entry_count": len(selected_entries),
+            "selected_source_count": len(selected_source_ids),
+            "selected_source_ids": list(selected_source_ids),
+            "entries": selected_entries[:8],
+        }
+    )
+    return expanded_hits, trace
+
+
+def _workspace_source_expansion_configured_sources(
+    sources: tuple[str, ...],
+) -> tuple[str, ...]:
+    if "auto" not in sources:
+        return sources
+    return _ordered_unique(
+        (
+            *(
+                source
+                for source in sources
+                if source != "auto"
+            ),
+            *_WORKSPACE_SOURCE_EXPANSION_AUTO_ORDER,
+        )
+    )
+
+
+def _workspace_source_expansion_exchange_hits(
+    *,
+    hits: tuple[RetrievalHit, ...],
+    expansion_hits: tuple[RetrievalHit, ...],
+    protect_top_n: int,
+    preserve_hit_count: bool,
+) -> tuple[RetrievalHit, ...]:
+    limit = len(hits) if preserve_hit_count else len(hits) + len(expansion_hits)
+    selected: list[RetrievalHit] = []
+    seen: set[str] = set()
+
+    def add(hit: RetrievalHit) -> None:
+        if len(selected) >= limit:
+            return
+        if hit.source_id in seen:
+            return
+        seen.add(hit.source_id)
+        selected.append(hit)
+
+    for hit in hits[: max(0, protect_top_n)]:
+        add(hit)
+    for hit in expansion_hits:
+        add(hit)
+    for hit in hits[max(0, protect_top_n) :]:
+        add(hit)
+
+    return tuple(
+        RetrievalHit(
+            source_id=hit.source_id,
+            score=hit.score,
+            rank=rank,
+            retriever=hit.retriever,
+            matched_terms=hit.matched_terms,
+        )
+        for rank, hit in enumerate(selected, start=1)
+    )
+
+
+def _workspace_source_expansion_entries(
+    memory_object_index: Mapping[str, Any],
+    sources: tuple[str, ...],
+) -> tuple[tuple[str, Mapping[str, Any]], ...]:
+    entries: list[tuple[str, Mapping[str, Any]]] = []
+    source_to_key = {
+        "working_compiler_plan": "memory_working_compiler_plan",
+        "memory_system_state": "memory_system_state",
+        "memory_operation_journal": "memory_operation_journal",
+    }
+    for source in sources:
+        if source in source_to_key:
+            raw = memory_object_index.get(source_to_key[source])
+            if not isinstance(raw, Mapping) or not raw.get("applied"):
+                continue
+            entries.extend(
+                (source, entry)
+                for entry in raw.get("entries") or ()
+                if isinstance(entry, Mapping)
+            )
+        elif source == "memory_workspace_snapshot":
+            raw = memory_object_index.get("memory_workspace_snapshot")
+            if not isinstance(raw, Mapping) or not raw.get("applied"):
+                continue
+            entries.extend(
+                _workspace_snapshot_expansion_entries(raw)
+            )
+    return tuple(entries)
+
+
+def _workspace_snapshot_expansion_entries(
+    snapshot: Mapping[str, Any],
+) -> tuple[tuple[str, Mapping[str, Any]], ...]:
+    result: list[tuple[str, Mapping[str, Any]]] = []
+    for worklist_name, worklists in (
+        ("state", snapshot.get("state_worklists")),
+        ("verifier", snapshot.get("verifier_worklists")),
+    ):
+        if not isinstance(worklists, Mapping):
+            continue
+        for lane, items in worklists.items():
+            if not isinstance(items, list):
+                continue
+            for item in items:
+                if not isinstance(item, Mapping):
+                    continue
+                enriched = {
+                    **item,
+                    "workspace_snapshot_worklist": worklist_name,
+                    "workspace_snapshot_lane": str(lane),
+                }
+                result.append(("memory_workspace_snapshot", enriched))
+    return tuple(result)
+
+
+def _workspace_source_expansion_entry_source_ids(
+    entry: Mapping[str, Any],
+) -> tuple[str, ...]:
+    source_ids: list[str] = []
+    source_expansion = entry.get("source_expansion")
+    if isinstance(source_expansion, Mapping):
+        source_ids.extend(str(source_id) for source_id in source_expansion.get("source_ids") or ())
+    for key in (
+        "source_ids",
+        "expand_source_order",
+        "current_source_order",
+        "historical_source_order",
+    ):
+        source_ids.extend(str(source_id) for source_id in entry.get(key) or ())
+    return _ordered_unique(source_ids)
+
+
+def _workspace_source_expansion_entry_terms(entry: Mapping[str, Any]) -> frozenset[str]:
+    values: list[str] = []
+    for key in (
+        "subject",
+        "predicate",
+        "value",
+        "values",
+        "memory_type",
+        "memory_layer",
+        "context_role",
+        "focus",
+        "secondary_focuses",
+        "manager_decision",
+        "operation_type",
+        "operation_family",
+        "target_type",
+        "slot_id",
+        "target_id",
+        "status",
+        "lifecycle_stage",
+        "state_transition",
+        "context_actions",
+        "verifier_checks",
+        "operations",
+        "operation_actions",
+        "query_consumers",
+        "slot_family",
+        "slot_coverage_terms",
+        "slot_subject_terms",
+        "slot_predicate_terms",
+        "slot_value_terms",
+        "workspace_snapshot_lane",
+    ):
+        values.extend(_workspace_source_expansion_text_values(entry.get(key)))
+    return _selected_context_content_terms(" ".join(values))
+
+
+def _workspace_source_expansion_text_values(value: Any) -> tuple[str, ...]:
+    if value is None:
+        return ()
+    if isinstance(value, str):
+        return (value,)
+    if isinstance(value, Mapping):
+        result: list[str] = []
+        for item in value.values():
+            result.extend(_workspace_source_expansion_text_values(item))
+        return tuple(result)
+    if isinstance(value, (list, tuple, set)):
+        result = []
+        for item in value:
+            result.extend(_workspace_source_expansion_text_values(item))
+        return tuple(result)
+    return (str(value),)
+
+
+def _workspace_source_expansion_score(
+    *,
+    entry: Mapping[str, Any],
+    matched_terms: tuple[str, ...],
+    route: RouteResult,
+) -> float:
+    score = float(len(matched_terms))
+    focus = str(entry.get("focus") or "")
+    target_type = str(entry.get("target_type") or "")
+    manager_decision = str(entry.get("manager_decision") or "")
+    if route.information_need == "current_state":
+        if focus in {"current_state", "conflict_chain", "temporal_validity"}:
+            score += 0.35
+        if manager_decision in {"supersede", "update", "merge"}:
+            score += 0.25
+    elif route.information_need == "temporal_lookup":
+        if focus in {"temporal_validity", "conflict_chain"}:
+            score += 0.35
+    elif route.information_need == "profile_preference":
+        memory_type = str(entry.get("memory_type") or "")
+        if memory_type in {"preference", "profile", "relationship"}:
+            score += 0.25
+    if target_type in {"conflict_slot", "value_slot", "operation_slot", "object"}:
+        score += 0.1
+    if entry.get("source_backed") or _workspace_source_expansion_entry_source_ids(entry):
+        score += 0.1
+    return score
+
+
+def _workspace_source_expansion_entry_sort_priority(
+    item: Mapping[str, Any],
+) -> tuple[int, int, int]:
+    focus_priority = {
+        "conflict_chain": 0,
+        "temporal_validity": 1,
+        "current_state": 2,
+        "long_term_recall": 3,
+        "audit_only": 4,
+    }
+    decision_priority = {
+        "supersede": 0,
+        "audit_conflict": 1,
+        "merge": 2,
+        "update": 3,
+        "retain_slot": 4,
+        "retain": 5,
+        "create": 6,
+    }
+    target_priority = {
+        "object": 0,
+        "conflict_slot": 1,
+        "operation_slot": 2,
+        "value_slot": 3,
+    }
+    return (
+        focus_priority.get(str(item.get("focus") or ""), 9),
+        decision_priority.get(str(item.get("manager_decision") or ""), 9),
+        target_priority.get(str(item.get("target_type") or ""), 9),
+    )
+
+
+def _workspace_source_expansion_entry_id(entry: Mapping[str, Any]) -> str:
+    for key in (
+        "state_id",
+        "plan_id",
+        "journal_id",
+        "memory_id",
+        "source_operation_id",
+        "target_id",
+    ):
+        value = str(entry.get(key) or "")
+        if value:
+            return value
+    return "unknown"
+
+
 def _validate_context_budget_anchor_source(value: Any) -> str:
     source = str(value or "operation_registry")
     if source not in _CONTEXT_BUDGET_ANCHOR_SOURCES:
@@ -10241,6 +10901,66 @@ def _workspace_policy_context_manifest(
         ),
         "selected_context_after": dict(
             workspace_policy_context.get("selected_context_after") or {}
+        ),
+    }
+
+
+def _workspace_source_expansion_context_manifest(
+    workspace_source_expansion: Mapping[str, Any] | None,
+    *,
+    final_evidence_source_ids: tuple[str, ...],
+) -> dict[str, Any]:
+    if not isinstance(workspace_source_expansion, Mapping):
+        workspace_source_expansion = {}
+    selected_source_ids = _ordered_unique(
+        workspace_source_expansion.get("selected_source_ids") or ()
+    )
+    final_set = set(final_evidence_source_ids)
+    final_source_ids = tuple(
+        source_id for source_id in selected_source_ids if source_id in final_set
+    )
+    return {
+        "enabled": bool(workspace_source_expansion.get("enabled")),
+        "applied": bool(workspace_source_expansion.get("applied")),
+        "reason": str(workspace_source_expansion.get("reason") or ""),
+        "sources": tuple(workspace_source_expansion.get("sources") or ()),
+        "selected_source": str(
+            workspace_source_expansion.get("selected_source") or ""
+        ),
+        "candidate_entry_count": int(
+            workspace_source_expansion.get("candidate_entry_count") or 0
+        ),
+        "candidate_source_count": int(
+            workspace_source_expansion.get("candidate_source_count") or 0
+        ),
+        "selected_entry_count": int(
+            workspace_source_expansion.get("selected_entry_count") or 0
+        ),
+        "selected_source_count": len(selected_source_ids),
+        "selected_source_ids": selected_source_ids,
+        "final_source_count": len(final_source_ids),
+        "final_source_ids": final_source_ids,
+        "input_hit_count": int(
+            workspace_source_expansion.get("input_hit_count") or 0
+        ),
+        "output_hit_count": int(
+            workspace_source_expansion.get("output_hit_count") or 0
+        ),
+        "replaced_tail_count": int(
+            workspace_source_expansion.get("replaced_tail_count") or 0
+        ),
+        "skipped_existing_source_count": int(
+            workspace_source_expansion.get("skipped_existing_source_count") or 0
+        ),
+        "skipped_missing_source_count": int(
+            workspace_source_expansion.get("skipped_missing_source_count") or 0
+        ),
+        "skipped_low_score_count": int(
+            workspace_source_expansion.get("skipped_low_score_count") or 0
+        ),
+        "clean_note": (
+            "Source-backed expansion manifest. Selected memory-object handles "
+            "must resolve to raw evidence rows before they can support an answer."
         ),
     }
 

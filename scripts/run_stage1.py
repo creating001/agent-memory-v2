@@ -94,6 +94,11 @@ def main() -> int:
     total_selected_context_risk_audit_risk = 0
     total_workspace_policy_context_policy_available = 0
     total_workspace_policy_context_applied = 0
+    total_workspace_source_expansion_applied = 0
+    total_workspace_source_expansion_candidate_entries = 0
+    total_workspace_source_expansion_selected_sources = 0
+    total_workspace_source_expansion_final_sources = 0
+    total_workspace_source_expansion_replaced_tail = 0
     total_rerank_applied = 0
     total_rerank_candidate_count = 0
     total_rerank_returned_count = 0
@@ -540,6 +545,28 @@ def main() -> int:
             total_workspace_policy_context_policy_available += 1
         if workspace_policy_context.get("applied"):
             total_workspace_policy_context_applied += 1
+        workspace_source_expansion = (
+            retrieval_trace.get("workspace_source_expansion") or {}
+        )
+        if workspace_source_expansion.get("applied"):
+            total_workspace_source_expansion_applied += 1
+        total_workspace_source_expansion_candidate_entries += int(
+            workspace_source_expansion.get("candidate_entry_count") or 0
+        )
+        total_workspace_source_expansion_selected_sources += int(
+            workspace_source_expansion.get("selected_source_count") or 0
+        )
+        total_workspace_source_expansion_replaced_tail += int(
+            workspace_source_expansion.get("replaced_tail_count") or 0
+        )
+        context_manifest = result["trace"].get("context_manifest") or {}
+        context_organization = context_manifest.get("context_organization") or {}
+        workspace_source_expansion_manifest = (
+            context_organization.get("workspace_source_expansion") or {}
+        )
+        total_workspace_source_expansion_final_sources += int(
+            workspace_source_expansion_manifest.get("final_source_count") or 0
+        )
         selected_context = retrieval_trace.get("selected_context") or {}
         if selected_context.get("applied"):
             total_selected_context_applied += 1
@@ -2138,6 +2165,43 @@ def main() -> int:
             ),
             "workspace_policy_context_applied_rate": _safe_average(
                 total_workspace_policy_context_applied,
+                sample_count,
+            ),
+            "workspace_source_expansion_enabled": config.get("retrieval", {})
+            .get("workspace_source_expansion", {})
+            .get("enabled", False),
+            "workspace_source_expansion_sources": config.get("retrieval", {})
+            .get("workspace_source_expansion", {})
+            .get("sources")
+            or config.get("retrieval", {})
+            .get("workspace_source_expansion", {})
+            .get("source"),
+            "workspace_source_expansion_information_needs": config.get(
+                "retrieval", {}
+            )
+            .get("workspace_source_expansion", {})
+            .get("information_needs"),
+            "workspace_source_expansion_applied_count": (
+                total_workspace_source_expansion_applied
+            ),
+            "workspace_source_expansion_applied_rate": _safe_average(
+                total_workspace_source_expansion_applied,
+                sample_count,
+            ),
+            "avg_workspace_source_expansion_candidate_entries": _safe_average(
+                total_workspace_source_expansion_candidate_entries,
+                sample_count,
+            ),
+            "avg_workspace_source_expansion_selected_sources": _safe_average(
+                total_workspace_source_expansion_selected_sources,
+                sample_count,
+            ),
+            "avg_workspace_source_expansion_final_sources": _safe_average(
+                total_workspace_source_expansion_final_sources,
+                sample_count,
+            ),
+            "avg_workspace_source_expansion_replaced_tail": _safe_average(
+                total_workspace_source_expansion_replaced_tail,
                 sample_count,
             ),
             "selected_context_applied_count": total_selected_context_applied,
@@ -4598,6 +4662,12 @@ def _write_summary(
         f"- workspace_policy_context_policy_available_count: {metrics['retrieval']['workspace_policy_context_policy_available_count']}",
         f"- workspace_policy_context_applied_count: {metrics['retrieval']['workspace_policy_context_applied_count']}",
         f"- workspace_policy_context_applied_rate: {metrics['retrieval']['workspace_policy_context_applied_rate']}",
+        f"- workspace_source_expansion_enabled: {metrics['retrieval']['workspace_source_expansion_enabled']}",
+        f"- workspace_source_expansion_applied_count: {metrics['retrieval']['workspace_source_expansion_applied_count']}",
+        f"- workspace_source_expansion_applied_rate: {metrics['retrieval']['workspace_source_expansion_applied_rate']}",
+        f"- avg_workspace_source_expansion_selected_sources: {metrics['retrieval']['avg_workspace_source_expansion_selected_sources']}",
+        f"- avg_workspace_source_expansion_final_sources: {metrics['retrieval']['avg_workspace_source_expansion_final_sources']}",
+        f"- avg_workspace_source_expansion_replaced_tail: {metrics['retrieval']['avg_workspace_source_expansion_replaced_tail']}",
         f"- selected_context_window_before: {metrics['retrieval']['selected_context_window_before']}",
         f"- selected_context_window_after: {metrics['retrieval']['selected_context_window_after']}",
         f"- selected_context_max_rows: {metrics['retrieval']['selected_context_max_rows']}",
@@ -5144,6 +5214,11 @@ def _write_diagnosis(
         f"- workspace_policy_context_policy_available_count: {metrics['retrieval']['workspace_policy_context_policy_available_count']}",
         f"- workspace_policy_context_applied_count: {metrics['retrieval']['workspace_policy_context_applied_count']}",
         f"- workspace_policy_context_applied_rate: {metrics['retrieval']['workspace_policy_context_applied_rate']}",
+        f"- workspace_source_expansion_enabled: {metrics['retrieval']['workspace_source_expansion_enabled']}",
+        f"- workspace_source_expansion_applied_count: {metrics['retrieval']['workspace_source_expansion_applied_count']}",
+        f"- workspace_source_expansion_applied_rate: {metrics['retrieval']['workspace_source_expansion_applied_rate']}",
+        f"- avg_workspace_source_expansion_final_sources: {metrics['retrieval']['avg_workspace_source_expansion_final_sources']}",
+        f"- avg_workspace_source_expansion_replaced_tail: {metrics['retrieval']['avg_workspace_source_expansion_replaced_tail']}",
         f"- selected_context_applied_count: {metrics['retrieval']['selected_context_applied_count']}",
         f"- selected_context_applied_rate: {metrics['retrieval']['selected_context_applied_rate']}",
         f"- selected_context_budget_gate_applied_count: {metrics['retrieval']['selected_context_budget_gate_applied_count']}",
