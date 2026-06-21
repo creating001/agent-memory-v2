@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_anchor_linked_operation_source_expansion_v304_query_restore_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_source_chain_coverage_utility_v305_query_restore_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v304 local LTS |
+| Benchmark | 当前 v305 local LTS |
 |---|---:|
 | LongMemEval-S full | strict/lenient `0.834000 / 0.846000`，avg build/query tokens `85393.566 / 6455.588` |
 | LoCoMo non-adversarial full | strict/lenient `0.794156 / 0.819481`，avg build/query tokens `62015.57402597403 / 6093.879220779221` |
 
-v304 的 LTS 理由：在 v302 trace-only operation evidence coverage audit 基础上，加入 anchor-linked guarded source expansion。Typed/derived memory 仍不能直接替代 raw evidence；operation plan 只有在同一 source chain 已有 raw source 进入 candidates 时，才允许补一个缺失 raw source。v304 相对 v302 的 LongMemEval-S 和 LoCoMo full answer/prompt/evidence diff 均为 `0`，因此继承 v302 full dual judge accuracy，同时比 v303 更安全地保留 source expansion consumer。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_anchor_linked_operation_source_expansion_v304_full_summary.md`。
+v305 的 LTS 理由：在 v304 anchor-linked guarded source expansion 基础上，加入 source-chain coverage utility 和 opposite current/historical role gap gate。Typed/derived memory 仍不能直接替代 raw evidence；operation plan 只能作为 source-backed context organization / coverage / verification signal。v305 相对 v304 的 LongMemEval-S 和 LoCoMo full answer/prompt/evidence diff 均为 `0`，因此 full dual judge accuracy 继承 v304，同时进一步降低 weak-overlap source expansion 风险。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_source_chain_coverage_utility_v305_full_summary.md`。
 
 ## 目录
 
