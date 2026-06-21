@@ -179,6 +179,58 @@ class AnswerVerifyTest(unittest.TestCase):
         self.assertEqual(audit.registry_backed_support_reference_count, 1)
         self.assertEqual(audit.registry_backed_support_references, (1,))
 
+    def test_source_grounded_audit_tracks_workspace_query_policy(self) -> None:
+        audit = audit_answer_support(
+            compiled=_compiled(row_count=1),
+            answer=_answer(
+                {
+                    "sufficient": True,
+                    "evidence_report": [{"memory": "Memory 1", "status": "support"}],
+                    "answer": "Alex prefers jasmine tea.",
+                }
+            ),
+            enabled=True,
+            context_manifest={
+                "context_organization": {
+                    "workspace_query_policy": {
+                        "available": True,
+                        "applied": True,
+                        "replaced_components": (
+                            "structured_guide",
+                            "memory_value_slot_guide",
+                        ),
+                        "packet_candidate_count": 1,
+                        "packet_candidate_source_labels": ("Memory 1",),
+                        "packet_candidate_focus_counts": {"current_state": 1},
+                        "packet_candidate_verifier_checks": (
+                            "source_backing",
+                            "raw_row_expansion",
+                        ),
+                    }
+                }
+            },
+        )
+
+        self.assertTrue(audit.workspace_query_policy_available)
+        self.assertTrue(audit.workspace_query_policy_applied)
+        self.assertEqual(
+            audit.workspace_query_policy_replaced_components,
+            ("structured_guide", "memory_value_slot_guide"),
+        )
+        self.assertEqual(audit.workspace_query_policy_packet_candidate_count, 1)
+        self.assertEqual(
+            audit.workspace_query_policy_packet_candidate_source_labels,
+            ("Memory 1",),
+        )
+        self.assertEqual(
+            audit.workspace_query_policy_packet_candidate_focus_counts,
+            {"current_state": 1},
+        )
+        self.assertEqual(
+            audit.workspace_query_policy_packet_candidate_verifier_checks,
+            ("source_backing", "raw_row_expansion"),
+        )
+
     def test_source_grounded_audit_uses_final_answer_when_json_answer_missing(
         self,
     ) -> None:

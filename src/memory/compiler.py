@@ -45,7 +45,7 @@ WORKING_MEMORY_PACKET_SOURCES = {
     "working_view",
     "operation_registry",
 }
-WORKING_MEMORY_PACKET_FORMATS = {"verbose", "compact"}
+WORKING_MEMORY_PACKET_FORMATS = {"verbose", "compact", "micro"}
 WORKING_MEMORY_PACKET_SLOT_GUARD_ACTIONS = {"suppress", "structured_guide"}
 WORKSPACE_QUERY_POLICY_COMPONENTS = {
     "structured_guide",
@@ -4976,6 +4976,10 @@ def _apply_workspace_query_policy_settings(
         "packet_source": packet_source,
         "packet_selected_source": "",
         "packet_candidate_count": 0,
+        "packet_candidate_source_labels": [],
+        "packet_candidate_slots": [],
+        "packet_candidate_focus_counts": {},
+        "packet_candidate_verifier_checks": [],
         "slot_guard": slot_guard,
         "slot_guard_action": slot_guard_action,
         "slot_guard_max_rows": slot_guard_max_rows,
@@ -5033,6 +5037,7 @@ def _apply_workspace_query_policy_settings(
     )
     trace["packet_selected_source"] = selected_source
     trace["packet_candidate_count"] = len(selected_candidates)
+    trace.update(_workspace_packet_candidate_diagnostics(selected_candidates))
     if not selected_candidates:
         trace["reason"] = "no_source_backed_packet_candidates"
         return settings, trace
@@ -5089,6 +5094,13 @@ def _external_working_memory_packet_lines(
             selected_source=selected_source,
             max_value_chars=max_value_chars,
             short_header=compact_short_header,
+            dedupe=compact_dedupe,
+        )
+    if packet_format == "micro":
+        return _micro_working_memory_packet_lines(
+            selected_candidates,
+            selected_source=selected_source,
+            max_value_chars=max_value_chars,
             dedupe=compact_dedupe,
         )
     lines = [
@@ -5497,6 +5509,100 @@ def _compact_working_memory_packet_lines(
             lines[prior_index] = line
             slot_line_has_hint[dedupe_key] = True
     return lines
+
+
+def _micro_working_memory_packet_lines(
+    selected_candidates: list[
+        tuple[float, float, int, Mapping[str, Any], tuple[str, ...]]
+    ],
+    *,
+    selected_source: str,
+    max_value_chars: int,
+    dedupe: bool = False,
+) -> list[str]:
+    lines = [
+        "Workspace packet "
+        f"(source={selected_source}; index only; verify final facts in Memory Context):"
+    ]
+    slot_line_indexes: dict[tuple[str, str, tuple[str, ...], str, str, str], int] = {}
+    slot_line_has_hint: dict[
+        tuple[str, str, tuple[str, ...], str, str, str],
+        bool,
+    ] = {}
+    for _, _, _, entry, source_labels in selected_candidates:
+        subject = _truncate_text(_single_line(str(entry.get("subject") or "")), 42)
+        predicate = _truncate_text(
+            _single_line(
+                str(
+                    entry.get("predicate")
+                    or entry.get("slot_id")
+                    or entry.get("target_id")
+                    or entry.get("target_type")
+                    or "memory"
+                )
+            ),
+            42,
+        )
+        slot = f"{subject + '/' if subject else ''}{predicate}"
+        fields = [
+            f"slot={slot}",
+            f"type={str(entry.get('memory_type') or 'unknown')}",
+        ]
+        focus = str(entry.get("focus") or "")
+        if focus:
+            fields.append(f"focus={focus}")
+        status = str(entry.get("status") or "")
+        if status:
+            fields.append(f"status={status}")
+        value = _working_memory_packet_entry_value(entry)
+        if value:
+            fields.append(
+                "hint="
+                + _truncate_text(_single_line(value), max(40, int(max_value_chars)))
+            )
+        fields.append(f"src={', '.join(source_labels)}")
+        line = f"- {' | '.join(fields)}"
+        if not dedupe:
+            lines.append(line)
+            continue
+        dedupe_key = (subject, predicate, tuple(source_labels), focus, "", status)
+        prior_index = slot_line_indexes.get(dedupe_key)
+        if prior_index is None:
+            slot_line_indexes[dedupe_key] = len(lines)
+            slot_line_has_hint[dedupe_key] = bool(value)
+            lines.append(line)
+            continue
+        if value and not slot_line_has_hint.get(dedupe_key, False):
+            lines[prior_index] = line
+            slot_line_has_hint[dedupe_key] = True
+    return lines
+
+
+def _workspace_packet_candidate_diagnostics(
+    selected_candidates: list[
+        tuple[float, float, int, Mapping[str, Any], tuple[str, ...]]
+    ],
+) -> dict[str, Any]:
+    source_labels: list[str] = []
+    slots: list[str] = []
+    focus_counts: dict[str, int] = {}
+    verifier_checks: list[str] = []
+    for _, _, _, entry, labels in selected_candidates:
+        source_labels.extend(labels)
+        slots.append(_working_memory_packet_entry_slot_label(entry))
+        focus = str(entry.get("focus") or "")
+        if focus:
+            focus_counts[focus] = focus_counts.get(focus, 0) + 1
+        for check in entry.get("verifier_checks") or ():
+            check_text = str(check).strip()
+            if check_text:
+                verifier_checks.append(check_text)
+    return {
+        "packet_candidate_source_labels": list(dict.fromkeys(source_labels)),
+        "packet_candidate_slots": list(dict.fromkeys(slots)),
+        "packet_candidate_focus_counts": dict(sorted(focus_counts.items())),
+        "packet_candidate_verifier_checks": list(dict.fromkeys(verifier_checks)),
+    }
 
 
 def _working_memory_packet_source_entries(

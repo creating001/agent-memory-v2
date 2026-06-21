@@ -158,6 +158,101 @@ class CompilerTest(unittest.TestCase):
             compiled.diagnostics["workspace_query_policy"]["replaced_components"],
             ["structured_guide", "memory_value_slot_guide"],
         )
+        self.assertEqual(
+            compiled.diagnostics["workspace_query_policy"][
+                "packet_candidate_source_labels"
+            ],
+            ["Memory 1"],
+        )
+        self.assertEqual(
+            compiled.diagnostics["workspace_query_policy"][
+                "packet_candidate_focus_counts"
+            ],
+            {"current_state": 1},
+        )
+
+    def test_micro_workspace_packet_keeps_sources_with_shorter_prompt(self) -> None:
+        kwargs = {
+            "max_evidence_items": 2,
+            "max_evidence_chars": 4000,
+            "prompt_mode": "external_naive",
+            "structured_guide": True,
+            "memory_value_slot_guide": True,
+            "workspace_query_policy": True,
+            "workspace_query_policy_replacement_components": (
+                "structured_guide",
+                "memory_value_slot_guide",
+            ),
+            "workspace_query_policy_packet_compact_dedupe": True,
+        }
+        memory_object_index = {
+            "applied": True,
+            "memory_workspace_policy": {
+                "applied": True,
+                "schema_version": "memory_workspace_policy_v1",
+                "query_component_policy": {
+                    "structured_guide": {"ready": True},
+                    "memory_value_slot_guide": {"ready": True},
+                },
+            },
+            "memory_system_state": {
+                "applied": True,
+                "entries": (
+                    {
+                        "target_type": "value_slot",
+                        "memory_type": "state",
+                        "memory_tier": "working_memory",
+                        "focus": "current_state",
+                        "status": "active",
+                        "source_backed": True,
+                        "subject": "Alex",
+                        "predicate": "lives_in",
+                        "value": "Austin",
+                        "values": ("Austin",),
+                        "verifier_checks": ("source_backing", "raw_row_expansion"),
+                        "source_expansion": {"source_ids": ("s1:t1",)},
+                        "slot_coverage_terms": ("alex", "live", "lives", "austin"),
+                    },
+                ),
+            },
+        }
+        compile_kwargs = {
+            "question": "Where does Alex live now?",
+            "question_time": None,
+            "route": RouteResult("current_state", ("current_state",)),
+            "hits": (RetrievalHit("s1:t1", 1.0, 1, "test"),),
+            "evidence_turns": (
+                Turn(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="I live in Austin now.",
+                    timestamp="2024-04-01",
+                ),
+            ),
+            "memory_object_index": memory_object_index,
+        }
+
+        compact = EvidenceCompiler(
+            **kwargs,
+            workspace_query_policy_packet_format="compact",
+        ).compile(**compile_kwargs)
+        micro = EvidenceCompiler(
+            **kwargs,
+            workspace_query_policy_packet_format="micro",
+        ).compile(**compile_kwargs)
+
+        self.assertLess(len(micro.prompt), len(compact.prompt))
+        self.assertIn("Working Memory Packet:", micro.prompt)
+        self.assertIn("Workspace packet", micro.prompt)
+        self.assertIn("src=Memory 1", micro.prompt)
+        self.assertEqual(
+            micro.diagnostics["workspace_query_policy"][
+                "packet_candidate_verifier_checks"
+            ],
+            ["source_backing", "raw_row_expansion"],
+        )
 
     def test_workspace_query_policy_keeps_guides_without_visible_packet_sources(
         self,

@@ -163,6 +163,13 @@ class AnswerSupportAudit:
     memory_workspace_snapshot_state_worklist_counts: dict[str, int]
     memory_workspace_snapshot_verifier_worklist_counts: dict[str, int]
     memory_workspace_snapshot_operation_readiness: dict[str, bool]
+    workspace_query_policy_available: bool
+    workspace_query_policy_applied: bool
+    workspace_query_policy_replaced_components: tuple[str, ...]
+    workspace_query_policy_packet_candidate_count: int
+    workspace_query_policy_packet_candidate_source_labels: tuple[str, ...]
+    workspace_query_policy_packet_candidate_focus_counts: dict[str, int]
+    workspace_query_policy_packet_candidate_verifier_checks: tuple[str, ...]
     consistency_audit_applied: bool
     consistency_valid_support_row_count: int
     consistency_dimension_counts: dict[str, int]
@@ -238,6 +245,7 @@ def audit_answer_support(
     system_state = _memory_system_state_audit(context_manifest)
     operation_journal = _memory_operation_journal_audit(context_manifest)
     workspace_snapshot = _memory_workspace_snapshot_audit(context_manifest)
+    workspace_query_policy = _workspace_query_policy_audit(context_manifest)
     consistency = _consistency_audit(
         compiled=compiled,
         response_answer=response_answer,
@@ -337,6 +345,23 @@ def audit_answer_support(
         memory_workspace_snapshot_operation_readiness=workspace_snapshot[
             "operation_readiness"
         ],
+        workspace_query_policy_available=workspace_query_policy["available"],
+        workspace_query_policy_applied=workspace_query_policy["applied"],
+        workspace_query_policy_replaced_components=workspace_query_policy[
+            "replaced_components"
+        ],
+        workspace_query_policy_packet_candidate_count=workspace_query_policy[
+            "packet_candidate_count"
+        ],
+        workspace_query_policy_packet_candidate_source_labels=workspace_query_policy[
+            "packet_candidate_source_labels"
+        ],
+        workspace_query_policy_packet_candidate_focus_counts=workspace_query_policy[
+            "packet_candidate_focus_counts"
+        ],
+        workspace_query_policy_packet_candidate_verifier_checks=workspace_query_policy[
+            "packet_candidate_verifier_checks"
+        ],
         consistency_audit_applied=consistency["applied"],
         consistency_valid_support_row_count=consistency["valid_support_row_count"],
         consistency_dimension_counts=consistency["dimension_counts"],
@@ -386,6 +411,13 @@ def _audit_noop(*, enabled: bool, mode: str, reason: str) -> AnswerSupportAudit:
         memory_workspace_snapshot_state_worklist_counts={},
         memory_workspace_snapshot_verifier_worklist_counts={},
         memory_workspace_snapshot_operation_readiness={},
+        workspace_query_policy_available=False,
+        workspace_query_policy_applied=False,
+        workspace_query_policy_replaced_components=(),
+        workspace_query_policy_packet_candidate_count=0,
+        workspace_query_policy_packet_candidate_source_labels=(),
+        workspace_query_policy_packet_candidate_focus_counts={},
+        workspace_query_policy_packet_candidate_verifier_checks=(),
         consistency_audit_applied=False,
         consistency_valid_support_row_count=0,
         consistency_dimension_counts={},
@@ -629,6 +661,60 @@ def _empty_memory_workspace_snapshot_audit() -> dict[str, Any]:
         "state_worklist_counts": {},
         "verifier_worklist_counts": {},
         "operation_readiness": {},
+    }
+
+
+def _workspace_query_policy_audit(
+    context_manifest: dict[str, Any] | None,
+) -> dict[str, Any]:
+    if not isinstance(context_manifest, dict):
+        return _empty_workspace_query_policy_audit()
+    context_organization = context_manifest.get("context_organization")
+    if not isinstance(context_organization, dict):
+        return _empty_workspace_query_policy_audit()
+    workspace_query_policy = context_organization.get("workspace_query_policy")
+    if not isinstance(workspace_query_policy, dict):
+        return _empty_workspace_query_policy_audit()
+    return {
+        "available": bool(workspace_query_policy.get("available")),
+        "applied": bool(workspace_query_policy.get("applied")),
+        "replaced_components": tuple(
+            str(component)
+            for component in workspace_query_policy.get("replaced_components") or ()
+            if str(component).strip()
+        ),
+        "packet_candidate_count": int(
+            workspace_query_policy.get("packet_candidate_count") or 0
+        ),
+        "packet_candidate_source_labels": tuple(
+            str(label)
+            for label in workspace_query_policy.get("packet_candidate_source_labels")
+            or ()
+            if str(label).strip()
+        ),
+        "packet_candidate_focus_counts": _int_count_dict(
+            workspace_query_policy.get("packet_candidate_focus_counts")
+        ),
+        "packet_candidate_verifier_checks": tuple(
+            str(check)
+            for check in workspace_query_policy.get(
+                "packet_candidate_verifier_checks"
+            )
+            or ()
+            if str(check).strip()
+        ),
+    }
+
+
+def _empty_workspace_query_policy_audit() -> dict[str, Any]:
+    return {
+        "available": False,
+        "applied": False,
+        "replaced_components": (),
+        "packet_candidate_count": 0,
+        "packet_candidate_source_labels": (),
+        "packet_candidate_focus_counts": {},
+        "packet_candidate_verifier_checks": (),
     }
 
 

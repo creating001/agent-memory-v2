@@ -3076,6 +3076,7 @@ class Stage1Pipeline:
             compiler_memory_records=compiler_memory_records,
             evidence_rows=compiled.evidence_rows,
             compiled_context_chars=compiled.context_chars,
+            compiled_diagnostics=compiled.diagnostics,
             operation_utility_trace=operation_utility_trace,
             graph_utility_trace=graph_utility_trace,
             memory_object_index=memory_object_index,
@@ -4650,6 +4651,7 @@ def _context_manifest(
     compiler_memory_records: tuple[Any, ...],
     evidence_rows: tuple[Any, ...],
     compiled_context_chars: int | None = None,
+    compiled_diagnostics: Mapping[str, Any] | None = None,
     object_slot_source_hits: tuple[Any, ...] = (),
     operation_utility_source_hits: tuple[Any, ...] = (),
     graph_utility_source_hits: tuple[Any, ...] = (),
@@ -4712,6 +4714,9 @@ def _context_manifest(
     )
     workspace_policy_context_manifest = _workspace_policy_context_manifest(
         workspace_policy_context
+    )
+    workspace_query_policy_manifest = _workspace_query_policy_context_manifest(
+        compiled_diagnostics
     )
     return {
         "enabled": True,
@@ -4945,6 +4950,7 @@ def _context_manifest(
             },
             "selected_context": selected_context_manifest,
             "workspace_policy_context": workspace_policy_context_manifest,
+            "workspace_query_policy": workspace_query_policy_manifest,
             "memory_operations": {
                 "registry_available": memory_operations_manifest[
                     "registry_available"
@@ -10235,6 +10241,72 @@ def _workspace_policy_context_manifest(
         ),
         "selected_context_after": dict(
             workspace_policy_context.get("selected_context_after") or {}
+        ),
+    }
+
+
+def _workspace_query_policy_context_manifest(
+    compiled_diagnostics: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    if not isinstance(compiled_diagnostics, Mapping):
+        compiled_diagnostics = {}
+    workspace_query_policy = compiled_diagnostics.get("workspace_query_policy")
+    if not isinstance(workspace_query_policy, Mapping):
+        workspace_query_policy = {}
+    replaced_components = tuple(
+        str(component)
+        for component in workspace_query_policy.get("replaced_components") or ()
+        if str(component).strip()
+    )
+    source_labels = tuple(
+        str(label)
+        for label in workspace_query_policy.get("packet_candidate_source_labels") or ()
+        if str(label).strip()
+    )
+    slots = tuple(
+        str(slot)
+        for slot in workspace_query_policy.get("packet_candidate_slots") or ()
+        if str(slot).strip()
+    )
+    verifier_checks = tuple(
+        str(check)
+        for check in workspace_query_policy.get("packet_candidate_verifier_checks")
+        or ()
+        if str(check).strip()
+    )
+    return {
+        "available": bool(workspace_query_policy),
+        "enabled": bool(workspace_query_policy.get("enabled")),
+        "applied": bool(workspace_query_policy.get("applied")),
+        "reason": str(workspace_query_policy.get("reason") or ""),
+        "policy_available": bool(workspace_query_policy.get("policy_available")),
+        "policy_schema_version": str(
+            workspace_query_policy.get("policy_schema_version") or ""
+        ),
+        "ready_components": tuple(
+            str(component)
+            for component in workspace_query_policy.get("ready_components") or ()
+            if str(component).strip()
+        ),
+        "replaced_components": replaced_components,
+        "packet_source": str(workspace_query_policy.get("packet_source") or ""),
+        "packet_selected_source": str(
+            workspace_query_policy.get("packet_selected_source") or ""
+        ),
+        "packet_candidate_count": int(
+            workspace_query_policy.get("packet_candidate_count") or 0
+        ),
+        "packet_candidate_source_labels": source_labels,
+        "packet_candidate_slots": slots,
+        "packet_candidate_focus_counts": _mapping_int_counts(
+            workspace_query_policy.get("packet_candidate_focus_counts")
+        ),
+        "packet_candidate_verifier_checks": verifier_checks,
+        "slot_guard": bool(workspace_query_policy.get("slot_guard")),
+        "clean_note": (
+            "Query-level workspace policy manifest from compiler diagnostics. "
+            "It only reports source-backed packet candidates grounded in the "
+            "current prompt-visible raw rows."
         ),
     }
 

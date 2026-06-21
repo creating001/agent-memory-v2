@@ -409,6 +409,13 @@ def main() -> int:
     answer_verifier_memory_workspace_snapshot_state_worklist_counts: dict[str, int] = {}
     answer_verifier_memory_workspace_snapshot_verifier_worklist_counts: dict[str, int] = {}
     answer_verifier_memory_workspace_snapshot_operation_readiness_counts: dict[str, int] = {}
+    total_answer_verifier_workspace_query_policy_available = 0
+    total_answer_verifier_workspace_query_policy_applied = 0
+    total_answer_verifier_workspace_query_policy_packet_candidates = 0
+    total_answer_verifier_workspace_query_policy_packet_source_labels = 0
+    answer_verifier_workspace_query_policy_replaced_component_counts: dict[str, int] = {}
+    answer_verifier_workspace_query_policy_packet_focus_counts: dict[str, int] = {}
+    answer_verifier_workspace_query_policy_packet_verifier_check_counts: dict[str, int] = {}
     total_answer_verifier_consistency_audit_applied = 0
     total_answer_verifier_consistency_valid_support_rows = 0
     total_answer_verifier_consistency_risk_samples = 0
@@ -1592,6 +1599,59 @@ def main() -> int:
                             )
                             + 1
                         )
+            if answer_verifier.get("workspace_query_policy_available"):
+                total_answer_verifier_workspace_query_policy_available += 1
+            if answer_verifier.get("workspace_query_policy_applied"):
+                total_answer_verifier_workspace_query_policy_applied += 1
+            total_answer_verifier_workspace_query_policy_packet_candidates += int(
+                answer_verifier.get(
+                    "workspace_query_policy_packet_candidate_count"
+                )
+                or 0
+            )
+            total_answer_verifier_workspace_query_policy_packet_source_labels += len(
+                answer_verifier.get(
+                    "workspace_query_policy_packet_candidate_source_labels"
+                )
+                or ()
+            )
+            for component in (
+                answer_verifier.get("workspace_query_policy_replaced_components")
+                or ()
+            ):
+                component_text = str(component)
+                answer_verifier_workspace_query_policy_replaced_component_counts[
+                    component_text
+                ] = (
+                    answer_verifier_workspace_query_policy_replaced_component_counts.get(
+                        component_text,
+                        0,
+                    )
+                    + 1
+                )
+            _merge_int_counts(
+                answer_verifier_workspace_query_policy_packet_focus_counts,
+                answer_verifier.get(
+                    "workspace_query_policy_packet_candidate_focus_counts"
+                )
+                or {},
+            )
+            for check in (
+                answer_verifier.get(
+                    "workspace_query_policy_packet_candidate_verifier_checks"
+                )
+                or ()
+            ):
+                check_text = str(check)
+                answer_verifier_workspace_query_policy_packet_verifier_check_counts[
+                    check_text
+                ] = (
+                    answer_verifier_workspace_query_policy_packet_verifier_check_counts.get(
+                        check_text,
+                        0,
+                    )
+                    + 1
+                )
             if answer_verifier.get("consistency_audit_applied"):
                 total_answer_verifier_consistency_audit_applied += 1
             total_answer_verifier_consistency_valid_support_rows += int(
@@ -3406,6 +3466,39 @@ def main() -> int:
             "verifier_memory_workspace_snapshot_operation_readiness_counts": dict(
                 sorted(
                     answer_verifier_memory_workspace_snapshot_operation_readiness_counts.items()
+                )
+            ),
+            "verifier_workspace_query_policy_available_count": (
+                total_answer_verifier_workspace_query_policy_available
+            ),
+            "verifier_workspace_query_policy_available_rate": _safe_average(
+                total_answer_verifier_workspace_query_policy_available,
+                total_answer_verifier_applied,
+            ),
+            "verifier_workspace_query_policy_applied_count": (
+                total_answer_verifier_workspace_query_policy_applied
+            ),
+            "verifier_workspace_query_policy_applied_rate": _safe_average(
+                total_answer_verifier_workspace_query_policy_applied,
+                total_answer_verifier_applied,
+            ),
+            "verifier_workspace_query_policy_packet_candidate_count": (
+                total_answer_verifier_workspace_query_policy_packet_candidates
+            ),
+            "verifier_workspace_query_policy_packet_source_label_count": (
+                total_answer_verifier_workspace_query_policy_packet_source_labels
+            ),
+            "verifier_workspace_query_policy_replaced_component_counts": dict(
+                sorted(
+                    answer_verifier_workspace_query_policy_replaced_component_counts.items()
+                )
+            ),
+            "verifier_workspace_query_policy_packet_focus_counts": dict(
+                sorted(answer_verifier_workspace_query_policy_packet_focus_counts.items())
+            ),
+            "verifier_workspace_query_policy_packet_verifier_check_counts": dict(
+                sorted(
+                    answer_verifier_workspace_query_policy_packet_verifier_check_counts.items()
                 )
             ),
             "verifier_consistency_audit_applied_count": (
