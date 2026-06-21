@@ -2143,16 +2143,6 @@ def _memory_scalar_value_manifest(
     }
 
 
-def _memory_value_slot_keys(
-    groups: dict[tuple[str, str, str], list[MemoryRecord]],
-) -> tuple[tuple[str, str, str], ...]:
-    return tuple(
-        key
-        for key, records in sorted(groups.items())
-        if any(_memory_record_value_object(record) for record in records)
-    )
-
-
 def _memory_record_value_object(record: MemoryRecord) -> str:
     return _clean_text(record.value) or _clean_text(record.text)
 
