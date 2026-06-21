@@ -561,6 +561,9 @@ class Stage1Pipeline:
                 ),
             )
         )
+        self._operation_source_expansion_required_lifecycle_states = _tuple_config(
+            operation_source_expansion_config.get("required_lifecycle_states")
+        )
         self._operation_source_expansion_max_plans = int(
             operation_source_expansion_config.get("max_plans", 2)
         )
@@ -575,6 +578,12 @@ class Stage1Pipeline:
         )
         self._operation_source_expansion_require_new_source = bool(
             operation_source_expansion_config.get("require_new_source", True)
+        )
+        self._operation_source_expansion_require_existing_source = bool(
+            operation_source_expansion_config.get("require_existing_source", False)
+        )
+        self._operation_source_expansion_min_existing_sources = int(
+            operation_source_expansion_config.get("min_existing_sources", 0)
         )
         self._operation_source_expansion_fusion_mode = str(
             operation_source_expansion_config.get("fusion_mode", "tail_exchange")
@@ -2101,6 +2110,9 @@ class Stage1Pipeline:
                     self._operation_source_expansion_required_readiness_modes
                 ),
                 memory_types=self._operation_source_expansion_memory_types,
+                required_lifecycle_states=(
+                    self._operation_source_expansion_required_lifecycle_states
+                ),
                 max_plans=self._operation_source_expansion_max_plans,
                 max_sources_per_plan=(
                     self._operation_source_expansion_max_sources_per_plan
@@ -2113,6 +2125,12 @@ class Stage1Pipeline:
                 ),
                 require_new_source=(
                     self._operation_source_expansion_require_new_source
+                ),
+                require_existing_source=(
+                    self._operation_source_expansion_require_existing_source
+                ),
+                min_existing_sources=(
+                    self._operation_source_expansion_min_existing_sources
                 ),
                 fusion_mode=self._operation_source_expansion_fusion_mode,
                 tail_exchange_protect_top_n=(
@@ -2642,11 +2660,20 @@ class Stage1Pipeline:
                     self._operation_source_expansion_min_overlap_terms
                 ),
                 memory_types=self._operation_source_expansion_memory_types,
+                required_lifecycle_states=(
+                    self._operation_source_expansion_required_lifecycle_states
+                ),
                 required_readiness_modes=(
                     self._operation_source_expansion_required_readiness_modes
                 ),
                 require_new_source=(
                     self._operation_source_expansion_require_new_source
+                ),
+                require_existing_source=(
+                    self._operation_source_expansion_require_existing_source
+                ),
+                min_existing_sources=(
+                    self._operation_source_expansion_min_existing_sources
                 ),
                 fusion_mode=self._operation_source_expansion_fusion_mode,
                 tail_exchange_protect_top_n=(
@@ -3450,6 +3477,9 @@ class Stage1Pipeline:
                     "operation_source_expansion_memory_types": (
                         self._operation_source_expansion_memory_types
                     ),
+                    "operation_source_expansion_required_lifecycle_states": (
+                        self._operation_source_expansion_required_lifecycle_states
+                    ),
                     "operation_source_expansion_max_plans": (
                         self._operation_source_expansion_max_plans
                     ),
@@ -3464,6 +3494,12 @@ class Stage1Pipeline:
                     ),
                     "operation_source_expansion_require_new_source": (
                         self._operation_source_expansion_require_new_source
+                    ),
+                    "operation_source_expansion_require_existing_source": (
+                        self._operation_source_expansion_require_existing_source
+                    ),
+                    "operation_source_expansion_min_existing_sources": (
+                        self._operation_source_expansion_min_existing_sources
                     ),
                     "operation_source_expansion_fusion_mode": (
                         self._operation_source_expansion_fusion_mode
@@ -5680,11 +5716,14 @@ def _disabled_operation_source_expansion_trace(
     information_needs: tuple[str, ...],
     required_readiness_modes: tuple[str, ...],
     memory_types: tuple[str, ...],
+    required_lifecycle_states: tuple[str, ...],
     max_plans: int,
     max_sources_per_plan: int,
     max_total_sources: int,
     min_overlap_terms: int,
     require_new_source: bool,
+    require_existing_source: bool,
+    min_existing_sources: int,
     fusion_mode: str,
     tail_exchange_protect_top_n: int,
     tail_exchange_max_swaps: int,
@@ -5697,11 +5736,14 @@ def _disabled_operation_source_expansion_trace(
         "information_needs": information_needs,
         "required_readiness_modes": required_readiness_modes,
         "memory_types": memory_types,
+        "required_lifecycle_states": required_lifecycle_states,
         "max_plans": max_plans,
         "max_sources_per_plan": max_sources_per_plan,
         "max_total_sources": max_total_sources,
         "min_overlap_terms": min_overlap_terms,
         "require_new_source": require_new_source,
+        "require_existing_source": require_existing_source,
+        "min_existing_sources": min_existing_sources,
         "fusion_mode": fusion_mode,
         "tail_exchange_protect_top_n": tail_exchange_protect_top_n,
         "tail_exchange_max_swaps": tail_exchange_max_swaps,
@@ -5735,8 +5777,11 @@ def _memory_operation_source_expansion_hits(
     max_total_sources: int,
     min_overlap_terms: int,
     memory_types: tuple[str, ...],
+    required_lifecycle_states: tuple[str, ...],
     required_readiness_modes: tuple[str, ...],
     require_new_source: bool,
+    require_existing_source: bool,
+    min_existing_sources: int,
     fusion_mode: str,
     tail_exchange_protect_top_n: int,
     tail_exchange_max_swaps: int,
@@ -5747,11 +5792,14 @@ def _memory_operation_source_expansion_hits(
         information_needs=(route.information_need,),
         required_readiness_modes=required_readiness_modes,
         memory_types=memory_types,
+        required_lifecycle_states=required_lifecycle_states,
         max_plans=max_plans,
         max_sources_per_plan=max_sources_per_plan,
         max_total_sources=max_total_sources,
         min_overlap_terms=min_overlap_terms,
         require_new_source=require_new_source,
+        require_existing_source=require_existing_source,
+        min_existing_sources=min_existing_sources,
         fusion_mode=fusion_mode,
         tail_exchange_protect_top_n=tail_exchange_protect_top_n,
         tail_exchange_max_swaps=tail_exchange_max_swaps,
@@ -5787,6 +5835,11 @@ def _memory_operation_source_expansion_hits(
         for memory_type in memory_types
         if str(memory_type).strip()
     }
+    allowed_lifecycle_states = {
+        str(state).strip()
+        for state in required_lifecycle_states
+        if str(state).strip()
+    }
     required_modes = tuple(
         str(mode).strip()
         for mode in required_readiness_modes
@@ -5812,6 +5865,9 @@ def _memory_operation_source_expansion_hits(
         raw_plan_count += 1
         memory_type = str(raw_plan.get("memory_type") or "").lower()
         if allowed_memory_types and memory_type not in allowed_memory_types:
+            continue
+        lifecycle_state = str(raw_plan.get("lifecycle_state") or "")
+        if allowed_lifecycle_states and lifecycle_state not in allowed_lifecycle_states:
             continue
         if raw_plan.get("source_backed") is not True:
             continue
@@ -5853,6 +5909,11 @@ def _memory_operation_source_expansion_hits(
         )
         existing_source_count += len(existing_sources)
         missing_source_count += len(missing_sources)
+        if require_existing_source and len(existing_sources) < max(
+            1,
+            min_existing_sources,
+        ):
+            continue
         selectable_sources = missing_sources if require_new_source else tuple(
             source_id for source_id in ordered_sources if source_id in available
         )
