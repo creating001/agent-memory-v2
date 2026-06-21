@@ -1,0 +1,556 @@
+# v345_source_neutral_spacing_compile_scan_locomo_probe50
+
+## Purpose
+
+Stage-1 clean skeleton run: validate raw evidence storage, lexical retrieval, neighbor expansion, evidence compilation, answer generation, trace output, and experiment bookkeeping.
+
+## Scope
+
+- benchmark: locomo
+- subset: probe50
+- experiment_kind: diagnostic
+- limit: 50
+- workers: 4
+- input_path: /data/home_new/wujinqi/agent-memory/outputs/prepare_locomo_non_adversarial/prediction_input.jsonl
+- config_path: /data/home_new/wujinqi/agent-memory/configs/stage1_source_neutral_spacing_v345_compile_scan.json
+- answer: Null answerer; generated answers are placeholders and accuracy is not meaningful.
+
+## Git
+
+- inside_work_tree: True
+- commit: 7e76fd0d126b5a0cb9965c18807135c9ac546488
+- dirty: True
+- note: None
+
+## Metrics
+
+- n_samples: 50
+- accuracy: None
+- f1: None
+- bleu: None
+- avg_build_tokens: 45868.0
+- avg_build_think_tokens: 0.0
+- avg_build_total_tokens: 45868.0
+- build_token_accounting: logical cold-build visible LLM tokens; cached build chunks count from stored usage, while cache hits only avoid repeated local API calls.
+- avg_query_tokens: 0.0
+- avg_query_think_tokens: 0.0
+- avg_query_total_tokens: 0.0
+- token_accounting_note: avg_build_tokens / avg_query_tokens exclude explicit reasoning tokens when the provider reports them; avg_*_total_tokens include visible plus think tokens.
+- avg_compiled_evidence_items: 49.04
+- retrieval_route_overrides: {'temporal_lookup': {'dense_protect_top_n': 32, 'dense_top_k': 40, 'lexical_protect_top_n': 0, 'max_top_k': 40, 'top_k': 40}}
+- retrieval_route_override_precedence: after_profile
+- avg_effective_top_k: 50.4
+- avg_effective_dense_top_k: 50.4
+- avg_effective_dense_protect_top_n: 40.32
+- build_memory_enabled: True
+- build_memory_model: Qwen/Qwen3.6-35B-A3B
+- build_memory_temporal_fields: False
+- build_memory_prompt_profile: typed_compact
+- build_memory_manage_facts: False
+- build_memory_management_policy: stateful_only
+- build_memory_management_policy_counts: {'stateful_only': 50}
+- build_memory_management_operation_counts: {'create': 5600, 'retain_active': 4900, 'supersede': 700, 'retain_collection_multi_value_slot': 400}
+- build_memory_management_layer_counts: {'episodic': 1900, 'profile_state': 2950, 'prospective': 350, 'semantic': 400}
+- build_memory_operation_ledger: {'enabled': True}
+- build_memory_operation_ledger_applied_count: 50
+- build_memory_operation_ledger_applied_rate: 1.0
+- build_memory_operation_ledger_counts: {'create': 5600, 'merge': 0, 'supersede': 700, 'retain_active': 4900, 'retain_superseded': 700, 'retain_collection_multi_value_slot': 400, 'verify_source_backed': 5600, 'audit_slot': 4250, 'audit_conflict_slot': 400}
+- avg_build_memory_operation_ledger_source_backed_records: 112.0
+- avg_build_memory_operation_ledger_source_unbacked_records: 0.0
+- build_memory_system_graph: {'enabled': True}
+- build_memory_system_graph_applied_count: 50
+- build_memory_system_graph_applied_rate: 1.0
+- build_memory_system_graph_operation_edge_counts: {'create': 5600, 'merge': 0, 'supersede': 700, 'source_support': 8200, 'slot_member': 5600, 'value_object': 5600, 'scalar_value_object': 200, 'audit_value_slot': 4250, 'state_conflict_cluster': 400, 'verify_source_backed': 5600, 'audit_slot': 4250}
+- build_memory_system_graph_namespace_counts: {'long_term_episodic': 1900, 'long_term_profile_state': 2950, 'long_term_semantic': 400, 'prospective': 350}
+- avg_build_memory_system_graph_objects: 112.0
+- avg_build_memory_system_graph_source_spans: 142.0
+- avg_build_memory_system_graph_slots: 85.0
+- avg_build_memory_system_graph_source_backed_records: 112.0
+- avg_build_memory_system_graph_complete_slot_key_records: 112.0
+- avg_build_memory_system_graph_temporal_anchor_records: 112.0
+- avg_build_memory_system_graph_multi_source_records: 40.0
+- avg_build_memory_system_graph_low_confidence_records: 0.0
+- avg_build_memory_system_graph_source_backed_slots: 85.0
+- avg_build_memory_system_graph_active_superseded_pair_slots: 8.0
+- avg_build_memory_system_graph_activation_ready_records: 112.0
+- avg_build_memory_system_graph_governance_risk_records: 0.0
+- build_memory_system_graph_governance_risk_counts: {}
+- build_memory_system_graph_activation_role_counts: {'episodic_candidate': 1900, 'lifecycle_context': 700, 'prospective_candidate': 350, 'semantic_candidate': 400, 'stateful_candidate': 2250}
+- build_memory_system_graph_activation_utility_bucket_counts: {'high': 5600}
+- build_memory_system_graph_scalar_value_manifest_applied_count: 50
+- build_memory_system_graph_scalar_value_manifest_applied_rate: 1.0
+- build_memory_system_graph_scalar_value_manifest_counts: {'create_value_object': 5600, 'create_scalar_value': 200, 'update_value_slot': 400, 'merge_value_slot': 100, 'supersede_value': 700, 'retrieve_value': 5600, 'expand_value_source': 8200, 'verify_value_source': 5600, 'audit_value_slot': 4250, 'audit_scalar_value_slot': 200, 'audit_conflict_value_slot': 400, 'quarantine_value': 0}
+- build_memory_system_graph_memory_object_index_applied_count: 50
+- avg_build_memory_system_graph_memory_object_index_activation_ready_ids: 112.0
+- avg_build_memory_system_graph_memory_object_index_activation_priority_ids: 112.0
+- avg_build_memory_system_graph_memory_object_index_operation_slots: 85.0
+- avg_build_memory_system_graph_memory_object_index_operation_registry_entries: 290.0
+- avg_build_memory_system_graph_memory_object_index_operation_registry_source_backed_entries: 290.0
+- build_memory_system_graph_memory_object_index_lifecycle_audit_applied_count: 50
+- avg_build_memory_system_graph_memory_object_index_lifecycle_audit_entries: 290.0
+- avg_build_memory_system_graph_memory_object_index_lifecycle_audit_conflict_entries: 16.0
+- build_memory_system_graph_memory_object_index_operation_api_applied_count: 50
+- avg_build_memory_system_graph_memory_object_index_operation_api_entries: 290.0
+- avg_build_memory_system_graph_memory_object_index_operation_api_anchor_sources: 142.0
+- build_memory_system_graph_memory_object_index_context_interface_applied_count: 50
+- avg_build_memory_system_graph_memory_object_index_context_interface_entries: 290.0
+- avg_build_memory_system_graph_memory_object_index_context_interface_role_count: 5.0
+- avg_build_memory_system_graph_memory_object_index_context_interface_anchor_sources: 142.0
+- avg_build_memory_system_graph_memory_object_index_context_interface_operation_slots: 85.0
+- build_memory_system_graph_memory_object_index_context_interface_role_source_counts: {'query_short_term': 0, 'working_state': 4650, 'long_term_recall': 3100, 'archival_state': 1100, 'quarantine_audit': 0}
+- build_memory_system_graph_memory_object_index_context_interface_operation_view_source_counts: {'conflict_resolution': 3200, 'supersession_chain': 1900, 'state_verification': 6900}
+- build_memory_system_graph_memory_object_index_operation_lifecycle_applied_count: 50
+- avg_build_memory_system_graph_memory_object_index_operation_lifecycle_entries: 290.0
+- avg_build_memory_system_graph_memory_object_index_operation_lifecycle_context_slots: 85.0
+- build_memory_system_graph_memory_object_index_operation_lifecycle_decision_counts: {'create': 4900, 'retain_slot': 7700, 'supersede': 1900}
+- build_memory_system_graph_memory_object_index_operation_lifecycle_phase_counts: {'consolidate': 1900, 'retain': 7700, 'write': 4900}
+- build_memory_system_graph_memory_object_index_working_compiler_plan_applied_count: 50
+- avg_build_memory_system_graph_memory_object_index_working_compiler_plan_entries: 290.0
+- avg_build_memory_system_graph_memory_object_index_working_compiler_plan_source_backed_entries: 290.0
+- avg_build_memory_system_graph_memory_object_index_working_compiler_plan_context_slots: 85.0
+- build_memory_system_graph_memory_object_index_working_compiler_plan_focus_counts: {'conflict_chain': 1900, 'current_state': 7000, 'long_term_recall': 5600}
+- build_memory_system_graph_memory_object_index_working_compiler_plan_context_action_counts: {'compare_active_superseded': 1900, 'expand_memory_sources': 14500, 'organize_supersession_chain': 1900, 'pack_working_state': 7000, 'prefer_active_state': 7000, 'retain_slot_for_context': 7700, 'retain_superseded_as_archival_context': 1900, 'retrieve_source_rows': 14500, 'retrieve_stable_recall': 5600, 'write_new_memory_object': 4900}
+- build_memory_system_graph_memory_object_index_working_compiler_plan_verifier_check_counts: {'active_superseded_consistency': 1900, 'current_state_supported': 7000, 'manager_decision_consistency': 1900, 'multi_value_slot': 1200, 'profile_fact_consistency': 5600, 'raw_row_expansion': 14500, 'source_backing': 14500, 'source_grounding': 5600, 'source_order': 1900, 'state_conflict': 1900, 'unsupported_answer': 7000}
+- build_memory_system_graph_memory_object_index_memory_system_state_applied_count: 50
+- avg_build_memory_system_graph_memory_object_index_memory_system_state_entries: 290.0
+- avg_build_memory_system_graph_memory_object_index_memory_system_state_source_backed_entries: 290.0
+- avg_build_memory_system_graph_memory_object_index_memory_system_state_layers: 5.0
+- build_memory_system_graph_memory_object_index_memory_system_state_focus_counts: {'conflict_chain': 1900, 'current_state': 7000, 'long_term_recall': 5600}
+- build_memory_system_graph_memory_object_index_memory_system_state_decision_counts: {'create': 4900, 'retain_slot': 7700, 'supersede': 1900}
+- build_memory_system_graph_memory_object_index_memory_system_state_context_action_counts: {'compare_active_superseded': 1900, 'expand_memory_sources': 14500, 'organize_supersession_chain': 1900, 'pack_working_state': 7000, 'prefer_active_state': 7000, 'retain_slot_for_context': 7700, 'retain_superseded_as_archival_context': 1900, 'retrieve_source_rows': 14500, 'retrieve_stable_recall': 5600, 'write_new_memory_object': 4900}
+- build_memory_system_graph_memory_object_index_memory_system_state_verifier_check_counts: {'active_superseded_consistency': 1900, 'current_state_supported': 7000, 'manager_decision_consistency': 1900, 'multi_value_slot': 1200, 'profile_fact_consistency': 5600, 'raw_row_expansion': 14500, 'source_backing': 14500, 'source_grounding': 5600, 'source_order': 1900, 'state_conflict': 1900, 'unsupported_answer': 7000}
+- build_memory_system_graph_memory_object_index_memory_operation_journal_applied_count: 50
+- avg_build_memory_system_graph_memory_object_index_memory_operation_journal_entries: 1296.0
+- avg_build_memory_system_graph_memory_object_index_memory_operation_journal_source_backed_entries: 1296.0
+- build_memory_system_graph_memory_object_index_memory_operation_journal_operation_counts: {'audit': 14500, 'create': 4900, 'expand': 14500, 'retrieve': 14500, 'supersede': 1900, 'verify': 14500}
+- build_memory_system_graph_memory_object_index_memory_operation_journal_family_counts: {'audit': 14500, 'context': 29000, 'management': 6800, 'verification': 14500}
+- build_memory_system_graph_memory_object_index_memory_workspace_contract_applied_count: 50
+- avg_build_memory_system_graph_memory_object_index_memory_workspace_contract_entries: 290.0
+- avg_build_memory_system_graph_memory_object_index_memory_workspace_contract_source_backed_entries: 290.0
+- avg_build_memory_system_graph_memory_object_index_memory_workspace_contract_anchor_sources: 142.0
+- build_memory_system_graph_memory_object_index_memory_workspace_contract_operation_counts: {'audit': 14500, 'create': 4900, 'expand': 14500, 'retrieve': 14500, 'supersede': 1900, 'verify': 14500}
+- build_memory_system_graph_memory_object_index_memory_workspace_contract_readiness_counts: {'audit_ready': 50, 'conflict_ready': 50, 'context_pack_ready': 50, 'source_expansion_ready': 50, 'verification_ready': 50}
+- build_memory_system_graph_memory_object_index_memory_workspace_snapshot_applied_count: 50
+- avg_build_memory_system_graph_memory_object_index_memory_workspace_snapshot_state_worklists: 48.0
+- avg_build_memory_system_graph_memory_object_index_memory_workspace_snapshot_verifier_worklists: 64.0
+- build_memory_system_graph_memory_object_index_memory_workspace_snapshot_state_worklist_counts: {'conflict_chain': 800, 'current_state': 800, 'long_term_recall': 800}
+- build_memory_system_graph_memory_object_index_memory_workspace_snapshot_verifier_worklist_counts: {'audit_only': 800, 'raw_row_expansion': 800, 'source_backing': 800, 'state_conflict': 800}
+- build_memory_system_graph_memory_object_index_memory_workspace_snapshot_operation_readiness_counts: {'audit': 50, 'create': 50, 'expand': 50, 'retrieve': 50, 'supersede': 50, 'verify': 50}
+- build_memory_system_graph_memory_object_index_memory_workspace_policy_applied_count: 50
+- avg_build_memory_system_graph_memory_object_index_memory_workspace_policy_stages: 5.0
+- avg_build_memory_system_graph_memory_object_index_memory_workspace_policy_query_components: 8.0
+- avg_build_memory_system_graph_memory_object_index_memory_workspace_policy_ready_query_components: 8.0
+- build_memory_system_graph_memory_object_index_memory_workspace_policy_component_status_counts: {'shadow_ready': 400}
+- build_memory_system_graph_memory_object_index_layer_manifest_applied_count: 50
+- avg_build_memory_system_graph_memory_object_index_layer_manifest_entries: 290.0
+- build_memory_system_graph_memory_object_index_layer_manifest_layer_entries: {'short_term_memory': 0, 'working_memory': 8200, 'long_term_memory': 5600, 'archival_memory': 700, 'quarantine_memory': 0}
+- avg_build_memory_system_graph_value_objects: 112.0
+- avg_build_memory_system_graph_source_backed_value_objects: 112.0
+- avg_build_memory_system_graph_source_incomplete_value_objects: 0.0
+- avg_build_memory_system_graph_scalar_value_objects: 4.0
+- avg_build_memory_system_graph_scalar_value_expressions: 4.0
+- avg_build_memory_system_graph_value_slots: 85.0
+- avg_build_memory_system_graph_scalar_value_slots: 4.0
+- avg_build_memory_system_graph_multi_value_slots: 16.0
+- avg_build_memory_system_graph_lifecycle_value_slots: 16.0
+- avg_build_memory_system_graph_active_superseded_value_slots: 8.0
+- avg_build_memory_system_graph_scalar_active_superseded_value_slots: 0.0
+- avg_build_memory_collection_retained_records: 8.0
+- avg_build_memory_managed_lifecycle_slots: 8.0
+- avg_build_memory_nonmanaged_multi_value_slots: 8.0
+- build_memory_overlap_turns: 0
+- build_memory_chat_template_kwargs: {'enable_thinking': False}
+- build_memory_cache_enabled: True
+- build_memory_cache_path: outputs/cache/qwen36_no_think_build4k_memory_v102.sqlite
+- build_memory_cache_hits: 300
+- build_memory_cache_misses: 0
+- build_memory_cache_writes: 0
+- build_memory_source_alignment: {}
+- build_memory_source_alignment_changed_records: 0
+- build_memory_source_alignment_added_sources: 0
+- avg_build_memory_source_alignment_changed_records: 0.0
+- avg_build_memory_source_alignment_added_sources: 0.0
+- avg_build_memory_records: 112.0
+- avg_active_build_memory_records: 98.0
+- avg_memory_hits: 20.0
+- avg_memory_source_hits: 27.72
+- memory_activation_priority_enabled: True
+- memory_activation_priority_pool_k: 32
+- memory_activation_priority_score_boost: 0.25
+- memory_activation_priority_max_rank: 64
+- memory_activation_priority_applied_count: 2
+- memory_activation_priority_reordered_count: 1
+- avg_memory_activation_priority_hits: 0.7
+- operation_utility_enabled: True
+- operation_utility_fusion_mode: tail_rescue
+- operation_utility_slot_source: auto
+- operation_utility_slot_index_source_counts: {}
+- operation_utility_applied_count: 0
+- avg_operation_utility_source_hits: 0.0
+- graph_utility_enabled: True
+- graph_utility_fusion_mode: overflow_tail_rescue
+- graph_utility_overflow_max_hits: 4
+- graph_utility_require_new_source: True
+- graph_utility_required_signals: ['supersede', 'conflict_slot']
+- graph_utility_slot_source: auto
+- graph_utility_slot_index_source_counts: {'memory_context_interface': 23}
+- graph_utility_applied_count: 23
+- avg_graph_utility_source_hits: 1.56
+- build_memory_include_superseded: False
+- build_memory_include_superseded_information_needs: ['temporal_lookup', 'list_count', 'profile_preference', 'current_state']
+- neighbor_order: hit_priority
+- drop_query_stopwords: True
+- lexical_enabled: True
+- dense_enabled: True
+- lexical_protect_top_n: 0
+- dense_protect_top_n: 48
+- dense_document_text_mode: external_naive
+- dense_query_text_mode: external_naive
+- embedding_cache_enabled: True
+- embedding_cache_path: outputs/cache/qwen3_embedding.sqlite
+- embedding_cache_hits: 469
+- embedding_cache_misses: 0
+- embedding_cache_writes: 0
+- turn_window_bm25_enabled: False
+- turn_window_top_k: None
+- turn_window_window_before: None
+- turn_window_window_after: None
+- turn_window_max_sources_per_window: None
+- turn_window_max_chars_per_turn: None
+- turn_window_enabled_route_signals: None
+- turn_window_enabled_information_needs: None
+- turn_window_enabled_query_patterns: None
+- turn_window_bm25_applied_count: 0
+- turn_window_bm25_applied_rate: 0.0
+- avg_turn_window_hits: 0.0
+- avg_turn_window_source_hits: 0.0
+- granularity_profile_audit_enabled: True
+- granularity_profile_audit_selected_count: 0
+- granularity_profile_audit_behavior_risk_count: 0
+- selected_context_enabled: True
+- workspace_policy_context_enabled: False
+- workspace_policy_context_policy_available_count: 0
+- workspace_policy_context_applied_count: 0
+- workspace_policy_context_applied_rate: 0.0
+- selected_context_window_before: 1
+- selected_context_window_after: 2
+- selected_context_max_rows: 6
+- selected_context_max_neighbor_chars: 180
+- selected_context_max_center_chars: 320
+- selected_context_information_needs: ['fact_lookup', 'list_count', 'profile_preference']
+- selected_context_require_anaphora: True
+- selected_context_require_question_reference: None
+- selected_context_require_question_reference_min_center_chars: None
+- selected_context_min_context_budget_headroom_chars: None
+- selected_context_applied_count: 49
+- selected_context_applied_rate: 0.98
+- selected_context_budget_gate_applied_count: 0
+- selected_context_budget_gate_blocked_count: 0
+- avg_selected_context_budget_gate_headroom_chars: None
+- avg_selected_context_materialized_rows: 4.92
+- avg_selected_context_skipped_long_center_rows: 2.06
+- avg_selected_context_skipped_question_reference_center_rows: 0.0
+- selected_context_risk_audit_enabled: True
+- selected_context_risk_audit_applied_count: 49
+- selected_context_risk_audit_risk_count: 168
+- avg_selected_context_risk_audit_audited_rows: 4.92
+- avg_selected_context_risk_audit_risk_rows: 3.36
+- rerank_enabled: True
+- rerank_model: Qwen/Qwen3-Reranker-0.6B
+- rerank_pool_k: 60
+- rerank_min_effective_top_k: 56
+- rerank_return_top_k: 56
+- rerank_document_text_mode: turn_with_neighbors_and_memory
+- rerank_document_neighbor_window: 1
+- rerank_document_max_memory_records: 2
+- rerank_anchor_keep: 52
+- rerank_anchor_after_top: 0
+- rerank_exchange_guard_enabled: True
+- rerank_exchange_guard_skipped_count: 16
+- rerank_exchange_guard_skipped_reasons: {'exchange_tail_protected_adjacent_session': 1, 'exchange_tail_protected_memory_source': 15}
+- rerank_applied_count: 0
+- rerank_applied_rate: 0.0
+- avg_rerank_candidate_count: None
+- avg_rerank_returned_count: None
+- avg_rerank_tokens_when_applied: None
+- rerank_token_accounting: rerank model tokens are reported separately and are not included in build/query LLM token budgets.
+- context_budget_enabled: True
+- context_budget_max_chars: 22000
+- context_budget_min_hits: 32
+- context_budget_protect_top_n: 32
+- context_budget_max_hits: 60
+- context_budget_information_needs: ['current_state', 'fact_lookup', 'list_count', 'profile_preference', 'temporal_lookup']
+- context_budget_registry_anchor_retention: False
+- context_budget_anchor_source: operation_registry
+- context_budget_anchor_selected_source_counts: {'none': 27, 'operation_registry': 23}
+- avg_context_budget_anchor_layer_manifest_source_count: 142.0
+- avg_context_budget_anchor_operation_api_source_count: 142.0
+- avg_context_budget_anchor_context_interface_source_count: 142.0
+- avg_context_budget_anchor_working_compiler_plan_source_count: 142.0
+- avg_context_budget_anchor_memory_system_state_source_count: 142.0
+- avg_context_budget_anchor_memory_workspace_contract_source_count: 142.0
+- context_budget_applied_count: 50
+- context_budget_applied_rate: 1.0
+- avg_context_budget_candidate_count: 51.42
+- avg_context_budget_returned_count: 51.24
+- avg_context_budget_estimated_chars: 6507.28
+- avg_context_budget_dropped_count: 0.18
+- context_budget_registry_anchor_sample_count: 0
+- context_budget_registry_anchor_candidate_count: 0
+- context_budget_registry_anchor_retained_count: 0
+- context_budget_registry_anchor_dropped_count: 0
+- avg_context_budget_registry_anchor_retained: None
+- context_budget_audit_enabled: True
+- context_budget_audit_max_chars: 22000
+- context_budget_audit_min_hits: 32
+- context_budget_audit_protect_top_n: 32
+- context_budget_audit_max_hits: 60
+- context_budget_audit_information_needs: ['current_state', 'fact_lookup', 'list_count', 'profile_preference', 'temporal_lookup']
+- context_budget_audit_registry_anchor_retention: False
+- context_budget_audit_anchor_source: operation_registry
+- context_budget_audit_anchor_selected_source_counts: {'none': 27, 'operation_registry': 23}
+- avg_context_budget_audit_anchor_layer_manifest_source_count: 142.0
+- avg_context_budget_audit_anchor_operation_api_source_count: 142.0
+- avg_context_budget_audit_anchor_context_interface_source_count: 142.0
+- avg_context_budget_audit_anchor_working_compiler_plan_source_count: 142.0
+- avg_context_budget_audit_anchor_memory_system_state_source_count: 142.0
+- avg_context_budget_audit_anchor_memory_workspace_contract_source_count: 142.0
+- context_budget_audit_applied_count: 50
+- context_budget_audit_applied_rate: 1.0
+- avg_context_budget_audit_candidate_count: 51.42
+- avg_context_budget_audit_returned_count: 51.24
+- avg_context_budget_audit_dropped_count: 0.18
+- context_budget_audit_registry_anchor_candidate_count: 0
+- context_budget_audit_registry_anchor_retained_count: 0
+- context_budget_audit_registry_anchor_dropped_count: 0
+- context_budget_audit_prompt_risk_count: 0
+- avg_context_budget_audit_prompt_missing_rows: 0.0
+- context_budget_audit_selected_context_risk_count: 0
+- avg_context_budget_audit_selected_context_missing_rows: 0.0
+- avg_embedding_tokens: 0.0
+- avg_context_chars: 16341.96
+- compiler_prompt_mode: external_naive
+- compiler_memory_record_source: retrieval
+- avg_compiled_memory_records: 0.0
+- answer_mode: null_answerer
+- answer_model: None
+- answer_max_input_tokens: None
+- answer_max_output_tokens: None
+- answer_chat_template_kwargs: None
+- answer_output_format: text
+- answer_cache_enabled: False
+- answer_cache_path: None
+- answer_cache_namespace: None
+- answer_cache_hits: 0
+- answer_cache_misses: 0
+- answer_cache_writes: 0
+- answer_finalizer_enabled: False
+- answer_finalizer_applied_count: 0
+- answer_finalizer_applied_rate: 0.0
+- answer_verifier_enabled: False
+- answer_verifier_mode: source_grounded_audit
+- answer_verifier_trace_only: True
+- answer_verifier_require_structured_payload: True
+- answer_verifier_require_evidence_report: True
+- answer_verifier_check_support_presence: True
+- answer_verifier_check_sufficiency_consistency: True
+- answer_verifier_check_memory_references: True
+- answer_verifier_applied_count: 0
+- answer_verifier_applied_rate: 0.0
+- answer_verifier_risk_sample_count: 0
+- answer_verifier_risk_sample_rate: None
+- answer_verifier_risk_flag_count: 0
+- answer_verifier_risk_reasons: {}
+- answer_verifier_avg_support_items: None
+- answer_verifier_avg_evidence_report_items: None
+- answer_verifier_avg_registry_backed_final_evidence: None
+- answer_verifier_avg_registry_backed_support_refs: None
+- answer_verifier_working_compiler_plan_available_count: 0
+- answer_verifier_working_compiler_plan_available_rate: None
+- answer_verifier_avg_working_compiler_plan_final_evidence: None
+- answer_verifier_working_compiler_plan_focus_counts: {}
+- answer_verifier_working_compiler_plan_verifier_check_counts: {}
+- answer_verifier_memory_system_state_available_count: 0
+- answer_verifier_memory_system_state_available_rate: None
+- answer_verifier_avg_memory_system_state_final_evidence: None
+- answer_verifier_memory_system_state_focus_counts: {}
+- answer_verifier_memory_system_state_decision_counts: {}
+- answer_verifier_memory_system_state_context_action_counts: {}
+- answer_verifier_memory_system_state_verifier_check_counts: {}
+- answer_verifier_memory_operation_journal_available_count: 0
+- answer_verifier_memory_operation_journal_available_rate: None
+- answer_verifier_avg_memory_operation_journal_final_evidence: None
+- answer_verifier_memory_operation_journal_operation_counts: {}
+- answer_verifier_memory_operation_journal_family_counts: {}
+- answer_verifier_memory_workspace_snapshot_available_count: 0
+- answer_verifier_memory_workspace_snapshot_available_rate: None
+- answer_verifier_avg_memory_workspace_snapshot_final_evidence: None
+- answer_verifier_memory_workspace_snapshot_state_worklist_counts: {}
+- answer_verifier_memory_workspace_snapshot_verifier_worklist_counts: {}
+- answer_verifier_memory_workspace_snapshot_operation_readiness_counts: {}
+- answer_verifier_consistency_audit_applied_count: 0
+- answer_verifier_consistency_audit_applied_rate: None
+- answer_verifier_avg_consistency_valid_support_rows: None
+- answer_verifier_consistency_dimension_counts: {}
+- answer_verifier_consistency_risk_sample_count: 0
+- answer_verifier_consistency_risk_sample_rate: None
+- answer_verifier_consistency_risk_flag_count: 0
+- answer_verifier_consistency_risk_counts: {}
+- answer_verifier_consistency_risk_reasons: {}
+- answer_repair_enabled: False
+- answer_repair_cache_hits: 0
+- answer_repair_cache_misses: 0
+- answer_repair_cache_writes: 0
+- answer_repair_triggered_count: 0
+- answer_repair_triggered_rate: 0.0
+- answer_repair_applied_count: 0
+- answer_repair_applied_rate: 0.0
+- answer_repair_total_query_tokens: 0
+- answer_repair_avg_query_tokens_when_triggered: None
+- answer_style: concise
+- evidence_order: retrieval
+- memory_order: retrieval
+- memory_layout: flat
+- row_text_mode: full
+- max_row_text_chars: 0
+- evidence_row_labels: False
+- final_answer_checklist: False
+- max_memory_records: 0
+- route_guidance: False
+- temporal_grounding: False
+- temporal_hints: False
+- temporal_workpad: True
+- temporal_text_normalization: True
+- temporal_event_contract: True
+- temporal_workpad_scope: route
+- temporal_workpad_max_rows: 12
+- temporal_workpad_max_pairs: 12
+- event_timeline: False
+- event_timeline_information_needs: None
+- event_timeline_max_rows: 12
+- event_timeline_snippet_chars: 180
+- event_time_candidate_manifest: True
+- event_time_candidate_manifest_information_needs: ['current_state', 'list_count', 'temporal_lookup']
+- event_time_candidate_manifest_max_rows: 12
+- event_time_candidate_manifest_question_gate: True
+- event_time_candidate_manifest_grouped_view: True
+- event_time_candidate_manifest_max_groups: 8
+- event_time_candidate_manifest_snippet_chars: 160
+- event_time_candidate_map: True
+- event_time_candidate_map_information_needs: ['temporal_lookup']
+- event_time_candidate_map_max_groups: 1
+- event_time_candidate_map_snippet_chars: 140
+- event_time_candidate_map_min_terms: 2
+- event_time_candidate_map_min_coverage: 0.6
+- event_time_candidate_map_allowed_time_kinds: ['exact_today', 'explicit_date']
+- event_time_candidate_map_strip_context_wrappers: True
+- event_time_candidate_map_segment_local_context: False
+- event_time_candidate_map_rank_by_coverage: False
+- event_time_candidate_map_normalize_terms: False
+- event_time_candidate_map_exact_today_min_coverage: None
+- event_time_candidate_map_require_role_match: False
+- event_time_candidate_map_allow_time_of_day_questions: False
+- event_time_candidate_map_audit: True
+- event_time_candidate_map_temporal_ambiguity_contract: False
+- event_time_candidate_map_include_mention_time: False
+- event_time_candidate_map_mention_time_fallback: True
+- event_time_candidate_map_mention_time_fallback_min_coverage: 0.8
+- event_time_candidate_map_mention_time_fallback_trigger_max_coverage: 0.8
+- event_time_candidate_map_applied_count: 0
+- event_time_candidate_map_applied_rate: 0.0
+- event_time_candidate_map_audit_applied_count: 22
+- event_time_candidate_map_audit_applied_rate: 0.44
+- avg_event_time_candidate_map_audit_prompt_candidates: 0.0
+- avg_event_time_candidate_map_audit_risk_flags: 0.0
+- event_time_candidate_manifest_applied_count: 25
+- event_time_candidate_manifest_applied_rate: 0.5
+- avg_event_time_candidate_manifest_items: 12.0
+- avg_event_time_candidate_manifest_groups: 5.92
+- avg_event_time_candidate_manifest_conflict_groups: 1.76
+- event_time_candidate_manifest_safe_order_count: 0
+- compact_query_contract: True
+- compact_query_guide_blocks: False
+- compact_query_answer_contract: True
+- memory_context_header_format: multiline
+- operation_workpad_question_gate: False
+- personalized_advice_contract: False
+- personalized_advice_contract_applied: 0
+- context_pressure_enabled: False
+- context_pressure_max_headroom_chars: None
+- context_pressure_information_needs: None
+- context_pressure_overrides: None
+- context_pressure_applied_count: 0
+- context_pressure_applied_rate: 0.0
+- avg_context_pressure_headroom_chars: None
+- structured_guide: True
+- structured_guide_max_rows: 12
+- structured_guide_include_rows: True
+- structured_guide_include_memory: False
+- structured_guide_disabled_signals: ['personalized_recommendation']
+- structured_answer_contract: False
+- structured_answer_contract_information_needs: None
+- structured_answer_contract_max_items: 10
+- evidence_report_contract: True
+- evidence_report_information_needs: ['current_state', 'fact_lookup', 'list_count', 'profile_preference', 'temporal_lookup']
+- evidence_report_max_items: 8
+- evidence_report_detail: False
+- aggregation_report_contract: False
+- aggregation_report_information_needs: None
+- candidate_guide: False
+- candidate_guide_information_needs: None
+- candidate_guide_max_rows: 6
+- candidate_guide_snippet_chars: 160
+- update_conflict_guide: False
+- update_conflict_guide_information_needs: None
+- update_conflict_guide_max_rows: 6
+- update_conflict_guide_snippet_chars: 180
+- update_conflict_guide_applied: 0
+- memory_value_slot_guide: True
+- memory_value_slot_guide_information_needs: ['current_state']
+- memory_value_slot_guide_max_slots: 3
+- memory_value_slot_guide_max_values: 4
+- memory_value_slot_guide_memory_types: ['state']
+- memory_value_slot_guide_applied: 0
+- working_memory_packet: True
+- working_memory_packet_information_needs: ['current_state', 'fact_lookup', 'profile_preference']
+- working_memory_packet_max_items: 3
+- working_memory_packet_value_chars: 80
+- working_memory_packet_compact_short_header: False
+- working_memory_packet_compact_dedupe: False
+- working_memory_packet_source: memory_system_state
+- working_memory_packet_applied: 17
+- memory_state_guide: True
+- memory_state_guide_information_needs: ['current_state']
+- memory_state_guide_max_records: 4
+- memory_state_guide_value_chars: 120
+- memory_state_guide_include_superseded: True
+- profile_activation_guide: False
+- profile_activation_guide_information_needs: None
+- profile_activation_guide_max_records: 4
+- profile_activation_guide_value_chars: 160
+- current_state_update_contract: False
+- dialogue_inference_contract: False
+- temporal_order_contract: False
+- source_anchor_keep: 0
+- source_anchor_memory_rows: 0
+- source_anchor_per_session: 0
+- source_anchor_session_rows: 0
+- route_overrides: {'current_state': {'evidence_order': 'memory_source_interleave', 'grounded_inference_contract': True, 'grounded_inference_gate': 'modal_only', 'source_anchor_keep': 32, 'source_anchor_memory_rows': 4, 'source_anchor_per_session': 1, 'source_anchor_session_rows': 0, 'structured_guide': False, 'working_memory_packet': True, 'memory_state_guide': False, 'memory_value_slot_guide': False, 'working_memory_packet_format': 'compact', 'working_memory_packet_max_items': 3, 'working_memory_packet_value_chars': 80, 'working_memory_packet_compact_short_header': False, 'working_memory_packet_compact_dedupe': False}, 'fact_lookup': {'grounded_inference_contract': True, 'grounded_inference_gate': 'modal_only', 'structured_guide': False, 'working_memory_packet': True, 'working_memory_packet_format': 'compact', 'working_memory_packet_max_items': 3, 'working_memory_packet_value_chars': 80, 'working_memory_packet_compact_short_header': False, 'working_memory_packet_compact_dedupe': False}, 'profile_preference': {'evidence_order': 'memory_source_interleave', 'grounded_inference_contract': True, 'grounded_inference_gate': 'modal_only', 'source_anchor_keep': 32, 'source_anchor_memory_rows': 4, 'source_anchor_per_session': 1, 'source_anchor_session_rows': 0, 'structured_guide': False, 'working_memory_packet': True, 'working_memory_packet_format': 'compact', 'working_memory_packet_max_items': 3, 'working_memory_packet_value_chars': 80, 'working_memory_packet_compact_short_header': False, 'working_memory_packet_compact_dedupe': False}, 'temporal_lookup': {'max_evidence_chars': 18000, 'max_evidence_items': 40}}
+- enable_broad_list_patterns: True
+- enable_recommendation_profile_patterns: True
+- enable_advice_profile_patterns: False
+- temporal_priority_over_recent: False
+
+## Outputs
+
+- predictions: /data/home_new/wujinqi/agent-memory/outputs/diagnostic/v345_source_neutral_spacing_compile_scan_locomo_probe50/predictions.jsonl
+- traces: /data/home_new/wujinqi/agent-memory/outputs/diagnostic/v345_source_neutral_spacing_compile_scan_locomo_probe50/traces.jsonl
+- metrics: /data/home_new/wujinqi/agent-memory/experiments/diagnostic/v345_source_neutral_spacing_compile_scan_locomo_probe50/metrics.json
+- manifest: /data/home_new/wujinqi/agent-memory/experiments/diagnostic/v345_source_neutral_spacing_compile_scan_locomo_probe50/manifest.json
+
+## Clean Notes
+
+- No gold/reference/target answer, judge output, benchmark label, sample id, qid, or row index is passed into the prediction pipeline.
+- Build-stage typed memory is generated only from raw dialogue and visible metadata; it is recorded separately from offline labels and judge outputs.
+- Raw context remains available for fallback and diagnosis; build memory records keep source back-links when produced by the current builder.
+- Accuracy is intentionally not computed by the prediction runner; any gold or judge metrics must be produced offline after prediction.
