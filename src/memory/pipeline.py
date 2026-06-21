@@ -618,6 +618,12 @@ class Stage1Pipeline:
         self._operation_source_expansion_tail_exchange_max_swaps = int(
             operation_source_expansion_config.get("tail_exchange_max_swaps", 2)
         )
+        self._operation_source_expansion_preserve_existing_overflow = bool(
+            operation_source_expansion_config.get(
+                "preserve_existing_overflow",
+                False,
+            )
+        )
         self._graph_utility_enabled = bool(
             graph_utility_config.get("enabled", False)
         )
@@ -2178,6 +2184,9 @@ class Stage1Pipeline:
                 tail_exchange_max_swaps=(
                     self._operation_source_expansion_tail_exchange_max_swaps
                 ),
+                preserve_existing_overflow=(
+                    self._operation_source_expansion_preserve_existing_overflow
+                ),
             )
         )
         graph_utility_trace = _disabled_graph_utility_trace(
@@ -2727,6 +2736,9 @@ class Stage1Pipeline:
                 tail_exchange_max_swaps=(
                     self._operation_source_expansion_tail_exchange_max_swaps
                 ),
+                preserve_existing_overflow=(
+                    self._operation_source_expansion_preserve_existing_overflow
+                ),
             )
             if operation_source_expansion_source_hits and (
                 self._operation_source_expansion_fusion_mode == "tail_rescue"
@@ -2757,9 +2769,15 @@ class Stage1Pipeline:
                 hits = _append_tail_rescue_hits(
                     hits,
                     operation_source_expansion_source_hits,
-                    top_k=(
-                        candidate_top_k
-                        + max(0, self._operation_source_expansion_max_total_sources)
+                    top_k=_operation_source_expansion_overflow_top_k(
+                        current_hit_count=len(hits),
+                        candidate_top_k=candidate_top_k,
+                        max_total_sources=(
+                            self._operation_source_expansion_max_total_sources
+                        ),
+                        preserve_existing_overflow=(
+                            self._operation_source_expansion_preserve_existing_overflow
+                        ),
                     ),
                 )
         embedding_cache_after = _embedding_cache_stats(self._embedding_client)
@@ -3574,6 +3592,9 @@ class Stage1Pipeline:
                     ),
                     "operation_source_expansion_tail_exchange_max_swaps": (
                         self._operation_source_expansion_tail_exchange_max_swaps
+                    ),
+                    "operation_source_expansion_preserve_existing_overflow": (
+                        self._operation_source_expansion_preserve_existing_overflow
                     ),
                     "operation_source_expansion_source_hits": [
                         hit.to_dict()
@@ -5815,6 +5836,7 @@ def _disabled_operation_source_expansion_trace(
     fusion_mode: str,
     tail_exchange_protect_top_n: int,
     tail_exchange_max_swaps: int,
+    preserve_existing_overflow: bool = False,
     question_scope: str = "unspecified",
     skipped_reason: str = "",
 ) -> dict[str, Any]:
@@ -5837,6 +5859,7 @@ def _disabled_operation_source_expansion_trace(
         "fusion_mode": fusion_mode,
         "tail_exchange_protect_top_n": tail_exchange_protect_top_n,
         "tail_exchange_max_swaps": tail_exchange_max_swaps,
+        "preserve_existing_overflow": bool(preserve_existing_overflow),
         "question_scope": question_scope,
         "candidate_plan_count": 0,
         "selected_plan_count": 0,
@@ -5877,6 +5900,7 @@ def _memory_operation_source_expansion_hits(
     fusion_mode: str,
     tail_exchange_protect_top_n: int,
     tail_exchange_max_swaps: int,
+    preserve_existing_overflow: bool = False,
 ) -> tuple[tuple[RetrievalHit, ...], dict[str, Any]]:
     question_scope = _memory_slot_chain_question_scope(question)
     trace = _disabled_operation_source_expansion_trace(
@@ -5897,6 +5921,7 @@ def _memory_operation_source_expansion_hits(
         fusion_mode=fusion_mode,
         tail_exchange_protect_top_n=tail_exchange_protect_top_n,
         tail_exchange_max_swaps=tail_exchange_max_swaps,
+        preserve_existing_overflow=preserve_existing_overflow,
         question_scope=question_scope,
     )
     if max_plans <= 0 or max_sources_per_plan <= 0 or max_total_sources <= 0:
@@ -10608,6 +10633,19 @@ def _merge_hit_lists(
     if len(hit_lists) == 1:
         return hit_lists[0][:top_k]
     return reciprocal_rank_fusion(hit_lists, top_k=top_k, rrf_k=rrf_k)
+
+
+def _operation_source_expansion_overflow_top_k(
+    *,
+    current_hit_count: int,
+    candidate_top_k: int,
+    max_total_sources: int,
+    preserve_existing_overflow: bool,
+) -> int:
+    base_top_k = max(0, int(candidate_top_k))
+    if preserve_existing_overflow:
+        base_top_k = max(base_top_k, max(0, int(current_hit_count)))
+    return base_top_k + max(0, int(max_total_sources))
 
 
 def _append_tail_rescue_hits(

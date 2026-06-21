@@ -57,6 +57,7 @@ from memory.pipeline import (
     _memory_operation_source_expansion_hits,
     _memory_operation_utility_source_hits,
     _memory_slot_chain_source_hits,
+    _operation_source_expansion_overflow_top_k,
     _memory_records_by_source,
     _neighbor_turns_for_rerank,
     _rerank_exchange_guard,
@@ -5007,6 +5008,28 @@ class CleanSkeletonTest(unittest.TestCase):
         )
         self.assertEqual([hit.rank for hit in merged], [1, 2, 3])
         self.assertEqual(merged[1].retriever, "dense")
+
+    def test_operation_source_expansion_can_preserve_existing_overflow(
+        self,
+    ) -> None:
+        self.assertEqual(
+            _operation_source_expansion_overflow_top_k(
+                current_hit_count=41,
+                candidate_top_k=40,
+                max_total_sources=1,
+                preserve_existing_overflow=False,
+            ),
+            41,
+        )
+        self.assertEqual(
+            _operation_source_expansion_overflow_top_k(
+                current_hit_count=41,
+                candidate_top_k=40,
+                max_total_sources=1,
+                preserve_existing_overflow=True,
+            ),
+            42,
+        )
 
     def test_append_tail_exchange_hits_replaces_only_unprotected_tail(self) -> None:
         primary = (
