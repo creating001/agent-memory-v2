@@ -1,0 +1,105 @@
+{
+  "api_key_env": "DEEPSEEK_API_KEY",
+  "base_url": "https://api.deepseek.com",
+  "benchmark": "longmemeval",
+  "clean_note": "Offline judge reads gold labels only after prediction. This output must not be consumed by prediction, retrieval, compiler, answer, or verifier.",
+  "created_at_utc": "2026-06-21T03:00:53+00:00",
+  "dry_run": false,
+  "git": {
+    "commit": "daead8b19368208cf80459226aa5ab4a37618df5",
+    "dirty": true,
+    "inside_work_tree": true,
+    "note": null,
+    "status_short": "?? configs/stage1_inline_memory_context_v349_compile_scan.json\n?? configs/stage1_inline_memory_context_v349_seeded_qwen36_no_think_build4k_cached.json\n?? experiments/diagnostic/v349_baseline_v347_currentcode_compile_scan_lme_probe50/\n?? experiments/diagnostic/v349_baseline_v347_currentcode_compile_scan_locomo_probe50/\n?? experiments/diagnostic/v349_baseline_v347_currentcode_lme_probe50/\n?? experiments/diagnostic/v349_baseline_v347_currentcode_locomo_probe50/\n?? experiments/diagnostic/v349_inline_memory_context_changed_vs_v347_currentcode/\n?? experiments/diagnostic/v349_inline_memory_context_compile_scan_lme_probe50/\n?? experiments/diagnostic/v349_inline_memory_context_compile_scan_locomo_probe50/\n?? experiments/diagnostic/v349_inline_memory_context_lme_probe50/\n?? experiments/diagnostic/v349_inline_memory_context_locomo_probe50/"
+  },
+  "judgments": [
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "70ef2a5fcbdcb478",
+      "question_type": "single-session-user",
+      "raw_response": "yes",
+      "record_key": "d0d64a9b8426fda3ea1cd266",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 118,
+        "completion_tokens_details": {
+          "reasoning_tokens": 116
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 128,
+        "prompt_tokens": 128,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "total_tokens": 246
+      }
+    },
+    {
+      "label": "CORRECT",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "358addb5f4f37a88",
+      "question_type": "single-session-user",
+      "raw_response": "yes",
+      "record_key": "d823172b5baf1eff81acb20c",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 71,
+        "completion_tokens_details": {
+          "reasoning_tokens": 69
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 1,
+        "prompt_tokens": 129,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "total_tokens": 200
+      }
+    },
+    {
+      "label": "WRONG",
+      "model": "deepseek-v4-flash",
+      "prompt_hash": "73692e4e54e9f302",
+      "question_type": "single-session-user",
+      "raw_response": "no",
+      "record_key": "ea4e66b0d90b6834b4168cfe",
+      "temperature": 0.0,
+      "thinking": null,
+      "usage": {
+        "completion_tokens": 40,
+        "completion_tokens_details": {
+          "reasoning_tokens": 38
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 121,
+        "prompt_tokens": 121,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "total_tokens": 161
+      }
+    }
+  ],
+  "labels": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/v349_inline_memory_context_changed_vs_v347_currentcode/lme_labels.jsonl",
+  "metrics": {
+    "accuracy": 0.6666666666666666,
+    "n_invalid": 0,
+    "n_judgments": 3,
+    "n_valid": 3
+  },
+  "model": "deepseek-v4-flash",
+  "partial_output": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/v349_inline_memory_context_changed_vs_v347_currentcode/lme_v349_flash_1.json.partial.jsonl",
+  "predictions": "/data/home_new/wujinqi/agent-memory/experiments/diagnostic/v349_inline_memory_context_changed_vs_v347_currentcode/lme_v349_changed_predictions.jsonl",
+  "request_body_options": {},
+  "temperature": 0.0,
+  "thinking": null,
+  "usage": {
+    "completion_tokens": 229,
+    "prompt_tokens": 378,
+    "total_tokens": 607
+  },
+  "workers": 2
+}
