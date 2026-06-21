@@ -99,6 +99,7 @@ def main() -> int:
     total_workspace_source_expansion_selected_sources = 0
     total_workspace_source_expansion_final_sources = 0
     total_workspace_source_expansion_replaced_tail = 0
+    total_workspace_source_expansion_skipped_low_core = 0
     total_rerank_applied = 0
     total_rerank_candidate_count = 0
     total_rerank_returned_count = 0
@@ -558,6 +559,9 @@ def main() -> int:
         )
         total_workspace_source_expansion_replaced_tail += int(
             workspace_source_expansion.get("replaced_tail_count") or 0
+        )
+        total_workspace_source_expansion_skipped_low_core += int(
+            workspace_source_expansion.get("skipped_low_core_count") or 0
         )
         context_manifest = result["trace"].get("context_manifest") or {}
         context_organization = context_manifest.get("context_organization") or {}
@@ -2181,6 +2185,16 @@ def main() -> int:
             )
             .get("workspace_source_expansion", {})
             .get("information_needs"),
+            "workspace_source_expansion_min_core_terms": config.get(
+                "retrieval", {}
+            )
+            .get("workspace_source_expansion", {})
+            .get("min_core_terms"),
+            "workspace_source_expansion_route_overrides": config.get(
+                "retrieval", {}
+            )
+            .get("workspace_source_expansion", {})
+            .get("route_overrides"),
             "workspace_source_expansion_applied_count": (
                 total_workspace_source_expansion_applied
             ),
@@ -2202,6 +2216,10 @@ def main() -> int:
             ),
             "avg_workspace_source_expansion_replaced_tail": _safe_average(
                 total_workspace_source_expansion_replaced_tail,
+                sample_count,
+            ),
+            "avg_workspace_source_expansion_skipped_low_core": _safe_average(
+                total_workspace_source_expansion_skipped_low_core,
                 sample_count,
             ),
             "selected_context_applied_count": total_selected_context_applied,
@@ -5219,6 +5237,7 @@ def _write_diagnosis(
         f"- workspace_source_expansion_applied_rate: {metrics['retrieval']['workspace_source_expansion_applied_rate']}",
         f"- avg_workspace_source_expansion_final_sources: {metrics['retrieval']['avg_workspace_source_expansion_final_sources']}",
         f"- avg_workspace_source_expansion_replaced_tail: {metrics['retrieval']['avg_workspace_source_expansion_replaced_tail']}",
+        f"- avg_workspace_source_expansion_skipped_low_core: {metrics['retrieval']['avg_workspace_source_expansion_skipped_low_core']}",
         f"- selected_context_applied_count: {metrics['retrieval']['selected_context_applied_count']}",
         f"- selected_context_applied_rate: {metrics['retrieval']['selected_context_applied_rate']}",
         f"- selected_context_budget_gate_applied_count: {metrics['retrieval']['selected_context_budget_gate_applied_count']}",

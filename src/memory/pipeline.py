@@ -86,6 +86,27 @@ _WORKSPACE_SOURCE_EXPANSION_AUTO_ORDER = (
     "memory_operation_journal",
     "memory_workspace_snapshot",
 )
+_WORKSPACE_SOURCE_EXPANSION_GENERIC_TERMS = frozenset(
+    {
+        "about",
+        "as",
+        "activity",
+        "current",
+        "currently",
+        "does",
+        "done",
+        "go",
+        "have",
+        "kind",
+        "likely",
+        "partake",
+        "participate",
+        "still",
+        "type",
+        "way",
+        "would",
+    }
+)
 _MEMORY_OPERATION_SLOT_SOURCES = frozenset(
     {
         "auto",
@@ -884,6 +905,9 @@ class Stage1Pipeline:
         self._workspace_source_expansion_min_score = float(
             workspace_source_expansion_config.get("min_score", 1.0)
         )
+        self._workspace_source_expansion_min_core_terms = int(
+            workspace_source_expansion_config.get("min_core_terms", 1)
+        )
         self._workspace_source_expansion_require_new_source = bool(
             workspace_source_expansion_config.get("require_new_source", True)
         )
@@ -892,6 +916,11 @@ class Stage1Pipeline:
         )
         self._workspace_source_expansion_preserve_hit_count = bool(
             workspace_source_expansion_config.get("preserve_hit_count", True)
+        )
+        self._workspace_source_expansion_route_overrides = (
+            _workspace_source_expansion_route_overrides(
+                workspace_source_expansion_config.get("route_overrides") or {}
+            )
         )
         self._context_budget_enabled = bool(
             context_budget_config.get("enabled", False)
@@ -2740,9 +2769,11 @@ class Stage1Pipeline:
             max_entries=self._workspace_source_expansion_max_entries,
             max_sources=self._workspace_source_expansion_max_sources,
             min_score=self._workspace_source_expansion_min_score,
+            min_core_terms=self._workspace_source_expansion_min_core_terms,
             require_new_source=self._workspace_source_expansion_require_new_source,
             protect_top_n=self._workspace_source_expansion_protect_top_n,
             preserve_hit_count=self._workspace_source_expansion_preserve_hit_count,
+            route_overrides=self._workspace_source_expansion_route_overrides,
         )
         context_budget_anchor_source_ids, context_budget_anchor_trace = (
             _context_budget_anchor_source_ids(
@@ -9242,6 +9273,84 @@ def _validate_workspace_source_expansion_sources(value: Any) -> tuple[str, ...]:
     return tuple(result or ("memory_system_state",))
 
 
+def _workspace_source_expansion_route_overrides(
+    value: Any,
+) -> dict[str, dict[str, Any]]:
+    if not isinstance(value, Mapping):
+        if value in (None, {}, ()):
+            return {}
+        raise ValueError(
+            "retrieval.workspace_source_expansion.route_overrides must be an object"
+        )
+    supported_keys = {
+        "max_entries",
+        "max_sources",
+        "min_score",
+        "min_core_terms",
+        "protect_top_n",
+        "preserve_hit_count",
+    }
+    result: dict[str, dict[str, Any]] = {}
+    for need, raw_settings in value.items():
+        need_text = str(need)
+        if need_text not in SUPPORTED_INFORMATION_NEEDS:
+            raise ValueError(
+                "Unsupported retrieval.workspace_source_expansion.route_overrides "
+                f"information_need: {need_text}"
+            )
+        if not isinstance(raw_settings, Mapping):
+            raise ValueError(
+                "retrieval.workspace_source_expansion.route_overrides values "
+                "must be objects"
+            )
+        settings: dict[str, Any] = {}
+        for key, raw_value in raw_settings.items():
+            key_text = str(key)
+            if key_text not in supported_keys:
+                supported = ", ".join(sorted(supported_keys))
+                raise ValueError(
+                    "Unsupported retrieval.workspace_source_expansion.route_overrides "
+                    f"key: {key_text}. Supported values: {supported}"
+                )
+            settings[key_text] = raw_value
+        result[need_text] = settings
+    return result
+
+
+def _workspace_source_expansion_effective_settings(
+    *,
+    route: RouteResult,
+    max_entries: int,
+    max_sources: int,
+    min_score: float,
+    min_core_terms: int,
+    protect_top_n: int,
+    preserve_hit_count: bool,
+    route_overrides: Mapping[str, Mapping[str, Any]] | None,
+) -> dict[str, Any]:
+    settings: dict[str, Any] = {
+        "max_entries": max_entries,
+        "max_sources": max_sources,
+        "min_score": min_score,
+        "min_core_terms": min_core_terms,
+        "protect_top_n": protect_top_n,
+        "preserve_hit_count": preserve_hit_count,
+    }
+    overrides = {}
+    if isinstance(route_overrides, Mapping):
+        raw_override = route_overrides.get(route.information_need)
+        if isinstance(raw_override, Mapping):
+            overrides = dict(raw_override)
+    settings.update(overrides)
+    settings["max_entries"] = max(0, int(settings["max_entries"]))
+    settings["max_sources"] = max(0, int(settings["max_sources"]))
+    settings["min_score"] = float(settings["min_score"])
+    settings["min_core_terms"] = max(0, int(settings["min_core_terms"]))
+    settings["protect_top_n"] = max(0, int(settings["protect_top_n"]))
+    settings["preserve_hit_count"] = bool(settings["preserve_hit_count"])
+    return settings
+
+
 def _disabled_workspace_source_expansion_trace(
     *,
     enabled: bool,
@@ -9250,6 +9359,7 @@ def _disabled_workspace_source_expansion_trace(
     max_entries: int,
     max_sources: int,
     min_score: float,
+    min_core_terms: int,
     require_new_source: bool,
     protect_top_n: int,
     preserve_hit_count: bool,
@@ -9265,6 +9375,7 @@ def _disabled_workspace_source_expansion_trace(
         "max_entries": max_entries,
         "max_sources": max_sources,
         "min_score": min_score,
+        "min_core_terms": min_core_terms,
         "require_new_source": require_new_source,
         "protect_top_n": protect_top_n,
         "preserve_hit_count": preserve_hit_count,
@@ -9279,6 +9390,7 @@ def _disabled_workspace_source_expansion_trace(
         "skipped_existing_source_count": 0,
         "skipped_missing_source_count": 0,
         "skipped_low_score_count": 0,
+        "skipped_low_core_count": 0,
         "entries": [],
         "clean_note": (
             "Clean query-time expansion from build-owned memory objects to raw "
@@ -9314,10 +9426,28 @@ def _apply_workspace_source_expansion(
     max_entries: int,
     max_sources: int,
     min_score: float,
+    min_core_terms: int,
     require_new_source: bool,
     protect_top_n: int,
     preserve_hit_count: bool,
+    route_overrides: Mapping[str, Mapping[str, Any]] | None = None,
 ) -> tuple[tuple[RetrievalHit, ...], dict[str, Any]]:
+    settings = _workspace_source_expansion_effective_settings(
+        route=route,
+        max_entries=max_entries,
+        max_sources=max_sources,
+        min_score=min_score,
+        min_core_terms=min_core_terms,
+        protect_top_n=protect_top_n,
+        preserve_hit_count=preserve_hit_count,
+        route_overrides=route_overrides,
+    )
+    max_entries = int(settings["max_entries"])
+    max_sources = int(settings["max_sources"])
+    min_score = float(settings["min_score"])
+    min_core_terms = int(settings["min_core_terms"])
+    protect_top_n = int(settings["protect_top_n"])
+    preserve_hit_count = bool(settings["preserve_hit_count"])
     trace = _disabled_workspace_source_expansion_trace(
         enabled=enabled,
         information_needs=information_needs,
@@ -9325,6 +9455,7 @@ def _apply_workspace_source_expansion(
         max_entries=max_entries,
         max_sources=max_sources,
         min_score=min_score,
+        min_core_terms=min_core_terms,
         require_new_source=require_new_source,
         protect_top_n=protect_top_n,
         preserve_hit_count=preserve_hit_count,
@@ -9352,6 +9483,7 @@ def _apply_workspace_source_expansion(
     skipped_existing = 0
     skipped_missing = 0
     skipped_low_score = 0
+    skipped_low_core = 0
 
     for source_label, entry in _workspace_source_expansion_entries(
         memory_object_index,
@@ -9377,9 +9509,17 @@ def _apply_workspace_source_expansion(
             continue
         entry_terms = _workspace_source_expansion_entry_terms(entry)
         matched_terms = tuple(sorted(question_terms & entry_terms))
+        core_matched_terms = _workspace_source_expansion_core_matched_terms(
+            matched_terms,
+            entry=entry,
+        )
+        if len(core_matched_terms) < min_core_terms:
+            skipped_low_core += 1
+            continue
         score = _workspace_source_expansion_score(
             entry=entry,
             matched_terms=matched_terms,
+            core_matched_terms=core_matched_terms,
             route=route,
         )
         if score < min_score:
@@ -9391,6 +9531,7 @@ def _apply_workspace_source_expansion(
                 "entry_id": _workspace_source_expansion_entry_id(entry),
                 "score": score,
                 "matched_terms": matched_terms,
+                "core_matched_terms": core_matched_terms,
                 "source_ids": new_ids if require_new_source else available_ids,
                 "all_source_ids": available_ids,
                 "focus": str(entry.get("focus") or ""),
@@ -9419,6 +9560,7 @@ def _apply_workspace_source_expansion(
     trace["skipped_existing_source_count"] = skipped_existing
     trace["skipped_missing_source_count"] = skipped_missing
     trace["skipped_low_score_count"] = skipped_low_score
+    trace["skipped_low_core_count"] = skipped_low_core
     if not candidates:
         trace["reason"] = "no_matching_entries"
         return hits, trace
@@ -9442,6 +9584,7 @@ def _apply_workspace_source_expansion(
                     "entry_id",
                     "score",
                     "matched_terms",
+                    "core_matched_terms",
                     "focus",
                     "target_type",
                     "memory_type",
@@ -9667,6 +9810,20 @@ def _workspace_source_expansion_entry_terms(entry: Mapping[str, Any]) -> frozens
     return _selected_context_content_terms(" ".join(values))
 
 
+def _workspace_source_expansion_core_matched_terms(
+    matched_terms: tuple[str, ...],
+    *,
+    entry: Mapping[str, Any],
+) -> tuple[str, ...]:
+    subject_terms = _selected_context_content_terms(str(entry.get("subject") or ""))
+    generic_terms = _WORKSPACE_SOURCE_EXPANSION_GENERIC_TERMS
+    return tuple(
+        term
+        for term in matched_terms
+        if term not in subject_terms and term not in generic_terms
+    )
+
+
 def _workspace_source_expansion_text_values(value: Any) -> tuple[str, ...]:
     if value is None:
         return ()
@@ -9689,9 +9846,12 @@ def _workspace_source_expansion_score(
     *,
     entry: Mapping[str, Any],
     matched_terms: tuple[str, ...],
+    core_matched_terms: tuple[str, ...],
     route: RouteResult,
 ) -> float:
-    score = float(len(matched_terms))
+    score = float(len(core_matched_terms))
+    if matched_terms and core_matched_terms:
+        score += min(0.25, 0.05 * len(matched_terms))
     focus = str(entry.get("focus") or "")
     target_type = str(entry.get("target_type") or "")
     manager_decision = str(entry.get("manager_decision") or "")
@@ -10957,6 +11117,9 @@ def _workspace_source_expansion_context_manifest(
         ),
         "skipped_low_score_count": int(
             workspace_source_expansion.get("skipped_low_score_count") or 0
+        ),
+        "skipped_low_core_count": int(
+            workspace_source_expansion.get("skipped_low_core_count") or 0
         ),
         "clean_note": (
             "Source-backed expansion manifest. Selected memory-object handles "

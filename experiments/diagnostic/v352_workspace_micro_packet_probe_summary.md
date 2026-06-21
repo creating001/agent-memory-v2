@@ -8,7 +8,7 @@ The goal is to reduce query prompt boilerplate without removing raw evidence row
 
 ## Clean boundary
 
-Prediction uses no gold answers, judge outputs, benchmark tags, sample ids, test feedback, or sample-level rules. Derived memory remains activation/index only; final facts must still be grounded in raw Memory rows. The DeepSeek judge was not run in this turn because `DEEPSEEK_API_KEY` was not present in the shell, and `.env` was not read.
+Prediction uses no gold answers, judge outputs, benchmark tags, sample ids, test feedback, or sample-level rules. Derived memory remains activation/index only; final facts must still be grounded in raw Memory rows. DeepSeek dual judge was run offline after prediction only; labels and judge outputs were not consumed by prediction, retrieval, compiler, answer, verifier, or cache construction.
 
 ## Changes
 
@@ -27,6 +27,8 @@ Prediction uses no gold answers, judge outputs, benchmark tags, sample ids, test
 | LME answer probe | `outputs/diagnostic/v352_workspace_micro_packet_lme_probe50/predictions.jsonl` |
 | LoCoMo answer probe | `outputs/diagnostic/v352_workspace_micro_packet_locomo_probe50/predictions.jsonl` |
 | Prompt-effect files | `outputs/diagnostic/v352_vs_v350_lme_probe50_prompt_effect/`, `outputs/diagnostic/v352_vs_v350_locomo_probe50_prompt_effect/` |
+| LME dual judge | `experiments/diagnostic/v352_workspace_micro_packet_lme_probe50/deepseek_dual_judge.json` |
+| LoCoMo dual judge | `experiments/diagnostic/v352_workspace_micro_packet_locomo_probe50/deepseek_dual_judge.json` |
 
 ## Compile diff vs v351
 
@@ -55,10 +57,9 @@ Fresh total query tokens were LME `5202.84 -> 5194.52` and LoCoMo `5331.48 -> 53
 
 ## Decision
 
-Keep v352 as a clean query-token/system-observability candidate, not LTS. It reduces prompt tokens and improves query-level workspace/verifier traceability, but LoCoMo has 15 prompt-effect answer changes and still needs changed-answer dual DeepSeek judge before any LTS decision.
+Keep v352 as a clean query-token/system-observability candidate, not LTS. It reduces prompt tokens and improves query-level workspace/verifier traceability. Probe50 dual judge is LME strict/lenient `46/50` / `47/50`, LoCoMo `44/50` / `45/50`; this is useful evidence for the candidate but not full-benchmark LTS evidence.
 
 ## Next
 
-- Run LoCoMo prompt-effect changed-answer judge for `outputs/diagnostic/v352_vs_v350_locomo_probe50_prompt_effect/answer_changed_on_prompt_changed/` once `DEEPSEEK_API_KEY` is available in the environment.
-- If judge is neutral or positive, test a larger/full cache-aligned diff.
-- If judge regresses, keep the Context Manifest/verifier diagnostics and revisit packet wording or cache seeding before changing prompt surface.
+- Test a larger/full cache-aligned diff before any LTS decision.
+- If larger judge regresses, keep the Context Manifest/verifier diagnostics and revisit packet wording or cache seeding before changing prompt surface.

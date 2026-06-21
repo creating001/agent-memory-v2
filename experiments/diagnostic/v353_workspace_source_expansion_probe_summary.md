@@ -8,7 +8,7 @@ The goal is to make memory objects more than retrieval hints while also reducing
 
 ## Clean boundary
 
-Prediction uses no gold answers, judge outputs, benchmark tags, sample ids, test feedback, or sample-level rules. Memory objects remain activation/index handles only; final answer evidence is still raw Memory rows. DeepSeek judge was not run because `DEEPSEEK_API_KEY` was not present in the shell, and `.env` was not read.
+Prediction uses no gold answers, judge outputs, benchmark tags, sample ids, test feedback, or sample-level rules. Memory objects remain activation/index handles only; final answer evidence is still raw Memory rows. DeepSeek dual judge was run offline after prediction only; labels and judge outputs were not consumed by prediction, retrieval, compiler, answer, verifier, or cache construction.
 
 ## Method note
 
@@ -30,6 +30,8 @@ This version follows the project direction of a memory system rather than a prom
 | LoCoMo compile scan | `outputs/diagnostic/v353_workspace_source_expansion_compile_scan_locomo_probe50/traces.jsonl` |
 | LME answer probe | `outputs/diagnostic/v353_workspace_source_expansion_lme_probe50/predictions.jsonl` |
 | LoCoMo answer probe | `outputs/diagnostic/v353_workspace_source_expansion_locomo_probe50/predictions.jsonl` |
+| LME dual judge | `experiments/diagnostic/v353_workspace_source_expansion_lme_probe50/deepseek_dual_judge.json` |
+| LoCoMo dual judge | `experiments/diagnostic/v353_workspace_source_expansion_locomo_probe50/deepseek_dual_judge.json` |
 
 ## Probe results vs v352
 
@@ -58,14 +60,22 @@ Build tokens were unchanged for the paired probe inputs/caches: LME `86398.54`; 
 | LongMemEval-S probe50 | 3/50 |
 | LoCoMo non-adversarial probe50 | 23/50 |
 
-LME changes are mostly formatting/specificity variants. LoCoMo has many semantic changes, including at least one potentially risky relationship-status answer. It needs changed-answer dual DeepSeek judge before any LTS decision.
+LME changes are mostly formatting/specificity variants. LoCoMo has many semantic changes, including at least one potentially risky relationship-status answer.
+
+## Probe judge
+
+Dual `deepseek-v4-flash`, temperature `0`, default thinking:
+
+| Benchmark | strict | lenient | judge tokens |
+|---|---:|---:|---:|
+| LongMemEval-S probe50 | `46/50` | `48/50` | `18182` |
+| LoCoMo non-adversarial probe50 | `45/50` | `47/50` | `49044` |
 
 ## Decision
 
-Do not promote v353 to LTS yet. It improves the system design risk and reduces actual query tokens on both probe sets, but row sets change substantially and LoCoMo has 23/50 answer changes. Keep v353 as the current memory-system/source-expansion candidate pending changed-answer judge.
+Do not promote v353 to LTS yet. It improves the system design risk and reduces actual query tokens on both probe sets, and the probe judge is positive relative to v352. However, row sets change substantially and LoCoMo has 23/50 answer changes; the method is too broad because many expansions can be triggered by subject-level matches. Keep v353 as an important source-expansion baseline and tighten the gating before larger/full evaluation.
 
 ## Next
 
-- Run changed-answer dual DeepSeek judge for v353 vs v352 once `DEEPSEEK_API_KEY` is available in the environment.
 - Inspect LoCoMo changed answers, especially relationship/status and career/adoption cases, before broadening source expansion.
-- If judge is neutral or positive, test a larger/full cache-aligned diff; if it regresses, keep the source-expansion trace and tighten entry scoring or route gating.
+- Test a tighter, source-backed expansion policy that reduces subject-only activation before any larger/full evaluation.

@@ -8142,6 +8142,245 @@ class CleanSkeletonTest(unittest.TestCase):
             1,
         )
 
+    def test_pipeline_workspace_source_expansion_skips_subject_only_match(
+        self,
+    ) -> None:
+        old_record = MemoryRecord(
+            memory_id="old-city",
+            memory_type="state",
+            text="Alex previously lived in Austin.",
+            source_ids=("old:t0",),
+            subject="Alex",
+            predicate="home city",
+            value="Austin",
+            timestamp="2024-01-01",
+            status="superseded",
+            superseded_by="new-city",
+        )
+        new_record = MemoryRecord(
+            memory_id="new-city",
+            memory_type="state",
+            text="Alex currently lives in Seattle.",
+            source_ids=("new:t0",),
+            subject="Alex",
+            predicate="home city",
+            value="Seattle",
+            timestamp="2024-05-01",
+            status="active",
+        )
+        management = _management_summary(
+            (new_record, old_record),
+            policy="stateful_only",
+            managed_memory_types=frozenset({"state"}),
+            include_memory_system_graph=True,
+        )
+
+        class FakeBuilder:
+            def build(self, turns: tuple[Turn, ...]) -> BuiltMemory:
+                del turns
+                return BuiltMemory(
+                    records=(new_record, old_record),
+                    token_usage=TokenUsage(),
+                    management_policy="stateful_only",
+                    managed_memory_types=("state",),
+                    management=management,
+                )
+
+        config = {
+            "build_memory": {
+                "enabled": True,
+                "mode": "openai_compatible",
+                "model": "fake",
+                "top_k": 2,
+                "include_superseded": True,
+            },
+            "retrieval": {
+                "top_k": 2,
+                "max_top_k": 2,
+                "neighbor_window": 0,
+                "drop_query_stopwords": True,
+                "workspace_source_expansion": {
+                    "enabled": True,
+                    "information_needs": ["fact_lookup"],
+                    "source": "memory_system_state",
+                    "max_entries": 4,
+                    "max_sources": 1,
+                    "min_score": 1.0,
+                    "min_core_terms": 1,
+                    "protect_top_n": 1,
+                    "preserve_hit_count": True,
+                },
+            },
+            "compiler": {
+                "prompt_mode": "external_naive",
+                "max_evidence_items": 2,
+                "max_evidence_chars": 4000,
+            },
+            "answer": {"fallback_answer": "unknown"},
+        }
+        pipeline = Stage1Pipeline(config)
+        pipeline._memory_builder = FakeBuilder()
+        request = PredictionRequest(
+            question="Alex?",
+            turns=(
+                Turn(
+                    source_id="anchor:t0",
+                    session_id="anchor",
+                    turn_index=0,
+                    role="user",
+                    text="Alex lookup anchor.",
+                    timestamp="2024-06-01",
+                ),
+                Turn(
+                    source_id="new:t0",
+                    session_id="new",
+                    turn_index=0,
+                    role="user",
+                    text="Alex nearby evidence.",
+                    timestamp="2024-05-01",
+                ),
+                Turn(
+                    source_id="old:t0",
+                    session_id="old",
+                    turn_index=0,
+                    role="user",
+                    text="Austin.",
+                    timestamp="2024-01-01",
+                ),
+            ),
+        )
+
+        result = pipeline.predict(request)
+        retrieval = result["trace"]["retrieval"]
+        expansion = retrieval["workspace_source_expansion"]
+        hit_ids = [hit["source_id"] for hit in retrieval["hits"]]
+
+        self.assertFalse(retrieval["workspace_source_expansion_applied"])
+        self.assertEqual(expansion["reason"], "no_matching_entries")
+        self.assertGreater(expansion["skipped_low_core_count"], 0)
+        self.assertEqual(expansion["candidate_entry_count"], 0)
+        self.assertNotIn("old:t0", hit_ids)
+
+    def test_pipeline_workspace_source_expansion_route_override_limits_sources(
+        self,
+    ) -> None:
+        city_record = MemoryRecord(
+            memory_id="city",
+            memory_type="state",
+            text="Alex lives in Seattle.",
+            source_ids=("city:t0",),
+            subject="Alex",
+            predicate="home city",
+            value="Seattle",
+            timestamp="2024-05-01",
+            status="active",
+        )
+        pet_record = MemoryRecord(
+            memory_id="pet",
+            memory_type="state",
+            text="Alex adopted Pixel.",
+            source_ids=("pet:t0",),
+            subject="Alex",
+            predicate="pet name",
+            value="Pixel",
+            timestamp="2024-04-01",
+            status="active",
+        )
+        management = _management_summary(
+            (city_record, pet_record),
+            policy="stateful_only",
+            managed_memory_types=frozenset({"state"}),
+            include_memory_system_graph=True,
+        )
+
+        class FakeBuilder:
+            def build(self, turns: tuple[Turn, ...]) -> BuiltMemory:
+                del turns
+                return BuiltMemory(
+                    records=(city_record, pet_record),
+                    token_usage=TokenUsage(),
+                    management_policy="stateful_only",
+                    managed_memory_types=("state",),
+                    management=management,
+                )
+
+        config = {
+            "build_memory": {
+                "enabled": True,
+                "mode": "openai_compatible",
+                "model": "fake",
+                "top_k": 2,
+            },
+            "retrieval": {
+                "top_k": 1,
+                "max_top_k": 1,
+                "neighbor_window": 0,
+                "drop_query_stopwords": True,
+                "workspace_source_expansion": {
+                    "enabled": True,
+                    "information_needs": ["fact_lookup"],
+                    "source": "memory_system_state",
+                    "max_entries": 4,
+                    "max_sources": 2,
+                    "min_score": 1.0,
+                    "min_core_terms": 1,
+                    "protect_top_n": 0,
+                    "preserve_hit_count": True,
+                    "route_overrides": {
+                        "fact_lookup": {
+                            "max_sources": 1,
+                        },
+                    },
+                },
+            },
+            "compiler": {
+                "prompt_mode": "external_naive",
+                "max_evidence_items": 2,
+                "max_evidence_chars": 4000,
+            },
+            "answer": {"fallback_answer": "unknown"},
+        }
+        pipeline = Stage1Pipeline(config)
+        pipeline._memory_builder = FakeBuilder()
+        request = PredictionRequest(
+            question="Alex home city pet details?",
+            turns=(
+                Turn(
+                    source_id="anchor:t0",
+                    session_id="anchor",
+                    turn_index=0,
+                    role="user",
+                    text="Alex home city pet details anchor.",
+                    timestamp="2024-06-01",
+                ),
+                Turn(
+                    source_id="city:t0",
+                    session_id="city",
+                    turn_index=0,
+                    role="user",
+                    text="Seattle.",
+                    timestamp="2024-05-01",
+                ),
+                Turn(
+                    source_id="pet:t0",
+                    session_id="pet",
+                    turn_index=0,
+                    role="user",
+                    text="Pixel.",
+                    timestamp="2024-04-01",
+                ),
+            ),
+        )
+
+        result = pipeline.predict(request)
+        expansion = result["trace"]["retrieval"]["workspace_source_expansion"]
+
+        self.assertTrue(expansion["applied"])
+        self.assertEqual(expansion["max_sources"], 1)
+        self.assertGreaterEqual(expansion["candidate_source_count"], 2)
+        self.assertEqual(expansion["selected_source_count"], 1)
+        self.assertEqual(len(expansion["selected_source_ids"]), 1)
+
     def test_pipeline_context_budget_can_use_layer_manifest_anchor(self) -> None:
         old_record = MemoryRecord(
             memory_id="old",
