@@ -1,0 +1,191 @@
+[
+  {
+    "benchmark": "locomo",
+    "new_v344_answer": "Counseling and mental health",
+    "old_v343_answer": "Counseling and mental health, specifically working with trans people.",
+    "question": "What fields would Caroline be likely to pursue in her educaton?",
+    "record_key": "628d9b1436fa405b91ee2820"
+  },
+  {
+    "benchmark": "locomo",
+    "new_v344_answer": "Caroline is single; she recently went through a tough breakup and is currently focusing on adoption to become a mother.",
+    "old_v343_answer": "Caroline is single, having recently gone through a tough breakup.",
+    "question": "What is Caroline's relationship status?",
+    "record_key": "28821506df08ca36f78e989a"
+  },
+  {
+    "benchmark": "locomo",
+    "new_v344_answer": "Last week (between 2023-06-02 and 2023-06-08)",
+    "old_v343_answer": "2023-06-02 to 2023-06-08",
+    "question": "When did Caroline meet up with her friends, family, and mentors?",
+    "record_key": "05a2fa4682ace156a523b92c"
+  },
+  {
+    "benchmark": "locomo",
+    "new_v344_answer": "Caroline has decided to pursue a career in counseling and mental health work, specifically aiming to support trans people.",
+    "old_v343_answer": "Caroline has decided to pursue a career in counseling and mental health, specifically focusing on working with trans people to help them accept themselves and support their mental health.",
+    "question": "What career path has Caroline decided to persue?",
+    "record_key": "f5e68c54090a60fac1b80246"
+  },
+  {
+    "benchmark": "locomo",
+    "new_v344_answer": "The provided information is not enough.",
+    "old_v343_answer": "Unlikely, as her motivation to pursue counseling is explicitly driven by the support she received during her own journey, which she wants to pass on to others.",
+    "question": "Would Caroline still want to pursue counseling as a career if she hadn't received support growing up?",
+    "record_key": "daf5a3f4af72f6e342152a73"
+  },
+  {
+    "benchmark": "locomo",
+    "new_v344_answer": "Melanie participates in running, reading, playing the violin, playing the clarinet, hiking, camping, swimming, pottery, and painting.",
+    "old_v343_answer": "Melanie participates in running, reading, playing the violin, playing the clarinet, hiking, camping, swimming, pottery, painting, and running a charity race.",
+    "question": "What activities does Melanie partake in?",
+    "record_key": "050de4d029518a005ce9e39a"
+  },
+  {
+    "benchmark": "locomo",
+    "new_v344_answer": "Melanie has camped in the mountains, at the beach, and in the forest.",
+    "old_v343_answer": "the mountains, the beach, and the forest",
+    "question": "Where has Melanie camped?",
+    "record_key": "d7870b241b2c9f5d2c8b64cb"
+  },
+  {
+    "benchmark": "locomo",
+    "new_v344_answer": "Melanie's kids like pottery (making things with clay), the dinosaur exhibit (learning about animals), painting (especially nature-inspired), family camping trips (roasting marshmallows and telling stories), playing at the park, and going to the beach.",
+    "old_v343_answer": "Melanie's kids like pottery (making things with clay), the dinosaur exhibit (learning about animals), painting (especially nature-inspired), exploring and playing at parks, and going to the beach.",
+    "question": "What do Melanie's kids like?",
+    "record_key": "6b6d09d7e82567bbb2a34cf0"
+  },
+  {
+    "benchmark": "locomo",
+    "new_v344_answer": "Last week relative to July 6, 2023 (approximately June 29 - July 5, 2023)",
+    "old_v343_answer": "Last week (approximately June 29 to July 5, 2023)",
+    "question": "When did Caroline have a picnic?",
+    "record_key": "7a46c72efd3f51977889864f"
+  },
+  {
+    "benchmark": "locomo",
+    "new_v344_answer": "Melanie destresses by running, reading, playing the violin, painting, playing the clarinet, and doing pottery.",
+    "old_v343_answer": "Melanie destresses by running, reading, playing the violin, painting, doing pottery, and camping with her family.",
+    "question": "What does Melanie do to destress?",
+    "record_key": "663162cd2f331f7d572f90cd"
+  },
+  {
+    "benchmark": "locomo",
+    "new_v344_answer": "The provided information is not enough.",
+    "old_v343_answer": "The provided information is not enough to determine when Melanie read the book 'nothing is impossible' as the title is not mentioned in the context.",
+    "question": "When did Melanie read the book \"nothing is impossible\"?",
+    "record_key": "dd6aa7b1aa4977e0fdd66669"
+  },
+  {
+    "benchmark": "locomo",
+    "new_v344_answer": "No, Melanie is not considered a member of the LGBTQ community; she is described as having a husband and kids.",
+    "old_v343_answer": "No",
+    "question": "Would Melanie be considered a member of the LGBTQ community?",
+    "record_key": "67f27e2361af6fb035a30c94"
+  },
+  {
+    "benchmark": "locomo",
+    "new_v344_answer": "June 2023",
+    "old_v343_answer": "2023-06-20 to 2023-06-26",
+    "question": "When did Melanie go camping in June?",
+    "record_key": "04a4ca37a584ea4afde09c96"
+  },
+  {
+    "benchmark": "locomo",
+    "new_v344_answer": "Caroline has participated in a school event, an LGBTQ support group, an LGBTQ+ pride parade, an LGBTQ conference, a transgender conference, an LGBT pride event, meetings/events for the 'Connected LGBTQ Activists' group, and an LGBTQ art show.",
+    "old_v343_answer": "Caroline has participated in a school event, an LGBTQ support group, an LGBTQ+ pride parade, an LGBTQ conference, a transgender conference, an LGBT pride event, meetings/events for the 'Connected LGBTQ Activists' group, and an LGBTQ+ counseling workshop. She also volunteers at an LGBTQ+ youth center and is organizing an LGBTQ art show.",
+    "question": "What LGBTQ+ events has Caroline participated in?",
+    "record_key": "aa88e50253b91ab0fc834727"
+  },
+  {
+    "benchmark": "locomo",
+    "new_v344_answer": "Caroline went to a pride parade in late June/early July 2023 (specifically the week of June 26-July 2) and on August 11, 2023.",
+    "old_v343_answer": "Caroline went to a pride parade from June 26 to July 2, 2023, and on August 11, 2023.",
+    "question": "When did Caroline go to a pride parade during the summer?",
+    "record_key": "ab43e3d44c74bef52cd14f1a"
+  },
+  {
+    "benchmark": "locomo",
+    "new_v344_answer": "Caroline has volunteered at a youth center, organized a talent show for the kids there, joined a mentorship program for LGBTQ youth, and attended a council meeting for adoption.",
+    "old_v343_answer": "Caroline has volunteered at a youth center, put together a talent show for the kids there, joined a mentorship program for LGBTQ youth, and is working towards adopting/providing a home for children in need.",
+    "question": "What events has Caroline participated in to help children?",
+    "record_key": "5e011cc0e92cdb6f16e40633"
+  },
+  {
+    "benchmark": "locomo",
+    "new_v344_answer": "July 8-9, 2023",
+    "old_v343_answer": "2023-07-08 to 2023-07-09",
+    "question": "When did Melanie go camping in July?",
+    "record_key": "c2f37be687257b36c7101ac4"
+  },
+  {
+    "benchmark": "locomo",
+    "new_v344_answer": "A sunset painting",
+    "old_v343_answer": "A sunset painting (and an abstract painting)",
+    "question": "What did Melanie paint recently?",
+    "record_key": "f07b4728d028a1bce5489f14"
+  },
+  {
+    "benchmark": "locomo",
+    "new_v344_answer": "Melanie has done the following activities with her family: camping (including at the beach), hiking in the mountains, exploring forests, attending a pottery workshop, playing games, eating food, swimming, going to a park, and taking a road trip to the Grand Canyon.",
+    "old_v343_answer": "Melanie has done the following activities with her family: camping (in the forest, mountains, and at the beach), hiking in the mountains, exploring forests, playing games, eating good food, hanging out, roasting marshmallows, telling stories around the campfire, swimming, attending a pottery workshop, and visiting the Grand Canyon.",
+    "question": "What activities has Melanie done with her family?",
+    "record_key": "d5068b3c68a955ba6cdfe705"
+  },
+  {
+    "benchmark": "locomo",
+    "new_v344_answer": "Caroline participates in the LGBTQ community by attending support groups and pride parades, joining the 'Connected LGBTQ Activists' group, mentoring LGBTQ youth, volunteering at a youth center, organizing an LGBTQ art show, and speaking at school events to encourage involvement.",
+    "old_v343_answer": "Caroline participates in the LGBTQ community by attending support groups and pride parades, joining the 'Connected LGBTQ Activists' group, mentoring LGBTQ youth, organizing and displaying art in an LGBTQ art show, speaking at school events to encourage involvement, and attending LGBTQ conferences.",
+    "question": "In what ways is Caroline participating in the LGBTQ community?",
+    "record_key": "b12aa2943787d18801882e7b"
+  },
+  {
+    "benchmark": "locomo",
+    "new_v344_answer": "Melanie usually goes to the beach once or twice a year. In 2023, she specifically mentions going 'recently' (around July 2023), confirming at least one trip.",
+    "old_v343_answer": "The provided information is not enough to determine the exact number of times Melanie went to the beach in 2023.",
+    "question": "How many times has Melanie gone to the beach in 2023?",
+    "record_key": "d3a8d12b5be57abcc6ef6dc6"
+  },
+  {
+    "benchmark": "locomo",
+    "new_v344_answer": "Melanie would likely be more interested in going to a national park.",
+    "old_v343_answer": "Melanie would be more interested in going to a national park.",
+    "question": "Would Melanie be more interested in going to a national park or a theme park?",
+    "record_key": "c4049c9255ddeada782ae37e"
+  },
+  {
+    "benchmark": "locomo",
+    "new_v344_answer": "Caroline makes paintings (including abstract art and self-portraits) and drawings (specifically of flowers).",
+    "old_v343_answer": "Caroline makes paintings (including self-portraits, abstract art, and pieces about her trans identity) and drawings (specifically of flowers).",
+    "question": "What kind of art does Caroline make?",
+    "record_key": "9e2a3c32e8878884b9b87ac4"
+  },
+  {
+    "benchmark": "locomo",
+    "new_v344_answer": "2023-08-13",
+    "old_v343_answer": "August 13, 2023",
+    "question": "When is Melanie's daughter's birthday?",
+    "record_key": "9748405e4eeefe3cc1d5339c"
+  },
+  {
+    "benchmark": "locomo",
+    "new_v344_answer": "Yes, Melanie would be considered an ally to the transgender community, as evidenced by her consistent support, admiration, and advocacy for Caroline, a transgender woman, and her positive engagement with LGBTQ+ topics and community events.",
+    "old_v343_answer": "Yes, Melanie is considered an ally to the transgender community, as evidenced by her consistent support, admiration, and advocacy for Caroline, a transgender woman.",
+    "question": "Would Melanie be considered an ally to the transgender community?",
+    "record_key": "61eae0f883bbc9d1c8021b91"
+  },
+  {
+    "benchmark": "locomo",
+    "new_v344_answer": "Her friends, family, and mentors (people around her who accept and support her).",
+    "old_v343_answer": "Her friends, family, and mentors (or people around her who accept and support her).",
+    "question": "Who supports Caroline when she has a negative experience?",
+    "record_key": "c76a54d6c47bee06e2bee3d8"
+  },
+  {
+    "benchmark": "locomo",
+    "new_v344_answer": "Melanie and her kids have made bowls and cups.",
+    "old_v343_answer": "pots, a cup, bowls, and a plate",
+    "question": "What types of pottery have Melanie and her kids made?",
+    "record_key": "97e324be3e76a7dc37e954fd"
+  }
+]

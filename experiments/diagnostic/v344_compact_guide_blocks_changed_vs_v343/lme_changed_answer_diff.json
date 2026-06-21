@@ -1,0 +1,44 @@
+[
+  {
+    "benchmark": "longmemeval_s",
+    "new_v344_answer": "February 14, 2023",
+    "old_v343_answer": "February (specifically Valentine's Day)",
+    "question": "When did I volunteer at the local animal shelter's fundraising dinner?",
+    "record_key": "d823172b5baf1eff81acb20c"
+  },
+  {
+    "benchmark": "longmemeval_s",
+    "new_v344_answer": "Your previous stance on spirituality was that of a staunch atheist.",
+    "old_v343_answer": "Staunch atheist",
+    "question": "What was my previous stance on spirituality?",
+    "record_key": "8ff24d864a7513f4c6eb5f33"
+  },
+  {
+    "benchmark": "longmemeval_s",
+    "new_v344_answer": "Triple the amount you paid for it.",
+    "old_v343_answer": "The provided information is not enough.",
+    "question": "How much is the painting of a sunset worth in terms of the amount I paid for it?",
+    "record_key": "1c1b3d9d72cd50c2f6bdf23c"
+  },
+  {
+    "benchmark": "longmemeval_s",
+    "new_v344_answer": "Lavender Gin Fizz",
+    "old_v343_answer": "the Lavender Gin Fizz as the answer",
+    "question": "What type of cocktail recipe did I try last weekend?",
+    "record_key": "c5db16a030f4d1308a724d03"
+  },
+  {
+    "benchmark": "longmemeval_s",
+    "new_v344_answer": "500 copies",
+    "old_v343_answer": "500",
+    "question": "How many copies of my favorite artist's debut album were released worldwide?",
+    "record_key": "0edbddd6beebf30c533efce3"
+  },
+  {
+    "benchmark": "longmemeval_s",
+    "new_v344_answer": "Three months",
+    "old_v343_answer": "You have been collecting vintage cameras for three months.",
+    "question": "How long have I been collecting vintage cameras?",
+    "record_key": "3c4c6d348462c8af763e09d4"
+  }
+]
