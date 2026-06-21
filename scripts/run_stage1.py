@@ -3762,6 +3762,12 @@ def main() -> int:
             "working_memory_packet_value_chars": config.get("compiler", {}).get(
                 "working_memory_packet_value_chars", 120
             ),
+            "working_memory_packet_compact_short_header": config.get(
+                "compiler", {}
+            ).get("working_memory_packet_compact_short_header", False),
+            "working_memory_packet_compact_dedupe": config.get("compiler", {}).get(
+                "working_memory_packet_compact_dedupe", False
+            ),
             "working_memory_packet_source": config.get("compiler", {}).get(
                 "working_memory_packet_source", "working_view"
             ),
@@ -4823,6 +4829,8 @@ def _write_summary(
         f"- working_memory_packet_information_needs: {metrics['compiler']['working_memory_packet_information_needs']}",
         f"- working_memory_packet_max_items: {metrics['compiler']['working_memory_packet_max_items']}",
         f"- working_memory_packet_value_chars: {metrics['compiler']['working_memory_packet_value_chars']}",
+        f"- working_memory_packet_compact_short_header: {metrics['compiler']['working_memory_packet_compact_short_header']}",
+        f"- working_memory_packet_compact_dedupe: {metrics['compiler']['working_memory_packet_compact_dedupe']}",
         f"- working_memory_packet_source: {metrics['compiler']['working_memory_packet_source']}",
         f"- working_memory_packet_applied: {metrics['compiler']['working_memory_packet_applied']}",
         f"- memory_state_guide: {metrics['compiler']['memory_state_guide']}",
@@ -5182,6 +5190,8 @@ def _write_diagnosis(
         f"- working_memory_packet_information_needs: {metrics['compiler']['working_memory_packet_information_needs']}",
         f"- working_memory_packet_max_items: {metrics['compiler']['working_memory_packet_max_items']}",
         f"- working_memory_packet_value_chars: {metrics['compiler']['working_memory_packet_value_chars']}",
+        f"- working_memory_packet_compact_short_header: {metrics['compiler']['working_memory_packet_compact_short_header']}",
+        f"- working_memory_packet_compact_dedupe: {metrics['compiler']['working_memory_packet_compact_dedupe']}",
         f"- working_memory_packet_source: {metrics['compiler']['working_memory_packet_source']}",
         f"- working_memory_packet_applied: {metrics['compiler']['working_memory_packet_applied']}",
         f"- current_state_update_contract: {metrics['compiler']['current_state_update_contract']}",

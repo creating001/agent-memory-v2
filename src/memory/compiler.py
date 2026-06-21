@@ -295,8 +295,10 @@ ROUTE_OVERRIDE_KEYS = {
     "update_conflict_guide_max_rows",
     "update_conflict_guide_snippet_chars",
     "working_memory_packet",
+    "working_memory_packet_compact_dedupe",
     "working_memory_packet_format",
     "working_memory_packet_max_items",
+    "working_memory_packet_compact_short_header",
     "working_memory_packet_source",
     "working_memory_packet_slot_guard",
     "working_memory_packet_slot_guard_action",
@@ -506,6 +508,8 @@ class EvidenceCompiler:
         working_memory_packet_value_chars: int = 120,
         working_memory_packet_source: str = "working_view",
         working_memory_packet_format: str = "verbose",
+        working_memory_packet_compact_short_header: bool = False,
+        working_memory_packet_compact_dedupe: bool = False,
         working_memory_packet_slot_guard: bool = False,
         working_memory_packet_slot_guard_action: str = "suppress",
         working_memory_packet_slot_guard_max_rows: int = 6,
@@ -796,6 +800,12 @@ class EvidenceCompiler:
         )
         self._working_memory_packet_format = _validate_working_memory_packet_format(
             working_memory_packet_format
+        )
+        self._working_memory_packet_compact_short_header = bool(
+            working_memory_packet_compact_short_header
+        )
+        self._working_memory_packet_compact_dedupe = bool(
+            working_memory_packet_compact_dedupe
         )
         self._working_memory_packet_slot_guard = bool(working_memory_packet_slot_guard)
         self._working_memory_packet_slot_guard_action = (
@@ -1252,6 +1262,12 @@ class EvidenceCompiler:
             ],
             working_memory_packet_source=route_settings["working_memory_packet_source"],
             working_memory_packet_format=route_settings["working_memory_packet_format"],
+            working_memory_packet_compact_short_header=route_settings[
+                "working_memory_packet_compact_short_header"
+            ],
+            working_memory_packet_compact_dedupe=route_settings[
+                "working_memory_packet_compact_dedupe"
+            ],
             profile_activation_guide=(
                 route_settings["profile_activation_guide"]
                 and route.information_need
@@ -1451,6 +1467,12 @@ class EvidenceCompiler:
             ),
             "working_memory_packet": self._working_memory_packet,
             "working_memory_packet_format": self._working_memory_packet_format,
+            "working_memory_packet_compact_short_header": (
+                self._working_memory_packet_compact_short_header
+            ),
+            "working_memory_packet_compact_dedupe": (
+                self._working_memory_packet_compact_dedupe
+            ),
             "working_memory_packet_max_items": (
                 self._working_memory_packet_max_items
             ),
@@ -1963,6 +1985,14 @@ def _validate_route_overrides(
                 _validate_working_memory_packet_format(
                     str(raw_overrides["working_memory_packet_format"])
                 )
+            )
+        if "working_memory_packet_compact_short_header" in raw_overrides:
+            overrides["working_memory_packet_compact_short_header"] = bool(
+                raw_overrides["working_memory_packet_compact_short_header"]
+            )
+        if "working_memory_packet_compact_dedupe" in raw_overrides:
+            overrides["working_memory_packet_compact_dedupe"] = bool(
+                raw_overrides["working_memory_packet_compact_dedupe"]
             )
         if "working_memory_packet_slot_guard" in raw_overrides:
             overrides["working_memory_packet_slot_guard"] = bool(
@@ -3289,6 +3319,8 @@ def _build_prompt(
     working_memory_packet_value_chars: int,
     working_memory_packet_source: str,
     working_memory_packet_format: str,
+    working_memory_packet_compact_short_header: bool,
+    working_memory_packet_compact_dedupe: bool,
     profile_activation_guide: bool,
     profile_activation_guide_max_records: int,
     profile_activation_guide_value_chars: int,
@@ -3459,6 +3491,10 @@ def _build_prompt(
             working_memory_packet_value_chars=working_memory_packet_value_chars,
             working_memory_packet_source=working_memory_packet_source,
             working_memory_packet_format=working_memory_packet_format,
+            working_memory_packet_compact_short_header=(
+                working_memory_packet_compact_short_header
+            ),
+            working_memory_packet_compact_dedupe=working_memory_packet_compact_dedupe,
             profile_activation_guide=profile_activation_guide,
             profile_activation_guide_max_records=profile_activation_guide_max_records,
             profile_activation_guide_value_chars=profile_activation_guide_value_chars,
@@ -3697,6 +3733,8 @@ def _build_external_naive_prompt(
     working_memory_packet_value_chars: int,
     working_memory_packet_source: str,
     working_memory_packet_format: str,
+    working_memory_packet_compact_short_header: bool,
+    working_memory_packet_compact_dedupe: bool,
     profile_activation_guide: bool,
     profile_activation_guide_max_records: int,
     profile_activation_guide_value_chars: int,
@@ -3857,6 +3895,8 @@ def _build_external_naive_prompt(
             max_value_chars=working_memory_packet_value_chars,
             source=working_memory_packet_source,
             packet_format=working_memory_packet_format,
+            compact_short_header=working_memory_packet_compact_short_header,
+            compact_dedupe=working_memory_packet_compact_dedupe,
         )
         if working_memory_packet_lines:
             working_memory_packet_block = "\n".join(
@@ -4797,6 +4837,8 @@ def _external_working_memory_packet_lines(
     max_value_chars: int,
     source: str,
     packet_format: str,
+    compact_short_header: bool = False,
+    compact_dedupe: bool = False,
 ) -> list[str]:
     """Source-backed memory organization packet grounded in visible rows."""
 
@@ -4816,6 +4858,8 @@ def _external_working_memory_packet_lines(
             selected_candidates,
             selected_source=selected_source,
             max_value_chars=max_value_chars,
+            short_header=compact_short_header,
+            dedupe=compact_dedupe,
         )
     lines = [
         "Source-backed memory organization packet "
@@ -5155,12 +5199,20 @@ def _compact_working_memory_packet_lines(
     *,
     selected_source: str,
     max_value_chars: int,
+    short_header: bool = False,
+    dedupe: bool = False,
 ) -> list[str]:
-    lines = [
+    header = (
         f"Source-backed workspace packet (source={selected_source}); "
-        "index only, verify final facts in Memory Context.",
-        "- slots:",
-    ]
+        "index only, verify final facts in Memory Context."
+        if short_header
+        else (
+            "Compact source-backed workspace packet "
+            f"(source={selected_source}); activation hints only. Use slot/source "
+            "links to choose rows, then preserve final qualifiers from Memory Context."
+        )
+    )
+    lines = [header, "- slots:"]
     slot_line_indexes: dict[tuple[str, str, tuple[str, ...], str, str, str], int] = {}
     slot_line_has_hint: dict[
         tuple[str, str, tuple[str, ...], str, str, str],
@@ -5200,8 +5252,11 @@ def _compact_working_memory_packet_lines(
                 + _truncate_text(_single_line(value), max(40, int(max_value_chars)))
             )
         fields.append(f"src={', '.join(source_labels)}")
-        dedupe_key = (subject, predicate, tuple(source_labels), focus, decision, status)
         line = f"  - {' | '.join(fields)}"
+        if not dedupe:
+            lines.append(line)
+            continue
+        dedupe_key = (subject, predicate, tuple(source_labels), focus, decision, status)
         prior_index = slot_line_indexes.get(dedupe_key)
         if prior_index is None:
             slot_line_indexes[dedupe_key] = len(lines)

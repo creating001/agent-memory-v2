@@ -12717,6 +12717,12 @@ class CleanSkeletonTest(unittest.TestCase):
             result["trace"]["compiler"]["working_memory_packet_source"],
             "lifecycle_audit",
         )
+        self.assertFalse(
+            result["trace"]["compiler"]["working_memory_packet_compact_short_header"]
+        )
+        self.assertFalse(
+            result["trace"]["compiler"]["working_memory_packet_compact_dedupe"]
+        )
         self.assertEqual(
             result["trace"]["compiler"]["memory_state_guide_record_source"],
             "evidence_rows",
@@ -13051,12 +13057,59 @@ class CleanSkeletonTest(unittest.TestCase):
             memory_object_index=management["memory_system_graph"]["memory_object_index"],
         )
 
-        self.assertIn("Source-backed workspace packet", compiled.prompt)
+        self.assertIn("Compact source-backed workspace packet", compiled.prompt)
         self.assertIn("slot=alex/follower count", compiled.prompt)
         self.assertIn("hint=1300 followers; 1250 followers", compiled.prompt)
+        self.assertIn("hint=1250 followers; 1300 followers", compiled.prompt)
         self.assertIn("src=Memory 2, Memory 1", compiled.prompt)
         self.assertNotIn("context=retrieve_source_rows", compiled.prompt)
         self.assertNotIn("checks=source_backing", compiled.prompt)
+
+        opt_in_compiler = EvidenceCompiler(
+            max_evidence_items=2,
+            max_evidence_chars=3000,
+            prompt_mode="external_naive",
+            working_memory_packet=True,
+            working_memory_packet_information_needs=("current_state",),
+            working_memory_packet_max_items=3,
+            working_memory_packet_value_chars=80,
+            working_memory_packet_source="memory_system_state",
+            working_memory_packet_format="compact",
+            working_memory_packet_compact_short_header=True,
+            working_memory_packet_compact_dedupe=True,
+        )
+        opt_in_compiled = opt_in_compiler.compile(
+            question="What is Alex's current follower count?",
+            question_time=None,
+            route=RouteResult("current_state", ("current_state",)),
+            hits=(),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Alex had 1250 followers earlier this month.",
+                    timestamp="2024-05-20",
+                ),
+                Turn(
+                    source_id="s1:t1",
+                    session_id="s1",
+                    turn_index=1,
+                    role="user",
+                    text="Alex is close to 1300 followers now.",
+                    timestamp="2024-05-30",
+                ),
+            ),
+            memory_object_index=management["memory_system_graph"]["memory_object_index"],
+        )
+        opt_in_packet = opt_in_compiled.prompt[
+            opt_in_compiled.prompt.index("Working Memory Packet:") :
+        ]
+        self.assertIn("Source-backed workspace packet", opt_in_packet)
+        self.assertNotIn("Compact source-backed workspace packet", opt_in_packet)
+        self.assertIn("hint=1300 followers; 1250 followers", opt_in_packet)
+        self.assertNotIn("hint=1250 followers; 1300 followers", opt_in_packet)
 
     def test_working_memory_packet_slot_guard_suppresses_incomplete_status_slot(
         self,

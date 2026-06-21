@@ -1381,6 +1381,12 @@ class Stage1Pipeline:
             working_memory_packet_format=str(
                 compiler_config.get("working_memory_packet_format", "verbose")
             ),
+            working_memory_packet_compact_short_header=bool(
+                compiler_config.get("working_memory_packet_compact_short_header", False)
+            ),
+            working_memory_packet_compact_dedupe=bool(
+                compiler_config.get("working_memory_packet_compact_dedupe", False)
+            ),
             working_memory_packet_slot_guard=bool(
                 compiler_config.get("working_memory_packet_slot_guard", False)
             ),
@@ -11179,6 +11185,12 @@ def _compiler_trace_config(
         ),
         "working_memory_packet_format": str(
             compiler_config.get("working_memory_packet_format", "verbose")
+        ),
+        "working_memory_packet_compact_short_header": bool(
+            compiler_config.get("working_memory_packet_compact_short_header", False)
+        ),
+        "working_memory_packet_compact_dedupe": bool(
+            compiler_config.get("working_memory_packet_compact_dedupe", False)
         ),
         "working_memory_packet_slot_guard": bool(
             compiler_config.get("working_memory_packet_slot_guard", False)
