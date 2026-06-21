@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_memory_query_readiness_v294_query_restore_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_memory_operation_readiness_audit_v298_query_restore_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v294 local LTS |
+| Benchmark | 当前 v298 local LTS |
 |---|---:|
 | LongMemEval-S full | strict/lenient `0.834000 / 0.846000`，avg build/query tokens `85393.566 / 6455.588` |
 | LoCoMo non-adversarial full | strict/lenient `0.794156 / 0.819481`，avg build/query tokens `62015.57402597403 / 6093.962337662338` |
 
-v294 的 LTS 理由：在 v293 `memory_layer_transition_manifest_v1` 基础上新增 build-owned `memory_query_readiness_manifest_v1`，把 workspace、operation plan、layer transition 和 object index 收敛成 guarded query-consumer policy。它明确规定 operation plan 只能先作为 additive source-backed index、source expansion、context organization、verification 和 audit signal；derived memory 不能替代 raw evidence，也不能未经等价验证替换稳定的 state/value guide。v294 保持 v293 query behavior；LongMemEval-S 和 LoCoMo full answer diff 均为 `0`，因此继承 v293 dual judge accuracy，同时进一步降低 future query 简化和 build/query 边界不清的风险。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_memory_query_readiness_v294_full_summary.md`。
+v298 的 LTS 理由：在 v294 build-owned readiness contract 基础上新增 trace-only `memory_operation_readiness_audit`，让 `memory_operation_plan_v1` 和 `memory_query_readiness_manifest_v1` 先参与 query-time governance/audit，而不进入 answer prompt、retrieval、repair、finalizer 或 final evidence。v298 相对 v294 的 LongMemEval-S 和 LoCoMo full answer/prompt diff 均为 `0`，因此沿用已验证 dual judge accuracy，同时降低 memory 使用过浅和 build/query 边界不清的风险。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_memory_operation_readiness_audit_v298_full_summary.md`。
 
 ## 目录
 
@@ -49,6 +49,6 @@ python -m unittest discover -s src/tests
 
 每个算法版本先做本地 git commit，后续 dry-run、subset、judge 或分析记录引用该 commit。dirty 状态只用于如实说明当时工作区，不是重跑条件；不要为了让 manifest 变成 clean 反复重跑。
 
-实验记录按用途分层：普通诊断/dry-run 只需记录目的、配置或 commit、关键 trace/metrics 结论和 outputs 路径；准备升 LTS、正式汇报、full/split best，或需要下性能结论的 run，才必须在 `experiments/` 下留下 summary、metrics、diagnosis、配置快照、token 成本和完整 outputs 路径。方法性能主指标是 DeepSeek dual flash judge accuracy：`deepseek-v4-flash` 独立跑两遍，strict 为两遍都判对，lenient 为任一遍判对；两遍 judge 均保持 temperature `0` 和 default thinking。Exact/F1/BLEU 只作参考。
+实验记录按用途分层：普通诊断/dry-run 只需记录目的、配置或 commit、关键 trace/metrics 结论和 outputs 路径；进入候选表、LTS 判断或算法性能结论的版本，必须报告 full dual judge accuracy（strict/lenient）、avg build tokens 和 avg query tokens。full 口径可以来自全量 judge，也可以来自 changed-output judge + 未变样本已有判定的合并指标；核心是结论可信、可复现、能服务方法目标，而不是为了继承或全量重跑本身。方法性能主指标是 DeepSeek dual flash judge accuracy：`deepseek-v4-flash` 独立跑两遍，strict 为两遍都判对，lenient 为任一遍判对；两遍 judge 均保持 temperature `0` 和 default thinking。Exact/F1/BLEU 只作参考。
 
 本地运行 offline judge 时可以读取仓库根目录 `.env` 注入 API key，例如在单条命令子进程里 `source .env` 后执行 judge 脚本；但禁止打印、复制、写入实验记录或提交 `.env` 内容。`.env` 只能用于离线评测/外部服务认证，不能进入 prediction、retrieval、compiler、answer、verifier 或 cache build 逻辑。
