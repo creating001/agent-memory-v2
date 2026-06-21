@@ -1,0 +1,67 @@
+{
+  "version": "v294",
+  "baseline": "v293",
+  "config": "configs/stage1_memory_query_readiness_v294_query_restore_seeded_qwen36_no_think_build4k_cached.json",
+  "commit": "bf80cf6a3c8598d1fde6ac164f55bf4c67330cb7",
+  "decision": "promote_lts",
+  "reason": "Build-owned memory_query_readiness_manifest_v1 reduces build-to-query consumption risk while LME/LoCoMo answers and token costs remain v293-identical.",
+  "judge_policy": "Inherited v293 full dual judge accuracy because full predictions are answer-identical on both benchmarks; no changed-output judge was needed.",
+  "benchmarks": {
+    "longmemeval-s-full": {
+      "n": 500,
+      "answer_diff_vs_v293": 0,
+      "missing_old_keys": 0,
+      "missing_new_keys": 0,
+      "strict_accuracy": 0.834,
+      "lenient_accuracy": 0.846,
+      "strict_correct": 417,
+      "lenient_correct": 423,
+      "avg_build_tokens": 85393.566,
+      "avg_query_tokens": 6455.588,
+      "answer_cache_hits": 500,
+      "answer_cache_misses": 0,
+      "query_readiness_slots": 44630,
+      "query_readiness_guarded_ready": 44630,
+      "query_readiness_replacement_blocked": 44630,
+      "output_dir": "outputs/diagnostic/stage1_memory_query_readiness_v294_lme_full",
+      "experiment_dir": "experiments/diagnostic/stage1_memory_query_readiness_v294_lme_full",
+      "dirty_note": "Run summary records dirty=True because the paired LoCoMo run was generating output concurrently; the algorithm commit was already created before prediction."
+    },
+    "locomo-non-adversarial-full": {
+      "n": 1540,
+      "answer_diff_vs_v293": 0,
+      "missing_old_keys": 0,
+      "missing_new_keys": 0,
+      "strict_accuracy": 0.794156,
+      "lenient_accuracy": 0.819481,
+      "strict_correct": 1223,
+      "lenient_correct": 1262,
+      "avg_build_tokens": 62015.57402597403,
+      "avg_query_tokens": 6093.962337662338,
+      "answer_cache_hits": 1540,
+      "answer_cache_misses": 0,
+      "query_readiness_slots": 196651,
+      "query_readiness_guarded_ready": 196651,
+      "query_readiness_replacement_blocked": 196651,
+      "output_dir": "outputs/diagnostic/stage1_memory_query_readiness_v294_locomo_full",
+      "experiment_dir": "experiments/diagnostic/stage1_memory_query_readiness_v294_locomo_full"
+    }
+  },
+  "totals": {
+    "n": 2040,
+    "answer_diff_vs_v293": 0,
+    "query_readiness_slots": 241281,
+    "query_readiness_guarded_ready": 241281,
+    "query_readiness_replacement_blocked": 241281,
+    "consumer_modes": {
+      "trace_audit": 241281,
+      "additive_index": 241281,
+      "source_expansion": 241281,
+      "context_organization": 241281,
+      "verification_signal": 241281,
+      "conflict_chain_audit": 11328,
+      "superseded_chain_audit": 11328
+    }
+  },
+  "clean_note": "Prediction uses no gold answers, judge output, benchmark labels, sample ids, test feedback, or sample-level rules. Judge results are inherited only after prediction-time answer equality is established."
+}

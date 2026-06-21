@@ -60,19 +60,21 @@
 - `external/MemMachine/evaluation/*`：question_type、answer、answer_session_ids、has_answer 等评测字段只可用于评测格式理解，不能进入方法。
 - 官方 LongMemEval / LoCoMo evaluation 代码中的 hidden labels、answer choices、category、question_type 只能用于 offline evaluation 或负面边界。
 
-## 当前 v293 设计映射
+## 当前 v294 设计映射
 
-v293 当前 LTS 目标是把 v288-v291 的 build manifests 收敛成更像 Agent Memory system 的 build-owned operation/layer-transition layer，而不是马上用 query prompt 替换已验证路径：
+v294 当前 LTS 目标是把 v288-v293 的 build manifests 继续收敛成更像 Agent Memory system 的 build-owned operation/layer-transition/readiness layer，而不是马上用 query prompt 替换已验证路径：
 
 - 借鉴 xMemory / EverOS / Nemori：derived memory 必须有 source episode/source row 回链；`memory_operation_plan_v1` 的 retrieve/expand/verify 都要求回到 raw Memory rows。
 - 借鉴 Mem0 / Memanto / Graphiti：把 update/delete 思想改成 non-destructive supersede、archival、current/historical/as-of view 和 provenance audit。
 - 借鉴 MemoryOS / Letta / MIRIX：把 working/long-term/archival/quarantine 层次、多类 memory object、slot-level state management 和 raw-turn -> typed-object -> tiered-slot -> operation-plan transition 放入 build artifact。
 - 借鉴 MemOS / Hindsight / Mnemis：保留 source expansion、context_pack、audit、candidate organization 思想，但 v291 不直接把 compact workspace plan 放进 query prompt，避免 v289 的 accuracy 回退。
-- 本项目自己的取舍：raw evidence 永远是 final authority；operation plan 和 layer transition manifest 先作为 source-backed state management、conflict handling、context organization、answer verification 和 build-system audit contract，后续 query 消费必须 guarded/additive、可消融、可回滚。
+- 本项目自己的取舍：raw evidence 永远是 final authority；operation plan、layer transition manifest 和 query readiness manifest 先作为 source-backed state management、conflict handling、context organization、answer verification 和 build-system audit contract，后续 query 消费必须 guarded/additive、可消融、可回滚。
 
 v292 负向验证：直接用 compact Memory Operation Plan Guide 替换 current-state 的旧 state/value guide 可以降低 LME query tokens，但 LME changed-output judge 回退明显，因此不升 LTS。后续 query 消费 operation plan 时，应把旧 state/value guide 的 active/superseded value specificity、slot alignment、visible-source expansion 和 conflict audit 先蒸馏进 build operation plan，再做 guarded/additive 消费，不能粗暴替换稳定 query path。
 
 v293 正向验证：新增 build-only `memory_layer_transition_manifest_v1`，LME/LoCoMo full answer diff vs v291 均为 `0`，因此继承 accuracy，同时把 raw-turn、typed-object、tiered-slot、workspace operation plan 和 raw-row expansion 的系统边界显式化。
+
+v294 正向验证：新增 build-only `memory_query_readiness_manifest_v1`，LME/LoCoMo full answer diff vs v293 均为 `0`，因此继承 accuracy；`241281` 个 readiness slots 全部 `guarded_ready`，并全部显式 block 直接替换稳定 state/value guide。它把 operation plan 的 future query 消费边界定义为 additive source-backed index、source expansion、context organization、verification 和 audit signal。
 
 ## 51 项覆盖索引
 

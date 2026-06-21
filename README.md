@@ -6,14 +6,14 @@
 
 ## 当前 LTS 配置
 
-默认配置：`configs/stage1_memory_layer_transition_v293_query_restore_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
+默认配置：`configs/stage1_memory_query_readiness_v294_query_restore_seeded_qwen36_no_think_build4k_cached.json`。Backbone 为 `Qwen/Qwen3.6-35B-A3B` no-thinking，build `max_tokens=4096`，answer `max_output_tokens=16384`。
 
-| Benchmark | 当前 v293 local LTS |
+| Benchmark | 当前 v294 local LTS |
 |---|---:|
 | LongMemEval-S full | strict/lenient `0.834000 / 0.846000`，avg build/query tokens `85393.566 / 6455.588` |
 | LoCoMo non-adversarial full | strict/lenient `0.794156 / 0.819481`，avg build/query tokens `62015.57402597403 / 6093.962337662338` |
 
-v293 的 LTS 理由：在 v291 `memory_operation_plan_v1` 基础上新增 build-owned `memory_layer_transition_manifest_v1`，显式记录 raw turn -> typed memory object -> tiered slot -> workspace operation plan -> expanded raw rows 的转换，以及 non-destructive supersede/archive、quarantine block、source-backed activation 和 layer/tier transition counts。v293 保持 v291 query behavior；LongMemEval-S 和 LoCoMo full answer diff 均为 `0`，因此继承 v291 dual judge accuracy，同时进一步降低 build 阶段不够系统化的风险。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_memory_layer_transition_v293_full_summary.md`。
+v294 的 LTS 理由：在 v293 `memory_layer_transition_manifest_v1` 基础上新增 build-owned `memory_query_readiness_manifest_v1`，把 workspace、operation plan、layer transition 和 object index 收敛成 guarded query-consumer policy。它明确规定 operation plan 只能先作为 additive source-backed index、source expansion、context organization、verification 和 audit signal；derived memory 不能替代 raw evidence，也不能未经等价验证替换稳定的 state/value guide。v294 保持 v293 query behavior；LongMemEval-S 和 LoCoMo full answer diff 均为 `0`，因此继承 v293 dual judge accuracy，同时进一步降低 future query 简化和 build/query 边界不清的风险。详细证据见 `experiments/README.md` 和 `experiments/diagnostic/stage1_memory_query_readiness_v294_full_summary.md`。
 
 ## 目录
 
