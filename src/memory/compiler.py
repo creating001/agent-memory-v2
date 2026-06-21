@@ -223,7 +223,7 @@ SUPPORTED_INFORMATION_NEEDS = {
     "temporal_lookup",
 }
 SUPPORTED_CONTEXT_LAYOUTS = {"flat", "session_thread", "chronological_session_thread"}
-SUPPORTED_MEMORY_CONTEXT_HEADER_FORMATS = {"multiline", "inline"}
+SUPPORTED_MEMORY_CONTEXT_HEADER_FORMATS = {"multiline", "inline", "inline_spaced"}
 ROUTE_OVERRIDE_KEYS = {
     "candidate_guide",
     "candidate_guide_include_memory_hints",
@@ -8506,7 +8506,7 @@ def _external_naive_context(
         raise ValueError(f"Unsupported context_layout: {context_layout}")
     blocks = []
     for index, row in enumerate(rows, start=1):
-        if memory_context_header_format == "inline":
+        if memory_context_header_format in {"inline", "inline_spaced"}:
             header_parts = [f"### Memory {index}"]
             if row.timestamp:
                 header_parts.append(row.timestamp)
@@ -8552,11 +8552,11 @@ def _external_session_thread_context(
         if row.session_id != current_session:
             episode_index += 1
             current_session = row.session_id
-            if memory_context_header_format == "inline":
+            if memory_context_header_format in {"inline", "inline_spaced"}:
                 blocks.append(f"### Episode {episode_index} [{row.session_id}]")
             else:
                 blocks.append(f"### Episode {episode_index}\nSession: {row.session_id}")
-        if memory_context_header_format == "inline":
+        if memory_context_header_format in {"inline", "inline_spaced"}:
             header_parts = [f"#### Memory {index}"]
             if row.timestamp:
                 header_parts.append(row.timestamp)

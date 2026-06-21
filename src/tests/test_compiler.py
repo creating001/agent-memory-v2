@@ -178,6 +178,54 @@ class CompilerTest(unittest.TestCase):
         )
         self.assertNotIn("\nDate: 2024-01-01\nSession: s1\nuser:", inline.prompt)
 
+    def test_inline_spaced_memory_context_header_keeps_row_spacing(self) -> None:
+        compiler = EvidenceCompiler(
+            max_evidence_items=4,
+            max_evidence_chars=4000,
+            prompt_mode="external_naive",
+            evidence_report_contract=True,
+            evidence_report_information_needs=("fact_lookup",),
+            memory_context_header_format="inline_spaced",
+        )
+
+        compiled = compiler.compile(
+            question="Which music streaming service does Alex use?",
+            question_time=None,
+            route=RouteResult("fact_lookup", ("fact",)),
+            hits=(
+                RetrievalHit("s1:t0", 1.0, 1, "test"),
+                RetrievalHit("s2:t0", 0.9, 2, "test"),
+            ),
+            evidence_turns=(
+                Turn(
+                    source_id="s1:t0",
+                    session_id="s1",
+                    turn_index=0,
+                    role="user",
+                    text="Alex uses Spotify for music streaming.",
+                    timestamp="2024-01-01",
+                ),
+                Turn(
+                    source_id="s2:t0",
+                    session_id="s2",
+                    turn_index=0,
+                    role="assistant",
+                    text="I can help compare music services.",
+                    timestamp="2024-01-02",
+                ),
+            ),
+        )
+
+        self.assertIn(
+            "### Memory 1 [2024-01-01; s1]\nuser: Alex uses Spotify",
+            compiled.prompt,
+        )
+        self.assertIn(
+            "music streaming.\n\n### Memory 2 [2024-01-02; s2]\nassistant:",
+            compiled.prompt,
+        )
+        self.assertNotIn("\nDate: 2024-01-01\nSession: s1\nuser:", compiled.prompt)
+
     def test_structured_guide_memory_hints_are_opt_in(self) -> None:
         compiler = EvidenceCompiler(
             max_evidence_items=4,

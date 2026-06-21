@@ -1,0 +1,26 @@
+[
+  {
+    "record_key": "d823172b5baf1eff81acb20c",
+    "benchmark": "longmemeval",
+    "question": "When did I volunteer at the local animal shelter's fundraising dinner?",
+    "gold_answer": "February 14th",
+    "question_type": "single-session-user",
+    "category": null,
+    "old_version": "v347_currentcode",
+    "new_version": "v350",
+    "old_answer": "February 14, 2023",
+    "new_answer": "February (specifically Valentine's Day)"
+  },
+  {
+    "record_key": "ea4e66b0d90b6834b4168cfe",
+    "benchmark": "longmemeval",
+    "question": "Where did I redeem a $5 coupon on coffee creamer?",
+    "gold_answer": "Target",
+    "question_type": "single-session-user",
+    "category": null,
+    "old_version": "v347_currentcode",
+    "new_version": "v350",
+    "old_answer": "The provided information is not enough to determine where the coupon was redeemed, only that it was found in the email inbox.",
+    "new_answer": "The provided information is not enough to determine where the coupon was redeemed."
+  }
+]
